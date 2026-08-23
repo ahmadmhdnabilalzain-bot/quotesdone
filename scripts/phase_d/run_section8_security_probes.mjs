@@ -140,6 +140,7 @@ const base = (await sql(`select
   (select count(*) from public.llm_attempt)                as llm,
   (select coalesce(max(id),0) from net.http_request_queue)  as httpmax,
   (select count(*) from net.http_request_queue)             as httpq,
+  (select count(*) from public.doc_backups)                 as docbackups,
   (select count(*) from public.leads)                       as leads,
   (select count(*) from public.customers)                   as customers,
   (select count(*) from public.inquiries)                   as inquiries,
@@ -617,6 +618,7 @@ try {
     // NOTHING here touches public.company_event for the backup sweep: a delete broad enough to
     // remove OUR backup-failure event would also remove a real one, and hiding a real backup
     // failure to keep a probe tidy is worse than the residue it cleans.
+    `delete from public.doc_backups where path like 'zz-phase-d-section8/%'`,
     `delete from public.documents where path like 'zz-phase-d-section8/%'`,
     `delete from public.leads where claimed_by in (${emails}) or email in (${emails})`,
     `delete from public.customers where email in (${emails})`,
@@ -652,6 +654,7 @@ const end = (await sql(`select
   (select count(*) from net._http_response where created > ${lit(base.t0)}::timestamptz) as http_done,
   (select coalesce(string_agg(distinct left(coalesce(content,''),40), ' | '), '(none)')
      from net._http_response where created > ${lit(base.t0)}::timestamptz) as http_bodies,
+  (select count(*) from public.doc_backups)                 as docbackups,
   (select count(*) from public.leads)                       as leads,
   (select count(*) from public.customers)                   as customers,
   (select count(*) from public.inquiries)                   as inquiries,
@@ -668,6 +671,12 @@ if (Number(end.newhttp) !== 0) drift.push(`net.http_request_queue gained ${end.n
 // Scheduled read-only monitoring stays active under the hold, so a non-zero response count is
 // reported for inspection rather than failed on; the bodies are printed so it can be judged.
 console.log(`  outbound HTTP logged during the run: ${end.http_done} -> ${end.http_bodies}`);
+// THE DOCUMENT ROW WAS NOT THE END OF THE CHAIN. public.documents feeds fn_enqueue_doc_backups,
+// which writes public.doc_backups, and that queue is what cron job 88 drains and retries five
+// times -- it outlives the document that produced it. Two rows survived the deletion of their
+// documents on 23 Aug 2026 and kept the Dropbox sweep failing at 17:15 and 17:30. Counted here so
+// a survivor is a stop and not a note.
+if (end.docbackups !== base.docbackups) drift.push(`doc_backups ${base.docbackups} -> ${end.docbackups}`);
 if (end.leads !== base.leads) drift.push(`leads ${base.leads} -> ${end.leads}`);
 if (end.customers !== base.customers) drift.push(`customers ${base.customers} -> ${end.customers}`);
 if (end.inquiries !== base.inquiries) drift.push(`inquiries ${base.inquiries} -> ${end.inquiries}`);
@@ -679,7 +688,7 @@ if (end.events !== base.events) drift.push(`company_event ${base.events} -> ${en
 
 console.log('\n--- zero effect ---');
 console.log(drift.length === 0
-  ? `  clean: notifications, llm_attempt, outbound HTTP, leads, customers, inquiries, quotes, transactions, company_event and canary identities all returned to their watermark; fn_phase_d_fixture_residue() = 0`
+  ? `  clean: notifications, llm_attempt, outbound HTTP, leads, customers, inquiries, quotes, transactions, doc_backups, company_event and canary identities all returned to their watermark; fn_phase_d_fixture_residue() = 0`
   : `  DRIFT: ${drift.join(' | ')}`);
 
 const refused = results.filter((r) => r.verdict === 'REFUSED_AS_REQUIRED').length;
