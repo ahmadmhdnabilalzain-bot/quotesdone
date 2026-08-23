@@ -112,14 +112,14 @@ canonical writer, and asserted on every scenario build.
 | payment rungs · rungs authorising reveal | **6** · **2** |
 | active founder identities | **2** |
 | refunds approved by Phase D | **0** |
-| FINANCE defects executed and refused | **3 / 5** |
-| PRIVACY defects executed | **2 / 5** — PD-PRIV-003 refused as required; PD-PRIV-004 executed and could not discriminate (see D44); the other three are NOT_RUN with a named blocker |
+| FINANCE defects executed and refused | **4 / 5** — PD-FIN-001 closed 24 Aug at br031_executor_is_reconciler, which is registered at fn_kernel_reviewer_independent and not at phase_c_refund_decision, as its blocker had said. PD-FIN-004 is a permanent exemption: a fixture may never forge a founder decision |
+| PRIVACY defects executed | **3 / 5** — PD-PRIV-001 closed 24 Aug at br011_identity_before_reveal; PD-PRIV-003 refused as required; PD-PRIV-004 executed and could not discriminate, because closing it needs a committed inquiry and a committed inquiry cannot be reversed (the trace ledger is append-only and frozen); PD-PRIV-002 and PD-PRIV-005 are NOT_RUN, both because the subject — a drawing-revision redaction state, a rendered artifact — does not exist in this estate |
 | objects carrying an ownership scope | **56 / 56** |
 | outbound requests from a 30-workflow drive | **0** |
 
 ## Boundary of this evidence
 
-Measured on the one project on 2026-08-19 (database clock). Financial claims are about the ladder,
+Measured on the one project on 2026-08-19, and the two defect fractions re-measured on 2026-08-24 (database clock). Financial claims are about the ladder,
 the trigger and the refunds relation. Privacy claims are about ownership scope and the outbound
 surface **only** — this phase did not test any authenticated read path, any RLS policy, or any
 storage object, and does not claim to have.
