@@ -49,4 +49,12 @@ drop table if exists public.phase_d_capability_result;
 drop table if exists public.phase_d_capability_request;
 drop table if exists public.phase_d_capability_contract;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_d_capability_request_open(p_input jsonb);
+drop function if exists public.fn_phase_d_capability_result_accept(p_input jsonb);
+drop function if exists public.fn_phase_d_capability_answer(p_step_run_id bigint);
 commit;

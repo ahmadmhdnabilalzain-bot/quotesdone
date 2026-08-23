@@ -39,4 +39,10 @@ drop trigger if exists z00_kernel_truncate_guard on public.phase_c_change_reques
 drop trigger if exists a10_freeze_amendment_approver_is_the_founder on public.phase_c_freeze_amendment;
 drop trigger if exists a10_change_request_approver_is_the_founder on public.phase_c_change_request;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_c_founder_approver_guard();
 commit;

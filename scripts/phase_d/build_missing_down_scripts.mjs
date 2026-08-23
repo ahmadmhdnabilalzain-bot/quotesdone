@@ -16,7 +16,7 @@
 // "MISSING" in the rollback classification is worse: it reads as an absence of risk rather than an
 // absence of a plan.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { FILES, classify } from './build_migration_rollback_classification.mjs';
+import { FILES, classify, introducedBy } from './build_migration_rollback_classification.mjs';
 
 const WRITE = process.argv.includes('--write');
 const DIR = 'scripts/sql';
@@ -62,6 +62,12 @@ let written = 0;
 for (const r of missing) {
   const stem = r.file.replace(/\.sql$/, '');
   const rev = reversals(readFileSync(`${DIR}/${r.file}`, 'utf8'));
+  // A routine no other Phase D file defines was INTRODUCED here, and dropping it is the only
+  // reversal there is — re-applying a predecessor cannot restore what had none.
+  for (const fn of introducedBy(r.file)) {
+    rev.push({ what: `routine ${fn.name}(${fn.args}) — introduced by this file`,
+               down: `drop function if exists ${fn.name}(${fn.args});` });
+  }
   const dropable = rev.filter(x => x.down);
   const unrestorable = rev.filter(x => !x.down);
   if (!dropable.length && !unrestorable.length) { console.log(`SKIP  ${r.file} — nothing this program can reverse`); continue; }
@@ -75,7 +81,8 @@ for (const r of missing) {
   }
   const firstTable = (dropable.find(x => x.what.startsWith('table ')) || {}).what;
   const guardOn = firstTable ? firstTable.slice(6)
-    : (dropable[0].down.match(/on ([a-z0-9_.]+);/) || dropable[0].down.match(/alter table ([a-z0-9_.]+)/) || [])[1];
+    : (dropable.map(x => x.down.match(/on ([a-z0-9_.]+);/) || x.down.match(/alter table ([a-z0-9_.]+)/))
+        .find(Boolean) || [])[1];
 
   const text = `-- =================================================================================================
 -- PHASE D DOWN — reverses the additive DDL of
@@ -105,12 +112,12 @@ ${unrestorable.length ? `--\n-- THIS PROGRAM CANNOT REVERSE:\n${unrestorable.map
 
 begin;
 
-do $pre$
+${guardOn ? `do $pre$
 begin
   if to_regclass('${guardOn}') is null then
     raise exception '${stem} down: ${guardOn} does not exist; there is nothing here to revert.';
   end if;
-end $pre$;
+end $pre$;` : '-- Nothing to guard on: this file introduced routines and created no relation.'}
 
 ${body.map(x => x.down).join('\n')}
 

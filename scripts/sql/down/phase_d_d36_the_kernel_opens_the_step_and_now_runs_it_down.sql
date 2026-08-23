@@ -68,4 +68,10 @@ begin
   raise notice 'D36 down: phase_d_dispatch, its three indexes and its identity sequence are gone. Production is back to 23 phase_d_* tables and 4 sequences.';
 end $ctl$;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_d_dispatch_state();
 commit;

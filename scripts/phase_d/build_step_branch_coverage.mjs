@@ -172,8 +172,12 @@ async function failArm(wf, steps) {
 declare v jsonb; v_fx jsonb; v_cands jsonb; v_rev text; v_out text := '';
         v_eff_before bigint; v_obj_before bigint; v_srid bigint; v_held text;
         v_ref_key text; v_boid text;
-begin${PRE(wf, `cvf-${s.step_id.toLowerCase()}`)}
-  perform set_config('app.phase_d_hold_step','${s.step_id}', true);
+begin
+  -- THE HOLD IS SET BEFORE THE SCENARIO IS BUILT. Measured 23 Aug 2026: W05-S01 and W18-S03 came
+  -- back no_open_step because the scenario own product trigger starts the run while the scenario is
+  -- still being built (H06), so those steps were dispatched and EXECUTED before this line ran.
+  -- W18 dispatch order was S03, S02, S01, S04... for exactly that reason.
+  perform set_config('app.phase_d_hold_step','${s.step_id}', true);${PRE(wf, `cvf-${s.step_id.toLowerCase()}`)}
   v := public.fn_phase_d_drive_workflow(jsonb_build_object(
     'workflow_id','${wf}','label','cvf-${s.step_id.toLowerCase()}',
     'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,

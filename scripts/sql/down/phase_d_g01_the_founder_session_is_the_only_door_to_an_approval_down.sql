@@ -47,4 +47,10 @@ alter table public.phase_c_freeze_amendment drop column if exists approval_route
 alter table public.phase_c_freeze_amendment drop column if exists original_deployment_at;
 alter table public.phase_c_freeze_amendment drop column if exists deployed_before_approval;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_c_freeze_amendment_approve(p_input jsonb);
 commit;

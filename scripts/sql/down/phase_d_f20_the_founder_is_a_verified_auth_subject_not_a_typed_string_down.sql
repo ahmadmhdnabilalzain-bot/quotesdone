@@ -41,4 +41,11 @@ drop trigger if exists z10_kernel_write_guard on public.phase_c_founder_auth_eve
 drop table if exists public.phase_c_founder_auth_event;
 alter table public.phase_c_founder_identity drop column if exists auth_user_id;
 
+
+-- ---- ROUTINES THIS FILE INTRODUCED ------------------------------------------------------
+-- Added 23 Aug 2026. Every routine below is defined by no other file under scripts/sql/, so
+-- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
+-- Anything still calling one of them will raise on a missing function after this rollback.
+drop function if exists public.fn_phase_c_founder_subject_bind(p_subject uuid);
+drop function if exists public.fn_phase_c_founder_auth_state();
 commit;

@@ -38,6 +38,39 @@ function topLevelStatements(sql) {
     .map(l => l.trim().toLowerCase());
 }
 
+// WHICH FILE INTRODUCED A ROUTINE. `create or replace function` reads the same whether it is the
+// first definition or the ninth, and the two need opposite rollbacks: a REPLACEMENT is reversed by
+// re-applying the predecessor, and an INTRODUCTION is reversed by dropping the routine, because
+// there is no predecessor to restore. A routine that appears in exactly one phase_d file was
+// introduced by that file. THE CORPUS IS EVERY scripts/sql/*.sql, not only the phase_d ones: the
+// first run of this test called phase_d_j02 an introduction of fn_kernel_cancel, which is a Phase C
+// kernel routine that no phase_d file had defined before and that j02 only replaces.
+const DEFINES = /^create (?:or replace )?function\s+(public\.[a-z0-9_]+)\s*\(([^)]*)\)/gmi;
+const definedIn = new Map();   // routine -> [file, ...]
+const signature = new Map();   // routine -> the argument list as written
+const ALL_SQL = readdirSync(DIR).filter(f => /.sql$/.test(f)).sort();
+for (const f of ALL_SQL) {
+  const text = readFileSync(`${DIR}/${f}`, 'utf8');
+  for (const m of text.matchAll(DEFINES)) {
+    const name = m[1].toLowerCase();
+    if (!definedIn.has(name)) definedIn.set(name, []);
+    if (!definedIn.get(name).includes(f)) definedIn.get(name).push(f);
+    if (!signature.has(name)) signature.set(name, m[2].replace(/\s+/g, ' ').trim());
+  }
+}
+/** Routines this file is the only definer of — the ones its rollback has to drop. */
+export function introducedBy(file) {
+  const text = readFileSync(`${DIR}/${file}`, 'utf8');
+  const out = [];
+  for (const m of text.matchAll(DEFINES)) {
+    const name = m[1].toLowerCase();
+    if (definedIn.get(name).length === 1 && !out.some(x => x.name === name)) {
+      out.push({ name, args: m[2].replace(/\s+/g, ' ').trim() });
+    }
+  }
+  return out;
+}
+
 export function classify(file) {
   const raw = readFileSync(`${DIR}/${file}`, 'utf8');
   const st = topLevelStatements(raw);
@@ -70,6 +103,7 @@ export function classify(file) {
   const deletes = has(/^delete from /).length;
   const writes = has(/^(insert into|update) /).length;
 
+  const introduced = introducedBy(file);
   const ddl = [];
   if (createTable) ddl.push(`${createTable} table`);
   if (createIndex) ddl.push(`${createIndex} index`);
@@ -99,6 +133,10 @@ export function classify(file) {
   // d4 shows why the two were conflated: that file drops two routines AND creates a table, and the
   // table is what needs the down.
   else if (dropFunction) cls = 'ROUTINE_SIGNATURE_CHANGE';
+  // A file that is the only definer of a routine INTRODUCED it. Re-applying a predecessor cannot
+  // reverse that — there is no predecessor — so the reversal is a named drop, and the file needs a
+  // down script exactly as one that created a table does.
+  else if (introduced.length) cls = 'ROUTINE_INTRODUCED';
   else if (routines) cls = 'ROUTINE_RESTORE';
   else if (grants) cls = 'GRANT_RESTORE';
   else if (writes) cls = 'ADDITIVE_SURVIVAL_SAFE';
@@ -106,12 +144,14 @@ export function classify(file) {
 
   const stem = file.replace(/\.sql$/, '');
   const downFile = `${DIR}/down/${stem}_down.sql`;
-  const downNeeded = cls === 'EXPLICIT_DOWN_REQUIRED' || cls === 'IRREVERSIBLE_WITH_FOUNDER_APPROVAL';
+  const downNeeded = cls === 'EXPLICIT_DOWN_REQUIRED' || cls === 'IRREVERSIBLE_WITH_FOUNDER_APPROVAL'
+    || cls === 'ROUTINE_INTRODUCED' || introduced.length > 0;
   const headerDown = /^--.*\bROLLBACK\b/mi.test(raw) || /^--.*\bDOWN\b/m.test(raw);
 
   return {
     file, class: cls,
-    routines, additive_ddl: ddl.join(', ') || 'none',
+    routines, routines_introduced: introduced.map(x => x.name).join(' ') || 'none',
+    additive_ddl: ddl.join(', ') || 'none',
     grants, registry_writes: writes, deletes,
     down_script_required: downNeeded ? 'YES' : 'NO',
     down_script: existsSync(downFile) ? `${DIR}/down/${stem}_down.sql` : (downNeeded ? 'MISSING' : '-'),
@@ -119,8 +159,7 @@ export function classify(file) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`
-    || process.argv[1].endsWith('build_migration_rollback_classification.mjs')) {
+if (String(process.argv[1] || '').endsWith('build_migration_rollback_classification.mjs')) {
   const rows = FILES.map(classify);
   const cols = Object.keys(rows[0]);
   const csv = provenance({

@@ -18,7 +18,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { FILES, classify } from '../phase_d/build_migration_rollback_classification.mjs';
+import { FILES, classify, introducedBy } from '../phase_d/build_migration_rollback_classification.mjs';
 
 const CSV = 'docs/phase-d/PHASE_D_MIGRATION_ROLLBACK_CLASSIFICATION.csv';
 const rows = FILES.map(classify);
@@ -35,6 +35,23 @@ test('every migration that needs an explicit down script has one', () => {
   assert.deepEqual(missing.map(r => `${r.file} (${r.additive_ddl})`), [],
     'additive DDL with no down script: a previous function body is not a rollback for a table, '
     + 'column, constraint, trigger or index');
+});
+
+test('a down script drops the routines its migration introduced', () => {
+  // `create or replace function` reads the same whether it is the first definition or the ninth,
+  // and the two need opposite rollbacks. A routine no other file under scripts/sql/ defines was
+  // INTRODUCED, and re-applying a predecessor cannot restore what had none. Measured 23 Aug 2026:
+  // 28 down scripts reversed their file's tables, columns and triggers and left the routine behind.
+  const bad = [];
+  for (const f of FILES) {
+    const intro = introducedBy(f);
+    if (!intro.length) continue;
+    const d = `scripts/sql/down/${f.replace(/\.sql$/, '')}_down.sql`;
+    if (!existsSync(d)) { bad.push(`${f}: no down script, and it introduces ${intro.map(r => r.name).join(', ')}`); continue; }
+    const t = readFileSync(d, 'utf8');
+    for (const r of intro) if (!t.includes(r.name)) bad.push(`${d} does not drop ${r.name}`);
+  }
+  assert.deepEqual(bad, []);
 });
 
 test('the committed classification CSV covers the corpus that exists now', () => {
