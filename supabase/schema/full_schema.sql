@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-23T21:34:22.450Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-23T21:47:28.911Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51502,17 +51502,19 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_disposition_state()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  with cat as (
-    select d.defect_id from public.phase_d_injected_defect_disposition d
-  )
-  select 'every_disposition_names_a_catalogued_defect', '0',
+  -- The catalogue is a committed CSV, not a table, so this board cannot join to it. What it CAN
+  -- assert is the shape of the id; the join to the catalogue itself is asserted by
+  -- scripts/phase_d/build_injected_defect_result.mjs, which fails the build when a case that did
+  -- not run has no row here and when a row here survives a case that has since closed. An earlier
+  -- draft of this board opened with a `cat` CTE that selected from this very table and was then
+  -- never used, and named itself after a check it did not do.
+  select 'every_disposition_names_a_well_formed_defect_id', '0',
          (select count(*)::text from public.phase_d_injected_defect_disposition d
-           where not exists (select 1 from public.phase_d_section8_defect_map m where m.defect_id = d.defect_id)
-             and d.defect_id !~ '^PD-[A-Z]+-[0-9]{3}$'),
+           where d.defect_id !~ '^PD-[A-Z]+-[0-9]{3}$'),
          case when exists (select 1 from public.phase_d_injected_defect_disposition d
                             where d.defect_id !~ '^PD-[A-Z]+-[0-9]{3}$')
               then 'RED' else 'GREEN' end,
-         'a disposition for an id the catalogue does not carry decides nothing'
+         'an id the catalogue could not carry decides nothing; the join to the catalogue itself is asserted by the deliverable build'
   union all
   select 'no_disposition_restates_the_defect_id_as_its_reason', '0',
          (select count(*)::text from public.phase_d_injected_defect_disposition d
