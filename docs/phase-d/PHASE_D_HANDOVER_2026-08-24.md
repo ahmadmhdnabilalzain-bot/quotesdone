@@ -328,6 +328,30 @@ a root trace whose `state_after` matches. All six are fixed, every column read o
   `max_numerator: 1`, owned, with that reason — so a **second** unauthorised writer still turns the
   board red.
 
+### Two deliverables that could not reproduce, and the check that only sees it with the drive on
+
+`phase_d_deliverables_match_production` skips its two driven reproductions unless `PHASE_D_DRIVE=1`.
+The one CI job that sets it is the Phase D handler gate, and it failed on both.
+
+* **`PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` redacted what it had already truncated.** Its reason
+  columns replace runs of three or more digits with `<id>` so a fixture's fresh inquiry number does
+  not make the row differ — but the replacement ran *after* `left(reason, 400)`, so the window was
+  measured on text that still held the id. Capability request ids crossed 9999 during this session,
+  every reason column shifted by one character, and ten rows stopped reproducing:
+  `…completing a busines` against `…completing a busine`. The id was redacted and its **length** was
+  not. Redact first, then truncate.
+* **`PHASE_D_INJECTED_DEFECT_RESULT.csv` redacted nothing**, and this session's new branches name the
+  step runs, tasks and traces they drove. Two consecutive builds over the same estate differed on
+  five rows, every difference a per-run id.
+* **Six digits, not three, and the boundary is stated where it is drawn.** Three or more would take
+  "28 of 257 frozen steps" and "20,465 leads" with it — counts that *are* the finding. Every
+  volatile kernel id here is six digits or more; every count these observations carry is five or
+  fewer.
+
+`PHASE_D_DRIVE=1 node --test scripts/checks/phase_d_deliverables_match_production.test.mjs` →
+**12 passed, 0 failed, 0 skipped** — the first run in which both driven reproductions were asserted
+rather than skipped.
+
 ### A finding that was counted and never named
 
 The canonical routine engine printed `uncommitted application DDL 2` and named neither. Every other
@@ -478,6 +502,9 @@ marker** — `@example.invalid`, `ZZ DEMO` or `zz-phase-d-`.
 | schema export byte-identical | yes |
 | `node scripts/verify_deploy_parity.mjs --all` | **202 functions** |
 | `node --test scripts/checks/phase_d_the_three_steps_that_had_no_effect.test.mjs` | 7 of 7 pass — it was 6 of 7, silently, until this session |
+| `PHASE_D_DRIVE=1 node --test scripts/checks/phase_d_deliverables_match_production.test.mjs` | **12 passed, 0 failed, 0 skipped** — the first run with both driven reproductions asserted |
+| `node --test scripts/checks/kernel_boards_are_green.test.mjs` | 7 of 7 pass; 21 boards, one new ratchet entry disclosed |
+| `node scripts/checks/kernel_positive_controls.test.mjs` | 20 doors, 20 accepted, 0 failed |
 | Supabase, swept for failures | cron `job_run_details` in 24h: **0 not-succeeded**. `agent_runs` errors in 24h: **0**. `dead_letter` in 24h: **0**. `public.doc_backups` holds 26 rows in `error` — **read the dates**: every one is from 15 July 2026 at `attempts = 5`, exhausted, `compare parse_failed`, and the newest error row in the last 24 hours is **0**. |
 | Vercel | preview deployments for this branch completed |
 | knowledge-pack scorecard | **not run** — see §8 |
