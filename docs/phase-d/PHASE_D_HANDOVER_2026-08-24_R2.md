@@ -10,7 +10,7 @@ this file. Where a figure is bounded, the bound is stated next to it rather than
 | | |
 |---|---|
 | base | `main @ 48195b1` — HEAD, `origin/main` and the working tree's tracked state all equal, PR [#463](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/463) merged |
-| applied production-direct | N01–N10, each `node scripts/apply_sql.mjs <file> --apply [--ddl]`, each read back and identical to the file |
+| applied production-direct | N01–N11, each `node scripts/apply_sql.mjs <file> --apply [--ddl]`, each read back and identical to the file |
 | Supabase project | `htdblwldjkcgjvmqkbeh`, the only one |
 | Phase A drift | **0 rows** |
 | Phase B drift | **0 rows** |
@@ -260,6 +260,17 @@ builds itself cannot answer whether the *estate* has a control, only whether a c
 
 ---
 
+### N11 — the ownership ledger still named the file N01 replaced, for the fourth time
+
+`scripts/checks/application_source_of_truth.test.mjs` went red on the branch with one finding:
+`public.kernel_routine_ownership` recorded `fn_unsafe_match_eligibility_guard`'s canonical file as
+K05 while manifest order said N01. Nothing about the classification changed — QUOTESDONE_APPLICATION
+under R4 before and after — only the file. D56, F28 and K09 carry titles one word from this one.
+
+The ledger is deliberately **not** regenerated from the manifest: a ledger derived from the thing it
+audits audits nothing, so the gate is right to be red until a human moves the row. Four occurrences
+is an argument for a smaller diff at the point of replacement, not for deleting the check.
+
 ## 5. PCCR-004 — disclosed, not approved, not applied
 
 `sha256(pg_get_functiondef('public.fn_kernel_cancel(jsonb)'))` measured this session:
@@ -289,7 +300,7 @@ The complete amendment table is in
 | effective handoffs | 159 |
 | events reconciled and runtime-proven | **347 of 347** `OBSERVED_SUCCESS` |
 | injected defects | **66 of 75** discriminating · 0 accepted · 0 NOT_DISCRIMINATED · 9 gaps, each naming its missing control |
-| migrations classified | **234 of 234** · down script required and missing **0** |
+| migrations classified | **235 of 235** · down script required and missing **0** |
 
 ### The one thing the branch matrix does *not* prove, said plainly
 
