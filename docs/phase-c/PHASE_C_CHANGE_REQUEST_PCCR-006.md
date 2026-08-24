@@ -236,6 +236,13 @@ sha256.** Everything below was measured on production at HEAD `521ed16` on 24 Au
 | 12 | The exact PCCR-006 migration is applied | `node scripts/apply_sql.mjs scripts/sql/phase_c_pccr006_governance_approval_authenticity.sql --apply --ddl`, then the entry moves from `scripts/sql/PENDING.txt` to `scripts/sql/MANIFEST.txt` |
 | 13 | Every future governance approval uses the new service | `fn_phase_c_governance_decide`, transaction-bound, single-use, server-derived. **This bootstrap is used exactly once** |
 
+**Boundary on step 10.** `fn_founder_command_classify` was executed here against the approval
+sentence with a placeholder digest, because the real digest is the sha256 of this file and this
+paragraph is inside it. The classifier matches against `public.phase_c_command_rule`, which is data
+and reads no hex string — it returned `AMBIGUOUS`, confidence 0.0, *"no registered command intent
+matches this instruction"*. The digest's value cannot change that, but the sentence with the real
+digest was not itself put through the classifier and is not claimed to have been.
+
 ### The residual weakness in the bootstrap, stated rather than hidden
 
 `founder_command_message` records the founder identity as a **string** and does not record
