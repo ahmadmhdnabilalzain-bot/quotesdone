@@ -516,7 +516,8 @@ body reads as drift again, which is the point.
 
 ## 2026-08-24 — the `phase_d_o01`–`phase_d_o10` sequence
 
-Branch `finish/phase-d-nine-product-controls`, cut from `main` at `2c9e3f2` immediately after
+Branch `finish/phase-d-nine-product-controls`, commit `f9d2f6f`, PR [#465](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/465).
+Cut from `main` at `2c9e3f2` immediately after
 PR [#464](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/464) merged at
 `2026-08-24T08:48:33Z`. Every file below was applied with
 `node scripts/apply_sql.mjs <file> --apply --ddl`, which reads each routine's definition back out of
