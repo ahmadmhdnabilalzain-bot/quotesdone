@@ -164,6 +164,26 @@ function definitionsIn(file) {
   return [...last.values()];
 }
 
+// FILES COMMITTED AND DELIBERATELY NOT APPLIED are read from scripts/sql/PENDING.txt and excluded
+// from the canonical scan below. A file that has not run is not the canonical definition of
+// anything — including it would report repository -> production drift for a change nobody has made
+// yet, which is exactly what a pending founder decision looks like from here.
+const PENDING = new Map();
+{
+  const p = 'scripts/sql/PENDING.txt';
+  if (existsSync(p)) {
+    for (const raw of readFileSync(p, 'utf8').split(/\r?\n/)) {
+      const l = raw.trim();
+      if (!l || l.startsWith('#')) continue;
+      const i = l.indexOf('::');
+      if (i < 0) continue;
+      const f = l.slice(0, i).trim();
+      const why = l.slice(i + 2).trim();
+      if (f && why) PENDING.set(f, why);
+    }
+  }
+}
+
 const FILES = [
   ...lsSql('supabase/migrations_history'),
   ...lsSql('supabase/migrations'),
@@ -172,7 +192,7 @@ const FILES = [
   ...lsSql('scripts/sql/rollback'),
   ...lsSql('supabase/migrations-superseded-consolidated'),
   ...lsSql('supabase/rollback'),
-];
+].filter((f) => !PENDING.has(f));
 
 // name -> [{file, seqKey, tier, version, args, body, canonicalEligible, whyNot}]
 const byRoutine = new Map();
@@ -218,7 +238,32 @@ for (const [name, defs] of byRoutine) {
 // ---------------------------------------------------------------- manifest integrity
 const diskScripts = new Set(lsSql('scripts/sql'));
 const GAPS = [];
-for (const f of diskScripts) if (!manifestPos.has(f)) GAPS.push(`ON DISK, NOT IN MANIFEST  ${f}`);
+
+// A FILE COMMITTED AND DELIBERATELY NOT APPLIED IS A STATED FACT, NOT A GAP.
+//
+// PCCR-006 is the case this exists for: a security correction to a FROZEN Phase C contract that may
+// not be applied until the founder approves it in a verified session. Committing it is required —
+// the approval names a digest of something that must already exist — and applying it from a
+// migration would be the exact defect it closes. Before this, such a file read as "ON DISK, NOT IN
+// MANIFEST", which is the same words this check uses for a file somebody forgot.
+//
+// scripts/sql/PENDING.txt carries the path and the REASON. A file in both lists is refused: it
+// cannot be both applied and pending, and letting that pass would be a way to hide an apply.
+// AN ENTRY WITH NO REASON IS AN EXCLUSION NOBODY EXPLAINED, and it would be a way to hide a file
+// from the canonical scan. The PENDING map above skips such a line; this reports it.
+for (const raw of (read('scripts/sql/PENDING.txt') || '').split(/\r?\n/)) {
+  const l = raw.trim();
+  if (!l || l.startsWith('#')) continue;
+  const i = l.indexOf('::');
+  if (i < 0 || !l.slice(i + 2).trim()) GAPS.push(`PENDING ENTRY WITH NO REASON  ${l}`);
+}
+for (const [f, why] of PENDING) {
+  if (manifestPos.has(f)) GAPS.push(`PENDING AND ALSO IN MANIFEST  ${f} — a file cannot be both applied and pending`);
+  else if (!diskScripts.has(f)) GAPS.push(`PENDING, NOT ON DISK  ${f}`);
+  else console.log(`   PENDING (committed, deliberately not applied)  ${f}\n      ${why}`);
+}
+
+for (const f of diskScripts) if (!manifestPos.has(f) && !PENDING.has(f)) GAPS.push(`ON DISK, NOT IN MANIFEST  ${f}`);
 for (const f of manifestPos.keys()) if (!diskScripts.has(f)) GAPS.push(`IN MANIFEST, NOT ON DISK  ${f}`);
 {
   const seen = new Set();

@@ -37,7 +37,6 @@
 -- After this rollback it exists with nothing to fire on.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -86,4 +85,3 @@ begin
   raise notice 'D20 down: the payment-state trigger, the contributes_kind check and the three d20 columns are gone; all 25 fixture-stage rows survive.';
 end $ctl$;
 
-commit;

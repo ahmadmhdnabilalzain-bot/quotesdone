@@ -70,7 +70,6 @@
 -- from what is observed rather than from what somebody remembers.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 declare v_probe_bad int; v_defect_bad int;
@@ -136,4 +135,3 @@ begin
   raise notice 'D44 down: both verdict domains are back to the three values of d34:32 and d31:39-40. The rows d44 reclassified are NOT restored — re-run the probes.';
 end $ctl$;
 
-commit;

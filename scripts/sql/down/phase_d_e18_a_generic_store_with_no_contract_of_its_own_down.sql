@@ -25,7 +25,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -37,4 +36,3 @@ end $pre$;
 drop trigger if exists z40_phase_d_object_record_contract on public.phase_d_object_record;
 drop table if exists public.phase_d_object_state_contract;
 
-commit;

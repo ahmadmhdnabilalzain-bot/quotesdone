@@ -42,7 +42,6 @@
 -- family). A create-or-replace has no down — see scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 drop index if exists public.phase_d_effect_ledger_step_idx;
 drop index if exists public.phase_d_effect_ledger_run_idx;
@@ -66,4 +65,3 @@ begin
   raise notice 'D7 down: phase_d_step_effect, phase_d_object_write_map, phase_d_effect_ledger and its two indexes are gone.';
 end $ctl$;
 
-commit;

@@ -3,12 +3,21 @@
 // §11 of the brief: seven cases for each of the 257 frozen steps — positive, missing input, wrong
 // actor, invalid state, duplicate, failed rule/gate, malformed output. 257 × 7 = 1,799.
 //
-// The matrix is EXECUTED by public.fn_phase_d_run_step_cases(), which writes
+// P05. THE INSTRUCTION THAT TOLD YOU TO WIPE THE TABLE AT THE MOMENT IT WAS SHORT.
+// This header and the refusal message at the foot of this file both told a reader to run
+// public.fn_phase_d_run_step_cases(). That routine is the pre-23-Aug contract-only matrix, its
+// FIRST statement is `delete from public.phase_d_step_case_result`, and re-run at HEAD it replaces
+// the authoritative 1,799 rows with 257 positive failures. The independent audit of 24 Aug 2026 did
+// exactly that. It is retired by phase_d_p02 and now raises 23514. The authoritative runner is
+// scripts/phase_d/run_step_cases_live.mjs, which drives a real step run per step in an aborted
+// transaction and NEVER deletes -- it upserts on (step_id, case_kind).
+//
+// The matrix WAS executed by public.fn_phase_d_run_step_cases(), which wrote
 // public.phase_d_step_case_result and asserts on the way out that it produced no effect and no step
 // run. This script only READS that table, so it goes through the read door.
 //
 //   -- first, execute the matrix (it writes its own result table):
-//   select public.fn_phase_d_run_step_cases();
+//   node scripts/phase_d/run_step_cases_live.mjs      <- the authoritative runner
 //   -- then:
 //   node scripts/phase_d/build_step_case_result.mjs
 //
@@ -43,7 +52,9 @@ const want = expected?.[0]?.n ?? 0;
 
 if (!want || rows.length !== want) {
   console.error(`read ${rows.length} case row(s) and the frozen model implies ${want}. `
-    + 'Refusing to write a partial export — run fn_phase_d_run_step_cases() first.');
+    + 'Refusing to write a partial export — run node scripts/phase_d/run_step_cases_live.mjs '
+    + 'first. NOT fn_phase_d_run_step_cases(): that is the retired contract-only matrix and its '
+    + 'first act is to DELETE this table, which is how it came to be short.');
   process.exit(1);
 }
 

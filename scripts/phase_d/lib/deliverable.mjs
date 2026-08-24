@@ -67,6 +67,21 @@ export function provenance({ command, numerator, denominator, of, attribution })
 /** The line the deliverable comparison strips before diffing. Exported so both sides agree. */
 export const VOLATILE_LINE = /^# generated_at:/;
 
+/**
+ * Timestamps that are EVIDENCE and are therefore kept in the file, but which necessarily differ
+ * between two runs and so are normalised before the comparison rather than dropped.
+ *
+ * Added 24 Aug 2026 when scripts/phase_d/prove_object_reference_round_trip.mjs joined BUILDERS.
+ * Its footer reads
+ *
+ *   # ROLLBACK CONFIRMED from a new transaction at <ts> on <project>: customers=0 … residue=0
+ *
+ * and only the <ts> moves. It matters — it is what shows the rollback was read from a transaction
+ * opened AFTER every drive had aborted — so the line is not stripped. STRIPPING IT WOULD DROP THE
+ * COUNTS WITH IT, which are the part that must still match exactly.
+ */
+export const VOLATILE_TIMESTAMP = /(ROLLBACK CONFIRMED from a new transaction at )\d{4}-\d\d-\d\d[ T][\d:.]+\+\d\d/g;
+
 // THE BUILD ORDER, IN ONE PLACE, BECAUSE THREE THINGS HAVE TO AGREE ON IT: the npm script, the
 // build_all runner, and the check that regenerates every one of them. It was previously written
 // nowhere at all — the builders were run by hand, in whatever order the person remembered.
@@ -84,6 +99,23 @@ export const BUILDERS = [
   { script: 'scripts/phase_d/build_frontend_api_call_graph.mjs', file: 'PHASE_D_FRONTEND_API_CALL_GRAPH.csv', drives: false },
   { script: 'scripts/phase_d/build_step_case_result.mjs', file: 'PHASE_D_STEP_CASE_RESULT.csv', drives: false },
   { script: 'scripts/phase_d/build_injected_defect_result.mjs', file: 'PHASE_D_INJECTED_DEFECT_RESULT.csv', drives: true },
+  // ADDED 24 AUG 2026. Both of these were derivations that nothing rebuilt and nothing byte-checked,
+  // and both were carrying superseded facts while looking current — the exact shape this array
+  // exists to make impossible.
+  //
+  //   PHASE_D_INJECTED_DEFECT_EXEMPTION_REGISTER.csv held NINETEEN rows, every one
+  //   disposition=PERMANENT_EXEMPTION, against a live public.phase_d_injected_defect_disposition of
+  //   ZERO. All nineteen were false, not one: nine moved to …_disposition_history as
+  //   REAL_PRODUCT_GAP (closed by phase_d_o01–o08) and the other ten were closed earlier by
+  //   phase_d_n10, whose own header records that in eight of the ten "the RECORDED BLOCKER WAS
+  //   SIMPLY WRONG". The builder always read the live table correctly; nothing ever ran it.
+  //
+  //   PHASE_D_OBJECT_REFERENCE_ROUND_TRIP.csv recorded invoice_receipt's physical key as
+  //   invoice_no. Production and public.phase_d_object_reference_strategy both say transaction_id,
+  //   because phase_d_k04 moved it six hours after the CSV was last built. One mismatch across 56
+  //   rows — and one is enough, because nothing would ever have found it.
+  { script: 'scripts/phase_d/build_exemption_register.mjs', file: 'PHASE_D_INJECTED_DEFECT_EXEMPTION_REGISTER.csv', drives: false },
+  { script: 'scripts/phase_d/prove_object_reference_round_trip.mjs', file: 'PHASE_D_OBJECT_REFERENCE_ROUND_TRIP.csv', drives: true },
   // DELIBERATELY NOT LISTED: scripts/phase_d/build_transaction_local_evidence.mjs.
   //
   // Everything in this array is a DERIVATION — a statement about the estate that must come out the

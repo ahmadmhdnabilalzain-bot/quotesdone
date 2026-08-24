@@ -1,5 +1,5 @@
 # node scripts/phase_d/prove_object_reference_round_trip.mjs | project htdblwldjkcgjvmqkbeh | 56 of 56 frozen business objects have a proved creation path: 55 round-tripped through a canonical relation row and 1 through the declared external-effect intent that is the whole of Phase D’s creation contract for it | attribution: one row per object in public.phase_d_object_reference_strategy. The scenario factory creates what it creates through the canonical write services inside a transaction that is aborted; each created object is resolved back through fn_phase_d_ref_resolve and the resolved object, canonical_identity and version are compared with the reference the writer returned. An object no stage creates is reported NOT_CREATED_BY_ANY_STAGE and is never counted as a pass
-# generated_at: 2026-08-23T12:00:45.585Z
+# generated_at: 2026-08-24T18:29:33.431Z
 object_id,storage_kind,canonical_identity_type,physical_relation,physical_pk_column,round_trip,same_object,same_identity,same_version
 ai_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ai_change,business_key,ROUND_TRIPPED,true,true,true
 campaign_asset,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.content_drafts,id,ROUND_TRIPPED,true,true,true
@@ -25,7 +25,7 @@ inquiry_document,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.documents,id,ROUND_T
 inquiry_route_set,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_inquiry_route_set,business_key,ROUND_TRIPPED,true,true,true
 inquiry_version,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_inquiry_version,business_key,ROUND_TRIPPED,true,true,true
 intelligence_product,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_intelligence_product,business_key,ROUND_TRIPPED,true,true,true
-invoice_receipt,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.reveal_invoices,invoice_no,ROUND_TRIPPED,true,true,true
+invoice_receipt,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.reveal_invoices,transaction_id,ROUND_TRIPPED,true,true,true
 knowledge_change,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_knowledge_change,business_key,ROUND_TRIPPED,true,true,true
 legal_risk_review,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.legal_reviews,id,ROUND_TRIPPED,true,true,true
 notification,EXISTING_TABLE,RELATION_PRIMARY_KEY,public.notifications,id,ROUND_TRIPPED_AS_EXTERNAL_EFFECT_INTENT,true,true,true
@@ -57,5 +57,5 @@ supplier_verification_case,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v
 ux_specification,PHASE_D_STORE,OBJECT_ID_BUSINESS_KEY_VERSION,public.v_obj_ux_specification,business_key,ROUND_TRIPPED,true,true,true
 workflow_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_run,run_id,ROUND_TRIPPED,true,true,true
 workflow_step_run,KERNEL_OWNED,KERNEL_ID,public.phase_c_workflow_step_run,step_run_id,ROUND_TRIPPED,true,true,true
-# REPLAY: the same scenario driven twice in one transaction produced 54 then 40 stages, 30 live object records and 0 duplicate (object_id, business_key) pairs
-# ROLLBACK CONFIRMED from a new transaction at 2026-08-23 12:00:40.942402+00 on htdblwldjkcgjvmqkbeh: customers=0 inquiries=0 quotes=0 transactions=0 phase_d_object_record=0 residue=0
+# REPLAY: the same scenario driven twice in one transaction produced 54 then 33 stages, 30 live object records and 0 duplicate (object_id, business_key) pairs
+# ROLLBACK CONFIRMED from a new transaction at 2026-08-24 18:29:29.641082+00 on htdblwldjkcgjvmqkbeh: customers=0 inquiries=0 quotes=0 transactions=0 phase_d_object_record=0 residue=0

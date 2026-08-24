@@ -30,7 +30,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -47,4 +46,3 @@ drop trigger if exists z10_kernel_write_guard on public.phase_d_scenario_record;
 drop index if exists public.phase_d_scenario_record_by_run_ref;
 drop table if exists public.phase_d_scenario_record;
 
-commit;

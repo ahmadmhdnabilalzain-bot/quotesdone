@@ -24,7 +24,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -35,4 +34,3 @@ end $pre$;
 
 alter table public.phase_d_fixture_stage drop constraint if exists phase_d_fixture_stage_contributes_kind_check;
 
-commit;

@@ -24,7 +24,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -35,4 +34,3 @@ end $pre$;
 
 drop table if exists public.phase_d_context_key_object;
 
-commit;

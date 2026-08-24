@@ -40,7 +40,6 @@
 -- they dispatch, so they will raise on a missing relation. Expected.
 -- =================================================================================================
 
-begin;
 
 drop index if exists public.phase_d_dispatch_step_idx;
 drop index if exists public.phase_d_dispatch_run_idx;
@@ -74,4 +73,3 @@ end $ctl$;
 -- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_dispatch_state();
-commit;

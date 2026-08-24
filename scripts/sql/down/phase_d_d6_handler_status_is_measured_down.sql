@@ -20,7 +20,6 @@
 -- business_write_wired, so after this rollback it raises on a missing column. Expected.
 -- =================================================================================================
 
-begin;
 
 alter table public.phase_d_handler_binding
   drop column if exists business_write_wired;
@@ -44,4 +43,3 @@ begin
   raise notice 'D6 down: phase_d_handler_binding.business_write_wired is gone; all binding rows survive.';
 end $ctl$;
 
-commit;

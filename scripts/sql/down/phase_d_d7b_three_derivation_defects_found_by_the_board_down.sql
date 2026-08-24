@@ -40,7 +40,6 @@
 -- constraint. Reverting d7b properly means reverting both, and only the constraint half is DDL.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 declare v_bad int;
@@ -83,4 +82,3 @@ begin
   raise notice 'D7b down: phase_d_step_effect_resolution_ck is back to the four values of d7:83-84.';
 end $ctl$;
 
-commit;

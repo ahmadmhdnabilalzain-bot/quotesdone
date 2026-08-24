@@ -28,7 +28,6 @@
 -- ROW COUNT AT RISK: none. Two rows are updated in place; nothing is inserted or deleted.
 -- =================================================================================================
 
-begin;
 
 do $down$
 begin
@@ -68,4 +67,3 @@ update public.kernel_routine_ownership
        recorded_at        = now()
  where schema_name = 'public' and routine_name = 'fn_unsafe_match_eligibility_guard';
 
-commit;

@@ -28,7 +28,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -43,4 +42,3 @@ alter table public.phase_c_freeze_amendment drop column if exists approved_at;
 alter table public.phase_c_freeze_amendment drop column if exists approved_by;
 alter table public.phase_c_freeze_amendment drop column if exists change_request_ref;
 
-commit;

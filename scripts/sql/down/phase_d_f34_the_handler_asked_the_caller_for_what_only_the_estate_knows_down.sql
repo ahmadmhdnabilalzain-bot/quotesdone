@@ -24,10 +24,8 @@
 
 -- =================================================================================================
 
-begin;
 
 -- Nothing to guard on: this file introduced routines and created no relation.
 
 drop function if exists public.fn_phase_d_recorded_review(p_step_run_id bigint);
 
-commit;

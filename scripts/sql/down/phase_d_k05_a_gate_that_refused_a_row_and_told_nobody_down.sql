@@ -24,7 +24,6 @@
 -- order, exactly as scripts/sql/down/README.md describes.
 -- =================================================================================================
 
-begin;
 
 CREATE OR REPLACE FUNCTION public.trg_gate_incomplete_match()
  RETURNS trigger
@@ -71,4 +70,3 @@ begin
   return null;   -- row not inserted; the ledger row survives
 end $function$;
 
-commit;

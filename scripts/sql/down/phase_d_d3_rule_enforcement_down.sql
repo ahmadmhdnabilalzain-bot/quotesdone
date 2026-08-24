@@ -29,7 +29,6 @@
 -- second defect.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_rule_enforcement;
 
@@ -42,4 +41,3 @@ begin
   raise notice 'D3 down: phase_d_rule_enforcement is gone. The d3:65-70 constraint reconcile needed no down.';
 end $ctl$;
 
-commit;

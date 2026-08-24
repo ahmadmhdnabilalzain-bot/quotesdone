@@ -15,7 +15,9 @@
 // (the crosswalk's `result` column and the step-case export) and neither writes it; the routine
 // that writes it is run separately, by hand, before this command:
 //
-//   select public.fn_phase_d_run_step_cases();
+//   node scripts/phase_d/run_step_cases_live.mjs
+// (NOT select public.fn_phase_d_run_step_cases() — retired by phase_d_p02; its first act was to
+//  DELETE public.phase_d_step_case_result and repopulate it from the superseded matrix.)
 //
 // Say it here because neither reader can tell you it is owed. build_step_case_result.mjs refuses a
 // SHORT table (`rows.length !== 7 × frozen steps`, :44) but cannot tell a stale full table from a

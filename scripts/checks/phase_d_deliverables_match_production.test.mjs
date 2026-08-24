@@ -44,7 +44,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BUILDERS, VOLATILE_LINE } from '../phase_d/lib/deliverable.mjs';
+import { BUILDERS, VOLATILE_LINE, VOLATILE_TIMESTAMP } from '../phase_d/lib/deliverable.mjs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -70,7 +70,7 @@ const COMMITTED = 'docs/phase-d';
 const VOLATILE_ID = /\b(handoff run|workflow run|step run|task) (\d+)\b/g;
 const stripVolatile = (text) => text.split('\n')
   .filter((l) => !VOLATILE_LINE.test(l))
-  .map((l) => l.replace(VOLATILE_ID, '$1 <id>'));
+  .map((l) => l.replace(VOLATILE_ID, '$1 <id>').replace(VOLATILE_TIMESTAMP, '$1<ts>'));
 
 export function diffDeliverable(committed, rebuilt) {
   const a = stripVolatile(committed);

@@ -27,7 +27,6 @@
 --   ROUTINE DROPPED BY THE SOURCE FILE: if — restored only by re-applying the file that defined it
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -38,4 +37,3 @@ end $pre$;
 
 alter table public.phase_d_dispatch drop constraint if exists phase_d_dispatch_outcome_check;
 
-commit;

@@ -143,3 +143,85 @@ test('the output contract still refuses a bad status and an invented key', { ski
   assert.equal(ok.valid, true,
     `the correctly-typed output was refused, so E17 typed a key wrongly: ${ok.reason}`);
 });
+
+// EVERY CONSEQUENTIAL CLOSED-DOMAIN FIELD, NOT THE ONE THAT HAPPENED TO HAVE A DOMAIN.
+//
+// Gate 5 of the final independent acceptance audit, 24 Aug 2026:
+//
+//   "The estate's own guard, phase_d_input_schemas_are_typed_and_closed.test.mjs, passes 5 of 5 —
+//    its output assertion is 'the output contract still refuses a bad STATUS and an invented key.'
+//    It tests the one field that has a domain. A check scoped to the only constrained key cannot
+//    report that the other 140 schemas constrain nothing."
+//
+// That was exactly right, and it is why the audit's Gate 5 finding survived to a final acceptance
+// run. The three tests below are derived from public.phase_d_output_domain_registry, so the
+// denominator is the population and not a number typed here: a new schema, a new field or a
+// withdrawn domain moves them without anyone remembering to.
+test('every field on every schema carries a classified semantic domain', { skip: SKIP }, async () => {
+  const [r] = await q(`select
+      (select count(*) from public.phase_d_handler_schema hs,
+              lateral unnest(hs.required_keys || coalesce(hs.optional_keys,'{}')) k)::text as pairs,
+      (select count(*) from public.phase_d_output_domain_registry)::text as classified,
+      (select coalesce(string_agg(hs.schema_id || '.' || k, ', '), '(none)')
+         from public.phase_d_handler_schema hs,
+              lateral unnest(hs.required_keys || coalesce(hs.optional_keys,'{}')) k
+        where not exists (select 1 from public.phase_d_output_domain_registry r
+                           where r.schema_id = hs.schema_id and r.field_name = k)) as unclassified`);
+  assert.equal(r.unclassified, '(none)',
+    `unclassified (schema, field) pair(s): ${r.unclassified}. fn_phase_d_schema_validate fails `
+    + 'closed on these, so a payload for that schema is refused until the registry is rebuilt.');
+  assert.equal(r.classified, r.pairs,
+    `${r.pairs} (schema, field) pairs exist and the registry classifies ${r.classified}`);
+});
+
+test('every registered closed domain is actually declared on its schema', { skip: SKIP }, async () => {
+  const [r] = await q(`select
+      (select count(*) from public.phase_d_output_domain_registry
+        where field_semantic_type = 'CLOSED_ENUM')::text as closed,
+      (select coalesce(string_agg(r.schema_id || '.' || r.field_name, ', '), '(none)')
+         from public.phase_d_output_domain_registry r
+         join public.phase_d_handler_schema hs on hs.schema_id = r.schema_id
+        where r.field_semantic_type = 'CLOSED_ENUM'
+          and not (hs.enum_domains ? r.field_name)) as undeclared,
+      (select count(*) from public.phase_d_output_domain_registry
+        where field_semantic_type = 'CLOSED_ENUM_UNDEFINED')::text as undefined_pending`);
+  assert.equal(r.undeclared, '(none)',
+    `registered CLOSED_ENUM with no enum_domains entry: ${r.undeclared}. The registry is the `
+    + 'derivation and enum_domains is what the validator enforces; they may not disagree.');
+  assert.ok(Number(r.closed) >= 478,
+    `only ${r.closed} CLOSED_ENUM field(s) are registered; 478 were established on 24 Aug 2026 and `
+    + 'a domain may be added but not silently withdrawn');
+  // Disclosed, not asserted to zero: 33 decision fields have no vocabulary in the frozen estate and
+  // are raised as PBCR-002. A CHECK on the registry refuses a CLOSED_ENUM_UNDEFINED row that does
+  // not name its change request, so this number can never become a silent hole.
+  console.log(`  ${r.closed} CLOSED_ENUM field(s) enforced; ${r.undefined_pending} CLOSED_ENUM_UNDEFINED, each naming its change request`);
+});
+
+test('an invalid value is refused on EVERY consequential closed-domain field', { skip: SKIP }, async () => {
+  // One accepted control and one refused sentinel per (schema, field), built by the estate's own
+  // probe builders FROM the registry — never typed here. 478 fields, so it is sampled per FIELD
+  // NAME rather than per schema; the per-schema denominator is the suite in
+  // scripts/phase_d/run_step_cases_live.mjs.
+  const fields = await q(`select distinct field_name from public.phase_d_output_domain_registry
+     where field_semantic_type = 'CLOSED_ENUM' order by field_name`);
+  assert.ok(fields.length >= 7, `only ${fields.length} closed-domain field name(s) registered`);
+  for (const { field_name: f } of fields) {
+    const [r] = await q(`select
+        (select valid from public.fn_phase_d_schema_validate(
+           public.fn_phase_d_domain_probe_schema('${f}'),
+           public.fn_phase_d_domain_probe_payload(
+             public.fn_phase_d_domain_probe_schema('${f}'), '${f}', true))) as conforming,
+        (select valid from public.fn_phase_d_schema_validate(
+           public.fn_phase_d_domain_probe_schema('${f}'),
+           public.fn_phase_d_domain_probe_payload(
+             public.fn_phase_d_domain_probe_schema('${f}'), '${f}', false))) as sentinel,
+        public.fn_phase_d_domain_probe_schema('${f}') as schema_id`);
+    assert.equal(r.conforming, true,
+      `${r.schema_id}: the registered valid_control_value for ${f} was REFUSED — a guard that fires `
+      + 'when the system works is worse than no guard');
+    assert.equal(r.sentinel, false,
+      `${r.schema_id}: the registered invalid_sentinel_value for ${f} was ACCEPTED — this is the `
+      + 'exact shape of the Gate 5 failure (decision = NOT_A_DECISION on schema_output_w17_s06)');
+  }
+  console.log(`  ${fields.length} closed-domain field name(s): conforming accepted, sentinel refused, on all`);
+});

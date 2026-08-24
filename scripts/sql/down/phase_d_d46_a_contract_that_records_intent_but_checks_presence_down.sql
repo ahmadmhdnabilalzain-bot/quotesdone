@@ -62,7 +62,6 @@
 -- the column half is DDL.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -109,4 +108,3 @@ begin
   raise notice 'D46 down: the two schema checks and the six type/version/optionality columns are gone; all 514 handler schemas survive. fn_phase_d_schema_validate and fn_phase_d_contract_state now raise on a missing column, which is the expected post-rollback state.';
 end $ctl$;
 
-commit;

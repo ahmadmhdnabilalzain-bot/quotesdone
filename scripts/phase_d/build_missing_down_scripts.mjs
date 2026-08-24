@@ -108,9 +108,19 @@ ${dropable.map(x => `--   ${x.what}`).join('\n') || '--   (none)'}
 -- down -- see scripts/sql/down/README.md; the predecessor body is restored by re-applying the file
 -- that defined it, and every later file in that routine's chain, in order.
 ${unrestorable.length ? `--\n-- THIS PROGRAM CANNOT REVERSE:\n${unrestorable.map(x => `--   ${x.what} — restored only by re-applying the file that defined it`).join('\n')}` : ''}
+--
+-- NO TRANSACTION CONTROL. This file carries no BEGIN and no COMMIT of its own, deliberately: every
+-- transport in this repository sends the whole file as ONE simple-query batch, and a multi-statement
+-- batch with no explicit BEGIN is one implicit transaction in Postgres. So the file is still atomic,
+-- AND it can be rehearsed inside \`begin; … rollback;\` without committing.
+--
+-- This generator emitted \`begin;\`/\`commit;\` until 24 Aug 2026, and 39 of the 67 self-committing
+-- down scripts in scripts/sql/down/ came from here. A caller who wraps a self-committing file runs
+-- ITS commit inside their block and their trailing rollback has nothing to undo: the independent
+-- acceptance audit of 24 Aug 2026 deployed phase_d_d10, d18, d32 and k09 against production that
+-- way while believing it was rehearsing. Rehearse with scripts/phase_c/rehearse_one.mjs, which
+-- strips any wrapper it finds and refuses to report success unless the run raised.
 -- =================================================================================================
-
-begin;
 
 ${guardOn ? `do $pre$
 begin
@@ -120,8 +130,6 @@ begin
 end $pre$;` : '-- Nothing to guard on: this file introduced routines and created no relation.'}
 
 ${body.map(x => x.down).join('\n')}
-
-commit;
 `;
   console.log(`${WRITE ? 'WRITE' : 'WOULD'} ${DIR}/down/${stem}_down.sql  (${dropable.length} object(s)${unrestorable.length ? `, ${unrestorable.length} unrestorable` : ''})`);
   if (WRITE) { writeFileSync(`${DIR}/down/${stem}_down.sql`, text); written++; }

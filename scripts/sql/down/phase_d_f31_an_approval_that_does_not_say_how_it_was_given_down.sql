@@ -24,7 +24,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -35,4 +34,3 @@ end $pre$;
 
 alter table public.phase_c_freeze_amendment drop column if exists approval_basis;
 
-commit;

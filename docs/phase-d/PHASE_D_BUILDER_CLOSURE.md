@@ -2,6 +2,363 @@
 
 **PHASE_D_ROOT_CAUSE_REBUILD_READY_FOR_INDEPENDENT_AUDIT**
 
+## 2026-08-24 — Gate 5 closed, Gate 1 prepared, five audit-safety findings closed
+
+Branch `fix/phase-d-gate5-and-audit-safety`, cut from `main` at `6479d32` — the merge commit of
+PR [#465](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/465). Four files applied,
+`phase_d_p01`–`phase_d_p04`, every one read back out of `htdblwldjkcgjvmqkbeh` and byte-identical to
+the file. One file — `phase_c_pccr006_governance_approval_authenticity.sql` — is committed and
+**deliberately not applied**; it waits on the founder.
+
+The subject is `PHASE_D_FINAL_INDEPENDENT_ACCEPTANCE_20260824.md`, which failed two mandatory gates
+of fifteen and listed eight findings that failed none.
+
+---
+
+### GATE 5 — the field named `decision` carried a sentence
+
+**What the audit measured.** `schema_output_w17_s06` accepted `decision = NOT_A_DECISION`. Every
+output schema declared exactly one enum domain and it was always `status`. 140 of 257 output schemas
+typed a consequential verdict-shaped key as a bare string with no domain — `decision` on 35,
+`verdict` on 47, `state_change` on 58.
+
+**The cause, re-measured here.** One line each in `public.fn_phase_d_handler_execute`:
+
+```
+when 'DECISION_HANDLER'  then … 'decision',     coalesce(s.required_output,'')
+when 'EXECUTION_HANDLER' then … 'state_change', coalesce(s.required_output,'')
+```
+
+`phase_b_workflow_step.required_output` is a **prose sentence** — "Case decision with required
+actions.", "Active customer account." The `output` key twelve lines above already carries the same
+prose in full, as `format('%s — %s', step_name, required_output)`. So `decision` was a duplicate of
+`output` with the step name stripped, `state_change` was the same, and **there was nothing for a
+domain to be about**. That is why no domain had ever been declared, and it is why declaring one
+without correcting the derivation would have produced this estate's worst defect shape: a guard that
+fires when the system works.
+
+**What was built.**
+
+`public.phase_d_output_domain_registry` — one row for **every one of the 2,793 (schema, field) pairs
+across all 514 schemas**, including the ones it classifies FREE_FORM. The denominator is the
+population, so "this field has no domain" is a measured classification and not an absence. A field
+with no row is REFUSED at validation time. Every `allowed_values` array is READ from an authority
+that already refuses an out-of-domain value elsewhere in the estate; none is typed into the
+migration, and each row carries the sha256 of the authority it was read from.
+
+| field | schemas | authority | derivation change |
+|---|---|---|---|
+| `status` | 257 | `fn_phase_c_output_validate`, the frozen Phase C output authority | none |
+| `state_change` | 58 | `phase_d_object_state_contract.allowed_states`, enforced at write time by trigger `z40_phase_d_object_record_contract` | **yes** |
+| `target_object` | 58 | the 56-id business-object registry, identical across three tables | none |
+| `verdict` | 47 | `fn_kernel_review_decide`, a frozen Phase C subject; corroborated by CHECK `phase_d_file_revision_verdict_ck` | none |
+| `method` | 31 | the only value reachable in the producing routine | none |
+| `receiving_role_id` | 25 | frozen `phase_b_handoff`, canonicalised through `fn_phase_c_resolve_actor` | **yes** |
+| `decision` | **2** | W17-S06 → CHECK `phase_c_refund_decision_ck`; W08-S06 → CHECK `phase_d_file_revision_verdict_ck` | **yes** |
+
+**478 (schema, field) pairs now carry an enforced domain, up from 257.**
+
+`fn_phase_d_schema_validate` gained two fail-closed refusals, both after the existing checks so no
+existing refusal changed: a field the registry does not classify, and a field the registry classifies
+CLOSED_ENUM whose schema declares no domain for it. The registry and the enforcement surface cannot
+disagree.
+
+**The eight cases the brief names, executed against `schema_output_w17_s06` on production:**
+
+| case | before | after |
+|---|---|---|
+| conforming payload (control) | valid | **valid** |
+| `status` as a number | refused | refused |
+| `acceptance_assertions` as a string | refused | refused |
+| `evidence_refs` as a number | refused | refused |
+| `decision` as an array | refused | refused |
+| `status = purple-elephant` | refused | refused |
+| **`decision = NOT_A_DECISION`** | **ACCEPTED** | **refused** |
+| invented `refund_amount_aed` | refused | refused |
+| invented arbitrary property | refused | refused |
+
+#### The 33 that are the founder's, and are raised rather than invented
+
+33 of the 35 decision steps have **no decision vocabulary anywhere in the frozen estate**.
+
+- **15** name alternatives in PROSE — "Approve, request correction, refuse, suspend or escalate the
+  supplier." The alternatives are frozen; the TOKENS are not. Measured:
+  `correction_requested`, `held_for_clarification`, `retirement_proposed`, `partially_resolved`,
+  `request_further_evidence` and `leave_proposed` appear in **0** routine bodies, **0** check
+  constraints and **0** files under `docs/` or `supabase/`.
+- **18** name an act with a single artefact outcome and no choice at all. For those the honest
+  question is whether `decision` should be a required key on the schema, not what vocabulary it
+  should carry.
+
+Both groups are raised as **PBCR-002** (`docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-002.md`) and
+recorded `CLOSED_ENUM_UNDEFINED` in the registry, which a CHECK refuses unless the row names a
+`PBCR-nnn`. They declare no `enum_domains` entry, so no correct run can be refused by one, and the
+board says so out loud rather than reporting 478 as though it were the whole population.
+
+§4 of the founder's instruction provides for exactly this: *"fields with no authoritative domain = 0,
+**or a formal Phase B change request where the frozen contract is genuinely undefined**"*, and
+forbids invented generic domain values in the same breath.
+
+**`W16-S04` was nearly given the six-rung payment ladder and deliberately was not.**
+`public.phase_d_payment_state` carries **no CHECK constraint** — only `PRIMARY KEY (state_key)` and
+`UNIQUE (rung)` — and **no foreign key anywhere references it**. BR-033 reads the CONTEXT key
+`monetary_state`, never the output key `decision`, and passes only the two rungs with
+`authorizes_reveal = true`, so four of the six would have been refused by the very rule cited as the
+authority.
+
+#### The fixture went short, and it was the fixture
+
+Constraining `decision` on the two authoritative steps took **W08 from 8 dispatches executed to 7**
+and **W17 from 11 to 9**, because the committed catalogue held no `EFFECT_PAYLOAD` `decision` row for
+either. `phase_d_p03` adds `PDF-4106` (W17-S06 → `rejected`, matching `PDF-4105`'s object state) and
+`PDF-4107` (W08-S06 → `approved`). Both re-measured to 11 and 8 afterwards. Weakening the domain to
+admit a prose sentence would have been a guard removed because it fired.
+
+#### An adversarial pass found four more, and one would have broken working runs
+
+Each of the seven domain assignments was independently re-derived by a second reader briefed to
+REFUTE it. `verdict` and `state_change` survived unchanged. `phase_d_p04` carries the rest:
+
+1. **`receiving_role_id` — the one that would have broken runs.** The handler's fallback is
+   `sr.accountable_role_id` where `sr` is `public.phase_c_workflow_step_run` — a RUNTIME row whose
+   value `fn_kernel_open_step` takes from the caller as `owner_role_id` and stores VERBATIM after
+   validating it only with `fn_phase_c_actor_may_own`, which returns true for an ALIAS (measured true
+   for `cs_onboarding`, `moderation_specialist`, `Content Moderation Reviewer`).
+   `public.org_role_alias` holds 324 aliases over 171 roles. So the domain-of-one would have refused
+   a run opened under any registered alias of the very role it names — demonstrated with the real
+   validator. The value is now canonicalised through `fn_phase_c_resolve_actor` before it is emitted,
+   which is what the kernel's own progression path already does.
+2. **`verdict`** — the registry row repeated a sentence that was false: that no CHECK constraint
+   backs the domain. `phase_d_file_revision_verdict_ck` carries the identical three values. That is
+   corroboration, and it is now cited.
+3. **`state_change`** — `NO_STATE_CHANGE` is the one AUTHORED token in the whole registry. Scanning
+   every column of `phase_d_step_effect` for the string returns 0 rows. The FACT that 9 steps move no
+   object state is measured; the SPELLING is a naming choice taken from §4.C. The rows say which is
+   which.
+4. **`method`** — the domain is copied out of the routine the schema guards, so it can refuse a
+   future edit to that literal and nothing about the business. Kept, ceiling stated rather than
+   implied.
+
+#### The check the audit named is no longer scoped to one field
+
+The audit was right that `scripts/checks/phase_d_input_schemas_are_typed_and_closed.test.mjs` passed
+5 of 5 while testing *"the output contract still refuses a bad **status** and an invented key"* — the
+one field that had a domain. Three tests were added, all derived from the registry so the denominator
+moves on its own:
+
+- every field on every schema carries a classified semantic domain (2,793 of 2,793);
+- every registered CLOSED_ENUM is actually declared on its schema (0 undeclared of 478);
+- for every closed-domain field name, the registered control is ACCEPTED and the registered sentinel
+  is REFUSED — the exact shape of the Gate 5 failure.
+
+---
+
+### GATE 1 — prepared, and NOT applied
+
+`PCCR-006` is written, committed and **must not be applied until the founder approves it in a
+verified session**. Nothing in `phase_c_change_request` or `phase_c_freeze_amendment` moved:
+PCCR-004 is still `DEFER_OR_REJECT`, PCCR-005 still `DEFERRED`, five amendments, zero founder auth
+events, `fn_phase_c_freeze_drift()` 0 not-ok.
+
+All three audit findings were reproduced independently in aborted transactions, one more was found
+that the audit did not reach, and one thing the audit did not name was measured too:
+
+| | |
+|---|---|
+| A | writing an approver onto DEFERRED PCCR-004 → **ACCEPTED**, disposition flipped to APPROVED **carrying the deferral's own reason text**. The CHECK never fires because the BEFORE trigger rewrites the disposition first. PCCR-005 identical. |
+| B | *(not in the audit)* `disposition='APPROVED'` with **no approver at all** → **ACCEPTED**. Nothing on any board reads `phase_c_change_request`; every governance row on the freeze board is about `phase_c_freeze_amendment`. |
+| C | a direct `phase_c_freeze_amendment` row claiming `AUTHENTICATED_FOUNDER_SESSION` with an arbitrary subject and `repeat('a',64)` → **ACCEPTED**. |
+| D | *(not in the audit, and the deepest)* the **canonical service itself** can be walked past from migration SQL: `fn_phase_c_founder_subject_bind` refuses only `anon` and `authenticated`, and the management API connects as `postgres`. A migration mints a founder auth event **with no bearer token in existence**, and `fn_phase_c_freeze_amendment_approve` then records `AUTHENTICATED_FOUNDER_SESSION` with a forged digest. |
+| E | what already holds, so the finding is not read as larger than it is: a non-founder approver is refused `23514`; the refund door refuses a typed founder `28000`; the repository digest check would catch a forged `repeat('a',64)` — but it is a repository check, it covers one table, and Phase D deploys production-direct. |
+
+**The load-bearing fact, measured rather than assumed.** `postgres` has `rolsuper = false` on this
+project, `set session authorization` from it is refused `42501`, and `set role` leaves `session_user`
+alone. `pg_stat_activity` shows the management API as `session_user = postgres` / `mgmt-api` and
+PostgREST as `session_user = authenticator` / `postgrest`. So `session_user` is an identity a
+migration cannot forge, and `authenticator` is exactly the set of connections a founder's bearer
+token can arrive on. **Boundary, stated so it is not read as larger than it is:** `supabase_admin`
+IS a superuser here and could reassign the session; we hold no credential for it and no path in this
+repository uses it.
+
+The design, the complete amendment table, all twelve required negative cases and the positive case
+are in `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md`. Only **one** of the seven subjects the
+brief names is a registered frozen Phase C subject — `fn_phase_c_require_founder`, subject
+`founder_authentication` — verified against all 25 rows of `phase_c_frozen_subject`; the other six
+are amended under the same change request without a freeze-amendment row.
+
+`scripts/sql/PENDING.txt` is new: a file committed and deliberately not applied is now a stated fact
+with a reason, not a manifest gap. `canonical_routine_manifest.mjs` reports it as PENDING, excludes
+it from the canonical scan, and refuses a file listed in both PENDING and MANIFEST.
+
+---
+
+### The five audit-safety findings
+
+**A. Self-committing down scripts — 67 of 97, not 4 of 7.**
+The audit wrapped seven as `begin; <file> rollback;`, four carried their own `begin; … commit;`, and
+`phase_d_d10`, `d18`, `d32` and `k09` were **deployed** against production by a rehearsal. Re-measured
+across the whole directory: **67 of 97** had the same property. The audit hit four because it sampled
+seven. Zero are `NON_TRANSACTIONAL_BY_REQUIREMENT` — no `CREATE INDEX CONCURRENTLY`, no `VACUUM`, no
+`ALTER TYPE … ADD VALUE` anywhere in the 97 — so removing the wrapper is a pure deletion in every
+case. All **98 are transaction-neutral now** (the 97 plus P01's and P02's new ones), and three things
+keep them that way: the generator no longer emits a wrapper; the classification CSV carries a
+`down_script_transaction_control` column; and a check fails on any `SELF_COMMITTING` value. Atomicity
+is not lost — every transport here sends a file as ONE simple-query batch, which Postgres runs as one
+implicit transaction.
+
+**B. The E4 down script could not execute — and neither could its UP script.**
+`expected 56 anon / 59 authenticated, got 56 / 62`. Those literals were correct arithmetic over the
+population of 20 Aug 2026 and are wrong now only because it grew: `phase_d_f21` and `phase_d_g01`
+granted `authenticated` EXECUTE on three routines E4 never touched, all after e4 in the manifest.
+**Updating 59 to 62 would be the wrong fix**, and the reason is worth stating: a TOTAL over all 835
+SECURITY DEFINER routines cannot distinguish "restored correctly" from "broke three of my own 57 and
+gained three elsewhere" — it would go GREEN over a broken rollback. Both scripts now assert a DELTA
+over the 57 routines the file itself names, derived from its own grant statements, plus a refusal for
+collateral movement outside that set. Rehearsed: both apply cleanly inside an aborted transaction and
+the persistent ACL is unchanged at 0 anon / 5 authenticated.
+
+**C. The destructive superseded runner.** `fn_phase_d_run_step_cases()` began with
+`delete from public.phase_d_step_case_result`. Active callers, measured exhaustively: **zero** — no
+`pg_proc` but itself, none of the 206 cron jobs, no policy, view, rule, column default or check
+constraint, nothing under `supabase/functions/`, no npm script, no workflow, nothing under
+`scripts/checks/`. The one thing that called it was the audit script that wiped the table. It is
+DISABLED in place following the estate's own convention — the body raises `23514` with the standard
+retired-path hint, EXECUTE is revoked, and a row is registered in `public.kernel_retired_path` — and
+**not dropped**, because three committed artifacts assert it is present and two files told a reader
+to run it. A drop turns those into `42883`, which says nothing about why and names no replacement.
+Verified: it refuses, and 1,799 rows survive the call. `fn_phase_d_step_cases(text)` is deliberately
+NOT retired — `fn_phase_d_run_injected_defects` calls it for PD-STATE-005.
+The builder that printed *"run `fn_phase_d_run_step_cases()` first"* **at the exact moment the table
+was short** now names the authoritative runner instead.
+
+**D. The empty-denominator finding — the brief's headline is wrong, and the correction is recorded
+rather than acted on.** `fn_phase_d_case_state()` does **NOT** read green on an empty table.
+Re-measured by emptying it inside an aborted transaction: `per_step_cases_recorded` returned
+expected 1799, actual 0, **ok = false**. Deleting one row reddens two more. A duplicate test row is
+**impossible** — forced, not assumed: the insert returned `23505` on the primary key `(step_id,
+case_kind)`, and the table records no other dimension to duplicate across. What was genuinely broken
+is different and the brief did not name it: the required-case-kind count was the literal `7`, typed
+twice, while the authority is `CHECK phase_d_step_case_result_kind_ck`; three checks were
+`not exists` over the result table itself, so an empty relation satisfies each by having nothing to
+judge; and two rows carried `ok := true` as a SQL literal and could never redden anything. Those two
+counted the vocabulary of the **superseded** runner and asserted nothing about it. The replacement
+derives both factors of the denominator from source, reaches outside the result table for the gap,
+fails closed if the CHECK is ever dropped (`and want > 0`), and replaces the two dead rows with one
+that goes red the INSTANT the superseded runner writes. Forced red five ways; green only on the exact
+complete population. The board's signature is unchanged, because `fn_kernel_all_boards()` discovers
+boards by `pronargs` and `proargnames`.
+
+**E. The stale auxiliary artifacts — and one audit claim that was wrong.**
+
+- `PHASE_D_TRANSACTION_LOCAL_EVIDENCE.csv` was worse than "254 of 254". It was **physically
+  truncated**: 12 of its 30 workflow blocks were cut off mid-row by the management endpoint's
+  2000-character exception cap (line 246 of the committed file was the two characters `9851,W27`),
+  and **63 of 252 rows were shifted one column left** because `concat_ws` skips a NULL
+  `effect_object_id`. The builder printed "254 effect rows, 18 summary rows" and asserted nothing
+  about either number. Separators are one byte now, emission is CHUNKED so a payload cannot outgrow
+  the cap, every chunk carries a short TOTAL trailer, and the builder fails closed five ways.
+  Result: **257 effect rows over 257 distinct steps and 30 summary rows**, denominator stated against
+  the frozen registry. **And the five steps the audit believed the harness could not reach —
+  W17-S11, W24-S10, W27-S10, W30-S10, W30-S11 — were in the truncated blocks all along.** The audit's
+  separate per-step dispatch was a sound independent measurement; its diagnosis was not.
+- `PHASE_D_INJECTED_DEFECT_EXEMPTION_REGISTER.csv` held 19 rows against a live register of 0, and
+  **all 19** were false, not one: nine moved to `…_disposition_history` as `REAL_PRODUCT_GAP` and ten
+  were closed earlier by `phase_d_n10`, whose own header records that in eight of the ten *"the
+  RECORDED BLOCKER WAS SIMPLY WRONG"*. Now 0 rows.
+- `PHASE_D_OBJECT_REFERENCE_ROUND_TRIP.csv` — exactly one mismatch across 56 rows, the named one:
+  `invoice_receipt` keyed `invoice_no` where production says `transaction_id`. `phase_d_k04` moved it
+  six hours after the CSV was last built.
+- **Both of those builders are now in `BUILDERS`**, which is why they had gone stale: they were
+  derivations that nothing rebuilt and nothing byte-checked.
+- `phase_d_l01`'s `IRREVERSIBLE_WITH_FOUNDER_APPROVAL` label — the audit was right, and the cause was
+  not l01-specific. A schema-prefix asymmetry in the classifier's drop-and-recreate normaliser
+  mis-classified l01 **and `phase_d_m01`**, the file the audit held up as the correct contrast: both
+  write `drop index if exists public.X` above `create unique index X`, and the two names never
+  matched. Fixed, and **the class now holds 0 files, matching what its own authority document
+  asserts**. A new check refuses the class unless the file's header cites the founder decision it
+  claims.
+- **`supplier_onboard` — the audit's claim was WRONG, and it is recorded rather than "fixed".**
+  Fourteen of the 77 call-graph rows carry `NO_BOUND_PHASE_D_OBJECT_ON_THIS_PATH`, not one, and two
+  of the fourteen ARE customer-facing (`transcribe`, `contact_submit`). And supplier_onboard's
+  unbound status is CORRECT: it performs exactly two database operations — a READ of
+  `public.app_secrets` and one INSERT into `public.agent_actions` inside a try/catch whose comment is
+  *"telemetry is not the product"* — writes no business relation, and returns
+  `write_path: "supplier_api:create_company+save_profile"` in its own payload. Neither table is a
+  canonical relation of any business-object binding. Adding a binding would bind a Phase D business
+  object to a telemetry table.
+
+---
+
+### What was verified by execution, in this session, on production
+
+| | |
+|---|---|
+| 1,799 step-contract cases | **1799 passed, 0 failed**, 257 steps × 7 kinds — 1,542 `live_step_run` + 257 `kernel_boundary` |
+| 75 injected defects | **75 executed with a discriminating result**, 0 NOT_RUN, 0 NOT_DISCRIMINATED, **0 FAILED TO REFUSE**, 0 attempt rows left behind |
+| 30 workflow drives | 30 of 30; W08 and W17 restored to 8 and 11 dispatches executed after `phase_d_p03` |
+| 257 transaction-local effects | **257 effect rows over 257 distinct steps**, 30 summary rows, 0 wrong-width rows |
+| 56 object round trips | 55 round-tripped, 1 as declared external-effect intent, 0 mismatched, 0 refused, 0 replay duplicates |
+| 514 schemas | 2,793 (schema, field) pairs classified, 0 unclassified, 478 CLOSED_ENUM, 0 undeclared |
+| every closed-domain field | registered control ACCEPTED and registered sentinel REFUSED on all 7 field names |
+| kernel boards | `fn_kernel_all_boards()` — the only non-ratcheted red before this session's re-run is gone; `kernel_boards_are_green.test.mjs` passes |
+| repository ↔ production | `canonical_routine_manifest --all` exit 0 — conflicting 0, ambiguous 0, manifest gaps 0, drift 0 both directions, uncommitted DDL 0, PCCR-006 reported PENDING |
+| application source of truth | 0 on all seven lines |
+| Phase A / effective Phase B / Phase C freeze | drift **0 / 0 / 0**; baseline 30 / 257 / 56 / 54 / 32 / 159 / 347 |
+
+### Zero cost, zero external effect, zero residue
+
+Baseline taken 2026-08-24 16:30Z, before the first write.
+
+| measurement | baseline | close | delta |
+|---|---|---|---|
+| `llm_attempt` | 69 | 69 | **0** |
+| `ai_usage` | 14 | 14 | **0** |
+| `ai_cost_log` | 3507 | 3507 | **0** |
+| paid inference cost | — | — | **USD 0.00** |
+| OpenRouter / paid-AI HTTP requests | — | — | **0** |
+| `notifications` rows | 674 | 674 | **0** |
+| notifications **sent** | 540 | 540 | **0** — newest `sent_at` anywhere is still 2026-08-16 05:30:04Z |
+| `phase_c_event_outbox` rows created today | — | — | **0** |
+| `phase_d_external_attempt` | 0 | 0 | **0** |
+| `stripe_events` | 0 | 0 | **0** |
+| `net.http_request_queue` | 0 | 0 | **0** |
+| `phase_c_founder_auth_event` | 0 | 0 | **0** |
+
+21 rows appeared in `net._http_response` after 16:30Z. Every one is attributable to pre-existing
+scheduled automation this session neither started nor may stop — `uptime_check_15min` ×7,
+`dropbox_backup_scan` ×7, `health_check` ×4, `smoke_test_30min` ×4. None is an AI provider call, and
+`ai_cost_log` gained 0 rows in the same window. `phase_c_outbox_deliver_1min` ran 104 times and
+delivered nothing new, which is the direct evidence that no aborted transaction left a deliverable
+row behind.
+
+Business residue at close: customers 0, inquiries 0, quotes 0, transactions 0, quote_comparisons 0,
+refunds 0, `phase_c_refund_decision` 0, `phase_d_effect_ledger` 0, `phase_d_object_record` 0,
+`phase_d_dispatch` 0, `fn_phase_d_fixture_residue()` 0. Active cron 23, unchanged; automation hold
+and provider hold untouched; `outcome_evaluate_daily` not activated.
+
+### What this session did NOT do
+
+- It did **not** apply PCCR-006, and it could not: after PCCR-006 is applied the only path is a
+  founder bearer token, and before it is applied the amendment table is the thing he is being asked
+  to read.
+- It did **not** approve its own Phase C change. `phase_c_change_request` and
+  `phase_c_freeze_amendment` are byte-for-byte what they were at 16:30Z.
+- It did **not** give the 33 undefined decision fields a vocabulary. They are raised as PBCR-002.
+- It did **not** run the independent audit, begin Phase E, reactivate automation, activate
+  `outcome_evaluate_daily`, call a paid provider or send an external effect.
+
+### The exact remaining blockers
+
+1. **PCCR-006 awaits the founder**, in a verified session. Gate 1 stays failed until then — the
+   committed file changes nothing while it sits unapplied, which is the point.
+2. **PBCR-002 awaits the founder.** 33 `decision` fields carry no domain. Gate 5's named case is
+   closed and the structural hole is 33 of the original 140, disclosed on the board and in the
+   registry rather than papered over.
+
+Nothing else is open. Neither blocker is technical and neither is this session's to decide.
+
+---
+
 ## 2026-08-24 — the nine product controls, built and executed
 
 Branch `finish/phase-d-nine-product-controls`, cut from `main` at `2c9e3f2` immediately after

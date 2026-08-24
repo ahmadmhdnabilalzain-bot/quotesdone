@@ -89,9 +89,22 @@ export function classify(file) {
   // IRREVERSIBLE_WITH_FOUNDER_APPROVAL on the first run of this classifier -- a class the prose
   // document states no file carries. A drop is destructive only when the same object is not created
   // again in the same file.
-  const named = (l) => (l.match(/^drop (?:table|type|index|trigger|view|policy)\s+(?:if exists\s+)?([a-z0-9_."]+)/) || [])[1];
+  //
+  // AND THE TWO SIDES MUST BE SPELLED THE SAME WAY BEFORE THEY CAN BE COMPARED. Measured
+  // 24 Aug 2026: phase_d_l01 writes `drop index if exists public.phase_d_context_key_object_one_
+  // identity_uk;` immediately above `create unique index phase_d_context_key_object_one_identity_uk`
+  // — schema-qualified on the drop, bare on the create. phase_d_m01 does the identical thing on
+  // phase_d_committed_scenario_one_open_uk. The two names never matched, so an idempotent
+  // drop-and-recreate was counted as destruction, and BOTH files were classed
+  // IRREVERSIBLE_WITH_FOUNDER_APPROVAL — a class docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md
+  // states that no file carries. Neither destroys anything: l01 adds a column with a default,
+  // widens a primary key and inserts 2 rows; m01 creates 3 tables and an index. The schema prefix
+  // and any quoting are stripped from both sides before the comparison, which is the guard this
+  // comment already claimed the classifier had.
+  const bare = (n) => (n || '').replace(/"/g, '').replace(/^[a-z0-9_]+\./, '');
+  const named = (l) => bare((l.match(/^drop (?:table|type|index|trigger|view|policy)\s+(?:if exists\s+)?([a-z0-9_."]+)/) || [])[1]);
   const recreated = new Set(st.flatMap(l =>
-    (l.match(/^create (?:or replace )?(?:unique )?(?:constraint )?(?:table|type|index|trigger|view|policy)\s+(?:if not exists\s+)?([a-z0-9_."]+)/) || []).slice(1)));
+    (l.match(/^create (?:or replace )?(?:unique )?(?:constraint )?(?:table|type|index|trigger|view|policy)\s+(?:if not exists\s+)?([a-z0-9_."]+)/) || []).slice(1).map(bare)));
   const dropsRecreated = has(/^drop (table|type|index|trigger|view|policy) /)
     .filter(l => recreated.has(named(l))).length;
   const dropDestructive = has(/^drop (table|type|index|trigger|view|policy) /)
@@ -156,7 +169,40 @@ export function classify(file) {
     down_script_required: downNeeded ? 'YES' : 'NO',
     down_script: existsSync(downFile) ? `${DIR}/down/${stem}_down.sql` : (downNeeded ? 'MISSING' : '-'),
     rollback_stated_in_header: headerDown ? 'YES' : 'NO',
+    down_script_transaction_control: existsSync(downFile)
+      ? downTransactionControl(readFileSync(downFile, 'utf8'))
+      : '-',
   };
+}
+
+// WHETHER A DOWN SCRIPT CAN BE REHEARSED, WHICH IS NOT THE SAME QUESTION AS WHETHER IT EXISTS.
+//
+// A down script carrying its own COMMIT cannot be rehearsed: a caller who wraps it in
+// "begin; <file> rollback;" runs the file's commit inside their block, and the trailing rollback
+// then has nothing to undo. The independent acceptance audit of 24 Aug 2026 deployed phase_d_d10,
+// d18, d32 and k09 against production that way while believing it was rehearsing, and 67 of the 97
+// down scripts had the same property — it hit four because it sampled seven.
+//
+// Nothing in the estate recorded this, so the classification CSV said a down script existed and
+// said nothing about whether running it was a rehearsal or a deploy. This column is that fact,
+// placed where a build can contradict it.
+//
+// plpgsql block delimiters are NOT transaction control: `do $ctl$ begin … end $ctl$;` has a BEGIN
+// that belongs to the language, not to the transaction. Dollar-quoted bodies are stripped first, so
+// only a top-level BEGIN/COMMIT is ever counted.
+export function downTransactionControl(src) {
+  const bare = src
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^\s*--.*$/gm, ' ')
+    .replace(/\$([A-Za-z_][A-Za-z0-9_]*)?\$[\s\S]*?\$\1?\$/g, ' ')
+    .replace(/'(?:[^']|'')*'/g, "''");
+  // Statements that cannot run inside a transaction block at all. A file carrying one must not be
+  // wrapped, and stripping its BEGIN/COMMIT would not make it rehearsable.
+  if (/create\s+(unique\s+)?index\s+concurrently\b|drop\s+index\s+concurrently\b|reindex\b[\s\S]{0,80}?\bconcurrently\b|(^|[\s;])vacuum\b|alter\s+type\b[\s\S]{0,120}?\badd\s+value\b|(^|[\s;])alter\s+system\b|(^|[\s;])create\s+(database|tablespace|subscription)\b/i.test(bare)) {
+    return 'NON_TRANSACTIONAL_BY_REQUIREMENT';
+  }
+  const tx = /(^|[\s;])(begin|commit|rollback)\s*(?:transaction|work)?\s*(?:;|$)|(^|[\s;])start\s+transaction\b|(^|[\s;])(release\s+)?savepoint\b|(^|[\s;])set\s+transaction\b|^\s*\\[a-z]/im;
+  return tx.test(bare) ? 'SELF_COMMITTING' : 'NONE';
 }
 
 if (String(process.argv[1] || '').endsWith('build_migration_rollback_classification.mjs')) {

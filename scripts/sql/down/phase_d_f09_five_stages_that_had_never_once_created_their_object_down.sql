@@ -25,7 +25,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -37,4 +36,3 @@ end $pre$;
 alter table public.phase_d_scenario_record drop column if exists contributes_kind;
 alter table public.phase_d_scenario_record drop column if exists contributed_value;
 
-commit;

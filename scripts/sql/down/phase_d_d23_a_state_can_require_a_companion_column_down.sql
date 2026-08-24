@@ -22,7 +22,6 @@
 -- column after this rollback. Expected.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -52,4 +51,3 @@ begin
   raise notice 'D23 down: working_payload and working_payload_evidence are gone; all 25 fixture-stage rows survive.';
 end $ctl$;
 
-commit;

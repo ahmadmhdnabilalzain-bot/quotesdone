@@ -70,7 +70,6 @@
 -- as well, and only the table half is DDL.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_c_freeze_amendment;
 
@@ -93,4 +92,3 @@ begin
   raise notice 'D49 down: phase_c_freeze_amendment, its unique index and its identity sequence are gone, and the two kernel amendments with them. fn_phase_c_freeze_drift() now raises on a missing relation.';
 end $ctl$;
 
-commit;

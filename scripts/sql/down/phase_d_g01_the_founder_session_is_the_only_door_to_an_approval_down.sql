@@ -30,7 +30,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -53,4 +52,3 @@ alter table public.phase_c_freeze_amendment drop column if exists deployed_befor
 -- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_c_freeze_amendment_approve(p_input jsonb);
-commit;
