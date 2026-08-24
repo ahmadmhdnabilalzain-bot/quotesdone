@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-24 03:19 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-24 12:08 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE WINDOW MOVED A FIFTH TIME, AND THE CHECK MOVED IT AGAIN.** The final builder session of

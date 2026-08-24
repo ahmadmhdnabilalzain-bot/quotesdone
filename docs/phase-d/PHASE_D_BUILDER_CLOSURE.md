@@ -1,6 +1,204 @@
 # QuotesDone Phase D — builder closure
 
-**PHASE_D_NOT_READY**
+**PHASE_D_ROOT_CAUSE_REBUILD_READY_FOR_INDEPENDENT_AUDIT**
+
+## 2026-08-24 — the nine product controls, built and executed
+
+Branch `finish/phase-d-nine-product-controls`, cut from `main` at `2c9e3f2` immediately after
+PR [#464](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/464) merged at
+`2026-08-24T08:48:33Z`. Ten files applied, `phase_d_o01`–`phase_d_o10`, every one read back out of
+`htdblwldjkcgjvmqkbeh` and byte-identical to the file.
+
+### The nine, and what each one actually needed
+
+The register said all nine were classification **G — REAL_PRODUCT_GAP**, each with a build order in
+`what_would_make_it_executable`. Seven of those build orders were right. **Two were wrong, and they
+were wrong about a routine that has been in the estate the whole time.**
+
+| case | what the register said it needed | what it actually needed |
+|---|---|---|
+| PD-AUTH-005 | "a kernel entry point that accepts an owner and routes to `fn_phase_c_task_create`" | **that routine already exists — `fn_kernel_open_step`.** It takes `owner_role_id` from the caller and routes to the primitive, and it is an `fn_kernel_*` routine, so calling it is not the bypass `fn_kernel_retired_path_state` counts. What was genuinely missing was a stable machine name for the refusal and a guard on `phase_c_workflow_step_run` itself |
+| PD-LEGAL-005 | the same door | the same correction, plus the stable identity `pd_creator_reviewer_collision` at the task boundary |
+| PD-FIN-004 | "a committed founder decision, and a registered write route" | the write route — `kernel_write_authority` held **zero** rows for `phase_c_refund_decision`, so no routine could create the row the append-only trigger protects. And the binding to the money, which did not exist at all |
+| PD-LEGAL-004 | "a registered interpretation artefact with a review-by date and a predicate that refuses one past it" | exactly that, plus a boundary where citing a source is not optional |
+| PD-PRIV-002 | "a business object for a drawing revision carrying its redaction-approval state, and a predicate that reads it" | exactly that, plus the digest — an approval is an approval **of bytes** |
+| PD-PRIV-005 | "a rendering path and a scanner over the produced bytes" | the scanner and a place for its verdict; the bytes are committed fixtures rather than a render, because a render is not what the control is about |
+| PD-QUOTE-001 | "two committed quotes and a supplier-facing edit path" | neither: the canonical write service had **no owner predicate at all**, and that is testable through the object store without writing a single quote |
+| PD-QUOTE-004 | "a published/visible state and a BR-019 predicate that reads it" | exactly that, and GATE-018 in the same commit |
+| PD-QUOTE-005 | "a normalisation path writing a projection alongside the immutable revision, and a BR-018 predicate comparing the two" | exactly that; BR-018 was reading the caller's own claim about itself |
+
+That is the fourth time in this Phase D that a recorded reason for not running a case turned out to
+be a claim nobody had re-measured. The two wrong ones are recorded in
+`public.phase_d_injected_defect_disposition_history` with what they said and what was true, rather
+than deleted.
+
+### Seven predicates that named a control and tested something else
+
+Each was measured answering **identically to an injection and its control** before it was changed.
+That measurement is the only thing separating a fix from a preference here.
+
+| predicate | what it tested | measured |
+|---|---|---|
+| BR-011 | an email regex and a UAE mobile, over a `customers` table holding 0 rows | `/Author (ZZ DEMO Omar Bin Faisal) /Creator (AL NAHDA CONSULTANTS)` → `ok = TRUE` |
+| BR-012 | that an approved package record exists and the approver resolves | a package with an unredacted drawing and one with a clean drawing → **identical `ENFORCED_PASS`** |
+| BR-018 | `quote_revision_ref` non-empty AND `platform_edited = 'false'` | the caller's own claim about itself; it compared nothing |
+| BR-019 | ownership | a customer's own **unpublished** comparison → `ENFORCED_PASS` |
+| GATE-013 | reviewer independence | `safe_package_ref` reached only `format()`; the package was never dereferenced |
+| GATE-018 | the byte-identical ownership count, under refusal code `gate018_comparison_not_publishable` | as BR-019 |
+| GATE-027 / GATE-028 | `v_ok := true` | nothing |
+
+### What was deliberately not done, and why
+
+* **No frozen subject was amended.** `fn_kernel_open_step`, `fn_kernel_step_complete`,
+  `fn_kernel_review_decide`, `fn_phase_c_require_founder`,
+  `fn_phase_c_refund_decision_immutable` and `fn_phase_c_refund_decision_guard` are running the
+  bodies they had. `fn_phase_c_freeze_drift()` reads `frozen_subjects_drifted` **0 of 25** and
+  `amendments_awaiting_founder_approval` **0 of 5**.
+* **No rule id and no gate id was added.** `phase_b_business_rule` is frozen at 54 and
+  `phase_b_gate` at 32, and `fn_phase_b_baseline_drift()` hashes both structurally — it returns
+  **0 rows**. So does `fn_phase_a_baseline_drift()`.
+* **No `evidence_keys` row was widened.** GATE-027 binds 10 W27 steps and GATE-028 binds 9 W28
+  steps; requiring a source reference the step context cannot resolve would block nineteen steps for
+  a control that belongs to two. The hard boundary for legal-source currency is
+  `a10_phase_d_legal_assertion_source` instead, where citing a source is not optional.
+* **PCCR-004 is `DEFER_OR_REJECT` and PCCR-005 is `DEFERRED`.** Neither is approved, neither is
+  applied, and no proposed body was deployed. `public.phase_c_change_request` gained a `disposition`
+  column with a CHECK — `phase_c_change_request_deferral_is_not_approval` — that refuses an
+  `approved_by` on a deferred or rejected request, so recording a deferral can never later be read
+  as granting one.
+* **`fn_refund_decide` and `refund_status_transition` were not changed.** Their weaknesses are real
+  and are written up in `PHASE_D_FINANCIAL_PRIVACY_RESULT.md`; closing them is a live-money
+  production change on a separate table, not a Phase D harness change.
+
+### Two things this session broke and fixed, recorded because the shape recurs
+
+* **A new guard reddened an older case's CONTROL arm.** The file-set leg O07 gave BR-012 refuses a
+  package that registers no file revision — an empty file set is not an approved one. PD-DISP-003
+  writes an approved package with no files and asks BR-012 to **pass** on it, and it went from
+  green to `FAILED TO REFUSE`. The answer was not to weaken BR-012 back to the rule that passed a
+  package with an unredacted drawing; it was to give PD-DISP-003's control the file revision it
+  always implied (`phase_d_o10`).
+* **Two raw writes inside the runner turned a kernel board red.** Forcing
+  `a02_phase_c_step_run_owner_admissible` and the frozen refund-decision trigger to fire needs a
+  literal write to a protected table, and
+  `fn_kernel_write_guard_state`'s `routines_that_write_a_protected_table_with_no_authority` went
+  from `1 of 37` to `3 of 39`. Registering the runner would have **granted** it authority over those
+  tables — the opposite of the point. Both writes moved into
+  `scripts/checks/protected_table_guards_actually_fire.test.mjs`, which is a check rather than a
+  routine and so is not a writer any board can count. The board is back at `1 of 37`, and that one
+  is pre-existing: `fn_phase_d_run_injected_defects -> phase_c_task`, an `update … set trace_id`
+  introduced by `phase_d_m08` and present at `HEAD` before this session.
+
+
+### The figures, re-measured after the last apply
+
+Every one read off the deliverable that produced it or off a live board, never typed.
+
+| | |
+|---|---|
+| canonical step effects | **257 of 257** — `PHASE_D_HANDLER_IMPLEMENTATION_RESULT.csv` |
+| step-contract cases | **1,799 of 1,799** — six of the seven kinds decided against a **live step run** (1,542), `malformed_output` at the kernel boundary (257) |
+| workflow happy closure | **30 of 30** — `terminal = true`, `run_state = completed` |
+| workflow failure / block | **30 of 30** — every one `step:failed, run:blocked` |
+| workflow cancellation | **30 of 30** — every one reached `cancelled` |
+| workflow replay | **30 of 30** — replay effects added **0**, duplicate effects **0**, duplicate objects **0**, reference moved **0** |
+| handoffs | **159 of 159** |
+| events | **347 of 347** reconciled, **347** observed in the outbox |
+| injected defects, executed with a discriminating result | **75 of 75** |
+| — REFUSED_AS_REQUIRED | 70 |
+| — SAFE_SCOPED_RESULT_AS_REQUIRED | 2 |
+| — IDEMPOTENT_NO_DUPLICATE | 2 |
+| — FAIL_CLOSED_AS_REQUIRED | 1 |
+| injected defects NOT_RUN | **0** |
+| injected defects NOT_DISCRIMINATED | **0** |
+| accepted defects (FAILED TO REFUSE) | **0** |
+| exemption/hold statuses used as completion | **0** — the nine moved to `phase_d_injected_defect_disposition_history`; the live register is empty and the builder reports `named in the disposition register 0 of 0` |
+| external attempt rows left behind | **0** |
+| Phase A baseline drift | **0 rows** |
+| Phase B baseline drift | **0 rows** |
+| Phase C freeze | `frozen_subjects_drifted` **0 of 25**; `amendments_awaiting_founder_approval` **0 of 5** |
+| repository → production drift | **0** |
+| production → repository drift | **0** |
+| manifest gaps / ambiguous winners / conflicting definitions | **0 / 0 / 0** |
+| Phase D migrations classified | **249 of 249**, down scripts required and missing **0** |
+| required deliverables present and current | **15 of 15** |
+| OpenRouter HTTP requests | **0** |
+| paid inference cost | **USD 0.00** |
+| live external effects | **0** |
+| persistent business fixture residue | **0** |
+
+### The nine, and the status each now carries
+
+| case | status |
+|---|---|
+| PD-AUTH-005 — a category overlay may not own a task | `REFUSED_AS_REQUIRED` |
+| PD-LEGAL-005 — the creator may not review its own compliance artifact | `REFUSED_AS_REQUIRED` |
+| PD-FIN-004 — a founder refund decision is append-only | `REFUSED_AS_REQUIRED` |
+| PD-LEGAL-004 — a stale, undated, superseded or non-authoritative source | `REFUSED_AS_REQUIRED` |
+| PD-PRIV-002 — an unapproved redaction may not be dispatched | `REFUSED_AS_REQUIRED` |
+| PD-PRIV-005 — hidden metadata may not leak identity | `REFUSED_AS_REQUIRED` |
+| PD-QUOTE-001 — a supplier may not edit another supplier's quotation | `REFUSED_AS_REQUIRED` |
+| PD-QUOTE-004 — a customer may not see an unpublished quotation | `REFUSED_AS_REQUIRED` |
+| PD-QUOTE-005 — a supplier's original values survive normalisation | `IDEMPOTENT_NO_DUPLICATE` |
+
+`IDEMPOTENT_NO_DUPLICATE` is the closing vocabulary for PD-QUOTE-005 because what that case asserts
+is not a refusal: it is that normalising twice produces one projection, that a projection restating
+a supplier-authored field is refused (`pd_normalisation_restates_original`), that a direct overwrite
+of the original is refused (`pd_object_overwrite_refused`), and that the original re-reads `INTACT`.
+
+### Residue, stated with its boundary
+
+Measured at the start of the session and again after the last build, on the same tables:
+
+```
+quotes 0 → 0            inquiries 0 → 0                transactions 0 → 0
+refunds 0 → 0           phase_c_refund_decision 0 → 0  founder_approval_request 0 → 0
+phase_c_task 52 → 52    phase_c_workflow_run 18 → 18   phase_c_workflow_step_run 24 → 24
+phase_c_event_outbox 33 → 33                           phase_c_founder_auth_event 0 → 0
+quote_comparisons 0 → 0 phase_d_quote_normalisation 0 → 0
+phase_d_legal_assertion 0 → 0                          phase_d_object_record 0 → 0
+phase_d_file_revision 'fxrev:%' 0 → 0
+llm_attempt 69 → 69     ai_usage 14 → 14
+```
+
+**Two counts did move and neither is this session's.** `public.notifications` 671 → 673 and
+`public.phase_c_trace` gained 125 rows. Both are scheduled cron monitors on their own timetable: the
+two notifications are a `health_alert` at 09:30 and a `smoke_alert` at 10:00, and every one of the
+125 traces carries `trace_policy_id = 'TRACE-SYSTEM-EXECUTION'` on a five-minute cadence from 06:45.
+No probe in this session wrote either. Said this way rather than as a flat "residue 0", because a
+flat 0 would be a claim about tables nobody looked at.
+
+The four-mode driver reports **120 business rows created inside its transactions** across the 30
+workflows, and `fixture_residue 0` afterwards — that is the aborted-transaction door working, not a
+contradiction of the line above.
+
+### Reds that are not this session's, named so nobody re-derives them
+
+`fn_kernel_all_boards()` returns **11** failing checks. Every one predates this session and none
+moved during it:
+
+| board · check | reading | why it is not new |
+|---|---|---|
+| `fn_phase_d_effect_state :: steps_with_no_effect_ever_produced` | 257 | the disclosure that no committed business scenario exists — 0 transactions, 0 customers. `phase_d_effect_ledger` is emptied by `fn_phase_d_committed_scenario_close` by design, so an empty ledger between scenarios IS the zero-residue state. Named at four places in this document from before this session. |
+| `fn_kernel_write_guard_state :: routines_that_write_a_protected_table_with_no_authority` | 1 of 37 `[fn_phase_d_run_injected_defects -> phase_c_task]` | an `update … set trace_id` introduced by `phase_d_m08`, present at `HEAD` before this session. It went to **3 of 39** when two new raw writes landed in the runner and is back to 1 now both moved into `scripts/checks/protected_table_guards_actually_fire.test.mjs`. |
+| `fn_kernel_cutover_measure :: active_sources_bypassing_the_kernel` | 1 `[edge:inquiry_intake]` | pre-existing |
+| `fn_kernel_trigger_state :: active_autonomous_source_not_yet_routing_through_the_inbox` | 9 of 37 | pre-existing, and the row says so itself |
+| `fn_kernel_trace_integrity` (4 checks) | 7 orphan task traces of 5,900; 1 unmapped subject kind; 1 of 7 handoff-run disagreements; 4 of 18 workflow-run disagreements; 589 of 635 system-execution components with no trace | pre-existing |
+| `fn_kernel_truncate_protection_state` (2 checks) | 4 of 91, both | pre-existing, and the denominator did not move when eight new tables were added |
+
+**Event self-loops (producer = consumer) = 54, and the brief asks for 0.** It is not 0, it was not 0
+before this session, and nothing here moved it. `build_handoff_event_result.mjs` prints it as
+*ratcheted, needs a Phase B change request* — changing which role produces or consumes an event is a
+frozen Phase B subject. Reported rather than claimed.
+
+### `main`'s parity job is red, and it is the apply-before-merge window
+
+`repo and database agree` on `main` failed from `2026-08-24T08:48` — production carries
+`phase_d_o01`–`o14` and `main` does not yet. That is the documented, self-resolving condition of a
+production-direct deploy and it clears when this PR merges. It is not a finding.
+
+
+---
 
 ## What changed in the 2026-08-20 21:00–22:15 UTC session, and which figures it retired
 

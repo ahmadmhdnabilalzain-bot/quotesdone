@@ -237,3 +237,135 @@ The three-key browser sign-in trap (`qd-cust-token` / `qd-cust-refresh` / **`qd-
 dismissal: these are server-side `fetch` calls carrying an Authorization header and touching no
 browser storage, so the failure mode is structurally absent. Probe 1 asserts the binding that trap
 would have corrupted — A's bearer returns A and only A.
+
+---
+
+## 2026-08-24 — the three authority controls this session added
+
+Project `htdblwldjkcgjvmqkbeh`. Driven on production inside transactions that abort.
+
+### PD-AUTH-005 — a category overlay may never own a task
+
+**The recorded blocker was wrong, and it was wrong about a routine that has been in the estate the
+whole time.** It said closing this case needs `public.fn_phase_c_task_create`, which
+`public.kernel_retired_path` classifies `KERNEL_INTERNAL_PRIMITIVE`, and that a probe calling it is
+the bypass `fn_kernel_retired_path_state` exists to catch — so the case was withdrawn.
+
+`public.fn_kernel_open_step` **is** "a kernel entry point that accepts an owner and routes to the
+primitive", which is the exact thing the blocker said had to be built. It takes `owner_role_id`
+**from the caller** (`p_input->>'owner_role_id'`), resolves it, inserts the step run and creates the
+task. It is an `fn_kernel_*` routine, so the board's own exclusion covers it and no exclusion list
+was lengthened. `fn_kernel_retired_path_state()` reads
+`kernel_primitives_called_from_outside_the_kernel = 0 of 9` after this session.
+
+Driven on W04, run held at its first open step, target `W04-S02`:
+
+| arm | owner offered | result |
+|---|---|---|
+| A | `category_overlay_001_construction-materials-suppliers` | REFUSED `23514` |
+| B | `opcat-001`, its registered `packaged_role_id` alias | REFUSED `23514` — the alias disguised nothing |
+| C | `customer_onboarding`, the standing accountable role | **ACCEPTED** |
+
+Residue across A and B: tasks `57 -> 57`, step runs `29 -> 29`, traces `5839 -> 5839`, handoff runs
+`9 -> 9`, outbox `40 -> 40`. **No task, trace, handoff or event was created.** The step run is
+inserted before the task inside `fn_kernel_open_step`, so each refusal rolls back a write that had
+already happened — which is the "no partial workflow effect on refusal" the case asks for, measured
+rather than asserted.
+
+**Where the refusal happens, and where it does not.** `fn_kernel_open_step` calls
+`fn_phase_c_actor_may_own` and refuses **before** the step run is inserted, so
+`z10_phase_c_overlay_not_accountable` on `public.phase_c_task` — the guard that names overlays — is
+never reached on this path. That routine is a FROZEN Phase C subject
+(`canonical_step_engine`) and its message is generic prose carrying no machine-readable token, and
+it may not be edited.
+
+`phase_d_o01` therefore adds three things and edits no frozen body:
+
+* `public.fn_phase_d_owner_admissibility(text)` — one deterministic answer per identity, naming
+  **which** kind of inadmissible it is: `pd_overlay_cannot_own_task` for an overlay,
+  `pd_owner_not_canonical` for anything else that does not resolve, `pd_owner_absent` for nothing.
+  Measured: overlay → `pd_overlay_cannot_own_task`; `opcat-001` → the same; `customer_onboarding` →
+  admissible; an unknown token → `pd_owner_not_canonical`; empty → `pd_owner_absent`.
+* `a02_phase_c_step_run_owner_admissible` on `public.phase_c_workflow_step_run` — the boundary
+  `public.phase_c_workflow_step_run` did not have. The brief says in as many words *"do not rely
+  only on Phase B currently containing no overlay-owned steps"*, and relying on there being exactly
+  one writer of that column is the same bet one table over.
+* the two `phase_c_task` guards gain the tokens `pd_overlay_cannot_own_task` and
+  `pd_creator_reviewer_collision`; behaviour is unchanged and the sentences are appended to, not
+  rewritten, so the existing test matching `/does not resolve to an active canonical role/i` still
+  matches.
+
+**The new guard was forced to fire, and forced not to.** A guard whose branch has never executed is
+indistinguishable from a system that never provoked it. Through `fn_kernel_write_guard`'s audited
+maintenance door, in an aborted transaction: an overlay written to
+`phase_c_workflow_step_run.accountable_role_id` → refused `23514` carrying
+`pd_overlay_cannot_own_task`; `customer_onboarding` written the same way → **accepted**. Both arms
+in `scripts/checks/protected_table_guards_actually_fire.test.mjs`.
+
+Measured before the guard was added, so it can break nothing in flight: every
+`accountable_role_id` on `phase_c_workflow_step_run` (24 rows) and on `phase_c_task` (52 rows)
+resolves `kind = 'canonical'` today.
+
+### PD-LEGAL-005 — the creator may not review its own compliance artifact
+
+Same withdrawn blocker, same routine, same correction. Driven on **W08-S06**, *"Approve immutable
+supplier-safe package"* — a real review-required privacy artifact whose frozen owner is
+`marketplace_content_privacy_reviewer` and whose frozen independent reviewer is
+`compliance_and_privacy_officer`.
+
+At the task boundary:
+
+| arm | owner offered | result |
+|---|---|---|
+| A | `compliance_and_privacy_officer` — the declared reviewer as the step's own owner | REFUSED `23514` `pd_creator_reviewer_collision` |
+| B | `privacy_officer` — a registered `legacy_role_id` alias of the same | REFUSED `23514`, and the message names the **resolved** identity |
+| C | `marketplace_content_privacy_reviewer` — the frozen canonical owner | **ACCEPTED** |
+
+Residue across A and B: tasks `59 -> 59`, step runs `31 -> 31`, traces `5866 -> 5866`.
+
+At the **canonical review service**, `fn_kernel_review_decide`, on the task C created:
+
+| arm | reviewer offered | result |
+|---|---|---|
+| A | the creator itself | `ok:false` `not_the_declared_reviewer` |
+| B | `moderation_specialist`, a legacy alias of the creator | `ok:false` `not_the_declared_reviewer` |
+| C | `compliance_and_privacy_officer`, the declared independent reviewer | `ok:true`, verdict sealed |
+
+**Both refusal codes are accepted by the case, and this is why.** `fn_kernel_review_decide` checks
+the declared reviewer *before* it checks independence, so a creator offering itself is refused as
+`not_the_declared_reviewer` — the stronger of the two answers, because the frozen registry names who
+reviews and the creator is not that role. `reviewer_not_independent` is what fires where no reviewer
+is declared. Demanding exactly one of them would be asserting the **order of two guards** rather
+than the behaviour of the control. The independence decision itself is therefore asserted
+separately and across both identity vocabularies: `fn_kernel_reviewer_independent(x, x)` false,
+`(creator, alias-of-creator)` false, `(reviewer, alias-of-reviewer)` false,
+`(creator, the independent reviewer)` true.
+
+A **rejected** verdict blocking forward progression was already built by `phase_d_n02`
+(`a01_phase_c_step_run_review_verdict`, refusal `pd_review_verdict_rejected`), which refuses a
+completion while the latest sealed verdict is `rejected` or `changes_requested` — on **any** step,
+not only the 28 that declare a reviewer. A sealed verdict is immutable through
+`fn_phase_c_trace_append_only`, a frozen Phase C subject.
+
+### PD-QUOTE-001 — a supplier may not edit another supplier's quotation
+
+Measured before the change, in an aborted transaction: `fn_phase_d_object_write`'s
+`PHASE_D_OBJECT_VIEW` branch resolves the prior record with
+`where object_id = ? and business_key = ? and superseded_by is null` — **no owner predicate** — and
+owner `10` wrote version 2 superseding owner `1` on a SUPPLIER-scoped object. On the
+`EXISTING_TABLE` branch the column map sets `supplier_id = owner_ref`, so the same call **rewrites
+whose quotation it is**. `public.quotes` has RLS enabled and **zero** policies, which reads as a
+control on every board counting `relrowsecurity` and enforces nothing.
+
+`phase_d_o06` adds two guards on the two tables rather than splicing an owner check into the middle
+of a 28,375-byte routine that serves all 56 objects:
+
+* `a30_phase_d_object_owner_is_stable` on `public.phase_d_object_record` — for a CUSTOMER- or
+  SUPPLIER-scoped object, a live record does not change owner. Refusal `pd_object_cross_owner_write`.
+* `a30_quote_supplier_is_immutable` on `public.quotes` — `OLD.supplier_id` is who owns it and
+  `NEW.supplier_id` is who the caller says owns it, and a quotation does not move between suppliers
+  for any reason. Same refusal code.
+
+A trigger sees the row's **current** owner, which is the one thing a payload cannot lie about.
+Driven: supplier B naming supplier A's key → `pd_object_cross_owner_write`; supplier A rewriting
+their own key → accepted; rows left owned by B → **0**.

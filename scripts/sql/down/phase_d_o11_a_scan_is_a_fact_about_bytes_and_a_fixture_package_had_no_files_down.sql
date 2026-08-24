@@ -1,0 +1,15 @@
+-- DOWN for O11. Classification: mixed. One new routine (ROUTINE_INTRODUCED, dropped here) and two
+-- routine replacements (ROUTINE_RESTORE).
+--
+-- fn_phase_d_file_revision_dispatchable and fn_phase_d_fixture_scenario are NOT reproduced here.
+-- The restore is to re-apply the last file before O11 that defines each, chosen by
+-- scripts/sql/MANIFEST.txt position, which is what scripts/checks/canonical_routine_manifest.mjs
+-- reads. For the dispatchability predicate that is phase_d_o04; for the fixture factory it is
+-- whichever file MANIFEST position names, and `node scripts/checks/canonical_routine_manifest.mjs
+-- --all` reporting 0 repository -> production drift is the confirmation.
+--
+-- VERIFY AFTER ROLLBACK, and expect the 41 red cases back: with the digest-keyed scan lookup gone,
+-- fn_phase_d_file_revision_dispatchable('zz-disp-003-rev-safe') needs its OWN scan row again, and
+-- with the fixture stage gone the scenario's supplier_safe_package names no file, so BR-012 and
+-- GATE-013 refuse every W08, W12 and W13 drive. That is the state O11 corrected, not a new fault.
+DROP FUNCTION IF EXISTS public.fn_phase_d_fixture_file_revision(text);

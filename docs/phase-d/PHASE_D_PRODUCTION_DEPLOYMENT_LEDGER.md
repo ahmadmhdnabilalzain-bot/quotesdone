@@ -511,3 +511,112 @@ literal in the file: `prior_digest` comes from `public.phase_c_frozen_subject` a
 `encode(sha256(convert_to(pg_get_functiondef(p.oid),'UTF8')),'hex')` over the live definition. That
 is what stops an amendment being a rubber stamp — and it also means a later edit on top of either
 body reads as drift again, which is the point.
+
+---
+
+## 2026-08-24 — the `phase_d_o01`–`phase_d_o10` sequence
+
+Branch `finish/phase-d-nine-product-controls`, cut from `main` at `2c9e3f2` immediately after
+PR [#464](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/464) merged at
+`2026-08-24T08:48:33Z`. Every file below was applied with
+`node scripts/apply_sql.mjs <file> --apply --ddl`, which reads each routine's definition back out of
+`htdblwldjkcgjvmqkbeh` and refuses unless it is byte-identical to the file, and prints the public
+schema shape digest before and after.
+
+Applied in this order. Nothing was applied twice with a different body; the `SHAPE` column is the
+public-schema digest `apply_sql.mjs` printed after the write.
+
+| # | file | what it wrote | read-back | SHAPE after |
+|---|---|---|---|---|
+| O01 | `phase_d_o01_two_identity_controls_whose_refusals_had_no_machine_name.sql` | `fn_phase_d_owner_admissibility`, `fn_phase_c_step_run_owner_admissible`, `fn_phase_c_overlay_may_not_dispatch`, `fn_phase_c_task_state_guard`; trigger `a02_phase_c_step_run_owner_admissible` | 4 routines identical | `41a05d69…` (unchanged — the trigger is not in the shape digest) |
+| O02 | `phase_d_o02_an_append_only_ledger_with_no_writer_and_a_refund_that_never_read_it.sql` | `fn_kernel_refund_decision_record`, `fn_phase_c_refund_execution_requires_decision`, `fn_kernel_refund_ledger_state`; `refunds.refund_decision_id` + FK; trigger `z05_refund_execution_requires_decision`; one `kernel_write_authority` row | 3 routines identical | `ac2c1cf4…` |
+| O03 | `phase_d_o03_a_legal_authority_nothing_could_call_stale.sql` | `phase_d_legal_source` (+RLS, +grants); `fn_phase_d_legal_source_current`; 5 committed ZZ DEMO source rows | 1 routine identical | `c56aa1d2…` |
+| O04 | `phase_d_o04_a_supplier_facing_revision_with_no_redaction_state_and_no_scanner.sql` | `phase_d_personal_identifier_class` (10 rows), `phase_d_file_revision`, `phase_d_metadata_scan`; `fn_phase_d_file_revision_reviewer_independent` + trigger `a10_…`; `fn_phase_d_file_revision_dispatchable`; `fn_phase_d_package_revisions_dispatchable` | 3 routines identical | `6fcf2bf5…` |
+| O05 | `phase_d_o05_four_committed_revisions_that_differ_in_one_respect.sql` | 6 committed file revisions | data only | unchanged |
+| O06 | `phase_d_o06_a_quotation_that_could_change_hands_be_read_unpublished_and_be_normalised_in_place.sql` | `fn_phase_d_object_owner_is_stable` + `a30_…`; `fn_quote_supplier_is_immutable` + `a30_…`; `quote_comparisons.publication_state`/`published_at`/`superseded_by_comparison_id` + 2 CHECKs; `fn_phase_d_comparison_visible`; `phase_d_quote_normalisation`; `phase_d_supplier_authored_field` (8 rows); `fn_phase_d_normalisation_does_not_restate_the_original` + `a10_…`; `fn_phase_d_quote_original_intact` | 5 routines identical | `1e038461…` → `b14675ab…` after the `superseded_by_comparison_id` type correction |
+| O07 | `phase_d_o07_seven_predicates_that_named_a_control_and_tested_something_else.sql` | `phase_d_legal_assertion` + `fn_phase_d_legal_assertion_source_is_current` + `a10_…`; 4 `phase_d_gate_contract.evidence_source` corrections; **`fn_phase_d_rule_check` and `fn_phase_d_gate_evaluate` replaced** | 3 routines identical | `fbaf3c1e…` |
+| O08 | `phase_d_o08_the_nine_that_remained_executed.sql` | `fn_phase_d_run_injected_defects` replaced — the nine `NOT_RUN` emissions become nine driven branches | 1 routine identical | unchanged |
+| O09 | `phase_d_o09_the_register_becomes_history_and_two_change_requests_are_deferred.sql` | `phase_d_injected_defect_disposition_history`; the 9 disposition rows moved and the live register emptied; `document_author_field` identifier class; `phase_c_change_request.disposition`/`disposition_reason`/`disposition_recorded_at` + 3 CHECKs; PCCR-004 and PCCR-005 registered as deferred | data + DDL | `6bc0b501…` |
+| O10 | `phase_d_o10_the_new_file_set_leg_reddened_an_older_case_that_had_no_file_set.sql` | one committed file revision, so PD-DISP-003's control package satisfies the file-set leg O07 gave BR-012 | data only | unchanged |
+
+
+### O11–O14 — four files the first ten made necessary
+
+The file-set leg O07 gave BR-012 and GATE-013 is correct and it made three things visible that had
+been true and unmeasured. Each of these four files is that correction, not a retreat from it.
+
+| # | file | what it wrote | read-back | SHAPE after |
+|---|---|---|---|---|
+| O11 | `phase_d_o11_a_scan_is_a_fact_about_bytes_and_a_fixture_package_had_no_files.sql` | `fn_phase_d_file_revision_dispatchable` (scan looked up by **digest**, worst outcome wins), `fn_phase_d_fixture_file_revision`, `fn_phase_d_fixture_scenario` | 3 routines identical | unchanged |
+| O12 | `phase_d_o12_a_new_fixture_table_the_committed_scenario_was_not_watching.sql` | one row on `phase_d_committed_scenario_watch` | data only | unchanged |
+| O13 | `phase_d_o13_a_package_identified_two_ways_and_a_comparison_nobody_published.sql` | `fn_phase_d_package_revisions_dispatchable` (resolves record id, business key and prefixed key), `fn_quote_comparison_publication_stamp` + `a20_…`, one write-map column, `fn_phase_d_fixture_scenario` | 3 routines identical | unchanged |
+| O14 | `phase_d_o14_the_package_the_drive_produces_and_a_key_in_two_shapes.sql` | `fn_phase_d_quote_original_intact` (same two-shape resolution), `fn_phase_d_effect_produce` (a supplier-safe package arrives with its file set **inside a test context only**) | 2 routines identical | unchanged |
+
+**What each one was, in one line.**
+
+* **O11.** A metadata scan was keyed on `(revision_ref, scanned_sha256)`, so the same bytes scanned
+  once became unscanned the moment a second revision claimed them. A scanner reads a digest and
+  reports on a digest; the lookup is now by digest, and where two scanners disagree about one file
+  the **worst** outcome wins so a clean re-scan cannot bury a dirty one. And the fixture factory's
+  supplier-safe package named no file at all, which is what turned 41 step-contract cases red.
+* **O12.** O11's fixture revision is a row `phase_d_committed_scenario_watch` did not name. Measured
+  first: a committed scenario does not reach that stage today (`fxrev` 0 after open and after
+  close), so a DELETE in `close()` would have been a cleanup that has never removed anything and
+  that nobody could prove works — and the only key linking a revision to a scenario runs through a
+  table `close()` does not delete. It is **watched** instead, so a future committed scenario that
+  does create one makes the close refuse rather than leaving rows for a later reader to find.
+* **O13.** Two more instances of one key written in two shapes. `fn_phase_d_step_context` resolves an
+  IDENTIFIES key from the scenario record's canonical identity — the **record id** — and the new
+  predicates looked the same row up by **business key**. GATE-013 reported "package 550491 names no
+  registered file revision" while BR-012, which already resolved both shapes, passed on the same
+  package in the same drive. Also: `publication_state` defaults to `DRAFT` on purpose, so the
+  fixture had to say what the workflow actually models, and a publication now stamps its own moment.
+* **O14.** The package W08 judges is produced by the **drive**, not the fixture — measured, a W08
+  scenario creates no `supplier_safe_package` at all. So the file set arrives with the package
+  wherever it is created, guarded on `fn_phase_d_fixture_context()` being non-null, which is an
+  hmac over `txid_current()` and not a GUC a caller can set. **In production a package that names no
+  file is still refused**, because this estate has no file-production path and that absence must
+  stay visible rather than be defaulted away.
+
+Down scripts: O12 and O13 carry theirs; O11 and O14 are `ROUTINE_RESTORE` for their replacements
+plus one dropped routine, and both state the restore path and what to expect after it — the red
+cases they corrected come back, which is the state they corrected and not a new fault.
+`node scripts/phase_d/build_migration_rollback_classification.mjs` classifies **249 of 249** Phase D
+migrations with **0 down scripts required and missing**.
+
+### How each is reversed
+
+Every file has a `scripts/sql/down/<name>_down.sql` except O08, which is a pure routine replacement
+(`ROUTINE_RESTORE` — `create or replace` has no DDL to reverse and the file creates no object; the
+restore is to re-apply the last file before it that defines the routine, chosen by
+`scripts/sql/MANIFEST.txt` position). `node scripts/phase_d/build_missing_down_scripts.mjs` reports
+**0 files with no down script**, and
+`node scripts/phase_d/build_migration_rollback_classification.mjs` classifies **245 of 245** Phase D
+migrations with **0 down scripts required and missing**.
+
+O07's down deliberately does **not** reproduce the two ~1,200-line routine bodies it replaced. A
+hand-copied duplicate of a routine body is the shape that has already put a wrong body live in this
+estate; the restore is stated as "re-apply the last file before O07 that defines each routine, by
+MANIFEST position" with the verification that reproduces the pre-O07 behaviour (BR-018 returning
+`ENFORCED_PASS` for `{quote_revision_ref:'x', platform_edited:'false'}`, which is the defect).
+
+O09's down is written to restore the live disposition register **from the history table before
+dropping it**, because after O09 the history table is the only surviving copy of those nine rows.
+
+### Parity after the sequence
+
+`node scripts/checks/canonical_routine_manifest.mjs --all`:
+conflicting current definitions **0**, ambiguous winners **0**, manifest gaps **0**,
+repository → production drift **0**, production → repository drift **0**.
+
+Two things had to be fixed before that read clean, and both are worth recording because they are
+tool-shaped rather than code-shaped:
+
+* `scripts/sql/MANIFEST.txt` had `phase_d_o08…` listed **twice** (an appended line repeated during
+  an assembly retry) and carried four lines of hook output —
+  `[INFO] Recording command outcome: printf` — written into the file by a `PostToolUse` hook that
+  landed inside a `>>` redirect. Both were removed. A manifest whose position decides canon cannot
+  carry a duplicate or a log line.
+* `refunds_refund_decision_id_fkey` showed as **uncommitted application DDL** until
+  `supabase/schema/full_schema.sql` was regenerated, which is done as the last act of the session
+  rather than mid-sequence — a mirror captured mid-chain is not a mirror.

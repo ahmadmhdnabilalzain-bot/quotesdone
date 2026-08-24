@@ -1,5 +1,5 @@
 # node scripts/phase_d/build_four_mode_result.mjs | project htdblwldjkcgjvmqkbeh | 30 of 30 frozen Phase B workflows, each driven four ways inside its own transaction that ends in raise exception | attribution: every figure is read off public.phase_d_dispatch, public.phase_d_effect_ledger and public.phase_c_workflow_run after the drive, not off the driver's own loop
-# generated_at: 2026-08-24T02:20:23.799Z
+# generated_at: 2026-08-24T12:14:45.901Z
 workflow_id,steps,dispatched,executed,handoffs,capability_results,effects,run_state,terminal,steps_driven,happy_verdict,failure_path,failure_reached_by,cancellation_path,cancellation_reached_by,replay_effects_added,replay_duplicate_effects,replay_reference_moved,replay_duplicate_objects,steps_first_effect_on_second_dispatch,replay_step_runs,first_handler_refusal,first_handler_refusal_at,business_rows_created_inside_the_transaction
 "W01","8","9","8","7","0","8","completed","true","0","ACTOR_DRIVEN_PARTIAL","step:failed,run:blocked","first_open_step","cancelled","first_open_step","0","0","0","0","0","8","pd_review_not_recorded","W01-S06","4"
 "W02","9","12","9","8","1","9","completed","true","0","ACTOR_DRIVEN_PARTIAL","step:failed,run:blocked","first_open_step","cancelled","first_open_step","0","0","0","0","0","9","pd_review_not_recorded","W02-S02","4"
