@@ -1,0 +1,12 @@
+-- ROLLBACK for phase_d_n04_a_result_table_for_the_races_one_transaction_cannot_drive.sql
+--
+-- Drops the concurrency probe result table and everything on it.
+--
+-- WHAT IS LOST: the recorded verdict for C1-skip-locked-single-claimant. The branch in
+-- fn_phase_d_run_injected_defects that reads it is written to report NOT_RUN with a named blocker
+-- when the table holds no row for the probe — it will therefore report the case as unrun rather
+-- than error, which is the intended behaviour and not a second defect. If the table is dropped
+-- while that branch is live, PD-CONC-001 reopens honestly.
+--
+-- The table is AUDIT EVIDENCE, not business data. Dropping it removes no business row.
+drop table if exists public.phase_d_concurrency_probe_result;
