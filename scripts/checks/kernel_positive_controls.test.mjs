@@ -139,6 +139,40 @@ const CONTROLS = {
         'route', 'server_verified_subject'),
       'trace', (select count(*) from public.phase_c_founder_auth_event where txid = txid_current()));`,
 
+  // O02 registered the first writer public.phase_c_refund_decision has ever had. Before it,
+  // kernel_write_authority held ZERO rows for that table, so Door 1 of fn_kernel_write_guard could
+  // never open and no routine anywhere could create the row the append-only trigger protects — the
+  // table sat at 0 and the guard had never been asked a question.
+  //
+  // The control proves the door ACCEPTS: a decision recorded through the canonical service, with
+  // decided_by written from the identity fn_phase_c_require_founder VERIFIED rather than from the
+  // call, and the sanctioned supersession accepted on top of it. The refusals that matter to
+  // PD-FIN-004 are asserted in protected_table_guards_actually_fire.test.mjs; this file's job is
+  // the other half — that an authority nobody proves accepts anything is an authority nobody has
+  // tested.
+  fn_kernel_refund_decision_record: `
+    ${BIND_FOUNDER}
+    insert into public.founder_approval_request(action_class, subject_ref, prepared_by_role_id)
+    values ('refund_decision','positive-control','payments_and_billing_manager')
+    returning request_id into v_req;
+    v := public.fn_kernel_refund_decision_record(jsonb_build_object(
+           'op','record','request_id',v_req,'decision','approved',
+           'reason','positive control for the canonical founder refund decision service'));
+    v2 := public.fn_kernel_refund_decision_record(jsonb_build_object(
+           'op','record','request_id',v_req,'decision','rejected','reason','superseding',
+           'supersedes_decision_id',(v->>'decision_id')::bigint,
+           'supersession_reason','positive control supersession'));
+    res := jsonb_build_object(
+      'accepted', coalesce((v->>'ok')::boolean,false) and coalesce((v2->>'ok')::boolean,false)
+                  and v->>'decided_by' = ${lit(FOUNDER)},
+      'effect', jsonb_build_object(
+        'decision_id', v->>'decision_id',
+        'decided_by_is_the_verified_identity_not_the_call', v->>'decided_by' = ${lit(FOUNDER)},
+        'superseding_decision_id', v2->>'decision_id',
+        'rows_for_this_request', (select count(*) from public.phase_c_refund_decision
+                                   where request_id = v_req)),
+      'trace', (select count(*) from public.phase_c_refund_decision where request_id = v_req));`,
+
   fn_phase_d_test_context_open: `
     v := public.fn_phase_d_test_context_open(jsonb_build_object(
            'operation_key','pdop_acceptance_probe', 'label','positive-control-context'));
@@ -509,6 +543,7 @@ for (const door of doors) {
 declare v jsonb; v2 jsonb; res jsonb;
         cmd bigint; run bigint; sr bigint; sr2_id bigint; tsk bigint; ob bigint; hnd bigint;
         stp text; stp2 text; owner text; recv text; sender text;
+        v_req bigint;   -- O02: the founder_approval_request a refund decision answers
 begin
 ${body}
   raise exception 'PC %', res::text;

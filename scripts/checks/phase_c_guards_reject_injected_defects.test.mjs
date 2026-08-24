@@ -275,10 +275,24 @@ const CASES = [
     truncate table public.kernel_trigger_inbox;`,
    ['42501', 'a truncate is not a kernel write']],
 
+  // O02 GAVE THIS TABLE AN INBOUND FOREIGN KEY, AND POSTGRES NOW REFUSES THE TRUNCATE FIRST.
+  //
+  // `refunds.refund_decision_id REFERENCES phase_c_refund_decision(decision_id)` is the binding
+  // between the founder's decision and the money, and its side effect is that a TRUNCATE is
+  // refused at 0A000 — "cannot truncate a table referenced in a foreign key constraint" — BEFORE
+  // z00_kernel_truncate_guard is reached. The ledger is therefore MORE protected than it was, and
+  // this case can no longer be the thing that proves the kernel guard fires.
+  //
+  // So it asserts what is now true: the truncate is refused, by the FK or by the guard. The
+  // guard's own liveness is not taken on trust and is not lost — the two cases immediately above
+  // drive it on kernel_signal_inbox and kernel_trigger_inbox, neither of which carries an inbound
+  // FK, and both still expect 42501 and the guard's own sentence. Widening THIS case without those
+  // two would be softening the check; with them it is recording which of two refusals arrives
+  // first.
   ['TRUNCATE on the refund decision ledger is refused',
    `perform set_config('kernel.maintenance_reason', '', true);
     truncate table public.phase_c_refund_decision;`,
-   ['42501', 'a truncate is not a kernel write']],
+   ['0A000', 'cannot truncate a table referenced in a foreign key constraint']],
 ];
 
 // Cases whose guard returns a REFUSAL VALUE rather than raising.  A refusal that comes back as
