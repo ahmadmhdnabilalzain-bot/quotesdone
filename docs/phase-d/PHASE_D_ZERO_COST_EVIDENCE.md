@@ -1,30 +1,46 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-22 19:01 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-24 03:19 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
-**THE WINDOW MOVED A FOURTH TIME, AND THE CHECK MOVED IT AGAIN.** The session of 22 Aug 2026 applied
-F31 through F42 under the founder's ruling of that date, and
+**THE WINDOW MOVED A FIFTH TIME, AND THE CHECK MOVED IT AGAIN.** The final builder session of
+24 Aug 2026 applied N01 through N11, and
 `scripts/checks/zero_cost_evidence_window_covers_the_work.test.mjs` failed with *"the window does not
-close before the work it claims to cover"*, naming `phase_d_fixture_catalogue.recorded_at` at
-2026-08-22 18:04:27 UTC as work outside it. That is the whole reason the check was written, and it
-is the fourth time it or an auditor has caught this. The close is the database clock read after F42,
-the last apply of this session, and every figure below was re-measured at that instant.
+close before the work it claims to cover"*, naming `phase_d_section8_probe_result.ran_at` at
+2026-08-24 01:51:48 UTC as work outside it. That is the whole reason the check was written, and it
+has now caught this five times.
 
-**Measured at the new close, 2026-08-22 19:01:09 UTC:**
+**Five occurrences is the finding, not the individual slip.** The window is a hand-maintained
+sentence in a document and the work it must cover is produced by a dozen scripts, so the only thing
+keeping them in step is a person remembering to regenerate this file last. The check is what makes
+the forgetting visible, and it should stay; what would end the pattern is a generator that reads the
+close off the database at write time, which does not exist and is named here as the build order.
+The close below is the database clock read after N11, the last apply of this session, and every
+figure was re-measured at that instant.
+
+**Measured at the new close, 2026-08-24 03:19:37 UTC:**
 
 | | over the stated window |
 |---|---:|
 | `public.ai_cost_log` rows | **0** |
 | `public.ai_cost_log` spend | **AED 0** |
 | `public.llm_attempt` rows | **0** |
-| most recent `ai_cost_log` row in the whole table | 2026-08-15 02:51:33 UTC |
+| `public.ai_usage` rows | **0** |
+| most recent `ai_cost_log` row in the whole table | 2026-08-15 02:51:33 UTC — nine days before this close |
 | `net.http_request_queue` | **0** |
 | active `cron.job` | **23** |
-| `public.notifications` written on 22 Aug | 5, of which **0 sent** |
+| `public.notifications` written in the window | 31, of which **0 sent** |
 | `customers` / `inquiries` / `quotes` / `transactions` | **0 / 0 / 0 / 0** |
 | `phase_d_effect_ledger` | **0** |
+| `phase_d_external_attempt` | **0** |
 | `public.leads` | 20,465 — unchanged |
+
+**AUDIT EVIDENCE, REPORTED SEPARATELY BECAUSE IT IS NOT BUSINESS ACTIVITY.**
+`public.kernel_maintenance_write` holds **3** receipts, all written by this session's concurrency
+probe removing the temporary committed canary it had created, each naming its own `audit_run_id`
+and its reason. `public.phase_d_concurrency_probe_result` holds **1** row, labelled audit evidence
+in the table's own COMMENT. No business relation moved: `phase_c_event_outbox` and
+`phase_c_event_delivery_attempt` are both back at the watermark they held before the probe ran.
 
 No OpenRouter request and no other paid-provider request was made to produce any figure in this
 document or any figure in this session's work. The hold is enforced structurally rather than by an

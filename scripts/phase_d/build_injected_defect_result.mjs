@@ -134,7 +134,19 @@ writeFileSync(outPath('PHASE_D_INJECTED_DEFECT_RESULT.csv'),
       + 'is aborted; status NOT_RUN carries a named blocker and is never a default',
   }) + out);
 
-const exec = rows.filter(r => r[2] === 'REFUSED_AS_REQUIRED').length;
+// THE CLOSING VOCABULARY, not one value. A case can end in a real discriminating result without
+// the word REFUSED in it: a control that must SUCCEED safely rather than refuse, a replay that must
+// produce no second effect, a provider path that must fail closed. Counting only REFUSED_AS_REQUIRED
+// made those look open, and the register then demanded an exemption for a case that had actually
+// run -- an exemption for a closed case is a reason nobody re-read.
+const CLOSED = new Set([
+  'REFUSED_AS_REQUIRED',            // the control refused the injection
+  'SAFE_SCOPED_RESULT_AS_REQUIRED', // it succeeded, scoped to the caller's own subject
+  'IDEMPOTENT_NO_DUPLICATE',        // it ran twice and produced one effect
+  'FAIL_CLOSED_AS_REQUIRED',        // it could not proceed and stopped rather than guessing
+  'INVALID_TEST_CONTRACT_REPLACED', // the expectation was wrong and an approved replacement ran
+]);
+const exec = rows.filter(r => CLOSED.has(r[2])).length;
 const notrun = rows.filter(r => r[2] === 'NOT_RUN').length;
 const notref = rows.filter(r => r[2] === 'NOT_REFUSED');
 // NOT_DISCRIMINATED (D44): the assertion executed and could not separate a refusal from an ignored
@@ -144,13 +156,13 @@ const notref = rows.filter(r => r[2] === 'NOT_REFUSED');
 const notdisc = rows.filter(r => r[2] === 'NOT_DISCRIMINATED').length;
 const residue = await sql('select count(*)::int as n from public.phase_d_external_attempt');
 console.log(`PHASE_D_INJECTED_DEFECT_RESULT.csv  ${rows.length} rows`);
-console.log(`  executed and refused as required   ${exec}`);
+console.log(`  executed with a discriminating result ${exec}`);
 console.log(`  NOT_RUN with a named blocker       ${notrun}`);
 console.log(`  executed but NOT_DISCRIMINATED     ${notdisc}`);
 console.log(`  FAILED TO REFUSE                   ${notref.length}   (must be 0)`);
 console.log(`  attempt rows left behind           ${residue?.[0]?.n ?? -1}   (must be 0)`);
 if (exec + notrun + notdisc + notref.length !== rows.length) {
-  const named = new Set(['REFUSED_AS_REQUIRED', 'NOT_RUN', 'NOT_DISCRIMINATED', 'NOT_REFUSED']);
+  const named = new Set([...CLOSED, 'NOT_RUN', 'NOT_DISCRIMINATED', 'NOT_REFUSED']);
   const other = [...new Set(rows.map(r => r[2]).filter(s => !named.has(s)))];
   console.error(`  the run produced status value(s) this summary does not count: ${other.join(', ')}`);
   process.exit(1);
@@ -166,7 +178,7 @@ if ((residue?.[0]?.n ?? -1) !== 0) process.exit(1);
 // carried "SECTION 8 NOT BUILT" for days after section 8 had been built and had overridden it.
 // public.phase_d_injected_defect_disposition is the register; this is what makes it owed rather
 // than optional. A case that stops running and gains no row turns this red on the next build.
-const open = rows.filter(r => r[2] !== 'REFUSED_AS_REQUIRED').map(r => r[0]);
+const open = rows.filter(r => !CLOSED.has(r[2])).map(r => r[0]);
 const decided = new Set((await sql(
   'select defect_id from public.phase_d_injected_defect_disposition')).map(r => r.defect_id));
 const undecided = open.filter(id => !decided.has(id));
