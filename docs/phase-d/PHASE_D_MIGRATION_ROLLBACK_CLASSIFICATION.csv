@@ -1,5 +1,5 @@
-# node scripts/phase_d/build_migration_rollback_classification.mjs | project htdblwldjkcgjvmqkbeh | 234 of 234 files matching scripts/sql/phase_d_*.sql, each classified from its own text | attribution: dollar-quoted routine bodies are removed first, then statements beginning at column 0 are counted; the classes are the ones docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md defines and that document remains the authority on what each one means
-# generated_at: 2026-08-24T02:23:26.527Z
+# node scripts/phase_d/build_migration_rollback_classification.mjs | project htdblwldjkcgjvmqkbeh | 235 of 235 files matching scripts/sql/phase_d_*.sql, each classified from its own text | attribution: dollar-quoted routine bodies are removed first, then statements beginning at column 0 are counted; the classes are the ones docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md defines and that document remains the authority on what each one means
+# generated_at: 2026-08-24T03:09:00.535Z
 file,class,routines,routines_introduced,additive_ddl,grants,registry_writes,deletes,down_script_required,down_script,rollback_stated_in_header
 "phase_d_d0_auth_debt_discharged.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","2","0","NO","-","NO"
 "phase_d_d10_seven_cases_for_every_one_of_the_257_steps.sql","EXPLICIT_DOWN_REQUIRED","3","public.fn_phase_d_step_cases public.fn_phase_d_run_step_cases public.fn_phase_d_case_state","1 table, 1 alter table","8","0","0","YES","scripts/sql/down/phase_d_d10_seven_cases_for_every_one_of_the_257_steps_down.sql","NO"
@@ -235,3 +235,4 @@ file,class,routines,routines_introduced,additive_ddl,grants,registry_writes,dele
 "phase_d_n08_the_gate_read_failure_case_executed.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","NO"
 "phase_d_n09_two_state_cases_closed_on_the_frozen_registrys_own_refusal.sql","ROUTINE_RESTORE","1","none","none","0","0","0","NO","-","NO"
 "phase_d_n10_the_nine_that_remain_classified_rather_than_exempted.sql","EXPLICIT_DOWN_REQUIRED","0","none","7 alter table","0","1","0","YES","scripts/sql/down/phase_d_n10_the_nine_that_remain_classified_rather_than_exempted_down.sql","NO"
+"phase_d_n11_the_ownership_ledger_still_named_the_file_n01_replaced.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","1","0","NO","scripts/sql/down/phase_d_n11_the_ownership_ledger_still_named_the_file_n01_replaced_down.sql","YES"
