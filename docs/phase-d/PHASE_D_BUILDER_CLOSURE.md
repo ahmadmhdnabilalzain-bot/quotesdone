@@ -120,7 +120,7 @@ Every one read off the deliverable that produced it or off a live board, never t
 | repository → production drift | **0** |
 | production → repository drift | **0** |
 | manifest gaps / ambiguous winners / conflicting definitions | **0 / 0 / 0** |
-| Phase D migrations classified | **251 of 251**, down scripts required and missing **0** |
+| Phase D migrations classified | **252 of 252**, down scripts required and missing **0** |
 | required deliverables present and current | **15 of 15** |
 | OpenRouter HTTP requests | **0** |
 | paid inference cost | **USD 0.00** |

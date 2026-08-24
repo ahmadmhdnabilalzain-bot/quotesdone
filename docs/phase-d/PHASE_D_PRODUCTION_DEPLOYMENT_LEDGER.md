@@ -582,7 +582,7 @@ been true and unmeasured. Each of these four files is that correction, not a ret
 Down scripts: O12 and O13 carry theirs; O11 and O14 are `ROUTINE_RESTORE` for their replacements
 plus one dropped routine, and both state the restore path and what to expect after it — the red
 cases they corrected come back, which is the state they corrected and not a new fault.
-`node scripts/phase_d/build_migration_rollback_classification.mjs` classifies **251 of 251** Phase D
+`node scripts/phase_d/build_migration_rollback_classification.mjs` classifies **252 of 252** Phase D
 migrations with **0 down scripts required and missing**.
 
 ### How each is reversed
