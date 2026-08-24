@@ -1,5 +1,5 @@
 # node scripts/phase_d/build_step_case_result.mjs | project htdblwldjkcgjvmqkbeh | 1799 of 1799 declared cases (7 per frozen Phase B step) | attribution: one row per executed case in public.phase_d_step_case_result; decided_at records which boundary refused it, so a contract-level refusal is not read as a driven one
-# generated_at: 2026-08-24T17:16:25.184Z
+# generated_at: 2026-08-24T18:24:04.838Z
 step_id,workflow_id,step_type,case_kind,decided_at,expectation,passed,refused_with,detail
 W01-S01,W01,intake,positive,live_step_run,the kernel dispatch executes this step run and the ledger holds exactly one effect for it,true,EXECUTED,the canonical drive answered EXECUTED and the ledger holds 1 effect(s) for this step run
 W01-S01,W01,intake,missing_input,live_step_run,"the real handler refuses a payload missing a declared input key, with pd_input_schema_invalid, and writes nothing",true,pd_input_schema_invalid,removing the declared input key founder_instruction gives pd_input_schema_invalid

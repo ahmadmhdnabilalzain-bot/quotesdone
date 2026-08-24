@@ -1,0 +1,12 @@
+# FILES COMMITTED AND DELIBERATELY NOT APPLIED.
+#
+# scripts/sql/MANIFEST.txt is the ordered list of what HAS been applied to
+# htdblwldjkcgjvmqkbeh. A file that is committed but must not run yet belongs here instead, with
+# the reason and the condition that would move it. scripts/checks/canonical_routine_manifest.mjs
+# reports these as PENDING rather than as manifest gaps, refuses a file listed in both, and refuses
+# an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
+#
+# Format: <path> :: <reason, and what would move it>
+
+scripts/sql/phase_c_pccr006_governance_approval_authenticity.sql :: PCCR-006. A security correction to a frozen Phase C governance contract (founder_authentication). It may not be applied until the founder approves it in a VERIFIED SESSION — see docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md. Applying it from a migration would be the exact defect it closes.
+scripts/sql/phase_c_pccr006_governance_approval_authenticity_down.sql :: The rollback for the above. It cannot be applied before the change it reverses.

@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-24 12:08 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-24 20:00 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE WINDOW MOVED A FIFTH TIME, AND THE CHECK MOVED IT AGAIN.** The final builder session of
@@ -320,3 +320,51 @@ counted over a 12- and 14-hour window respectively, which is wider than the sess
 and residue figures are per-batch and per-build. It is not a claim about any earlier window, and the
 correction at the top of this addendum is the reason to read the earlier sections with the coverage
 of their own instruments in mind.
+
+---
+
+## The window moved a sixth time — the Gate 5 / audit-safety repair session, 2026-08-24 16:30–20:00 UTC
+
+Baseline taken at **16:30 UTC**, before the first write, and read again at close from a new
+transaction. Four files applied to production (`phase_d_p01`–`phase_d_p04`); one committed and
+deliberately not applied (`phase_c_pccr006_governance_approval_authenticity.sql`).
+
+| measurement | baseline 16:30Z | close | delta |
+|---|---|---|---|
+| `llm_attempt` | 69 | 69 | **0** |
+| `ai_usage` | 14 | 14 | **0** |
+| `ai_cost_log` | 3507 | 3507 | **0** |
+| `ai_cost_log` rows since 16:30Z | — | — | **0** |
+| paid inference cost | — | — | **USD 0.00** |
+| OpenRouter HTTP requests | — | — | **0** |
+| other paid-AI HTTP requests | — | — | **0** |
+| `notifications` rows | 674 | 674 | **0** |
+| notifications **sent** | 540 | 540 | **0** |
+| newest `sent_at` anywhere in the table | 2026-08-16 05:30:04Z | 2026-08-16 05:30:04Z | unmoved |
+| `phase_c_event_outbox` rows created today | — | 0 | **0** |
+| `phase_d_external_attempt` | 0 | 0 | **0** |
+| `stripe_events` | 0 | 0 | **0** |
+| `net.http_request_queue` | 0 | 0 | **0** |
+| `phase_c_founder_auth_event` | 0 | 0 | **0** |
+| active cron jobs | 23 | 23 | **0** |
+
+**The 21 HTTP responses, named rather than netted out.** `net._http_response` gained 21 rows after
+16:30Z. Every one is attributable to pre-existing scheduled automation this session neither started
+nor may stop: `uptime_check_15min` ×7, `dropbox_backup_scan` ×7, `health_check` ×4,
+`smoke_test_30min` ×4. **None is an AI provider call** — `ai_cost_log`, `llm_attempt` and `ai_usage`
+each gained zero rows in the same window, and `net.http_request_queue` has never held an OpenRouter
+URL.
+
+`phase_c_outbox_deliver_1min` ran **104 times** across the window and delivered nothing new. Zero
+outbox rows were created today, which is the direct evidence that no aborted transaction left a
+deliverable row behind — the session drove all 30 workflows repeatedly, wrote 1,799 step cases,
+executed 75 injected defects and produced 257 transaction-local effects, and every one of those
+transactions ended in `raise exception`.
+
+**Business residue at close:** customers 0, inquiries 0, quotes 0, transactions 0, quote_comparisons
+0, refunds 0, `phase_c_refund_decision` 0, `phase_d_effect_ledger` 0, `phase_d_object_record` 0,
+`phase_d_dispatch` 0, `phase_d_quote_normalisation` 0, `phase_c_founder_auth_event` 0,
+`fn_phase_d_fixture_residue()` 0.
+
+**What was NOT run, deliberately:** the independent audit, Phase E, any business-automation
+reactivation, `outcome_evaluate_daily`, any paid provider, any external effect.

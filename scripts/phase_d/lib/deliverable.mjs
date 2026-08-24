@@ -67,6 +67,21 @@ export function provenance({ command, numerator, denominator, of, attribution })
 /** The line the deliverable comparison strips before diffing. Exported so both sides agree. */
 export const VOLATILE_LINE = /^# generated_at:/;
 
+/**
+ * Timestamps that are EVIDENCE and are therefore kept in the file, but which necessarily differ
+ * between two runs and so are normalised before the comparison rather than dropped.
+ *
+ * Added 24 Aug 2026 when scripts/phase_d/prove_object_reference_round_trip.mjs joined BUILDERS.
+ * Its footer reads
+ *
+ *   # ROLLBACK CONFIRMED from a new transaction at <ts> on <project>: customers=0 … residue=0
+ *
+ * and only the <ts> moves. It matters — it is what shows the rollback was read from a transaction
+ * opened AFTER every drive had aborted — so the line is not stripped. STRIPPING IT WOULD DROP THE
+ * COUNTS WITH IT, which are the part that must still match exactly.
+ */
+export const VOLATILE_TIMESTAMP = /(ROLLBACK CONFIRMED from a new transaction at )\d{4}-\d\d-\d\d[ T][\d:.]+\+\d\d/g;
+
 // THE BUILD ORDER, IN ONE PLACE, BECAUSE THREE THINGS HAVE TO AGREE ON IT: the npm script, the
 // build_all runner, and the check that regenerates every one of them. It was previously written
 // nowhere at all — the builders were run by hand, in whatever order the person remembered.

@@ -621,3 +621,55 @@ tool-shaped rather than code-shaped:
 * `refunds_refund_decision_id_fkey` showed as **uncommitted application DDL** until
   `supabase/schema/full_schema.sql` was regenerated, which is done as the last act of the session
   rather than mid-sequence — a mirror captured mid-chain is not a mirror.
+
+---
+
+## 2026-08-24, 16:30–20:00 UTC — Gate 5 and the audit-safety findings
+
+Branch `fix/phase-d-gate5-and-audit-safety`, cut from `main` at `6479d32`. Four files applied to
+`htdblwldjkcgjvmqkbeh` through `scripts/apply_sql.mjs --apply --ddl`, each read back and matched
+against the file. One file committed and **deliberately not applied**.
+
+| # | file | what it deploys | read-back |
+|---|---|---|---|
+| 1 | `phase_d_p01_a_field_named_decision_that_carried_a_sentence.sql` | `public.phase_d_output_domain_registry` (2,793 rows), `fn_phase_d_domain_source_digest`, the two corrected handler derivations, `enum_domains` on 514 schemas, the two fail-closed refusals in `fn_phase_d_schema_validate`, the probe builders, and the contract board's new probes | 6 routines + DDL, identical to the file |
+| 2 | `phase_d_p02_a_destructive_runner_and_a_denominator_that_was_typed.sql` | `fn_phase_d_run_step_cases` retired in place; `fn_phase_d_case_state` rebuilt with a derived denominator | 2 routines, identical |
+| 3 | `phase_d_p03_two_decision_steps_the_catalogue_never_told_what_was_decided.sql` | catalogue rows `PDF-4106` and `PDF-4107` | DDL applied; catalogue check passes row-for-row |
+| 4 | `phase_d_p04_four_corrections_an_adversarial_pass_found.sql` | the canonicalised handoff fallback and three registry corrections | 1 routine, identical |
+| — | `phase_c_pccr006_governance_approval_authenticity.sql` | **NOT APPLIED.** Waits on the founder's approval in a verified session. Listed in `scripts/sql/PENDING.txt` with its reason. | n/a |
+
+Two repository files that are migrations were also corrected in place and **rehearsed rather than
+re-applied**, because both are already live and neither changes a deployed object — only its own
+self-verification block:
+
+* `scripts/sql/phase_d_e4_the_door_was_never_a_browser.sql` and its down script. Both now assert a
+  DELTA over the 57 routines the file itself names instead of a TOTAL over all 835 SECURITY DEFINER
+  routines in `public`. Rehearsed inside `begin; … rollback;`: **both apply cleanly**, and the
+  persistent ACL afterwards is unchanged at 0 anon-executable / 5 authenticated-executable.
+
+### The rollback path, and what it now costs
+
+`scripts/sql/down/phase_d_p01_…_down.sql` and `…p02_…_down.sql` are generated from the LIVE
+pre-change bodies read out with `pg_get_functiondef`, with their sha256 digests recorded beside them,
+so restoring re-applies the DEPLOYED body rather than one retyped from a document. `p01`'s down also
+restores `enum_domains` to the exact jsonb that was live on all 514 rows.
+
+Both are **TRANSACTION_NEUTRAL**, as are all 98 down scripts now. That is the change: 67 of the 97
+that existed carried their own `begin; … commit;`, and the independent audit deployed four of them by
+accident while believing it was rehearsing. `docs/phase-d/PHASE_D_MIGRATION_ROLLBACK_CLASSIFICATION.csv`
+carries a `down_script_transaction_control` column and reads `NONE` on all 98.
+
+### Parity after the sequence
+
+`node scripts/checks/canonical_routine_manifest.mjs --all` → exit 0: conflicting current definitions
+**0**, ambiguous winners **0**, manifest gaps **0**, repository → production drift **0**, production →
+repository drift **0**, uncommitted application DDL **0**, and the two PCCR-006 files reported
+**PENDING (committed, deliberately not applied)** with their reason.
+
+`scripts/checks/application_source_of_truth.test.mjs` → **0 on all seven lines**.
+
+One tool-shaped fix was needed first, and it is worth recording for the same reason the O-series one
+was: `scripts/apply_sql.mjs` appends to `MANIFEST.txt` itself, so a manual `printf >>` before the
+apply produced a duplicate line for `p01`, `p02` and `p03`. A manifest whose line position decides
+which file is canonical cannot carry a duplicate. The four entries were rewritten once, in apply
+order.

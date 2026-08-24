@@ -1,3 +1,26 @@
+// P05 / §8.E ARTIFACT 4. THE AUDIT FINDING THAT WAS WRONG, RECORDED SO IT IS NOT RE-RAISED.
+//
+// The final independent acceptance audit of 24 Aug 2026 listed as a finding: "supplier_onboard
+// carries no bound Phase D object in the frontend call graph, while every other supplier- and
+// customer-facing path does." Both halves are wrong, and re-measuring them is cheaper than chasing
+// them again:
+//
+//   * FOURTEEN of the 77 rows carry NO_BOUND_PHASE_D_OBJECT_ON_THIS_PATH, not one — and two of the
+//     fourteen ARE customer-facing: transcribe (src/components/me/CustomerPortal.tsx) and
+//     contact_submit (src/components/ContactInner.tsx).
+//
+//   * supplier_onboard being unbound is CORRECT, not a gap. Read end to end, it performs exactly two
+//     database operations: a READ of public.app_secrets and one INSERT into public.agent_actions
+//     wrapped in a try/catch whose comment is "telemetry is not the product". It writes no business
+//     relation, and it says so itself — its response carries
+//     write_path: "supplier_api:create_company+save_profile". Neither app_secrets nor agent_actions
+//     is a canonical_relation of any row of public.phase_d_business_object_binding, and
+//     public.phase_d_object_write_map binds neither. The supplier object that does exist,
+//     supplier_account, is bound to public.leads, which supplier_onboard never touches.
+//
+// The tables_touched column already carries that evidence on the row. Nothing here needs a binding
+// added; adding one would bind a Phase D business object to a telemetry table.
+
 // PHASE D DELIVERABLE — PHASE_D_FRONTEND_API_CALL_GRAPH.csv
 //
 //   node scripts/phase_d/build_frontend_api_call_graph.mjs
@@ -34,30 +57,7 @@
 //       E  SUPA_URL + '/functions/v1/os_api' the only shape the old matcher could see
 //
 //     src/lib/supaEnv.ts:21 declares `SUPA_FN = ${SUPA_URL}/functions/v1`, so shapes A–D never
-//     contain the string `functions/v1` at all. Thirty-three files // P05 / §8.E ARTIFACT 4. THE AUDIT FINDING THAT WAS WRONG, RECORDED SO IT IS NOT RE-RAISED.
-//
-// The final independent acceptance audit of 24 Aug 2026 listed as a finding: "supplier_onboard
-// carries no bound Phase D object in the frontend call graph, while every other supplier- and
-// customer-facing path does." Both halves are wrong, and re-measuring them is cheaper than chasing
-// them again:
-//
-//   * FOURTEEN of the 77 rows carry NO_BOUND_PHASE_D_OBJECT_ON_THIS_PATH, not one — and two of the
-//     fourteen ARE customer-facing: transcribe (src/components/me/CustomerPortal.tsx) and
-//     contact_submit (src/components/ContactInner.tsx).
-//
-//   * supplier_onboard being unbound is CORRECT, not a gap. Read end to end, it performs exactly two
-//     database operations: a READ of public.app_secrets and one INSERT into public.agent_actions
-//     wrapped in a try/catch whose comment is "telemetry is not the product". It writes no business
-//     relation, and it says so itself — its response carries
-//     write_path: "supplier_api:create_company+save_profile". Neither app_secrets nor agent_actions
-//     is a canonical_relation of any row of public.phase_d_business_object_binding, and
-//     public.phase_d_object_write_map binds neither. The supplier object that does exist,
-//     supplier_account, is bound to public.leads, which supplier_onboard never touches.
-//
-// The tables_touched column already carries that evidence on the row. Nothing here needs a binding
-// added; adding one would bind a Phase D business object to a telemetry table.
-
-import it; the matcher saw none
+//     contain the string `functions/v1` at all. Thirty-three files import it; the matcher saw none
 //     of them.
 //
 //  3. `walk('src/lib')`. Four files. Every component lives under src/app and src/components.
