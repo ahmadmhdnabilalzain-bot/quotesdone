@@ -120,7 +120,7 @@ Every one read off the deliverable that produced it or off a live board, never t
 | repository → production drift | **0** |
 | production → repository drift | **0** |
 | manifest gaps / ambiguous winners / conflicting definitions | **0 / 0 / 0** |
-| Phase D migrations classified | **250 of 250**, down scripts required and missing **0** |
+| Phase D migrations classified | **251 of 251**, down scripts required and missing **0** |
 | required deliverables present and current | **15 of 15** |
 | OpenRouter HTTP requests | **0** |
 | paid inference cost | **USD 0.00** |
@@ -174,8 +174,34 @@ contradiction of the line above.
 
 ### Reds that are not this session's, named so nobody re-derives them
 
-`fn_kernel_all_boards()` returns **11** failing checks. Every one predates this session and none
-moved during it:
+`fn_kernel_all_boards()` returns **9** failing checks. Every one predates this session and none
+moved during it.
+
+**A tenth and eleventh did NOT predate it, and this is the correction.** An earlier draft of this
+section listed `fn_kernel_truncate_protection_state`'s two checks — `enforcing_tables_without_a_
+truncate_guard` and `enforcing_tables_still_granting_truncate`, both `4 of 91` — as pre-existing.
+They were **this session's**, and the estate's own gate said so:
+
+> a kernel board is red and kernel-boards.json does not disclose it. Either the estate regressed, or
+> this is a gap that must be recorded with an owner and a reason before it is allowed to stand.
+
+The board counts as ENFORCING any table carrying a row trigger whose function contains
+`raise exception`, and four tables reached that definition here: `phase_d_file_revision` (O04),
+`phase_d_quote_normalisation` (O06), `phase_d_legal_assertion` (O07) and `public.quotes`, which
+O06's `a30_quote_supplier_is_immutable` made enforcing. Every one refused a write and none refused a
+TRUNCATE, so each refusal was one statement away from irrelevant — `truncate
+public.phase_d_file_revision` would have removed every redaction verdict without the
+reviewer-independence trigger having anything to say about it. All four still granted TRUNCATE to
+service_role, because TRUNCATE arrives with ALL and nothing had taken it away.
+
+`phase_d_o16` attaches `z00_kernel_truncate_guard` and revokes the privilege on all four, and
+revokes it on five sibling registries that are not enforcing today so the next trigger added to one
+does not reopen it. The board reads **0 of 91** on both counts. The mistake worth recording is not
+the missing guard; it is that the first reading of this board was taken AFTER ten of this session's
+files had already been applied, and a number read after the change was described as the state
+before it.
+
+The nine that genuinely predate this session:
 
 | board · check | reading | why it is not new |
 |---|---|---|
@@ -184,7 +210,6 @@ moved during it:
 | `fn_kernel_cutover_measure :: active_sources_bypassing_the_kernel` | 1 `[edge:inquiry_intake]` | pre-existing |
 | `fn_kernel_trigger_state :: active_autonomous_source_not_yet_routing_through_the_inbox` | 9 of 37 | pre-existing, and the row says so itself |
 | `fn_kernel_trace_integrity` (4 checks) | 7 orphan task traces of 5,900; 1 unmapped subject kind; 1 of 7 handoff-run disagreements; 4 of 18 workflow-run disagreements; 589 of 635 system-execution components with no trace | pre-existing |
-| `fn_kernel_truncate_protection_state` (2 checks) | 4 of 91, both | pre-existing, and the denominator did not move when eight new tables were added |
 
 **Event self-loops (producer = consumer) = 54, and the brief asks for 0.** It is not 0, it was not 0
 before this session, and nothing here moved it. `build_handoff_event_result.mjs` prints it as
