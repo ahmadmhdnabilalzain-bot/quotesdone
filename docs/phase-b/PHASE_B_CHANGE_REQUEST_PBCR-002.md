@@ -156,6 +156,140 @@ every_registered_closed_domain_is_declared_on_its_schema
 
 ---
 
+## The A / B / C classification, re-derived from the frozen text on 24 Aug 2026
+
+The founder's instruction of 24 Aug requires each affected field to be classified, and requires
+that PBCR-002 **not** be raised for values already enforced by the canonical review, refund,
+payment, publication or state-transition services. This section is that classification, derived
+from the frozen `required_action` / `required_output` and from what the estate actually enforces —
+not inherited from the section above.
+
+**The test applied to each field:**
+
+| class | test |
+|---|---|
+| **A. DERIVED_FROM_EXISTING_FROZEN_CONTRACT** | an authority already in the estate refuses an out-of-domain value for this field, and the frozen contract's named outcomes map onto it **without a spelling choice** |
+| **B. PHASE_D_SCHEMA_REPAIR_ONLY** | the frozen contract names no mutually-exclusive alternatives, so `decision` carries no choice. The repair is a Phase D schema-shape change — drop the key, or bind it to an already-enforced object-state domain. **No Phase B row moves** |
+| **C. REQUIRES_PBCR-002** | the frozen contract names mutually-exclusive alternatives and **no authority anywhere in the estate spells them** |
+
+### Class A — 478 (schema, field) pairs. Already applied. Nothing is asked of the founder.
+
+Measured on production: `phase_d_output_domain_registry` holds 2,793 pairs, of which **478 carry an
+enforced domain** — `status` 257, `state_change` 58, `target_object` 58, `verdict` 47, `method` 31,
+`receiving_role_id` 25, `decision` 2 (W17-S06, W08-S06). Every allowed-values array was read from an
+authority that already refuses an out-of-domain value elsewhere. **None of these is in PBCR-002 and
+none should be** — that is exactly the case the founder's instruction forbids raising.
+
+### Class B — 18 steps. Phase D schema repair. Nothing is asked of the founder.
+
+W01-S04, W03-S01, W04-S05, W11-S04, W13-S03, W15-S05, **W16-S04**, W18-S05, W20-S01, W22-S01,
+W23-S02, W25-S02, W26-S02, W26-S08, W27-S06, W27-S09, W29-S02, W30-S03.
+
+Their frozen `required_action` is an act with one artefact outcome — *"Define affordable department
+resource envelopes…"*, *"Prioritize gaps by customer impact…"*, *"Capture the selected
+quotation/supplier…"*.
+
+**Nothing downstream reads the key, re-measured 24 Aug 2026 — with one correction to the section
+above.** Of the 22 rows in `public.phase_d_object_write_map`, **one** does name a `decision` key:
+`review_record → public.review_chain`, mapping `decision → verdict`. But **no frozen step's declared
+effect targets `review_record`** — `phase_d_step_effect` has 0 rows for that object — so no step's
+`decision` output is ever read through it. The four steps that touch a review relation (W28-S01,
+S02, S07, S08) write `public.legal_reviews`, whose write map carries only
+`title / summary / doc_kind / risk_level` and **no** `decision` key, and which has no domain CHECK
+constraint of any kind. The DECISION_HANDLER effect payload adds only `decided_by` and `decided_at`.
+
+All 18 output schemas are identical in shape —
+`{status, output, acceptance_assertions, evidence_refs, decision, rationale, authority_ref}` — and
+none of them carries a `state_change` or `target_object` key, so `decision` is not a duplicate of a
+domained sibling; it is a duplicate of `output`.
+
+**W16-S04 moved from group 1 to class B on measurement, and this correction is the point of
+re-deriving.** The section above placed it in group 1 as a prose reading. Measured:
+`public.phase_d_object_state_contract` holds `payment_transaction → {open, pending, settled,
+refunded, failed, reconciled}`, and that contract **is** enforced — by trigger
+`z40_phase_d_object_record_contract` on `phase_d_object_record`, which is the same authority that
+domained all 58 `state_change` fields. W16-S04's frozen action is *"Apply only an allowed
+transaction-state transition using the provider event"* and its output is *"Updated payment state"*.
+That is the state-transition service the founder's instruction names. No founder decision is
+required: bind the field to the enforced contract, or drop it in favour of `state_change`.
+
+*(The earlier objection stands against a different table. `public.phase_d_payment_state` carries no
+CHECK and nothing references it, and BR-033 reads the context key `monetary_state`, never the output
+key. Those are true and they are about `phase_d_payment_state`, not about
+`phase_d_object_state_contract`.)*
+
+### Class C — 15 steps. **This is all PBCR-002 asks for.**
+
+| step | frozen text that names the alternatives | alternatives |
+|---|---|---|
+| W01-S06 | "Approve the operating objective set within founder boundaries **or escalate** reserved decisions." | approve / escalate |
+| W02-S06 | output: "Approved corrective initiative **or** founder decision request." | approve / escalate |
+| W05-S07 | "Set the inquiry to quote-ready, waiting for customer, blocked, rejected or cancelled." | five |
+| W06-S05 | "Confirm, reject or leave proposed each route and record the basis." | three, **per route** |
+| W07-S02 | "Classify the document as BOQ/specification, drawing/CAD, image, certificate or other supported evidence." | five |
+| W10-S05 | "Approve, request correction, refuse, suspend or escalate the supplier." | five |
+| W14-S08 | "Approve the quote for comparison, hold for clarification or exclude with reason." | three |
+| **W19-S04** | "Approve a recovery, communication, support, restriction or exit recommendation." | five — **or one plan.** The sentence is genuinely ambiguous and resolving it is his call |
+| W21-S05 | "Approve, reject or escalate the opportunity based on fit, risk and economics." | three |
+| W22-S07 | "Issue the independent release decision and hand approved candidates to W24." | go / no-go |
+| W23-S08 | "Accept the evaluated change as a release candidate or return it for correction." | two |
+| W24-S06 | "Issue the final independent go/no-go within the founder-approved deployment policy." | go / no-go |
+| W28-S07 | "Approve, refuse, condition or escalate the proposed act." | four |
+| W30-S07 | "Restore authority, continue restriction, reassign work or propose retirement based on evidence." | four |
+| W30-S10 | output: "Founder-approved/rejected organization change request." | approved / rejected |
+
+**W19-S04 moved into class C**, replacing W16-S04, on the same re-derivation. Its frozen action
+names five things after the word "Approve"; whether that is a choice among five or the approval of
+one composite plan cannot be settled by measurement, and guessing it is what §4 forbids.
+
+**Why no authority covers these fifteen.** Measured directly, not inferred:
+
+- `public.transactions` — **no** status CHECK constraint;
+- `public.inquiries` — **no** status CHECK constraint, so W05-S07's five states are enforced nowhere;
+- `public.customers` — one CHECK, on `locale`; nothing on account state;
+- `public.documents` — **no** kind CHECK, so W07-S02's five classifications are enforced nowhere;
+- `phase_d_object_state_contract` covers object **lifecycles** (`organization_change_request →
+  {open, recorded, accepted, selected, logged}`), not step decisions — "approved / rejected" is not
+  in that set, so W30-S10 is not derivable from it;
+- the candidate tokens a session would otherwise invent — `correction_requested`,
+  `held_for_clarification`, `retirement_proposed`, `partially_resolved`,
+  `request_further_evidence`, `leave_proposed` — return **0 hits in `pg_proc.prosrc` and 0 in every
+  `pg_constraint` definition**, re-measured 24 Aug 2026. Under `docs/` and `supabase/` the only two
+  files that contain any of them are **this change request** and
+  `docs/phase-d/PHASE_D_BUILDER_CLOSURE.md`, both of which are discussing their absence. No
+  authority anywhere spells them.
+
+### Summary
+
+| class | fields | asked of the founder |
+|---|---|---|
+| **A** | 478 (schema, field) pairs | nothing — already applied at HEAD |
+| **B** | 18 `decision` fields | nothing — Phase D schema repair, no Phase B row moves |
+| **C** | **15** `decision` fields | **one sentence** |
+
+**PBCR-002's scope is therefore the 15 class-C steps, not 33.** The other 18 are Phase D's to
+repair and are tracked as such.
+
+### The exact PBCR-002 founder approval sentence
+
+Required only for the 15 class-C fields, and only if he wants them given a vocabulary rather than
+left registered as `CLOSED_ENUM_UNDEFINED`:
+
+> **I approve PBCR-002 — the decision vocabulary for the fifteen steps classified C in
+> `docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-002.md`, sha256 `<B2>` — and the tokens listed there
+> are the approved values.**
+
+`<B2>` is the sha256 of **this file as committed**, read with
+`sha256sum docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-002.md` and stated in the commit that
+introduces this section.
+
+**A token list is not proposed here.** The alternatives are frozen and his; the spellings are not,
+and a spelling this session chose would appear in no routine, no constraint and no committed file.
+He can answer with the tokens, or with "use the words already in the frozen text", or by declining
+— and Phase D is not blocked by any of the three, because all 33 stay registered
+`CLOSED_ENUM_UNDEFINED` naming this change request, which fails no gate in
+`PHASE_D_FINAL_ACCEPTANCE_STANDARD_V1` §B Gate FD-02.
+
 ## Recommendation
 
 **Defer the 18 and decide the 15 — but neither is urgent, and Phase D does not wait on either.**

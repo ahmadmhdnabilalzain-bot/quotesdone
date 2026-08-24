@@ -205,16 +205,80 @@ it covers one table, and it cannot see the window between a production-direct ap
 
 ---
 
+## The bootstrap founder-approval procedure
+
+PCCR-006 closes the door it must be approved through. That is not circular, but it does need one
+stated bootstrap, and the bootstrap must not be any of the things it forbids.
+
+**Not used, and why:** chat text alone (no record in the estate); SQL typed by Claude (a `postgres`
+connection is exactly the identity finding D names); a migration-written `approved_by` (finding C);
+a caller-supplied founder email (finding A); written-instruction-only approval
+(`fn_phase_c_freeze_drift` already counts these separately and it must stay at 0).
+
+### The path, and what was measured about each step
+
+**The founder logs into the QuotesDone Command Center and submits the approval sentence and its
+sha256.** Everything below was measured on production at HEAD `521ed16` on 24 Aug 2026.
+
+| step | what happens | measured |
+|---|---|---|
+| 1 | The browser POSTs `{action:'founder_command', message:'<the sentence>'}` to `os_api` | `os_api` is deployed **ACTIVE v74**, `verify_jwt=false` with its own in-function gate |
+| 2 | `os_api` verifies the bearer token | *"No token is 401, not a fallback. An invalid token is 401. A valid token belonging to somebody who is not an admin is 403. There is no fourth branch."* — `admin.auth.getUser(token)` at `supabase/functions/os_api/index.ts:199`. The build-mode open-door identity was removed by kernel K0 on 17 Aug 2026 |
+| 3 | The `x-os-key` header bypass is not a way in | it is read-only by classification, and `public.app_secrets` holds **0** rows for `os_bypass_key` — measured, so nothing can present it |
+| 4 | `os_api` passes the **verified** email to `fn_founder_command_submit` | `p_founder_identity: email`, where `email` came from `getUser`, not from the request body |
+| 5 | The routine refuses a non-founder | `not_the_founder` unless the identity is active in `public.phase_c_founder_identity`. Active today: `management@quotesdone.com`, `ahmadalzain1993@admin.quotesdone.com` |
+| 6 | A browser cannot call the routine directly | `fn_founder_command_submit` EXECUTE grants are **`postgres`, `service_role`** only — no `anon`, no `authenticated` |
+| 7 | The routine is a **frozen Phase C subject** | `chief_of_staff_command_path`; live `pg_get_functiondef` digest **`b4dbfd58037838d3`** = the frozen digest. Undrifted |
+| 8 | The record it writes is immutable | `public.founder_command_message` carries `raw_text` and `raw_text_hash = sha256(raw_text)`; `z10_founder_command_message_immutable` refuses **UPDATE and DELETE**; `z00_kernel_truncate_guard` refuses TRUNCATE |
+| 9 | A second, independent record is written | `fn_phase_c_trace_write('TRACE-FOUNDER-COMMAND', …)` with `input_hash = sha256(text)`. The trace ledger is append-only and is itself a frozen subject (`fn_phase_c_trace_append_only`) |
+| 10 | **Nothing is executed** | the sentence classifies as `AMBIGUOUS` / `CLARIFICATION_REQUIRED`, confidence 0.0, *"no registered command intent matches this instruction"* — executed against `fn_founder_command_classify` here. That branch returns `tasks_created: 0`, `workflow_ids: []`, `task_ids: []`. No task, no workflow run, no plan |
+| 11 | The builder verifies the record | reads `founder_command_message` for a row whose `founder_identity` is an active founder, whose `raw_text_hash` equals the sha256 of the exact sentence, and whose `received_at` is after this document's commit; and the matching `TRACE-FOUNDER-COMMAND` row |
+| 12 | The exact PCCR-006 migration is applied | `node scripts/apply_sql.mjs scripts/sql/phase_c_pccr006_governance_approval_authenticity.sql --apply --ddl`, then the entry moves from `scripts/sql/PENDING.txt` to `scripts/sql/MANIFEST.txt` |
+| 13 | Every future governance approval uses the new service | `fn_phase_c_governance_decide`, transaction-bound, single-use, server-derived. **This bootstrap is used exactly once** |
+
+### The residual weakness in the bootstrap, stated rather than hidden
+
+`founder_command_message` records the founder identity as a **string** and does not record
+`auth.uid()`. The JWT verification happens in `os_api`, not in the database. So the row is strong
+evidence and is **not self-proving**: a `postgres` connection could call the same frozen routine
+with the same identity string and produce an indistinguishable row.
+
+What narrows it, each measured rather than asserted:
+
+- no such call exists anywhere in this repository — `os_api` is the only caller of
+  `fn_founder_command_submit` in `supabase/functions/` and `src/`;
+- `canonical_routine_manifest.mjs --all` reads **0** repository→production drift, **0**
+  production→repository drift and **0** uncommitted application DDL, so no unlisted routine could
+  make the call either;
+- the builder states, in the same hand-over, that no SQL was applied between this document's commit
+  and the verification read — and the manifest is the check on that statement;
+- the window is minutes, used once, for one sentence whose digest is fixed in advance.
+
+**This weakness is the reason PCCR-006 exists**, and PCCR-006's Amendment C closes it permanently
+for governance decisions by minting the auth event server-side and refusing any INSERT whose
+`session_user` is not `authenticator`. If the founder prefers, the alternative bootstrap is
+`scripts/phase_d/approve_pccr_amendments.mjs`, which mints a real founder bearer token and reaches
+the database through `/rest/v1/rpc/…` as `authenticator` — a stronger record, at the cost of the
+founder handing over a live credential to a script rather than typing a sentence into his own
+screen. Both are offered; the Command Center path is the one this document recommends because he
+drives it himself and nothing else holds his token.
+
 ## What the founder is being asked for
 
 The exact one-sentence approval required, and nothing else:
 
 > **I approve PCCR-006 — governance_approval_authenticity — as set out in
-> `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md`.**
+> `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md`, sha256 `<P6>`.**
 
-He gives it **through a verified session**, not by replying to this document. After PCCR-006 is
-applied there is no other way; before it is applied, `scripts/phase_d/approve_pccr_amendments.mjs`
-is the existing path that mints a real founder bearer token and calls the RPC.
+`<P6>` is the sha256 of **this file as committed**, deliberately not written inside the file — a
+digest that quotes itself cannot be recomputed. It is read with:
+
+```bash
+sha256sum docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md
+```
+
+and it is stated in the commit that introduces this section and in the decision packet that
+accompanies it. He types that sentence, with the digest filled in, into the Command Center.
 
 - **Amendment table:** `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md`
 - **Proposed migration:** `scripts/sql/phase_c_pccr006_governance_approval_authenticity.sql`
