@@ -35,7 +35,6 @@
 -- no data.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -80,4 +79,3 @@ begin
   raise notice 'D9l down: phase_d_handoff_contract_handoff_id_fkey is back to ON DELETE RESTRICT, as at d9:44-45. The Phase B guard is behind it again.';
 end $ctl$;
 
-commit;

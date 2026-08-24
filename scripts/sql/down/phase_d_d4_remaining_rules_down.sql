@@ -37,7 +37,6 @@
 -- NOT TOUCHED: the two CREATE OR REPLACE FUNCTION bodies in d4.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_payment_state;
 
@@ -50,4 +49,3 @@ begin
   raise notice 'D4 down: phase_d_payment_state is gone. The two DROP FUNCTIONs in d4 have no down and need none.';
 end $ctl$;
 
-commit;

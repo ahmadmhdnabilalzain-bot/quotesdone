@@ -84,6 +84,23 @@ export const BUILDERS = [
   { script: 'scripts/phase_d/build_frontend_api_call_graph.mjs', file: 'PHASE_D_FRONTEND_API_CALL_GRAPH.csv', drives: false },
   { script: 'scripts/phase_d/build_step_case_result.mjs', file: 'PHASE_D_STEP_CASE_RESULT.csv', drives: false },
   { script: 'scripts/phase_d/build_injected_defect_result.mjs', file: 'PHASE_D_INJECTED_DEFECT_RESULT.csv', drives: true },
+  // ADDED 24 AUG 2026. Both of these were derivations that nothing rebuilt and nothing byte-checked,
+  // and both were carrying superseded facts while looking current — the exact shape this array
+  // exists to make impossible.
+  //
+  //   PHASE_D_INJECTED_DEFECT_EXEMPTION_REGISTER.csv held NINETEEN rows, every one
+  //   disposition=PERMANENT_EXEMPTION, against a live public.phase_d_injected_defect_disposition of
+  //   ZERO. All nineteen were false, not one: nine moved to …_disposition_history as
+  //   REAL_PRODUCT_GAP (closed by phase_d_o01–o08) and the other ten were closed earlier by
+  //   phase_d_n10, whose own header records that in eight of the ten "the RECORDED BLOCKER WAS
+  //   SIMPLY WRONG". The builder always read the live table correctly; nothing ever ran it.
+  //
+  //   PHASE_D_OBJECT_REFERENCE_ROUND_TRIP.csv recorded invoice_receipt's physical key as
+  //   invoice_no. Production and public.phase_d_object_reference_strategy both say transaction_id,
+  //   because phase_d_k04 moved it six hours after the CSV was last built. One mismatch across 56
+  //   rows — and one is enough, because nothing would ever have found it.
+  { script: 'scripts/phase_d/build_exemption_register.mjs', file: 'PHASE_D_INJECTED_DEFECT_EXEMPTION_REGISTER.csv', drives: false },
+  { script: 'scripts/phase_d/prove_object_reference_round_trip.mjs', file: 'PHASE_D_OBJECT_REFERENCE_ROUND_TRIP.csv', drives: true },
   // DELIBERATELY NOT LISTED: scripts/phase_d/build_transaction_local_evidence.mjs.
   //
   // Everything in this array is a DERIVATION — a statement about the estate that must come out the

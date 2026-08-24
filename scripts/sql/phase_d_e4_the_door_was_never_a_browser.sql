@@ -147,6 +147,24 @@ revoke execute on function public.fn_ws_notifications()                         
 -- -------------------------------------------------------------------------------------------------
 do $e4$
 declare
+  -- P05. THE 57 ROUTINES THIS FILE REVOKES, listed so the assertion below is about this
+  -- file's own subject rather than about a total over all 835 SECURITY DEFINER routines in public.
+  v_revoked text[] := array[
+    'fn_action_policies', 'fn_approval_trace_audit', 'fn_capability_verify', 'fn_category_knowledge',
+    'fn_category_questions', 'fn_decision_conflict_scan', 'fn_decision_outcomes', 'fn_emit',
+    'fn_emit_task_assigned', 'fn_event_consolidate', 'fn_execution_run', 'fn_execution_sweep',
+    'fn_founder_command_trace_guard', 'fn_goal_attainment', 'fn_graph_supplier_market', 'fn_improvement_handover',
+    'fn_improvement_plan_refresh', 'fn_index_slowdown_watch', 'fn_intake_slug_for_catalog', 'fn_kernel_handoff_run_trace_guard',
+    'fn_learning_loop_sweep', 'fn_os_health_brief', 'fn_os_knowledge_query', 'fn_os_objective_measure',
+    'fn_os_open_access', 'fn_owning_os', 'fn_phase_b_invariants', 'fn_phase_c_event_binding_status_guard',
+    'fn_phase_c_task_trace_guard', 'fn_pick_reviewer', 'fn_promote_memory_sweep', 'fn_rating_due',
+    'fn_regulation_watch', 'fn_report_drilldown', 'fn_report_recommendation_approve', 'fn_route_party',
+    'fn_supplier_advisor', 'fn_supplier_certifications', 'fn_supplier_market', 'fn_supplier_negotiation',
+    'fn_supplier_network_map', 'fn_supplier_product_match', 'fn_supplier_products', 'fn_supplier_quality',
+    'fn_supplier_risk_monitor', 'fn_supplier_tier', 'fn_supplier_workspaces', 'fn_task_approve',
+    'fn_task_lesson', 'fn_task_review', 'fn_workflow_start', 'fn_workflow_start_due',
+    'fn_workflow_step_done', 'fn_ws_company_os', 'fn_ws_intelligence', 'fn_ws_live_company',
+    'fn_ws_notifications'];
   v_anon   int;
   v_auth   int;
   v_lost   text;
@@ -165,9 +183,46 @@ begin
       'A revoke naming only anon against a PUBLIC grant is a silent no-op — name public first.', v_anon;
   end if;
 
-  if v_auth <> 2 or v_names <> 'fn_customer_document_refs, fn_customer_documents' then
-    raise exception 'E4: expected exactly the two customer-document routines to stay '
-      'authenticated-executable, found % — %', v_auth, v_names;
+  -- P05 / §8.B. THE TWIN OF THE DEFECT IN THIS FILE'S DOWN SCRIPT, AND IT WOULD FIRE TODAY.
+  --
+  -- This read `if v_auth <> 2 or v_names <> 'fn_customer_document_refs, fn_customer_documents'`
+  -- over EVERY SECURITY DEFINER routine in public — a TOTAL, not a statement about what this file
+  -- did. It was true on 20 Aug 2026 and is false now: phase_d_f21 granted authenticated EXECUTE on
+  -- fn_founder_command_clarify and fn_founder_command_control, and phase_d_g01 on
+  -- fn_phase_c_freeze_amendment_approve. All three come AFTER e4 in scripts/sql/MANIFEST.txt and E4
+  -- never touched any of them, so re-applying this file raised on a grant it had nothing to do with.
+  -- Measured 24 Aug 2026: v_auth = 5, v_names = the two plus those three.
+  --
+  -- The assertion is now about THIS FILE'S OWN SUBJECT: none of the 57 routines it revokes may be
+  -- anon- or authenticated-executable afterwards, and the two it deliberately never touched must
+  -- still be. A later, unrelated grant is no longer this file's business — which is what makes the
+  -- check able to stay true.
+  if exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prosecdef
+       and p.proname = any (v_revoked)
+       and (has_function_privilege('anon', p.oid, 'EXECUTE')
+            or has_function_privilege('authenticated', p.oid, 'EXECUTE')))
+  then
+    raise exception 'E4: % of the % routine(s) this file revokes are still browser-executable: %',
+      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname='public' and p.prosecdef and p.proname = any (v_revoked)
+          and (has_function_privilege('anon', p.oid,'EXECUTE')
+               or has_function_privilege('authenticated', p.oid,'EXECUTE'))),
+      cardinality(v_revoked),
+      (select string_agg(p.proname, ', ') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname='public' and p.prosecdef and p.proname = any (v_revoked)
+          and (has_function_privilege('anon', p.oid,'EXECUTE')
+               or has_function_privilege('authenticated', p.oid,'EXECUTE')));
+  end if;
+
+  if not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prosecdef and p.proname = 'fn_customer_documents'
+       and has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+  then
+    raise exception 'E4: fn_customer_documents is no longer authenticated-executable. This file '
+      'deliberately never touched it and the customer portal calls it from the browser.';
   end if;
 
   -- The revoke must not have taken the grant the real callers depend on. Every caller of the 57

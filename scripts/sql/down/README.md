@@ -299,3 +299,36 @@ Everything else read back exactly as written, including the four largest and mos
 514 · 347 · 159, the 30 `v_obj_*` views against 30 `PHASE_D_OBJECT_VIEW` rows, the 18
 `MATCHED_ALL_TOKENS` rows that make the `d7b` down refuse, and the three depth values (224 / 21 / 12)
 that let the `d12` down proceed.
+
+---
+
+## Rehearsing a rollback — the only sanctioned way
+
+```
+node scripts/phase_c/rehearse_one.mjs scripts/sql/down/<file>_down.sql <assert>.sql
+```
+
+It strips any `begin;`/`commit;` wrapper it finds before sending, and it **refuses to report success
+unless the run raised**.
+
+**Do not hand-wrap a down script as `begin; <file> rollback;`.** On 24 Aug 2026 the final independent
+acceptance audit did exactly that to seven of these files. Four carried their own `begin; … commit;`,
+so their COMMIT ran inside the audit's block and the trailing rollback had nothing to undo:
+`phase_d_d10`, `phase_d_d18`, `phase_d_d32` and `phase_d_k09` were **deployed** against production by
+a rehearsal. Re-measured afterwards, **67 of the 97** down scripts had the same property — the audit
+hit four because it sampled seven.
+
+All 98 are transaction-neutral now, and three things keep them that way:
+
+- `scripts/phase_d/build_missing_down_scripts.mjs` no longer emits a wrapper;
+- the classification CSV carries a `down_script_transaction_control` column;
+- `scripts/checks/phase_d_migrations_are_classified.test.mjs` fails on any `SELF_COMMITTING` value.
+
+**Why removing the wrapper does not cost atomicity.** Every transport in this repository sends a file
+as ONE simple-query batch to the management API, and a multi-statement batch with no explicit BEGIN
+is a single implicit transaction in Postgres. The file is still all-or-nothing; it is now also
+rehearsable.
+
+A file that genuinely **cannot** run inside a transaction — `CREATE INDEX CONCURRENTLY`, `VACUUM`,
+`ALTER TYPE … ADD VALUE` — is classified `NON_TRANSACTIONAL_BY_REQUIREMENT` and must say so in its
+own header. Measured 24 Aug 2026: there are none.

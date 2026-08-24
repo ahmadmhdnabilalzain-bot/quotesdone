@@ -29,7 +29,6 @@
 -- that carries this guard, and is not d24's to drop.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -61,4 +60,3 @@ begin
   raise notice 'D24 down: phase_d_fixture_stage no longer carries a TRUNCATE guard. The d2 guard on phase_d_object_record is untouched.';
 end $ctl$;
 
-commit;

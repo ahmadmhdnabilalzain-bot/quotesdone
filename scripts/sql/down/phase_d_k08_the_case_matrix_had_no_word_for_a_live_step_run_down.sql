@@ -18,7 +18,6 @@
 -- ROW COUNT AT RISK: none. No row is deleted and no column is dropped; only the constraint changes.
 -- =================================================================================================
 
-begin;
 
 do $down$
 declare v_n bigint;
@@ -39,4 +38,3 @@ alter table public.phase_d_step_case_result
   check (decided_at = any (array['step_contract'::text, 'executor_boundary'::text,
                                  'kernel_boundary'::text, 'structural_constraint'::text]));
 
-commit;

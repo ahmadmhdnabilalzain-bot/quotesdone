@@ -42,7 +42,6 @@
 -- larger blast radius than leaving an unused one behind.
 -- =================================================================================================
 
-begin;
 
 -- ---- 1. the thirty object views, by name --------------------------------------------------------
 drop view if exists public.v_obj_ai_change;
@@ -124,4 +123,3 @@ end $ctl$;
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_object_policy_guard();
 drop function if exists public.fn_phase_d_object_state();
-commit;

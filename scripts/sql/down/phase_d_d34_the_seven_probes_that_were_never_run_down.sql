@@ -42,7 +42,6 @@
 -- see scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_section8_defect_map;
 drop table if exists public.phase_d_section8_probe_result;
@@ -60,4 +59,3 @@ begin
   raise notice 'D34 down: phase_d_section8_defect_map and phase_d_section8_probe_result are gone, and with them 23 recorded probe verdicts.';
 end $ctl$;
 
-commit;

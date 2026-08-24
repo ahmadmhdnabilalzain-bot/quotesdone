@@ -37,7 +37,6 @@
 -- see scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_injected_defect_result;
 
@@ -50,4 +49,3 @@ begin
   raise notice 'D31 down: phase_d_injected_defect_result is gone.';
 end $ctl$;
 
-commit;

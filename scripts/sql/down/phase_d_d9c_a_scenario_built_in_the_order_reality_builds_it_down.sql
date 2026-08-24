@@ -36,7 +36,6 @@
 -- scripts/sql/down/README.md. That trigger function survives with nothing to fire on.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_fixture_stage;
 
@@ -55,4 +54,3 @@ end $ctl$;
 -- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_fixture_residue();
-commit;

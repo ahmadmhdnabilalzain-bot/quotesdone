@@ -24,7 +24,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -41,4 +40,3 @@ drop trigger if exists a10_phase_d_fixture_catalogue_checksum on public.phase_d_
 -- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_fixture_row_digest(r public.phase_d_fixture_catalogue);
-commit;

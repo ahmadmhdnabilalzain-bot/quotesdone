@@ -28,7 +28,6 @@
 -- see scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_event_reconciliation;
 
@@ -41,4 +40,3 @@ begin
   raise notice 'D11 down: phase_d_event_reconciliation is gone, and with it 347 reconciliation verdicts.';
 end $ctl$;
 
-commit;

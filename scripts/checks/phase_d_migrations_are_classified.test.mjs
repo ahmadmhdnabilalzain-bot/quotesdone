@@ -68,3 +68,69 @@ test('the committed classification CSV covers the corpus that exists now', () =>
       `${r.file} is classified ${r.class} now and the committed CSV does not say so`);
   }
 });
+
+// A DOWN SCRIPT THAT CARRIES ITS OWN COMMIT CANNOT BE REHEARSED.
+//
+// The independent acceptance audit of 24 Aug 2026 wrapped seven Phase D down scripts as
+// "begin; <file> rollback;" to rehearse them. Four carried their own `begin; … commit;`, so their
+// COMMIT ran inside the audit's block and the trailing rollback had nothing to undo:
+// phase_d_d10, d18, d32 and k09 were DEPLOYED against production by a rehearsal. Re-measured here,
+// 67 of the 97 down scripts had the same property — the audit hit four because it sampled seven.
+//
+// Nothing recorded this anywhere, so the classification said "a down script exists" and said
+// nothing about whether running it was a rehearsal or a deploy. That is now a column, and this is
+// the check that keeps it at zero.
+//
+// Scope is scripts/sql/down/ only. Globbing *_down.sql would also catch
+// five_workflows_the_company_ran_without_writing_down.sql and
+// thirteen_named_failures_nobody_had_written_down.sql, whose TITLES end in the word "down".
+test('no Phase D down script carries its own transaction control', () => {
+  const self = rows.filter(r => r.down_script_transaction_control === 'SELF_COMMITTING');
+  assert.deepEqual(self.map(r => r.down_script), [],
+    'a down script with its own COMMIT cannot be rehearsed: wrapping it in "begin; … rollback;" '
+    + 'runs its commit inside the caller\'s block and the rollback undoes nothing, which is how the '
+    + 'audit of 24 Aug 2026 deployed four of them against production. Every transport here sends a '
+    + 'file as ONE simple-query batch, which Postgres runs as one implicit transaction, so deleting '
+    + 'the wrapper keeps the file atomic AND makes it rehearsable. Rehearse with '
+    + 'scripts/phase_c/rehearse_one.mjs, never a hand-written wrapper.');
+});
+
+// A file that CANNOT run inside a transaction is a different fact and must be disclosed, not fixed
+// by deleting a wrapper it needs. Measured 24 Aug 2026: there are none. If one appears, this check
+// names it so the rehearsal tool is told rather than the file being silently wrapped.
+test('any non-transactional down script is disclosed rather than wrapped', () => {
+  const nonTx = rows.filter(r => r.down_script_transaction_control === 'NON_TRANSACTIONAL_BY_REQUIREMENT');
+  for (const r of nonTx) {
+    const t = readFileSync(r.down_script, 'utf8');
+    assert.match(t, /NON_TRANSACTIONAL_BY_REQUIREMENT/,
+      `${r.down_script} carries a statement that cannot run inside a transaction block and its own `
+      + 'header does not say so. A rehearsal tool that wraps it will fail for a reason nobody wrote down.');
+  }
+});
+
+// A CLASS THAT ASSERTS A FOUNDER APPROVAL MUST BE ABLE TO NAME IT.
+//
+// docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md defines IRREVERSIBLE_WITH_FOUNDER_APPROVAL as
+// "destroys data, drops a column, narrows a type, or removes a row not reproducible from the frozen
+// registries", and states in the same table that **0 files carry this class**. The generated CSV had
+// silently contradicted its own authority document for two files — phase_d_l01 and phase_d_m01 —
+// neither of which destroys anything. Measured 24 Aug 2026: l01 adds a column with a default, widens
+// a primary key from (context_key) to (context_key, object_id), adds a CHECK and inserts 2 rows;
+// m01 creates 3 tables and an index.
+//
+// The cause was a schema-prefix asymmetry in the classifier's drop-and-recreate normaliser, fixed in
+// build_migration_rollback_classification.mjs. This check is what stops the class being taken again
+// without the approval it asserts: a file carrying it must cite the founder decision in its own
+// header, the way phase_d_m01 cites his bounded exception of 23 Aug 2026.
+test('a file classed IRREVERSIBLE_WITH_FOUNDER_APPROVAL cites the founder approval it asserts', () => {
+  const claimed = rows.filter(r => r.class === 'IRREVERSIBLE_WITH_FOUNDER_APPROVAL');
+  const unbacked = claimed.filter(r => {
+    const t = readFileSync(`scripts/sql/${r.file}`, 'utf8');
+    const header = t.slice(0, t.search(/^\s*(?!--)\S/m) >>> 0 || 4000);
+    return !/founder/i.test(header);
+  });
+  assert.deepEqual(unbacked.map(r => r.file), [],
+    'a class whose whole meaning is "the founder approved destroying this" must say where he did. '
+    + 'docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md states that 0 files carry this class; if '
+    + 'one legitimately does, its header names his decision and this check passes.');
+});

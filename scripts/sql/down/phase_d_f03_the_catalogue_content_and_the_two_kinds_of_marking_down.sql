@@ -25,7 +25,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -37,4 +36,3 @@ end $pre$;
 alter table public.phase_d_fixture_catalogue drop constraint if exists phase_d_fixture_catalogue_text_is_marked;
 alter table public.phase_d_fixture_catalogue drop column if exists marker_exemption;
 
-commit;

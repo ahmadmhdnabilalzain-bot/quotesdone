@@ -24,7 +24,6 @@
 -- scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_gate_contract;
 
@@ -43,4 +42,3 @@ end $ctl$;
 -- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_gate_state();
-commit;

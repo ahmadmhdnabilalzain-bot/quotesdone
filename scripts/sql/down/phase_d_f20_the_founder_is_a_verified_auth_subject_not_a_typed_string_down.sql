@@ -27,7 +27,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -48,4 +47,3 @@ alter table public.phase_c_founder_identity drop column if exists auth_user_id;
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_c_founder_subject_bind(p_subject uuid);
 drop function if exists public.fn_phase_c_founder_auth_state();
-commit;

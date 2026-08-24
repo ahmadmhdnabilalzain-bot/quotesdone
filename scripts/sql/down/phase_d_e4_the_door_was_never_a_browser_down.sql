@@ -15,6 +15,72 @@
 -- touched them; there is nothing here to put back.
 -- =================================================================================================
 
+-- P05 / §8.B. THE LITERAL WAS A FACT ABOUT 20 AUG 2026, NOT A FACT ABOUT THIS FILE.
+--
+-- This block read:
+--   if v_anon <> 56 or v_auth <> 59 then raise exception 'E4 down did not restore the prior state…'
+-- over a count of EVERY SECURITY DEFINER routine in public — 835 of them today. 56 and 59 were
+-- correct arithmetic over the population of 20 Aug 2026 at 02:27 UTC and are wrong now only because
+-- the population grew: phase_d_f21 granted authenticated EXECUTE on fn_founder_command_clarify and
+-- fn_founder_command_control, and phase_d_g01 on fn_phase_c_freeze_amendment_approve. All three come
+-- AFTER e4 in scripts/sql/MANIFEST.txt (e4 at :1511, f21 at :1575, g01 at :1604) and E4 never
+-- touched any of them. So the rehearsal reported "expected 56 anon / 59 authenticated, got 56 / 62"
+-- and the down would have refused to run when it was needed.
+--
+-- UPDATING 59 TO 62 WOULD BE THE WRONG FIX, and it is worth saying exactly why. 62 is a reading of
+-- the estate, not a statement about what this file put back. A TOTAL cannot distinguish "restored
+-- correctly" from "broke three of my own 57 and gained three elsewhere" — it would go GREEN over a
+-- broken rollback. And the next legitimate grant to an unrelated routine makes it wrong again, the
+-- same silent way 59 went wrong.
+--
+-- The assertion below is a DELTA over the 57 routines THIS FILE NAMES, derived from the file's own
+-- grant statements rather than from any reading of today's estate:
+--   * 56 anon-affecting statements  (55 `to public`, which confers on both roles, + fn_os_open_access)
+--   * 57 auth-affecting statements  (the same 56, + fn_goal_attainment)
+-- and it also refuses collateral movement: no routine OUTSIDE the named set may have changed in
+-- either direction.
+
+create temporary table if not exists e4_down_before on commit drop as
+select p.oid, p.proname,
+       has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_x,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') as auth_x
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.prosecdef;
+
+
+-- P05 / §8.B. THE LITERAL WAS A FACT ABOUT 20 AUG 2026, NOT A FACT ABOUT THIS FILE.
+--
+-- This block read:
+--   if v_anon <> 56 or v_auth <> 59 then raise exception 'E4 down did not restore the prior state…'
+-- over a count of EVERY SECURITY DEFINER routine in public — 835 of them today. 56 and 59 were
+-- correct arithmetic over the population of 20 Aug 2026 at 02:27 UTC and are wrong now only because
+-- the population grew: phase_d_f21 granted authenticated EXECUTE on fn_founder_command_clarify and
+-- fn_founder_command_control, and phase_d_g01 on fn_phase_c_freeze_amendment_approve. All three come
+-- AFTER e4 in scripts/sql/MANIFEST.txt (e4 at :1511, f21 at :1575, g01 at :1604) and E4 never
+-- touched any of them. So the rehearsal reported "expected 56 anon / 59 authenticated, got 56 / 62"
+-- and the down would have refused to run when it was needed.
+--
+-- UPDATING 59 TO 62 WOULD BE THE WRONG FIX, and it is worth saying exactly why. 62 is a reading of
+-- the estate, not a statement about what this file put back. A TOTAL cannot distinguish "restored
+-- correctly" from "broke three of my own 57 and gained three elsewhere" — it would go GREEN over a
+-- broken rollback. And the next legitimate grant to an unrelated routine makes it wrong again, the
+-- same silent way 59 went wrong.
+--
+-- The assertion below is a DELTA over the 57 routines THIS FILE NAMES, derived from the file's own
+-- grant statements rather than from any reading of today's estate:
+--   * 56 anon-affecting statements  (55 `to public`, which confers on both roles, + fn_os_open_access)
+--   * 57 auth-affecting statements  (the same 56, + fn_goal_attainment)
+-- and it also refuses collateral movement: no routine OUTSIDE the named set may have changed in
+-- either direction.
+
+create temporary table if not exists e4_down_before on commit drop as
+select p.oid, p.proname,
+       has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_x,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') as auth_x
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.prosecdef;
+
+
 grant execute on function public.fn_action_policies(p_kind text, p_confidence numeric)                                 to public;
 grant execute on function public.fn_approval_trace_audit()                                                             to public;
 grant execute on function public.fn_capability_verify()                                                                to public;
@@ -74,15 +140,38 @@ grant  execute on function public.fn_os_open_access()                           
 grant  execute on function public.fn_goal_attainment(p_horizon text)                                                    to authenticated;
 
 do $ctl$
-declare v_anon int; v_auth int;
+declare
+  v_named    text[] := array['fn_action_policies', 'fn_approval_trace_audit', 'fn_capability_verify', 'fn_category_knowledge', 'fn_category_questions', 'fn_decision_conflict_scan', 'fn_decision_outcomes', 'fn_emit', 'fn_emit_task_assigned', 'fn_event_consolidate', 'fn_execution_run', 'fn_execution_sweep', 'fn_founder_command_trace_guard', 'fn_graph_supplier_market', 'fn_improvement_handover', 'fn_improvement_plan_refresh', 'fn_index_slowdown_watch', 'fn_intake_slug_for_catalog', 'fn_kernel_handoff_run_trace_guard', 'fn_learning_loop_sweep', 'fn_os_health_brief', 'fn_os_knowledge_query', 'fn_os_objective_measure', 'fn_owning_os', 'fn_phase_b_invariants', 'fn_phase_c_event_binding_status_guard', 'fn_phase_c_task_trace_guard', 'fn_pick_reviewer', 'fn_promote_memory_sweep', 'fn_rating_due', 'fn_regulation_watch', 'fn_report_drilldown', 'fn_report_recommendation_approve', 'fn_route_party', 'fn_supplier_advisor', 'fn_supplier_certifications', 'fn_supplier_market', 'fn_supplier_negotiation', 'fn_supplier_network_map', 'fn_supplier_product_match', 'fn_supplier_products', 'fn_supplier_quality', 'fn_supplier_risk_monitor', 'fn_supplier_tier', 'fn_supplier_workspaces', 'fn_task_approve', 'fn_task_lesson', 'fn_task_review', 'fn_workflow_start', 'fn_workflow_start_due', 'fn_workflow_step_done', 'fn_ws_company_os', 'fn_ws_intelligence', 'fn_ws_live_company', 'fn_ws_notifications', 'fn_os_open_access', 'fn_goal_attainment'];
+  v_anon_moved int; v_auth_moved int; v_collateral text; v_missed text;
 begin
-  select count(*) filter (where has_function_privilege('anon', p.oid, 'EXECUTE')),
-         count(*) filter (where has_function_privilege('authenticated', p.oid, 'EXECUTE'))
-    into v_anon, v_auth
+  select count(*) filter (where not b.anon_x and has_function_privilege('anon',          p.oid,'EXECUTE')),
+         count(*) filter (where not b.auth_x and has_function_privilege('authenticated', p.oid,'EXECUTE'))
+    into v_anon_moved, v_auth_moved
+    from e4_down_before b join pg_proc p on p.oid = b.oid;
+
+  if v_anon_moved <> 56 or v_auth_moved <> 57 then
+    raise exception 'E4 down opened % anon and % authenticated grant(s); this file issues 56 anon-affecting and 57 authenticated-affecting statements over % named routines',
+      v_anon_moved, v_auth_moved, cardinality(v_named);
+  end if;
+
+  -- Nothing outside the named set may have moved, in either direction.
+  select string_agg(distinct b.proname, ', ') into v_collateral
+    from e4_down_before b join pg_proc p on p.oid = b.oid
+   where (b.anon_x is distinct from has_function_privilege('anon',          p.oid,'EXECUTE')
+       or b.auth_x is distinct from has_function_privilege('authenticated', p.oid,'EXECUTE'))
+     and not (b.proname = any (v_named));
+  if v_collateral is not null then
+    raise exception 'E4 down moved a grant on a routine it does not name: %', v_collateral;
+  end if;
+
+  -- And every routine it names must actually hold what it granted.
+  select string_agg(distinct p.proname, ', ') into v_missed
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.prosecdef;
-  if v_anon <> 56 or v_auth <> 59 then
-    raise exception 'E4 down did not restore the prior state: expected 56 anon / 59 authenticated, got % / %', v_anon, v_auth;
+   where n.nspname = 'public' and p.prosecdef
+     and p.proname = any (v_named)
+     and not has_function_privilege('authenticated', p.oid, 'EXECUTE');
+  if v_missed is not null then
+    raise exception 'E4 down did not restore: %', v_missed;
   end if;
 end
 $ctl$;

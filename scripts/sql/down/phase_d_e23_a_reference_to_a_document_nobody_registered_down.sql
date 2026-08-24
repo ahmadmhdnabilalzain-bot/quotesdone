@@ -25,7 +25,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -37,4 +36,3 @@ end $pre$;
 alter table public.phase_c_freeze_amendment drop constraint if exists phase_c_freeze_amendment_change_request_fk;
 drop table if exists public.phase_c_change_request;
 
-commit;

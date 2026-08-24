@@ -24,8 +24,13 @@ import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
 import { sql, PROJECT_REF } from '../phase_c/lib/db.mjs';
 
-const RS = String.fromCharCode(30);
-const US = String.fromCharCode(31);
+// P05. THE SEPARATORS COST MORE THAN THE DATA.
+// chr(30) and chr(31) are JSON-escaped to six bytes each by the management transport, so ~108
+// separators per workflow block added ~550 characters to a payload the endpoint truncates at 2000.
+// Twelve of the thirty blocks were cut off mid-row. '|' and '~' are one byte each and escape to
+// themselves; MEASURED 24 Aug 2026 over the committed file: no cell in it contains either.
+const RS = '~';
+const US = '|';
 
 const DRIVE = `
 do $emit$
@@ -84,15 +89,18 @@ begin
       from public.phase_d_effect_ledger el
      where el.workflow_id = '__WF__'
      order by el.effect_id
+     offset __OFFSET__ limit __LIMIT__
   loop
-    v_out := v_out || chr(30) || concat_ws(chr(31),
-      v_fixture::text, '__WF__', r.step_id, r.effect_type, r.effect_object_id,
-      r.effect_relation, r.effect_operation, r.state_before, r.state_after,
+    v_out := v_out || '~' || concat_ws('|',
+      v_fixture::text, '__WF__', r.step_id, coalesce(r.effect_type,'(none)'), coalesce(r.effect_object_id,'(none)'),
+      coalesce(r.effect_relation,'(none)'), coalesce(r.effect_operation,'(none)'), r.state_before, r.state_after,
       r.provider_mode, r.payload_digest16, r.result_relation);
   end loop;
 
   -- The counters again, still inside the transaction, so a reader can see what the effects cost.
-  v_out := v_out || chr(30) || concat_ws(chr(31),
+  -- Emitted on the FIRST chunk only, so a chunked workflow still carries exactly one summary row.
+  if __OFFSET__ = 0 then
+  v_out := v_out || '~' || concat_ws('|',
     v_fixture::text, '__WF__', '(summary)', 'IN_TRANSACTION_COUNTS', 'customers/inquiries/quotes/transactions',
     format('%s/%s/%s/%s -> %s/%s/%s/%s',
       v_c0, v_i0, v_q0, v_t0,
@@ -104,6 +112,12 @@ begin
     coalesce(v->>'run_state','(none)'),
     coalesce(v->>'steps_closed_by_the_handler','0') || ' handler / ' || coalesce(v->>'steps_driven','0') || ' actor',
     (select count(*) from public.phase_d_effect_ledger where workflow_id = '__WF__')::text);
+  end if;
+
+  -- The ledger total ALWAYS travels, on every chunk, as a short trailer the cap cannot reach. It is
+  -- what lets the caller know when it has seen every row rather than guessing from a short chunk.
+  v_out := v_out || '~TOTAL|' ||
+    (select count(*) from public.phase_d_effect_ledger where workflow_id = '__WF__')::text;
 
   raise exception 'EVIDENCE%', v_out;
 end $emit$;
@@ -112,26 +126,118 @@ end $emit$;
 const ids = (await sql('select workflow_id from public.phase_b_workflow order by workflow_id'))
   .map((r) => r.workflow_id);
 
+const COLS = ['test_transaction_fixture_run', 'workflow_id', 'step_id', 'effect_type',
+  'effect_object_id', 'effect_relation', 'effect_operation', 'state_before', 'state_after',
+  'provider_mode', 'payload_digest_16', 'result_relation'];
+
+// P05. THE TRUNCATION THAT WENT UNREPORTED, AND THE THREE THINGS DONE ABOUT IT.
+//
+// The management endpoint cuts an exception message at 2000 characters. This builder carried its
+// whole per-workflow payload out in ONE raise, and TWELVE of the thirty blocks — W02, W03, W09,
+// W12, W15, W17, W20, W24, W26, W27, W29, W30 — were cut off mid-row. Line 246 of the committed
+// file was the two characters `9851,W27`. The builder printed "254 effect rows, 18 summary rows"
+// and asserted nothing about either number, so a file missing 40% of its workflows read as
+// complete. Its sibling scripts/phase_d/prove_object_reference_round_trip.mjs was rewritten for
+// exactly this in an earlier session and this one was not.
+//
+//   1. THE SEPARATORS SHRANK. chr(30)/chr(31) escape to six bytes each in the transport's JSON;
+//      '~'/'|' escape to themselves. That alone took the largest block from ~1990 to 1863.
+//   2. THE EMISSION IS CHUNKED. Each workflow is driven once per CHUNK of its effect ledger, so a
+//      payload cannot outgrow the cap however many effects a workflow gains. Every chunk carries a
+//      short TOTAL trailer, which is how the caller knows it has seen every row instead of
+//      inferring completeness from a chunk that happened to be short.
+//   3. IT FAILS CLOSED. A row with the wrong field count, a missing summary, a missing TOTAL, a
+//      chunk within 200 characters of the cap, or a reassembled count that disagrees with the
+//      ledger's own total — each exits non-zero and says which. A silent short file was the defect;
+//      a builder that refuses is the fix.
+const CHUNK = 5;
+
 const rows = [];
 for (const id of ids) {
-  let got = null;
-  try {
-    await sql(DRIVE.replaceAll('__WF__', id));
-    console.error(`${id}: the probe did not raise — it must abort its own transaction`);
-    process.exit(1);
-  } catch (err) {
-    const msg = String(err?.message ?? err);
-    const at = msg.indexOf('EVIDENCE');
-    if (at < 0) { console.error(`${id} failed before reporting:\n${msg.slice(0, 900)}`); process.exit(1); }
-    got = msg.slice(at + 'EVIDENCE'.length)
-      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
-      .replace(/\\"/g, '"').replace(/\\n/g, '\n');
-    const c = got.indexOf('\nCONTEXT:'); if (c >= 0) got = got.slice(0, c);
+  let offset = 0;
+  let total = null;
+  let effectsSeen = 0;
+  let sawSummary = false;
+  let chunks = 0;
+  let widest = 0;
+
+  for (;;) {
+    let got = null;
+    const q = DRIVE.replaceAll('__WF__', id)
+      .replaceAll('__OFFSET__', String(offset))
+      .replaceAll('__LIMIT__', String(CHUNK));
+    try {
+      await sql(q);
+      console.error(`${id}: the probe did not raise — it must abort its own transaction`);
+      process.exit(1);
+    } catch (err) {
+      const msg = String(err?.message ?? err);
+      const at = msg.indexOf('EVIDENCE');
+      if (at < 0) { console.error(`${id} failed before reporting:\n${msg.slice(0, 900)}`); process.exit(1); }
+      got = msg.slice(at + 'EVIDENCE'.length)
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+        .replace(/\\"/g, '"').replace(/\\n/g, '\n');
+      const c = got.indexOf('\nCONTEXT:'); if (c >= 0) got = got.slice(0, c);
+    }
+    chunks++;
+    const escaped = JSON.stringify(got).length;
+    widest = Math.max(widest, escaped);
+    if (escaped > 1800) {
+      console.error(`${id} chunk ${chunks}: the payload escapes to ${escaped} characters and the `
+        + 'endpoint truncates at 2000. It has not been cut off yet, but it is within 200 characters '
+        + `of being cut off silently. Lower CHUNK below ${CHUNK}.`);
+      process.exit(1);
+    }
+
+    const parsed = got.split(RS).filter((r) => r.trim() !== '').map((r) => r.split(US));
+    const trailer = parsed.filter((r) => r[0] === 'TOTAL');
+    if (trailer.length !== 1) {
+      console.error(`${id} chunk ${chunks}: ${trailer.length} TOTAL trailer(s). The trailer is the `
+        + 'last thing emitted, so its absence means the message was cut off before the end.');
+      process.exit(1);
+    }
+    const t = Number(trailer[0][1]);
+    if (total !== null && t !== total) {
+      console.error(`${id} chunk ${chunks}: the ledger total moved between chunks (${total} -> ${t}). `
+        + 'Each chunk drives the workflow again, so a moving total means the drive is not deterministic.');
+      process.exit(1);
+    }
+    total = t;
+
+    const body = parsed.filter((r) => r[0] !== 'TOTAL');
+    const short = body.filter((r) => r.length !== COLS.length);
+    if (short.length) {
+      console.error(`${id} chunk ${chunks}: ${short.length} of ${body.length} row(s) carry `
+        + `${[...new Set(short.map((r) => r.length))].join('/')} fields and the contract is `
+        + `${COLS.length}. Either the message was cut off, or a null slipped past a coalesce into `
+        + `concat_ws — which is what shifted 63 rows one column left before this was fixed.\n`
+        + `  first short row: ${JSON.stringify(short[0]).slice(0, 240)}`);
+      process.exit(1);
+    }
+    const summaries = body.filter((r) => r[2] === '(summary)');
+    if (summaries.length) sawSummary = true;
+    effectsSeen += body.length - summaries.length;
+    rows.push(...body);
+
+    offset += CHUNK;
+    if (offset >= total) break;
   }
-  const parsed = got.split(RS).filter((r) => r.trim() !== '').map((r) => r.split(US));
-  rows.push(...parsed);
-  process.stdout.write(`  ${id}: ${parsed.length - 1} effect row(s)\n`);
+
+  if (!sawSummary) {
+    console.error(`${id}: no (summary) row came back on any chunk.`);
+    process.exit(1);
+  }
+  if (effectsSeen !== total) {
+    console.error(`${id}: reassembled ${effectsSeen} effect row(s) and the ledger reported ${total}. `
+      + 'A file that goes short in silence is the whole defect this builder is being corrected for.');
+    process.exit(1);
+  }
+  process.stdout.write(`  ${id}: ${effectsSeen} effect row(s) over ${chunks} chunk(s), `
+    + `widest ${widest} escaped chars\n`);
 }
+
+// THE POPULATION THIS FILE IS ABOUT IS THE FROZEN STEP REGISTRY, NOT THE FILE'S OWN ROW COUNT.
+const FROZEN_STEPS = Number((await sql('select count(*) n from public.phase_b_workflow_step'))[0].n);
 
 // THE ROLLBACK, READ FROM A NEW TRANSACTION. Everything above happened inside blocks that raised.
 const after = await sql(`
@@ -148,10 +254,6 @@ const after = await sql(`
          now()::text as read_at`);
 const a = after[0];
 
-const COLS = ['test_transaction_fixture_run', 'workflow_id', 'step_id', 'effect_type',
-  'effect_object_id', 'effect_relation', 'effect_operation', 'state_before', 'state_after',
-  'provider_mode', 'payload_digest_16', 'result_relation'];
-
 const csvCell = (v) => {
   const s = v === null || v === undefined ? '' : String(v);
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -161,9 +263,10 @@ const effects = rows.filter((r) => r[2] !== '(summary)');
 
 const csv = provenance({
   command: 'node scripts/phase_d/build_transaction_local_evidence.mjs',
-  numerator: effects.length,
-  denominator: effects.length,
-  of: 'effects ledgered inside an aborted transaction',
+  numerator: new Set(effects.map((r) => r[2])).size,
+  denominator: FROZEN_STEPS,
+  of: 'frozen Phase B steps whose declared effect was ledgered inside an aborted transaction. The '
+    + 'file previously stated its numerator against ITSELF ("254 of 254"), which cannot go short',
   attribution: 'one row per phase_d_effect_ledger row produced INSIDE the transaction, plus one '
     + '(summary) row per workflow carrying the in-transaction counters. Section 11 of the founder\'s '
     + '22 Aug 2026 ruling: an empty production table is not evidence that a controlled effect '

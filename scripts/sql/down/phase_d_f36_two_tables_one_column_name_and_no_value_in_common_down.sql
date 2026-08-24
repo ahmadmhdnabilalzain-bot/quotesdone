@@ -25,7 +25,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -37,4 +36,3 @@ end $pre$;
 alter table public.phase_d_effect_ledger drop constraint if exists phase_d_effect_ledger_never_a_live_provider;
 alter table public.phase_d_effect_ledger drop constraint if exists phase_d_effect_ledger_mode_ck;
 
-commit;

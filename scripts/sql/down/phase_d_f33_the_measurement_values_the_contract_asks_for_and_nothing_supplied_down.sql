@@ -24,10 +24,8 @@
 
 -- =================================================================================================
 
-begin;
 
 -- Nothing to guard on: this file introduced routines and created no relation.
 
 drop function if exists public.fn_phase_d_fixture_output(p_step_id text, p_field_key text);
 
-commit;

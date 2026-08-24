@@ -25,7 +25,6 @@
 -- — see scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 drop table if exists public.phase_d_outbound_door;
 
@@ -38,4 +37,3 @@ begin
   raise notice 'D17 down: phase_d_outbound_door is gone. The two deletes in d17 have no down.';
 end $ctl$;
 
-commit;

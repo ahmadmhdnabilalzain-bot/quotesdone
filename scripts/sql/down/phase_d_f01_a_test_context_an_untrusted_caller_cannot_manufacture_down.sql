@@ -28,7 +28,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -50,4 +49,3 @@ drop table if exists public.phase_d_fixture_secret;
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_test_context_open(p_input jsonb);
 drop function if exists public.fn_phase_d_fixture_operation();
-commit;

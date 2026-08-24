@@ -24,7 +24,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -35,4 +34,3 @@ end $pre$;
 
 drop trigger if exists z00_kernel_truncate_guard on public.phase_c_freeze_amendment;
 
-commit;

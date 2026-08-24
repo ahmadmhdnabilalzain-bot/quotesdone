@@ -47,7 +47,6 @@
 -- see scripts/sql/down/README.md.
 -- =================================================================================================
 
-begin;
 
 do $pre$
 declare v_bad text;
@@ -113,4 +112,3 @@ end $ctl$;
 -- re-applying a predecessor cannot restore it and dropping it is the whole of its reversal.
 -- Anything still calling one of them will raise on a missing function after this rollback.
 drop function if exists public.fn_phase_d_adapter_state();
-commit;

@@ -31,7 +31,6 @@
 
 -- =================================================================================================
 
-begin;
 
 do $pre$
 begin
@@ -57,4 +56,3 @@ drop table if exists public.phase_d_capability_contract;
 drop function if exists public.fn_phase_d_capability_request_open(p_input jsonb);
 drop function if exists public.fn_phase_d_capability_result_accept(p_input jsonb);
 drop function if exists public.fn_phase_d_capability_answer(p_step_run_id bigint);
-commit;
