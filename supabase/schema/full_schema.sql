@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-25T20:03:40.045Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-25T21:30:08.169Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (603) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
+-- ===== TABLES (604) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
   action_class text NOT NULL,
   gate_action_class text,
   rationale text NOT NULL,
@@ -6096,6 +6096,14 @@ CREATE TABLE IF NOT EXISTS public.phase_d_fixture_stage (
   working_payload_evidence text
 );
 
+CREATE TABLE IF NOT EXISTS public.phase_d_founder_boundary_disposition (
+  boundary_id text NOT NULL,
+  disposition text NOT NULL,
+  founder_ruling text NOT NULL,
+  enforcement_digest text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.phase_d_gate_contract (
   gate_id text NOT NULL,
   evidence_keys text[] NOT NULL,
@@ -8414,6 +8422,7 @@ ALTER TABLE public.phase_d_file_revision ADD CONSTRAINT phase_d_file_revision_pk
 ALTER TABLE public.phase_d_fixture_catalogue ADD CONSTRAINT phase_d_fixture_catalogue_pkey PRIMARY KEY (fixture_id);
 ALTER TABLE public.phase_d_fixture_secret ADD CONSTRAINT phase_d_fixture_secret_pkey PRIMARY KEY (singleton);
 ALTER TABLE public.phase_d_fixture_stage ADD CONSTRAINT phase_d_fixture_stage_pkey PRIMARY KEY (stage_no);
+ALTER TABLE public.phase_d_founder_boundary_disposition ADD CONSTRAINT phase_d_founder_boundary_disposition_pkey PRIMARY KEY (boundary_id);
 ALTER TABLE public.phase_d_gate_contract ADD CONSTRAINT phase_d_gate_contract_pkey PRIMARY KEY (gate_id);
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_pkey PRIMARY KEY (step_id);
 ALTER TABLE public.phase_d_handler_schema ADD CONSTRAINT phase_d_handler_schema_pkey PRIMARY KEY (schema_id);
@@ -8998,6 +9007,9 @@ ALTER TABLE public.phase_d_fixture_catalogue ADD CONSTRAINT phase_d_fixture_cata
 ALTER TABLE public.phase_d_fixture_catalogue ADD CONSTRAINT phase_d_fixture_catalogue_value_kind_check CHECK ((value_kind = ANY (ARRAY['text'::text, 'number'::text, 'boolean'::text, 'object'::text, 'array'::text])));
 ALTER TABLE public.phase_d_fixture_secret ADD CONSTRAINT phase_d_fixture_secret_singleton_check CHECK (singleton);
 ALTER TABLE public.phase_d_fixture_stage ADD CONSTRAINT phase_d_fixture_stage_contributes_kind_check CHECK ((contributes_kind = ANY (ARRAY['RESULT_KEY'::text, 'STATE'::text, 'PAYLOAD_VALUE'::text, 'OBJECT_KEY'::text])));
+ALTER TABLE public.phase_d_founder_boundary_disposition ADD CONSTRAINT phase_d_boundary_disposition_digest_ck CHECK ((enforcement_digest ~ '^[0-9a-f]{64}$'::text));
+ALTER TABLE public.phase_d_founder_boundary_disposition ADD CONSTRAINT phase_d_boundary_disposition_ruling_ck CHECK ((length(btrim(founder_ruling)) > 80));
+ALTER TABLE public.phase_d_founder_boundary_disposition ADD CONSTRAINT phase_d_boundary_disposition_value_ck CHECK ((disposition = ANY (ARRAY['RESERVES_THE_ACT'::text, 'CONSTRAINS_THE_CONFIGURATION'::text])));
 ALTER TABLE public.phase_d_gate_contract ADD CONSTRAINT phase_d_gate_contract_predicate_kind_check CHECK ((predicate_kind = ANY (ARRAY['MEASURED'::text, 'EVIDENCE_REQUIRED'::text])));
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_app_conn_ck CHECK (((application_connection IS NULL) OR (application_connection = ANY (ARRAY['KERNEL_INTERNAL_ONLY'::text, 'API_CONNECTED'::text, 'FRONTEND_CONNECTED'::text, 'AUTONOMOUS_SOURCE_CONNECTED_HELD'::text, 'FULL_APPLICATION_PATH_CONNECTED'::text]))));
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_external_effect_policy_check CHECK ((external_effect_policy = ANY (ARRAY['NONE'::text, 'OUTBOX_ONLY_OR_NONE'::text, 'PROVIDER_DISABLED_MOCK'::text])));
@@ -9392,6 +9404,7 @@ ALTER TABLE public.phase_d_capability_result ADD CONSTRAINT phase_d_capability_r
 ALTER TABLE public.phase_d_event_reconciliation ADD CONSTRAINT phase_d_event_reconciliation_event_fkey FOREIGN KEY (event_id) REFERENCES phase_b_event(event_id) ON DELETE CASCADE;
 ALTER TABLE public.phase_d_file_revision ADD CONSTRAINT phase_d_file_revision_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES phase_d_file_revision(revision_ref);
 ALTER TABLE public.phase_d_fixture_stage ADD CONSTRAINT phase_d_fixture_stage_object_id_fkey FOREIGN KEY (object_id) REFERENCES phase_d_business_object_binding(object_id) ON DELETE RESTRICT;
+ALTER TABLE public.phase_d_founder_boundary_disposition ADD CONSTRAINT phase_d_founder_boundary_disposition_boundary_id_fkey FOREIGN KEY (boundary_id) REFERENCES phase_b_founder_boundary(boundary_id);
 ALTER TABLE public.phase_d_gate_contract ADD CONSTRAINT phase_d_gate_contract_gate_id_fkey FOREIGN KEY (gate_id) REFERENCES phase_b_gate(gate_id);
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_input_schema_id_fkey FOREIGN KEY (input_schema_id) REFERENCES phase_d_handler_schema(schema_id);
 ALTER TABLE public.phase_d_handler_binding ADD CONSTRAINT phase_d_handler_binding_output_schema_id_fkey FOREIGN KEY (output_schema_id) REFERENCES phase_d_handler_schema(schema_id);
@@ -56191,6 +56204,7 @@ declare
   v_cmd      bigint;
   v_state    text;
   v_reserved text;
+  v_reserving text;
   v_digest   text;
   v_baseline text;
   v_covers   boolean;
@@ -56249,34 +56263,70 @@ begin
                and exists (select 1 from public.phase_b_founder_boundary)
                and v_baseline is not null;
   v_current := v_exists and v_digest = v_baseline;
-  v_covers  := v_reserved is null;
+  -- HIS RULING OF 26 AUG 2026, ENCODED WHERE IT CAN BE CHECKED RATHER THAN REMEMBERED.
+  --
+  -- This read `v_reserved is null` -- a workflow named in ANY boundary's scope could never proceed
+  -- on delegated authority. FDR-002's own enforcement clause says otherwise: "Systems may calculate
+  -- only from approved configuration." Calculating from what he approved IS the permitted act, not
+  -- a reason to stop and ask him.
+  --
+  -- In his words, asked what FDR-002 reserves: the reveal fee "is three percent, and it's
+  -- automated. It doesn't need me"; supplier subscription "the first one thousand suppliers are for
+  -- free... anyone after, he is paying one thousand dirham per year... all automated, nothing to be
+  -- done by me"; and "regarding the refund, that's the only thing where my decision is involved."
+  --
+  -- So a covering boundary blocks delegation only when it is classified as reserving the ACT.
+  -- public.phase_d_founder_boundary_disposition holds that classification, and a boundary with NO
+  -- row defaults to RESERVING -- fail closed, so nothing is loosened by omission. FDR-002 is the
+  -- only row today.
+  select string_agg(b.boundary_id, ';' order by b.boundary_id) into v_reserving
+    from public.phase_b_founder_boundary b
+   where v_wf = any (string_to_array(replace(b.workflow_scope, ' ', ''), ';'))
+     and not exists (
+       select 1 from public.phase_d_founder_boundary_disposition dp
+        where dp.boundary_id = b.boundary_id
+          and dp.disposition = 'CONSTRAINS_THE_CONFIGURATION'
+          -- THE CLASSIFICATION IS ABOUT A SENTENCE, SO IT NAMES THAT SENTENCE'S DIGEST. If the
+          -- frozen enforcement text is ever amended, the digest stops matching and the boundary
+          -- reverts to reserving until someone re-reads it against his ruling.
+          and dp.enforcement_digest = encode(sha256(convert_to(b.phase_b_enforcement, 'UTF8')), 'hex'));
+  v_covers  := v_reserving is null;
 
   if not v_covers then
     return jsonb_build_object(
       'ref', null, 'kind', 'FOUNDER_RESERVED',
       'source', 'public.phase_b_founder_boundary',
       'artefact', 'public.phase_b_founder_boundary@' || coalesce(left(v_digest, 16), '(none)'),
-      'reserved_by', v_reserved,
+      'reserved_by', v_reserving, 'in_scope_of', v_reserved,
       'exists', v_exists, 'current', v_current, 'covers', false, 'valid', false,
-      'why', format('%s is reserved to the founder by %s and no founder command instructed this run',
-                    v_wf, v_reserved));
+      'why', format('%s is reserved to the founder by %s and no founder command instructed this run%s',
+                    v_wf, v_reserving,
+                    case when v_reserved is distinct from v_reserving
+                         then format(' (in scope of %s; the rest constrain configuration only)', v_reserved)
+                         else '' end));
   end if;
 
   return jsonb_build_object(
     'ref',     'founder_policy:phase_b_founder_boundary@' || coalesce(left(v_digest, 16), 'unknown'),
     'kind',    'DELEGATED_AUTHORITY',
     'source',  'public.phase_b_founder_boundary, the founder-approved frozen register of what he '
-            || 'reserves: it names no boundary over ' || v_wf || ', so the decision is delegated '
-            || 'to the step''s accountable role',
+            || 'reserves: '
+            || case when v_reserved is null
+                    then 'it names no boundary over ' || v_wf
+                    else 'every boundary naming ' || v_wf || ' (' || v_reserved || ') constrains the '
+                      || 'configuration operations run within rather than reserving the act' end
+            || ', so the decision is delegated to the step''s accountable role',
     'artefact','public.phase_b_founder_boundary@' || coalesce(left(v_digest, 16), 'unknown'),
-    'reserved_by', null,
+    'reserved_by', null, 'in_scope_of', v_reserved,
     'exists',  v_exists, 'current', v_current, 'covers', true,
     'valid',   v_exists and v_current,
     'why', format('the founder-approved boundary register (%s rows, digest %s) %s the Phase B '
-               || 'baseline and reserves no decision in %s',
+               || 'baseline and reserves no ACT in %s%s',
                   (select count(*) from public.phase_b_founder_boundary),
                   coalesce(left(v_digest, 16), '(none)'),
-                  case when v_current then 'matches' else 'DOES NOT match' end, v_wf));
+                  case when v_current then 'matches' else 'DOES NOT match' end, v_wf,
+                  case when v_reserved is null then ''
+                       else format(' (%s name it and constrain configuration only)', v_reserved) end));
 end
 $function$
 
@@ -83186,6 +83236,7 @@ ALTER TABLE public.phase_d_file_revision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_d_fixture_catalogue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_d_fixture_secret ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_d_fixture_stage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phase_d_founder_boundary_disposition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_d_gate_contract ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_d_handler_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_d_handler_schema ENABLE ROW LEVEL SECURITY;
