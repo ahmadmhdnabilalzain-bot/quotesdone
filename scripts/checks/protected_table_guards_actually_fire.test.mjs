@@ -101,54 +101,83 @@ end $p$;`);
     'the guard refused a canonical owner too — a guard that refuses everything measures nothing');
 });
 
-test('a00_phase_c_refund_decision_immutable refuses UPDATE and DELETE and permits a supersession',
+test('a00_phase_c_refund_decision_immutable is attached and unconditional, and the door that used to '
+   + 'let this probe mint a founder session is now closed',
   { skip: SKIP }, async () => {
+  // WHAT CHANGED, AND WHY THIS TEST NO LONGER DRIVES A ROW.
+  //
+  // Until 25 Aug 2026 this probe created a real refund decision and then tried to UPDATE and DELETE
+  // it, which is the right way to test an append-only guard: force the branch on a real row. It
+  // could do that because `fn_phase_c_founder_subject_bind` refused only
+  // `current_user in ('anon','authenticated')`, and the management API connects as `postgres` --
+  // which is neither. So a migration connection could mint a verified founder session with no
+  // bearer token in existence.
+  //
+  // That was FINDING D of PCCR-006, the deepest one in the change request, and PCCR-006 closed it:
+  // the bind door now requires `session_user = 'authenticator'`, the one connection through which a
+  // founder's JWT can arrive. Applied to production on 25 Aug 2026 on the founder's approval,
+  // Command Center command 39505.
+  //
+  // So this probe can no longer create a refund decision, and `public.phase_c_refund_decision`
+  // holds 0 rows, so there is nothing existing to drive either. THAT IS THE COST OF CLOSING FINDING
+  // D AND IT IS THE CORRECT COST. What must not happen is re-opening the door so a test can keep
+  // working; a guard a test can talk round is not a guard.
+  //
+  // What is measured instead is everything that IS measurable from here, and the gap is stated:
+  //   1. the bind door refuses this connection      -- finding D, closed, forced
+  //   2. the trigger is attached for UPDATE and DELETE
+  //   3. its function raises unconditionally on both -- read from the body, not inferred
+  //   4. the row-level branch is NOT forced, and is not claimed to be
   const out = await drive(`
 do $p$
-declare v_sub uuid; v_req bigint; v_d1 bigint; v_res jsonb; v_before jsonb;
-        v_row public.phase_c_refund_decision%rowtype; v_u text; v_d text; v_s text; v_same text;
+declare v_sub uuid; v_bind text; v_trg text; v_body text; v_rows int; v_uncond text;
 begin
   select f.auth_user_id into v_sub from public.phase_c_founder_identity f
    where f.active and f.kind='email' and f.auth_user_id is not null order by f.identity limit 1;
-  perform public.fn_phase_c_founder_subject_bind(v_sub);
-  insert into public.founder_approval_request(action_class, subject_ref, prepared_by_role_id)
-  values ('refund_decision','guard-probe','payments_and_billing_manager') returning request_id into v_req;
-  v_res := public.fn_kernel_refund_decision_record(jsonb_build_object(
-    'op','record','request_id',v_req,'decision','approved','reason','guard probe, aborted'));
-  v_d1 := (v_res->>'decision_id')::bigint;
-  select * into v_row from public.phase_c_refund_decision where decision_id = v_d1;
-  v_before := to_jsonb(v_row);
 
-  perform set_config('kernel.maintenance_reason','guard probe: reach the append-only trigger', true);
+  -- 1. FINDING D, FORCED. This is the assertion that replaces the drive, and it is stronger than
+  --    what the drive proved: it proves a migration connection cannot become the founder at all.
   begin
-    update public.phase_c_refund_decision set decision='rejected' where decision_id=v_d1;
-    v_u := 'ACCEPTED';
-  exception when others then v_u := 'REFUSED:' || SQLSTATE; end;
-  perform set_config('kernel.maintenance_reason','guard probe: reach the append-only trigger', true);
-  begin
-    delete from public.phase_c_refund_decision where decision_id=v_d1;
-    v_d := 'ACCEPTED';
-  exception when others then v_d := 'REFUSED:' || SQLSTATE; end;
-  perform set_config('kernel.maintenance_reason','', true);
+    perform public.fn_phase_c_founder_subject_bind(v_sub);
+    v_bind := 'ACCEPTED';
+  exception when others then v_bind := 'REFUSED:' || SQLSTATE; end;
 
-  select * into v_row from public.phase_c_refund_decision where decision_id = v_d1;
-  v_same := case when to_jsonb(v_row) = v_before then 'UNCHANGED' else 'CHANGED' end;
-  begin
-    perform public.fn_kernel_refund_decision_record(jsonb_build_object(
-      'op','record','request_id',v_req,'decision','rejected','reason','superseding',
-      'supersedes_decision_id', v_d1, 'supersession_reason','guard probe supersession'));
-    v_s := 'ACCEPTED';
-  exception when others then v_s := 'REFUSED:' || SQLSTATE; end;
+  -- 2. the trigger, for both operations.
+  select string_agg(distinct
+           case when (t.tgtype & 16) = 16 then 'UPDATE' end || case when (t.tgtype & 8) = 8 then 'DELETE' end, '')
+    into v_trg
+    from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relname = 'phase_c_refund_decision'
+     and t.tgname = 'a00_phase_c_refund_decision_immutable' and t.tgenabled <> 'D';
 
-  raise exception '%', 'GUARDPROBE' || v_u || '|' || v_d || '|' || v_same || '|' || v_s;
+  -- 3. and that it raises on both, read out of the deployed body.
+  select p.prosrc into v_body from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'fn_phase_c_refund_decision_immutable';
+  v_uncond := case when v_body is null then 'NO_BODY'
+                   when position('raise exception' in lower(v_body)) > 0 then 'RAISES' else 'NO_RAISE' end;
+
+  select count(*) into v_rows from public.phase_c_refund_decision;
+
+  raise exception '%', 'GUARDPROBE' || v_bind || '|' || coalesce(v_trg,'NONE') || '|' || v_uncond
+                    || '|' || v_rows::text;
 end $p$;`);
   assert.ok(out, 'the probe did not abort — nothing may be concluded from a run that committed');
-  const [u, d, same, s] = out.split('|');
-  assert.equal(u, 'REFUSED:23514', 'UPDATE of a founder refund decision was not refused');
-  assert.equal(d, 'REFUSED:23514', 'DELETE of a founder refund decision was not refused');
-  assert.equal(same, 'UNCHANGED', 'the original decision row moved');
-  assert.equal(s, 'ACCEPTED',
-    'the sanctioned supersession was refused too — the ledger would then be unamendable, not append-only');
+  const [bind, trg, uncond, rows] = out.split('|');
+
+  assert.equal(bind, 'REFUSED:28000',
+    'fn_phase_c_founder_subject_bind accepted a bind from the management connection. That is '
+    + 'PCCR-006 finding D re-opened: a migration could mint a verified founder session with no '
+    + 'bearer token, and everything downstream would then behave as it does for a real one.');
+  assert.equal(trg, 'UPDATEDELETE',
+    'a00_phase_c_refund_decision_immutable is not attached for both UPDATE and DELETE');
+  assert.equal(uncond, 'RAISES',
+    'fn_phase_c_refund_decision_immutable does not raise — an append-only guard that returns is not one');
+
+  // THE DISCLOSURE, IN THE TEST OUTPUT AND NOT ONLY IN A COMMENT. A reader of a green run must see
+  // which branch was not forced, or "pass" reads as more than it is.
+  console.log(`      refund decisions on production: ${rows}. The UPDATE/DELETE branch was NOT `
+    + 'forced on a real row: creating one needs a verified founder session, and PCCR-006 now '
+    + 'refuses to mint one from this connection. Forcing it needs a founder JWT through PostgREST.');
 });
 
 test('nothing this check drove survives it', { skip: SKIP }, async () => {

@@ -513,7 +513,50 @@ const doors = (await sql(`
    where not exists (select 1 from public.kernel_retired_path p where p.path_name = a.routine_name)
    order by 1`)).map(r => r.routine_name);
 
+// FIVE DOORS STOPPED BEING DRIVEABLE FROM HERE ON 25 AUG 2026, AND THAT IS PCCR-006 WORKING.
+//
+// Each of these needs a VERIFIED FOUNDER SESSION before it will accept anything. Until PCCR-006
+// this file got one by calling fn_phase_c_founder_subject_bind, which refused only
+// `current_user in ('anon','authenticated')` -- and the management API connects as `postgres`,
+// which is neither. So CI could mint a founder session with no bearer token in existence.
+//
+// That was FINDING D of PCCR-006, the deepest one in the change request. PCCR-006 closed it: the
+// bind door now requires `session_user = 'authenticator'`, the one connection a founder JWT can
+// arrive on. Applied to production on the founder's approval, Command Center command 39505.
+//
+// So these five can no longer be DRIVEN from any connection this check has. The wrong response is
+// to re-open the door so the tests keep passing; a guard a test can talk round is not a guard.
+// The right one is to say precisely what is and is not proved:
+//
+//   proved instead : the bind door refuses this connection with 28000 -- a STRONGER property than
+//                    the drive ever established, and the one that would go red if D re-opened
+//   not proved     : that each door ACCEPTS a genuine founder call. That needs a founder JWT
+//                    through PostgREST, which only the founder can produce
+//
+// They are counted separately and printed by name. A run of this file is not to be read as full
+// coverage of 21 doors any more, and the summary line says so.
+const NEEDS_A_FOUNDER_SESSION = new Set([
+  'fn_phase_c_founder_subject_bind',
+  'fn_founder_command_clarify',
+  'fn_founder_command_control',
+  'fn_kernel_cancel',
+  'fn_kernel_refund_decision_record',
+]);
+
+// Measured once, not assumed per door. If this ever comes back ACCEPTED, finding D is re-opened
+// and that is a hard failure regardless of anything else in this file.
+let bindDoor = '';
+try {
+  await sql(`do $bd$ begin perform public.fn_phase_c_founder_subject_bind(
+    (select f.auth_user_id from public.phase_c_founder_identity f
+      where f.active and f.kind='email' and f.auth_user_id is not null order by f.identity limit 1));
+    raise exception 'BINDDOOR ACCEPTED'; end $bd$;`);
+  bindDoor = 'NO_RAISE';
+} catch (e) { bindDoor = /28000/.test(String(e.message)) ? 'REFUSED:28000'
+            : /BINDDOOR ACCEPTED/.test(String(e.message)) ? 'ACCEPTED' : String(e.message).slice(0, 120); }
+
 let pass = 0, fail = 0;
+let gated = 0;
 const line = (ok, name, detail) => {
   if (ok) pass++; else fail++;
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(30)}${detail ? '  ' + String(detail).slice(0, 150) : ''}`);
@@ -539,6 +582,12 @@ const before = (await sql(`select
 for (const door of doors) {
   const body = CONTROLS[door];
   if (!body) continue;
+  if (NEEDS_A_FOUNDER_SESSION.has(door) && bindDoor !== 'ACCEPTED') {
+    gated++;
+    console.log(`gate  ${door.padEnd(30)}  NOT DRIVEABLE — needs a verified founder session, and `
+      + `fn_phase_c_founder_subject_bind refuses this connection (${bindDoor}). PCCR-006 finding D.`);
+    continue;
+  }
   const probe = `do $pc$
 declare v jsonb; v2 jsonb; res jsonb;
         cmd bigint; run bigint; sr bigint; sr2_id bigint; tsk bigint; ob bigint; hnd bigint;
@@ -584,5 +633,19 @@ for (const k of Object.keys(before)) {
   console.log(`  ${same ? 'ok  ' : 'FAIL'} ${k.padEnd(10)} ${before[k]} -> ${after[k]}`);
 }
 
-console.log(`\ngenuine positive controls: ${doors.length} door(s), ${pass} accepted, ${fail} failed`);
+if (bindDoor === 'ACCEPTED') {
+  fail++;
+  console.log('\nFAIL  fn_phase_c_founder_subject_bind accepted a bind from the management '
+    + 'connection. PCCR-006 finding D is re-opened: a migration can mint a verified founder session '
+    + 'with no bearer token, and every founder-gated door downstream then behaves as it would for a '
+    + 'real one.');
+}
+
+console.log(`\ngenuine positive controls: ${doors.length} door(s), ${pass} accepted, ${fail} failed, `
+  + `${gated} not driveable from this connection`);
+if (gated) {
+  console.log(`  the ${gated} need a verified founder session. fn_phase_c_founder_subject_bind: `
+    + `${bindDoor}. Driving them needs a founder JWT through PostgREST, which only the founder can `
+    + 'produce. This run does NOT establish that those doors accept a genuine call.');
+}
 process.exit(fail === 0 ? 0 : 1);

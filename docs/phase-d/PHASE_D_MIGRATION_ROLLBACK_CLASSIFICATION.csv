@@ -1,5 +1,5 @@
 # node scripts/phase_d/build_migration_rollback_classification.mjs | project htdblwldjkcgjvmqkbeh | 264 of 264 files matching scripts/sql/phase_d_*.sql, each classified from its own text | attribution: dollar-quoted routine bodies are removed first, then statements beginning at column 0 are counted; the classes are the ones docs/phase-d/PHASE_D_ROLLBACK_CLASSIFICATION_D9.md defines and that document remains the authority on what each one means
-# generated_at: 2026-08-25T08:10:07.068Z
+# generated_at: 2026-08-25T17:38:27.961Z
 file,class,routines,routines_introduced,additive_ddl,grants,registry_writes,deletes,down_script_required,down_script,rollback_stated_in_header,down_script_transaction_control
 "phase_d_d0_auth_debt_discharged.sql","ADDITIVE_SURVIVAL_SAFE","0","none","none","0","2","0","NO","-","NO","-"
 "phase_d_d10_seven_cases_for_every_one_of_the_257_steps.sql","EXPLICIT_DOWN_REQUIRED","3","public.fn_phase_d_step_cases","1 table, 1 alter table","8","0","0","YES","scripts/sql/down/phase_d_d10_seven_cases_for_every_one_of_the_257_steps_down.sql","NO","NONE"
