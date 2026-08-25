@@ -1721,3 +1721,7 @@ scripts/sql/phase_d_q08_a_deliverable_that_counted_the_whole_table.sql
 scripts/sql/phase_c_pccr006_governance_approval_authenticity.sql
 scripts/sql/phase_c_pccr006_bootstrap_approval_record.sql
 scripts/sql/phase_c_pccr006_the_ledger_kept_its_truncate_grant.sql
+scripts/sql/phase_c_pccr006_the_ledger_kept_its_write_grants_too.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

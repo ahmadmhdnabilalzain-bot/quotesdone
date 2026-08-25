@@ -372,6 +372,23 @@ test('the founder register is not writable by service_role, and an approval must
 do $probe$
 declare v_out jsonb := '{}'::jsonb; v_founder text; v_rows int; v_red int;
 begin
+  -- 25 Aug 2026: THE RESOLUTION ARM MOVED TO THE FRONT, and it had to. It used to run last, after
+  -- the mass-null below had cleared every approval -- so once PCCR-006 made the re-approval
+  -- impossible, the board was already red when the approver was deleted and "red after delete"
+  -- passed for a reason that had nothing to do with resolution. A check that cannot fail is not a
+  -- check. Run against the approvals that are actually in the table, it discriminates again.
+  begin
+    delete from public.phase_c_founder_identity;
+    select count(*) into v_red from public.fn_phase_c_freeze_drift()
+     where not ok and check_name = 'amendments_awaiting_founder_approval';
+    -- The raise rolls this subtransaction back, so the register is intact for the arms below and
+    -- the count still comes out. The outer transaction aborts anyway.
+    raise exception 'RESOLUTION_ARM %', v_red;
+  exception when others then
+    v_out := v_out || jsonb_build_object('red_after_approver_deleted',
+      coalesce(nullif(substring(SQLERRM from 'RESOLUTION_ARM ([0-9]+)$'),'')::int, -1));
+  end;
+
   -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
   -- once every amendment carried a verified founder-session approval, "where approved_by is null"
   -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
@@ -418,11 +435,6 @@ begin
    where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('approved_rows', v_rows, 'red_after_approval', v_red);
 
-  delete from public.phase_c_founder_identity where identity = v_founder;
-  select count(*) into v_red from public.fn_phase_c_freeze_drift()
-   where not ok and check_name = 'amendments_awaiting_founder_approval';
-  v_out := v_out || jsonb_build_object('red_after_approver_deleted', v_red);
-
   raise exception 'REGISTER_PROBE %', v_out;
 end $probe$;`);
 
@@ -435,13 +447,28 @@ end $probe$;`);
       'subject can write is not a register: an acceptance auditor added itself, approved four ' +
       'amendments to frozen Phase C contracts, and deleted the row again. That register also gates ' +
       'refunds.');
-    assert.ok(Number(r.approved_rows) > 0 && Number(r.red_after_approval) === 0,
-      `a real founder identity approved ${r.approved_rows} row(s) and the board read ` +
-      `${r.red_after_approval} red — it must go green when he actually signs`);
+    // 25 AUG 2026 — THIS ASSERTION IS INVERTED, AND THE INVERSION IS THE FIX PCCR-006 MADE.
+    // It used to read: approved_rows > 0 and the board green, "it must go green when he actually
+    // signs". That was the hole. The arm above is the OWNER typing a registered founder's email
+    // with a fabricated 64-zero digest — FD-01 requirements 5 and 6 say exactly that must be
+    // refused, and a05_freeze_amendment_session_claim_is_verified now refuses it. An expectation
+    // that a typed name approves is an expectation that the defect is still open.
+    assert.equal(Number(r.approved_rows), 0,
+      `the owner typed a registered founder's email with a fabricated amendment digest and ` +
+      `approved ${r.approved_rows} amendment(s). PCCR-006 requirement 6 says a migration-written ` +
+      'AUTHENTICATED_FOUNDER_SESSION claim is refused; this is that claim, accepted.');
+    assert.ok(Number(r.red_after_approval) >= 1,
+      `the board read ${r.red_after_approval} red after an approval nobody gave was refused — it ` +
+      'must stay red until he signs through fn_phase_c_governance_decide with a bearer token.');
+    // WHAT THIS PROBE NO LONGER PROVES, said rather than quietly dropped: there is no executable
+    // positive control here for "and it goes green when he actually signs". The only door that can
+    // record one refuses every connection that is not `authenticator`, so the positive case needs
+    // the founder's own GoTrue token and cannot be driven from CI. It is the residual weakness
+    // PCCR-006 §"The residual weakness in the bootstrap" already states.
     assert.ok(Number(r.red_after_approver_deleted) >= 1,
-      'deleting the approver from the register left the board GREEN. The check is reading a stored ' +
-      'string instead of resolving it, which is the half of this defect that survives a trigger ' +
-      'being disabled.');
+      'deleting the approver from the register left the board GREEN while real approvals stood. ' +
+      'The check is reading a stored string instead of resolving it, which is the half of this ' +
+      'defect that survives a trigger being disabled.');
   });
 
 // THE THIRD ATTACK, AND THE ONE THAT MATTERED MOST: no fake identity, no DDL, no owner rights.
@@ -548,9 +575,17 @@ end $probe$;`);
         'phase_c_freeze_amendment; every row was written by a migration applied as the owner, so ' +
         'service_role has no business holding INSERT, UPDATE or DELETE on it.');
     }
-    assert.equal(Number(r.owner_approval_red_after), 0,
-      'an owner-applied approval by a registered founder identity did NOT clear the row — the ' +
-      'revoke went too far and approval is now impossible');
+    // 25 AUG 2026 — INVERTED, same reason as the probe above. This arm used to be the control that
+    // proved the guard is not refuse-everything: the OWNER applying the founder's registered email
+    // cleared the row. PCCR-006 requirement 6 makes that route a refusal, so the control it was
+    // written to be no longer exists, and asserting the old outcome asserts the old hole.
+    assert.match(String(r.owner_approval ?? 'ACCEPTED'), /^REFUSED/,
+      `the owner applied an approval in a registered founder's name and it was ${r.owner_approval ?? 'ACCEPTED'}. ` +
+      'a05_freeze_amendment_session_claim_is_verified must refuse an AUTHENTICATED_FOUNDER_SESSION ' +
+      'claim with no session behind it, whoever is typing.');
+    assert.ok(Number(r.owner_approval_red_after) >= 1,
+      `the board read ${r.owner_approval_red_after} red after the refusal. A refused approval must ` +
+      'leave the row awaiting the founder, not green.');
   });
 
 // THE SAME DEFECT ONE TABLE OVER. E36 guarded `phase_c_freeze_amendment.approved_by`; the R7
