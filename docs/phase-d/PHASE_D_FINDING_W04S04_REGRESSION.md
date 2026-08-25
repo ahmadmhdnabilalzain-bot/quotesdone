@@ -177,3 +177,56 @@ finding; a harness that steps around it reports green about a case it stopped ru
 The first answer makes this a resolver-granularity defect in `fn_phase_d_founder_authority` and it
 is repaired in Phase D. The second answer makes it correct behaviour, and the standard's regression
 item 17 needs a change request to move off `1,799 of 1,799`.
+
+---
+
+# SECOND FINDING — regression item 16's exemption register is no longer 0 rows
+
+Unrelated to W04-S04 in cause, recorded here because it has the same standing: a frozen expectation
+that a later, founder-approved change made untrue.
+
+Regression item 16 froze **`live exemption register 0 rows`**. It is now **1 row**:
+
+```
+PHASE_D_INJECTED_DEFECT_EXEMPTION_REGISTER.csv  1 rows
+  DEFERRED_TO_A_BUILT_PATH  1        -> PD-FIN-004
+```
+
+## Why
+
+PD-FIN-004 is *"founder refund decision updated/deleted → append-only refusal"*. To assert that a
+recorded decision cannot be edited, the probe must first **create** one, and
+`fn_kernel_refund_decision_record` writes `decided_by` from a founder identity resolved by
+`fn_phase_c_require_founder` — never from the call. Since PCCR-006,
+`fn_phase_c_founder_subject_bind` refuses every connection that is not the PostgREST one that
+verified a bearer token, so no management or migration connection can build the row the append-only
+trigger exists to protect.
+
+Before this session the branch called the bind bare, the refusal aborted its subtransaction, and the
+control reported **`NOT_REFUSED`** — which reads as *"a founder refund decision can be updated or
+deleted."* It cannot. `a00_phase_c_refund_decision_immutable` is deployed, unchanged, and its raw
+UPDATE and DELETE arms are still driven and asserted in
+`scripts/checks/protected_table_guards_actually_fire.test.mjs`. The probe was reporting on a guard
+it never reached.
+
+It now reports `NOT_RUN` with a named blocker, and the builder's own rule then applies —
+*"a case that did not run and that nobody decided is not a case anyone can check"* — which requires
+a disposition row. `DEFERRED_TO_A_BUILT_PATH`: the route exists and is registered in
+`kernel_write_authority`; what CI lacks is the token, not the route.
+
+## The choice, stated
+
+There were two reds available and no green:
+
+| option | result |
+|---|---|
+| leave PD-FIN-004 undecided | the deliverable builder refuses it: `named in the disposition register 0 of 1` |
+| record the disposition | regression item 16 moves from `0 rows` to `1 row` |
+
+Recording it is the honest one — the register is exactly the instrument for "this did not run and
+here is who decided that". But it moves a frozen pass condition, so §E applies: it is reported here
+as a finding, not treated as a licence to edit the standard.
+
+**What would restore `0 rows`:** a founder bearer token available to the acceptance run, which makes
+PD-FIN-004 executable again and the disposition unnecessary. That is the same unlock as Gate FD-01 —
+the register row is a second symptom of one missing thing, not an independent problem.
