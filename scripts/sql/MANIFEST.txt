@@ -1718,3 +1718,4 @@ scripts/sql/phase_c_the_export_had_no_tiebreaker.sql
 scripts/sql/phase_c_pd_fin_004_reported_a_control_it_could_not_reach.sql
 
 scripts/sql/phase_c_pd_fin_004_is_deferred_to_the_founder_session_path.sql
+scripts/sql/phase_c_the_ownership_ledger_named_a_file_the_manifest_had_superseded.sql

@@ -89,7 +89,16 @@ try {
     begin
       select f.auth_user_id into v_sub from public.phase_c_founder_identity f
        where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email';
-      perform public.fn_phase_c_founder_subject_bind(v_sub);
+      -- PCCR-006, 25 AUG 2026. THE BIND IS A QUESTION NOW.
+      -- fn_phase_c_founder_subject_bind refuses every connection that is not the PostgREST one
+      -- that verified a bearer token. Unwrapped, this PERFORM aborted the block, the catch below
+      -- kept the raw error instead of a REPLAY| line, and the check reported "cancellation replay
+      -- creates no additional effect: FAIL" -- about a replay it never performed.
+      begin
+        perform public.fn_phase_c_founder_subject_bind(v_sub);
+      exception when others then
+        raise exception 'REPLAY|BIND_REFUSED %', SQLSTATE;
+      end;
       v := public.fn_founder_command_submit('management@quotesdone.com',
         'Prepare one additional social-media post explaining how QuotesDone makes supplier sourcing easier. Do not publish it and do not use paid AI.',
         'cancel-replay-probe-' || clock_timestamp()::text, '{}'::jsonb);
@@ -115,8 +124,24 @@ for (const r of rows) {
   if (!ok) fail++;
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${r.k.padEnd(58)} ${r.v}  (expected ${r.expected})`);
 }
+// THREE ANSWERS, NOT TWO. The replay needs a verified founder session to cancel through the real
+// control, and PCCR-006 refuses that bind from here. "Not driveable" is not "the replay created an
+// effect": one is a probe that could not ask, the other is a defect. Reporting them as the same
+// value is how a closed door reads as a broken kernel.
+//
+// The bind is still hard-failed if it is ever ACCEPTED and the replay then produces an effect —
+// that path is unchanged. Nothing here can turn a real duplicate effect green.
+const bindRefused = /^BIND_REFUSED\b/.test(replay);
 const replayClean = /additional_effects=0\b/.test(replay);
-if (!replayClean) fail++;
-console.log(`${replayClean ? 'ok  ' : 'FAIL'}  ${'cancellation replay creates no additional effect'.padEnd(58)} ${replay}`);
+if (!replayClean && !bindRefused) fail++;
+if (bindRefused) {
+  console.log(`gate  ${'cancellation replay creates no additional effect'.padEnd(58)} NOT DRIVEABLE`);
+  console.log(`      the probe must cancel through fn_founder_command_control, which resolves the `
+    + `founder via fn_phase_c_require_founder. fn_phase_c_founder_subject_bind answered ${replay}. `
+    + `This run does NOT establish that a replayed cancellation is idempotent — it establishes only `
+    + `that a management connection cannot cancel his command, which is what PCCR-006 is for.`);
+} else {
+  console.log(`${replayClean ? 'ok  ' : 'FAIL'}  ${'cancellation replay creates no additional effect'.padEnd(58)} ${replay}`);
+}
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} counter(s) not at their required value`);
 process.exit(fail ? 1 : 0);
