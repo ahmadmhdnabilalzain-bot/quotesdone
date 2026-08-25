@@ -1,5 +1,5 @@
 # node scripts/phase_d/build_frontend_api_call_graph.mjs | project htdblwldjkcgjvmqkbeh | 77 of 77 distinct (component, edge_function) pairs resolved from the frontend, across 39 file(s) and 39 edge function(s), written from 153 raw call site(s) | attribution: one row per distinct (component, edge_function) pair, attributed to the file whose own source names the endpoint — not per call site, and not to importers of a client method
-# generated_at: 2026-08-24T18:23:58.468Z
+# generated_at: 2026-08-25T00:13:03.039Z
 component,url_shape,call_sites,edge_function,edge_function_in_repo,canonical_services,tables_touched,phase_d_objects,status
 src/app/api/resilience-ping/route.ts,functions_v1_literal,1,resilience_ping,yes,fn_cron_liveness,app_secrets,,NO_BOUND_PHASE_D_OBJECT_ON_THIS_PATH
 src/components/ChatWidget.tsx,template_literal,1,site_assistant,yes,rl_check;fn_wa_context,app_secrets;llm_calls;agent_runs;customers;leads;company_faq;assistant_logs,customer_account;supplier_account,FULL_APPLICATION_PATH_CONNECTED

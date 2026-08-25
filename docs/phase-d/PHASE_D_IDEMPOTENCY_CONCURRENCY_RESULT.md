@@ -1,5 +1,18 @@
 # Phase D — idempotency and concurrency result
 
+**Reproduced by:**
+
+```bash
+node scripts/phase_d/run_concurrency_probes.mjs
+```
+
+against production `htdblwldjkcgjvmqkbeh`. Every probe opens two concurrent backends and ends in
+`raise exception`, so nothing here survives its own run. This line was added on 25 Aug 2026: the
+deliverable stated its results and named no command that would produce them again, and a prose
+result that cannot be re-derived is a claim. It is the only one of the seven prose deliverables that
+named nothing — the other six each name their producing script — and
+`scripts/checks/phase_d_deliverables_match_production.test.mjs` now fails any that does not.
+
 **Every claim below is either backed by a constraint the database enforces, or by an injection
 executed on production in an aborted transaction. Where something is asserted by neither, it is
 listed in §4 as not proved.**

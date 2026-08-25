@@ -284,3 +284,89 @@ test('PHASE_D_BUILDER_CLOSURE.md counts the deliverables git is actually trackin
     + `under ${COMMITTED}/. A closure document understating its own completeness is read as a `
     + 'statement about the estate, not as a stale figure.');
 });
+
+// ================================================================================================
+// THE APPROVED DENOMINATOR IS 15, AND UNTIL NOW NOTHING SAID SO OUT LOUD.
+//
+// The founder read this check reporting "14 of 14" against a standard whose row 9 says "15 required
+// deliverables" and asked whether a denominator had been silently reduced. It had not, and the two
+// numbers are about two different populations:
+//
+//   14  the number of test() blocks in this file. `node --test` prints "pass 14". It moves whenever
+//       BUILDERS gains or loses an entry — it read 12 with 9 builders and 14 with 11 — which is why
+//       PHASE_D_FINAL_ACCEPTANCE_STANDARD_V1 row 8 freezes "every assertion passes and every built
+//       file reproduces byte-identically" and explicitly NOT the assertion count.
+//   15  the number of deliverables the package requires, listed by name in
+//       PHASE_D_REQUIRED_DELIVERABLES.md.
+//
+// The 15 WAS already asserted — inside the test above, whose name is about
+// PHASE_D_BUILDER_CLOSURE.md. An assertion labelled with the wrong subject is one nobody reads as
+// the thing it checks, which is the same defect shape this estate has hit repeatedly. So the count
+// gets its own test, its own name and its own printed line, and the packet has a 15/15 to state.
+//
+// REPRODUCIBLE MEANS TWO DIFFERENT THINGS HERE AND BOTH ARE CHECKED, SEPARATELY.
+//   · 8 of the 15 are built by a builder in BUILDERS. Those are regenerated into a temp directory
+//     and diffed byte for byte by the per-builder tests above. That is reproduction.
+//   · 7 are prose. Prose cannot be diffed against a rerun, so what is required of it is that it
+//     NAMES the exact command whose output it reports — otherwise "reproducible" is a word rather
+//     than a property. Asserted below, per file.
+test('all 15 required deliverables are present, tracked, non-empty and reproducible', () => {
+  const required = 'QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/PHASE_D_REQUIRED_DELIVERABLES.md';
+  assert.ok(existsSync(required),
+    `${required} is not on disk, so the approved denominator cannot be read. It is the package's `
+    + 'list, never this file\'s opinion of it: a denominator typed into the check it guards is an '
+    + 'expectation checked against itself.');
+
+  const wanted = [...new Set([...readFileSync(required, 'utf8')
+    .matchAll(/^\s*\d+\.\s+`(PHASE_D_[A-Z0-9_]+\.(?:csv|md))`/gm)].map((m) => m[1]))];
+  assert.equal(wanted.length, 15,
+    `${required} lists ${wanted.length} numbered deliverables. 15 is the denominator the founder `
+    + 'approved and froze; a list that no longer holds 15 is a change to the standard and needs a '
+    + 'PHASE_D_ACCEPTANCE_STANDARD_CHANGE_REQUEST, not a passing check.');
+
+  const ls = spawnSync('git', ['ls-files', COMMITTED], { encoding: 'utf8' });
+  assert.equal(ls.status, 0, `git ls-files ${COMMITTED} failed: ${ls.stderr}`);
+  const tracked = new Set(ls.stdout.split('\n').map((s) => s.trim()).filter(Boolean)
+    .map((p) => p.split('/').pop()));
+
+  const built = new Set(BUILDERS.map((b) => b.file));
+  const absent = [];
+  const untracked = [];
+  const empty = [];
+  const unreproducible = [];
+
+  for (const name of wanted) {
+    const p = join(COMMITTED, name);
+    if (!existsSync(p)) { absent.push(name); continue; }
+    if (!tracked.has(name)) untracked.push(name);
+    const text = readFileSync(p, 'utf8');
+    if (text.trim().length === 0) { empty.push(name); continue; }
+    if (built.has(name)) continue;            // reproduced byte for byte by a per-builder test above
+    // Prose. It must name the command that produced its numbers. Anything that could be re-run:
+    // a node invocation, a `select` on a routine, or a named npm script.
+    // A bare `scripts/…mjs` path counts: three of the four prose deliverables name their producing
+    // script without a `node ` prefix, and a path IS re-runnable. The one that named nothing at all
+    // was PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md, and the fix was to the deliverable.
+    if (!/\bscripts\/[\w./-]+\.mjs/.test(text)
+        && !/\bselect\s+[\w*\s,]*\bfrom\s+public\.fn_[a-z0-9_]+\s*\(/i.test(text)
+        && !/\bnpm\s+run\s+[\w:-]+/.test(text)) {
+      unreproducible.push(name);
+    }
+  }
+
+  assert.deepEqual(absent, [], `required deliverable(s) missing from ${COMMITTED}/: ${absent.join(', ')}`);
+  assert.deepEqual(untracked, [], `required deliverable(s) not tracked by git: ${untracked.join(', ')}`);
+  assert.deepEqual(empty, [], `required deliverable(s) present and empty: ${empty.join(', ')}`);
+  assert.deepEqual(unreproducible, [],
+    'required prose deliverable(s) naming no command that reproduces their numbers: '
+    + `${unreproducible.join(', ')}. A prose deliverable that cannot be re-derived is a claim.`);
+
+  const builtCount = wanted.filter((n) => built.has(n)).length;
+  console.log(`  required deliverables present  ${wanted.length} of ${wanted.length}`);
+  console.log(`  tracked by git                 ${wanted.length} of ${wanted.length}`);
+  console.log(`  reproducible                   ${wanted.length} of ${wanted.length} `
+    + `(${builtCount} regenerated and diffed byte-for-byte; `
+    + `${wanted.length - builtCount} prose, each naming its reproducing command)`);
+  console.log('  denominator silently reduced   0 — read from PHASE_D_REQUIRED_DELIVERABLES.md, '
+    + 'never from this file');
+});
