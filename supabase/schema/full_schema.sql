@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-25T00:19:41.230Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-25T01:08:43.879Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51201,6 +51201,8 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_committed_scenario_close(p_scenario
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
+  v_ao bigint := 0;      -- Q04: traces retained because an execution record references one
+  v_keep bigint[] := '{}';  -- Q04: those traces AND their ancestors
   s         public.phase_d_committed_scenario%rowtype;
   v_removed jsonb := '{}'::jsonb;
   v_n       bigint;
@@ -51254,8 +51256,44 @@ begin
   delete from public.phase_c_task where run_id = any(v_runs);
   get diagnostics v_n = row_count; if v_n > 0 then v_removed := v_removed || jsonb_build_object('public.phase_c_task', v_n); end if;
 
-  delete from public.phase_c_trace where run_id = any(v_runs);
+  -- Q04. A TRACE AN APPEND-ONLY EXECUTION RECORD REFERENCES CANNOT BE DELETED, AND MUST NOT BE.
+  -- phase_c_system_execution.trace_id is ON DELETE CASCADE, and
+  -- z10_phase_c_system_execution_append_only refuses every DELETE with no maintenance door — by
+  -- design: 'an execution record that can be edited after the fact records the editor, not the
+  -- execution.' So this statement used to succeed only because nothing in the scenario produced
+  -- one. phase_d_q03 attached the canonical customer-created adapter to public.customers, this
+  -- scenario's fixture INSERTS a customer, and the adapter now writes a TRACE-SYSTEM-EXECUTION
+  -- trace with its execution row. The cascade then hit the guard and the whole close threw.
+  --
+  -- The reversal is not weakened; it is made truthful. Those traces are COUNTED, retained, and
+  -- disclosed on the scenario row, and the watermark assertion below allows phase_c_trace to sit
+  -- exactly v_ao above its watermark and not one row more. Everything else still fails hard.
+  -- The retained set is the append-only-backed traces AND EVERY ANCESTOR OF ONE.
+  -- phase_c_trace_parent_trace_id_fkey is a self-reference with no cascade, so deleting the parent
+  -- of a retained trace is refused too — found on the first rehearsal of this file, which is what
+  -- rehearsing is for. The recursion walks parent_trace_id upward, which terminates because a trace
+  -- ledger is a tree.
+  with recursive anchored as (
+    select t.trace_id, t.parent_trace_id
+      from public.phase_c_trace t
+     where t.run_id = any(v_runs)
+       and exists (select 1 from public.phase_c_system_execution se where se.trace_id = t.trace_id)
+    union
+    select p.trace_id, p.parent_trace_id
+      from public.phase_c_trace p
+      join anchored a on a.parent_trace_id = p.trace_id
+  )
+  select coalesce(array_agg(distinct trace_id), '{}') into v_keep from anchored;
+
+  select count(*) into v_ao from public.phase_c_trace t
+   where t.run_id = any(v_runs) and t.trace_id = any(v_keep);
+
+  delete from public.phase_c_trace t
+   where t.run_id = any(v_runs) and not (t.trace_id = any(v_keep));
   get diagnostics v_n = row_count; if v_n > 0 then v_removed := v_removed || jsonb_build_object('public.phase_c_trace', v_n); end if;
+  if v_ao > 0 then
+    v_removed := v_removed || jsonb_build_object('public.phase_c_trace_retained_append_only', v_ao);
+  end if;
 
   delete from public.phase_c_workflow_step_run where run_id = any(v_runs);
   get diagnostics v_n = row_count; if v_n > 0 then v_removed := v_removed || jsonb_build_object('public.phase_c_workflow_step_run', v_n); end if;
@@ -51329,6 +51367,10 @@ begin
     into v_drift
     from jsonb_object_keys(s.watermarks) k
    where (v_wm->>k) is distinct from (s.watermarks->>k)
+     -- Q04: phase_c_trace is allowed to sit EXACTLY v_ao above its watermark and not one row more.
+     -- v_ao is counted, not assumed, and it is disclosed on the scenario row.
+     and not (k = 'public.phase_c_trace'
+              and (v_wm->>k)::bigint = (s.watermarks->>k)::bigint + v_ao)
      -- kernel_maintenance_write is the RECEIPT fn_kernel_write_guard demands for the deletes above.
      -- Removing it would defeat the guard that permitted them. Counted and disclosed, never hidden.
      and k <> 'public.kernel_maintenance_write'
@@ -51343,6 +51385,7 @@ begin
     update public.phase_d_committed_scenario
        set state = 'FAILED', closed_at = now(), removed = v_removed,
            assertions = jsonb_build_object('watermark_drift', coalesce(v_drift,'(none)'),
+                                           'phase_c_trace_retained_append_only', v_ao,
                                            'outbound_requests_naming_the_fixture', v_n)
      where scenario_id = p_scenario_id;
     raise exception 'fn_phase_d_committed_scenario_close: a survivor is a hard stop. watermark drift: %; outbound requests naming the fixture: % (pdcs_residue_survived)',
@@ -51362,6 +51405,7 @@ begin
            'relations_compared', (select count(*) from jsonb_object_keys(s.watermarks) k),
            'outbound_requests_naming_the_fixture', 0,
            'fn_phase_d_fixture_residue', 0,
+           'phase_c_trace_retained_because_an_append_only_execution_references_it', v_ao,
            'kernel_maintenance_write_receipts_added',
              (v_wm->>'public.kernel_maintenance_write')::bigint - (s.watermarks->>'public.kernel_maintenance_write')::bigint)
    where scenario_id = p_scenario_id;

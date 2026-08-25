@@ -4,12 +4,12 @@
 below was measured on production `htdblwldjkcgjvmqkbeh` on 25 Aug 2026 and every command that
 produced one is named beside it, so an independent audit can re-run rather than re-read.
 
-**Reproduced by:** the commands in each section; the whole set is `scripts/sql/phase_d_q01…q03` plus
+**Reproduced by:** the commands in each section; the whole set is `scripts/sql/phase_d_q01…q04` plus
 the checks named in §7.
 
-**Scope.** This session did three things and refused a fourth. It repaired the guard that was
+**Scope.** This session did four things and refused a fifth. It repaired the guard that was
 silently refusing the founder's own governance decisions, closed the 18 class-B decision fields,
-routed customer creation through the kernel, and **did not apply PCCR-006** — because the approval
+routed customer creation through the kernel, repaired the reversal harness that regression broke, and **did not apply PCCR-006** — because the approval
 that would have authorised it was refused by the estate before it could be recorded. §1 is that
 refusal, measured.
 
@@ -316,6 +316,46 @@ edge_functions_writing_a_work_table_and_absent_from_the_inventory
 
 ---
 
+## 5b. Q04 — a reversal that could not reverse the one record the estate refuses to let it
+
+`scripts/sql/phase_d_q04_a_reversal_that_could_not_reverse_the_append_only_record.sql`
+
+**A regression Q03 caused, and it is the guard working.** `kernel_positive_controls.test.mjs` went
+21 of 21 → **20 of 21** after Q03: `fn_phase_d_committed_scenario_close` threw
+
+```
+23514 :: phase_c_system_execution is append-only: DELETE on trace 4041726 refused.
+```
+
+The scenario's fixture INSERTs a customer; Q03's adapter now writes a TRACE-SYSTEM-EXECUTION trace
+and its execution row; the close deletes traces by `run_id`;
+`phase_c_system_execution_trace_id_fkey` is ON DELETE CASCADE; and
+`z10_phase_c_system_execution_append_only` refuses every DELETE with no maintenance door, on
+purpose.
+
+**Neither side is wrong.** Creating a customer is no longer fully reversible, by design. The harness
+now says so instead of throwing: it counts the append-only-backed traces **and their ancestors**
+(`phase_c_trace_parent_trace_id_fkey` is a self-reference with no cascade — found on the first
+rehearsal, which is what rehearsing is for), retains exactly those, deletes the rest, and discloses
+the count on the scenario row in both the CLOSED and the FAILED shape. The precedent is this
+routine's own treatment of `kernel_maintenance_write`: *"Counted and disclosed, never hidden."*
+
+**Not changed:** the append-only guard (a guard the harness can talk round is not a guard), the
+customers adapter (exempting the fixture would rebuild the bypass one table lower), or the watermark
+set — `phase_c_system_execution` is not watched and adding it would make every future scenario fail
+for the same reason, which is the opposite of disclosing it.
+
+| control | result |
+|---|---|
+| the close, after Q04 | `ok:true`, removed `{public.phase_c_trace: 3, public.customers: 1, public.leads: 1, …}`, retained `public.phase_c_trace_retained_append_only: 2` |
+| **negative control** — one extra unaccounted trace, so `phase_c_trace` sits at watermark + v_ao + 1 | **REFUSED** `23514 … watermark drift: public.phase_c_trace 6303 -> 6306` |
+| all kernel positive controls | **21 of 21 accepted, 0 failed**; row counts before/after unchanged on all seven relations |
+
+The relaxation is exactly `v_ao` and not one row more, and the branch was forced rather than
+assumed.
+
+---
+
 ## 6. Decision-packet process debt
 
 | item | before | after |
@@ -409,6 +449,9 @@ and it is what PCCR-006's Amendment B (`session_user = 'authenticator'`) and Ame
 | — | Gate 7 | 54 rules ENFORCED, 0 OUTSTANDING; 32 gates ENFORCED, 0 NAMED_BUT_ABSENT |
 | — | Gate 8 / 9 | 75 executed with a discriminating result, NOT_RUN 0, FAILED TO REFUSE 0, attempt rows left behind 0, live exemption register **0 rows** |
 | — | Gate 10 | 1,799 of 1,799 cases; 257 kernel_boundary, 1,542 live_step_run |
+| — | kernel positive controls | **21 of 21 accepted, 0 failed** (20 of 21 between Q03 and Q04 — see §5b) |
+| — | kernel invariants | PASS, 0 unmeasured |
+| — | Phase C invariants | PASS, 71/71 |
 
 **No gate was added. No denominator was moved. No frozen disclosure was reinterpreted.**
 

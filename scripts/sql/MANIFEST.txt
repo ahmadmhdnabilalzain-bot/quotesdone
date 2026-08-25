@@ -1698,3 +1698,7 @@ scripts/sql/phase_d_p04_four_corrections_an_adversarial_pass_found.sql
 scripts/sql/phase_d_q01_a_deferred_guard_that_ran_as_the_caller.sql
 scripts/sql/phase_d_q02_eighteen_decision_fields_that_duplicated_output.sql
 scripts/sql/phase_d_q03_a_customer_created_by_eleven_paths_and_routed_by_none.sql
+scripts/sql/phase_d_q04_a_reversal_that_could_not_reverse_the_append_only_record.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
