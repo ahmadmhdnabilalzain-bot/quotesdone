@@ -1725,3 +1725,7 @@ scripts/sql/phase_c_pccr006_the_ledger_kept_its_write_grants_too.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/phase_c_the_export_had_no_tiebreaker.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
