@@ -4,12 +4,12 @@
 below was measured on production `htdblwldjkcgjvmqkbeh` on 25 Aug 2026 and every command that
 produced one is named beside it, so an independent audit can re-run rather than re-read.
 
-**Reproduced by:** the commands in each section; the whole set is `scripts/sql/phase_d_q01…q04` plus
+**Reproduced by:** the commands in each section; the whole set is `scripts/sql/phase_d_q01…q05` plus
 the checks named in §7.
 
-**Scope.** This session did four things and refused a fifth. It repaired the guard that was
+**Scope.** This session did five things and refused a sixth. It repaired the guard that was
 silently refusing the founder's own governance decisions, closed the 18 class-B decision fields,
-routed customer creation through the kernel, repaired the reversal harness that regression broke, and **did not apply PCCR-006** — because the approval
+routed customer creation through the kernel, repaired the two things that regression broke, and **did not apply PCCR-006** — because the approval
 that would have authorised it was refused by the estate before it could be recorded. §1 is that
 refusal, measured.
 
@@ -268,6 +268,8 @@ this file.
 active_autonomous_source_not_yet_routing_through_the_inbox   0 of 29     ok
 ```
 
+And §5c is how the OTHER board — the committed-disposition one that read 1 — reached zero too.
+
 ### `edge:drawing_redact` — classified
 
 **READ_ONLY / DERIVED_INTERNAL**, and state-changing — the two are not in conflict and the
@@ -353,6 +355,72 @@ for the same reason, which is the opposite of disclosing it.
 
 The relaxation is exactly `v_ao` and not one row more, and the branch was forced rather than
 assumed.
+
+---
+
+## 5c. Q05 — three coverage claims that broke the parser that reads them, and the bypass reaching zero
+
+`scripts/sql/phase_d_q05_three_coverage_claims_that_broke_the_parser_that_reads_them.sql`
+
+**The second regression Q03 caused, and the one that closed the original finding.**
+`public.phase_c_source_cutover.disposition_evidence` is not prose. `fn_kernel_cutover_measure`
+parses it as `<kind>:<ref>` — `retired | read_only | inactive | routine | trigger` — and honours a
+`routine:` claim only when that routine exists AND reaches a kernel door. Q03 appended a true
+sentence to a column a machine reads, and two boards went red:
+
+| board row | after Q03 | after Q05 |
+|---|---|---|
+| `coverage_claims_with_nothing_behind_them` | **2** | **0** |
+| `active_sources_bypassing_the_kernel` | **3** | **0** |
+
+- `edge:customer_api` and `edge:inquiry_intake` — `split_part(…,':',2)` on
+  `routine:trg_inquiry_received; routine:trg_customer_registered_kernel` reads
+  `trg_inquiry_received; routine`, which is not a routine. A claim that was true and proven became a
+  claim with nothing behind it.
+- `edge:drawing_redact` — `routine:none — no adapter, by classification`. `none` is not a routine.
+  The row is class C and the parser has a kind for exactly that: `read_only`.
+
+**And `edge:inquiry_intake` was the original bypass of one.** Its `disposition_evidence` had never
+been machine-readable: it began `measured 2026-08-18:`, so `split_part(…,':',1)` returned
+`measured 2026-08-18`, which is not one of the five kinds, so the row fell through to the bypass
+count. That was RIGHT — the sentence itself says the `public.customers` write had no kernel
+discharge, and it did not. Q03 built the discharge; Q05 writes the claim in the keyed shape
+(`trigger:z50_customer_registered_kernel_emit`, whose `ev_routine` resolves through `pg_trigger` to
+`trg_customer_registered_kernel`, a kernel caller) and moves the 18 Aug measurement verbatim into
+`cutover_action`, which is the prose column, so nothing is lost.
+
+**Not one predicate of `fn_kernel_cutover_measure` changed.** The rows it reads were corrected to the
+shape it has always required.
+
+### The two boards that disagreed now agree, at zero
+
+`docs/phase-d/PHASE_D_AUTONOMOUS_SOURCE_BYPASS_TABLE.md` finding **F5** recorded that
+`fn_kernel_cutover_measure` read 1 bypass and `fn_kernel_trigger_state` recomputed 9, and that
+neither said which was the subject.
+
+```
+fn_kernel_cutover_measure.active_sources_bypassing_the_kernel                    0     ok
+fn_kernel_cutover_measure.active_sources_writing_business_work_directly          0     ok
+fn_kernel_cutover_measure.coverage_claims_with_nothing_behind_them               0     ok
+fn_kernel_trigger_state.active_autonomous_source_not_yet_routing_through_inbox   0/29  ok
+```
+
+### The gap is closed, not allowanced
+
+`scripts/checks/kernel_boards_are_green.test.mjs` is the estate's own mechanism for a disclosed gap:
+a `kernel-boards.json` ratchet entry needs an owner, a reason over 40 characters and an integer
+`max_numerator` that may never grow.
+
+| entry | before | after |
+|---|---|---|
+| `fn_kernel_trigger_state.active_autonomous_source_not_yet_routing_through_the_inbox` | ratcheted at **9**, owner `OPEN — 2 quote_items triggers, 2 edge functions writing customers…` | **deleted**. The check's own comment says so: *"deleted because it reached zero — that is the goal, not a failure"*. A new bypass is now a hard failure with nothing to fit under |
+| `fn_kernel_cutover_measure.active_sources_bypassing_the_kernel` | ratcheted at **1** | **0**, held |
+| `fn_kernel_trigger_state.edge_functions_writing_a_work_table_and_absent_from_the_inventory` | — | **added at 52**, owner `open — Phase C kernel cutover, source inventory completeness increment`. A real gap, disclosed with a name on it, that may not grow |
+
+`node --test scripts/checks/kernel_boards_are_green.test.mjs` → **7 of 7**, 40 boards, 458 checks.
+
+**The 52 is a ratchet and not a green lie.** Making it `ok=true` would have been the easy way to keep
+the board clean; the estate already has the honest mechanism and it is used here.
 
 ---
 
@@ -449,6 +517,7 @@ and it is what PCCR-006's Amendment B (`session_user = 'authenticator'`) and Ame
 | — | Gate 7 | 54 rules ENFORCED, 0 OUTSTANDING; 32 gates ENFORCED, 0 NAMED_BUT_ABSENT |
 | — | Gate 8 / 9 | 75 executed with a discriminating result, NOT_RUN 0, FAILED TO REFUSE 0, attempt rows left behind 0, live exemption register **0 rows** |
 | — | Gate 10 | 1,799 of 1,799 cases; 257 kernel_boundary, 1,542 live_step_run |
+| — | kernel boards are green | **7 of 7**; 40 boards, 458 checks; the kernel-bypass ratchet DELETED because it reached zero |
 | — | kernel positive controls | **21 of 21 accepted, 0 failed** (20 of 21 between Q03 and Q04 — see §5b) |
 | — | kernel invariants | PASS, 0 unmeasured |
 | — | Phase C invariants | PASS, 71/71 |

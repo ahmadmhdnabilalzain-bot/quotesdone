@@ -65,18 +65,10 @@
     {
       "board": "fn_kernel_cutover_measure",
       "check": "active_sources_bypassing_the_kernel",
-      "max_numerator": 1,
-      "why": "edge:inquiry_intake. This read 0 until 18 Aug 2026, on a false basis: the source claimed discharge by routine:trg_inquiry_received, a trigger on public.inquiries, and supabase/functions/inquiry_intake/index.ts never references that table in code — only in two comments. The board resolves the named routine and verifies it reaches the kernel, which is the FAR end of the chain; it never asks whether the source reaches the routine. Correcting the claim moved this 0 -> 1, which is the true number. What the source actually writes is public.customers, a work table with no kernel discharge, and W04 has 0 runs ever. Closing it means wiring W04 — which requires reclassifying dbtrigger:public.customers:trg_emit_customer_registered away from NOT_A_BUSINESS_TRIGGER, registering a new source, and amending customer.registered.allowed_source_systems, after which every signup opens an onboarding run with an owner and an SLA. That is a founder decision, not a wiring fix.",
-      "owner": "OPEN — founder decision: should a customer registration start W04 onboarding?",
-      "measured_at": "2026-08-18, 1 of 54 active sources"
-    },
-    {
-      "board": "fn_kernel_trigger_state",
-      "check": "active_autonomous_source_not_yet_routing_through_the_inbox",
-      "max_numerator": 9,
-      "why": "THE ONE OPEN PHASE C GATE. 19 of 37 active autonomous sources still start or change business work without entering the kernel. The check's own expected string says NOT MET BY K10: K10 built the door and registered the routes, and moving each source onto it is a separate wiring increment. The doors are ready — all 24 active trigger types read ADAPTER_READY_NO_LIVE_SENDER. It read 26 until the instrument was fixed: for edge functions and frontend paths, routes_through_inbox fell through to a hand-set boolean that was false on all 33 of them, so seven sources genuinely discharged by a trigger calling fn_kernel_source_emit with their source key still counted as bypassing. The view now measures that literal and consults the flag only where no routine discharges the source. 19 is what it always was. This ratchet is NOT a licence to leave it — lower it as each increment lands, and delete the entry at 0.",
-      "owner": "OPEN — 2 quote_items triggers, 2 edge functions writing customers (the W04 gap), 5 frontend paths the write map does not yet model",
-      "measured_at": "2026-08-18, 9 of 37 (26 -> 19 when the literal-name discharge was measured; 19 -> 9 when the write map landed)"
+      "max_numerator": 0,
+      "why": "edge:inquiry_intake. This read 0 until 18 Aug 2026, on a false basis: the source claimed discharge by routine:trg_inquiry_received, a trigger on public.inquiries, and supabase/functions/inquiry_intake/index.ts never references that table in code — only in two comments. The board resolves the named routine and verifies it reaches the kernel, which is the FAR end of the chain; it never asks whether the source reaches the routine. Correcting the claim moved this 0 -> 1, which is the true number. What the source actually writes is public.customers, a work table with no kernel discharge, and W04 has 0 runs ever. Closing it means wiring W04 — which requires reclassifying dbtrigger:public.customers:trg_emit_customer_registered away from NOT_A_BUSINESS_TRIGGER, registering a new source, and amending customer.registered.allowed_source_systems, after which every signup opens an onboarding run with an owner and an SLA. That is a founder decision, not a wiring fix. CLOSED 2026-08-25: the one source it named, edge:inquiry_intake, carried disposition_evidence that split_part could never parse (it began \"measured 2026-08-18:\"), so the row fell through to this count — correctly, because the customers write it describes really had no kernel discharge. phase_d_q03 built that discharge and phase_d_q05 wrote the claim in the keyed shape the parser requires. The ceiling is 0: a new bypass now fails rather than fitting under an old allowance.",
+      "owner": "CLOSED 2026-08-25 — held at 0. phase_d_q03 discharged the public.customers write at the TABLE for all eleven edge functions that make it; phase_d_q05 corrected the three coverage claims that were unreadable by the routine that judges them.",
+      "measured_at": "2026-08-25, 0"
     },
     {
       "board": "fn_phase_d_effect_state",
@@ -109,6 +101,14 @@
       "why": "One row: fn_phase_d_run_injected_defects -> phase_c_task. PD-TRACE-004's half (c) DELIBERATELY attempts `update public.phase_c_task set trace_id = <a trace deleted in this transaction>` in order to find out whether the task-side orphan can be staged at all. It cannot: the attempt is refused 42501 by fn_kernel_write_guard because no routine with write authority for that table is on the call stack, and the branch records exactly that as its observation. The board is right that a statement which will be refused at runtime is sitting in a deployed routine; here that IS the measurement. Granting the probe authority would defeat the refusal it exists to measure, and removing the attempt would leave a prose-only assertion in its place, which the founder's section 4 forbids. Any SECOND unauthorised writer still turns this red.",
       "owner": "open by design — the Phase D injected-defect probe, fixture-context only, aborted transaction",
       "measured_at": "2026-08-24, 1 of 36"
+    },
+    {
+      "board": "fn_kernel_trigger_state",
+      "check": "edge_functions_writing_a_work_table_and_absent_from_the_inventory",
+      "max_numerator": 52,
+      "why": "phase_d_q03 added this row so the source inventory stops being silent about its own completeness. public.kernel_trigger_source holds 25 edge functions; public.phase_c_edge_function_writes measures 143 that write at least one table, and 52 of the uninventoried ones write a WORK table. Every correction phase_d_q03 made to the eight false-positive bypass rows rests on the sentence \"the write happens in the edge function, which is inventoried separately\", and that sentence is only worth something if the inventory is complete. It is not, so the number is published rather than assumed. It is a RATCHET and not a gate because closing it means classifying 52 functions from what each one does, which is measurement work nobody may guess at; it may not GROW, and the eight of the 52 that write public.customers are covered regardless by z50_customer_registered_kernel_emit on the table.",
+      "owner": "open — Phase C kernel cutover, source inventory completeness increment",
+      "measured_at": "2026-08-25, 52 of 143"
     }
   ]
 }
