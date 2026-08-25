@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-25T18:59:36.011Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-25T20:03:40.045Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -62163,7 +62163,18 @@ begin
 
       select f.auth_user_id into v_f4_sub from public.phase_c_founder_identity f
        where f.active and f.kind='email' and f.auth_user_id is not null order by f.identity limit 1;
-      perform public.fn_phase_c_founder_subject_bind(v_f4_sub);
+      -- PCCR-006, 25 AUG 2026. THE BIND IS NOW A QUESTION, NOT A STEP.
+      -- fn_phase_c_founder_subject_bind refuses any connection that is not the PostgREST one that
+      -- verified a bearer token. Unwrapped, this PERFORM aborted the subtransaction, the outer
+      -- handler stored BRANCH_ERROR, v_f4_ok came out false, and PD-FIN-004 was reported
+      -- NOT_REFUSED -- "a founder refund decision can be updated or deleted". That is the most
+      -- alarming sentence this routine can emit, about a control it never reached and which had
+      -- not moved. A blocked probe must not report on the guard it failed to ask.
+      begin
+        perform public.fn_phase_c_founder_subject_bind(v_f4_sub);
+      exception when others then
+        raise exception '%', 'PDF4' || chr(31) || 'BIND_REFUSED ' || SQLSTATE;
+      end;
       insert into public.founder_approval_request(action_class, subject_ref, prepared_by_role_id)
       values ('refund_decision','pd-fin-004','payments_and_billing_manager') returning request_id into v_f4_req;
       v_f4_res := public.fn_kernel_refund_decision_record(jsonb_build_object(
@@ -62239,12 +62250,36 @@ begin
            and split_part(v_f4_msg,'|',6) = 'pd_refund_execution_without_founder_decision'
            and split_part(v_f4_msg,'|',7) = 'pd_refund_execution_without_founder_decision';
     defect_id:='PD-FIN-004'; category:='FINANCE';
-    status := case when v_f4_ok then 'REFUSED_AS_REQUIRED' else 'NOT_REFUSED' end;
-    observed := format('no-founder->%s; UPDATE->%s DELETE->%s original %s; supersede->%s; execute superseded->%s; refund without decision->%s',
-                       split_part(v_f4_msg,'|',1), split_part(v_f4_msg,'|',2), split_part(v_f4_msg,'|',3),
-                       split_part(v_f4_msg,'|',4), split_part(v_f4_msg,'|',5), split_part(v_f4_msg,'|',6),
-                       split_part(v_f4_msg,'|',7));
-    blocker := null; return next;
+    if v_f4_msg like 'BIND_REFUSED%' then
+      -- NOT_RUN WITH A NAMED BLOCKER, which is a state this estate already models and already
+      -- checks: phase_d_documents_do_not_contradict_each_other asserts that every NOT_RUN names a
+      -- specific blocker and that none is a placeholder. It is not a pass and it is not a failure;
+      -- it is the honest third answer, and it keeps the control visible instead of green.
+      status := 'NOT_RUN';
+      observed := format('the probe could not create the founder decision this control protects: '
+                      || 'fn_phase_c_founder_subject_bind answered %s. The no-founder arm was still '
+                      || 'measured before the bind and came out %s.',
+                         v_f4_msg, coalesce(nullif(v_f4_N,''), '(not reached)'));
+      blocker := 'PCCR-006 closed the server bind door: fn_phase_c_founder_subject_bind refuses any '
+              || 'connection that is not the PostgREST one which verified a founder bearer token '
+              || '(pccr_founder_bind_untrusted_connection). Recording a founder refund decision -- '
+              || 'the row a00_phase_c_refund_decision_immutable exists to protect -- therefore needs '
+              || 'a founder JWT through PostgREST, which only the founder can produce. The append-only '
+              || 'trigger itself is unchanged and its raw UPDATE/DELETE arms are still driven in '
+              || 'scripts/checks/protected_table_guards_actually_fire.test.mjs.';
+    else
+      -- ONE `return next` FOR THIS CONTROL, AND IT IS BELOW THE if. The first cut of this splice
+      -- put `return next; end if;` in the arm above and left the original emit underneath, so
+      -- PD-FIN-004 came back TWICE -- once NOT_RUN and once NOT_REFUSED -- and the builder said
+      -- "FINANCE produced 6 row(s); 5 are expected". `return next` does not leave a SETOF function.
+      status := case when v_f4_ok then 'REFUSED_AS_REQUIRED' else 'NOT_REFUSED' end;
+      observed := format('no-founder->%s; UPDATE->%s DELETE->%s original %s; supersede->%s; execute superseded->%s; refund without decision->%s',
+                         split_part(v_f4_msg,'|',1), split_part(v_f4_msg,'|',2), split_part(v_f4_msg,'|',3),
+                         split_part(v_f4_msg,'|',4), split_part(v_f4_msg,'|',5), split_part(v_f4_msg,'|',6),
+                         split_part(v_f4_msg,'|',7));
+      blocker := null;
+    end if;
+    return next;
   end;
 
   -- ---- REVIEW ---------------------------------------------------------------------------------
