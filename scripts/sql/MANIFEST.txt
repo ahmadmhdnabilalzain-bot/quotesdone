@@ -1710,3 +1710,7 @@ scripts/sql/phase_d_q06_a_security_definer_function_created_and_left_public.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/phase_d_q07_a_founder_answer_with_no_hash_and_no_guard.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

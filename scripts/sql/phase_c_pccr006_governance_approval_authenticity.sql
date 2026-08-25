@@ -485,11 +485,58 @@ ALTER TABLE public.phase_c_change_request
   ADD CONSTRAINT phase_c_change_request_approval_reason_only_on_approval CHECK (
     (disposition = 'APPROVED') OR approval_reason IS NULL);
 
+-- CORRECTED 2026-08-25, BEFORE APPROVAL AND BEFORE APPLICATION. This constraint was written
+-- without NOT VALID, and the migration therefore DID NOT APPLY. Rehearsed on production in an
+-- aborted transaction on 25 Aug:
+--
+--   ERROR: 23514: check constraint "phase_c_change_request_approval_is_derived" of relation
+--                 "phase_c_change_request" is violated by some row
+--
+-- The row is PCCR-003 — the founder's real approval of 21 Aug 2026, `approved_by
+-- management@quotesdone.com`, `approved_at 2026-08-21 20:20:33+00`. It has an approver and no
+-- governance_decision_id because THIS MIGRATION creates that column. The predicate names a column
+-- the migration itself introduces and was then checked against rows that predate it, so a genuine
+-- historical approval failed a rule that could not have existed when it was given.
+--
+-- NOT VALID is the honest treatment and it is not a weakening. Postgres enforces a NOT VALID CHECK
+-- on every INSERT and every UPDATE; what it skips is the retroactive scan. So from this migration
+-- forward, an approver without a ledger row is refused — which is the whole point — and one real
+-- approval taken before the ledger existed is grandfathered rather than deleted or back-filled.
+--
+-- BACK-FILLING WAS THE ALTERNATIVE AND IT IS REFUSED. Giving PCCR-003 a governance_decision_id
+-- would mean minting a ledger row for a decision that predates the ledger — inventing the verified
+-- session it never had, which is precisely the defect this change request exists to close.
+--
+-- THE GRANDFATHERED SET IS ASSERTED, NOT ASSUMED. The block below fails the migration if the set is
+-- anything other than exactly PCCR-003, so a second unbacked approval cannot slip in under this
+-- allowance between now and the day it is applied.
 ALTER TABLE public.phase_c_change_request
   DROP CONSTRAINT IF EXISTS phase_c_change_request_approval_is_derived;
 ALTER TABLE public.phase_c_change_request
   ADD CONSTRAINT phase_c_change_request_approval_is_derived CHECK (
-    (approved_by IS NULL) = (governance_decision_id IS NULL));
+    (approved_by IS NULL) = (governance_decision_id IS NULL)) NOT VALID;
+
+DO $grandfathered$
+DECLARE v_rows text;
+BEGIN
+  SELECT string_agg(change_request_ref || ' (' || approved_by || ', ' || approved_at::date || ')',
+                    ', ' ORDER BY change_request_ref)
+    INTO v_rows
+    FROM public.phase_c_change_request
+   WHERE (approved_by IS NULL) <> (governance_decision_id IS NULL);
+
+  IF v_rows IS DISTINCT FROM 'PCCR-003 (management@quotesdone.com, 2026-08-21)' THEN
+    RAISE EXCEPTION
+      'PCCR-006: the rows grandfathered by phase_c_change_request_approval_is_derived are %L. '
+      'Exactly one was measured on 2026-08-25 and it is PCCR-003, the founder approval that '
+      'predates the governance ledger. Anything else is an approval that was written without a '
+      'verified session AFTER this defect was known, and it may not be carried in under this '
+      'allowance. (pccr_grandfathered_set_moved)', coalesce(v_rows, '(none)')
+      USING errcode = '23514';
+  END IF;
+
+  RAISE NOTICE 'PCCR-006: 1 approval grandfathered by NOT VALID — %', v_rows;
+END $grandfathered$;
 
 -- ------------------------------------------------------------------------------------------------
 -- THE WRITE GUARD. Fires before a10 (the identity guard) and before a15, so "this approval was not
