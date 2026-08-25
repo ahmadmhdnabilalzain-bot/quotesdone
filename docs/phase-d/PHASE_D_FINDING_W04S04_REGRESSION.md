@@ -106,6 +106,32 @@ this regression is two cases: one that fails and says so, and one that passes an
 measuring. Recorded here rather than turned into a new assertion, because an assertion that reddens
 a case is a gate, and §E of the standard reserves that for a change request.
 
+## What this one case now reddens
+
+The blast radius is wider than one row in one CSV, and none of it is clearable by regenerating an
+artefact. Recorded so the cost of leaving the question open is visible alongside the question.
+
+| what | state | clearable by rebuilding? |
+|---|---|---|
+| `PHASE_D_STEP_CASE_RESULT.csv` | 1,798 / 1,799 | regenerated — the file reproduces |
+| `PHASE_D_CURRENT_CODE_HANDLER_CROSSWALK.csv` | W04-S04 `6 of 7 cases passed` | regenerated — the file reproduces |
+| `fn_phase_d_case_state.cases_failing` | 1 of 1799 | **no** |
+| `scripts/checks/kernel_boards_are_green.test.mjs` | RED — an undisclosed red board | **no** |
+| `scripts/phase_d/build_step_case_result.mjs` | **exits 1** while any case fails | **no** |
+| `scripts/checks/phase_d_deliverables_match_production.test.mjs` | RED — *"a builder that exits non-zero has not produced a deliverable, whatever it left on disk"* | **no** |
+
+The last one is worth reading twice. The CSV **does** reproduce byte-identically; the check fails on
+the builder's *exit code*, because the builder refuses to exit 0 while a case is failing. That is
+both instruments working exactly as designed, and neither may be edited to go green — a builder that
+exits 0 on a failing case, or a board disclosed as a deliberate gap it is not, would convert this
+open question into a silent one.
+
+**Consequence for CI:** the Phase C kernel gate and the Phase D handler gate both stay red on this
+single question, and `kernel_boards_are_green` sits at position 11 of 16 in the Phase C loop — which
+exits on first failure — so the last five checks in that job are never reached. All five were run
+locally against production on 25 Aug and all five pass; CI cannot say so itself until the board is
+green.
+
 ## What this does NOT show
 
 - Not a Phase C or Phase A drift: `fn_phase_a_baseline_drift()` 0 rows, `fn_phase_b_baseline_drift()`
