@@ -55,16 +55,40 @@ const hashOf = (p) => { try { return createHash('sha256').update(readFileSync(p)
 // record was APPENDED to the document after he approved it, which moves the file's sha256 — the
 // document says so itself and preserves the approved digest at a named commit. So a mismatch sends
 // us to git history, and only a digest that has never existed for that path is a failure.
+// 26 AUG 2026: THIS RAN IN CI AND PRINTED NOTHING AT ALL BEFORE EXITING 1 -- not one line, in a
+// step that ran for eight minutes. A check that fails silently cannot be diagnosed from its own
+// output, which is the whole point of having output, so every branch below now says what it did
+// and the git work is reported as it happens rather than only when it succeeds.
+const git = (args, enc = 'utf8') =>
+  execFileSync('git', args, { encoding: enc, maxBuffer: 64e6, stdio: ['ignore', 'pipe', 'pipe'] });
+
+// SHALLOW IS NOT "NEVER EXISTED", and reporting it as such would be a statement about the clone
+// dressed up as a statement about the estate. actions/checkout defaults to fetch-depth 1, so
+// without the workflow asking for history this returns true and the caller says so.
+let shallow = null;
+try { shallow = git(['rev-parse', '--is-shallow-repository']).trim() === 'true'; }
+catch (e) { shallow = null; console.log(`  git is not usable here: ${String(e.message).slice(0, 120)}`); }
+
+// SEARCH FIRST, THEN QUALIFY A MISS. The first cut of this returned SHALLOW_CLONE without looking,
+// and was wrong in the most ordinary case: a shallow clone still CONTAINS commits, and this
+// repository's own working tree is shallow while holding the very commit being looked for. Shallow
+// means the history is truncated, not that it is empty. So the scan always runs; shallowness only
+// changes what a MISS is allowed to be reported as, because in a truncated history "not found" can
+// never be upgraded to "never existed".
 const commitCarrying = (p, want) => {
-  try {
-    const commits = execFileSync('git', ['rev-list', '--all', '--', p], { encoding: 'utf8' })
-      .split('\n').filter(Boolean).slice(0, 400);
-    for (const c of commits) {
-      const blob = execFileSync('git', ['show', `${c}:${p}`], { encoding: 'buffer', maxBuffer: 64e6 });
-      if (createHash('sha256').update(blob).digest('hex') === want) return c.slice(0, 7);
-    }
-  } catch { /* fall through to "nowhere" */ }
-  return null;
+  if (shallow === null) return { at: null, why: 'GIT_UNAVAILABLE' };
+  let commits;
+  try { commits = git(['rev-list', '--all', '--', p]).split('\n').filter(Boolean); }
+  catch (e) { return { at: null, why: `REV_LIST_FAILED ${String(e.message).slice(0, 120)}` }; }
+  const scan = commits.slice(0, 400);
+  console.log(`  searching ${scan.length} of ${commits.length} commit(s) touching ${p} for digest ${want.slice(0, 12)}…`);
+  for (const c of scan) {
+    let blob;
+    try { blob = git(['show', `${c}:${p}`], 'buffer'); } catch { continue; }
+    if (createHash('sha256').update(blob).digest('hex') === want) return { at: c.slice(0, 7), why: null };
+  }
+  if (commits.length > scan.length) return { at: null, why: 'NOT_IN_FIRST_400' };
+  return { at: null, why: shallow ? 'SHALLOW_CLONE' : 'NO_COMMIT_EVER_HELD_IT' };
 };
 
 // THE ONE-TIME BOOTSTRAP, ACCEPTED ONCE AND POLICED HERE TOO.
@@ -103,16 +127,30 @@ for (const r of rows) {
   const basis = r.approval_basis === BOOTSTRAP ? `  [${BOOTSTRAP}]` : '';
   let ok = r.approved_amendment_table_digest === live;
   let where = 'the committed file';
+  let whyNot = null;
   if (!ok) {
-    const at = commitCarrying(path, r.approved_amendment_table_digest);
-    if (at) { ok = true; where = `${path} as committed at ${at}`; }
+    const found = commitCarrying(path, r.approved_amendment_table_digest);
+    if (found.at) { ok = true; where = `${path} as committed at ${found.at}`; }
+    else whyNot = found.why;
   }
   console.log(`${line}  ${ok ? 'matches' : 'DIFFERS FROM'} ${where}`
     + `  (route ${r.approval_route ?? '(none)'}, subject ${r.approval_auth_subject})${basis}`);
   if (!ok) {
+    // WHICH FACT THIS IS. "The clone cannot see it" and "it never existed" are different findings
+    // and only one of them is about the estate.
+    const explain = {
+      SHALLOW_CLONE: 'this is a SHALLOW clone, so the history that would carry it is not here. '
+        + 'The job needs actions/checkout with fetch-depth: 0. This says nothing about the estate.',
+      GIT_UNAVAILABLE: 'git could not be run here, so history could not be searched at all. '
+        + 'This says nothing about the estate.',
+      NOT_IN_FIRST_400: 'it is not among the 400 most recent commits touching that path; the search '
+        + 'is bounded and stopped there rather than pretending to be exhaustive.',
+      NO_COMMIT_EVER_HELD_IT: 'and no commit in this repository has ever held that path at that '
+        + 'digest, which IS a finding about the estate.',
+    }[whyNot] ?? String(whyNot);
     fail.push(`amendment ${r.amendment_id} was approved against document digest `
-      + `${r.approved_amendment_table_digest} for ${path}, and no commit in this repository has ever `
-      + `held that path at that digest (working tree: ${live ?? 'file absent'})`);
+      + `${r.approved_amendment_table_digest} for ${path} (working tree: ${live ?? 'file absent'}) -- `
+      + explain);
   }
   // A retrospective ratification that cannot say when the code shipped is not a record of anything.
   if (r.deployed_before_approval === true && !r.original_deployment_at) {
