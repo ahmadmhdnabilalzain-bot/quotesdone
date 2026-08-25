@@ -80,6 +80,32 @@ most of their workflows are also founder-reserved; the other seventeen pass beca
 their run before the drive does. W04 is the one whose primary object is the customer the fixture
 creates.
 
+## The second case, which still reads `true`
+
+Regenerating `PHASE_D_STEP_CASE_RESULT.csv` against the live table moves **three** W04-S04 rows,
+not one:
+
+```
+- W04-S04,…,positive,…,true,EXECUTED,…                    -> false,pd_evidence_absent
+- W04-S04,…,wrong_actor,…,true,pd_review_not_recorded,…   -> true,pd_evidence_absent
+  W04-S04,…,duplicate,…,true,REPLAYED,…                   (unchanged verdict, new detail)
+```
+
+The `wrong_actor` case still counts as **passing**, and it should not be trusted. It is scored by
+`v_neg not in ('EXECUTED','ACCEPTED','NO_DISPATCH_ROW')` — any refusal counts — so it now passes by
+producing `pd_evidence_absent`, which is the refusal this step gives *everybody*. An identity nobody
+models is no longer being distinguished from a valid one; the gate blocks first.
+
+The runner's own header already states the principle:
+
+> `-- A negative whose refusal code is the positive's outcome has discriminated nothing.`
+
+**Nothing enforces it.** The comment is read once, by a person; the scoring predicate never compares
+the negative's refusal code against the positive's outcome for the same step. So the real cost of
+this regression is two cases: one that fails and says so, and one that passes and has stopped
+measuring. Recorded here rather than turned into a new assertion, because an assertion that reddens
+a case is a gate, and §E of the standard reserves that for a change request.
+
 ## What this does NOT show
 
 - Not a Phase C or Phase A drift: `fn_phase_a_baseline_drift()` 0 rows, `fn_phase_b_baseline_drift()`
