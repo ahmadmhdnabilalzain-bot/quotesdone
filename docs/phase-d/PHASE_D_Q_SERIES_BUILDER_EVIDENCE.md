@@ -4,12 +4,12 @@
 below was measured on production `htdblwldjkcgjvmqkbeh` on 25 Aug 2026 and every command that
 produced one is named beside it, so an independent audit can re-run rather than re-read.
 
-**Reproduced by:** the commands in each section; the whole set is `scripts/sql/phase_d_q01…q05` plus
+**Reproduced by:** the commands in each section; the whole set is `scripts/sql/phase_d_q01…q06` plus
 the checks named in §7.
 
-**Scope.** This session did five things and refused a sixth. It repaired the guard that was
+**Scope.** This session did six things and refused a seventh. It repaired the guard that was
 silently refusing the founder's own governance decisions, closed the 18 class-B decision fields,
-routed customer creation through the kernel, repaired the two things that regression broke, and **did not apply PCCR-006** — because the approval
+routed customer creation through the kernel, repaired the three things that regression broke, and **did not apply PCCR-006** — because the approval
 that would have authorised it was refused by the estate before it could be recorded. §1 is that
 refusal, measured.
 
@@ -424,6 +424,33 @@ the board clean; the estate already has the honest mechanism and it is used here
 
 ---
 
+## 5d. Q06 — a SECURITY DEFINER function created and left executable by PUBLIC
+
+`scripts/sql/phase_d_q06_a_security_definer_function_created_and_left_public.sql`
+
+The third thing Q03 broke, and the one the session's own standing rule names: *every SECURITY
+DEFINER function you CREATE is granted EXECUTE to PUBLIC; revoke it in the same migration.* Q03
+CREATEd `public.trg_customer_registered_kernel()` as SECURITY DEFINER and did not revoke.
+
+```
+no SECURITY DEFINER routine in public is anon-executable  ->  [trg_customer_registered_kernel]
+exactly the two customer-document routines are authenticated-executable  ->  the set changed
+```
+
+**Stated rather than minimised:** it is a trigger function — no arguments, returns `trigger`, raises
+`0A000` outside a trigger context — so no caller could have made it do anything. That is why the
+blast radius was small. It is not a reason to leave it: the check measures the surface, not the
+exploit, and it is right to. Q01 was a REPLACE and correctly left its ACL alone; Q03 was a CREATE
+and was not.
+
+| after Q06 | |
+|---|---|
+| `anon_cannot_execute_security_definer.test.mjs` | **7 of 7** |
+| ACL | `{postgres=X/postgres,service_role=X/postgres}` — the one both siblings carry |
+| the trigger still fires | re-verified end to end: 1 inbox row, W04, 1 run, 1 step, 1 task, replay creates nothing |
+
+---
+
 ## 6. Decision-packet process debt
 
 | item | before | after |
@@ -517,6 +544,7 @@ and it is what PCCR-006's Amendment B (`session_user = 'authenticator'`) and Ame
 | — | Gate 7 | 54 rules ENFORCED, 0 OUTSTANDING; 32 gates ENFORCED, 0 NAMED_BUT_ABSENT |
 | — | Gate 8 / 9 | 75 executed with a discriminating result, NOT_RUN 0, FAILED TO REFUSE 0, attempt rows left behind 0, live exemption register **0 rows** |
 | — | Gate 10 | 1,799 of 1,799 cases; 257 kernel_boundary, 1,542 live_step_run |
+| — | anon cannot execute SECURITY DEFINER | **7 of 7** (2 red between Q03 and Q06 — see §5d) |
 | — | kernel boards are green | **7 of 7**; 40 boards, 458 checks; the kernel-bypass ratchet DELETED because it reached zero |
 | — | kernel positive controls | **21 of 21 accepted, 0 failed** (20 of 21 between Q03 and Q04 — see §5b) |
 | — | kernel invariants | PASS, 0 unmeasured |
