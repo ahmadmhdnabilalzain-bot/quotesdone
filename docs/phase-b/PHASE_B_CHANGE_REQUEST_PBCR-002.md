@@ -267,41 +267,357 @@ one composite plan cannot be settled by measurement, and guessing it is what §4
 | **B** | 18 `decision` fields | nothing — Phase D schema repair, no Phase B row moves |
 | **C** | **15** `decision` fields | **one sentence** |
 
-**PBCR-002's scope is therefore the 15 class-C steps, not 33.** The other 18 are Phase D's to
-repair and are tracked as such.
+**PBCR-002's scope is therefore the 15 class-C steps, not 33.** The other 18 were Phase D's to
+repair and are repaired: scripts/sql/phase_d_q02_eighteen_decision_fields_that_duplicated_output.sql,
+applied to production on 25 Aug 2026. Seventeen no longer declare the key and W16-S04 is bound to
+the enforced payment-transaction state contract.
+
+---
+
+## The exact proposed vocabulary — all fifteen class-C steps
+
+**This section replaces the one that said "a token list is not proposed here".** The founder's
+instruction of 25 Aug 2026 requires an exact vocabulary table with no blanket "use the words in the
+frozen text" sentence and no undefined token list, so every token below is written out.
+
+**Where the tokens come from, and why that is not the same as inventing them.** Each value is a word
+already in that step's own frozen `required_action` or `required_output`, lowercased and
+snake_cased. The estate is not the source — measured 24 and re-measured 25 Aug 2026,
+`correction_requested`, `held_for_clarification`, `retirement_proposed`, `quote_ready`,
+`waiting_for_customer`, `returned_for_correction`, `no_go`, `conditioned`,
+`other_supported_evidence`, `authority_restored`, `restriction_continued` and `work_reassigned`
+return **0 hits in `pg_proc.prosrc` and 0 in every `pg_constraint` definition**, and under `docs/`
+and `supabase/` the only files containing any of them are this change request and
+`docs/phase-d/PHASE_D_BUILDER_CLOSURE.md`, both discussing their absence. **So this is a PROPOSAL
+and it is his to accept, amend or refuse.** What it is not is a guess: a reader can check every
+token against the frozen sentence beside it, which is the property "use the words in the frozen
+text" asserted without ever doing.
+
+**How to read the columns.**
+
+- **state/object affected** — the `phase_d_object_state_contract` the step's declared effect writes,
+  and the state each value implies. The mapping is a proposal too; the contracts themselves are
+  measured and unchanged.
+- **terminal / nonterminal** — terminal means the step's work is finished on that value and the
+  workflow moves on or stops. Nonterminal means the same object comes back to a person or a step.
+- **positive control** — the value the committed fixture catalogue would carry so the step can be
+  driven, exactly as `PDF-4106` / `PDF-4107` do for W17-S06 and W08-S06 and `PDF-4108` now does for
+  W16-S04.
+- **invalid sentinel** — a value the domain must refuse.
+  `phase_d_output_domain_registry_closed_is_complete` requires the control to be inside the domain
+  and the sentinel to be outside it, so both are load-bearing rather than decorative.
+- **compatibility** — every one of the fifteen declares NO domain today, so declaring one is
+  strictly narrowing and **cannot be done without the catalogue row in the same change**: the
+  DECISION_HANDLER arm falls back to the frozen `required_output` prose, which is not a member of
+  any domain proposed here, so a domain applied alone would refuse every run of that step. This is
+  measured, not feared — it is what `phase_d_p03` had to fix for the two steps that already have a
+  domain.
+
+---
+
+### 1. W01-S06 — Approve operating objective set
+
+> **Frozen:** *"Approve the operating objective set within founder boundaries or escalate reserved
+> decisions."* — output: *"Approved company objectives or founder decision request."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved`, `escalated` |
+| **definitions** | `approved` — the objective set is inside the founder boundaries and is approved as it stands. `escalated` — the set contains a reserved decision the step may not take, and it is referred to the founder. |
+| **terminal / nonterminal** | `approved` **terminal** — the artefact is published and W01 proceeds. `escalated` **nonterminal** — the objective set waits on a founder decision. |
+| **state / object affected** | `company_objective` {open, active, superseded, published}. `approved` → `published`; `escalated` → stays `open`. |
+| **positive control** | `approved` |
+| **invalid sentinel** | `zz_not_an_objective_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 2. W02-S06 — Approve corrective initiative
+
+> **Frozen:** *"Select the intervention, expected result, owner, review date and stop condition."* —
+> output: *"Approved corrective initiative or founder decision request."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved`, `escalated` |
+| **definitions** | `approved` — the intervention, owner, review date and stop condition are settled and the initiative is approved. `escalated` — the initiative exceeds the step's authority and becomes a founder decision request. |
+| **terminal / nonterminal** | `approved` **nonterminal** — the initiative is now work to be executed and reviewed. `escalated` **nonterminal**. |
+| **state / object affected** | `performance_recovery_case` {open, in_progress, verified, resolved, closed, rejected}. `approved` → `in_progress`; `escalated` → stays `open`. |
+| **positive control** | `approved` |
+| **invalid sentinel** | `zz_not_a_corrective_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 3. W05-S07 — Decide qualification status
+
+> **Frozen:** *"Set the inquiry to quote-ready, waiting for customer, blocked, rejected or
+> cancelled."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `quote_ready`, `waiting_for_customer`, `blocked`, `rejected`, `cancelled` |
+| **definitions** | `quote_ready` — qualification is complete and the inquiry may be routed to suppliers. `waiting_for_customer` — qualification cannot complete until the customer supplies something named in the reason. `blocked` — qualification cannot complete for a reason inside the company. `rejected` — the inquiry is refused on its merits. `cancelled` — the customer withdrew it. |
+| **terminal / nonterminal** | `rejected` and `cancelled` **terminal**. `quote_ready` **nonterminal** — W06 continues. `waiting_for_customer` and `blocked` **nonterminal** — the inquiry returns to this step. |
+| **state / object affected** | `inquiry` {open, active, suspended, closed}. `quote_ready` → `active`; `waiting_for_customer` → `suspended`; `blocked` → `suspended`; `rejected` → `closed`; `cancelled` → `closed`. |
+| **positive control** | `quote_ready` |
+| **invalid sentinel** | `zz_not_a_qualification_status` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 4. W06-S05 — Confirm route set
+
+> **Frozen:** *"Confirm, reject or leave proposed **each route** and record the basis."* — output:
+> *"Versioned confirmed/proposed/rejected route set."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `confirmed`, `rejected`, `proposed` |
+| **definitions** | Applied to the **route set**, which is what the step's declared effect writes. `confirmed` — at least one route is confirmed and the set is issued for dispatch. `proposed` — no route is confirmed yet; the set stands as a proposal. `rejected` — every route in the set is rejected. |
+| **terminal / nonterminal** | `confirmed` **terminal** for the step. `proposed` **nonterminal**. `rejected` **terminal** — the set is closed and a new one must be built. |
+| **state / object affected** | `inquiry_route_set` {open, issued, submitted, approved, rejected, superseded}. `confirmed` → `approved`; `proposed` → `issued`; `rejected` → `rejected`. |
+| **positive control** | `confirmed` |
+| **invalid sentinel** | `zz_not_a_route_set_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+> **THE ONE PLACE THE GRAIN DIFFERS FROM THE FIELD, AND IT IS DISCLOSED.** The frozen sentence says
+> **each route**, and `decision` is one string per step run. This proposal puts the per-route
+> confirm/reject/leave-proposed values in `output` — where the versioned route set already carries
+> them — and uses `decision` for the set-level disposition above. The alternative is to declare that
+> W06-S05 has no step-level decision at all and drop the key, which is what class B did for
+> seventeen other steps. **Either is defensible and the choice is his.** It is called out here
+> rather than settled quietly because a field whose grain does not match its subject is exactly the
+> defect Gate 5 found.
+
+### 5. W07-S02 — Classify document type and handling path
+
+> **Frozen:** *"Classify the document as BOQ/specification, drawing/CAD, image, certificate or other
+> supported evidence."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `boq_specification`, `drawing_cad`, `image`, `certificate`, `other_supported_evidence` |
+| **definitions** | The document's classification, which selects its handling path. `boq_specification` — a bill of quantities or written specification. `drawing_cad` — a drawing or CAD file, which is the path that must reach redaction before any supplier sees it. `image` — a photograph or reference image. `certificate` — a certificate or compliance document. `other_supported_evidence` — supported evidence that is none of the four. |
+| **terminal / nonterminal** | all five **nonterminal** — a classification routes the document, it does not finish it. |
+| **state / object affected** | `inquiry_document` {open, issued, submitted, approved, rejected, superseded}. All five → `submitted`. Classification is not approval, and this step's declared effect is `CAPABILITY_REQUEST` with no effect object, so no state is written by the step itself. |
+| **positive control** | `drawing_cad` |
+| **invalid sentinel** | `zz_not_a_document_class` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 6. W10-S05 — Issue verification decision
+
+> **Frozen:** *"Approve, request correction, refuse, suspend or escalate the supplier."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved`, `correction_requested`, `refused`, `suspended`, `escalated` |
+| **definitions** | `approved` — the supplier passes verification. `correction_requested` — a named defect must be corrected and resubmitted. `refused` — verification fails on its merits. `suspended` — the supplier is held pending something outside this step. `escalated` — the decision exceeds this step's authority. |
+| **terminal / nonterminal** | `approved` and `refused` **terminal**. `correction_requested`, `suspended` and `escalated` **nonterminal**. |
+| **state / object affected** | `supplier_verification_case` {open, in_progress, verified, resolved, closed, rejected}. `approved` → `verified`; `refused` → `rejected`; `correction_requested`, `suspended`, `escalated` → `in_progress`. |
+| **positive control** | `approved` |
+| **invalid sentinel** | `zz_not_a_verification_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 7. W14-S08 — Approve or exclude quote from comparison
+
+> **Frozen:** *"Approve the quote for comparison, hold for clarification or exclude with reason."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved_for_comparison`, `held_for_clarification`, `excluded` |
+| **definitions** | `approved_for_comparison` — the quote is eligible to appear in the comparison the customer sees. `held_for_clarification` — a named question must be answered by the supplier first. `excluded` — the quote does not enter the comparison, and the reason is recorded with it. |
+| **terminal / nonterminal** | `approved_for_comparison` and `excluded` **terminal**. `held_for_clarification` **nonterminal**. |
+| **state / object affected** | `quotation` {open, active, suspended, closed}. `approved_for_comparison` → `active`; `held_for_clarification` → `suspended`; `excluded` → `closed`. |
+| **positive control** | `approved_for_comparison` |
+| **invalid sentinel** | `zz_not_a_comparison_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 8. W19-S04 — Approve supplier intervention
+
+> **Frozen:** *"Approve a recovery, communication, support, restriction or exit recommendation."* —
+> output: *"Supplier retention action plan."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `recovery`, `communication`, `support`, `restriction`, `exit` |
+| **definitions** | The kind of intervention approved. `recovery` — a plan to bring performance back inside policy. `communication` — a communication to the supplier and nothing more. `support` — assistance provided to the supplier. `restriction` — the supplier's work is restricted while the case runs. `exit` — the relationship is ended. |
+| **terminal / nonterminal** | `exit` **terminal**. The other four **nonterminal** — each becomes a plan with a measurement window. |
+| **state / object affected** | `supplier_retention_case` {open, in_progress, verified, resolved, closed, rejected}. `exit` → `closed`; the other four → `in_progress`. |
+| **positive control** | `recovery` |
+| **invalid sentinel** | `zz_not_an_intervention_kind` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+> **THE ONE GENUINELY AMBIGUOUS SENTENCE, AND IT IS STILL AMBIGUOUS.** *"Approve a recovery,
+> communication, support, restriction or exit recommendation"* reads two ways and measurement cannot
+> settle it: **(a)** five mutually-exclusive recommendation kinds, which is the reading above and
+> the one that makes `decision` a decision; **(b)** one composite plan that may contain any of the
+> five, in which case the domain is `{approved, escalated}` and the five belong in `output` beside
+> the measurement window. Reading (a) is proposed because the frozen output — *"Supplier retention
+> action plan"* — names one plan and the frozen action names its kind. **If he intends (b), the
+> tokens for this step are `approved` and `escalated` and everything else in this row is unchanged.**
+
+### 9. W21-S05 — Approve engagement path
+
+> **Frozen:** *"Approve, reject or escalate the opportunity based on fit, risk and economics."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved`, `rejected`, `escalated` |
+| **definitions** | `approved` — the opportunity is pursued. `rejected` — it is declined on fit, risk or economics. `escalated` — it exceeds this step's authority and goes to the founder. |
+| **terminal / nonterminal** | `approved` and `rejected` **terminal**. `escalated` **nonterminal**. |
+| **state / object affected** | `partnership_opportunity` {open, in_progress, verified, resolved, closed, rejected}. `approved` → `verified`; `rejected` → `rejected`; `escalated` → `in_progress`. |
+| **positive control** | `approved` |
+| **invalid sentinel** | `zz_not_a_partnership_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 10. W22-S07 — Release go/no-go
+
+> **Frozen:** *"Issue the independent release decision and hand approved candidates to W24."* —
+> output: *"Release decision and W24 handoff."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `go`, `no_go` |
+| **definitions** | `go` — the change is released and the candidate is handed to W24. `no_go` — it is not released and returns for correction. |
+| **terminal / nonterminal** | `go` **terminal** for W22 and opens the W24 handoff. `no_go` **terminal** for this release attempt; the change returns to development. |
+| **state / object affected** | `product_change` {open, active, superseded, published}. `go` → `published`; `no_go` → `active`. |
+| **positive control** | `go` |
+| **invalid sentinel** | `zz_not_a_release_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 11. W23-S08 — Approve release-candidate handoff
+
+> **Frozen:** *"Accept the evaluated change as a release candidate or return it for correction."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `accepted`, `returned_for_correction` |
+| **definitions** | `accepted` — the evaluated AI change becomes a release candidate and is handed to W24. `returned_for_correction` — it goes back with the failing criterion named. |
+| **terminal / nonterminal** | `accepted` **terminal** for W23. `returned_for_correction` **nonterminal**. |
+| **state / object affected** | `ai_change` {open, active, superseded, published}. `accepted` → `published`; `returned_for_correction` → `active`. |
+| **positive control** | `accepted` |
+| **invalid sentinel** | `zz_not_a_handoff_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 12. W24-S06 — Issue release go/no-go
+
+> **Frozen:** *"Issue the final independent go/no-go within the founder-approved deployment policy."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `go`, `no_go` |
+| **definitions** | `go` — the release candidate is deployed under the founder-approved deployment policy. `no_go` — it is not, and the reason is recorded against the candidate. |
+| **terminal / nonterminal** | both **terminal** — this is the final independent decision. |
+| **state / object affected** | `release_candidate` {open, issued, submitted, approved, rejected, superseded}. `go` → `approved`; `no_go` → `rejected`. |
+| **positive control** | `go` |
+| **invalid sentinel** | `zz_not_a_release_verdict` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+> The two `go`/`no_go` steps deliberately share a spelling. They are different decisions on
+> different objects — W22-S07 releases a product change, W24-S06 deploys a release candidate — and a
+> shared token for the same act at two gates is how the estate already treats `approved` at W08-S06
+> and W17-S06.
+
+### 13. W28-S07 — Issue review decision
+
+> **Frozen:** *"Approve, refuse, condition or escalate the proposed act."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved`, `refused`, `conditioned`, `escalated` |
+| **definitions** | `approved` — the proposed act may proceed as described. `refused` — it may not. `conditioned` — it may proceed only if the named conditions are met, and the conditions are recorded with it. `escalated` — the decision exceeds this reviewer's authority. |
+| **terminal / nonterminal** | `approved` and `refused` **terminal**. `conditioned` and `escalated` **nonterminal**. |
+| **state / object affected** | `legal_risk_review` {open, in_progress, verified, resolved, closed, rejected}. `approved` → `resolved`; `refused` → `rejected`; `conditioned` and `escalated` → `in_progress`. |
+| **positive control** | `approved` |
+| **invalid sentinel** | `zz_not_a_review_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 14. W30-S07 — Restore, continue restriction or reassign
+
+> **Frozen:** *"Restore authority, continue restriction, reassign work or propose retirement based on
+> evidence."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `authority_restored`, `restriction_continued`, `work_reassigned`, `retirement_proposed` |
+| **definitions** | `authority_restored` — the evidence supports returning the capability's authority. `restriction_continued` — the restriction stands and the case runs on. `work_reassigned` — the work moves to another owner while the case runs. `retirement_proposed` — retirement is proposed, which is a recommendation and not the retirement itself. |
+| **terminal / nonterminal** | `authority_restored` **terminal**. The other three **nonterminal** — `retirement_proposed` in particular opens W30-S10, where the founder decides. |
+| **state / object affected** | `capability_case` {open, in_progress, verified, resolved, closed, rejected}. `authority_restored` → `resolved`; `retirement_proposed` → `verified`; `restriction_continued` and `work_reassigned` → `in_progress`. |
+| **positive control** | `authority_restored` |
+| **invalid sentinel** | `zz_not_a_capability_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+### 15. W30-S10 — Approve formal organizational change request
+
+> **Frozen:** *"Prepare the formal Phase A change request for founder decision."* — output:
+> *"Founder-approved/rejected organization change request."*
+
+| field | `decision` |
+|---|---|
+| **allowed values** | `approved`, `rejected` |
+| **definitions** | `approved` — the founder approved the organization change request. `rejected` — he rejected it. |
+| **terminal / nonterminal** | both **terminal**. |
+| **state / object affected** | `organization_change_request` {open, recorded, accepted, selected, logged}. `approved` → `accepted`; `rejected` → `logged`. |
+| **positive control** | `rejected` |
+| **invalid sentinel** | `zz_not_a_change_request_decision` |
+| **compatibility** | narrowing; needs its catalogue row in the same change |
+
+> **THIS ONE IS A FOUNDER DECISION AND ITS POSITIVE CONTROL IS `rejected` ON PURPOSE.** The frozen
+> output says *founder-approved/rejected*, and Phase A is frozen: changing the number of
+> departments, canonical roles or category overlays needs a real PACR with his approval in a
+> verified session. So the value on this field must be **derived from a recorded founder decision**,
+> never asserted by a caller — the same shape `fn_phase_c_require_founder` already enforces on the
+> refund door, and the shape PCCR-006 extends to the governance path. The fixture carries `rejected`
+> for the identical reason `PDF-4106` carries `rejected` for W17-S06: it is the outcome a
+> non-founder may record.
+
+---
+
+## Migration and rollback for the fifteen
+
+Neither is applied by this document, and neither may be applied before his approval.
+
+| | |
+|---|---|
+| **Migration** | `scripts/sql/phase_b_pbcr002_the_decision_vocabulary_for_fifteen_steps.sql` — for each of the fifteen: set `phase_d_handler_schema.enum_domains->'decision'` to the values above, bump `schema_version`, re-derive `source_digest` from the frozen step text; move the registry row from `CLOSED_ENUM_UNDEFINED` to `CLOSED_ENUM` with `allowed_values`, `valid_control_value`, `invalid_sentinel_value`, `domain_source` quoting the frozen sentence and `source_digest` from `fn_phase_d_domain_source_digest('table:public.phase_b_workflow_step')`; and insert one `phase_d_fixture_catalogue` row per step (`PDF-4109` … `PDF-4123`) carrying the positive control. Stated in the same transaction as `set local app.phase_b_change_reason = 'PBCR-002: the decision vocabulary 33 of the 35 decision steps do not have'`. **NOT WRITTEN AND NOT COMMITTED** until he approves — a committed migration for an unapproved change is a file one command away from being applied. |
+| **Rollback** | `scripts/sql/phase_b_pbcr002_the_decision_vocabulary_for_fifteen_steps_down.sql` — delete the fifteen catalogue rows, remove `decision` from `enum_domains` on the fifteen schemas, and return each registry row to `CLOSED_ENUM_UNDEFINED` naming PBCR-002. This is the same statement pair `phase_d_p04` already uses, and it restores exactly the state this document describes today. |
+
+**Nothing in Phase D is blocked by any of this.** All fifteen stay registered
+`CLOSED_ENUM_UNDEFINED` naming this change request, which fails no gate in
+`PHASE_D_FINAL_ACCEPTANCE_STANDARD_V1` §B Gate FD-02. The eighteen class-B fields are already
+repaired — `scripts/sql/phase_d_q02_eighteen_decision_fields_that_duplicated_output.sql`, applied to
+production on 25 Aug 2026 — so `decision` fields now number 18, of which 3 carry an enforced domain
+and 15 are these.
 
 ### The exact PBCR-002 founder approval sentence
 
-Required only for the 15 class-C fields, and only if he wants them given a vocabulary rather than
-left registered as `CLOSED_ENUM_UNDEFINED`:
+Required only for the 15 class-C fields:
 
 > **I approve PBCR-002 — the decision vocabulary for the fifteen steps classified C in
 > `docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-002.md`, sha256 `<B2>` — and the tokens listed there
 > are the approved values.**
 
 `<B2>` is the sha256 of **this file as committed**, read with
-`sha256sum docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-002.md` and stated in the commit that
-introduces this section.
+`sha256sum docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-002.md` and stated in the commit that introduces
+this section and in the decision packet that accompanies it. It is deliberately not written inside
+the file: a digest that quotes itself cannot be recomputed.
 
-**A token list is not proposed here.** The alternatives are frozen and his; the spellings are not,
-and a spelling this session chose would appear in no routine, no constraint and no committed file.
-He can answer with the tokens, or with "use the words already in the frozen text", or by declining
-— and Phase D is not blocked by any of the three, because all 33 stay registered
-`CLOSED_ENUM_UNDEFINED` naming this change request, which fails no gate in
-`PHASE_D_FINAL_ACCEPTANCE_STANDARD_V1` §B Gate FD-02.
+**Two of the fifteen carry a question he may want to answer differently**, and both are marked above
+rather than resolved quietly: W06-S05, where the frozen sentence's grain is per route and the field
+is per step run; and W19-S04, where *"Approve a recovery, communication, support, restriction or
+exit recommendation"* reads as five kinds or as one composite plan. If he answers only those two,
+the other thirteen stand as written.
 
 ## Recommendation
 
-**Defer the 18 and decide the 15 — but neither is urgent, and Phase D does not wait on either.**
+**Decide the fifteen. The eighteen are done.**
 
-For the 18, the more likely correct answer is that `decision` should not be a required key on a step
-whose frozen contract names no choice. That is a schema-shape change, not a vocabulary, and it
-should not be guessed.
+The eighteen class-B fields were a Phase D schema repair and are applied — seventeen no longer
+declare a key their frozen contract gave no choice for, and W16-S04 is bound to the
+payment-transaction state contract that was already enforced. Nothing was asked of him for any of
+them.
 
-For the 15, the alternatives are already his — they are in the frozen registry he approved. What is
-missing is only the spelling, and one sentence from him settles it.
+For the fifteen, the alternatives are already his — they are in the frozen registry he approved.
+What was missing was the spelling, and it is now written out above so his answer can be one sentence
+instead of a design exercise.
 
-**What must NOT happen:** a session picking tokens because a gate reads better with them. A domain
-whose members exist nowhere in the estate cannot refuse anything a writer produces; it is an
+**What must NOT happen:** a session applying these tokens because a gate reads better with them. A
+domain whose members exist nowhere in the estate cannot refuse anything a writer produces until the
+schemas declare it AND the catalogue can answer it; applied without his approval it would be an
 expectation typed into the check it guards, and it would make Gate 5 look closed while closing
-nothing.
+nothing. That is why the migration above is described and not committed.

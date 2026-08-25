@@ -1,3 +1,3 @@
 # node scripts/phase_d/build_exemption_register.mjs | project htdblwldjkcgjvmqkbeh | 0 of 0 rows of public.phase_d_injected_defect_disposition | attribution: one row per catalogued defect that did not execute; the reason names the object that refuses or the object that does not exist, and both text columns carry a length floor so a row cannot be satisfied by restating the defect id
-# generated_at: 2026-08-24T18:29:17.486Z
+# generated_at: 2026-08-25T00:17:32.921Z
 defect_id,category,disposition,reason,what_would_make_it_executable,decided_at
