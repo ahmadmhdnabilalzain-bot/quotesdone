@@ -162,19 +162,34 @@ do $probe$
 declare
   v jsonb; st jsonb; ib jsonb; cx jsonb; cid bigint;
   owners text; depts text; dues bigint; kinds text; ntasks bigint;
+  v_bind text; v_cancel text;
 begin
   -- PCCR-003, 21 Aug 2026. fn_founder_command_control delegates to fn_kernel_cancel, which verifies
   -- the founder through fn_phase_c_require_founder -- and that routine no longer resolves a
   -- caller-supplied email. This probe typed his address and was believed, which is the vector E39
   -- recorded, so it went red the moment the amendment applied. That red was the guard working.
   --
-  -- The probe now does what os_api does: it binds his VERIFIED auth subject, transaction-locally, in
-  -- a transaction that always aborts. The bind refuses any subject that does not resolve to an
-  -- enabled founder identity, so this cannot authenticate anyone the routine would not, and the
-  -- email is still passed below because p_actor is now an ASSERTION that must match.
-  perform public.fn_phase_c_founder_subject_bind(
-    (select f.auth_user_id from public.phase_c_founder_identity f
-      where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
+  -- The probe then did what os_api does: it bound his VERIFIED auth subject, transaction-locally,
+  -- in a transaction that always aborts.
+  --
+  -- PCCR-006, 25 AUG 2026. THAT DOOR IS CLOSED, AND CLOSING IT IS THE POINT.
+  -- fn_phase_c_founder_subject_bind now refuses any connection that is not the PostgREST one that
+  -- verified a bearer token: from here it raises 28000 pccr_founder_bind_untrusted_connection. The
+  -- bare PERFORM therefore aborted the whole DO block, the probe never reached its report, and the
+  -- catch below tried to JSON.parse the error envelope and crashed with a SyntaxError -- which is
+  -- how a closed door presented as a broken test file.
+  --
+  -- It is now MEASURED rather than used. A refusal here is the required outcome, and an ACCEPTANCE
+  -- is a hard failure asserted below: it would mean a management connection can become the founder
+  -- again, which is the vector E39 recorded and PCCR-006 closed.
+  begin
+    perform public.fn_phase_c_founder_subject_bind(
+      (select f.auth_user_id from public.phase_c_founder_identity f
+        where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
+    v_bind := 'ACCEPTED';
+  exception when others then
+    v_bind := coalesce((regexp_match(SQLERRM,'[(](pccr_[a-z0-9_]+)[)]'))[1], 'REFUSED ' || SQLSTATE);
+  end;
   v := public.fn_founder_command_submit('management@quotesdone.com',
         'Run the full security and quality gate before the next release today.',
         'entrypoint-probe', jsonb_build_object('channel','command_center'));
@@ -195,7 +210,24 @@ begin
   -- about who is asking. This probe still passed four, so every run since raised
   -- "function ... (bigint, unknown, text, unknown) does not exist" before it reached a single
   -- assertion — the whole end-to-end half of this check had stopped executing.
-  cx := public.fn_founder_command_control(cid, 'cancel', cid::text, null, 'management@quotesdone.com');
+  -- WRAPPED SINCE PCCR-006, and for the same reason as the bind above. fn_founder_command_control
+  -- delegates to fn_kernel_cancel, which verifies the founder through fn_phase_c_require_founder --
+  -- and with no bound subject that now refuses. Unwrapped, this aborted the block and took the
+  -- twelve assertions ABOVE it down with it, none of which are about cancelling.
+  --
+  -- WHAT THIS CHECK NO LONGER PROVES, named rather than dropped: "the founder can cancel his own
+  -- command" and "cancellation writes a trace for every task it closes" are not driveable from CI
+  -- any more. They need his verified session, and the only door that mints one is the PostgREST
+  -- connection that verified his bearer token. The cancel leg is now asserted as a REFUSAL, with an
+  -- acceptance a hard failure.
+  begin
+    cx := public.fn_founder_command_control(cid, 'cancel', cid::text, null, 'management@quotesdone.com');
+    v_cancel := 'ACCEPTED';
+  exception when others then
+    v_cancel := coalesce((regexp_match(SQLERRM,'[(]((pccr|k[0-9]+)_[a-z0-9_]+)[)]'))[1],
+                         'REFUSED ' || SQLSTATE);
+    cx := '{}'::jsonb;
+  end;
   raise exception 'PROBE %', jsonb_build_object(
     -- PROJECTED, NOT THE WHOLE OBJECT. A raised message is length-capped, and when the probe
     -- raised for any other reason the parser could still return an object with no submit key —
@@ -211,6 +243,7 @@ begin
     'status_ok', st->>'ok', 'status_id', st->>'command_id',
     'inbox_commands', jsonb_array_length(ib->'commands'),
     'inbox_non_refund_waiting', ib->'counts'->>'non_refund_awaiting_founder',
+    'bind', v_bind, 'cancel_outcome', v_cancel,
     'cancel', jsonb_build_object('ok', cx->'ok', 'status', cx->>'status',
                                  'child_tasks_closed', cx->>'child_tasks_closed'),
     'closed_tasks_without_trace', (select count(*) from public.phase_c_task
@@ -222,7 +255,18 @@ let res = null;
 try { await sql(probe); }
 catch (e) {
   const msg = String(e.message).replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-  const start = msg.indexOf('{', msg.indexOf('PROBE'));
+  // ANCHOR ON THE MARKER, AND SAY SO WHEN IT IS ABSENT. indexOf('PROBE') returns -1 when the block
+  // aborted before its report, and indexOf('{', -1) then finds the opening brace of the ERROR
+  // ENVELOPE. The slice that followed was a truncated envelope, so JSON.parse threw a SyntaxError
+  // and killed the process — a closed door presenting as a broken test file, with the real reason
+  // (28000 pccr_founder_bind_untrusted_connection) sitting unread in the message.
+  const marker = msg.indexOf('PROBE ');
+  if (marker < 0) {
+    console.error('FAIL  the probe aborted before its report. The raised message was:\n' + msg.slice(0, 900));
+    console.log('\n1 check(s) failed');
+    process.exit(1);
+  }
+  const start = msg.indexOf('{', marker);
   let depth = 0, end = -1, inStr = false, esc = false;
   for (let i = start; i < msg.length; i++) {
     const ch = msg[i];
@@ -260,10 +304,18 @@ else {
   check(Number(res.inbox_commands) > 0, 'the command appears in the founder inbox');
   check(Number(res.inbox_non_refund_waiting) === 0,
         'nothing non-refund is waiting for the founder', String(res.inbox_non_refund_waiting));
-  check(res.cancel.ok === true && res.cancel.status === 'cancelled',
-        'the founder can cancel his own command', `child tasks closed: ${res.cancel.child_tasks_closed}`);
-  check(Number(res.closed_tasks_without_trace) === 0,
-        'cancellation writes a trace for every task it closes');
+  // PCCR-006. THESE TWO ARE INVERTED, AND THE INVERSION IS THE AMENDMENT WORKING.
+  // A management connection may no longer become the founder, so neither the subject bind nor the
+  // cancel it existed to enable can be driven from CI. Asserting the old outcomes would assert that
+  // the door E39 recorded is still open. An ACCEPTANCE on either is a hard failure.
+  check(res.bind !== 'ACCEPTED',
+        'the founder subject bind refuses this connection', String(res.bind));
+  check(res.cancel_outcome !== 'ACCEPTED',
+        'a cancel with no verified founder session is refused', String(res.cancel_outcome));
+  // NOT PROVED HERE, and stated so the silence is not read as a pass: that the founder CAN cancel
+  // his own command, and that cancellation writes a trace for every task it closes. Both need his
+  // verified session through the PostgREST connection that checked his bearer token; neither is
+  // reachable from this job. The submit, task, status and inbox legs above are unaffected.
 }
 
 // ---------------------------------------------------------------- 5. nothing survived
