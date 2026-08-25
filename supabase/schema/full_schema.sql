@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-25T07:28:35.220Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-25T08:10:23.721Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -62985,10 +62985,17 @@ begin
             and position('BLOCKED_INELIGIBLE_SUPPLIER' in SQLERRM) > 0
             and v_n = (select count(*) from public.inquiry_matches)
             and v_id = (select count(*) from public.notifications);
-    v_msg := format('refused %s: im %s->%s, notifications %s->%s. ',
+    -- Q08. THE VERDICT WAS ALWAYS A DELTA; THE EVIDENCE WAS AN ABSOLUTE COUNT.
+    -- v_ok above compares counts BEFORE and AFTER, which is right. This string printed the two
+    -- absolute values -- 'notifications 676->676' -- and public.notifications grows on its own:
+    -- the 15-minute health cron writes to it. So the deliverable this string lands in could not
+    -- reproduce byte-for-byte more than a few minutes after it was built, and Gate 2 requires
+    -- exactly that. Measured 25 Aug 2026: the only diff between two runs seven hours apart was
+    -- 676->676 becoming 678->678. The delta is the fact the control is about and it is stable.
+    v_msg := format('refused %s: im %s, notifications %s. ',
       split_part(coalesce(nullif(split_part(SQLERRM, 'Gate verdict: ', 2),''),'(no verdict)'), ' ', 1),
-      v_n, (select count(*) from public.inquiry_matches),
-      v_id, (select count(*) from public.notifications));
+      to_char((select count(*) from public.inquiry_matches) - v_n, 'SFM999999'),
+      to_char((select count(*) from public.notifications) - v_id, 'SFM999999'));
   end;
   -- CONTROL. The SAME supplier and the SAME inquiry; matching_blocked is the one thing that moves.
   update public.leads set matching_blocked = false, matching_block_reason = null
@@ -63001,9 +63008,9 @@ begin
       'created_by','defect_probe',
       'payload', jsonb_build_object('inquiry_id', v_sup,'similarity',0.5,
         'match_reason','ZZ DEMO - disp004 control')));
-    v_msg := v_msg || format('CONTROL same supplier+inquiry, unblocked: im %s->%s, notifications %s->%s.',
-      v_n, (select count(*) from public.inquiry_matches),
-      v_id, (select count(*) from public.notifications));
+    v_msg := v_msg || format('CONTROL same supplier+inquiry, unblocked: im %s, notifications %s.',
+      to_char((select count(*) from public.inquiry_matches) - v_n, 'SFM999999'),
+      to_char((select count(*) from public.notifications) - v_id, 'SFM999999'));
     v_ok := coalesce(v_ok,false)
             and (select count(*) from public.inquiry_matches) = v_n + 1
             and (select count(*) from public.notifications) = v_id + 1;
