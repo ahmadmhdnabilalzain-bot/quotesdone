@@ -180,9 +180,22 @@ begin
   -- matched nothing, all three arms wrote 0 rows, and the test failed for want of a subject rather
   -- than for a defect. Zero cannot tell a dead guard from an idle system: the probe now CREATES the
   -- condition it tests. The transaction always aborts, so no approval is really cleared.
-  update public.phase_c_freeze_amendment
-     set approved_by = null, approved_at = null, approval_basis = null,
-         approval_route = null, approval_auth_subject = null, approved_amendment_table_digest = null;
+  -- 26 Aug 2026: THE SUBJECT IS INSERTED, NOT MANUFACTURED BY ERASING ONE.
+  -- This used to null the approval columns on every recorded amendment so that the arms below had
+  -- an unapproved row to aim at. phase_c_the_amendment_guard_only_watched_one_basis.sql made an
+  -- approval immutable once given, so that preamble is now refused 42501 and the probe aborted
+  -- before its own report — a guard reddening its own probe. Relaxing the guard to let the probe
+  -- run would be weakening a control to keep a test green. The probe creates its own subject
+  -- instead, which is what "an amendment with no approver" always meant. The transaction still
+  -- always aborts.
+  insert into public.phase_c_freeze_amendment
+    (subject, object_identity, prior_digest, new_digest, reason, evidence, amended_at,
+     change_request_ref, original_deployment_at, deployed_before_approval)
+  values ('founder_authentication', 'fn_zz_ci_unapproved_subject(text)',
+          repeat('9', 64), repeat('8', 64),
+          'CI probe subject: an amendment carrying no approver, inserted by freeze_amendment_names_a_real_change_request.test.mjs so the arms below have something to try to approve without rewriting a recorded approval',
+          'CI probe evidence string long enough to satisfy the forty character minimum on this column',
+          now(), 'PCCR-004', now(), false);
 
   select count(*) into v_red_before from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
@@ -197,7 +210,7 @@ begin
            approved_amendment_table_digest = repeat('0', 64) where approved_by is null;
     v_free := 'ACCEPTED';
   exception when others then
-    v_free := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
+    v_free := coalesce((regexp_match(SQLERRM, '[(](pccr[0-9]*_[a-z_0-9]+)[)]'))[1], 'refused:' || SQLSTATE);
   end;
 
   -- A registered row that is NOT a person. active=false, and its own note says so.
@@ -211,18 +224,26 @@ begin
            approved_amendment_table_digest = repeat('0', 64) where approved_by is null;
     v_inactive := 'ACCEPTED';
   exception when others then
-    v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
+    v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr[0-9]*_[a-z_0-9]+)[)]'))[1], 'refused:' || SQLSTATE);
   end;
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
    where fi.active and fi.kind = 'email' order by fi.identity limit 1;
-  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
-           approval_route = 'auth.uid()',
-           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
-                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
-           approved_amendment_table_digest = repeat('0', 64)
-   where approved_by is null;
-  get diagnostics v_rows = ROW_COUNT;
+  -- WRAPPED SINCE PCCR-006. This arm used to be a bare UPDATE because it was expected to SUCCEED:
+  -- the founder's own registered identity was the one name the approver guard let through. PCCR-006
+  -- refuses it too -- a05_freeze_amendment_session_claim_is_verified asks whether the SESSION is
+  -- real, not whose name is on it -- so the bare statement aborted the whole DO block and the probe
+  -- never reached its report. Wrapped, it records 0 rows, which is the assertion below.
+  begin
+    update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+             approval_route = 'auth.uid()',
+             approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                       where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+             approved_amendment_table_digest = repeat('0', 64)
+     where approved_by is null;
+    get diagnostics v_rows = ROW_COUNT;
+  exception when others then v_rows := 0;
+  end;
   select count(*) into v_red_after from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
 
@@ -242,19 +263,50 @@ end $probe$;`);
     assert.ok(m, `the probe did not reach its report:\n${out.slice(0, 800)}`);
     const r = JSON.parse(m[1].split('\\n')[0].replace(/\\"/g, '"'));
 
-    assert.equal(r.free_text, 'pccr_approver_not_the_founder',
+// PCCR-006 MOVED THIS REFUSAL EARLIER, AND THE PROBE MUST SAY SO RATHER THAN LOWER ITS BAR.
+    // a05_freeze_amendment_session_claim_is_verified fires BEFORE the approver guard. From this
+    // connection there is no auth.uid() and no bound auth event, so ANY row claiming
+    // AUTHENTICATED_FOUNDER_SESSION is refused pccr_amendment_session_claim_unverified before the
+    // question "is this the founder" is ever asked. That is finding C of PCCR-006 closed and it is
+    // strictly stronger: the old guard refused the wrong NAME, this one refuses the unbacked CLAIM.
+    //
+    // DISCLOSED, NOT DROPPED: pccr_approver_not_the_founder is now UNREACHABLE from the management
+    // connection, so this file no longer proves that guard fires. Proving it needs a verified
+    // founder session, which means a founder JWT through PostgREST. The constraint and the trigger
+    // are both still attached and asserted below; what is not proved is the refusal itself.
+    // 26 Aug 2026: THE CONNECTION IS NOW REFUSED BEFORE THE CLAIM IS EXAMINED.
+    // phase_c_the_amendment_guard_only_watched_one_basis.sql put the PCCR-006 predicate
+    // (session_user must be 'authenticator') ahead of the session-claim check, because auth.uid()
+    // reads request.jwt.claims and a management connection can set that for itself — measured, and
+    // raised as PCCR-007. From THIS connection the earlier, stronger refusal is what fires, so both
+    // codes are accepted here and neither is treated as the only right answer. What the probe
+    // asserts is unchanged: a free-text name does not become an approval.
+    const SESSION_FIRST = ['pccr_amendment_session_claim_unverified',
+                           'pccr007_amendment_untrusted_connection'];
+    assert.ok(SESSION_FIRST.includes(r.free_text),
       `a free-text name was ${r.free_text} as an approval of an amendment to a FROZEN Phase C ` +
       'contract. That is how an acceptance auditor turned the whole freeze board green in one ' +
       'statement.');
-    assert.equal(r.inactive_identity, 'pccr_approver_not_the_founder',
+    assert.ok(SESSION_FIRST.includes(r.inactive_identity),
       `the INACTIVE build_mode identity was ${r.inactive_identity}. It is registered but it is ` +
       'not a person — its own note says so — and it must never stand as a founder approval.');
-    assert.ok(Number(r.founder_rows) > 0,
-      'the founder\'s own registered identity was not accepted on any row — the guard refuses ' +
-      'everything, so this row could never go green even when he signs');
-    assert.ok(Number(r.red_before) >= 1 && Number(r.red_after) === 0,
-      `the freeze board read ${r.red_before} red before his approval and ${r.red_after} after; it ` +
-      'must be red while amendments await him and green once they do not');
+    // INVERTED BY PCCR-006, AND THIS IS THE WHOLE POINT OF IT.
+    // Until 25 Aug 2026 this expected > 0: the founder's own registered identity was the one name
+    // the approver guard let through, so a migration could type it and the freeze board would go
+    // green. PCCR-006 refuses that too — a05_freeze_amendment_session_claim_is_verified asks whether
+    // the SESSION is real, not whose name is on the row. His name, typed by a connection that never
+    // carried his token, now approves nothing. That is what "a caller-supplied identity is not
+    // authentication" means once it is applied to the person it protects.
+    assert.equal(Number(r.founder_rows), 0,
+      'a row naming the founder was accepted with no verified session behind it. PCCR-006 exists so ' +
+      'that his name, typed by a migration, is worth exactly as much as anyone else\'s.');
+    // AND THE BOARD CONSEQUENCE INVERTS WITH IT. Nothing this connection can do turns
+    // amendments_awaiting_founder_approval green any more, because nothing it can do constitutes an
+    // approval. A run where the board went green would mean an unbacked write had succeeded.
+    assert.ok(Number(r.red_before) >= 1 && Number(r.red_after) >= 1,
+      `the freeze board read ${r.red_before} red before and ${r.red_after} after. From this ` +
+      'connection it must stay red: no statement available here is an approval, and one that turned ' +
+      'it green would be the defect PCCR-006 closed.');
     assert.ok(Number(r.triggers) >= 1, 'no user trigger is on phase_c_freeze_amendment');
   });
 
@@ -283,7 +335,15 @@ end $probe$;`);
 // document it was given against is the sha256 stored on each row, checked against the committed
 // file by scripts/checks/pccr_approval_matches_committed_tables.test.mjs — which is the check to
 // read if you are asking whether these three were properly signed.
-const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003'];
+// PCCR-006 JOINS THIS SET ON 25 AUG 2026, AND NOT "IN WRITING".
+// The first three were approved in writing and back-filled. PCCR-006 was approved through the
+// Command Center as an authenticated command -- 39505, message 40674, raw_text_hash 53edf125...
+// recomputed on production and equal -- and its amendment carries approval_basis
+// AUTHENTICATED_FOUNDER_COMMAND_BOOTSTRAP, which is neither of the other two values and is pinned
+// at exactly one row by fn_phase_c_freeze_drift. The constant keeps its name because the property
+// it pins is unchanged: this is the closed set of change requests carrying ANY approval, and a
+// fourth appearing without a line here is what it exists to catch.
+const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006'];
 
 test('only the change request the founder signed in writing carries an approval',
   { skip: SKIP }, async () => {
@@ -329,12 +389,42 @@ test('the founder register is not writable by service_role, and an approval must
 do $probe$
 declare v_out jsonb := '{}'::jsonb; v_founder text; v_rows int; v_red int;
 begin
+  -- 25 Aug 2026: THE RESOLUTION ARM MOVED TO THE FRONT, and it had to. It used to run last, after
+  -- the mass-null below had cleared every approval -- so once PCCR-006 made the re-approval
+  -- impossible, the board was already red when the approver was deleted and "red after delete"
+  -- passed for a reason that had nothing to do with resolution. A check that cannot fail is not a
+  -- check. Run against the approvals that are actually in the table, it discriminates again.
+  begin
+    delete from public.phase_c_founder_identity;
+    select count(*) into v_red from public.fn_phase_c_freeze_drift()
+     where not ok and check_name = 'amendments_awaiting_founder_approval';
+    -- The raise rolls this subtransaction back, so the register is intact for the arms below and
+    -- the count still comes out. The outer transaction aborts anyway.
+    raise exception 'RESOLUTION_ARM %', v_red;
+  exception when others then
+    v_out := v_out || jsonb_build_object('red_after_approver_deleted',
+      coalesce(nullif(substring(SQLERRM from 'RESOLUTION_ARM ([0-9]+)$'),'')::int, -1));
+  end;
+
   -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
   -- once every amendment carried a verified founder-session approval, "where approved_by is null"
   -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
-  update public.phase_c_freeze_amendment
-     set approved_by = null, approved_at = null, approval_basis = null,
-         approval_route = null, approval_auth_subject = null, approved_amendment_table_digest = null;
+  -- 26 Aug 2026: THE SUBJECT IS INSERTED, NOT MANUFACTURED BY ERASING ONE.
+  -- This used to null the approval columns on every recorded amendment so that the arms below had
+  -- an unapproved row to aim at. phase_c_the_amendment_guard_only_watched_one_basis.sql made an
+  -- approval immutable once given, so that preamble is now refused 42501 and the probe aborted
+  -- before its own report — a guard reddening its own probe. Relaxing the guard to let the probe
+  -- run would be weakening a control to keep a test green. The probe creates its own subject
+  -- instead, which is what "an amendment with no approver" always meant. The transaction still
+  -- always aborts.
+  insert into public.phase_c_freeze_amendment
+    (subject, object_identity, prior_digest, new_digest, reason, evidence, amended_at,
+     change_request_ref, original_deployment_at, deployed_before_approval)
+  values ('founder_authentication', 'fn_zz_ci_unapproved_subject(text)',
+          repeat('9', 64), repeat('8', 64),
+          'CI probe subject: an amendment carrying no approver, inserted by freeze_amendment_names_a_real_change_request.test.mjs so the arms below have something to try to approve without rewriting a recorded approval',
+          'CI probe evidence string long enough to satisfy the forty character minimum on this column',
+          now(), 'PCCR-004', now(), false);
 
   select count(*) into v_red from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
@@ -352,21 +442,24 @@ begin
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
    where fi.active and fi.kind = 'email' order by fi.identity limit 1;
-  update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
-           approval_route = 'auth.uid()',
-           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
-                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
-           approved_amendment_table_digest = repeat('0', 64)
-   where approved_by is null;
-  get diagnostics v_rows = ROW_COUNT;
+  -- WRAPPED SINCE PCCR-006, same reason as the first probe in this file: a05_freeze_amendment_
+  -- session_claim_is_verified refuses any AUTHENTICATED_FOUNDER_SESSION claim from a connection
+  -- with no auth.uid() and no bound event, so this bare statement aborted the DO block and the
+  -- probe never reached its report. Wrapped, it records 0 rows, which is now the correct answer:
+  -- his name typed by a migration approves nothing.
+  begin
+    update public.phase_c_freeze_amendment set approved_by = v_founder, approved_at = now(), approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+             approval_route = 'auth.uid()',
+             approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                       where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+             approved_amendment_table_digest = repeat('0', 64)
+     where approved_by is null;
+    get diagnostics v_rows = ROW_COUNT;
+  exception when others then v_rows := 0;
+  end;
   select count(*) into v_red from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('approved_rows', v_rows, 'red_after_approval', v_red);
-
-  delete from public.phase_c_founder_identity where identity = v_founder;
-  select count(*) into v_red from public.fn_phase_c_freeze_drift()
-   where not ok and check_name = 'amendments_awaiting_founder_approval';
-  v_out := v_out || jsonb_build_object('red_after_approver_deleted', v_red);
 
   raise exception 'REGISTER_PROBE %', v_out;
 end $probe$;`);
@@ -380,13 +473,28 @@ end $probe$;`);
       'subject can write is not a register: an acceptance auditor added itself, approved four ' +
       'amendments to frozen Phase C contracts, and deleted the row again. That register also gates ' +
       'refunds.');
-    assert.ok(Number(r.approved_rows) > 0 && Number(r.red_after_approval) === 0,
-      `a real founder identity approved ${r.approved_rows} row(s) and the board read ` +
-      `${r.red_after_approval} red — it must go green when he actually signs`);
+    // 25 AUG 2026 — THIS ASSERTION IS INVERTED, AND THE INVERSION IS THE FIX PCCR-006 MADE.
+    // It used to read: approved_rows > 0 and the board green, "it must go green when he actually
+    // signs". That was the hole. The arm above is the OWNER typing a registered founder's email
+    // with a fabricated 64-zero digest — FD-01 requirements 5 and 6 say exactly that must be
+    // refused, and a05_freeze_amendment_session_claim_is_verified now refuses it. An expectation
+    // that a typed name approves is an expectation that the defect is still open.
+    assert.equal(Number(r.approved_rows), 0,
+      `the owner typed a registered founder's email with a fabricated amendment digest and ` +
+      `approved ${r.approved_rows} amendment(s). PCCR-006 requirement 6 says a migration-written ` +
+      'AUTHENTICATED_FOUNDER_SESSION claim is refused; this is that claim, accepted.');
+    assert.ok(Number(r.red_after_approval) >= 1,
+      `the board read ${r.red_after_approval} red after an approval nobody gave was refused — it ` +
+      'must stay red until he signs through fn_phase_c_governance_decide with a bearer token.');
+    // WHAT THIS PROBE NO LONGER PROVES, said rather than quietly dropped: there is no executable
+    // positive control here for "and it goes green when he actually signs". The only door that can
+    // record one refuses every connection that is not `authenticator`, so the positive case needs
+    // the founder's own GoTrue token and cannot be driven from CI. It is the residual weakness
+    // PCCR-006 §"The residual weakness in the bootstrap" already states.
     assert.ok(Number(r.red_after_approver_deleted) >= 1,
-      'deleting the approver from the register left the board GREEN. The check is reading a stored ' +
-      'string instead of resolving it, which is the half of this defect that survives a trigger ' +
-      'being disabled.');
+      'deleting the approver from the register left the board GREEN while real approvals stood. ' +
+      'The check is reading a stored string instead of resolving it, which is the half of this ' +
+      'defect that survives a trigger being disabled.');
   });
 
 // THE THIRD ATTACK, AND THE ONE THAT MATTERED MOST: no fake identity, no DDL, no owner rights.
@@ -409,9 +517,22 @@ begin
   -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
   -- once every amendment carried a verified founder-session approval, "where approved_by is null"
   -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
-  update public.phase_c_freeze_amendment
-     set approved_by = null, approved_at = null, approval_basis = null,
-         approval_route = null, approval_auth_subject = null, approved_amendment_table_digest = null;
+  -- 26 Aug 2026: THE SUBJECT IS INSERTED, NOT MANUFACTURED BY ERASING ONE.
+  -- This used to null the approval columns on every recorded amendment so that the arms below had
+  -- an unapproved row to aim at. phase_c_the_amendment_guard_only_watched_one_basis.sql made an
+  -- approval immutable once given, so that preamble is now refused 42501 and the probe aborted
+  -- before its own report — a guard reddening its own probe. Relaxing the guard to let the probe
+  -- run would be weakening a control to keep a test green. The probe creates its own subject
+  -- instead, which is what "an amendment with no approver" always meant. The transaction still
+  -- always aborts.
+  insert into public.phase_c_freeze_amendment
+    (subject, object_identity, prior_digest, new_digest, reason, evidence, amended_at,
+     change_request_ref, original_deployment_at, deployed_before_approval)
+  values ('founder_authentication', 'fn_zz_ci_unapproved_subject(text)',
+          repeat('9', 64), repeat('8', 64),
+          'CI probe subject: an amendment carrying no approver, inserted by freeze_amendment_names_a_real_change_request.test.mjs so the arms below have something to try to approve without rewriting a recorded approval',
+          'CI probe evidence string long enough to satisfy the forty character minimum on this column',
+          now(), 'PCCR-004', now(), false);
 
   begin
     set local role service_role;
@@ -452,15 +573,22 @@ begin
   end;
   reset role;
 
-  update public.phase_c_freeze_amendment
-     set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
-           approval_route = 'auth.uid()',
-           approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
-                                     where fi.active and fi.kind = 'email' order by fi.identity limit 1),
-           approved_amendment_table_digest = repeat('0', 64), approved_by = (select fi.identity from public.phase_c_founder_identity fi
-                         where fi.active and fi.kind='email' order by fi.identity limit 1),
-         approved_at = now()
-   where approved_by is null;
+  -- WRAPPED SINCE PCCR-006. The owner applying the founder's own name used to be the arm that
+  -- proved this guard is not refuse-everything. It is refused now too, so the bare statement
+  -- aborted the block before it could report. What the probe measures is unchanged and is asserted
+  -- below: service_role cannot write, and neither can the owner without a verified session.
+  begin
+    update public.phase_c_freeze_amendment
+       set approval_basis = 'AUTHENTICATED_FOUNDER_SESSION',
+             approval_route = 'auth.uid()',
+             approval_auth_subject = (select fi.auth_user_id from public.phase_c_founder_identity fi
+                                       where fi.active and fi.kind = 'email' order by fi.identity limit 1),
+             approved_amendment_table_digest = repeat('0', 64), approved_by = (select fi.identity from public.phase_c_founder_identity fi
+                           where fi.active and fi.kind='email' order by fi.identity limit 1),
+           approved_at = now()
+     where approved_by is null;
+  exception when others then v_out := v_out || jsonb_build_object('owner_approval','REFUSED ' || SQLSTATE);
+  end;
   select count(*) into v_red from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
   v_out := v_out || jsonb_build_object('owner_approval_red_after', v_red);
@@ -482,9 +610,17 @@ end $probe$;`);
         'phase_c_freeze_amendment; every row was written by a migration applied as the owner, so ' +
         'service_role has no business holding INSERT, UPDATE or DELETE on it.');
     }
-    assert.equal(Number(r.owner_approval_red_after), 0,
-      'an owner-applied approval by a registered founder identity did NOT clear the row — the ' +
-      'revoke went too far and approval is now impossible');
+    // 25 AUG 2026 — INVERTED, same reason as the probe above. This arm used to be the control that
+    // proved the guard is not refuse-everything: the OWNER applying the founder's registered email
+    // cleared the row. PCCR-006 requirement 6 makes that route a refusal, so the control it was
+    // written to be no longer exists, and asserting the old outcome asserts the old hole.
+    assert.match(String(r.owner_approval ?? 'ACCEPTED'), /^REFUSED/,
+      `the owner applied an approval in a registered founder's name and it was ${r.owner_approval ?? 'ACCEPTED'}. ` +
+      'a05_freeze_amendment_session_claim_is_verified must refuse an AUTHENTICATED_FOUNDER_SESSION ' +
+      'claim with no session behind it, whoever is typing.');
+    assert.ok(Number(r.owner_approval_red_after) >= 1,
+      `the board read ${r.owner_approval_red_after} red after the refusal. A refused approval must ` +
+      'leave the row awaiting the founder, not green.');
   });
 
 // THE SAME DEFECT ONE TABLE OVER. E36 guarded `phase_c_freeze_amendment.approved_by`; the R7
@@ -523,7 +659,7 @@ begin
     o := o || jsonb_build_object('cr_owner_junk','ACCEPTED');
   exception when others then
     o := o || jsonb_build_object('cr_owner_junk',
-      coalesce((regexp_match(SQLERRM,'[(](pccr_[a-z_]+)[)]'))[1], 'REFUSED ' || SQLSTATE)); end;
+      coalesce((regexp_match(SQLERRM,'[(](pccr[0-9]*_[a-z_0-9]+)[)]'))[1], 'REFUSED ' || SQLSTATE)); end;
 
   begin
     update public.phase_c_change_request
@@ -546,10 +682,16 @@ end $probe$;`);
     assert.match(String(r.fs_service_role), /^REFUSED/,
       `service_role ${r.fs_service_role} an INSERT into public.phase_c_frozen_subject, the register ` +
       'of WHAT IS FROZEN. Its immutability trigger covers DELETE and UPDATE only.');
-    assert.equal(r.cr_owner_junk, 'pccr_approver_not_the_founder',
+    // PCCR-006 answers this one EARLIER and with a better reason. a05_phase_c_change_request_approval_is_derived
+    // fires before the approver guard, so a junk approver is refused for having no verified
+    // governance decision behind it rather than for being the wrong name. Stronger, not weaker:
+    // the old code let the RIGHT name through, and this one lets no name through.
+    assert.equal(r.cr_owner_junk, 'pccr_governance_decision_required',
       `an owner-applied junk approver on phase_c_change_request got ${r.cr_owner_junk} — the shared ` +
       'founder approver guard is not attached to that table');
-    assert.equal(r.cr_owner_founder, 'ACCEPTED',
+    // INVERTED BY PCCR-006: the founder's own registered identity, applied by the table owner, is
+    // now refused too. Before this change it was ACCEPTED, and that acceptance was the hole.
+    assert.equal(r.cr_owner_founder, 'REFUSED 42501',
       'the founder\'s own registered identity was refused on phase_c_change_request — the guard ' +
       'refuses everything and approval is impossible');
   });

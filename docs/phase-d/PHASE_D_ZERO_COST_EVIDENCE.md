@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-24 20:00 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-26 12:00 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE WINDOW MOVED A FIFTH TIME, AND THE CHECK MOVED IT AGAIN.** The final builder session of
@@ -368,3 +368,46 @@ transactions ended in `raise exception`.
 
 **What was NOT run, deliberately:** the independent audit, Phase E, any business-automation
 reactivation, `outcome_evaluate_daily`, any paid provider, any external effect.
+
+---
+
+## The window moved a seventh time — the PCCR-007 repair session, 2026-08-26
+
+**Moved to 2026-08-26 12:00 UTC, after the last apply and after the schema mirror was regenerated
+from it.** That ordering is the whole point and it is the thing that keeps being got wrong: this
+document is written LAST, not first.
+
+**Why it had to move.** The independent Phase D acceptance audit of 2026-08-26 re-ran
+`scripts/checks/zero_cost_evidence_window_covers_the_work.test.mjs` and it failed, naming
+`phase_d_step_case_result.run_at` at 2026-08-25 21:28:00 UTC against a window that closed at
+2026-08-24 20:00 UTC. That work was done by the builder session of 25 August and this document was
+never re-closed over it. Then this session added more: two migrations applied on 26 August
+(`phase_c_the_amendment_guard_only_watched_one_basis.sql` and
+`phase_c_the_approved_digest_was_compared_to_nothing.sql`), and PCCR-007 raised at 11:38:52 UTC.
+
+**The claim, re-measured over the whole extended window on 2026-08-26 at 11:40:50 UTC:**
+
+| | over 2026-08-18 14:00 → 2026-08-26 12:00 UTC |
+|---|---|
+| `public.ai_cost_log` rows | **0** |
+| `public.llm_attempt` rows | **0** |
+| paid inference cost | **AED 0.00** — `select coalesce(sum(cost_aed),0) from public.ai_cost_log where occurred_at > '2026-08-18 14:00:00+00'` → 0 |
+| `public.ai_usage` rows | **0** |
+| OpenRouter or other paid-provider requests | **0** — `net.http_request_queue` has never held such a URL |
+| `public.notifications` sent | **0** — the newest `sent_at` anywhere in the table is still 2026-08-16 05:30:04 UTC |
+| active `cron.job` | **23**, unchanged, none reactivated |
+
+**Two production effects inside this window were caused by the audit itself and are disclosed, not
+netted out.** One extra invocation of this project's own `ai_health` Edge Function, which made no
+provider call and left one `phase_c_system_execution` trace row; and two W04 workflow runs started
+by the canary customers `scripts/phase_d/run_section8_security_probes.mjs` creates and deletes,
+which left two `phase_d_dispatch` rows with `outcome REFUSED` and no effect. Neither moved any
+figure in the table above. Both are recorded in full in the audit's residue report.
+
+**Seven occurrences is the finding, and it is a sequencing defect rather than seven slips.** The
+window is a hand-maintained sentence in a document, and the work that has to fall inside it is
+finished by other commands. Nothing makes the document the last thing written; a person has to
+remember. Every one of the seven was caught by the check rather than by the person, which is the
+check working — but a control that fires seven times on the same cause is describing a process, not
+an accident. Ending it means deriving the close from the estate instead of typing it, which changes
+the shape of a required deliverable and is not done here.

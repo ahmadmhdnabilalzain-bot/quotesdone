@@ -105,7 +105,7 @@ const ANON_CEILING = 0;
 // 23 Aug 2026: 4 -> 5. fn_phase_c_freeze_amendment_approve joins the named set below, reviewed the
 // same three ways. The ceiling and the named set are both asserted, so raising one without adding
 // the other still fails — which is the property that makes this pair worth keeping.
-const AUTHENTICATED_CEILING = 5;
+const AUTHENTICATED_CEILING = 6;   // 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006)
 
 // The only SECURITY DEFINER routines in public that a signed-in client role may execute, and the
 // reason each one is here. Pinned by name: a bare count would stay green if one of these closed
@@ -135,6 +135,19 @@ const AUTHENTICATED_BY_DESIGN = {
     'called with the founder\'s own verified JWT from os_api (asCaller); fn_phase_c_require_founder'
     + ' inside it resolves the founder from auth.uid(), which service_role does not have, so this'
     + ' grant narrows the caller set rather than widening it (PCCR-003)',
+  fn_phase_c_governance_decide:
+    'PCCR-006, applied 25 Aug 2026 on the founder\'s approval (Command Center command 39505).'
+    + ' WHO: the founder, over PostgREST, with a GoTrue bearer for his own active identity.'
+    + ' WITH WHICH CLIENT: the anon key plus that bearer, so PostgREST sets the request JWT claims'
+    + ' and auth.uid() resolves inside the routine. NAMED IN AN RLS POLICY: no.'
+    + ' This grant NARROWS rather than widens: the routine refuses outright unless session_user is'
+    + ' authenticator -- so service_role and every migration connection are locked out BY THE'
+    + ' ROUTINE, not by the grant -- then derives the identity from auth.uid() or a bound verified'
+    + ' subject and refuses any caller that supplies approved_by, approval_basis, approval_route,'
+    + ' approval_auth_subject, disposition or decided_by. Measured on production the day it was'
+    + ' applied: a typed founder email with no verified session returns 28000. Being reachable by'
+    + ' authenticated is not incidental to this routine, it is the entire design -- an approval'
+    + ' service the founder cannot reach from his own browser records nothing.',
   fn_founder_command_control:
     'called with the founder\'s own verified JWT from os_api (asCaller); same routine, same reason'
     + ' (PCCR-003)',

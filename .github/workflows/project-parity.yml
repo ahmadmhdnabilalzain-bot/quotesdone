@@ -130,6 +130,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # FULL HISTORY, because one check in this job needs it to do its job.
+          # pccr_approval_matches_committed_tables verifies the digest each freeze amendment was
+          # approved against. Amendment 51 names PHASE_C_CHANGE_REQUEST_PCCR-006.md at the digest it
+          # carried WHEN HE APPROVED IT; the execution record was appended afterwards, so the
+          # working tree hashes differently and the approved version lives at an earlier commit.
+          # The default fetch-depth of 1 cannot see that commit, so the check would report "no
+          # commit has ever held that path at that digest" -- which is a statement about the clone,
+          # not about the estate, and is exactly the class of false finding this repository keeps
+          # being bitten by.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -160,8 +171,17 @@ jobs:
                    a_failed_scheduled_run_has_a_reader \
                    pccr_approval_matches_committed_tables; do
             echo "::group::$t"
-            out=$(node "scripts/checks/$t.test.mjs" 2>&1); code=$?
-            echo "$out"
+            # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at pccr_approval_matches_
+            # committed_tables and the log carried NOT ONE LINE of that check's output -- in a step
+            # that had run for eight minutes. Every earlier group had its output; only the group the
+            # step died in was empty, and the same thing happened in the Phase D job at ITS last
+            # check. Whatever swallows it, capturing into $(...) and echoing afterwards means the
+            # output only reaches the log if the shell survives to print it. tee writes it as it
+            # happens and keeps a copy for the SKIP test below, and PIPESTATUS keeps the check's
+            # exit code rather than tee's. A failing check that cannot be diagnosed from its own
+            # output is most of the cost of a red build.
+            node "scripts/checks/$t.test.mjs" 2>&1 | tee "/tmp/check-$t.log"; code=${PIPESTATUS[0]}
+            out=$(cat "/tmp/check-$t.log")
             echo "::endgroup::"
             # A SKIP here is a failure, not a pass: this job exists because the credential is present.
             if echo "$out" | grep -qE '^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL'; then
@@ -232,8 +252,11 @@ jobs:
                    phase_d_documents_do_not_contradict_each_other \
                    phase_d_deliverables_match_production; do
             echo "::group::$t"
-            out=$(node --test "scripts/checks/$t.test.mjs" 2>&1); code=$?
-            echo "$out"
+            # STREAMED, NOT CAPTURED -- see the note on the identical loop in the Phase C job above.
+            # This job lost the whole of phase_d_deliverables_match_production's output the same way
+            # on the same run.
+            node --test "scripts/checks/$t.test.mjs" 2>&1 | tee "/tmp/check-$t.log"; code=${PIPESTATUS[0]}
+            out=$(cat "/tmp/check-$t.log")
             echo "::endgroup::"
             # A SKIP here is a failure, not a pass: this job exists because the credential is present.
             if echo "$out" | grep -qE '^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL|# SKIPPED'; then

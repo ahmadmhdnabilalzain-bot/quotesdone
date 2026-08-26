@@ -485,6 +485,28 @@ const SEQ_CASES = [
 
 let pass = 0, fail = 0;
 
+// PCCR-006, 25 AUG 2026. A THIRD BUCKET, BECAUSE TWO WERE NOT ENOUGH.
+//
+// Two cases below BIND a verified founder subject before injecting, so that the arm they are about
+// is what refuses rather than the identity arm (see the PCCR-003 note above them).
+// fn_phase_c_founder_subject_bind now refuses any connection that is not the PostgREST one that
+// verified a bearer token, so the bind raises 28000 and the injection never reaches
+// fn_phase_c_refund_decision_guard at all.
+//
+// With two buckets the harness had to call that a FAILURE, and it printed the most alarming
+// sentence it owns — "a refund executed against a REJECTED decision is refused: FAIL" — about a
+// guard it had not tested and which had not moved. A probe that cannot reach its subject must not
+// report on that subject: an error and an empty result are not the same value, and neither is a
+// blocked injection and an accepted one.
+//
+// NOT_DRIVEABLE is counted separately, disclosed by name, and is NOT a pass. If the bind is ever
+// ACCEPTED from this connection the case scores normally again — and if the injection then
+// survives, `survived` still makes it a hard failure. Nothing here can turn an accepted defect
+// green.
+let notDriveable = 0;
+const BIND_REFUSED = 'pccr_founder_bind_untrusted_connection';
+const blocked = [];
+
 // The baseline every injection is measured against. Taken BEFORE the first probe so a real
 // founder command sitting in the table is simply part of the baseline, not a failure.
 const before = await (async () => (await sql(`select
@@ -536,7 +558,19 @@ for (const [name, body, expect] of CASES) {
   // stricter guard whose message simply said something else.
   const wanted = Array.isArray(expect) ? expect : [expect];
   const matched = !survived && wanted.every(w => msg.includes(w));
+  // The injection tried to bind a founder subject and PCCR-006 refused the bind, so it stopped
+  // before the guard under test. `survived` is deliberately still checked first: an injection that
+  // was ACCEPTED is a failure whatever else is in the message.
+  const bindBlocked = !survived
+    && body.includes('fn_phase_c_founder_subject_bind') && msg.includes(BIND_REFUSED);
   if (matched) { pass++; console.log(`ok    ${name}`); }
+  else if (bindBlocked) {
+    notDriveable++; blocked.push(name);
+    console.log(`gate  ${name}\n        NOT DRIVEABLE — the probe binds a verified founder subject `
+      + `first so that ${wanted.join(' / ')} is what refuses, and PCCR-006 refuses the bind on this `
+      + `connection (${BIND_REFUSED}). The injection never reached the guard, so this run says `
+      + `NOTHING about whether that arm refuses. Driving it needs a founder JWT through PostgREST.`);
+  }
   else {
     fail++;
     console.log(`FAIL  ${name}\n        ${survived ? 'THE GUARD DID NOT FIRE — the defect was accepted' : 'raised, but not for the expected reason'}`);
@@ -649,5 +683,16 @@ const pairAssertions = (readFileSync(new URL(import.meta.url), 'utf8')
   .match(/\['[0-9A-Za-z]{5}', '[^']+'\]/g) || []).length;
 console.log(`\nrefusals asserted on a SQLSTATE + guard pair: ${pairAssertions}`);
 console.log(`refusals asserted on a human message:         0`);
-console.log(`\n${pass}/${pass + fail} injected defects refused`);
+console.log(`\n${pass}/${pass + fail + notDriveable} injected defects refused`
+  + (notDriveable ? `, ${notDriveable} not driveable from this connection, ${fail} failed` : ''));
+if (notDriveable) {
+  // SAID EVERY RUN, not once in a commit message. The denominator above already counts these, so
+  // the line cannot be read as "56 of 56". What this run does NOT establish is stated in the same
+  // breath as what it does.
+  console.log(`  NOT DRIVEABLE (${notDriveable}): ${blocked.join('; ')}`);
+  console.log('  Each needs a verified founder session, and fn_phase_c_founder_subject_bind refuses '
+    + 'this connection since PCCR-006. This run does NOT establish that those arms refuse a genuine '
+    + 'call — only that they cannot be reached from a management connection, which is the point of '
+    + 'the amendment.');
+}
 process.exit(fail === 0 ? 0 : 1);

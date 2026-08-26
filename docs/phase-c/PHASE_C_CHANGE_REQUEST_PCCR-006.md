@@ -293,3 +293,127 @@ accompanies it. He types that sentence, with the digest filled in, into the Comm
 
 **This builder session did not and cannot approve its own Phase C change.** Nothing in
 `phase_c_change_request` or `phase_c_freeze_amendment` moved.
+
+---
+
+## Execution record — appended after approval, 25 Aug 2026
+
+**Everything above this line is what the founder approved and it is unchanged.** This section is a
+record of what happened when it was applied. It is appended because
+`scripts/checks/freeze_amendment_names_a_real_change_request.test.mjs` requires the change request to
+name the amendment id its approval produced — *"an amendment may not shelter under another
+amendment's paperwork"* — and the amendment id cannot exist until the change is applied. The
+amendment table above says so: *"Amendment ID: to be allocated by `public.phase_c_freeze_amendment`
+on approval"*.
+
+### The approved digest is preserved, not overwritten
+
+Appending changes this file's sha256. The digest the founder quoted is the digest of the file **as
+he approved it**, and it is immutable in git:
+
+```bash
+git show ac7ab8e:docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md | sha256sum
+# c787bfcfe38578010f29e4ed2dcaddc602be42f16eb3a320aab6f75519561ceb
+```
+
+`ac7ab8e` is the commit that was HEAD when he submitted his approval. Recomputing the digest of the
+**working file** after this section will not equal `c787bfcf…`, and should not: the two are
+different bytes and only one of them is what he read.
+
+### The approval
+
+| | |
+|---|---|
+| Command Center command | **39505** |
+| message | **40674**, channel `command_center` |
+| received | `2026-08-25 16:54:20.940141+00` |
+| founder identity | `management@quotesdone.com` — active, kind `email` |
+| `raw_text_hash` | `53edf1251bcee9123d587f4f3dc13c11aca184547cac12edd9fc7491511924ad`, recomputed on production and equal |
+| root trace | **4329096**, `TRACE-FOUNDER-COMMAND` |
+| audit | `os_audit_log` 19027 |
+| business work created | `tasks_created` 0, `workflow_ids` [], `task_ids` [], no external effect |
+
+### Amendment A, as allocated
+
+| | |
+|---|---|
+| **amendment_id** | **51** |
+| subject | `founder_authentication` |
+| frozen object | `fn_phase_c_require_founder(p_actor text)` |
+| prior digest | `b2fff88d695729ddc8134532908ca0dd9fb3697f80bd7457d8ec35ab5a601e24` |
+| new digest | `3fc51958472a20c785214f7142f635c83f0c349e51d8246e4a6ba7c0b42574d6` |
+| approval basis | `AUTHENTICATED_FOUNDER_COMMAND_BOOTSTRAP` |
+| `deployed_before_approval` | `false` — the approval came first |
+
+**The prior digest is the FROZEN BASELINE, not the body this change replaced.**
+`fn_phase_c_freeze_drift` judges a subject undrifted when an amendment carries the baseline as its
+prior digest and the live body as its new one, because *"an edit on top of an amendment is drift"*.
+The body actually replaced was `e0f8f63e14238a83…`, amendment 36's new digest — the one PCCR-003
+introduced. Amendment 36 correctly stops matching the live body from here.
+
+### One correction was made to the migration before it was applied
+
+The committed migration **did not apply as written**. Its new CHECK
+`phase_c_change_request_approval_is_derived` was violated by **PCCR-003** — the founder's real
+approval of 21 Aug 2026, which has an approver and no `governance_decision_id` because this
+migration creates that column. It was corrected to `NOT VALID` (still enforced on every INSERT and
+UPDATE; only the retroactive scan is skipped) with an assertion that the grandfathered set is
+exactly PCCR-003. Back-filling PCCR-003 was refused: minting a ledger row for a decision that
+predates the ledger is the defect this change request exists to close. Full rehearsal:
+`docs/phase-c/PCCR-006_PRE_APPROVAL_REHEARSAL.md`.
+
+### This register row says RAISED and cannot say APPROVED
+
+`phase_c_change_request.disposition` for PCCR-006 is `RAISED`. That is this change request working
+on itself: `phase_c_change_request_approval_is_derived` now requires a `governance_decision_id`
+beside any `approved_by`, only `fn_phase_c_governance_decide` can create one, and only on a
+connection whose `session_user` is `authenticator`. The change request that created that rule cannot
+satisfy it retroactively without the unbacked write it forbids. Its approval is recorded on
+`public.phase_c_freeze_amendment` as amendment 51, and the register row's `disposition_reason` says
+so in full. **Every change request after this one reaches APPROVED through the canonical service.**
+
+### The four required elements this document was missing
+
+`scripts/checks/freeze_amendment_names_a_real_change_request.test.mjs` checks every change request
+named by an amendment against the element list in `PHASE_D_CHANGE_CONTROL.md`. It could not check
+PCCR-006 until an amendment named it, which happened only when the change was applied — so these
+four absences were invisible until 25 Aug 2026, and the check found them the moment it could see the
+document. They are completed here rather than quietly left.
+
+**Current behaviour.** Founder approval on the governance path is a typed string. Measured on
+production and reproduced immediately before application: writing `approved_by` onto a DEFERRED
+change request silently re-dispositions it to APPROVED and carries the deferral's own text as the
+approval reason (findings A and A2); a disposition can be set to APPROVED with no approver at all
+(finding B); a direct row can claim `AUTHENTICATED_FOUNDER_SESSION` with a 64-character digest of
+`repeat('a',64)` (finding C); and `fn_phase_c_founder_subject_bind` refused only
+`current_user in ('anon','authenticated')`, so a `postgres` connection could mint a verified founder
+session with no bearer token in existence (finding D). Finding D reaches further than the change
+request first stated: running the bind door and then the refund door in one transaction, **the
+refund door accepted** — a session minted for one act paid for another.
+
+**Proposed behaviour.** Approval is DERIVED, never asserted. `fn_phase_c_governance_decide` is the
+one canonical service; it refuses any connection whose `session_user` is not `authenticator`,
+derives the identity from `auth.uid()` or a bound verified subject, refuses a caller that supplies
+`approved_by`, `approved_at`, `approval_basis`, `approval_route`, `approval_auth_subject`,
+`disposition` or `decided_by`, and mints and consumes a purpose-bound, single-use, ten-minute
+auth event in the same transaction. The decision lands in an append-only ledger
+(`public.phase_c_governance_decision`) whose UPDATE and DELETE raise unconditionally and whose
+TRUNCATE is refused, and `phase_c_change_request.disposition` can then only move as a derivation
+from that ledger row. Replay returns `ALREADY_DECIDED` and writes no second row.
+
+**Reviewer.** Raised by the builder session of 24 Aug 2026 and rewritten by an adversarial pass on
+25 Aug that rehearsed the migration on production before approval and found that **it did not
+apply** — see `docs/phase-c/PCCR-006_PRE_APPROVAL_REHEARSAL.md`. Approved by the founder,
+`management@quotesdone.com`, Command Center command 39505. **No independent reviewer has audited it
+yet**; `docs/phase-d/PHASE_D_Q_SERIES_BUILDER_EVIDENCE.md` is labelled
+`BUILDER_EVIDENCE_PENDING_FINAL_AUDIT` and this change is inside that scope. Stating that plainly is
+part of the element, not a substitute for it.
+
+**Financial impact: none, and the money boundary is strengthened.** No price, fee, refund, payout or
+provider charge is touched. `public.refunds` is 0 throughout and `public.phase_c_refund_decision`
+holds 0 rows. The one financial effect is a tightening: Amendment A's single predicate
+(`and e.action_class is null`) stops a session minted for a governance decision from also satisfying
+the refund door, which finding D showed it could. The founder's standing rule that every refund at
+any amount needs his approval in a verified session is unchanged and now harder to circumvent, not
+easier. Cost of the change itself: AED 0 — no paid provider was called at any point, and every
+external route remains held.

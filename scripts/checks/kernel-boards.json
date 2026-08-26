@@ -109,6 +109,14 @@
       "why": "phase_d_q03 added this row so the source inventory stops being silent about its own completeness. public.kernel_trigger_source holds 25 edge functions; public.phase_c_edge_function_writes measures 143 that write at least one table, and 52 of the uninventoried ones write a WORK table. Every correction phase_d_q03 made to the eight false-positive bypass rows rests on the sentence \"the write happens in the edge function, which is inventoried separately\", and that sentence is only worth something if the inventory is complete. It is not, so the number is published rather than assumed. It is a RATCHET and not a gate because closing it means classifying 52 functions from what each one does, which is measurement work nobody may guess at; it may not GROW, and the eight of the 52 that write public.customers are covered regardless by z50_customer_registered_kernel_emit on the table.",
       "owner": "open — Phase C kernel cutover, source inventory completeness increment",
       "measured_at": "2026-08-25, 52 of 143"
+    },
+    {
+      "board": "fn_phase_c_freeze_drift",
+      "check": "approved_change_requests_with_no_verified_governance_decision",
+      "max_numerator": 1,
+      "why": "PCCR-006 created public.phase_c_governance_decision and this board row on 25 Aug 2026, and the row reads 1 of 1 from its first moment. The one is PCCR-003 -- the founder approval of 21 Aug 2026, approved_by management@quotesdone.com, approved_at 2026-08-21 20:20:33+00 -- which has an approver and no governance_decision_id because the ledger did not exist when he gave it. Closing it would mean minting a ledger row for a decision that predates the ledger: inventing the verified session it never had, which is the exact defect PCCR-006 exists to close. It is REFUSED, not deferred. The same row is grandfathered by phase_c_change_request_approval_is_derived NOT VALID, whose migration asserts the grandfathered set is exactly PCCR-003 and fails if a second appears. The ceiling is 1: any NEW approved change request without a verified governance decision fails this check, and every approval after PCCR-006 must come through fn_phase_c_governance_decide, which refuses any connection whose session_user is not authenticator.",
+      "owner": "CLOSED-BY-DESIGN -- historical, preserved as evidence. It cannot reach 0 without fabricating a decision record, and it must not.",
+      "measured_at": "2026-08-25, 1 of 1"
     }
   ]
 }

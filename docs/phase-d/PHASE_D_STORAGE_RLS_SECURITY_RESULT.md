@@ -105,7 +105,7 @@ live HTTP call" caveat was false, and it is retracted rather than restated.**
 | 4 | customer reads supplier KYC | **REFUSED.** A customer bearer on `customer_documents get` for a document it does not own → `404` with **no `file_url` in the body** — the signing call is never reached. Naming `supplier-docs` verbatim on `os_api file`, `os_ops file` and `os_api files` → `403` on all three. |
 | 5 | inactive identity executes | **REFUSED.** An authenticated identity resolving to no active canonical role → `403` from the Command Center. Customer and supplier bearers attempting an admin mutation → `403` each. |
 | 6 | direct RPC / table bypass | **REFUSED — and this is the probe that found the one real defect.** See below. |
-| 7 | unsafe signed URL | **REFUSED.** A 1-second URL served `200` while valid and `400` after expiry. A private path named by a customer bearer and by anon → `403` both. A direct insert into `storage.objects` under an unowned path → `406`. |
+| 7 | unsafe signed URL | **REFUSED.** A 5-second URL, minted over a canary this probe uploads and then deletes, served `200` while valid and `400` after expiry. It was one second until 26 Aug 2026, which is shorter than the sign round-trip: the token expired before the first GET went out, so the "valid" fetch answered 400 and the expiry half had no control. A private path named by a customer bearer and by anon → `403` both. A direct insert into `storage.objects` under an unowned path → `406`. |
 
 Three storage rules the brief lists were executed at the same time, since they need the same
 harness: a ZIP declared `application/zip` and named `.pdf` → `415 InvalidMimeType`; an MZ executable
