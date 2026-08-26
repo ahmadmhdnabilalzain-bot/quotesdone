@@ -97,12 +97,40 @@ const CASES = [
     values ('probe','probe','pending');`,
    ['23514', 'fn_phase_c_no_new_founder_approval_path']],
 
+  // 26 AUG 2026: THE THREE REFUND PROBES BUILD A REAL REFUND CHAIN, BECAUSE A SYNTHETIC ONE IS NOW
+  // REFUSED BEFORE THE GUARD UNDER TEST IS REACHED.
+  //
+  // phase_c_a_refund_amount_was_a_number_somebody_typed.sql put two BEFORE triggers on the money:
+  // a refund must name a revealed transaction whose reveal_fee it equals and whose refund window
+  // has passed, and a refund_decision approval request must carry subject_ref 'refund:<id>' naming
+  // a refunds row that exists. 'TX-PROBE' is neither, so all three cases below were refused with
+  // 22023 founder_approval_subject_malformed — a real guard firing, but not the one the case is
+  // about, and the case would have gone on reporting on an arm it never reached.
+  //
+  // The fixture is what was wrong, not the guard, so the fixture is what changed: each case now
+  // inserts the transaction, the refund and the approval request that a real refund decision would
+  // have behind it, and only then injects its defect. Everything is still inside the probe's
+  // aborted transaction — the DO block ends in a RAISE either way — so no transaction, refund or
+  // inbox item survives. Weakening either trigger to keep these three green would have converted
+  // the founder's rule ("it should be exactly equal to the amount of the 3% the customer paid")
+  // into a check that passes while nothing enforces it.
   ['a refund decided by someone other than the founder is refused',
-   `insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
-      values ('refund_decision','TX-PROBE','payments_and_billing_manager');
+   `insert into public.transactions (id, revealed_at, reveal_fee, fee_status, paid_by, payment_ref)
+      values ('00000000-0000-4000-8000-00000000fee1', now() - interval '60 days', 10.00,
+              'paid','customer','probe:reveal:1');
+    insert into public.refunds (transaction_id, currency, reason_code, status, requested_by,
+      requested_at, within_auto_window, amount_fils)
+      select t.id,'AED','service_not_delivered','requested','zz-probe@example.invalid', now(),
+             false, round(t.reveal_fee * 100)::bigint
+        from public.transactions t where t.id = '00000000-0000-4000-8000-00000000fee1';
+    insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
+      select 'refund_decision','refund:'||r.id,'payments_and_billing_manager'
+        from public.refunds r where r.transaction_id = '00000000-0000-4000-8000-00000000fee1';
     insert into public.phase_c_refund_decision (request_id, decided_by, decision)
-      select request_id, 'chief_of_staff', 'approved' from public.founder_approval_request
-      where subject_ref = 'TX-PROBE';`,
+      select a.request_id, 'chief_of_staff', 'approved'
+        from public.founder_approval_request a
+        join public.refunds r on 'refund:'||r.id = a.subject_ref
+       where r.transaction_id = '00000000-0000-4000-8000-00000000fee1';`,
    // K35: SQLSTATE plus the guard that raises it. Was 'is not the registered founder identity'.
    // fn_phase_c_require_founder refuses earlier and more strictly, with 28000, and the pair below
    // is what rc5 measured it actually raising rather than what anyone remembered it saying.
@@ -122,24 +150,46 @@ const CASES = [
    `perform public.fn_phase_c_founder_subject_bind(
       (select f.auth_user_id from public.phase_c_founder_identity f
         where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
+    insert into public.transactions (id, revealed_at, reveal_fee, fee_status, paid_by, payment_ref)
+      values ('00000000-0000-4000-8000-00000000fee2', now() - interval '60 days', 10.00,
+              'paid','customer','probe:reveal:2');
+    insert into public.refunds (transaction_id, currency, reason_code, status, requested_by,
+      requested_at, within_auto_window, amount_fils)
+      select t.id,'AED','service_not_delivered','requested','zz-probe@example.invalid', now(),
+             false, round(t.reveal_fee * 100)::bigint
+        from public.transactions t where t.id = '00000000-0000-4000-8000-00000000fee2';
     insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
-      values ('refund_decision','TX-PROBE2','payments_and_billing_manager');
+      select 'refund_decision','refund:'||r.id,'payments_and_billing_manager'
+        from public.refunds r where r.transaction_id = '00000000-0000-4000-8000-00000000fee2';
     insert into public.phase_c_refund_decision (request_id, decided_by, decision, executed_at)
-      select request_id, 'management@quotesdone.com', 'rejected', now()
-      from public.founder_approval_request where subject_ref = 'TX-PROBE2';`,
+      select a.request_id, 'management@quotesdone.com', 'rejected', now()
+        from public.founder_approval_request a
+        join public.refunds r on 'refund:'||r.id = a.subject_ref
+       where r.transaction_id = '00000000-0000-4000-8000-00000000fee2';`,
    ['23514', 'fn_phase_c_refund_decision_guard']],
 
   ['a refund whose executor is also its reconciler is refused',
    `perform public.fn_phase_c_founder_subject_bind(
       (select f.auth_user_id from public.phase_c_founder_identity f
         where f.identity = 'management@quotesdone.com' and f.active and f.kind = 'email'));
+    insert into public.transactions (id, revealed_at, reveal_fee, fee_status, paid_by, payment_ref)
+      values ('00000000-0000-4000-8000-00000000fee3', now() - interval '60 days', 10.00,
+              'paid','customer','probe:reveal:3');
+    insert into public.refunds (transaction_id, currency, reason_code, status, requested_by,
+      requested_at, within_auto_window, amount_fils)
+      select t.id,'AED','service_not_delivered','requested','zz-probe@example.invalid', now(),
+             false, round(t.reveal_fee * 100)::bigint
+        from public.transactions t where t.id = '00000000-0000-4000-8000-00000000fee3';
     insert into public.founder_approval_request (action_class, subject_ref, prepared_by_role_id)
-      values ('refund_decision','TX-PROBE3','payments_and_billing_manager');
+      select 'refund_decision','refund:'||r.id,'payments_and_billing_manager'
+        from public.refunds r where r.transaction_id = '00000000-0000-4000-8000-00000000fee3';
     insert into public.phase_c_refund_decision (request_id, decided_by, decision,
       executor_role_id, reconciler_role_id)
-      select request_id, 'management@quotesdone.com', 'approved',
+      select a.request_id, 'management@quotesdone.com', 'approved',
              'payments_and_billing_manager','payments_and_billing_manager'
-      from public.founder_approval_request where subject_ref = 'TX-PROBE3';`,
+        from public.founder_approval_request a
+        join public.refunds r on 'refund:'||r.id = a.subject_ref
+       where r.transaction_id = '00000000-0000-4000-8000-00000000fee3';`,
    // K35: was the CHECK constraint name. A trigger guard refuses it first, which is stricter —
    // a constraint judges the finished row, and the trigger refuses the write before there is one.
    ['23514', 'fn_phase_c_refund_decision_guard']],

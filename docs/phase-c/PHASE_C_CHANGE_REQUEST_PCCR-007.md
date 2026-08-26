@@ -190,3 +190,120 @@ approval that does not quote the digest is refused.
 
 Please also say, in the same message or a second one, which of the two §4 options you want for the
 PCCR-003 row: the pinned board split, or re-approving PCCR-003 through the governance door.
+
+---
+
+## Execution record — appended after approval, 26 Aug 2026
+
+**Everything above this line is what the founder approved and it is unchanged.** This section is a
+record of what happened when it was applied. It is appended for the same reason PCCR-006's was:
+`scripts/checks/freeze_amendment_names_a_real_change_request.test.mjs` requires the change request to
+name the amendment id its approval produced, and that id cannot exist until the change is applied.
+§11 above says so — *"amendment id: to be allocated by `public.phase_c_freeze_amendment` on
+approval"*.
+
+### The approved digest is preserved, not overwritten
+
+Appending changes this file's sha256. The digest he quoted is the digest of the file **as he read
+it**, and it is immutable in git:
+
+```bash
+git show 872d333:docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-007.md | sha256sum
+# f2a89bebcdf115c73d837f4457bddc5375ac4c3ffe7bb25e100bd7b5a0e17ad1
+```
+
+`872d333` is the merge of PR #471, which introduced this file and was HEAD when he approved it.
+`scripts/checks/pccr_approval_matches_committed_tables.test.mjs` compares the stored digest against
+the file **above the `## Execution record` heading**, so the approved body is still byte-identical
+to what he signed and this appendix is outside it.
+
+### The approval
+
+| | |
+|---|---|
+| Command Center command | **45525** |
+| message | **46779**, channel `command_center` |
+| received | `2026-08-26 12:35:30.387938+00` |
+| founder identity | `management@quotesdone.com` — active, kind `email` |
+| his words | *"I approve PCCR-007 — the founder door read a setting — as set out in `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-007.md`, sha256 `f2a89beb…17ad1`."* |
+| `raw_text_hash` | `357c4c0ef59d7ad65672e6b0ffcbf969614562d7cd643831bd8c8ccbe464a0bd` |
+| root trace | **5068229** |
+| audit | `os_audit_log` **19248** |
+| business work created | 0 tasks against command 45525; no external effect |
+
+### Amendment A, as allocated
+
+| | |
+|---|---|
+| **amendment_id** | **82** |
+| subject | `founder_authentication` |
+| frozen object | `fn_phase_c_require_founder(p_actor text)` |
+| prior digest | `b2fff88d695729ddc8134532908ca0dd9fb3697f80bd7457d8ec35ab5a601e24` |
+| new digest | `ec8a4069ca88d19d212dfbac1e410676b079a06386207fc24ef140873b347a6e` |
+| approval basis | `AUTHENTICATED_FOUNDER_SESSION` |
+| approval route | `auth.uid()`, subject `1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14` |
+| `deployed_before_approval` | `false` — his message came first, at 12:35:30; the amendment was recorded at 12:43:24 and approved at 12:44:33 |
+| document digest on the row | `f2a89bebcdf115c73d837f4457bddc5375ac4c3ffe7bb25e100bd7b5a0e17ad1`, path `docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-007.md` |
+
+**The prior digest is the FROZEN BASELINE, not the body this change replaced** — the same
+convention PCCR-006 recorded, and for the same reason: `fn_phase_c_freeze_drift` judges a subject
+undrifted when an amendment carries the baseline as its prior digest and the live body as its new
+one. The body actually replaced was `3fc51958…`, amendment 51's new digest, which §11 above names.
+Amendment 51 correctly stops matching the live body from here.
+
+**This amendment was approved through the door it created.**
+`fn_phase_c_freeze_amendment_approve` calls `fn_phase_c_require_founder(null)` before it does
+anything else, and since this change that resolver refuses any connection whose `session_user` is
+not `authenticator`. So amendment 82 is the first amendment recorded under the stricter predicate,
+and no management or migration connection could have written it.
+
+### What production enforces now
+
+Two migrations were applied production-direct and read back identical to their files:
+
+| file | what it does |
+|---|---|
+| `scripts/sql/phase_c_the_founder_door_read_a_setting.sql` | `fn_phase_c_require_founder` refuses any connection whose `session_user` is not `authenticator`. `auth.uid()` reads `request.jwt.claims`, which a management or migration connection can set for itself — that was the defect, and it was measured accepting a founder-attributed refund approval before the change. |
+| `scripts/sql/phase_c_a_refund_amount_was_a_number_somebody_typed.sql` | a refund must name a revealed transaction with a `reveal_fee`, `amount_fils` must equal `round(reveal_fee*100)`, `now()` must be past `refund_deadline`, and a `refund_decision` approval request must carry `subject_ref` of the form `refund:<id>` naming a real `refunds` row. |
+
+The second file is not part of this change request and needed no amendment: it touches no frozen
+Phase C subject. It is recorded here because it came out of the same evidence — the probe in §2
+created a refund request for "AED 10.00" against nothing at all, and his instruction on reading it
+was *"how could you issue a random refund figure? it should be exactly equal to the amount of the 3%
+the customer paid. and currently we have none, so the system shouldnt even allow it"*.
+
+**The probes in `scripts/checks/phase_c_guards_reject_injected_defects.test.mjs` were corrected, not
+the guards.** Three refund cases used a synthetic `subject_ref` and were refused
+`founder_approval_subject_malformed` — a real guard firing, but not the one under test. They now
+build the real chain (transaction → refund → approval request) inside their aborted transaction.
+Measured after the correction: 56/58 injections refused, 0 failed, 2 not driveable from a
+management connection because they need a verified founder session — which is exactly what this
+change request makes true.
+
+### This register row says RAISED, and it is not for the reason PCCR-006's did
+
+`phase_c_change_request.disposition` for PCCR-007 is `RAISED`. PCCR-006 built the canonical door —
+`fn_phase_c_governance_decide`, writing `public.phase_c_governance_decision` — and said *"every
+change request after this one reaches APPROVED through the canonical service."* **It did not, and
+the reason is a defect in that door, not in this approval.**
+
+`fn_phase_c_governance_decide` mints its purpose-bound session by inserting into
+`public.phase_c_founder_auth_event`, and it is **not a registered write authority for that table**:
+`public.kernel_write_authority` names only `fn_phase_c_founder_subject_bind`, so
+`fn_kernel_write_guard` refuses the insert with `42501`. Measured on production, 26 Aug 2026:
+`public.phase_c_governance_decision` holds **0 rows and has never held one**, and
+`public.phase_c_founder_auth_event` holds 0. PCCR-006's door has therefore never worked, for any
+change request.
+
+The approval of PCCR-007 is not weakened by that — it is recorded on
+`public.phase_c_freeze_amendment` as amendment 82, through a verified founder session, against the
+digest of the document he quoted. What is missing is the second, newer ledger, and it is missing
+because nothing can write it. `fn_phase_c_freeze_drift` reports this as
+`approved_change_requests_with_no_verified_governance_decision`, `1 of 1` — the one being PCCR-003,
+whose approval predates the ledger entirely. **Raised for the founder as an open item and not fixed
+here.** `fn_phase_c_governance_decide` is not itself a frozen subject, so registering it in
+`kernel_write_authority` is a small change — but the door it opens cannot be *proved* to work from
+a management connection, because by its own design (and by PCCR-007's) it refuses any caller whose
+`session_user` is not `authenticator`. Driving it needs a founder session in the OS. Registering
+the authority without being able to exercise the door would leave a green registry row standing in
+for a path nobody has run, which is the failure mode this whole change request is about.

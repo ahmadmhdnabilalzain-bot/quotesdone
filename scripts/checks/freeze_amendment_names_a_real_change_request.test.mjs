@@ -343,7 +343,20 @@ end $probe$;`);
 // at exactly one row by fn_phase_c_freeze_drift. The constant keeps its name because the property
 // it pins is unchanged: this is the closed set of change requests carrying ANY approval, and a
 // fourth appearing without a line here is what it exists to catch.
-const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006'];
+// PCCR-007 JOINS THIS SET ON 26 AUG 2026, THROUGH THE DOOR PCCR-006 BUILT.
+// He approved it as a new Command Center command -- message 46779, channel command_center,
+// received 2026-08-26 12:35:30.387938+00 -- whose words quote this document's sha256
+// f2a89bebcdf115c73d837f4457bddc5375ac4c3ffe7bb25e100bd7b5a0e17ad1, and that digest is stored on
+// amendment 82 as approved_amendment_table_digest, where
+// scripts/checks/pccr_approval_matches_committed_tables.test.mjs compares it against the committed
+// file. The amendment carries approval_basis AUTHENTICATED_FOUNDER_SESSION with approval_route
+// 'auth.uid()' and approval_auth_subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14 -- the ordinary path,
+// not PCCR-006's bootstrap. Its own subject is what makes that meaningful: PCCR-007 is the change
+// that made fn_phase_c_require_founder refuse any connection whose session_user is not
+// 'authenticator', and fn_phase_c_freeze_amendment_approve calls that resolver first, so from this
+// amendment onwards a recorded approval cannot come from a management or migration connection that
+// set request.jwt.claims for itself.
+const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006', 'PCCR-007'];
 
 test('only the change request the founder signed in writing carries an approval',
   { skip: SKIP }, async () => {
