@@ -1741,3 +1741,7 @@ scripts/sql/phase_c_the_refund_guard_could_not_record_stripes_own_refund.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/phase_c_the_ownership_ledger_named_the_pccr006_file_again.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
