@@ -1725,3 +1725,19 @@ scripts/sql/phase_c_the_amendment_guard_only_watched_one_basis.sql
 scripts/sql/phase_c_the_approved_digest_was_compared_to_nothing.sql
 scripts/sql/phase_c_the_founder_door_read_a_setting.sql
 scripts/sql/phase_c_a_refund_amount_was_a_number_somebody_typed.sql
+scripts/sql/phase_c_the_refund_guard_refused_his_own_words.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_the_refund_probe_was_refused_before_its_own_guard.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/phase_d_the_fixture_asked_for_a_refund_the_same_minute_it_paid.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/phase_c_the_refund_guard_could_not_record_stripes_own_refund.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

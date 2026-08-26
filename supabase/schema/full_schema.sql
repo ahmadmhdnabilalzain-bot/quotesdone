@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-26T12:45:59.493Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-26T13:43:02.837Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27643,20 +27643,37 @@ CREATE OR REPLACE FUNCTION public.fn_founder_approval_names_a_real_refund()
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_id bigint;
+declare v_tail text; v_id bigint; v_backed boolean;
 begin
   if NEW.action_class is distinct from 'refund_decision' then
     return NEW;
   end if;
-  v_id := nullif(regexp_replace(coalesce(NEW.subject_ref,''), '^refund:', ''), '')::bigint;
-  if v_id is null or not exists (select 1 from public.refunds r where r.id = v_id) then
-    raise exception 'founder_approval_request: subject_ref % names no refund. A refund decision he is asked to make must point at a refund that exists, as refund:<id>. An inbox item that points at nothing is a decision about nothing. (founder_approval_subject_absent)',
+
+  -- Only a subject_ref written as refund:<id> is CLAIMING to name a refund. Anything else is a
+  -- reference the founder typed, and it is judged at the decision boundary below, not here.
+  v_tail   := case when coalesce(NEW.subject_ref,'') ~ '^refund:'
+                   then substring(NEW.subject_ref from 8) else null end;
+  v_id     := case when v_tail ~ '^[0-9]+$' then v_tail::bigint else null end;
+  v_backed := v_id is not null and exists (select 1 from public.refunds r where r.id = v_id);
+
+  if v_tail is not null and v_id is null then
+    raise exception 'founder_approval_request: subject_ref % is written as refund:<id> and the id is not a number. (founder_approval_subject_malformed)',
+      coalesce(NEW.subject_ref,'(null)') using errcode = '22023';
+  end if;
+
+  if v_tail is not null and not v_backed then
+    raise exception 'founder_approval_request: subject_ref % names no refund. A row that says refund:<id> is claiming a refund exists; this one does not. (founder_approval_subject_absent)',
       coalesce(NEW.subject_ref,'(null)') using errcode = '23503';
   end if;
+
+  if coalesce(NEW.state,'') = 'approved' and not v_backed then
+    raise exception 'founder_approval_request %: a refund decision may not be APPROVED against subject_ref %, which does not resolve to a row in public.refunds. He approves money leaving, and money that no refund record accounts for is not his decision to have made. (founder_approval_approved_without_a_refund)',
+      coalesce(NEW.request_id::text,'(new)'), coalesce(NEW.subject_ref,'(null)')
+      using errcode = '23514',
+            hint = 'Create the refund first -- it must name the revealed transaction whose reveal_fee it returns -- then point subject_ref at it as refund:<id>. An intake item raised from his own words may sit pending, and may be rejected, but may not be approved.';
+  end if;
+
   return NEW;
-exception when invalid_text_representation then
-  raise exception 'founder_approval_request: subject_ref % is not of the form refund:<id>. (founder_approval_subject_malformed)',
-    coalesce(NEW.subject_ref,'(null)') using errcode = '22023';
 end
 $function$
 
@@ -55766,10 +55783,17 @@ begin
                                            'selected_quote_id', v_refs->>'quote_id');
 
     elsif st.stage_key = 'payment_transaction' then
+      -- THE REVEAL TIME IS SET HERE, WHERE THE ROW IS CREATED. Stage 190 inserts the transaction and
+      -- stage 220 upserts the same id, so the refund window is stamped from THIS statement:
+      -- trg_reveal_window fills refund_deadline only while it is null, and a later correction to
+      -- revealed_at does not move a deadline that already exists. Setting it at stage 220 alone
+      -- therefore changed nothing, measured -- the deadline stayed at now() + 3 working days and
+      -- stage 230 stayed refused.
       v_owner := v_refs->>'customer_id';
       v_pay := v_pay || jsonb_build_object('inquiry_id', v_refs->>'inquiry_id',
                                            'quote_id', v_refs->>'quote_id',
                                            'quote_amount', 1000, 'reveal_fee', 100,
+                                           'revealed_at', now() - interval '30 days',
                                            'payment_ref', format('zz-pay-%s', v_label));
 
     elsif st.stage_key = 'provider_event' then
@@ -55785,9 +55809,17 @@ begin
     elsif st.stage_key = 'reveal_transaction' then
       v_key := v_refs->>'transaction_id';
       v_owner := v_refs->>'customer_id';
+      -- REVEALED THIRTY DAYS AGO, NOT THIS MINUTE. 26 Aug 2026: the founder's rule that a refund
+      -- may only be claimed after the reveal window -- "only the option of refund is clickable after
+      -- the period of 3 working days" -- is now enforced on public.refunds itself, and this chain
+      -- paid and demanded its money back in the same transaction. Measured: stage 230
+      -- refund_dispute_case REFUSED, "the refund window on transaction ... opens at 2026-08-31 and
+      -- it is now 2026-08-26 (refund_window_not_yet_open)". A refund case follows a reveal that has
+      -- already matured, so the fixture now describes one; the window it must clear is read from the
+      -- same decision_policy the product reads, never assumed to be three days here.
       v_pay := v_pay || jsonb_build_object('reveal_fee', 100,
                                            'payment_ref', format('zz-pay-%s', v_label),
-                                           'revealed_at', now(),
+                                           'revealed_at', now() - interval '30 days',
                                            'supplier_id', (v_refs->>'supplier_id')::bigint);
 
     elsif st.stage_key = 'refund_dispute_case' then
@@ -61629,6 +61661,7 @@ declare
   v_c4_ob0 bigint; v_c4_row bigint; v_c4_n0 bigint; v_c4_n1 bigint; v_c4_n2 bigint; v_c4_emit jsonb;
   v_t5_board text; v_c1_verdict text; v_c1_observed text;
   v_ok boolean; v_msg text; v_n int; v_a jsonb; v_b jsonb; v_key text; v_pay jsonb;
+  v_f3_txn uuid;   -- PD-FIN-003 fixture: the payment the injected refund reverses
   v_sup text; v_id bigint;
   -- M08. The locals the eight re-measured branches need. Every one is scratch for a single branch
   -- except v_m3_trace and v_m3_task, which carry a REAL sealed verdict and a REAL task from the
@@ -61878,9 +61911,27 @@ begin
 
   -- ---- FINANCE --------------------------------------------------------------------------------
   -- PD-FIN-003 refund without founder decision -> refused.
+  --
+  -- 26 AUG 2026: THE FIXTURE WAS WRONG, NOT THE GUARD. This injection named no transaction, and
+  -- a00_refund_amount_is_the_fee_paid -- added the same day, on the founder's instruction that a
+  -- refund figure "should be exactly equal to the amount of the 3% the customer paid" -- refuses a
+  -- refund that names no payment with 23514 (refund_names_no_payment), BEFORE
+  -- z00_refund_founder_decision_only is reached. The case therefore recorded "refused for another
+  -- reason before the guard" and the builder counted it FAILED TO REFUSE, while the defect was in
+  -- fact refused twice over. Accepting 23514 here would have been the trap: it would record the
+  -- amount refusal as proof that the founder-identity arm fires, and that arm would never be tested
+  -- again. So the injection now carries a real payment behind it -- a revealed transaction whose
+  -- reveal_fee it returns exactly, past its refund window -- and the arm this case is ABOUT is the
+  -- arm that refuses it. Both rows live in this subtransaction and go with it.
   begin
-    insert into public.refunds (transaction_id, customer_id, amount_fils, reason_code, status, decided_by, decided_at)
-    values (null, null, 100, 'other', 'approved', 'trust_and_safety_manager', now());
+    insert into public.transactions (id, revealed_at, reveal_fee, fee_status, paid_by, payment_ref)
+    values (gen_random_uuid(), now() - interval '60 days', 10.00, 'paid', 'customer', 'pd-fin-003')
+    returning id into v_f3_txn;
+    insert into public.refunds (transaction_id, customer_id, amount_fils, reason_code, status,
+                                requested_by, requested_at, decided_by, decided_at)
+    select v_f3_txn, null, round(t.reveal_fee * 100)::bigint, 'other', 'approved',
+           'zz-pd-fin-003@example.invalid', now(), 'trust_and_safety_manager', now()
+      from public.transactions t where t.id = v_f3_txn;
     v_ok := false; v_msg := 'an approved refund by a non-founder was ACCEPTED';
   exception when sqlstate '42501' then
     v_ok := true; v_msg := 'refused 42501: approved by a role that is not an active founder identity';
@@ -67293,12 +67344,21 @@ CREATE OR REPLACE FUNCTION public.fn_refund_amount_is_the_fee_paid()
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare t public.transactions%rowtype; v_expected bigint;
+declare
+  t public.transactions%rowtype;
+  v_expected bigint;
+  -- The same three originators fn_phase_c_refund_execution_requires_decision names, read the same
+  -- way. A refund Stripe already issued is a fact to be recorded, not a request to be approved.
+  v_external constant text[] := array['stripe_webhook','stripe_dashboard','stripe'];
 begin
+  if lower(coalesce(NEW.requested_by,'')) = any(v_external) then
+    return NEW;
+  end if;
+
   if NEW.transaction_id is null then
     raise exception 'refunds: a refund must name the transaction it reverses. transaction_id is null, so this row asserts money is owed without saying which payment it came from. (refund_names_no_payment)'
       using errcode = '23514',
-            hint = 'Set transaction_id to the public.transactions row whose reveal_fee is being returned.';
+            hint = 'Set transaction_id to the public.transactions row whose reveal_fee is being returned. A refund this platform did not issue is recorded through fn_refund_settle with requested_by stripe_webhook, and that path is exempt.';
   end if;
 
   select * into t from public.transactions where id = NEW.transaction_id;
@@ -67312,14 +67372,6 @@ begin
       NEW.transaction_id, coalesce(t.reveal_fee::text,'null') using errcode = '23514';
   end if;
 
-  -- THE THREE WORKING DAYS, ENFORCED WHERE THE MONEY IS.
-  -- His words, 26 Aug 2026: "only the option of refund is clickable after the period of 3 working
-  -- days". That period already exists and is already correct: trg_reveal_window sets
-  -- refund_deadline := fn_add_working_days(revealed_at, decision_policy 'refund_call_after_working_days'
-  -- default 3) and opens the window at reveal. What was missing is that nothing refused a refund
-  -- raised before it — fn_refund_request RECORDS whether the request arrived in window and does not
-  -- act on it, so the rule lived in a column and in the UI rather than at the boundary.
-  -- A UI that hides a button is a courtesy; this is the rule.
   if t.refund_deadline is null then
     raise exception 'refunds: transaction % has no refund window. trg_reveal_window opens one at reveal, so a transaction without it was never revealed and no refund can be due yet. (refund_window_not_open)',
       NEW.transaction_id using errcode = '23514';

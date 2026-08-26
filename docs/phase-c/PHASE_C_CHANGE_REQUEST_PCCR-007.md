@@ -264,7 +264,38 @@ Two migrations were applied production-direct and read back identical to their f
 | file | what it does |
 |---|---|
 | `scripts/sql/phase_c_the_founder_door_read_a_setting.sql` | `fn_phase_c_require_founder` refuses any connection whose `session_user` is not `authenticator`. `auth.uid()` reads `request.jwt.claims`, which a management or migration connection can set for itself — that was the defect, and it was measured accepting a founder-attributed refund approval before the change. |
-| `scripts/sql/phase_c_a_refund_amount_was_a_number_somebody_typed.sql` | a refund must name a revealed transaction with a `reveal_fee`, `amount_fils` must equal `round(reveal_fee*100)`, `now()` must be past `refund_deadline`, and a `refund_decision` approval request must carry `subject_ref` of the form `refund:<id>` naming a real `refunds` row. |
+| `scripts/sql/phase_c_a_refund_amount_was_a_number_somebody_typed.sql` | a refund must name a revealed transaction with a `reveal_fee`, `amount_fils` must equal `round(reveal_fee*100)`, and `now()` must be past `refund_deadline`. |
+| `scripts/sql/phase_c_the_refund_guard_refused_his_own_words.sql` | the same file's second rule, corrected an hour later — see below. |
+| `scripts/sql/phase_c_the_refund_guard_could_not_record_stripes_own_refund.sql` | the amount rule exempts the three external originators (`stripe_webhook`, `stripe_dashboard`, `stripe`) the refund-execution guard already exempted, so `fn_refund_settle` can still record a refund Stripe issued; and the W17 refund effect is given the `transaction_id` key it never carried. |
+| `scripts/sql/phase_d_the_refund_probe_was_refused_before_its_own_guard.sql` | PD-FIN-003's fixture builds a real payment so the founder-identity arm is what refuses it, and PD-FIN-004's stated blocker is corrected. |
+| `scripts/sql/phase_d_the_fixture_asked_for_a_refund_the_same_minute_it_paid.sql` | the Phase D scenario chain reveals thirty days before it opens a refund case, because it cannot pay and claim in the same statement. |
+
+**The second file's approval-request rule refused the founder's own command, and was moved rather
+than relaxed.** As first written it required *every* `refund_decision` approval request to carry
+`subject_ref` of the form `refund:<id>` naming a real `refunds` row. `fn_founder_command_submit`
+mints that row from a regex over his sentence — `TX-123`, or literally
+`UNIDENTIFIED_TRANSACTION` — so from 12:43 UTC until it was corrected at 13:16 UTC every refund-shaped command he sent raised
+`22023`, and the raise took the whole command with it, including the `founder_command_message` row
+that records his words. Measured on production, and acceptance cases CC-009 and CC-010 both red.
+The rule now bites where a decision is made instead of where a question is asked: a `subject_ref`
+written as `refund:<id>` must still resolve (the arm that caught the §2 probe's
+`refund:zz-audit-probe`), and — this is new, and nothing enforced it before — **no refund request
+may reach state `approved` unless its subject resolves to a real `refunds` row**. A pending intake
+item raised from his own words may sit, and may be rejected; it may not be approved. Verified by
+execution: his command accepted with 1 approval request, `refund:zz-audit-probe` refused 22023,
+`refund:999999999` refused 23503, an approval with nothing behind it refused 23514, a real chain
+accepted — then CC-001…CC-020 20/20, nothing left behind.
+
+**Driving the guard found two more places it was wrong, and both were code, not fixtures.**
+`fn_refund_settle` — the Stripe webhook path — records a refund this platform did not issue and
+inserts with no `transaction_id`, and the amount guard refused it, dropping our only record of real
+money leaving; it now carries the same external-originator exemption
+`fn_phase_c_refund_execution_requires_decision` already had, read the same way. And the Phase D
+drive of W17 refused at step 1 with *"a refund must name the transaction it reverses"* — the
+handler's refund effect genuinely carried no transaction, because the payload population is built
+from columns that are NOT NULL and `refunds.transaction_id` must stay nullable for the webhook. The
+key is now declared in the fixture catalogue and resolved from the payment the scenario created, so
+`PHASE_D_WORKFLOW_IMPLEMENTATION_RESULT.csv` reproduces at 257 business effects again.
 
 The second file is not part of this change request and needed no amendment: it touches no frozen
 Phase C subject. It is recorded here because it came out of the same evidence — the probe in §2
