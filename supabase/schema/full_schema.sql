@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-25T21:30:08.169Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-26T11:40:06.753Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -48465,29 +48465,63 @@ CREATE OR REPLACE FUNCTION public.fn_phase_c_freeze_amendment_session_claim_is_v
  LANGUAGE plpgsql
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_ev bigint; e public.phase_c_founder_auth_event%rowtype;
+declare
+  v_ev      bigint;
+  e         public.phase_c_founder_auth_event%rowtype;
+  v_moved   boolean;
 begin
-  if NEW.approval_basis is distinct from 'AUTHENTICATED_FOUNDER_SESSION' then
-    return NEW;
-  end if;
-  if TG_OP = 'UPDATE' and OLD.approval_basis = 'AUTHENTICATED_FOUNDER_SESSION'
-     and (NEW.approved_by, NEW.approval_route, NEW.approval_auth_subject,
-          NEW.approved_amendment_table_digest)
-         is not distinct from
-         (OLD.approved_by, OLD.approval_route, OLD.approval_auth_subject,
-          OLD.approved_amendment_table_digest) then
-    return NEW;   -- an unrelated column moved on an already-verified approval
+  -- ---- 0. AN APPROVAL ALREADY GIVEN MAY NOT MOVE ------------------------------------------------
+  if TG_OP = 'UPDATE' and OLD.approved_by is not null then
+    if (NEW.approved_by, NEW.approved_at, NEW.approval_basis, NEW.approval_route,
+        NEW.approval_auth_subject, NEW.approved_amendment_table_path,
+        NEW.approved_amendment_table_digest)
+       is distinct from
+       (OLD.approved_by, OLD.approved_at, OLD.approval_basis, OLD.approval_route,
+        OLD.approval_auth_subject, OLD.approved_amendment_table_path,
+        OLD.approved_amendment_table_digest) then
+      raise exception 'phase_c_freeze_amendment %: the approval columns are a fact about the past and may not be changed once given. Rewriting approved_amendment_table_digest changes which document the founder is recorded as having read. (pccr007_amendment_approval_immutable)',
+        OLD.amendment_id using errcode = '42501';
+    end if;
+    return NEW;   -- an unrelated column moved on an already-approved row
   end if;
 
+  -- ---- 1. IS THIS WRITE MAKING AN APPROVAL CLAIM AT ALL? ----------------------------------------
+  v_moved := NEW.approved_by is not null or NEW.approval_basis is not null;
+  if TG_OP = 'UPDATE' then
+    v_moved := v_moved and
+      (NEW.approved_by, NEW.approval_basis) is distinct from (OLD.approved_by, OLD.approval_basis);
+  end if;
+  if not v_moved then
+    return NEW;
+  end if;
+
+  -- ---- 2. A WRITTEN INSTRUCTION IS NOT AN APPROVAL, AND IS NOW REFUSED RATHER THAN REPORTED -----
+  if NEW.approval_basis = 'WRITTEN_INSTRUCTION' then
+    raise exception 'phase_c_freeze_amendment %: WRITTEN_INSTRUCTION may not be written. An approval recorded from a written instruction is not a founder session, and fn_phase_c_freeze_drift has reported that for as long as this column has existed. It is refused here instead. (pccr007_amendment_written_instruction_refused)',
+      coalesce(NEW.amendment_id::text,'(new)') using errcode = '28000';
+  end if;
+
+  -- ---- 3. THE ONE-TIME COMMAND BOOTSTRAP WAS SPENT BY PCCR-006 ----------------------------------
+  if NEW.approval_basis = 'AUTHENTICATED_FOUNDER_COMMAND_BOOTSTRAP' then
+    raise exception 'phase_c_freeze_amendment %: AUTHENTICATED_FOUNDER_COMMAND_BOOTSTRAP was used exactly once, by PCCR-006, to approve the change request that created the governance ledger. fn_phase_c_freeze_drift expects exactly one and nothing enforced it. Every approval after that one goes through a verified session. (pccr007_amendment_bootstrap_already_spent)',
+      coalesce(NEW.amendment_id::text,'(new)') using errcode = '28000';
+  end if;
+
+  -- ---- 4. THE CONNECTION. This is the predicate a set_config cannot forge. ----------------------
+  if session_user <> 'authenticator' then
+    raise exception 'phase_c_freeze_amendment %: an approval may only be recorded on the PostgREST connection that verified a founder bearer token (session_user authenticator); this call arrives as session_user %. auth.uid() reads request.jwt.claims, which a management or migration connection can set for itself, so the claim is not evidence and the connection is. (pccr007_amendment_untrusted_connection)',
+      coalesce(NEW.amendment_id::text,'(new)'), session_user using errcode = '28000';
+  end if;
+
+  -- ---- 5. THE VERIFIED SUBJECT, unchanged from PCCR-006 -----------------------------------------
   v_ev := nullif(btrim(current_setting('app.phase_c_founder_auth_event', true)),'')::bigint;
   select * into e from public.phase_c_founder_auth_event
    where event_id = v_ev and txid = txid_current();
   if not found then
-    -- Route A carries no bound event; the subject must then be a live auth.uid().
     if coalesce(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid)
        is distinct from NEW.approval_auth_subject then
-      raise exception 'phase_c_freeze_amendment %: a row may not claim AUTHENTICATED_FOUNDER_SESSION without a verified session. There is no founder auth event bound to this transaction and auth.uid() does not resolve to the subject the row names. Every constraint on this table checks the SHAPE of the claim; this checks the claim. (pccr_amendment_session_claim_unverified)',
-        coalesce(NEW.amendment_id::text,'(new)') using errcode = '28000';
+      raise exception 'phase_c_freeze_amendment %: a row may not claim % without a verified session. There is no founder auth event bound to this transaction and auth.uid() does not resolve to the subject the row names. (pccr_amendment_session_claim_unverified)',
+        coalesce(NEW.amendment_id::text,'(new)'), NEW.approval_basis using errcode = '28000';
     end if;
     return NEW;
   end if;
@@ -48817,6 +48851,7 @@ declare
   v_nonce   text;
   v_ev      bigint;
   v_did     bigint;
+  v_msg     bigint;
   v_prior   public.phase_c_governance_decision%rowtype;
 begin
   -- ---- 0. THE CONNECTION. A governance decision arrives on the connection that verifies tokens.
@@ -48870,6 +48905,23 @@ begin
       using errcode = '23503';
   end if;
 
+  -- ---- 2b. THE DIGEST IS THE ONE HE QUOTED, NOT MERELY SIXTY-FOUR HEX CHARACTERS.
+  -- public.founder_command_message is append-only, holds his words verbatim, recomputes its own
+  -- sha256, and carries no anon or authenticated grant. A digest he never typed against this
+  -- change request is a value a caller chose.
+  select m.message_id into v_msg
+    from public.founder_command_message m
+    join public.phase_c_founder_identity f
+      on f.identity = m.founder_identity and f.active and f.kind = 'email'
+   where position(v_digest in lower(m.raw_text)) > 0
+     and position(lower(v_ref) in lower(m.raw_text)) > 0
+   order by m.received_at
+   limit 1;
+  if v_msg is null then
+    raise exception 'fn_phase_c_governance_decide: no founder command message names both % and the digest %…. The founder approves the document he read, and public.founder_command_message is where his words are recorded immutably. A sixty-four character hex string that appears in none of them is a value this call chose, not a document he approved. (pccr007_governance_digest_never_quoted)',
+      v_ref, left(v_digest,16) using errcode = '22023';
+  end if;
+
   -- ---- 3. REPLAY IS IDEMPOTENT AND MAKES NO SECOND ROW.
   select * into v_prior from public.phase_c_governance_decision
    where change_request_ref = v_ref and decision = v_dec
@@ -48910,6 +48962,7 @@ begin
     'approved_amendment_table_path', v_path,
     'approved_amendment_table_digest', v_digest,
     'auth_event_id', v_ev,
+    'founder_message_id', v_msg,
     'prior_disposition', cr.disposition);
 end
 $function$

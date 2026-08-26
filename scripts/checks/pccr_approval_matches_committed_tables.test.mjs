@@ -49,6 +49,27 @@ console.log(`${rows.length} recorded amendment(s) on ${PROJECT_REF}`);
 // PCCR-006 added approved_amendment_table_path for exactly this reason — so a SECOND amendment
 // document could be verified without invalidating the first five — and this file went on hashing
 // one hard-coded path. Amendment 51 names docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md.
+const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
+
+// THE APPROVED BODY OF A CHANGE REQUEST: everything above its execution-record appendix.
+//
+// Returns null when the file has no appendix, in which case the whole-file digest is the only
+// thing to compare and nothing here applies. The marker is matched on the heading, and the
+// separator line and blank line that precede it are dropped with it, so the body is byte-identical
+// to the file as it stood before the appendix was written.
+const APPENDIX = /^## Execution record\b/;
+function approvedBodyOf(p) {
+  let lines;
+  try { lines = readFileSync(p, 'utf8').split('\n'); } catch { return null; }
+  const at = lines.findIndex((l) => APPENDIX.test(l));
+  if (at < 0) return null;
+  let end = at;                                    // first line NOT in the approved body
+  while (end > 0 && lines[end - 1].trim() === '') end -= 1;      // blank lines before the heading
+  if (end > 0 && lines[end - 1].trim() === '---') end -= 1;      // the separator rule
+  while (end > 0 && lines[end - 1].trim() === '') end -= 1;      // blank lines before that
+  return Buffer.from(lines.slice(0, end).join('\n') + '\n', 'utf8');
+}
+
 const hashOf = (p) => { try { return createHash('sha256').update(readFileSync(p)).digest('hex'); }
                         catch { return null; } };
 // A DIGEST THAT DOES NOT MATCH THE WORKING TREE IS NOT AUTOMATICALLY WRONG. PCCR-006's execution
@@ -128,10 +149,38 @@ for (const r of rows) {
   let ok = r.approved_amendment_table_digest === live;
   let where = 'the committed file';
   let whyNot = null;
+
+  // A DOCUMENT MAY GAIN AN EXECUTION RECORD AND MAY NOT GAIN ANYTHING ELSE.
+  //
+  // A change request cannot be finished before it is applied: this repository's own
+  // freeze_amendment_names_a_real_change_request.test.mjs requires it to name the amendment id its
+  // approval produced, and that id does not exist until the change is applied. So the file the
+  // founder approved MUST change afterwards, and appending changes its sha256.
+  //
+  // This used to be resolved by searching history for ANY commit that ever held the approved digest
+  // and passing if one was found. That accepts an append — and accepts a substantive rewrite of the
+  // approved text just as readily, because both leave the old bytes somewhere in history. The
+  // digest then pins nothing at HEAD, which is the only place anyone reads the document.
+  //
+  // What is checked instead: the document ABOVE the execution-record marker must still hash to the
+  // approved digest, at HEAD. PCCR-006 states this rule in its own appendix — "Everything above this
+  // line is what the founder approved and it is unchanged" — and it is now enforced rather than
+  // asserted. One byte edited above the marker fails this check; the appendix below it is free.
+  if (!ok) {
+    const body = approvedBodyOf(path);
+    if (body && sha256(body) === r.approved_amendment_table_digest) {
+      ok = true;
+      where = `the approved body of ${path} at HEAD (execution record appended below the marker)`;
+    }
+  }
+
+  // History is now DIAGNOSIS ONLY. It says which commit last held the approved bytes so a reader
+  // can see what was changed and when; it can no longer make this check pass.
   if (!ok) {
     const found = commitCarrying(path, r.approved_amendment_table_digest);
-    if (found.at) { ok = true; where = `${path} as committed at ${found.at}`; }
-    else whyNot = found.why;
+    whyNot = found.at
+      ? `EDITED_SINCE_APPROVAL_AT_${found.at}`
+      : found.why;
   }
   console.log(`${line}  ${ok ? 'matches' : 'DIFFERS FROM'} ${where}`
     + `  (route ${r.approval_route ?? '(none)'}, subject ${r.approval_auth_subject})${basis}`);
@@ -147,7 +196,13 @@ for (const r of rows) {
         + 'is bounded and stopped there rather than pretending to be exhaustive.',
       NO_COMMIT_EVER_HELD_IT: 'and no commit in this repository has ever held that path at that '
         + 'digest, which IS a finding about the estate.',
-    }[whyNot] ?? String(whyNot);
+    }[whyNot] ?? (String(whyNot).startsWith('EDITED_SINCE_APPROVAL_AT_')
+      ? `and the document HAS BEEN EDITED SINCE HE APPROVED IT. The approved bytes were last held at `
+        + `commit ${String(whyNot).replace('EDITED_SINCE_APPROVAL_AT_', '')}, and neither the file at `
+        + `HEAD nor its body above the execution-record marker reproduces them. A digest that only `
+        + `matches something in history pins nothing at HEAD, which is the only place the document `
+        + `is read. Either restore the approved text, or reissue the approval against the new digest.`
+      : String(whyNot));
     fail.push(`amendment ${r.amendment_id} was approved against document digest `
       + `${r.approved_amendment_table_digest} for ${path} (working tree: ${live ?? 'file absent'}) -- `
       + explain);

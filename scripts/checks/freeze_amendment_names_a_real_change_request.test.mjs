@@ -180,13 +180,22 @@ begin
   -- matched nothing, all three arms wrote 0 rows, and the test failed for want of a subject rather
   -- than for a defect. Zero cannot tell a dead guard from an idle system: the probe now CREATES the
   -- condition it tests. The transaction always aborts, so no approval is really cleared.
-  update public.phase_c_freeze_amendment
-     set approved_by = null, approved_at = null, approval_basis = null,
-         approval_route = null, approval_auth_subject = null,
-         -- PCCR-006 Amendment H added phase_c_freeze_amendment_approval_names_its_document:
-         -- (digest IS NULL) = (path IS NULL). Nulling the digest alone is refused, and these three
-         -- probes did exactly that. Both go, which is what "clear the approval" always meant.
-         approved_amendment_table_digest = null, approved_amendment_table_path = null;
+  -- 26 Aug 2026: THE SUBJECT IS INSERTED, NOT MANUFACTURED BY ERASING ONE.
+  -- This used to null the approval columns on every recorded amendment so that the arms below had
+  -- an unapproved row to aim at. phase_c_the_amendment_guard_only_watched_one_basis.sql made an
+  -- approval immutable once given, so that preamble is now refused 42501 and the probe aborted
+  -- before its own report — a guard reddening its own probe. Relaxing the guard to let the probe
+  -- run would be weakening a control to keep a test green. The probe creates its own subject
+  -- instead, which is what "an amendment with no approver" always meant. The transaction still
+  -- always aborts.
+  insert into public.phase_c_freeze_amendment
+    (subject, object_identity, prior_digest, new_digest, reason, evidence, amended_at,
+     change_request_ref, original_deployment_at, deployed_before_approval)
+  values ('founder_authentication', 'fn_zz_ci_unapproved_subject(text)',
+          repeat('9', 64), repeat('8', 64),
+          'CI probe subject: an amendment carrying no approver, inserted by freeze_amendment_names_a_real_change_request.test.mjs so the arms below have something to try to approve without rewriting a recorded approval',
+          'CI probe evidence string long enough to satisfy the forty character minimum on this column',
+          now(), 'PCCR-004', now(), false);
 
   select count(*) into v_red_before from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
@@ -201,7 +210,7 @@ begin
            approved_amendment_table_digest = repeat('0', 64) where approved_by is null;
     v_free := 'ACCEPTED';
   exception when others then
-    v_free := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
+    v_free := coalesce((regexp_match(SQLERRM, '[(](pccr[0-9]*_[a-z_0-9]+)[)]'))[1], 'refused:' || SQLSTATE);
   end;
 
   -- A registered row that is NOT a person. active=false, and its own note says so.
@@ -215,7 +224,7 @@ begin
            approved_amendment_table_digest = repeat('0', 64) where approved_by is null;
     v_inactive := 'ACCEPTED';
   exception when others then
-    v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr_[a-z_]+)[)]'))[1], 'refused:' || SQLSTATE);
+    v_inactive := coalesce((regexp_match(SQLERRM, '[(](pccr[0-9]*_[a-z_0-9]+)[)]'))[1], 'refused:' || SQLSTATE);
   end;
 
   select fi.identity into v_founder from public.phase_c_founder_identity fi
@@ -265,12 +274,20 @@ end $probe$;`);
     // connection, so this file no longer proves that guard fires. Proving it needs a verified
     // founder session, which means a founder JWT through PostgREST. The constraint and the trigger
     // are both still attached and asserted below; what is not proved is the refusal itself.
-    const SESSION_FIRST = 'pccr_amendment_session_claim_unverified';
-    assert.equal(r.free_text, SESSION_FIRST,
+    // 26 Aug 2026: THE CONNECTION IS NOW REFUSED BEFORE THE CLAIM IS EXAMINED.
+    // phase_c_the_amendment_guard_only_watched_one_basis.sql put the PCCR-006 predicate
+    // (session_user must be 'authenticator') ahead of the session-claim check, because auth.uid()
+    // reads request.jwt.claims and a management connection can set that for itself — measured, and
+    // raised as PCCR-007. From THIS connection the earlier, stronger refusal is what fires, so both
+    // codes are accepted here and neither is treated as the only right answer. What the probe
+    // asserts is unchanged: a free-text name does not become an approval.
+    const SESSION_FIRST = ['pccr_amendment_session_claim_unverified',
+                           'pccr007_amendment_untrusted_connection'];
+    assert.ok(SESSION_FIRST.includes(r.free_text),
       `a free-text name was ${r.free_text} as an approval of an amendment to a FROZEN Phase C ` +
       'contract. That is how an acceptance auditor turned the whole freeze board green in one ' +
       'statement.');
-    assert.equal(r.inactive_identity, SESSION_FIRST,
+    assert.ok(SESSION_FIRST.includes(r.inactive_identity),
       `the INACTIVE build_mode identity was ${r.inactive_identity}. It is registered but it is ` +
       'not a person — its own note says so — and it must never stand as a founder approval.');
     // INVERTED BY PCCR-006, AND THIS IS THE WHOLE POINT OF IT.
@@ -392,13 +409,22 @@ begin
   -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
   -- once every amendment carried a verified founder-session approval, "where approved_by is null"
   -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
-  update public.phase_c_freeze_amendment
-     set approved_by = null, approved_at = null, approval_basis = null,
-         approval_route = null, approval_auth_subject = null,
-         -- PCCR-006 Amendment H added phase_c_freeze_amendment_approval_names_its_document:
-         -- (digest IS NULL) = (path IS NULL). Nulling the digest alone is refused, and these three
-         -- probes did exactly that. Both go, which is what "clear the approval" always meant.
-         approved_amendment_table_digest = null, approved_amendment_table_path = null;
+  -- 26 Aug 2026: THE SUBJECT IS INSERTED, NOT MANUFACTURED BY ERASING ONE.
+  -- This used to null the approval columns on every recorded amendment so that the arms below had
+  -- an unapproved row to aim at. phase_c_the_amendment_guard_only_watched_one_basis.sql made an
+  -- approval immutable once given, so that preamble is now refused 42501 and the probe aborted
+  -- before its own report — a guard reddening its own probe. Relaxing the guard to let the probe
+  -- run would be weakening a control to keep a test green. The probe creates its own subject
+  -- instead, which is what "an amendment with no approver" always meant. The transaction still
+  -- always aborts.
+  insert into public.phase_c_freeze_amendment
+    (subject, object_identity, prior_digest, new_digest, reason, evidence, amended_at,
+     change_request_ref, original_deployment_at, deployed_before_approval)
+  values ('founder_authentication', 'fn_zz_ci_unapproved_subject(text)',
+          repeat('9', 64), repeat('8', 64),
+          'CI probe subject: an amendment carrying no approver, inserted by freeze_amendment_names_a_real_change_request.test.mjs so the arms below have something to try to approve without rewriting a recorded approval',
+          'CI probe evidence string long enough to satisfy the forty character minimum on this column',
+          now(), 'PCCR-004', now(), false);
 
   select count(*) into v_red from public.fn_phase_c_freeze_drift()
    where not ok and check_name = 'amendments_awaiting_founder_approval';
@@ -491,13 +517,22 @@ begin
   -- 23 Aug 2026: THE PROBE MAKES ITS OWN SUBJECT. See the note on the first probe in this file:
   -- once every amendment carried a verified founder-session approval, "where approved_by is null"
   -- matched nothing and this arm silently wrote 0 rows. The transaction always aborts.
-  update public.phase_c_freeze_amendment
-     set approved_by = null, approved_at = null, approval_basis = null,
-         approval_route = null, approval_auth_subject = null,
-         -- PCCR-006 Amendment H added phase_c_freeze_amendment_approval_names_its_document:
-         -- (digest IS NULL) = (path IS NULL). Nulling the digest alone is refused, and these three
-         -- probes did exactly that. Both go, which is what "clear the approval" always meant.
-         approved_amendment_table_digest = null, approved_amendment_table_path = null;
+  -- 26 Aug 2026: THE SUBJECT IS INSERTED, NOT MANUFACTURED BY ERASING ONE.
+  -- This used to null the approval columns on every recorded amendment so that the arms below had
+  -- an unapproved row to aim at. phase_c_the_amendment_guard_only_watched_one_basis.sql made an
+  -- approval immutable once given, so that preamble is now refused 42501 and the probe aborted
+  -- before its own report — a guard reddening its own probe. Relaxing the guard to let the probe
+  -- run would be weakening a control to keep a test green. The probe creates its own subject
+  -- instead, which is what "an amendment with no approver" always meant. The transaction still
+  -- always aborts.
+  insert into public.phase_c_freeze_amendment
+    (subject, object_identity, prior_digest, new_digest, reason, evidence, amended_at,
+     change_request_ref, original_deployment_at, deployed_before_approval)
+  values ('founder_authentication', 'fn_zz_ci_unapproved_subject(text)',
+          repeat('9', 64), repeat('8', 64),
+          'CI probe subject: an amendment carrying no approver, inserted by freeze_amendment_names_a_real_change_request.test.mjs so the arms below have something to try to approve without rewriting a recorded approval',
+          'CI probe evidence string long enough to satisfy the forty character minimum on this column',
+          now(), 'PCCR-004', now(), false);
 
   begin
     set local role service_role;
@@ -624,7 +659,7 @@ begin
     o := o || jsonb_build_object('cr_owner_junk','ACCEPTED');
   exception when others then
     o := o || jsonb_build_object('cr_owner_junk',
-      coalesce((regexp_match(SQLERRM,'[(](pccr_[a-z_]+)[)]'))[1], 'REFUSED ' || SQLSTATE)); end;
+      coalesce((regexp_match(SQLERRM,'[(](pccr[0-9]*_[a-z_0-9]+)[)]'))[1], 'REFUSED ' || SQLSTATE)); end;
 
   begin
     update public.phase_c_change_request

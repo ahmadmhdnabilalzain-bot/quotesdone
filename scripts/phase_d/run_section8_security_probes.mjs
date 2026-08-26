@@ -494,26 +494,62 @@ try {
   console.log('\nPROBE 7 — unsafe signed URL: expired, and a path the caller does not own');
   // ===========================================================================================
   {
-    const obj = (await sql(`select bucket_id, name from storage.objects
-      where bucket_id not in (select id from storage.buckets where public) order by created_at limit 1`))[0];
+    // THE CONTROL IS UPLOADED, NOT BORROWED.
+    //
+    // This probe used to sign the OLDEST row in any private bucket — `order by created_at limit 1`.
+    // On 26 Aug 2026 that row answered 400 while the URL was still valid, so the expiry half had
+    // nothing to discriminate against: a 400 after expiry proves nothing when a 400 is also what a
+    // valid URL returns. The independent audit recorded it as FAILED TO REFUSE, which is the wrong
+    // reading of a probe whose control never established — and a borrowed object is exactly the
+    // kind of fixture that rots, because nothing here owns it.
+    //
+    // So the probe now uploads its own object under the harness namespace, signs THAT, and deletes
+    // it in a finally. And when the control still does not establish, the case is recorded NOT_RUN
+    // with the reason rather than NOT_REFUSED: a broken instrument is not a finding about storage.
+    const bucket = (await sql(`select id from storage.buckets where not public order by id limit 1`))[0];
+    const canaryPath = `${NS}/expired-url-canary-${Date.now()}.txt`;
+    let obj = null;
+    if (bucket) {
+      const up = await fetch(`${BASE}/storage/v1/object/${bucket.id}/${encodeURI(canaryPath)}`, {
+        method: 'POST',
+        headers: { apikey: SERVICE, authorization: `Bearer ${SERVICE}`, 'content-type': 'text/plain' },
+        body: 'zz phase d s8 expired-url canary; uploaded and deleted by run_section8_security_probes.mjs',
+      });
+      if (up.ok) obj = { bucket_id: bucket.id, name: canaryPath, canary: true };
+      else console.log(`  (canary upload to ${bucket.id} -> ${up.status}; falling back to an existing object)`);
+    }
     if (!obj) {
-      record('P7-expired-url', 'expired signed URL is replayed', 'NOT_RUN', 'no object exists in any private bucket', null);
+      obj = (await sql(`select bucket_id, name from storage.objects
+        where bucket_id not in (select id from storage.buckets where public) order by created_at limit 1`))[0] || null;
+    }
+    if (!obj) {
+      record('P7-expired-url', 'expired signed URL is replayed', 'NOT_RUN', 'no object exists in any private bucket and a canary could not be uploaded', null);
     } else {
       const mk = await fetch(`${BASE}/storage/v1/object/sign/${obj.bucket_id}/${encodeURI(obj.name)}`, {
         method: 'POST',
         headers: { apikey: SERVICE, authorization: `Bearer ${SERVICE}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ expiresIn: 1 }),
+        // FIVE SECONDS, NOT ONE. With expiresIn: 1 the token was already expired by the time the sign
+        // round-trip returned and the first GET went out, so the "valid" fetch answered 400 and the
+        // expiry half had no control. It won that race on 24 Aug 2026 and lost it on 26 Aug. A window
+        // the probe cannot reliably be inside is not a control.
+        body: JSON.stringify({ expiresIn: 5 }),
       });
       const signed = (await mk.json().catch(() => ({})))?.signedURL;
       if (!signed) {
         record('P7-expired-url', 'expired signed URL is replayed', 'NOT_RUN', `could not mint a signed URL (${mk.status})`, mk.status);
       } else {
         const fresh = await fetch(`${BASE}/storage/v1${signed}`);
-        await new Promise((r) => setTimeout(r, 2500));
+        await new Promise((r) => setTimeout(r, 7000));   // past the 5s expiry, with margin
         const stale = await fetch(`${BASE}/storage/v1${signed}`);
+        const where = `${obj.bucket_id}${obj.canary ? ' (canary uploaded by this probe)' : ' (pre-existing object)'}`;
         record('P7-expired-url', 'expired signed URL is replayed',
-          fresh.status === 200 && stale.status >= 400 ? 'REFUSED_AS_REQUIRED' : 'NOT_REFUSED',
-          `a 1-second URL for ${obj.bucket_id} answered ${fresh.status} while valid and ${stale.status} after expiry`, stale.status);
+          fresh.status !== 200
+            ? 'NOT_RUN'
+            : (stale.status >= 400 ? 'REFUSED_AS_REQUIRED' : 'NOT_REFUSED'),
+          fresh.status !== 200
+            ? `CONTROL DID NOT ESTABLISH: a 5-second URL for ${where} answered ${fresh.status} while still valid, so a ${stale.status} after expiry discriminates nothing. Recorded NOT_RUN rather than NOT_REFUSED — this is a fact about the probe, not about storage.`
+            : `a 5-second URL for ${where} answered 200 while valid and ${stale.status} after expiry`,
+          stale.status);
 
         // The wrong-owner half. A customer bearer names a private object it has no relationship to.
         const asCust = await fn('os_api', tok.custA, { action: 'file', bucket: obj.bucket_id, path: obj.name });
@@ -524,6 +560,17 @@ try {
           `os_api file names bucket+path verbatim from the body and performs NO ownership check on it; the only thing between a caller and any private object is the admin gate, which answered ${asCust.status} to a customer bearer and ${asAnon.status} to anon. With 0 policies on storage.objects there is no second line of defence beneath it`,
           asCust.status);
       }
+    }
+    // The canary is deleted whatever happened above, including when a probe threw.
+    if (obj?.canary) {
+      const del = await fetch(`${BASE}/storage/v1/object/${obj.bucket_id}/${encodeURI(obj.name)}`, {
+        method: 'DELETE', headers: { apikey: SERVICE, authorization: `Bearer ${SERVICE}` },
+      });
+      const left = (await sql(`select count(*)::int as n from storage.objects
+        where bucket_id = '${obj.bucket_id}' and name = '${obj.name.replace(/'/g, "''")}'`))[0]?.n ?? -1;
+      record('P7-canary-residue', 'the object this probe uploaded is removed again',
+        left === 0 ? 'REFUSED_AS_REQUIRED' : 'NOT_REFUSED',
+        `canary ${obj.bucket_id}/${obj.name} deleted (${del.status}); rows left under that path: ${left}`, del.status);
     }
 
     // Direct insert into storage.objects under a path the caller does not own.
