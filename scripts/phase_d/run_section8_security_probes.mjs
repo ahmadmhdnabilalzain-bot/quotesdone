@@ -14,7 +14,24 @@
 // choosing the fixtures, the triggers on every candidate table were read:
 //
 //   public.customers  INSERT -> trg_emit_customer_registered -> fn_emit() -> one company_event row.
-//                     No HTTP, no notification. SAFE, and the event row is deleted with the rest.
+//                     No HTTP, no notification, and the event row is deleted with the rest.
+//                     BUT ALSO, and this analysis missed it until 26 Aug 2026:
+//                     INSERT -> z50_customer_registered_kernel_emit -> the kernel trigger inbox ->
+//                     fn_kernel_workflow_start -> a real W04 run, task, step run, phase_d_dispatch
+//                     row and phase_c_event_outbox row. That trigger was added AFTER the line above
+//                     was written, and the line was never revisited: a safety analysis that names
+//                     the triggers it found stays true only until the next one is attached.
+//                     Deleting the canary customer does NOT undo that work. Every kernel table
+//                     refuses DELETE through fn_kernel_write_guard ("no routine with write
+//                     authority"), which is correct — kernel work is progressed or cancelled, never
+//                     erased. public.phase_d_dispatch has no such guard and IS deleted below.
+//                     WHAT THIS HARNESS LEAVES BEHIND, STATED RATHER THAN DISCOVERED LATER: one
+//                     phase_c_workflow_run (state active), one phase_c_task, one
+//                     phase_c_workflow_step_run, one kernel_trigger_inbox row and one
+//                     phase_c_event_outbox row per canary customer, per run. They are not business
+//                     data — the customer they name is gone — and there is no kernel affordance to
+//                     close an autonomous run whose subject was removed. That gap is the finding;
+//                     this note is not a substitute for closing it.
 //   public.leads      INSERT -> enrich_capability_on_approve posts net.http_post ONLY when
 //                     approval_status='approved'; fn_assign_founding_rank assigns a rank ONLY when
 //                     verified=true. A canary inserted unapproved and unverified fires NEITHER.
@@ -668,6 +685,15 @@ try {
     `delete from public.doc_backups where path like 'zz-phase-d-section8/%'`,
     `delete from public.documents where path like 'zz-phase-d-section8/%'`,
     `delete from public.leads where claimed_by in (${emails}) or email in (${emails})`,
+    // BEFORE the customers go: the W04 work their INSERT commissioned. Scoped to runs whose
+    // business_object_id names one of THESE canaries, so a real arrival's dispatch row could
+    // never be caught by it. phase_d_dispatch is the only table in that chain without a write
+    // guard, and phase_d_dispatch_reaches_executed asserts it is empty — three runs of this
+    // harness on 26 Aug 2026 left six rows and turned that gate red.
+    `delete from public.phase_d_dispatch where run_id in (
+       select run_id from public.phase_c_workflow_run
+        where business_object_id in (
+          select 'customer_account:' || id::text from public.customers where email in (${emails})))`,
     `delete from public.customers where email in (${emails})`,
   ];
   for (const s of steps) await sql(s).catch((e) => console.error(`cleanup step failed: ${e.message.slice(0, 200)}\n  ${s.slice(0, 120)}`));
