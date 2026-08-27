@@ -98,7 +98,7 @@ if (DRY) { console.log('DRY — first chunk:\n', chunks[0]); process.exit(0); }
 // ---- idempotent load: clear this source_id, then batch-insert -----------------------------------
 await dbPost(`delete from public.kb_chunks where source_id = ${lit(sourceId)};`);
 
-const BATCH = 60;
+const BATCH = 200;  // larger batches = fewer management-API round trips = less rate-limiting at scale
 let done = 0;
 for (let i = 0; i < chunks.length; i += BATCH) {
   const slice = chunks.slice(i, i + BATCH);
