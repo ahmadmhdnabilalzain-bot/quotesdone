@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-27T21:58:07.330Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-27T22:49:56.815Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17771,6 +17771,26 @@ begin
                  and (valid_until is null or valid_until >= current_date)
                order by coalesce(confidence, 0) desc, updated_at desc nulls last
                limit 8) e), '[]'::jsonb));
+
+  -- 4b. FIELD CORPUS — the certification/standards corpus for the agent's field. The bulk expert
+  --     knowledge (the ~10,000-pages-per-agent target) lives in kb_chunks, tagged by category; here
+  --     it is retrieved by the agent's knowledge scope and RANKED against the task, so the prompt
+  --     carries the passages that actually bear on the work rather than a category dump. Full-text
+  --     ranking (SQL-side, deterministic); the semantic/vector half is added when the query-embed
+  --     edge path is wired. Only consulted when a task is supplied, and bounded to a slice of budget.
+  if v_q is not null then
+    v_out := v_out || jsonb_build_object('field_corpus', coalesce((
+        select jsonb_agg(jsonb_build_object('title', title, 'citation', citation,
+                                            'category', category, 'content', left(content, 1200))
+                         order by rank desc)
+          from (select title, citation, category, content, ts_rank(fts, v_q) as rank
+                  from kb_chunks
+                 where category = any(v_scope) and fts @@ v_q
+                 order by ts_rank(fts, v_q) desc, effective_date desc nulls last
+                 limit 12) k), '[]'::jsonb));
+  else
+    v_out := v_out || jsonb_build_object('field_corpus', '[]'::jsonb);
+  end if;
 
   -- 5. LIVE DATA BINDINGS — what the agent must fetch rather than remember. The binding is
   --    knowledge; the value is not, and is never cached here.
