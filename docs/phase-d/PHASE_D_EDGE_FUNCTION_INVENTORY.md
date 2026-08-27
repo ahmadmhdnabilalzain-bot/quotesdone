@@ -72,7 +72,7 @@ Deterministic; the first matching rule wins and the rule that matched is recorde
 | `MONITORING` | 6 | health/uptime/scan surface |
 | `INTENTIONALLY_INACTIVE` | 6 | `phase_c_component.activation_state = 'inactive'` |
 | `AUTH_OR_SESSION_SUPPORT` | 4 | authentication/session surface; its writes are its own identity tables |
-| `PROVIDER_CALLBACK` | 4 | registered `webhook_provider_event`, or a provider-signature header / hook name is present |
+| `PROVIDER_CALLBACK` | 3 | registered `webhook_provider_event`, or a provider-signature header / hook name is present |
 | `EXISTING_WORKFLOW_SIGNAL` | 3 | signals a run that already exists, or is invoked by a registered database trigger |
 | `RETIRED` | 0 | deployed with no source directory in the repository |
 | `BLOCKED_DEFECT` | 0 | writes a kernel-guarded table with no caller and no kernel door |

@@ -229,7 +229,10 @@ paused or rescheduled by this session.
 | manifest gaps | 0 | **0** |
 | conflicting current definitions / ambiguous winners / uncommitted DDL | 0 | **0 / 0 / 0** |
 | schema mirror byte-identical | yes | **yes** — `supabase/schema/full_schema.sql` regenerated after the LAST apply, 84,606 lines, identical, 0 project refs embedded |
-| Edge parity | 202/202 | see the run recorded in the PR |
+| Edge parity | 202/202 | **202/202** — `node scripts/verify_deploy_parity.mjs --all` → `DEPLOY PARITY OK`, exit 0. No edge function was deployed by this session |
+| Phase D frozen regression set | pass | `npm run test:phase-d` → **0 failing checks**. Seven regressions this session introduced were caught by it and repaired before merge; see below |
+| kernel positive controls | no door without one | 22 doors, 16 accepted, **0 failed**, 6 not driveable from a management connection and named |
+| injected-defect suite | every guard refuses | **56 of 58 refused, 0 failed**, 2 not driveable and named (both pre-dating this session) |
 | automation / provider holds | unchanged | **unchanged** |
 
 ### Seven things this session broke, and the checks that caught every one before merge
