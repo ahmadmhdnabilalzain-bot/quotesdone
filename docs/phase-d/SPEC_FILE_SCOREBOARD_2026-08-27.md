@@ -66,3 +66,20 @@ counted from the CSVs themselves:
 
 Spec #2's 58 red lines and 7 unmeasured, spec #6's 34 and spec #8's 18 are **not** in that count.
 They are measured and unclassified.
+
+## Where the comp-16 cost actually is, as far as it was isolated
+
+The 27 Aug repair replaced the correlated liveness predicate with an uncorrelated name list, and
+`comp-16-health-score` still exceeds the database statement timeout. Narrowed further, by running
+the pieces directly:
+
+* The on-cron set (18 routines) returns instantly.
+* The live set built from it (40 routines) returns instantly **on its own**.
+* Arm 1 of FIGURE_READERS, consuming that live set through a CTE — even one marked MATERIALIZED —
+  times out with `57014: canceling statement due to statement timeout`.
+
+So the remaining cost is not the sets and not the regexes; it is the planner re-evaluating the
+live-set CTE per candidate row inside the scalar subquery. The next attempt should stop expressing
+this as one statement: compute the live routine names in JavaScript with one query, then pass them
+to the figure query as a literal array, the way `ui_closure.mjs` already does for spec #3. That is
+the shape that works in this repository at this size and it was not tried on 27 Aug.
