@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-27T13:32:11.482Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-27T14:43:55.842Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -400,7 +400,8 @@ CREATE TABLE IF NOT EXISTS public.agent_reputation (
   collaboration numeric,
   score numeric,
   tier text,
-  computed_at timestamp with time zone DEFAULT now() NOT NULL
+  computed_at timestamp with time zone DEFAULT now() NOT NULL,
+  decision_quality numeric
 );
 
 CREATE TABLE IF NOT EXISTS public.agent_runs (
@@ -68623,7 +68624,7 @@ CREATE OR REPLACE FUNCTION public.fn_reputation_recompute()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r record; n int := 0; v_score numeric; v_tier text;
-  v_corr numeric; v_rel numeric; v_cost numeric; v_learn numeric; v_collab numeric;
+  v_corr numeric; v_rel numeric; v_cost numeric; v_learn numeric; v_collab numeric; v_decq numeric;
   v_gated int := 0; v_restored int := 0; v_unmeasured int := 0;
   v_hold record; v_window_opens timestamptz;
 begin
@@ -68697,7 +68698,25 @@ begin
     -- learning speed: UNMEASURABLE, so NULL for everyone. See the header of the 10 Aug change.
     v_learn := null;
 
+    -- DECISION QUALITY (27 Aug 2026, spec #3 s32). The sixth named axis, which had no column until
+    -- this migration. Correctness above grades the OUTCOME of a decision from outcome_record; this
+    -- grades the decision AS TAKEN: the share of the employee's decisions in the window that a human
+    -- could actually review, meaning one that states a confidence, names at least one source and
+    -- gives at least one reason. A decision with none of the three may still turn out well and
+    -- nobody can tell why. NULL when the employee decided nothing in the window, never 0, because
+    -- deciding nothing is not deciding badly.
+    select coalesce(round(100.0*count(*) filter (
+             where l.confidence is not null
+               and l.sources is not null and l.sources::text not in ('null','[]','{}','""')
+               and l.reasons  is not null and l.reasons::text  not in ('null','[]','{}','""'))
+             /nullif(count(*),0),1), null)
+      into v_decq from decision_log l
+     where l.actor = r.agent_key and l.created_at > now()-interval '30 days';
+
     -- collaboration: reviews it took part in that reached approval, over DECIDED VERDICTS ONLY.
+    -- ORDER IS LOAD-BEARING: this must be read BEFORE the block below, which uses v_collab both in
+    -- the all-null test and in the weighted score. Computing it after would score every employee on
+    -- the PREVIOUS employee's collaboration, and the first employee on a null.
     select coalesce(round(100.0*count(*) filter (where decision='approve')/nullif(count(*),0),1), null)
       into v_collab from review_chain
      where (author_agent = r.agent_key or reviewer_agent = r.agent_key)
@@ -68707,11 +68726,22 @@ begin
     -- 75 employees who have never executed anything at 51.0, one point above probation and
     -- indistinguishable from a real 50. An employee with no reading on any dimension is now
     -- 'unmeasured' with score NULL, because a score is a measurement and we have not made one.
-    if v_corr is null and v_rel is null and v_cost is null and v_learn is null and v_collab is null then
+    -- decision_quality counts toward "has this employee any reading at all", because it is a
+    -- reading; it does NOT count toward the weighted score. See the next comment.
+    if v_corr is null and v_rel is null and v_cost is null and v_learn is null and v_collab is null
+       and v_decq is null then
       v_score := null;
       v_tier  := 'unmeasured';
       v_unmeasured := v_unmeasured + 1;
     else
+      -- DECISION QUALITY IS NOT WEIGHTED HERE, DELIBERATELY. Measured on production before this
+      -- change shipped, almost every employee scores near zero on it, and the reason is that the
+      -- action gate records a confidence on a small fraction of the rows it writes -- a property of
+      -- the gate, not of the employee. Giving it any weight would demote people for the gate's
+      -- recording habit on the first run after the hold lifts, which is exactly the failure the
+      -- reliability note above warns against. The axis is measured, stored and readable; adding it
+      -- to the weights is a management decision to take once confidence is recorded on more than a
+      -- fraction of decisions.
       v_score := round((coalesce(v_corr,50)*0.30 + coalesce(v_rel,50)*0.30 + coalesce(v_cost,50)*0.15
                       + coalesce(v_learn,50)*0.15 + coalesce(v_collab,50)*0.10), 1);
       v_tier := case when v_score >= 85 then 'senior_trusted'
@@ -68719,11 +68749,12 @@ begin
                      when v_score >= 50 then 'standard' else 'probation' end;
     end if;
 
-    insert into agent_reputation (agent_key,correctness,reliability,cost_efficiency,learning_speed,collaboration,score,tier,computed_at)
-    values (r.agent_key,v_corr,v_rel,v_cost,v_learn,v_collab,v_score,v_tier,now())
+    insert into agent_reputation (agent_key,correctness,reliability,cost_efficiency,learning_speed,collaboration,decision_quality,score,tier,computed_at)
+    values (r.agent_key,v_corr,v_rel,v_cost,v_learn,v_collab,v_decq,v_score,v_tier,now())
     on conflict (agent_key) do update set correctness=excluded.correctness, reliability=excluded.reliability,
       cost_efficiency=excluded.cost_efficiency, learning_speed=excluded.learning_speed,
-      collaboration=excluded.collaboration, score=excluded.score, tier=excluded.tier, computed_at=now();
+      collaboration=excluded.collaboration, decision_quality=excluded.decision_quality,
+      score=excluded.score, tier=excluded.tier, computed_at=now();
     n := n + 1;
   end loop;
 
@@ -68766,7 +68797,8 @@ begin
     'Reputation recomputed for '||n||' employee(s), of which '||v_unmeasured||' have no reading on '
     ||'any dimension and are recorded as unmeasured with a NULL score rather than a default 50. '
     ||'Probation demotes autonomous authority to gated ('||v_gated||' this run); recovery restores '
-    ||'advisory-safe grants ('||v_restored||' this run) and no longer counts unmeasured as recovered.');
+    ||'advisory-safe grants ('||v_restored||' this run) and no longer counts unmeasured as recovered. '
+    ||'Decision quality is measured and stored on every employee and is not weighted into score.');
   return jsonb_build_object('scored',n,'gated',v_gated,'restored',v_restored,'unmeasured',v_unmeasured);
 end
 $function$

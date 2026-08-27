@@ -1741,3 +1741,5 @@ scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql
+scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql
