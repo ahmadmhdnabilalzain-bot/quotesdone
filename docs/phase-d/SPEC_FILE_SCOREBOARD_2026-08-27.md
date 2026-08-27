@@ -6,7 +6,7 @@ Every number below was produced by running the scorer named beside it against
 | # | Spec | Scorer | Score | Classified |
 |---|------|--------|-------|------------|
 | 1 | Company architecture | `verify_spec_architecture.mjs` | **44/48** (92%) | yes — `SPEC1_MISSING_CLASSIFICATION.csv` |
-| 2 | Universal OS blueprint | `verify_os_blueprint.mjs` | **45/110** (41%), 7 unmeasured | no |
+| 2 | Universal OS blueprint | `verify_os_blueprint.mjs` | **54/110** (49%), was 45, 1 unmeasured | no |
 | 3 | Executive UI | `verify_os2_blueprint.mjs` | **111/152** (73%), was 104 | yes — `SPEC3_MISSING_CLASSIFICATION.csv` |
 | 4 | Customer portal | `verify_portal_blueprint.mjs` | **140/147** (95%), 5 unmeasured | yes — `SPEC4_MISSING_CLASSIFICATION.csv` |
 | 5 | Supplier portal | `verify_supplier_blueprint.mjs` | **224/234** (96%) | yes — `SPEC5_MISSING_CLASSIFICATION.csv` |
@@ -66,3 +66,53 @@ counted from the CSVs themselves:
 
 Spec #2's 58 red lines and 7 unmeasured, spec #6's 34 and spec #8's 18 are **not** in that count.
 They are measured and unclassified.
+
+## What actually fixed comp-16, and what did not
+
+The first attempt replaced the correlated liveness predicate with an uncorrelated name list. It did
+not stop the timeouts and it MADE ONE WORSE: `comp-16-capacity` had been returning a real verdict
+and came back "transport failed after 7 attempts" instead. Trading a measured requirement for an
+unmeasured one to chase six others is a net loss, so it was reverted.
+
+What was kept is the correctness half — `RAN` resolves the cron command through
+`phase_c_system_execution_wrapper`, so liveness can see the twenty-two active jobs whose command is
+`select public.fn_kernel_cron_exec(<jobid>)` and names no routine at all.
+
+With that, and with the machine no longer running a scorer chain and hand queries against the same
+management API at the same time, **all ten comp-16 checks complete with zero errors**:
+
+```
+MET     comp-16-risk, performance, backlog, quality, cost, automation, fn-os-health
+MISSING comp-16-health-score-column, comp-16-health-score, comp-16-capacity
+        7 of 10 on the comp-16 section alone
+```
+
+So six of the seven spec #2 requirements recorded as UNMEASURED above are now measured, and all six
+of those are MET. The lesson is one this repository keeps relearning: a timeout is not a verdict,
+and the first explanation for a timeout — here, an expensive query shape — was not the whole cause.
+Concurrent load on the same management API was part of it, which is exactly why the session skill
+says not to run two scorers against the same project at once.
+
+`os-exclusive-ownership` in spec #2 and the five spec #4 checks (`spatial-live-shipment-status` and
+the four `pred-*`) share a different closure and have not been re-measured.
+
+## Spec file #2, re-measured end to end after the revert
+
+`54/110`, up from `45/110`, with **one** errored check instead of seven. Nine lines turned green
+and none turned red:
+
+```
+comp-14-can-decide          comp-16-backlog        comp-16-performance
+comp-15-who-approves        comp-16-cost           comp-16-quality
+comp-16-automation          comp-16-fn-os-health   comp-16-risk
+```
+
+Seven of the nine are comp-16 lines that were previously timing out. The other two —
+`comp-14-can-decide` and `comp-15-who-approves` — are not in that section at all. They turned green
+because their liveness clauses can now see the running crons through
+`phase_c_system_execution_wrapper`, which is the same defect that cost spec #3 four lines. That is
+the strongest evidence that the wrapper blindness is estate-wide and not a spec #3 curiosity: it was
+suppressing two unrelated requirements in a different file, in a different section, written by a
+different hand.
+
+`os-exclusive-ownership` is the one remaining unmeasured check in spec #2.
