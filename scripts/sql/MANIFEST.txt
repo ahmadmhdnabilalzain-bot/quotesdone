@@ -1737,3 +1737,7 @@ scripts/sql/phase_c_two_boards_written_when_the_door_had_never_opened.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

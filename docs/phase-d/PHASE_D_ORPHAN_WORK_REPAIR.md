@@ -118,10 +118,39 @@ parent is alive; the **subject key** is what disagrees: W29 writes
 security item to make a count read zero is not available. It is named in its own board row with the
 row that does back it.
 
-The resolver therefore does not stop at the binding: if the identity is itself `<token>:<id>`, it
-looks for a public table called `<token>` or `<token>s` carrying that id. That is generic — no
-allow-list, no per-case exemption register — and it is what stops the new prevention trigger from
-refusing every future high-severity security page.
+The resolver therefore does not stop at the binding. It asks three questions in order, and reports
+which one answered:
+
+1. does the identity match the binding's `primary_identity` on the canonical relation? → `RESOLVED`
+2. does it appear under **any** comparable column of that relation? → `RESOLVED (under a column
+   other than <primary_identity>)`
+3. is the identity itself `<token>:<id>`, with a public table called `<token>` or `<token>s`
+   carrying that id? → `KEYED_OUTSIDE_ITS_BINDING`, naming the relation that does hold it
+
+Only after all three is a subject `PARENT_MISSING`. **Question 2 exists because the primary identity
+is not how every producer keys its subject, and a guard that assumes it is becomes an outage.**
+Measured the same afternoon: W16 writes `payment_transaction:<transactions.payment_ref>` while the
+map says `payment_transaction:<transactions.id>`, and `payment_ref` is not unique — so no
+candidate-key rule reaches it either. Enforcing on the primary key alone would have refused every
+W16 run the estate can produce, and it did refuse the injected-defect probe that drives one.
+
+None of this is an allow-list or a per-case exemption register; each tier is a generic question about
+whether a row exists that this run is about. The finding — three producers keying a subject by
+something other than the binding's primary identity — is what the informational board row is for.
+
+**Ceiling, stated:** question 2 is a sequential scan of one relation per workflow-run INSERT. 26 runs
+exist in total and the largest bound relation is `public.leads` at 20,465 rows, so no index is
+warranted today; if workflow-run creation ever becomes hot, narrow it by extending
+`phase_d_business_object_binding` rather than by dropping the scan.
+
+**And a verified Phase D fixture context is exempt from the refusal entirely.** The Phase D drives
+open workflows on subjects they invent — `dispatch_batch:chk-w12-s06`, `payment_transaction:probe:reveal:1` —
+inside transactions that always abort. `fn_phase_d_fixture_context()` recomputes an HMAC over the
+current txid, the approved operation key and the audited grant row, and returns null for an absent
+context, a hand-set GUC, a token from another transaction or a grant that does not exist (F01).
+Opening one needs an enabled row in `public.phase_d_test_operation` and refuses `anon` and
+`authenticated` outright, so no browser, edge function or cron job can obtain one. The exemption is
+transaction-local and audited by `fixture_run_id`.
 
 **Recorded as an open finding, not repaired here:** the W29 producer and
 `phase_d_business_object_binding` disagree about how an `incident` subject is keyed. Re-keying a
@@ -152,24 +181,37 @@ fn_kernel_workflow_start(W04, customer_account:8df40727-…)
             of public.customers has id=8df40727-…. (kernel_workflow_start_parent_missing)
 ```
 
-**B. A parent may not be deleted while its work is live.**
+**B. Deleting a parent closes its work first.**
 `a00_kernel_parent_delete_guard` BEFORE DELETE on `customers`, `inquiries`, `quotes`,
 `transactions`, `leads`, `refunds`, `os_incidents` — one generic function reading the same binding
 map.
 
-Forced, in an aborted transaction: insert a real customer, let its own trigger open the W04 run
-(measured: 1 live run), then delete the customer.
+**It compensates; it does not refuse — and the first version of this file had it the other way
+round.** Refusing was measured against the estate the same afternoon and broke it: every fixture that
+creates a customer cleans up by deleting that customer, the customer's own INSERT trigger
+`z50_customer_registered_kernel_emit` opens a W04 run, so the delete was refused and two ZZ DEMO rows
+were left committed on production. `fn_phase_d_fixture_residue()` went 0 → 2 and four Phase D checks
+went red. A guard that turns every cleanup into residue manufactures the orphans it exists to stop.
+Cancelling first is the stronger half of the instruction (*"refuses while active work exists, **or**
+performs canonical compensation/cancellation first"*): a refusal can be worked around by a caller
+that gives up on the delete and leaves the row; compensation means an orphan cannot be produced by a
+delete at all. It is also what a PDPL erasure should do.
+
+Forced, in an aborted transaction: insert a real customer, let its own trigger open the W04 run, then
+delete the customer.
 
 ```
-delete from public.customers where id = 82b801d2-…
-  -> 23503  public.customers: business object customer_account with id=82b801d2-… still has 1 live
-            workflow run(s): 218115 (W04, active). (kernel_parent_delete_has_live_work)
+live_runs_after_insert = 1
+delete = ACCEPTED   run_states = cancelled   task_states = cancelled
+live_after_delete = 0   customer_rows = 0
 ```
 
-That is the exact sequence that produced the eight orphans, and it is now refused.
+That is the exact sequence that produced the eight orphans, and it can no longer produce one. The
+postcondition is asserted inside the trigger too: if any live run still names the object after the
+compensation loop, the delete is refused `23503` rather than allowed to orphan it.
 
-**Zero-residue fixture cleanup cannot leave committed work** because guard B refuses the customer
-delete until the run is closed through `fn_kernel_cancel`.
+The two ZZ DEMO customers the refusing version left behind were removed through the compensating
+guard: both their W04 runs came out `cancelled` and `fn_phase_d_fixture_residue()` returned to **0**.
 
 ## 7. Required outcomes
 

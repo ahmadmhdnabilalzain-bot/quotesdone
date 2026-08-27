@@ -158,6 +158,8 @@ back out of the database and compared to the committed bytes.
 | 1 | `scripts/sql/phase_c_the_bind_door_took_the_subject_as_an_argument.sql` | `fn_phase_c_founder_subject_bind` + 1 registry row + 8 grant statements | identical | `down/phase_c_the_bind_door_took_the_subject_as_an_argument_down.sql` | service_role binding the founder's subject with no founder token; the governance door refusing its own write with 42501 |
 | 2 | `scripts/sql/phase_c_active_work_whose_business_parent_is_gone.sql` | `fn_kernel_business_subject_resolve`, `fn_kernel_business_parent_missing`, `fn_kernel_orphaned_work`, `fn_kernel_workflow_run_parent_exists`, `fn_kernel_business_parent_delete_guard` + 8 triggers | identical | `down/phase_c_active_work_whose_business_parent_is_gone_down.sql` | a run opening on a parent that does not exist; a parent being deleted while its work is live |
 | 3 | `scripts/sql/phase_c_the_scorer_would_have_read_a_hold_as_underperformance.sql` | `fn_reputation_recompute`, `fn_reputation_hold_state` | identical | `down/phase_c_the_scorer_would_have_read_a_hold_as_underperformance_down.sql` | the scorer reading a founder-imposed silence as underperformance and gating four employees' authority |
+| 4 | `scripts/sql/phase_c_two_boards_written_when_the_door_had_never_opened.sql` | `fn_phase_c_founder_auth_state` + 2 truncate triggers + 2 revokes | identical | `down/phase_c_two_boards_written_when_the_door_had_never_opened_down.sql` | `TRUNCATE public.transactions` firing no row trigger; two board rows that read the narrowed bind grant as the defect and expected an append-only table to stay empty |
+| 5 | `scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql` | (2 `kernel_routine_ownership` rows) | n/a — DDL only | `down/phase_c_the_ownership_ledger_named_two_superseded_files_down.sql` | the ledger pointing at files that no longer define `fn_kernel_orphaned_work` and `fn_reputation_recompute` |
 
 All three down scripts carry **no transaction control**. None resurrects history: the cancelled runs
 stay cancelled (sealed traces are append-only) and the recorded governance decision stays recorded
@@ -230,15 +232,50 @@ paused or rescheduled by this session.
 | Edge parity | 202/202 | see the run recorded in the PR |
 | automation / provider holds | unchanged | **unchanged** |
 
-**One regression was introduced by this session and caught by an existing check before merge.**
-`scripts/checks/anon_cannot_execute_security_definer.test.mjs` failed on
-`fn_kernel_workflow_run_parent_exists` and `fn_kernel_business_parent_delete_guard`: a plain `CREATE`
-grants EXECUTE to PUBLIC, and a trigger function is no exception. Both were revoked from `public`,
-`anon` and `authenticated` in the same file, an assertion was added so the file refuses to apply if
-any routine it creates is client-executable, and the check is green. `fn_phase_c_founder_subject_bind`
-was added to that check's `AUTHENTICATED_BY_DESIGN` set with the per-function review it demands —
-it is a **narrowing**, because the same change removed the `service_role` grant that was the actual
-hole.
+### Seven things this session broke, and the checks that caught every one before merge
+
+Recorded in full because the count is the point: a narrow correction that touches the kernel's write
+path breaks things, and the value of this estate's checks is that none of it reached a merge.
+
+| # | what broke | caught by | repair |
+|---|---|---|---|
+| 1 | `fn_kernel_workflow_run_parent_exists` and `fn_kernel_business_parent_delete_guard` were EXECUTE-able by `anon` and `authenticated` — a plain `CREATE` grants to PUBLIC, and a trigger function is no exception | `anon_cannot_execute_security_definer.test.mjs` | revoked in the same file, plus an assertion that refuses to apply if any routine the file creates is client-executable |
+| 2 | the delete guard REFUSED instead of compensating, so every fixture that creates a customer could no longer clean up: two ZZ DEMO rows left committed | `phase_d_dispatch_reaches_executed`, `phase_d_fixture_catalogue_matches_the_file`, `kernel_boards_are_green` | the guard now cancels the live runs through `fn_kernel_cancel` and then permits the delete; the two rows were removed through it |
+| 3 | the run-start guard refused every Phase D drive, which opens workflows on subjects it invents inside aborting transactions | `phase_d_the_three_steps_that_had_no_effect`, `phase_c_guards_reject_injected_defects` | a verified `fn_phase_d_fixture_context()` — HMAC-bound to the txid and to an approved operation — is exempt |
+| 4 | the run-start guard refused every W16 run the estate can produce: the producer keys `payment_transaction` by `payment_ref`, not by `id`, and `payment_ref` is not unique | `phase_c_guards_reject_injected_defects` | the resolver asks three questions, not one — see the orphan-work register §5 |
+| 5 | `public.os_incidents` and `public.transactions` became **enforcing** with no truncate guard, so `TRUNCATE public.transactions` would have taken every payment the company has recorded and fired no row trigger | `kernel_boards_are_green` via `fn_kernel_truncate_protection_state` | `z00_kernel_truncate_guard` attached and TRUNCATE revoked on both |
+| 6 | `fn_phase_c_governance_decide` joined `kernel_write_authority` and so joined the canonical door list with no positive control | `kernel_positive_controls.test.mjs` | a control added and declared not driveable from a management connection, naming the HTTPS run that does drive it |
+| 7 | the ownership ledger still named the superseded source file for two re-owned routines | `application_source_of_truth.test.mjs` | both rows reconciled; the structural cause named in the file |
+
+Two further reds were **not** regressions and are corrected rather than silenced:
+`fn_kernel_trigger_submit`'s positive control was manufacturing its own subject
+(`incident:ZZ-POSITIVE-CONTROL-TRIGGER`, which resolves to nothing) and now drives the shape the
+source actually emits; and `freeze_amendment_names_a_real_change_request`'s resolution arm could no
+longer empty the founder register, because the first governance decision created a foreign key to it
+— the arm now deactivates instead, which exercises the predicate the board actually evaluates.
+
+`fn_phase_c_founder_subject_bind` was added to `anon_cannot_execute_security_definer`'s
+`AUTHENTICATED_BY_DESIGN` set with the per-function review it demands. It is a **narrowing**: the
+same change removed the `service_role` grant that was the actual hole.
+
+**One disclosure, not this session's and not repaired here.** `resend_inbound` errored at
+2026-08-27 10:44:16Z — an hour before this session opened. The founder forwarded a Supabase invoice
+to the inbound address; the receipt-extraction call returned HTTP 503 while the paid-provider hold is
+open-circuit on 8 of 8 routes, and no expense was booked. No paid inference was made or charged —
+`llm_attempt`, `ai_usage` and `ai_cost_log` have been empty since 2026-08-15 02:51:33Z. The gap is
+real: an inbound path still attempts a held provider and silently drops the receipt. It belongs to
+the business-automation work this session is holding, and it is now a named disclosure in
+`a_failed_scheduled_run_has_a_reader.test.mjs`, so a second occurrence still fails.
+
+**And the zero-cost window's sixth slip is now a generator, not a reminder.**
+`docs/phase-d/PHASE_D_ZERO_COST_EVIDENCE.md` states a window whose close must be at or after the
+newest Phase D timestamp; the check has caught a stale close six times, and the document names the
+cause in its own words — *"the only thing keeping them in step is a person remembering to regenerate
+this file last … what would end the pattern is a generator that reads the close off the database at
+write time, which does not exist"*. `scripts/phase_d/regenerate_zero_cost_evidence.mjs` is that
+generator. It reads `now()` on production, re-measures every figure against the stated window, and
+**refuses to write** if any paid inference is recorded inside it — moving a close to cover spend
+would turn a true statement into a false one.
 
 ---
 

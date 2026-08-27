@@ -96,7 +96,7 @@ stable
 security definer
 set search_path to 'public', 'pg_temp'
 as $function$
-declare b record; v_found boolean; v_tok text; v_tail text; c text; v_obj text;
+declare b record; v_found boolean; v_tok text; v_tail text; c text; v_obj text; v_pred text;
 begin
   v_obj := split_part(coalesce(p_business_object_id,''), ':', 1);
   object_id := v_obj;
@@ -130,6 +130,39 @@ begin
   if v_found then
     resolution := 'RESOLVED'; resolved_in := canonical_relation;
     return next; return;
+  end if;
+
+  -- THE PRIMARY IDENTITY IS NOT HOW EVERY PRODUCER KEYS ITS SUBJECT, and pretending it is turns a
+  -- guard into an outage. Measured 27 Aug 2026 against the estate: W16 writes
+  -- `payment_transaction:<transactions.payment_ref>` and the map says
+  -- `payment_transaction:<transactions.id>`; `payment_ref` is not even unique, so no
+  -- candidate-key rule reaches it. W29 does the same with `incident:agent_action:<id>`. Refusing on
+  -- the primary key alone would have refused every W16 run the estate can produce.
+  --
+  -- So the question the guard actually needs answered is weaker and truer: IS THERE A ROW THIS RUN
+  -- IS ABOUT? The identity is looked for across every comparable column of the canonical relation,
+  -- in one scan, and the column that matched is reported. A run whose subject appears nowhere in its
+  -- own relation is the orphan; a run whose subject appears under a different column is a producer
+  -- keying it differently, which is a real finding and NOT a reason to refuse live work.
+  --
+  -- ponytail: this is a sequential scan of one relation per workflow-run INSERT. 26 runs exist in
+  -- total and the largest bound relation is public.leads at 20,465 rows, so it is not worth an index
+  -- today. If workflow-run creation ever becomes hot, narrow this to the columns each producer
+  -- actually writes by extending phase_d_business_object_binding rather than by dropping the scan.
+  select string_agg(format('p.%I::text = $1', a.attname), ' or ')
+    into v_pred
+    from pg_attribute a
+   where a.attrelid = canonical_relation::regclass and a.attnum > 0 and not a.attisdropped
+     and format_type(a.atttypid, a.atttypmod) in
+         ('text','character varying','uuid','bigint','integer','smallint','numeric');
+  if v_pred is not null then
+    execute format('select exists (select 1 from %s p where %s)', canonical_relation, v_pred)
+       into v_found using identity_value;
+    if v_found then
+      resolution := 'RESOLVED';
+      resolved_in := canonical_relation || ' (under a column other than ' || identity_column || ')';
+      return next; return;
+    end if;
   end if;
 
   -- SECOND CHANCE, GENERIC. `incident:agent_action:3833` names its own relation inside the identity.
@@ -319,9 +352,28 @@ language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
 as $function$
-declare s record;
+declare s record; v_fx bigint;
 begin
   select * into s from public.fn_kernel_business_subject_resolve(NEW.business_object_id);
+
+  -- INSIDE A VERIFIED PHASE D FIXTURE CONTEXT, A MANUFACTURED SUBJECT IS THE POINT.
+  -- The Phase D drives open workflows on subjects they invent — dispatch_batch:chk-w12-s06,
+  -- payment_transaction:chk-w16-s05 — inside a transaction that always aborts. Refusing those broke
+  -- five Phase D checks on the afternoon this guard was written, and "an identity is never a
+  -- fixture" is a rule about what a check may PROVE, not a reason to make the checks unrunnable.
+  --
+  -- This is not an allow-list and not a GUC anyone can set. fn_phase_d_fixture_context() recomputes
+  -- an HMAC over the current txid, the approved operation key and the audited grant row, and returns
+  -- null for an absent context, a hand-set GUC, a token from another transaction, or a grant that
+  -- does not exist (F01). Opening one requires an ENABLED row in public.phase_d_test_operation and
+  -- refuses anon and authenticated outright, so no production path — no browser, no edge function,
+  -- no cron job — can obtain one. The exemption is transaction-local, audited by fixture_run_id, and
+  -- gone the moment the transaction ends.
+  begin v_fx := public.fn_phase_d_fixture_context(); exception when others then v_fx := null; end;
+  if v_fx is not null then
+    return NEW;
+  end if;
+
   if s.resolution = 'PARENT_MISSING' then
     raise exception 'phase_c_workflow_run: % names business object %, and no row of % has %=%. A workflow may not be opened for a business object that does not exist -- that is how eight W04 runs came to be active for customers nobody could find. (kernel_workflow_start_parent_missing)',
       NEW.workflow_id, NEW.business_object_id, s.canonical_relation, s.identity_column, s.identity_value
