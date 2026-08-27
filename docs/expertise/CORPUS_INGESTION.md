@@ -42,6 +42,34 @@ mep, testing-inspection, …) for the marketplace overlays; **functional-role ce
 with the functional scope** (`qa`, `finance`, `legal`, …). Ingest each field's sources under its scope
 category and they surface to that field's agents automatically.
 
+## Ingested so far (live in kb_chunks)
+
+| source | category | agent scope reached | chunks | ~pages | verified retrieval |
+|---|---|---|---|---|---|
+| ISTQB CTFL v4.0.1 syllabus | `qa` | QA roles (`[assurance,it,qa]`) | 174 | ~50 | `ai_qa_specialist` gets 12 task-ranked chunks on an EP/BVA task |
+| UAE Commercial Companies Law 32/2021 | `legal` | legal roles (`[legal,trust_safety]`) | 199 | ~91 | `general_counsel` gets 12 chunks on a directors-duties task |
+
+## The collection plan (per field → category, from the source registry)
+
+Each field's authoritative sources are in `CERTIFICATION_SOURCE_REGISTRY.md`. Ingest each under the
+category that equals one of the field's `fn_dept_scope` values, so it reaches that field's agents:
+
+| field / track | kb category | flagship sources to ingest (see registry for URLs) | licensing |
+|---|---|---|---|
+| finance / acct-cpa, uae-vat, uae-ct | `finance`, `payments` | FTA VAT & Corporate Tax guides + Decree-Law 47/2022; IFRS overviews; CPA blueprint | FTA/gov: open; IFRS: check |
+| legal / uae-ccl, uae-difc | `legal`, `trust_safety` | Companies Law 32/2021 (done); DIFC/ADGM regs; consumer/AML | gov: open |
+| assurance-qa / qa-istqb | `qa`, `assurance` | ISTQB CTFL (done) + Advanced syllabi; ISO 9001 overviews | ISTQB: copyrighted, review |
+| security / sec-cissp | `it`, `assurance` | ISC2 CISSP outline; ISO 27001:2022 structure; NIST (open) | NIST: open; ISO: paywalled |
+| procurement / proc-cips | `procurement`, `marketplace` | CIPS syllabi; FIDIC/tender basics | CIPS: copyrighted, review |
+| privacy / priv-pdpl | `pdpl`, `legal` | UAE PDPL (Decree-Law 45/2021); IAPP BoK | gov: open |
+| people_ops / hr-shrm | `hr`, `people_ops` | SHRM BASK; UAE labour law | gov: open; SHRM: review |
+| the 86 supplier trades | existing trade categories | trade standards (ACI/ASTM/NFPA/ASHRAE/…) already partly present | mostly copyrighted, review |
+
+**Licensing is a business call** (the founder's): government laws/regulations, NIST, and open materials
+are unambiguous to ingest; commercial copyrighted standards (ISTQB, ISO, CIPS, SHRM) need a licensing
+decision before the company ingests their full text — free syllabi/outlines and synthesised notes are
+the safe subset until then.
+
 ## Scale (honest)
 
 174 chunks ≈ 50 pages is one syllabus — ~0.5% of one agent's target. Reaching ~10,000 pages/agent is a
