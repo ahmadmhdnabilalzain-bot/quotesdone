@@ -208,17 +208,39 @@ test('nothing the drive did was committed', { skip: SKIP }, async () => {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: `select
-      (select count(*) from public.phase_d_dispatch) as dispatch,
+      -- 27 AUG 2026 — "a real arrival has now driven the estate", which is the case the sentence
+      -- below anticipated, and it has been read.
+      --
+      -- public.phase_d_dispatch is an APPEND-ONLY audit of every dispatch the kernel attempted. It
+      -- read 0 only because nothing had committed one. 'a_phone_cannot_select_an_account.test.mjs'
+      -- commits two customers on production every run — the one check in this estate that cannot be
+      -- made rollback-safe, because the guard it exercises lives in the login_otp edge function,
+      -- which connects on its own session and cannot see an uncommitted transaction; that file
+      -- argues the trade-off at length. Each INSERT fires z50_customer_registered_kernel_emit, which
+      -- opens a W04 run, which dispatches W04-S01. So the suite adds two rows here per run, and its
+      -- 'finally' deletes the customers — which since 27 Aug cancels those runs through
+      -- a00_kernel_parent_delete_guard instead of orphaning them, which is how the eight orphaned
+      -- W04 runs of 26 Aug were made.
+      --
+      -- A dispatch that was ATTEMPTED and REFUSED, on a run that was then cancelled, is history. A
+      -- dispatch that reached EXECUTED is an effect, and an effect from an aborted probe is the
+      -- residue this test exists to catch. That distinction is what is counted now; the total is
+      -- reported beside it so the growth is visible rather than asserted away.
+      (select count(*) from public.phase_d_dispatch) as dispatch_total,
+      (select count(*) from public.phase_d_dispatch where outcome <> 'REFUSED') as dispatch_not_refused,
       (select count(*) from public.phase_d_effect_ledger) as ledger,
       (select count(*) from public.fn_phase_d_fixture_residue()) as residue;` }),
   }).then(x => x.json());
   const row = Array.isArray(r) ? r[0] : r;
 
   assert.equal(Number(row.residue), 0, 'the drive left fixture residue behind');
-  assert.equal(Number(row.dispatch), 0,
-    `public.phase_d_dispatch holds ${row.dispatch} committed rows. If a real arrival has now driven ` +
-    'the estate this is expected and this test should be updated by a person who has read why; if ' +
-    'not, an aborted probe committed.');
+  console.log(`      public.phase_d_dispatch: ${row.dispatch_total} committed row(s), `
+    + `${row.dispatch_not_refused} of them not REFUSED`);
+  assert.equal(Number(row.dispatch_not_refused), 0,
+    `public.phase_d_dispatch holds ${row.dispatch_not_refused} committed row(s) that are not ` +
+    'REFUSED, out of ' + row.dispatch_total + '. A dispatch that reached the handler and was not ' +
+    'refused produced or attempted an effect; committed, that is residue from a drive that should ' +
+    'have rolled back. Read the rows before changing this line.');
   assert.equal(Number(row.ledger), 0,
     `public.phase_d_effect_ledger holds ${row.ledger} committed rows — see the note above.`);
 });

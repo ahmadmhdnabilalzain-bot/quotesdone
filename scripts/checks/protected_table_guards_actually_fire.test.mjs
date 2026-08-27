@@ -187,10 +187,26 @@ test('nothing this check drove survives it', { skip: SKIP }, async () => {
     body: JSON.stringify({ query: `select
       (select count(*) from public.phase_c_refund_decision) as decisions,
       (select count(*) from public.founder_approval_request) as requests,
-      (select count(*) from public.phase_c_founder_auth_event) as auth_events;` }),
+      -- 27 AUG 2026. This read a bare count, and a bare count was right only while
+      -- public.phase_c_founder_auth_event could never hold a row: fn_phase_c_governance_decide was
+      -- missing from kernel_write_authority, so the kernel write guard refused its every mint with
+      -- 42501 and the table stayed empty from creation until the door was repaired. It now holds two
+      -- real founder sessions and it is APPEND-ONLY, so "expected 0" is unsatisfiable for ever.
+      --
+      -- THIS PROBE STILL CANNOT LEAVE A ROW HERE, and that is the point: the mint refuses any
+      -- connection whose session_user is not 'authenticator', and this check runs on the management
+      -- connection. What is counted now is an event that could NOT have come from a verified
+      -- session — the same predicate fn_phase_c_founder_auth_state uses, so the two agree.
+      (select count(*) from public.phase_c_founder_auth_event e
+        where e.txid is null
+           or not exists (select 1 from public.phase_c_founder_identity f
+                           where f.identity = e.identity and f.active and f.kind = 'email')
+           or (e.action_class = 'GOVERNANCE_DECISION' and e.consumed_at is null)) as unbacked_auth_events;` }),
   });
   const [row] = JSON.parse(await r.text());
   assert.equal(Number(row.decisions), 0, 'a refund decision survived an aborted probe');
   assert.equal(Number(row.requests), 0, 'a founder approval request survived an aborted probe');
-  assert.equal(Number(row.auth_events), 0, 'a founder auth event survived an aborted probe');
+  assert.equal(Number(row.unbacked_auth_events), 0,
+    'a founder auth event exists that no verified session could have produced — it names no active '
+    + 'founder identity, or no transaction, or it is a governance session that was never consumed');
 });
