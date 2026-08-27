@@ -29,6 +29,21 @@ curl -sL -A "Mozilla/5.0" -o ISTQB_CTFL_v4.0_Syllabus.pdf \
 tools/venv/Scripts/python.exe -m book_to_skill ISTQB_CTFL_v4.0_Syllabus.pdf --mode text --install-missing no
 ```
 
+## Proven across source types (collect + extract, steps 2–3)
+
+The pipeline is not ISTQB-specific. Two anchor sources of different shape were each downloaded from the
+issuing body and extracted cleanly, zero cost:
+
+| source | track | download | extract (text mode) |
+|---|---|---|---|
+| ISTQB CTFL v4.0.1 syllabus (professional cert) | `qa-istqb` | istqb.org, 78-page PDF | 27,458 words, 4 ToC chapters; docling `--mode technical` also ran → 145 structural sections |
+| UAE Commercial Companies Law, Federal Decree-Law 32/2021 (regulation) | `uae-ccl` | moet.gov.ae, 70-page PDF | 45,621 words, 7 numeric chapters; clean legal text (definitions, liability, capital) |
+
+So both a cert syllabus and a dense UAE law extract to clean, chaptered text — the two dominant source
+shapes in `CERTIFICATION_SOURCE_REGISTRY.md`. The remaining collection risk is the bot-blocked domains
+the research flagged (ISO, DIFC, DEWA, CEN) — those need Scrapling / a stealth fetch, which the toolbox
+carries for exactly that case.
+
 ## The store this lands in
 
 `public.kb_chunks` (97,499 rows, 95,310 embedded) already carries BOTH a generated `fts` tsvector AND
