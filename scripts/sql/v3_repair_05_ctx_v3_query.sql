@@ -180,7 +180,9 @@ begin
                          order by rank desc)
           from (select title, citation, category, content, ts_rank(fts, v_q) as rank
                   from kb_chunks
-                 where category = any(v_scope) and fts @@ v_q
+                 where (category = any(v_scope)
+                        or (p_category_key is not null and category = p_category_key))
+                   and fts @@ v_q
                  order by ts_rank(fts, v_q) desc, effective_date desc nulls last
                  limit 12) k), '[]'::jsonb));
   else
