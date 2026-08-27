@@ -407,8 +407,25 @@ begin
   -- impossible, the board was already red when the approver was deleted and "red after delete"
   -- passed for a reason that had nothing to do with resolution. A check that cannot fail is not a
   -- check. Run against the approvals that are actually in the table, it discriminates again.
+  -- 27 Aug 2026: THE ARM DEACTIVATES INSTEAD OF DELETING, and it had to. On 2026-08-27 the
+  -- governance door recorded its first decision, and public.phase_c_governance_decision.decided_by
+  -- carries a FOREIGN KEY to public.phase_c_founder_identity(identity). Emptying the register is now
+  -- refused 23503 by that key, so this subtransaction aborted on the FK instead of on the probe own
+  -- RAISE and the arm reported -1 -- a fixture reddened by a real fix, not a defect.
+  --
+  -- Deactivating asks the same question and asks it better. The board resolves an approver through
+  -- "f.active and f.kind = email", so an INACTIVE identity stops resolving exactly as a deleted one
+  -- did, and it exercises the predicate the board actually evaluates rather than relying on the row
+  -- being gone. The delete is still attempted first and its outcome recorded, so if that key ever
+  -- disappears this arm says so instead of silently changing what it measures.
   begin
-    delete from public.phase_c_founder_identity;
+    begin
+      delete from public.phase_c_founder_identity;
+      v_out := v_out || jsonb_build_object('delete_arm', 'ACCEPTED');
+    exception when others then
+      v_out := v_out || jsonb_build_object('delete_arm', 'REFUSED ' || SQLSTATE);
+      update public.phase_c_founder_identity set active = false where active;
+    end;
     select count(*) into v_red from public.fn_phase_c_freeze_drift()
      where not ok and check_name = 'amendments_awaiting_founder_approval';
     -- The raise rolls this subtransaction back, so the register is intact for the arms below and

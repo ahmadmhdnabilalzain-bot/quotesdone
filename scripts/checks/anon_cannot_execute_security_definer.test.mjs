@@ -105,12 +105,43 @@ const ANON_CEILING = 0;
 // 23 Aug 2026: 4 -> 5. fn_phase_c_freeze_amendment_approve joins the named set below, reviewed the
 // same three ways. The ceiling and the named set are both asserted, so raising one without adding
 // the other still fails — which is the property that makes this pair worth keeping.
-const AUTHENTICATED_CEILING = 6;   // 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006)
+const AUTHENTICATED_CEILING = 7;   // 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006)
+                                   // 27 Aug 2026: 6 -> 7, fn_phase_c_founder_subject_bind. It is a
+                                   // NARROWING: the routine simultaneously LOST its service_role
+                                   // grant, which is what a service_role call was using to bind the
+                                   // founder's subject with no founder token in existence.
 
 // The only SECURITY DEFINER routines in public that a signed-in client role may execute, and the
 // reason each one is here. Pinned by name: a bare count would stay green if one of these closed
 // while some unrelated routine opened.
 const AUTHENTICATED_BY_DESIGN = {
+  // 27 AUG 2026 — reviewed the way this file asks: who calls it, with which client, and is it named
+  // in an RLS policy the querying role evaluates?
+  //
+  // WHO: nothing in production, today. os_api does not bind — it builds asCaller(authHeader) and
+  // lets PostgREST hand the database the subject it verified, so auth.uid() resolves on Route A of
+  // fn_phase_c_require_founder without any bind. The door exists for a server that verified a token
+  // some other way, and `grep -rn "founder_subject_bind" supabase/ scripts/ src/ docs/` returns no
+  // caller in supabase/functions and none in src/.
+  // WITH WHICH CLIENT: the anon key plus a GoTrue bearer for an active founder identity.
+  // NAMED IN AN RLS POLICY: no.
+  //
+  // WHY THE GRANT MOVED AT ALL. Until 27 Aug this routine was granted to service_role and accepted
+  // p_subject as an argument WITHOUT comparing it to the caller's own auth.uid(). PostgREST connects
+  // as authenticator and SET ROLEs, so a service_role call carrying the founder's auth_user_id --
+  // readable from the very table the routine validates against -- bound his subject with no founder
+  // bearer token in existence, and fn_kernel_refund_decision_record and
+  // fn_phase_c_freeze_amendment_approve accepted it. The routine now requires the verified JWT role
+  // to be 'authenticated', requires auth.uid() to be non-null, and requires p_subject = auth.uid().
+  // service_role, anon and PUBLIC lost EXECUTE in the same file. Measured over real HTTPS the day it
+  // was applied, in docs/phase-d/PHASE_D_GOVERNANCE_DOOR_CANARY.csv: service_role + the founder's own
+  // uuid -> 403; anon + the founder's uuid -> 401; a non-founder JWT + the founder's uuid -> 403
+  // pd_founder_bind_subject_is_not_the_caller; the founder's JWT + another subject -> 403, same code;
+  // the founder's JWT binding itself -> 200.
+  fn_phase_c_founder_subject_bind:
+    'reachable only by a signed-in user session, and it refuses any subject that is not the caller\'s'
+    + ' own auth.uid() and any founder identity that is not active. service_role LOST this grant in'
+    + ' the same change, which is the point: the grant narrowed (PD-FIN-004, 27 Aug 2026)',
   fn_customer_document_refs:
     'called with the customer\'s own JWT at customer_documents/index.ts:148, AND used inside the RLS'
     + ' policy documents.documents_customer_select, which is evaluated as the querying role',
