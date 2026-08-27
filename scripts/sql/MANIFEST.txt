@@ -1744,3 +1744,4 @@ scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
 scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql
 scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql
 scripts/sql/spec3_the_ownership_ledger_still_named_the_superseded_file.sql
+scripts/sql/stage0_remove_two_stale_authority_grants.sql
