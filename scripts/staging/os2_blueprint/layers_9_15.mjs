@@ -142,7 +142,13 @@ export default async function ({ req, one, Q, B, srcText }) {
   // A SCHEDULE IS NOT A RUN. cron.job.active is a claim; cron.job_run_details is the fact, and the
   // reflection row dated that night is the artefact proving the run did the work. Six of the last
   // seven nights, so one missed night is a blip and two is a dead loop.
-  const RCRON = `j as (select jobid, jobname, schedule, active from cron.job where command ~* '\\yfn_company_reflect\\y')`;
+  // Resolved through phase_c_system_execution_wrapper for the same reason as layers_1_8's MJOB: the
+  // active jobs run `select public.fn_kernel_cron_exec(<jobid>)` and the command they execute lives
+  // in the wrapper row. company_reflect_nightly is paused and unwrapped today, so this changes no
+  // verdict; it stops the check reading a resumed job as absent.
+  const RCRON = `j as (select j.jobid, j.jobname, j.schedule, j.active from cron.job j
+      left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+     where coalesce(w.original_command, j.command) ~* '\\yfn_company_reflect\\y')`;
   const RRUNS = `(select count(distinct d.end_time::date) from cron.job_run_details d join j on j.jobid = d.jobid
                    where d.status='succeeded' and d.end_time > now() - interval '7 days')`;
   const RNIGHTS = `(select count(distinct reflected_on) from public.company_reflection

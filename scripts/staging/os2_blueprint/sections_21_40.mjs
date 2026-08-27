@@ -135,12 +135,33 @@ export default async function ({ req, one, ui }) {
       ||', reachable reader(s): '||${UI_READS(C, t)}||' of '||${ALL_READS(t)}||' total'`;
 
   // A cron ROW is a claim; a SUCCEEDED RUN is the fact. Every liveness clause in this file routes here.
-  const RAN = (rx, days) => `exists (select 1 from cron.job j join cron.job_run_details d on d.jobid=j.jobid
-      where j.active and j.command ~* ${rq('\\y(' + rx + ')\\y')} and d.status='succeeded'
-        and d.end_time > now() - interval '${days} days')`;
-  const LAST_OK = (rx) => `coalesce((select max(d.end_time)::timestamp(0)::text from cron.job_run_details d
-      join cron.job j on j.jobid=d.jobid where j.active and j.command ~* ${rq('\\y(' + rx + ')\\y')}
-        and d.status='succeeded'), 'never')`;
+  //
+  // THE COMMAND NO LONGER NAMES THE ROUTINE (27 Aug 2026). Twenty-two of the twenty-three active
+  // jobs read `select public.fn_kernel_cron_exec(<jobid>)`; the command they actually run is held in
+  // phase_c_system_execution_wrapper.original_command. Matching a routine name against
+  // cron.job.command therefore matched NOTHING for twenty-two live jobs, and evolution_scan_weekly,
+  // monthly_report, regulation_watch_weekly and the AI spend guard — all running, all on schedule,
+  // all with a succeeded kernel trace — read as never having run. Measured: `select command from
+  // cron.job where jobid=142` returns the wrapper call, and the wrapper row returns
+  // `select public.fn_evolution_scan();`. So the effective command is resolved, once, here.
+  //
+  // AND THE WRAPPER SWALLOWS FAILURES. fn_kernel_cron_exec catches, records result='failed' on the
+  // trace, and returns normally, so cron.job_run_details says 'succeeded' for a run whose work threw.
+  // Resolving the command alone would therefore have made these clauses WEAKER than they were. The
+  // trace is asserted alongside: a run counts only if the wrapper did not record a failure for that
+  // component in the same window. Stated as a NOT EXISTS rather than a positive trace requirement,
+  // because a run from before the wrapper was installed has no trace row and is not thereby a failure.
+  const EFF_CMD = `coalesce(w.original_command, j.command)`;
+  const CRON_J = `cron.job j left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid`;
+  const NO_TRACED_FAILURE = (days) => `not exists (select 1 from public.phase_c_system_execution x
+      where x.component_id = 'cron:' || j.jobname and x.result = 'failed'
+        and x.finished_at > now() - interval '${days} days')`;
+  const RAN = (rx, days) => `exists (select 1 from ${CRON_J} join cron.job_run_details d on d.jobid=j.jobid
+      where j.active and ${EFF_CMD} ~* ${rq('\\y(' + rx + ')\\y')} and d.status='succeeded'
+        and d.end_time > now() - interval '${days} days' and ${NO_TRACED_FAILURE(days)})`;
+  const LAST_OK = (rx) => `coalesce((select max(d.end_time)::timestamp(0)::text from ${CRON_J}
+      join cron.job_run_details d on d.jobid=j.jobid where j.active
+        and ${EFF_CMD} ~* ${rq('\\y(' + rx + ')\\y')} and d.status='succeeded'), 'never')`;
 
   // ---- named-class coverage --------------------------------------------------------------------
   // The shape every "the spec names N things" requirement uses. `src` is a subquery producing one
@@ -186,12 +207,27 @@ export default async function ({ req, one, ui }) {
   // year, or a routine that passes that event type to an fn_emit* function as a literal. A
   // subscription does NOT count — production subscribes to rfq.created, supplier.applied and
   // customer.complaint and has never emitted any of the three, which is precisely the gap.
+  // A THIRD EMITTER SHAPE (27 Aug 2026). The two arms below see an event type recorded on the bus,
+  // and an event type written as a literal inside a routine. Neither can see the type that is passed
+  // as a TRIGGER ARGUMENT — `EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created')` keeps the type
+  // in pg_trigger.tgargs, and fn_emit_event reads it as tg_argv[1], so pg_get_functiondef contains
+  // no event type at all. This check reported "RFQ created" as the one class production does not
+  // emit, while trg_event_inquiry has been emitting rfq.created on every inquiry insert. Eight types
+  // were invisible this way, payment.received and quote.received among them. Only arguments
+  // containing a dot are taken, so the entity-type argument beside them ('inquiry') is not mistaken
+  // for an event type.
   const EVENT_SRC = `(select event_type as txt from public.company_event
         where occurred_at > now() - interval '365 days'
       union all
       select m[1] from pg_proc p join pg_namespace n on n.oid=p.pronamespace,
         regexp_matches(pg_get_functiondef(p.oid), 'fn_emit[a-z_]*\\s*\\(\\s*''([a-z0-9._]+)''', 'g') m
-       where n.nspname='public' and p.prokind in ('f','p'))`;
+       where n.nspname='public' and p.prokind in ('f','p')
+      union all
+      select m[1] from pg_trigger t join pg_proc f on f.oid = t.tgfoid
+        join pg_namespace fn on fn.oid = f.pronamespace,
+        regexp_matches(pg_get_triggerdef(t.oid), '''([a-z0-9]+\\.[a-z0-9._]+)''', 'g') m
+       where not t.tgisinternal and t.tgenabled <> 'D' and fn.nspname='public'
+         and f.proname ~ '^fn_emit')`;
   const NINE = [
     ['customer registered', 'customer\\.(registered|created|signed_?up|onboarded|joined)'],
     ['RFQ created', '(rfq|inquiry|quote_?request)\\.(created|received|opened|raised)'],
@@ -1026,9 +1062,13 @@ export default async function ({ req, one, ui }) {
   // ============================================================================================
   // Six monitors, each requiring an ACTIVE cron that has SUCCEEDED inside a fortnight. A view with
   // no schedule behind it monitors nothing, which is the state of the approval trace today.
-  const MONITOR = (rx) => `exists (select 1 from cron.job j join cron.job_run_details d on d.jobid=j.jobid
-      where j.active and (j.command ~* ${rq(rx)} or j.jobname ~* ${rq(rx)}) and d.status='succeeded'
-        and d.end_time > now() - interval '14 days')`;
+  // Same wrapper resolution as RAN above: 'regulatory changes' was reported missing while
+  // regulation_watch_weekly was active and had succeeded three days earlier, because its jobname
+  // matches none of the four alternatives and its command is the kernel wrapper call. The command it
+  // runs is `select public.fn_regulation_watch();`, which matches fn_regulation.
+  const MONITOR = (rx) => `exists (select 1 from ${CRON_J} join cron.job_run_details d on d.jobid=j.jobid
+      where j.active and (${EFF_CMD} ~* ${rq(rx)} or j.jobname ~* ${rq(rx)}) and d.status='succeeded'
+        and d.end_time > now() - interval '14 days' and ${NO_TRACED_FAILURE(14)})`;
   const MONITORS = [
     ['policy violations', 'policy_consistency|policy_violation|fn_policy'],
     ['excessive autonomy', 'autonomy_audit|fn_autonomy'],
@@ -1053,9 +1093,9 @@ export default async function ({ req, one, ui }) {
   const PAUSER = `(select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.prokind in ('f','p')
         and pg_get_functiondef(p.oid) ~* '\\y(cron\\.alter_job|cron\\.unschedule|autonomy_enabled|automation_paused|halt)\\y'
-        and exists (select 1 from cron.job j join cron.job_run_details d on d.jobid=j.jobid
-                     where j.active and j.command ~* ('\\y'||p.proname||'\\y') and d.status='succeeded'
-                       and d.end_time > now() - interval '2 days'))`;
+        and exists (select 1 from ${CRON_J} join cron.job_run_details d on d.jobid=j.jobid
+                     where j.active and ${EFF_CMD} ~* ('\\y'||p.proname||'\\y') and d.status='succeeded'
+                       and d.end_time > now() - interval '2 days' and ${NO_TRACED_FAILURE(2)}))`;
   await req(S, 's39-governance-can-pause', 'Governance can pause automation, audibly and visibly',
     `select coalesce(${PAUSER} > 0
        and (select count(*) from public.autonomy_control_audit) > 0
@@ -1078,7 +1118,14 @@ export default async function ({ req, one, ui }) {
     `select 'company_maturity = '||coalesce((${IDX_ROW('company_maturity')} ->> 'score'),'(null)')
        ||' band '||coalesce((${IDX_ROW('company_maturity')} ->> 'band'),'(null)')||' measured '
        ||coalesce((select max(measured_on)::text from public.company_index where index_name='company_maturity'),'never')
-       ||' by an active daily cron; '||${DELIVERED_EV('maturity', 'company_index')}`);
+       ||' by a daily cron that is currently active='
+       -- MEASURED, NOT ASSERTED. This read 'by an active daily cron' as a literal, beside a verdict
+       -- whose only failing leg was freshness. company_indices_daily has been active=false since the
+       -- 16 Aug stand-down, so the evidence stated the premise the predicate was testing.
+       ||coalesce((select bool_or(j.active)::text from cron.job j
+                    left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+                   where coalesce(w.original_command, j.command) ~* '\\yfn_company_indices\\y'), '(no such job)')
+       ||'; '||${DELIVERED_EV('maturity', 'company_index')}`);
 
   const MAT_DIMS = [
     ['automation', 'automat'],

@@ -2429,6 +2429,22 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
             {x.route_to ? <span className='text-[11px] text-muted-foreground'>→ {x.route_to}</span> : null}
             <span className='text-[11px] text-muted-foreground ml-auto'>{fmt(x.at)}</span></div>
           {Array.isArray(x.reasons) && x.reasons.length ? <div className='text-[11px] text-muted-foreground mt-0.5'>{x.reasons.join(' · ')}</div> : null}
+          {/* WHICH KNOWLEDGE THIS DECISION USED. fn_ws_agent_ops has been sending decision_log.sources
+              with every decision — the policy checks it ran and, when the action gate found governing
+              knowledge, the kb_chunks it retrieved — and nothing in this shell rendered it, so the one
+              thing the spec asks for ("which knowledge an employee used is visible") arrived in the
+              browser and stopped there. Each source names its kind and its ref; a knowledge source
+              also carries the titles it retrieved, which are what a human actually wants to read. */}
+          {Array.isArray(x.sources) && x.sources.length ? <div className='text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-1.5 items-center'>
+            <span className='uppercase tracking-wide text-[10px]'>Knowledge used</span>
+            {(x.sources as any[]).map((s: any, i: number) => (
+              <Chip key={i}
+                label={[String(s?.kind || 'source'), s?.ref ? String(s.ref) : null,
+                        Array.isArray(s?.result) ? s.result.map((r: any) => String(r?.title || '')).filter(Boolean).join(', ') : null]
+                       .filter(Boolean).join(' · ')}
+                tone={String(s?.kind) === 'knowledge' ? 'green' : String(s?.kind) === 'knowledge_error' ? 'red' : 'slate'} />
+            ))}
+          </div> : null}
         </div>))}</div></Card> : null}
 
       {plans.length ? <Card className='mt-4 overflow-hidden'>{sub('Upcoming plans', <Badge variant='secondary'>{plans.length}</Badge>)}
