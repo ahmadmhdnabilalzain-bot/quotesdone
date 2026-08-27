@@ -123,9 +123,52 @@ a cleanup.
 
 | defect | status |
 |---|---|
-| 1 — No AI-managerial approval tier | **OPEN — Stage 1 build.** The single most important thing for the vision; a dispatcher middle tier `consequential action → AI head/officer approves → runs autonomously`. Design carefully (must not regress FD-01/FD-02); its own session. |
+| 1 — No AI-managerial approval tier | **BUILT + proven (28 Aug 2026).** See below. |
 | 2 — 182 self-approvals | **CLOSED** (mechanism + write-time guard proven; legacy rows are history) |
 | 3 — 2 stale authority grants | **FIXED + verified** |
 
 New, low-severity, for Stage 1: (a) the `dispute handling path` dual-ownership; (b) confirm the
 `employee_task` template's `owner`/`Director` actors resolve at runtime. Neither is a blocker.
+
+### Defect 1 — the AI-managerial approval tier — BUILT and proven
+
+The dispatcher `fn_action_invoke_dispatch` no longer collapses "needs approval" into "a human must be
+involved." A **middle tier** now exists: `consequential action → the accountable AI head/officer
+approves → runs autonomously`. Built without touching any frozen object — `fn_action_invoke_dispatch`
+is NOT in `phase_c_frozen_subject` (verified: the 23 frozen routines are kernel primitives + refund
+guards), and the refund path stays frozen and founder-only.
+
+Mechanism (`scripts/sql/stage1_ai_managerial_approval_tier.sql` + the dispatcher edit in
+`scripts/sql/the_queue_that_had_nobody_to_hand_it_to.sql`):
+
+- **`action_approval`** ledger — one row per action_execution (uuid key): `requested` → `approved`/
+  `rejected`, single-use (`consumed_at`), RLS on, no anon/authenticated grants.
+- **`fn_action_resolve_approver(dept, risk_tier)`** — the entitled approver by risk: medium → the
+  department head (execute_medium or stronger); high → an execute_high officer, escalating to the CEO
+  when the head lacks the tier.
+- **`fn_action_head_approve(action_id, decision, reason, approver)`** — the head's decision, recorded
+  with identity and authority basis. Refuses: a founder-reserved (refund) action, an irreversible
+  action with no compensation, a non-entitled approver, and self-approval by the action's own author.
+- The dispatcher now classifies each queued action three ways: **absolute refuse** (inactive /
+  founder-reserved / irreversible-no-comp), **auto-dispatch** (low + advisory_safe + reversible, not
+  human-notifying-unattended — unchanged), or **consequential** → route to the entitled head and park
+  (`awaiting_head_approval`, still queued) until approved, then dispatch; a rejection refuses it.
+
+Proven by two aborted-transaction probes (nothing committed, `net.http_request_queue` rolled back to
+0, zero live effect):
+
+- **Probe A:** a `supplier_verify` action (marketplace, medium, reversible) → first sweep
+  `awaiting_approval=1`, parked with `procurement` as the entitled approver; a wrong approver (`cfo`)
+  refused; `procurement` approved; second sweep **dispatched=1**.
+- **Probe B:** `refund_within_window` → refused `reserved to the founder` and unapprovable by the CEO;
+  `collections_chase` (irreversible-no-comp) → refused and unapprovable; a head rejection → the action
+  is refused on the next sweep.
+
+Safe under the holds: all three `action_invoke_*` crons are INACTIVE, and a consequential action only
+dispatches after a head calls `fn_action_head_approve` — which nothing does autonomously while
+automation is stood down. Phase A/B/C freeze drift 0 after the change; Phase D input schemas 8/8.
+
+v1 limits (for a later pass, not blockers): independence forbids self-approval only when the author is
+recorded on the action request; a consequential action that fails and retries re-seeks approval
+(conservative); high-risk approvable executors are currently all irreversible-no-comp and therefore
+still refused — when a reversible high-risk executor appears, the CEO-officer route already handles it.

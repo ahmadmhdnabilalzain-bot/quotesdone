@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-27T14:43:55.842Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-27T21:58:07.330Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,22 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (604) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
+-- ===== TABLES (605) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+  action_execution_id uuid NOT NULL,
+  action_class text NOT NULL,
+  department text NOT NULL,
+  accountable_approver text NOT NULL,
+  approver_role text,
+  approval_decision text DEFAULT 'requested'::text NOT NULL,
+  reason text,
+  risk_tier text,
+  authority_basis text,
+  requested_at timestamp with time zone DEFAULT now() NOT NULL,
+  decided_at timestamp with time zone,
+  consumed_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.action_class_gate (
   action_class text NOT NULL,
   gate_action_class text,
   rationale text NOT NULL,
@@ -7964,6 +7979,7 @@ CREATE TABLE IF NOT EXISTS public.zz_lead_hay (
 );
 
 -- ===== CONSTRAINTS =====
+ALTER TABLE public.action_approval ADD CONSTRAINT action_approval_pkey PRIMARY KEY (action_execution_id);
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_pkey PRIMARY KEY (action_class);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_pkey PRIMARY KEY (id);
 ALTER TABLE public.admin_mfa_sessions ADD CONSTRAINT admin_mfa_sessions_pkey PRIMARY KEY (session_id);
@@ -8682,6 +8698,7 @@ ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_path_key UNIQUE (path);
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_step_no_key UNIQUE (workflow_run_id, step_no);
+ALTER TABLE public.action_approval ADD CONSTRAINT action_approval_approval_decision_check CHECK ((approval_decision = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text])));
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_known_gate CHECK (((gate_action_class IS NULL) OR (gate_action_class = ANY (ARRAY['ad_spend'::text, 'authentication_identity'::text, 'autonomy_framework'::text, 'destructive_data'::text, 'legal_commitment'::text, 'money_move'::text, 'production_deploy'::text, 'public_claim_publish'::text, 'secrets_security'::text, 'supplier_enforcement'::text]))));
 ALTER TABLE public.agent_action_kind_policy ADD CONSTRAINT agent_action_kind_policy_policy_check CHECK ((policy = ANY (ARRAY['auto'::text, 'founder'::text])));
 ALTER TABLE public.agent_chats ADD CONSTRAINT agent_chats_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])));
@@ -15922,6 +15939,105 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_action_authority_rank(p_level text)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select case p_level
+    when 'execute_high'   then 3
+    when 'execute_medium' then 2
+    when 'stop_authority' then 2
+    when 'execute_low'    then 1
+    when 'advisory'       then 0
+    else 0 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_action_head_approve(p_action_execution_id uuid, p_decision text, p_reason text, p_approver text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a record; v_resolved jsonb; v_entitled text; v_approver text; v_author text;
+begin
+  if coalesce(p_decision,'') not in ('approved','rejected') then
+    raise exception 'fn_action_head_approve: decision must be approved or rejected, got %', p_decision
+      using errcode='check_violation';
+  end if;
+  if coalesce(btrim(p_reason),'') = '' then
+    raise exception 'fn_action_head_approve: a reason is required' using errcode='check_violation';
+  end if;
+
+  select ae.id, ae.action_class, ae.status, ae.request,
+         e.department, e.risk_tier, e.reversible, e.compensation_action_class, e.required_authority, e.active
+    into a
+    from public.action_execution ae
+    join public.org_action_executor e on e.action_class = ae.action_class
+   where ae.id = p_action_execution_id;
+  if not found then
+    raise exception 'fn_action_head_approve: no action_execution %', p_action_execution_id
+      using errcode='no_data_found';
+  end if;
+
+  -- the two absolute floors — never AI-approvable
+  if coalesce(a.required_authority,'') = 'founder' then
+    raise exception 'fn_action_head_approve: action % is founder-reserved (refund) and cannot be approved by an AI head', p_action_execution_id
+      using errcode='insufficient_privilege';
+  end if;
+  if (not a.reversible and a.compensation_action_class is null) then
+    raise exception 'fn_action_head_approve: action % is irreversible with no compensation and cannot be approved for autonomous dispatch', p_action_execution_id
+      using errcode='insufficient_privilege';
+  end if;
+
+  v_resolved := public.fn_action_resolve_approver(a.department, a.risk_tier);
+  v_entitled := v_resolved->>'approver';
+  if v_entitled is null then
+    raise exception 'fn_action_head_approve: no entitled approver resolves for department % (%).', a.department, v_resolved->>'basis'
+      using errcode='insufficient_privilege';
+  end if;
+
+  v_approver := coalesce(public.fn_org_agent_resolve(coalesce(p_approver, v_entitled)), coalesce(p_approver, v_entitled));
+  if v_approver <> v_entitled then
+    raise exception 'fn_action_head_approve: % is not the entitled approver for a %-risk % action (entitled: %). %',
+      v_approver, coalesce(a.risk_tier,'medium'), a.department, v_entitled, v_resolved->>'basis'
+      using errcode='insufficient_privilege';
+  end if;
+
+  -- independence: the approver may not be the action's own author, when the author is recorded
+  v_author := coalesce(a.request->>'actor', a.request->>'requested_by', a.request->>'author');
+  if v_author is not null
+     and coalesce(public.fn_org_agent_resolve(v_author), v_author) = v_approver then
+    raise exception 'fn_action_head_approve: % authored this action and may not approve their own work', v_approver
+      using errcode='insufficient_privilege';
+  end if;
+
+  insert into public.action_approval as ap
+    (action_execution_id, action_class, department, accountable_approver, approver_role,
+     approval_decision, reason, risk_tier, authority_basis, decided_at)
+  values
+    (a.id, a.action_class, a.department, v_entitled, v_approver,
+     p_decision, p_reason, a.risk_tier, v_resolved->>'basis', now())
+  on conflict (action_execution_id) do update
+    set approver_role   = excluded.approver_role,
+        approval_decision = excluded.approval_decision,
+        reason          = excluded.reason,
+        authority_basis = excluded.authority_basis,
+        decided_at      = now(),
+        consumed_at     = null
+    where ap.consumed_at is null;   -- a consumed (already dispatched) approval is immutable
+
+  if not found then
+    raise exception 'fn_action_head_approve: action % already dispatched under a consumed approval; cannot re-decide', a.id
+      using errcode='object_not_in_prerequisite_state';
+  end if;
+
+  return jsonb_build_object('action_execution_id', a.id, 'decision', p_decision,
+    'approver', v_approver, 'entitled_approver', v_entitled, 'basis', v_resolved->>'basis');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_action_invoke_collect()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -16032,6 +16148,7 @@ CREATE OR REPLACE FUNCTION public.fn_action_invoke_dispatch(p_limit integer DEFA
 AS $function$
 declare r record; v_req bigint; v_sent int := 0; v_refused int := 0; v_skipped int := 0;
         v_url text; v_secret text; v_ref text; v_key text;
+        v_awaiting int := 0; v_appr record; v_resolved jsonb; v_entitled text;
 begin
   select value into v_secret from app_secrets where key = 'cred_action_invoker';
   if v_secret is null then
@@ -16050,7 +16167,7 @@ begin
     select a.id, a.action_class, a.request, a.idempotency_key, a.attempts,
            e.target, e.kind, e.active, e.risk_tier, e.advisory_safe, e.reversible,
            e.required_authority, e.compensation_action_class, e.idempotency_strategy, e.params,
-           e.notifies_human, e.unattended_ok,
+           e.notifies_human, e.unattended_ok, e.department,
            coalesce(e.timeout_seconds, 60) timeout_seconds, coalesce(e.max_attempts, 1) max_attempts
       from public.action_execution a
       join public.org_action_executor e on e.action_class = a.action_class
@@ -16058,30 +16175,63 @@ begin
      order by a.created_at
      limit greatest(coalesce(p_limit, 5), 1)
   loop
-    -- ---- the three absolute refusals, the human-contact refusal, then the risk tier -----------
-    -- notifies_human is checked BEFORE the risk tier on purpose. The tier answers "how much
-    -- damage if this is wrong"; notifies_human answers "does a person hear from us either way",
-    -- and a message that should not have been sent cannot be un-sent by a low risk score.
+    -- ---- absolute refusals: inactive, founder-reserved (refunds), irreversible-with-no-undo -----
+    -- These are never dispatched and never AI-approvable. The refund gate stays with the founder; an
+    -- irreversible action with no compensation has no safe autonomous path even with a head's approval.
     if not r.active
        or coalesce(r.required_authority,'') = 'founder'
-       or (not r.reversible and r.compensation_action_class is null)
-       or (coalesce(r.notifies_human,false) and not coalesce(r.unattended_ok,false))
-       or not (r.risk_tier = 'low' and r.advisory_safe and r.reversible) then
+       or (not r.reversible and r.compensation_action_class is null) then
       update public.action_execution
          set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
                'invoker', 'refused', 'at', now(),
                'reason', case
                  when not r.active then 'executor row is inactive'
                  when coalesce(r.required_authority,'') = 'founder' then 'reserved to the founder'
-                 when (not r.reversible and r.compensation_action_class is null)
-                   then 'not reversible and declares no compensation_action_class'
-                 when (coalesce(r.notifies_human,false) and not coalesce(r.unattended_ok,false))
-                   then 'notifies_human is true and unattended_ok has not been set for this class — a person hears from us when this runs, and nobody has decided it may run unattended'
-                 else format('risk gate: tier=%s advisory_safe=%s reversible=%s — the invoker dispatches low/advisory_safe/reversible only',
-                             r.risk_tier, r.advisory_safe, r.reversible) end)
+                 else 'not reversible and declares no compensation_action_class' end)
        where id = r.id;
       v_refused := v_refused + 1;
       continue;
+    end if;
+
+    -- ---- the AI-managerial middle tier -------------------------------------------------------------
+    -- Auto-dispatch is the old gate: low risk, advisory-safe, reversible, and not a human-notifying
+    -- class that nobody cleared to run unattended. Anything else is CONSEQUENTIAL. Instead of the old
+    -- dead refusal, a consequential action routes to its accountable AI head/officer (never the
+    -- founder — that path was refused above) and dispatches only once the head records an approval.
+    if not (r.risk_tier = 'low' and r.advisory_safe and r.reversible
+            and not (coalesce(r.notifies_human,false) and not coalesce(r.unattended_ok,false))) then
+      select * into v_appr from public.action_approval where action_execution_id = r.id;
+
+      if found and v_appr.approval_decision = 'approved' and v_appr.consumed_at is null then
+        -- an AI head/officer approved this specific action: consume it (single-use) and dispatch below.
+        update public.action_approval set consumed_at = now() where action_execution_id = r.id;
+      elsif found and v_appr.approval_decision = 'rejected' then
+        update public.action_execution
+           set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                 'invoker','refused','at',now(),'approver', v_appr.approver_role,
+                 'reason','the accountable AI head rejected this action: '||coalesce(v_appr.reason,''))
+         where id = r.id;
+        v_refused := v_refused + 1;
+        continue;
+      else
+        -- not yet decided: route to the entitled head/officer and park it (still queued, no dispatch).
+        v_resolved := public.fn_action_resolve_approver(r.department, r.risk_tier);
+        v_entitled := v_resolved->>'approver';
+        insert into public.action_approval
+          (action_execution_id, action_class, department, accountable_approver,
+           approval_decision, risk_tier, authority_basis)
+        values (r.id, r.action_class, r.department, coalesce(v_entitled,'(unresolved)'),
+                'requested', r.risk_tier, v_resolved->>'basis')
+        on conflict (action_execution_id) do nothing;
+        update public.action_execution
+           set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                 'invoker','awaiting_head_approval','at',now(),
+                 'entitled_approver', v_entitled, 'risk_tier', r.risk_tier,
+                 'basis', v_resolved->>'basis')
+         where id = r.id;
+        v_awaiting := v_awaiting + 1;
+        continue;
+      end if;
     end if;
 
     -- ---- idempotency: the column exists on both tables and was never consulted ---------------
@@ -16129,7 +16279,7 @@ begin
   end loop;
 
   return jsonb_build_object('dispatched', v_sent, 'refused', v_refused,
-                            'deduplicated', v_skipped, 'ran_at', now());
+                            'deduplicated', v_skipped, 'awaiting_approval', v_awaiting, 'ran_at', now());
 end $function$
 
 
@@ -16345,6 +16495,41 @@ begin
   return jsonb_build_object('superseded', v_dupes, 'auto_resolved', v_cleared,
     'still_open', (select count(*) from public.agent_actions where status in ('pending','needs_review')),
     'ran_at', now());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_action_resolve_approver(p_department text, p_risk_tier text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_head text; v_head_auth text; v_need int; v_ceo text;
+begin
+  select lead_agent into v_head from public.org_departments where dept_key = p_department;
+  if v_head is null then
+    return jsonb_build_object('approver', null, 'basis',
+      'no lead_agent recorded for department ' || coalesce(p_department,'(null)'));
+  end if;
+  v_head := coalesce(public.fn_org_agent_resolve(v_head), v_head);
+  select authority_level into v_head_auth
+    from public.org_role where runtime_agent_key = v_head and status='active' limit 1;
+
+  v_need := case coalesce(p_risk_tier,'medium') when 'high' then 3 else 2 end;  -- medium/other -> 2
+
+  if public.fn_action_authority_rank(coalesce(v_head_auth,'advisory')) >= v_need then
+    return jsonb_build_object('approver', v_head, 'basis',
+      format('department head of %s (authority %s) is entitled to approve a %s-risk action',
+             p_department, coalesce(v_head_auth,'unset'), coalesce(p_risk_tier,'medium')));
+  end if;
+
+  -- head cannot clear this tier: the CEO (execute_high officer) is the accountable approver.
+  select runtime_agent_key into v_ceo from public.org_role
+    where role_id='ceo' and status='active' limit 1;
+  v_ceo := coalesce(v_ceo, 'ceo');
+  return jsonb_build_object('approver', v_ceo, 'basis',
+    format('%s head lacks authority for a %s-risk action; escalated to the execute_high officer (CEO)',
+           p_department, coalesce(p_risk_tier,'high')));
 end $function$
 
 
@@ -83462,6 +83647,7 @@ CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.workflow_step
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
+ALTER TABLE public.action_approval ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_class_gate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_execution ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_mfa_sessions ENABLE ROW LEVEL SECURITY;
