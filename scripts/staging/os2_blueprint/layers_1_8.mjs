@@ -392,7 +392,13 @@ export default async function ({ req, q, one, Q: Qesc, B: Bhelp }) {
   // schedule, it SUCCEEDED inside a window wide enough for one missed Monday and no wider, and the
   // report it exists to write landed next to that success. The last leg is what makes this immune to
   // a cron that fires and throws.
-  const MJOB = `(select j.jobid from cron.job j where j.active and j.command ~* '\\yfn_exec_meeting\\y' limit 1)`;
+  // The command is resolved through phase_c_system_execution_wrapper: twenty-two of the twenty-three
+  // active jobs read `select public.fn_kernel_cron_exec(<jobid>)` and name no routine at all. This
+  // job is paused today and unwrapped, so the coalesce changes nothing now — it stops the check
+  // going silently blind on the day exec_meeting_weekly is resumed and wrapped like the rest.
+  const MJOB = `(select j.jobid from cron.job j
+      left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+     where j.active and coalesce(w.original_command, j.command) ~* '\\yfn_exec_meeting\\y' limit 1)`;
   const MRUN = `(select max(d.end_time) from cron.job_run_details d
       where d.jobid = ${MJOB} and d.status='succeeded')`;
   await req(S, 'exec-meeting-weekly-autostart', 'The CEO AI starts the meeting weekly, unprompted',

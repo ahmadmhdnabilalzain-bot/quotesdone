@@ -34,41 +34,89 @@
 // (cos_execute drives fn_task_review over RPC, and no pg_proc scan can see that).
 export default async function ({ req }) {
   // A cron ROW is a claim; a succeeded RUN is the fact. Every liveness assertion below routes here.
+  // THE COMMAND NO LONGER NAMES THE ROUTINE (27 Aug 2026). Twenty-two of the twenty-three active
+  // jobs read `select public.fn_kernel_cron_exec(<jobid>)`; what they run is in
+  // phase_c_system_execution_wrapper.original_command. A pattern matched against cron.job.command
+  // therefore matched nothing for any of them. Resolved here, once, for every liveness claim below.
+  const EFF = `coalesce(w.original_command, j.command)`;
   const RAN = (cmd, days) => `exists (select 1 from cron.job j
+      left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
       join cron.job_run_details d on d.jobid = j.jobid
-     where j.active and j.command ~* ${cmd} and d.status='succeeded'
+     where j.active and ${EFF} ~* ${cmd} and d.status='succeeded'
        and d.end_time > now() - interval '${days} days')`;
   const CRON_OK = (rx, days) => RAN(`'\\y${rx}\\y'`, days);
+
+  // THE ROUTINES AN ACTIVE, RECENTLY-SUCCEEDED CRON NAMES. Uncorrelated on purpose: Postgres
+  // evaluates it once as a hashed subplan, which is the whole point of the rewrite below.
+  const ONCRON = `select p0.proname from pg_proc p0 join pg_namespace n0 on n0.oid = p0.pronamespace
+     where n0.nspname='public' and p0.prokind in ('f','p')
+       and exists (select 1 from cron.job j
+             left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+             join cron.job_run_details d on d.jobid = j.jobid
+            where j.active and coalesce(w.original_command, j.command) ~* ('\\y'||p0.proname||'\\y')
+              and d.status='succeeded' and d.end_time > now() - interval '14 days')`;
 
   // A proc is live if an active cron command that has SUCCEEDED in the last 14 days names it, or
   // another routine that is itself on such a cron names it. 14 days because the readers of a weekly
   // report are weekly jobs: one missed Monday is a blip, two is a dead reader. The previous form
   // asked only `cron.job.active`, so scheduling was mistaken for reading.
-  const LIVE = (a) => `(${RAN(`('\\y'||${a}.proname||'\\y')`, 14)}
-      or exists (select 1 from pg_proc q join pg_namespace nq on nq.oid=q.pronamespace
-                 where nq.nspname='public' and q.prokind in ('f','p') and q.oid <> ${a}.oid
-                   and pg_get_functiondef(q.oid) ~* ('\\y'||${a}.proname||'\\y')
-                   and ${RAN(`('\\y'||q.proname||'\\y')`, 14)}))`;
+  // ORDER OF THE TWO INNER CLAUSES IS THE WHOLE FIX (27 Aug 2026). This asked
+  // `pg_get_functiondef(q.oid) ~* p.proname AND RAN(q.proname)` — so for EVERY candidate routine it
+  // rendered the source of all 1,291 public routines and re-ran the cron join inside each one.
+  // Seven comp-16 requirements and os-exclusive-ownership did not come back MISSING; they did not
+  // come back at all, "transport failed after 7 attempts: TimeoutError" on every one, which is an
+  // UNMEASURED requirement wearing a MISSING verdict — the very thing the errored-check block at the
+  // bottom of the scorer exists to say out loud.
+  //
+  // Same question, same answer, evaluated the other way round: q must be on a live cron FIRST — a
+  // set of a few dozen names that Postgres builds once — and only those survivors have their source
+  // rendered. Nothing is loosened: `q.proname in (ONCRON)` is exactly RAN(q.proname) with the cron
+  // command resolved through the kernel wrapper, and the self-liveness arm is exactly RAN(a.proname).
+  // THE LIVE SET, COMPUTED ONCE AND UNCORRELATED. Reordering inside LIVE() was not enough: the views
+  // arm of FIGURE_READERS renders every routine's source once PER VIEW, and at 1,291 routines and
+  // 210 views that is a quarter of a million pg_get_functiondef calls before any liveness question
+  // is asked at all. So liveness stops being a correlated predicate and becomes a NAME LIST that
+  // Postgres builds once. The second arm renders only the eighteen on-cron definitions and matches
+  // every routine name against those strings, instead of rendering all 1,291 for every candidate.
+  const LIVE_NAMES = `select p1.proname from pg_proc p1 join pg_namespace n1 on n1.oid = p1.pronamespace
+       where n1.nspname='public' and p1.prokind in ('f','p') and p1.proname in (${ONCRON})
+     union
+     select p2.proname from pg_proc p2 join pg_namespace n2 on n2.oid = p2.pronamespace
+       where n2.nspname='public' and p2.prokind in ('f','p')
+         and exists (select 1 from (
+               select q.oid as qoid, pg_get_functiondef(q.oid) as qdef
+                 from pg_proc q join pg_namespace nq on nq.oid = q.pronamespace
+                where nq.nspname='public' and q.prokind in ('f','p') and q.proname in (${ONCRON})) qq
+              where qq.qoid <> p2.oid and qq.qdef ~* ('\\y'||p2.proname||'\\y'))`;
+  const LIVE = (a) => `(${a}.proname in (${LIVE_NAMES}))`;
 
   // How many LIVE readers name this figure on the per-OS health surface? fn_os_review is the writer
   // and is excluded: a function that mentions the column it populates is not a reader of it.
   // count(DISTINCT proname), because pg_proc holds one row per OVERLOAD — fn_agent_context has two
   // on production, and a reader counted twice inflates every leg it appears in.
+  // LIVENESS IS ASKED FIRST, AND THAT IS THE DIFFERENCE BETWEEN A VERDICT AND A TIMEOUT. With the
+  // LIVE clause written last, this rendered pg_get_functiondef for all 1,291 public routines — twice,
+  // once per regex — and only then discarded all but the live ones. `\yhealth\y` matches enough of
+  // them that the statement blew past the database's own statement_timeout and came back
+  // "57014: canceled". Only a LIVE routine can be counted here at all, so the name filter is moved
+  // ahead of the source render: 40 definitions instead of 1,291, same set, same count.
   const FIGURE_READERS = (rx) => `(
       (select count(distinct p.proname) from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace
         where ns.nspname='public' and p.prokind in ('f','p') and p.proname <> 'fn_os_review'
+          and ${LIVE('p')}
           and pg_get_functiondef(p.oid) ~* '${rx}'
-          and pg_get_functiondef(p.oid) ~* '\\y(os_review|v_os_health)\\y'
-          and ${LIVE('p')})
+          and pg_get_functiondef(p.oid) ~* '\\y(os_review|v_os_health)\\y')
     + (select count(*) from pg_views v where v.schemaname='public' and v.definition ~* '${rx}'
         and (v.viewname = 'v_os_health' or v.definition ~* '\\yos_review\\y')
         and exists (select 1 from pg_proc p2 join pg_namespace n2 on n2.oid=p2.pronamespace
                     where n2.nspname='public' and p2.prokind in ('f','p')
                       and p2.proname <> 'fn_os_review'
-                      and pg_get_functiondef(p2.oid) ~* ('\\y'||v.viewname||'\\y')
-                      and ${LIVE('p2')}))
-    + (select count(*) from cron.job j3 where j3.active and j3.command ~* '${rx}'
-        and j3.command ~* '\\y(os_review|v_os_health)\\y'
+                      and ${LIVE('p2')}
+                      and pg_get_functiondef(p2.oid) ~* ('\\y'||v.viewname||'\\y')))
+    + (select count(*) from cron.job j3
+        left join public.phase_c_system_execution_wrapper w3 on w3.jobid = j3.jobid
+       where j3.active and coalesce(w3.original_command, j3.command) ~* '${rx}'
+        and coalesce(w3.original_command, j3.command) ~* '\\y(os_review|v_os_health)\\y'
         and exists (select 1 from cron.job_run_details d3 where d3.jobid=j3.jobid
                       and d3.status='succeeded' and d3.end_time > now() - interval '14 days')))`;
 

@@ -651,14 +651,34 @@ export default async function (H) {
   // The drawer computes Runs 24h, Runs 7d, OK rate and Avg run from agent_runs matched on the
   // employee's key. An employee with no run row sees four dashes, so this counts the employees for
   // whom the panel can say nothing at all. No window: performance is historical.
+  // AGENT_RUNS IS NOT THE ONLY PERFORMANCE SOURCE THE DRAWER HAS (27 Aug 2026). This counted
+  // employees with no agent_runs row and reported "the panel can compute nothing for them" — 71 of
+  // 90. That sentence was false about 70 of the 71. agent_runs is a cron execution log, so an
+  // employee that has never been on a cron has no row in it and never will; meanwhile the drawer
+  // also renders a KPI trend line from employee_kpi_history (kpiTrend, the MiniLine and the "n days
+  // · n KPI(s) · latest n%" caption) and a reputation score and tier from agent_reputation, and 89
+  // of the 90 carry both. Measured: 71 have no agent_runs, 1 has no employee_kpi, 1 has no
+  // employee_kpi_history, and exactly 1 — product_ux_designer, hired 15 Aug after
+  // employee_kpi_measure_daily was paused — has no performance source of any kind.
+  //
+  // The population is now the employees for whom the panel can genuinely say nothing. That is not a
+  // loosening: an employee with a rendered KPI curve and a rendered reputation tier does have
+  // performance visible in their workspace, which is what this requirement asks. It stays red, on
+  // the true count of 1 rather than the false count of 71.
   const NO_PERF = `(select count(*) from public.org_agents a where a.active
+      and not exists (select 1 from public.agent_runs r where r.agent = a.agent_key)
+      and not exists (select 1 from public.employee_kpi k where k.agent_key = a.agent_key)
+      and not exists (select 1 from public.employee_kpi_history h where h.agent_key = a.agent_key)
+      and not exists (select 1 from public.agent_reputation g where g.agent_key = a.agent_key))`;
+  const NO_RUNS = `(select count(*) from public.org_agents a where a.active
       and not exists (select 1 from public.agent_runs r where r.agent = a.agent_key))`;
   const perfKeys = shown(DRAWER, /(perf|ok_rate|success_rate|quality|accuracy|rating|score|duration|runs_)/i, null, /(perform|rate|run|quality|score)/i);
   await req(SEC, 'employee-performance', "An employee's performance is visible in their workspace",
     `select ${perfKeys.length > 0} and ${DELIVERED(perfKeys)} and ${NO_PERF} = 0`,
     `select ${FIGEV(perfKeys, 'the employee workspace')} || '; ' ||
        ${NO_PERF}::text || ' of ' || ${ACTIVE_EMP}::text ||
-       ' active employee(s) have no agent_runs row at all, so the panel can compute nothing for them; employee_kpi holds ' ||
+       ' active employee(s) have no performance source of any kind — no agent_runs, no employee_kpi, no employee_kpi_history and no agent_reputation — so the panel can compute nothing for them; ' ||
+       ${NO_RUNS}::text || ' have no agent_runs row specifically, which on its own is a cron log and not a verdict on the employee; employee_kpi holds ' ||
        ${CNT('employee_kpi')}::text || ' row(s) with ' || ${UI_READS('employee_kpi')}::text ||
        ' browser-reachable reader(s); ai_quality_snapshots reachable readers ' ||
        ${UI_READS('ai_quality_snapshots')}::text`);
