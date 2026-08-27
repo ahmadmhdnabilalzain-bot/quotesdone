@@ -130,6 +130,14 @@ a cleanup.
 New, low-severity, for Stage 1: (a) the `dispute handling path` dual-ownership; (b) confirm the
 `employee_task` template's `owner`/`Director` actors resolve at runtime. Neither is a blocker.
 
+**Update (28 Aug):** (a) is resolved as a NON-issue by measurement. `owned_decisions` is read only by
+per-role context assembly and integrity checks (`fn_agent_context_v3`, `fn_phase_c_role_context`,
+`fn_phase_a_organization_violations`, `trg_org_role_no_reserved_decision`) — nothing routes a decision
+to an owner by matching the string across roles, so two roles owning `dispute handling path` cannot
+resolve ambiguously. `fn_phase_a_organization_violations()` returns 0 and does not flag it. It is a
+descriptive overlap (payment disputes vs trust/safety disputes), not an authority conflict. (b) remains
+a one-line confirmation for a later pass.
+
 ### Defect 1 — the AI-managerial approval tier — BUILT and proven
 
 The dispatcher `fn_action_invoke_dispatch` no longer collapses "needs approval" into "a human must be
