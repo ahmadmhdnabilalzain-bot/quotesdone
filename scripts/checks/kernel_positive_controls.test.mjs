@@ -73,6 +73,33 @@ const INPUTS = `jsonb_build_object('workflow_record','run ' || run, 'prior_outpu
 
 /** door -> the SQL that exercises it and the facts it must produce. */
 const CONTROLS = {
+  // 27 AUG 2026. fn_phase_c_governance_decide joined kernel_write_authority when it was registered as
+  // the writer of public.phase_c_founder_auth_event — until then it had never operated at all,
+  // because the kernel write guard refused its every mint with 42501 and public.
+  // phase_c_governance_decision therefore held 0 rows from the day PCCR-006 created it.
+  //
+  // A door on the canonical list needs a control here, and this one is GATED for exactly the reason
+  // the five below are: the routine's first statement refuses any connection whose session_user is
+  // not `authenticator`, so no connection this file has can drive it. Measured, not assumed —
+  // the same refusal is recorded as case D7 in docs/phase-c/PCCR-006_GOVERNANCE_DOOR_CANARY.md.
+  //
+  // WHAT DOES DRIVE IT, and it is not a claim that it cannot be driven:
+  //   node scripts/phase_d/prove_governance_door.mjs --record
+  // mints a real founder session, calls /rest/v1/rpc/fn_phase_c_governance_decide over HTTPS with
+  // that bearer, and records 22 of 22 authorization cases in
+  // docs/phase-d/PHASE_D_GOVERNANCE_DOOR_CANARY.csv — including the positive case (decision 6,
+  // PCCR-007) and the replay returning ALREADY_DECIDED with no second row.
+  fn_phase_c_governance_decide: `
+    ${BIND_FOUNDER}
+    res := public.fn_phase_c_governance_decide(jsonb_build_object(
+      'change_request_ref','PCCR-007', 'decision','APPROVED',
+      'approved_amendment_digest',
+        (select lower((regexp_match(m.raw_text, '[0-9a-fA-F]{64}'))[1])
+           from public.founder_command_message m
+          where position('pccr-007' in lower(m.raw_text)) > 0 order by m.received_at limit 1),
+      'amendment_table_path','docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-007.md',
+      'reason','kernel positive control: the governance door recorded a decision in a verified founder session'));`,
+
   fn_founder_command_submit: `
     ${SEED('positive-control-submit')}
     res := jsonb_build_object(
@@ -452,10 +479,26 @@ const CONTROLS = {
         'inbox', (select count(*) from public.kernel_signal_inbox where workflow_run_id = run)),
       'trace', (select count(*) from public.phase_c_trace where trace_id = (v2->>'trace_id')::bigint));`,
 
+  // 27 AUG 2026 — THE CONTROL WAS MANUFACTURING ITS OWN SUBJECT, and a10_kernel_workflow_run_parent_
+  // exists is what said so. `incident_ref` used to be the literal 'ZZ-POSITIVE-CONTROL-TRIGGER', so
+  // the run this control opened named business object `incident:ZZ-POSITIVE-CONTROL-TRIGGER` — an
+  // identity that resolves to no row in public.os_incidents and never could. The new guard refuses
+  // it 23503, and the guard is right: an identity is never a fixture.
+  //
+  // The reference now takes the shape THIS SOURCE ACTUALLY EMITS IN PRODUCTION. Run 352, opened
+  // 2026-08-17 by trg_page_high_agent_action and still active, carries
+  // `incident:agent_action:3833` — the trigger keys the subject by the agent_actions row that
+  // raised it, not by an os_incidents id. Driving the shape production drives is the whole point of
+  // a positive control; driving a shape nothing produces proved only that the fixture ran.
+  //
+  // (That the W29 producer and phase_d_business_object_binding disagree about how an `incident`
+  // subject is keyed is a real, separate finding — recorded in
+  // docs/phase-d/PHASE_D_ORPHAN_WORK_REPAIR.md §5, not papered over here.)
   fn_kernel_trigger_submit: `
     v2 := public.fn_kernel_source_emit('dbtrigger:public.agent_actions:trg_page_high_agent_action',
       jsonb_build_object('source_ref','ZZ-POSITIVE-CONTROL-TRIGGER', 'requested_by','positive-control',
-        'raw_payload', jsonb_build_object('incident_ref','ZZ-POSITIVE-CONTROL-TRIGGER')));
+        'raw_payload', jsonb_build_object('incident_ref',
+          'agent_action:' || (select max(a.id)::text from public.agent_actions a))));
     run := (v2->>'run_id')::bigint;
     res := jsonb_build_object(
       'accepted', coalesce((v2->>'ok')::boolean, false),
@@ -536,6 +579,10 @@ const doors = (await sql(`
 // They are counted separately and printed by name. A run of this file is not to be read as full
 // coverage of 21 doors any more, and the summary line says so.
 const NEEDS_A_FOUNDER_SESSION = new Set([
+  // 27 Aug 2026. Its own first statement refuses session_user <> 'authenticator', so it is gated for
+  // the same reason and by the same mechanism. It IS driven, over real HTTPS, by
+  // scripts/phase_d/prove_governance_door.mjs --record.
+  'fn_phase_c_governance_decide',
   'fn_phase_c_founder_subject_bind',
   'fn_founder_command_clarify',
   'fn_founder_command_control',

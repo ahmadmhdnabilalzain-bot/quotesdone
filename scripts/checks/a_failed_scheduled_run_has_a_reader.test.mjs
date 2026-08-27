@@ -59,6 +59,29 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
     why: 'the endpoint is disabled (it used to accept an unauthenticated write into app_secrets); '
        + 'a caller reached it — a stale Twilio callback or a probe of the closed hole. The row is a '
        + 'refusal logged as an error, not a failed run.' },
+  // 27 AUG 2026, 10:44:16Z — BEFORE the narrow correction session opened at 11:44Z, and it is
+  // recorded here rather than filtered out. The founder forwarded a Supabase invoice
+  // ("Fw: Payment received for Supabase Pte. Ltd. invoice (#TLZLFZ-00006)") to the inbound address.
+  // resend_inbound recognised it as a receipt and its extraction call came back HTTP 503, so no
+  // expense was booked and the run is recorded as an error.
+  //
+  // THAT 503 IS THE HOLD DOING ITS JOB, and it was measured rather than inferred:
+  // fn_kernel_paid_provider_gate returns allowed:false with 8 of 8 routes held open-circuit, and
+  // public.llm_attempt, public.ai_usage and public.ai_cost_log have held ZERO rows since
+  // 2026-08-15 02:51:33Z — nothing on 27 Aug at all. The company did not pay for that call and did
+  // not make it.
+  //
+  // WHAT IS OPEN, said plainly: an inbound email still reaches a path that ATTEMPTS a paid
+  // extraction while the provider hold is on, and a receipt the founder forwarded was silently not
+  // booked. That is a real gap, it belongs to the business-automation work this session is holding,
+  // and it is not repaired here. A SECOND row from this agent still fails this check.
+  { agent: 'resend_inbound', errors: 1,
+    why: 'receipt extraction returned HTTP 503 at 2026-08-27 10:44:16Z while the paid-provider hold '
+       + 'is open-circuit on 8 of 8 routes, so no expense was booked for a Supabase invoice the '
+       + 'founder forwarded. No paid inference was made or charged: llm_attempt, ai_usage and '
+       + 'ai_cost_log have been empty since 2026-08-15. The gap — an inbound path that still tries a '
+       + 'held provider and drops the receipt — is disclosed, owned by the held business-automation '
+       + 'work, and not repaired by the 27 Aug narrow correction session.' },
 ];
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];

@@ -91,7 +91,28 @@ test('no Phase D fixture row is committed on production', { skip: SKIP }, async 
     (select count(*) from public.phase_d_scenario_record)     scenario_records,
     (select count(*) from public.phase_d_capability_request)  capability_requests,
     (select count(*) from public.phase_d_capability_result)   capability_results,
-    (select count(*) from public.phase_c_founder_auth_event)  founder_auth_events,
+    -- 27 AUG 2026. NOT a bare count any more, and the change is not a relaxation.
+    -- public.phase_c_founder_auth_event was empty from the day PCCR-006 created it until the
+    -- governance door was repaired, because fn_phase_c_governance_decide was not on
+    -- kernel_write_authority and the kernel write guard refused its every mint with 42501. While the
+    -- table could never hold a row, "count = 0" was a serviceable way to say "no fixture leaked one".
+    --
+    -- It holds two real founder sessions now: the founder binding his own subject over HTTPS, and
+    -- the purpose-bound GOVERNANCE_DECISION session that carried his approval of PCCR-007. The table
+    -- is APPEND-ONLY — a00_phase_c_founder_auth_event_is_server_minted refuses DELETE outright — so
+    -- "expected 0" is an expectation the estate can never satisfy again, and a check that can only
+    -- fail is not a check.
+    --
+    -- A FIXTURE CANNOT PUT A ROW HERE AT ALL: the mint refuses any connection whose session_user is
+    -- not 'authenticator', and no check in this repository has one. So the question worth asking is
+    -- not how many rows there are but whether each one could only have come from a verified session.
+    -- Same predicate as fn_phase_c_founder_auth_state's own row, so the two instruments agree.
+    (select count(*) from public.phase_c_founder_auth_event e
+      where e.txid is null
+         or not exists (select 1 from public.phase_c_founder_identity f
+                         where f.identity = e.identity and f.active and f.kind = 'email')
+         or (e.action_class = 'GOVERNANCE_DECISION' and e.consumed_at is null))
+      founder_auth_events_not_backed_by_a_verified_session,
     (select count(*) from public.founder_command
       where intent_id like 'PHASE_D_FIXTURE%')                fixture_founder_commands`))[0];
   for (const [k, v] of Object.entries(r)) {
