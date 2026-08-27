@@ -67,19 +67,31 @@ counted from the CSVs themselves:
 Spec #2's 58 red lines and 7 unmeasured, spec #6's 34 and spec #8's 18 are **not** in that count.
 They are measured and unclassified.
 
-## Where the comp-16 cost actually is, as far as it was isolated
+## What actually fixed comp-16, and what did not
 
-The 27 Aug repair replaced the correlated liveness predicate with an uncorrelated name list, and
-`comp-16-health-score` still exceeds the database statement timeout. Narrowed further, by running
-the pieces directly:
+The first attempt replaced the correlated liveness predicate with an uncorrelated name list. It did
+not stop the timeouts and it MADE ONE WORSE: `comp-16-capacity` had been returning a real verdict
+and came back "transport failed after 7 attempts" instead. Trading a measured requirement for an
+unmeasured one to chase six others is a net loss, so it was reverted.
 
-* The on-cron set (18 routines) returns instantly.
-* The live set built from it (40 routines) returns instantly **on its own**.
-* Arm 1 of FIGURE_READERS, consuming that live set through a CTE — even one marked MATERIALIZED —
-  times out with `57014: canceling statement due to statement timeout`.
+What was kept is the correctness half — `RAN` resolves the cron command through
+`phase_c_system_execution_wrapper`, so liveness can see the twenty-two active jobs whose command is
+`select public.fn_kernel_cron_exec(<jobid>)` and names no routine at all.
 
-So the remaining cost is not the sets and not the regexes; it is the planner re-evaluating the
-live-set CTE per candidate row inside the scalar subquery. The next attempt should stop expressing
-this as one statement: compute the live routine names in JavaScript with one query, then pass them
-to the figure query as a literal array, the way `ui_closure.mjs` already does for spec #3. That is
-the shape that works in this repository at this size and it was not tried on 27 Aug.
+With that, and with the machine no longer running a scorer chain and hand queries against the same
+management API at the same time, **all ten comp-16 checks complete with zero errors**:
+
+```
+MET     comp-16-risk, performance, backlog, quality, cost, automation, fn-os-health
+MISSING comp-16-health-score-column, comp-16-health-score, comp-16-capacity
+        7 of 10 on the comp-16 section alone
+```
+
+So six of the seven spec #2 requirements recorded as UNMEASURED above are now measured, and all six
+of those are MET. The lesson is one this repository keeps relearning: a timeout is not a verdict,
+and the first explanation for a timeout — here, an expensive query shape — was not the whole cause.
+Concurrent load on the same management API was part of it, which is exactly why the session skill
+says not to run two scorers against the same project at once.
+
+`os-exclusive-ownership` in spec #2 and the five spec #4 checks (`spatial-live-shipment-status` and
+the four `pred-*`) share a different closure and have not been re-measured.
