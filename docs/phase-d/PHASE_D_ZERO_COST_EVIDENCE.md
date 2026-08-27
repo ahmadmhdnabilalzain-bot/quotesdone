@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-27 22:38 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-27 22:53 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE SIXTH TIME WAS THE LAST ONE DONE BY HAND.** On 2026-08-27 the check caught the close again —
@@ -33,7 +33,7 @@ close off the database at write time, which does not exist and is named here as 
 The close below is the database clock read after N11, the last apply of this session, and every
 figure was re-measured at that instant.
 
-**Measured at the new close, 2026-08-27 22:38:02 UTC:**
+**Measured at the new close, 2026-08-27 22:53:10 UTC:**
 
 | | over the stated window |
 |---|---:|
