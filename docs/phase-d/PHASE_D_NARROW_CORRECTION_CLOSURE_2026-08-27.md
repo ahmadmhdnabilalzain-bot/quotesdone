@@ -17,7 +17,7 @@ provider, and sent no live external effect.
 | branch / HEAD | `main` / `8db01d6af339257ad1da211285ef13a1d08d330e` |
 | origin/main | `8db01d6af339257ad1da211285ef13a1d08d330e` — identical |
 | working tree | 0 modified tracked files; 979 untracked (permanent session debris — paths are staged individually, never `git add -A`) |
-| PR / merge state | no open PR; `#472` merged, checks green |
+| PR / merge state | no open PR; `#472` merged, checks green. This session opened [#473](https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/473) |
 | repository → production drift | **0** |
 | production → repository drift | **0** |
 | uncommitted application DDL | **0** |
@@ -57,12 +57,12 @@ including the call graph, the authorization matrix, the threat model and the tam
 
 | | before | after |
 |---|---|---|
-| governance decisions ever recorded | **0** | **1** (PCCR-007, decision 6) |
-| founder auth events ever minted | **0** | **2** |
+| governance decisions ever recorded | **0** | **2** — PCCR-007 (decision 6, 12:03) and PCCR-003 (decision 10, 13:24) |
+| founder auth events ever minted | **0** | **5** |
 | service_role can bind the founder's subject | **YES** | no — 403 |
 | `fn_phase_c_governance_decide` can write its own auth event | no — 42501 | yes, via `kernel_write_authority` |
 | service_role holds EXECUTE on either door | yes | **no** |
-| authorization cases driven over real HTTPS | — | **22 of 22 correct** |
+| authorization cases driven over real HTTPS | — | **22 of 22 correct**, twice |
 | direct-write / management-SQL refusals measured | — | **12 of 12 refused** |
 
 `fn_phase_c_require_founder` — a frozen Phase C subject — was **not** touched.
@@ -73,26 +73,40 @@ including the call graph, the authorization matrix, the threat model and the tam
 
 Full report: [`docs/phase-c/PCCR-003_DISPOSITION.md`](../phase-c/PCCR-003_DISPOSITION.md).
 
-**Determination:** approved in a verified founder session on the amendment ledger
+**RATIFIED at 2026-08-27 13:24:16.321812+00 — governance decision 10.** The founder typed the
+approval in the Command Center at 13:23:19 (message 48415, raw_text_hash `e20d6721…`, digest
+`0293839b…` matching the document at commit `c645692`), and the door recorded it one minute later
+through a real founder session over HTTPS. `phase_c_change_request` PCCR-003 now carries
+`APPROVED` / `AUTHENTICATED_FOUNDER_SESSION` / `governance_decision_id = 10`, every column DERIVED
+from that decision.
+
+**It took him four sends and three of them went somewhere else.** The first was truncated at the
+word `sha256`; the console then routed the next two into that command's open clarification, where
+they were stored as answers and never reached `founder_command_message`. Both are real usability
+defects, recorded in the disposition document, not repaired here.
+
+**Prior determination, retained:** approved in a verified founder session on the amendment ledger
 (amendment 36, `AUTHENTICATED_FOUNDER_SESSION`, route `auth.uid()`, subject
 `1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14`, 2026-08-22 21:55:32+00), migration-backfilled onto the
 change-request row, and **pre-ledger** on the governance ledger, which PCCR-006 did not create until
 2026-08-25.
 
-**It is still red, and this is the one item in the session that is his and not mine.** Ratifying it
-requires a Command-Center sentence from him quoting the document digest; the door correctly refuses
-without one (canary case GOV-N11), and supplying it on his behalf would be forging his approval. The
-exact sentence and the one command that follows it are in §4 of that document.
+The door correctly refused it at 12:03, when no such sentence existed (canary case GOV-N11 as it
+stood then). Supplying that sentence on his behalf would have been forging his approval, and the
+session did not do it — it asked, and he sent it. GOV-N11 has since been rewritten to resolve its
+subject from the database, because naming PCCR-003 as "never quoted" was a negative control that
+went stale against the fact it described.
 
-Freeze board after this session: **11 rows, 1 red** — `1 of 2 approved`. The denominator moved from
-1 to 2 because PCCR-007 is now APPROVED **with** a verified decision. *A real fix moved the headline
-the wrong way, and that is stated rather than hidden.*
+Freeze board after this session: **11 rows, 0 red**. The denominator moved from 1 to 2 — PCCR-007 and
+PCCR-003 are both APPROVED **with** a verified governance decision — and the numerator went to 0.
+Mid-session it read `1 of 2`, worse than the `1 of 1` it started at, because a real fix moved the
+headline the wrong way before it moved the right way. That is stated rather than hidden.
 
 | required | result |
 |---|---|
 | written instruction presented as authenticated session | **0** |
 | PCCR-003 cleared by migration-written `approved_by` | **0** (refused, measured) |
-| Phase C freeze-board red caused by PCCR-003 | **1 — NOT MET, awaiting one founder sentence** |
+| Phase C freeze-board red caused by PCCR-003 | **0** |
 
 ---
 
@@ -223,7 +237,7 @@ paused or rescheduled by this session.
 |---|---|---|
 | Phase A drift | 0 rows | **0** |
 | effective Phase B drift | 0 rows | **0** |
-| Phase C freeze drift | every row ok | **1 red of 11** — PCCR-003 only, see §4 |
+| Phase C freeze drift | every row ok | **0 red of 11** |
 | repository → production drift | 0 | **0** |
 | production → repository drift | 0 | **0** |
 | manifest gaps | 0 | **0** |
@@ -284,13 +298,15 @@ would turn a true statement into a false one.
 
 ## 11. Exact remaining blockers
 
-1. **PCCR-003 has no governance-ledger row.** One Command-Center sentence from
-   `management@quotesdone.com`, verbatim in
-   [`PCCR-003_DISPOSITION.md`](../phase-c/PCCR-003_DISPOSITION.md) §4, then
-   `node scripts/phase_d/prove_governance_door.mjs --record --ref=PCCR-003`. Everything on this side
-   of that sentence is built, deployed and proved.
-
-Nothing else in this session's scope is outstanding.
+**None in this session's scope.** Every required outcome in the brief is met and measured:
+governance RPC works through a real founder JWT · service_role founder impersonation accepted 0 ·
+caller-supplied founder subject accepted 0 · direct governance writes accepted 0 · PCCR-003 freeze
+red 0 · active orphaned W04 runs 0 · active orphaned derived work 0 · Edge Functions inventoried
+202/202 · active state-changing Edge Functions unclassified 0 · active autonomous source bypasses 0 ·
+active unowned or untraced business-write paths 0 · reputation stand-down truthfully paused, not
+recomputed · Phase A/B/C/D frozen regressions pass · repository/production drift 0 · automation held ·
+`outcome_evaluate_daily` inactive · `reputation_weekly` inactive · live external effects 0 ·
+OpenRouter requests 0 · paid inference USD 0.00.
 
 ---
 
@@ -305,5 +321,4 @@ Nothing else in this session's scope is outstanding.
 
 ---
 
-**PHASE_D_NOT_READY** — on exactly one item, and it is the founder's sentence, not an engineering
-gap.
+**PHASE_D_READY_FOR_FROZEN_FINAL_REAUDIT**

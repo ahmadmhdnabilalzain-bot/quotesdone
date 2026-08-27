@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-27 13:07 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-27 13:32 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE SIXTH TIME WAS THE LAST ONE DONE BY HAND.** On 2026-08-27 the check caught the close again —
@@ -33,7 +33,7 @@ close off the database at write time, which does not exist and is named here as 
 The close below is the database clock read after N11, the last apply of this session, and every
 figure was re-measured at that instant.
 
-**Measured at the new close, 2026-08-27 13:07:15 UTC:**
+**Measured at the new close, 2026-08-27 13:32:13 UTC:**
 
 | | over the stated window |
 |---|---:|
@@ -44,7 +44,7 @@ figure was re-measured at that instant.
 | most recent `ai_cost_log` row in the whole table | 2026-08-15 02:51:33.108565+00 — before this window opened |
 | `net.http_request_queue` | **0** |
 | active `cron.job` | **23** |
-| `public.notifications` written in the window | 54, of which **0 sent** |
+| `public.notifications` written in the window | 55, of which **0 sent** |
 | `customers` / `inquiries` / `quotes` / `transactions` | **0 / 0 / 0 / 0** |
 | `phase_d_effect_ledger` | **0** |
 | `phase_d_external_attempt` | **0** |

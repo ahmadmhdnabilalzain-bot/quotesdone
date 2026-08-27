@@ -212,8 +212,30 @@ note('GOV-N9', 'governance', 'founder JWT + arbitrary 64-hex', 'fn_phase_c_gover
   await rpc('fn_phase_c_governance_decide', { p_input: { ...GOOD, approved_amendment_digest: 'a'.repeat(64) } }, FOUNDER_TOKEN));
 note('GOV-N10', 'governance', 'founder JWT + wrong change request', 'fn_phase_c_governance_decide', 'REFUSED',
   await rpc('fn_phase_c_governance_decide', { p_input: { ...GOOD, change_request_ref: 'PCCR-999' } }, FOUNDER_TOKEN));
-note('GOV-N11', 'governance', 'founder JWT + PCCR-003 (never quoted)', 'fn_phase_c_governance_decide', 'REFUSED',
-  await rpc('fn_phase_c_governance_decide', { p_input: { ...GOOD, change_request_ref: 'PCCR-003' } }, FOUNDER_TOKEN));
+// THE NEVER-QUOTED CASE, CHOSEN FROM THE DATABASE RATHER THAN TYPED.
+// This named PCCR-003 as the change request the founder had never quoted a digest for. He quoted one
+// at 2026-08-27 13:23:19 (message 48415), so the case stopped being a negative and came back
+// ACCEPTED — a check that had gone stale against the very fact it was written to describe. The
+// subject is now RESOLVED from `public.founder_command_message`: the lowest-numbered change request
+// that appears in none of his messages beside a 64-character digest. If he later quotes that one
+// too, this picks the next, and the case cannot go stale again.
+const [neverQuoted] = await sql(`select cr.change_request_ref as ref
+  from public.phase_c_change_request cr
+ where cr.change_request_ref <> '${REF}'
+   and not exists (select 1 from public.founder_command_message m
+                    where position(lower(cr.change_request_ref) in lower(m.raw_text)) > 0
+                      and m.raw_text ~ '[0-9a-fA-F]{64}')
+ order by cr.change_request_ref limit 1`);
+if (!neverQuoted) {
+  results.push({ id: 'GOV-N11', area: 'governance', caller: 'founder JWT + a never-quoted change request',
+    call: 'fn_phase_c_governance_decide', expected: 'REFUSED', outcome: 'NOT_MEASURED', http_status: '',
+    detail: 'every registered change request now carries a founder message quoting a digest, so there '
+          + 'is no never-quoted subject left to drive this case against' });
+  console.log('----  GOV-N11 governance  no never-quoted change request remains -> NOT_MEASURED');
+} else {
+  note('GOV-N11', 'governance', `founder JWT + ${neverQuoted.ref} (never quoted)`, 'fn_phase_c_governance_decide', 'REFUSED',
+    await rpc('fn_phase_c_governance_decide', { p_input: { ...GOOD, change_request_ref: neverQuoted.ref } }, FOUNDER_TOKEN));
+}
 
 // ---- the bind door, same treatment --------------------------------------------------------------
 note('BND-N1', 'bind', 'no bearer token', 'fn_phase_c_founder_subject_bind', 'REFUSED',

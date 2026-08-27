@@ -577,7 +577,8 @@ const before = await (async () => (await sql(`select
     where trace_policy_id <> 'TRACE-SYSTEM-EXECUTION') traces,
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
-  (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components`))[0])();
+  (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components,
+  (select coalesce(max(message_id),0) from public.founder_command_message) max_msg_id`))[0])();
 
 for (const [name, body, expect] of CASES) {
   // The injection runs, then the transaction is aborted by a RAISE either way.  If the guard
@@ -700,14 +701,59 @@ const countsNow = async () => (await sql(`select
     where trace_policy_id <> 'TRACE-SYSTEM-EXECUTION') traces,
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
-  (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components`))[0];
+  (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components,
+  (select coalesce(max(message_id),0) from public.founder_command_message) max_msg_id`))[0];
 
 const after = await countsNow();
+
+// A DELTA OVER A SHARED TABLE IS NOT ATTRIBUTION — 27 Aug 2026.
+//
+// This run went red on cmds 21 -> 22, msgs 21 -> 22 and traces 352 -> 353 while every one of the 58
+// injections was refused correctly. Nothing leaked. The founder sent a command in the Command Center
+// at 13:14 UTC, mid-run: one founder_command, one founder_command_message, one TRACE-FOUNDER-COMMAND
+// trace. The check saw three totals move and blamed itself.
+//
+// The traces column already learned this once, against cron 278. The general form of the lesson is
+// the same: a count that moves is not evidence of WHO moved it, and a check that fails on the
+// founder using his own OS teaches people to ignore it.
+//
+// ATTRIBUTION, NOT A WIDER TOLERANCE. Every message this file submits is a string literal IN this
+// file, so a new message whose raw_text appears in the file's own source is the probe's and is a
+// hard failure; one whose text is not in the file arrived from somewhere else and is named, counted
+// out of the three columns it touches, and reported. It cannot silently absorb a probe leak: the
+// probe's own text is always in the file.
+const SELF = readFileSync(new URL(import.meta.url), 'utf8');
+const arrivals = await sql(`select m.message_id, m.founder_identity,
+    left(m.raw_text, 160) as raw_text
+  from public.founder_command_message m
+ where m.message_id > ${Number(before.max_msg_id) || 0}
+ order by m.message_id`);
+const probeArrivals = arrivals.filter((a) => SELF.includes(String(a.raw_text).trim()));
+const outsideArrivals = arrivals.filter((a) => !SELF.includes(String(a.raw_text).trim()));
+
+if (outsideArrivals.length) {
+  console.log(`\n${outsideArrivals.length} founder command(s) arrived from outside this check while it ran, `
+    + 'and are excluded from the deltas below by attribution rather than by tolerance:');
+  for (const a of outsideArrivals) {
+    console.log(`  message ${a.message_id} ${a.founder_identity}: ${String(a.raw_text).slice(0, 90)}`);
+  }
+}
+for (const a of probeArrivals) {
+  console.error(`FAIL: message ${a.message_id} carries text from this file and survived — an injection was not rolled back`);
+  fail++;
+}
+// One founder command writes one founder_command, one founder_command_message and one
+// TRACE-FOUNDER-COMMAND trace. Those three columns are adjusted by the number of arrivals that came
+// from outside; every other column is compared untouched.
+const CONCURRENT = { cmds: outsideArrivals.length, msgs: outsideArrivals.length, traces: outsideArrivals.length };
+
 console.log('\nrow counts before/after every aborted injection:');
 for (const [k, v] of Object.entries(after)) {
-  const b = Number(before[k]), a = Number(v);
-  if (a !== b) { console.error(`FAIL: ${k} moved ${b} -> ${a}; an injection was not rolled back`); fail++; }
-  else console.log(`  ok   ${k.padEnd(18)} ${a} (unchanged)`);
+  if (k === 'max_msg_id') continue;
+  const b = Number(before[k]) + (CONCURRENT[k] || 0), a = Number(v);
+  const note = CONCURRENT[k] ? ` (+${CONCURRENT[k]} attributed to a command from outside this check)` : '';
+  if (a !== b) { console.error(`FAIL: ${k} moved ${Number(before[k])} -> ${a}${note}; an injection was not rolled back`); fail++; }
+  else console.log(`  ok   ${k.padEnd(18)} ${a} (unchanged${note})`);
 }
 // Probe components must be absent outright — they are named, so their presence is unambiguous
 // rather than a delta.
