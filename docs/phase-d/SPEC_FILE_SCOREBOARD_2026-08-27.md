@@ -6,7 +6,7 @@ Every number below was produced by running the scorer named beside it against
 | # | Spec | Scorer | Score | Classified |
 |---|------|--------|-------|------------|
 | 1 | Company architecture | `verify_spec_architecture.mjs` | **44/48** (92%) | yes — `SPEC1_MISSING_CLASSIFICATION.csv` |
-| 2 | Universal OS blueprint | `verify_os_blueprint.mjs` | **45/110** (41%), 7 unmeasured | no |
+| 2 | Universal OS blueprint | `verify_os_blueprint.mjs` | **54/110** (49%), was 45, 1 unmeasured | no |
 | 3 | Executive UI | `verify_os2_blueprint.mjs` | **111/152** (73%), was 104 | yes — `SPEC3_MISSING_CLASSIFICATION.csv` |
 | 4 | Customer portal | `verify_portal_blueprint.mjs` | **140/147** (95%), 5 unmeasured | yes — `SPEC4_MISSING_CLASSIFICATION.csv` |
 | 5 | Supplier portal | `verify_supplier_blueprint.mjs` | **224/234** (96%) | yes — `SPEC5_MISSING_CLASSIFICATION.csv` |
@@ -95,3 +95,24 @@ says not to run two scorers against the same project at once.
 
 `os-exclusive-ownership` in spec #2 and the five spec #4 checks (`spatial-live-shipment-status` and
 the four `pred-*`) share a different closure and have not been re-measured.
+
+## Spec file #2, re-measured end to end after the revert
+
+`54/110`, up from `45/110`, with **one** errored check instead of seven. Nine lines turned green
+and none turned red:
+
+```
+comp-14-can-decide          comp-16-backlog        comp-16-performance
+comp-15-who-approves        comp-16-cost           comp-16-quality
+comp-16-automation          comp-16-fn-os-health   comp-16-risk
+```
+
+Seven of the nine are comp-16 lines that were previously timing out. The other two —
+`comp-14-can-decide` and `comp-15-who-approves` — are not in that section at all. They turned green
+because their liveness clauses can now see the running crons through
+`phase_c_system_execution_wrapper`, which is the same defect that cost spec #3 four lines. That is
+the strongest evidence that the wrapper blindness is estate-wide and not a spec #3 curiosity: it was
+suppressing two unrelated requirements in a different file, in a different section, written by a
+different hand.
+
+`os-exclusive-ownership` is the one remaining unmeasured check in spec #2.
