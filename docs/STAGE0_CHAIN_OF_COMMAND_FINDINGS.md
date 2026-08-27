@@ -67,3 +67,65 @@ author) says treat it as live until proven otherwise.
 - The 12-of-19 never-run runtime workflows: wiring gap or legitimate.
 - Notification volume: would `notifies_human` on 10 action classes flood the founder's inbox during a
   year-long absence, drowning the one real major-issue signal?
+
+---
+
+## Second pass — 28 August 2026 (read-only + two fixes, zero cost, under every hold)
+
+### Defect 2 (182 self-approvals) — CLOSED, mechanism proven fixed
+
+The reviewer picker `fn_pick_reviewer(dept, author)` was fixed on 14 Aug 2026: it resolves the author
+via `fn_org_agent_resolve` and excludes the author in every branch (independent reviewer → manager →
+escalate), and **never returns the author**. Proven by measurement:
+
+- Called for all 31 department heads as author: **0 self-reviews** (each returns an independent
+  reviewer or escalates).
+- A **write-time guard** `a00_review_chain_no_self_review` (BEFORE INSERT/UPDATE) resolves BOTH sides
+  via alias, raises `check_violation` on equality, and canonicalizes both sides on write. **Forced to
+  fire** in an aborted probe: author `cfo` + reviewer `finance_ai` (an alias of `cfo`) → guard fired,
+  rejected, rolled back. So no path can record a self-approval, and the recurring alias root cause is
+  closed at write time.
+- Newest self-approval row: **2026-08-14 02:51 UTC**; none since. The 285 legacy rows (182 approvals)
+  are historical record of reviews that happened, not live authority — correctly left untouched (never
+  back-date or mass-close data).
+
+### Defect 3 (2 stale authority grants) — FIXED and verified
+
+`employee_authority` held two grants keyed to inactive/superseded agents:
+`gov_relations_mgr/analysis` (→ resolves to active `partnerships_mgr`) and
+`marketing_copy/content_draft autonomous` (→ resolves to active `marketing_content`). Every authority
+consumer canonicalizes the agent key via `fn_org_agent_resolve` BEFORE matching `employee_authority`
+raw (verified in `fn_check_spend`), so the ghost rows were already **unreachable**. Deleted them
+(migration `scripts/sql/stage0_remove_two_stale_authority_grants.sql`); verified **0 ghost rows, 0
+grants held by any missing/inactive agent**. Not re-keyed on purpose — re-keying would silently
+elevate `marketing_content` content_draft from advisory→autonomous, which is an authority change, not
+a cleanup.
+
+### Remaining items — measured
+
+- **Escalation termination:** only `ceo.escalation_targets = ['founder']` points at the founder; every
+  other role escalates internally. That single edge is the founder's own described major-issue email
+  signal (escalation of a genuine major issue), **not** a blocking approval gate — and approvals remain
+  refund-only (`required_authority='founder'` on exactly `refund_within_window`). Aligned with the vision.
+- **Conflicting authorities:** the only genuine cross-role overlap in `owned_decisions` is
+  **"dispute handling path"**, owned by BOTH `payments_and_billing_manager` (finance/payments) and
+  `trust_and_safety_manager` (legal). Candidate conflict — needs scope disambiguation (payment-dispute
+  vs abuse-dispute) OR a single owner. The 10 decision-labels shared by all 86 category overlays
+  (pricing drivers, required documents, escalation rules, …) are **category-scoped by design** — each
+  overlay owns the decision for its own category — and are NOT conflicts.
+- **actor_role staffing:** `public.workflow_step` — 184 steps, **0 blank**, 96 distinct actor_roles.
+  All resolve to a canonical/active role EXCEPT a generic `owner` (15 steps) and `Director` (1 step),
+  **all 16 in the single `employee_task` template workflow**, where the actor is the task's owner bound
+  at runtime — a generic template pattern, not a mis-wired manager. Confirm runtime binding before any
+  change; do not hard-assign a fixed role blindly.
+
+### Stage 0 status after this pass
+
+| defect | status |
+|---|---|
+| 1 — No AI-managerial approval tier | **OPEN — Stage 1 build.** The single most important thing for the vision; a dispatcher middle tier `consequential action → AI head/officer approves → runs autonomously`. Design carefully (must not regress FD-01/FD-02); its own session. |
+| 2 — 182 self-approvals | **CLOSED** (mechanism + write-time guard proven; legacy rows are history) |
+| 3 — 2 stale authority grants | **FIXED + verified** |
+
+New, low-severity, for Stage 1: (a) the `dispute handling path` dual-ownership; (b) confirm the
+`employee_task` template's `owner`/`Director` actors resolve at runtime. Neither is a blocker.
