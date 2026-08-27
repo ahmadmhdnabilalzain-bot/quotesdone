@@ -2435,15 +2435,9 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
               thing the spec asks for ("which knowledge an employee used is visible") arrived in the
               browser and stopped there. Each source names its kind and its ref; a knowledge source
               also carries the titles it retrieved, which are what a human actually wants to read. */}
-          {Array.isArray(x.sources) && x.sources.length ? <div className='text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-1.5 items-center'>
-            <span className='uppercase tracking-wide text-[10px]'>Knowledge used</span>
-            {(x.sources as any[]).map((s: any, i: number) => (
-              <Chip key={i}
-                label={[String(s?.kind || 'source'), s?.ref ? String(s.ref) : null,
-                        Array.isArray(s?.result) ? s.result.map((r: any) => String(r?.title || '')).filter(Boolean).join(', ') : null]
-                       .filter(Boolean).join(' · ')}
-                tone={String(s?.kind) === 'knowledge' ? 'green' : String(s?.kind) === 'knowledge_error' ? 'red' : 'slate'} />
-            ))}
+          {Array.isArray(x.sources) && x.sources.length ? <div className='text-[11px] text-muted-foreground mt-1'>
+            <span className='uppercase tracking-wide text-[10px] mr-1.5'>Knowledge used</span>
+            {x.sources.map((s: any) => [String(s?.kind || 'source'), s?.ref ? String(s.ref) : '', Array.isArray(s?.result) ? s.result.map((r: any) => String(r?.title || '')).filter(Boolean).join(', ') : ''].filter(Boolean).join(' · ')).join('   |   ')}
           </div> : null}
         </div>))}</div></Card> : null}
 
