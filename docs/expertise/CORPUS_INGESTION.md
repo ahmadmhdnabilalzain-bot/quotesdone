@@ -89,6 +89,19 @@ kb_chunks writes are all free and allowed.
 4. Keep launching new waves until every field and all ~70 trade categories are deep, then loop again for
    more depth. Snapshot `select count(*) from kb_chunks` periodically; don't report each agent.
 
+**JURISDICTIONAL SCOPE (founder ruling, 28 Aug 2026 — do not violate).** QuotesDone is a **UAE**
+company. For the **legal**, **hr** (labour), and **procurement**/compliance categories, ingest ONLY
+**UAE + GCC + genuinely international / UN** instruments — UAE/DIFC/ADGM/CBUAE law, GCC labour & procurement
+codes, and UNCITRAL, WIPO, UNIDROIT, Hague, WTO, FATF, ILO, OECD, ISO, World Bank/MDB. **Do NOT ingest
+single-foreign-jurisdiction statutes or regulations** — US Code, US CFR, US FAR/DFARS/GSAM, US state law,
+or any other country's domestic law. They are inapplicable to a UAE business and, worse, **cause the agents
+to give wrong, confusing answers** (a UAE HR agent must never cite US FLSA; a legal agent must never cite the
+US Bankruptcy Code). 44 such US-law sources / 16,572 chunks were removed on 28 Aug 2026.
+*Distinction that matters:* **US-origin TECHNICAL standards the UAE actually adopts are NOT law and DO stay**
+— NFPA fire codes (Dubai Civil Defence mandates them), NIST cybersecurity, ASHRAE, USACE/UFC/NAVFAC
+engineering, IETF RFCs, FDA/WHO health, IEEE. Those belong in engineering/it/construction/mep/fire/health
+trade categories, never in legal/hr as "law".
+
 **Category = how the corpus reaches the agent** (must be exact). Functional roles use their department's
 `fn_dept_scope` value; supplier specialists use the canonical trade category.
 

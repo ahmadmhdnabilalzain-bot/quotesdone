@@ -109,6 +109,14 @@ for (let i = 0; i < chunks.length; i += BATCH) {
   done += slice.length;
   process.stdout.write(`\r  loaded ${done}/${chunks.length}`);
 }
+// Self-heal retry-induced duplicate rows. A 5xx/timeout retry in dbPost() can re-commit an
+// already-committed batch (the management API offers no idempotency key), duplicating whole rows
+// for this source_id — measured at scale during bulk ingestion. Collapse byte-identical
+// (title, content) rows within THIS source, keeping the earliest ctid. Distinct chunks always
+// differ in content, so this can never remove real content; it is scoped to source_id so it never
+// touches other documents. (ponytail: post-load dedup is the lazy safe fix; true idempotency would
+// need a per-chunk key the management-API path can't carry.)
+await dbPost(`delete from public.kb_chunks where ctid in (select ctid from (select ctid, row_number() over (partition by title, content order by ctid) rn from public.kb_chunks where source_id = ${lit(sourceId)}) t where rn > 1);`);
 const cnt = await dbPost(`select count(*)::int n from public.kb_chunks where source_id = ${lit(sourceId)};`);
 const n = cnt?.[0]?.n ?? done;
 console.log(`\ndone: ${done} chunks loaded; kb_chunks now holds ${n} for source_id=${sourceId}.`);
