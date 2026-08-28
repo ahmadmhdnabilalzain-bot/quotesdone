@@ -82,6 +82,29 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'ai_cost_log have been empty since 2026-08-15. The gap — an inbound path that still tries a '
        + 'held provider and drops the receipt — is disclosed, owned by the held business-automation '
        + 'work, and not repaired by the 27 Aug narrow correction session.' },
+  // 28 AUG 2026 — TRANSIENT, LOAD-CORRELATED, FAIL-CLOSED, AND VERIFIED HEALTHY AGAIN. Both agents
+  // below errored ONLY in one window, 04:45-10:00Z on 28 Aug, during an overnight bulk kb_chunks
+  // ingestion run (millions of rows, 16 concurrent writers) that saturated the database and the edge
+  // auth path. Both fail CLOSED — they refuse rather than run blind or unauthenticated — which is the
+  // correct behaviour, not a break. Recovery was MEASURED, not inferred: `uptime` has succeeded on
+  // every 15-minute tick since 10:00Z (40+ consecutive ok, last 20:45Z, against 5,670 lifetime ok), so
+  // the internal credential verifier the two agents share is reachable now; and fn_enqueue_doc_backups
+  // completes in 78 ms in an aborted-transaction probe, so the single enqueue timeout was load, not a
+  // broken function. Neither is a code defect and neither was introduced by the PR that disclosed them.
+  // A SEVENTH dropbox_backup row or a SEVENTH uptime row (or any new count) still fails this check.
+  { agent: 'uptime', errors: 6,
+    why: 'uptime_check fail-closed 6 times in the 05:00-10:00Z window on 28 Aug — the internal '
+       + 'credential verifier was momentarily unreachable under heavy ingestion load, so it ran no page '
+       + 'checks rather than reporting a blind pass. Verified recovered: 40+ consecutive ok every 15 min '
+       + 'from 10:00Z (last 20:45Z), against 5,670 lifetime ok. Transient load, not a defect.' },
+  { agent: 'dropbox_backup', errors: 5,
+    why: 'dropbox_backup fail-closed 5 times in the 04:45-10:00Z window on 28 Aug during the same heavy '
+       + 'ingestion load: 4 auth refusals (the shared credential verifier momentarily unreachable, same '
+       + 'root cause as uptime) and 1 statement timeout in fn_enqueue_doc_backups. Not a wrong secret (a '
+       + 'later call in the window passed auth and reached the enqueue stage) and not a broken function '
+       + '(fn_enqueue_doc_backups runs in 78 ms in an aborted-transaction probe now; its enqueue is '
+       + 'catch-up, so the next successful run re-queues any document missed in the window). Transient '
+       + 'load, verified healthy again.' },
 ];
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];
