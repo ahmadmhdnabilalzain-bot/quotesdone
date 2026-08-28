@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-27T22:49:56.815Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-28T03:05:23.496Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17785,7 +17785,9 @@ begin
                          order by rank desc)
           from (select title, citation, category, content, ts_rank(fts, v_q) as rank
                   from kb_chunks
-                 where category = any(v_scope) and fts @@ v_q
+                 where (category = any(v_scope)
+                        or (p_category_key is not null and category = p_category_key))
+                   and fts @@ v_q
                  order by ts_rank(fts, v_q) desc, effective_date desc nulls last
                  limit 12) k), '[]'::jsonb));
   else
