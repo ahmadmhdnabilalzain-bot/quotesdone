@@ -1755,3 +1755,4 @@ scripts/sql/launch_step1_a_new_target_cascades.sql
 scripts/sql/launch_step1_escalation_targets_resolve.sql
 scripts/sql/launch_step1_ownership_ledger_follows_the_manifest.sql
 scripts/sql/launch_step1_org_restructure_real_company.sql
+scripts/sql/launch_step1_kpi_assignment.sql
