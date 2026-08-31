@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-31T23:25:32.932Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-31T23:29:18.901Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -68964,7 +68964,7 @@ CREATE OR REPLACE FUNCTION public.fn_report_recommendation_approve(p_report_id b
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
-declare v_rec jsonb; v_title text; v_id bigint; v_officer text;
+declare v_rec jsonb; v_title text; v_id bigint; v_officer text; v_dept text; v_task bigint;
 begin
   if p_source = 'exec_reports' then
     select r.recommendations -> p_index, r.officer into v_rec, v_officer
@@ -68986,7 +68986,29 @@ begin
       jsonb_build_object('report_id', p_report_id, 'index', p_index, 'source', p_source, 'recommendation', v_rec))
     returning id into v_id;
 
-  return jsonb_build_object('ok', true, 'action_id', v_id, 'title', v_title, 'report_id', p_report_id);
+  -- ROUTE IT AS REAL WORK. The department is the accountable officer's; a05_org_task_fill_ownership
+  -- gives it an owner and, when the recommendation names a goal, ties it to that objective. Idempotent
+  -- on the report+index marker, so approving the same recommendation twice does not double the work.
+  v_dept := coalesce((select department from public.org_agents
+                        where agent_key = coalesce(public.fn_org_agent_resolve(v_officer), v_officer)), 'exec');
+  select id into v_task from public.org_tasks t
+   where t.action_class = 'report_recommendation'
+     and t.detail like '%report #'||p_report_id||' rec '||p_index||' by %'
+     and t.status <> 'done'
+   order by id limit 1;
+  if v_task is null then
+    insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
+    values (v_dept, v_title,
+      coalesce(v_rec ->> 'why', v_rec ->> 'recommendation', v_title)
+        ||'  [Approved from the '||p_source||' report #'||p_report_id||' rec '||p_index||' by '||p_by
+        ||'. Do it, or bring evidence the standard is wrong.]',
+      'assigned', 'advisory', false, 'report_recommendation')
+    returning id into v_task;
+    update public.agent_actions set detail = detail || jsonb_build_object('org_task_id', v_task) where id = v_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'action_id', v_id, 'org_task_id', v_task,
+                            'title', v_title, 'report_id', p_report_id);
 end $function$
 
 
