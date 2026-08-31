@@ -117,8 +117,17 @@ begin
     select coalesce(round(100.0*count(*) filter (where not coalesce(could_be_cheaper,false))/nullif(count(*),0),1), null)
       into v_cost from ai_cost_log where agent_key = r.agent_key and occurred_at > now()-interval '30 days';
 
-    -- learning speed: UNMEASURABLE, so NULL for everyone. See the header of the 10 Aug change.
-    v_learn := null;
+    -- learning speed: the share of the employee's GRADED training attempts that it PASSED. This was
+    -- hardcoded NULL on 10 Aug because nothing had graded training then; agent_training_attempt now
+    -- carries graded results (passed set by the grader), and a missed KPI opens remediation that
+    -- assigns fresh practice (fn_kpi_review), so training genuinely feeds this axis now. NULL — never
+    -- 0 — when the employee has no graded attempt, because no training is not slow learning. It reads
+    -- only real graded rows; nothing here is fabricated.
+    select round(100.0 * count(*) filter (where passed)
+                 / nullif(count(*) filter (where passed is not null), 0), 1)
+      into v_learn
+      from public.agent_training_attempt
+     where agent_key = r.agent_key and passed is not null;
 
     -- DECISION QUALITY (27 Aug 2026, spec #3 s32). The sixth named axis, which had no column until
     -- this migration. Correctness above grades the OUTCOME of a decision from outcome_record; this

@@ -241,5 +241,28 @@ const f3 = await probe(`do $p$ declare refused text; begin
   raise exception 'MARK|refused=%', refused; end $p$;`);
 eq('the policy CHECK refuses a founder-routed kind (structural)', f3.refused, 'REFUSED');
 
+// ============================================================================================
+console.log('\n== LEARNING LOOP — a missed KPI opens remediation; training feeds learning_speed ==');
+// ============================================================================================
+// "We missed the target — now what?" A missed KPI opens a remediation against the responsible
+// employee and queues fresh practice; a non-employee owner cannot carry one (the FK), so it is
+// skipped rather than crashing the whole review.
+const l1 = await probe(`do $p$ declare res jsonb; orphan int; begin
+  res := fn_kpi_review();
+  select count(*) into orphan from agent_remediation ar
+   where ar.failure_class='kpi_miss'
+     and not exists (select 1 from org_agents o where o.agent_key=ar.agent_key and o.active);
+  raise exception 'MARK|missed=%|remediations=%|practice=%|orphan=%',
+    res->>'missed', res->>'remediations_opened', res->>'practice_assigned', orphan; end $p$;`);
+eq('a missed KPI opens a remediation', Number(l1.remediations) > 0 ? 'yes' : 'no', 'yes');
+eq('  -> and queues practice for the employee', Number(l1.practice) > 0 ? 'yes' : 'no', 'yes');
+eq('  -> never opened against a non-employee', l1.orphan, '0');
+// training now feeds reputation: learning_speed is measurable from graded attempts, not hardcoded NULL.
+const l2 = await probe(`do $p$ declare n int; begin
+  select count(*) into n from (
+    select agent_key from agent_training_attempt where passed is not null group by agent_key) z;
+  raise exception 'MARK|agents=%', n; end $p$;`);
+eq('learning_speed is measurable from graded training', Number(l2.agents) > 0 ? 'yes' : 'no', 'yes');
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);

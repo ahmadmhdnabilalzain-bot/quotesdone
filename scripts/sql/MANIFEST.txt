@@ -1768,3 +1768,11 @@ scripts/sql/pacr_002_the_real_company_reporting_shape.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/the_missed_kpi_opens_remediation.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/the_missed_kpi_ownership_ledger.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
