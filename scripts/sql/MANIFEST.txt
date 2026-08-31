@@ -1747,3 +1747,4 @@ scripts/sql/spec3_the_ownership_ledger_still_named_the_superseded_file.sql
 scripts/sql/stage0_remove_two_stale_authority_grants.sql
 scripts/sql/stage1_ai_managerial_approval_tier.sql
 scripts/sql/expertise_istqb_ctfl_qa_test_design.sql
+scripts/sql/fix_policy_consistency_kb_scale.sql
