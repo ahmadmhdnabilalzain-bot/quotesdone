@@ -21,12 +21,20 @@ const LOCAL = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL) ? readFileSync(LOCAL, 'utf8') : '')).trim();
 if (!token) { console.log('SKIPPED: no management token, so this asserted nothing.'); process.exit(0); }
 
-const q = async (text) => {
+// Backoff on 429/5xx: this gate runs in a CI job alongside the Phase C and Phase D gates, which hit
+// the same management API concurrently — the acceptance measured ten false failures from a bare 429
+// when management-API checks ran in parallel. A RAISE from a probe returns HTTP 400 and is NOT retried
+// (it is the expected result); only transport-level throttling is.
+const q = async (text, attempt = 0) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD}/database/query`, {
     method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query: text }),
   });
   const b = await r.text();
+  if ((r.status === 429 || r.status >= 500) && attempt < 7) {
+    await new Promise((res) => setTimeout(res, Math.min(2000 * 2 ** attempt, 60000)));
+    return q(text, attempt + 1);
+  }
   if (!r.ok) throw new Error(`HTTP ${r.status}: ${b.slice(0, 900)}`);
   return JSON.parse(b);
 };
