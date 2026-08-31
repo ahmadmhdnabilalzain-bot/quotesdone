@@ -1776,3 +1776,7 @@ scripts/sql/the_missed_kpi_ownership_ledger.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/a_task_is_born_owned_and_tied_to_its_target.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
