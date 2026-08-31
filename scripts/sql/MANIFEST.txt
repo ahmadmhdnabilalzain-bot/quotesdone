@@ -1780,3 +1780,12 @@ scripts/sql/a_task_is_born_owned_and_tied_to_its_target.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/dual_approval_for_spend_and_contract.sql
+scripts/sql/spend_contract_dispatch_needs_two.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/spend_contract_dispatch_ownership_ledger.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

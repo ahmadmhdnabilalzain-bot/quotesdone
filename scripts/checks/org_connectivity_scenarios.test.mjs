@@ -177,6 +177,27 @@ const a3 = await probe(`do $p$ declare v_id uuid; s jsonb; inv text; cls text; b
   raise exception 'MARK|class=%|invoker=%', cls, inv; end $p$;`);
 eq('an irreversible-no-compensation action is refused (never dispatched)', a3.invoker, 'refused');
 
+// spend/contract needs TWO independent approvals: a head AND the named second authority.
+const a4 = await probe(`do $p$ declare v_id uuid; a1 jsonb; a2 jsonb; inv1 text; inv2 text; wrong text; gate boolean; begin
+  update org_action_executor set second_authority='legal' where action_class='supplier_verify';
+  insert into action_execution (correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+  values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,'{}'::jsonb,'queued') returning id into v_id;
+  perform fn_action_invoke_dispatch(50); select response->>'invoker' into inv1 from action_execution where id=v_id;
+  a1 := fn_action_head_approve(v_id,'approved','head ok',null);
+  begin perform fn_action_head_approve(v_id,'approved','x','cfo'); wrong:='NOT_REFUSED'; exception when others then wrong:='REFUSED'; end;
+  perform fn_action_invoke_dispatch(50); select response->>'invoker' into inv2 from action_execution where id=v_id;
+  a2 := fn_action_head_approve(v_id,'approved','second ok','legal');
+  select (approval_decision='approved' and consumed_at is null and (second_authority is null or second_approval_decision='approved'))
+    into gate from action_approval where action_execution_id=v_id;
+  raise exception 'MARK|parked=%|head=%|nonentitled=%|after_one=%|second=%|gate=%',
+    inv1, a1->>'role', wrong, inv2, a2->>'role', gate::text; end $p$;`);
+eq('a spend/contract action parks for TWO approvals', a4.parked, 'awaiting_two_approvals');
+eq('  -> the department head records the first', a4.head, 'head');
+eq('  -> a neither-head-nor-second approver is refused', a4.nonentitled, 'REFUSED');
+eq('  -> one approval is not enough to dispatch', a4.after_one, 'awaiting_two_approvals');
+eq('  -> the independent second records the second', a4.second, 'second_authority');
+eq('  -> only both approvals open the dispatch gate', a4.gate, 'true');
+
 // ============================================================================================
 console.log('\n== CASCADE — a measurable target hands down; an unmeasurable one cannot ==');
 // ============================================================================================

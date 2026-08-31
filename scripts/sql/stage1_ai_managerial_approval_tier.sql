@@ -119,6 +119,7 @@ create or replace function public.fn_action_head_approve(
   returns jsonb language plpgsql security definer set search_path to 'public','pg_temp'
 as $$
 declare a record; v_resolved jsonb; v_entitled text; v_approver text; v_author text;
+        v_second text; v_is_second boolean := false;
 begin
   if coalesce(p_decision,'') not in ('approved','rejected') then
     raise exception 'fn_action_head_approve: decision must be approved or rejected, got %', p_decision
@@ -129,7 +130,8 @@ begin
   end if;
 
   select ae.id, ae.action_class, ae.status, ae.request,
-         e.department, e.risk_tier, e.reversible, e.compensation_action_class, e.required_authority, e.active
+         e.department, e.risk_tier, e.reversible, e.compensation_action_class, e.required_authority, e.active,
+         e.second_authority
     into a
     from public.action_execution ae
     join public.org_action_executor e on e.action_class = ae.action_class
@@ -157,13 +159,23 @@ begin
   end if;
 
   v_approver := coalesce(public.fn_org_agent_resolve(coalesce(p_approver, v_entitled)), coalesce(p_approver, v_entitled));
-  if v_approver <> v_entitled then
-    raise exception 'fn_action_head_approve: % is not the entitled approver for a %-risk % action (entitled: %). %',
-      v_approver, coalesce(a.risk_tier,'medium'), a.department, v_entitled, v_resolved->>'basis'
+  v_second   := coalesce(public.fn_org_agent_resolve(a.second_authority), a.second_authority);
+
+  -- WHO IS THIS APPROVER? The entitled department head/officer records the PRIMARY approval; the
+  -- independent second authority (for a spend/contract executor) records the SECOND. Anyone who is
+  -- neither is refused. A second who resolves to the same identity as the primary is not independent
+  -- and falls through to refusal.
+  if v_second is not null and v_approver = v_second and v_approver <> v_entitled then
+    v_is_second := true;
+  elsif v_approver = v_entitled then
+    v_is_second := false;
+  else
+    raise exception 'fn_action_head_approve: % is not an entitled approver for a %-risk % action (head: %, second: %). %',
+      v_approver, coalesce(a.risk_tier,'medium'), a.department, v_entitled, coalesce(v_second,'(none)'), v_resolved->>'basis'
       using errcode='insufficient_privilege';
   end if;
 
-  -- independence: the approver may not be the action's own author, when the author is recorded
+  -- independence: no approver may approve their own authored work, when the author is recorded
   v_author := coalesce(a.request->>'actor', a.request->>'requested_by', a.request->>'author');
   if v_author is not null
      and coalesce(public.fn_org_agent_resolve(v_author), v_author) = v_approver then
@@ -171,20 +183,40 @@ begin
       using errcode='insufficient_privilege';
   end if;
 
-  insert into public.action_approval as ap
-    (action_execution_id, action_class, department, accountable_approver, approver_role,
-     approval_decision, reason, risk_tier, authority_basis, decided_at)
-  values
-    (a.id, a.action_class, a.department, v_entitled, v_approver,
-     p_decision, p_reason, a.risk_tier, v_resolved->>'basis', now())
-  on conflict (action_execution_id) do update
-    set approver_role   = excluded.approver_role,
-        approval_decision = excluded.approval_decision,
-        reason          = excluded.reason,
-        authority_basis = excluded.authority_basis,
-        decided_at      = now(),
-        consumed_at     = null
-    where ap.consumed_at is null;   -- a consumed (already dispatched) approval is immutable
+  if v_is_second then
+    -- the independent second sign-off. Records only the second columns; the primary head's decision
+    -- is left untouched (created 'requested' if the head has not decided yet).
+    insert into public.action_approval as ap
+      (action_execution_id, action_class, department, accountable_approver,
+       approval_decision, risk_tier, authority_basis, second_authority,
+       second_approver_role, second_approval_decision, second_decided_at)
+    values
+      (a.id, a.action_class, a.department, v_entitled,
+       'requested', a.risk_tier, v_resolved->>'basis', a.second_authority,
+       v_approver, p_decision, now())
+    on conflict (action_execution_id) do update
+      set second_authority        = a.second_authority,
+          second_approver_role     = excluded.second_approver_role,
+          second_approval_decision = excluded.second_approval_decision,
+          second_decided_at        = now()
+      where ap.consumed_at is null;
+  else
+    insert into public.action_approval as ap
+      (action_execution_id, action_class, department, accountable_approver, approver_role,
+       approval_decision, reason, risk_tier, authority_basis, second_authority, decided_at)
+    values
+      (a.id, a.action_class, a.department, v_entitled, v_approver,
+       p_decision, p_reason, a.risk_tier, v_resolved->>'basis', a.second_authority, now())
+    on conflict (action_execution_id) do update
+      set approver_role     = excluded.approver_role,
+          approval_decision = excluded.approval_decision,
+          reason            = excluded.reason,
+          authority_basis   = excluded.authority_basis,
+          second_authority  = excluded.second_authority,
+          decided_at        = now(),
+          consumed_at       = null
+      where ap.consumed_at is null;   -- a consumed (already dispatched) approval is immutable
+  end if;
 
   if not found then
     raise exception 'fn_action_head_approve: action % already dispatched under a consumed approval; cannot re-decide', a.id
@@ -192,7 +224,9 @@ begin
   end if;
 
   return jsonb_build_object('action_execution_id', a.id, 'decision', p_decision,
-    'approver', v_approver, 'entitled_approver', v_entitled, 'basis', v_resolved->>'basis');
+    'approver', v_approver, 'role', case when v_is_second then 'second_authority' else 'head' end,
+    'entitled_approver', v_entitled, 'second_authority', a.second_authority,
+    'basis', v_resolved->>'basis');
 end $$;
 revoke all on function public.fn_action_head_approve(uuid,text,text,text) from public;
 
