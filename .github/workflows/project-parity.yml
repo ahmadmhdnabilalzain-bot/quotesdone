@@ -96,6 +96,15 @@ jobs:
           NO_PAID_AI: 'true'
           OPENROUTER_DISABLED: 'true'
         run: node scripts/checks/org_connectivity_signal_path.test.mjs
+      # The adversarial companion: org-wide invariants (every role, every department) + the refusal
+      # cases (an empty department, an incomplete contract, a wrong approver, a refund by an AI, an
+      # unmeasurable goal). Same aborted-tx discipline, zero residue, no model.
+      - name: The org connectivity is correct under pressure (refusals + org-wide invariants)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          NO_PAID_AI: 'true'
+          OPENROUTER_DISABLED: 'true'
+        run: node scripts/checks/org_connectivity_scenarios.test.mjs
 
   # ============================================================================================
   # THE PHASE C GATE, RUN FOR REAL ON EVERY PULL REQUEST.
