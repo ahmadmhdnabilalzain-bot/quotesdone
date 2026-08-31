@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-31T18:20:04.941Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-31T19:46:07.062Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -21924,7 +21924,7 @@ AS $function$
       'brain_agents', (select count(*) from org_agents where active),
       'category_sales_agents', (select count(*) from category_agents),
       'tools_wired', (select count(*) from org_action_executor where active),
-      'open_objectives', (select count(*) from org_objectives where status not in ('done','cancelled')),
+      'open_objectives', (select count(*) from department_objective where active and status not in ('done','cancelled','superseded')),
       'open_tasks', (select count(*) from org_tasks where status in ('assigned','proposed','in_progress'))
     ),
     'departments', (select jsonb_agg(jsonb_build_object(
@@ -28024,22 +28024,29 @@ begin
   exception when others then v_handled := null; end;
 
   -- Org foundation: the founder's objectives and how the organization is executing them.
+  -- REPOINTED 2026-08-31 to department_objective, the LIVE objective layer (92 active rows). This
+  -- block used to read org_objectives, a table with zero writers and zero rows, so it reported 0
+  -- active objectives every morning while 92 real ones existed (instrument pointed at a dead table).
+  -- The per-objective task rollup depends on org_tasks.objective_id, which is not yet populated, so
+  -- it stays empty until that backlink is wired - but nothing here reads the dead table any more.
   begin
-    select count(*) into v_obj_open from org_objectives where status in ('open','in_progress','blocked');
-    select count(*) into v_obj_done24 from org_objectives where status='done' and closed_at >= now()-interval '24 hours';
+    select count(*) into v_obj_open from department_objective where active and status='active';
+    select count(*) into v_obj_done24 from department_objective
+      where status <> 'active' and updated_at >= now()-interval '24 hours';
     select count(*) into v_task_done24 from org_tasks where status='done' and updated_at >= now()-interval '24 hours';
     select count(*) into v_obj_await from org_tasks t
       where t.status in ('proposed','escalated')
-        and exists (select 1 from org_objectives o where o.id=t.objective_id and o.status in ('open','in_progress','blocked'));
+        and exists (select 1 from department_objective o where o.id=t.objective_id and o.active);
     select string_agg(
-        '- "'||left(o.objective,80)||'" — '||
+        '- "'||left(o.objective,80)||'" ('||o.dept_key||') — '||
         (select count(*) from org_tasks t where t.objective_id=o.id and t.status='done')||'/'||
         (select count(*) from org_tasks t where t.objective_id=o.id)||' tasks done'||
         case when (select count(*) from org_tasks t where t.objective_id=o.id and t.status in ('proposed','escalated'))>0
              then ', '||(select count(*) from org_tasks t where t.objective_id=o.id and t.status in ('proposed','escalated'))||' awaiting you'
              else '' end,
         E'\n' order by o.id desc)
-      into v_obj_line from org_objectives o where o.status in ('open','in_progress','blocked');
+      into v_obj_line from department_objective o
+      where o.active and exists (select 1 from org_tasks t where t.objective_id=o.id);
   exception when others then v_obj_open:=0; v_obj_await:=0; v_obj_done24:=0; v_task_done24:=0; v_obj_line:=null; end;
 
   -- HIS QUEUE, SEPARATE FROM THE MACHINE'S. fn_founder_queue counts only kinds
@@ -42811,61 +42818,59 @@ CREATE OR REPLACE FUNCTION public.fn_org_task_assign(p_limit integer DEFAULT 200
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-declare v_assigned int := 0; v_no_capacity int := 0; v_considered int := 0; v_saturated text;
+declare
+  r record; v_pick text;
+  v_assigned int := 0; v_no_capacity int := 0; v_considered int := 0; v_saturated text;
+  REVIEW_CLASSES constant text[] := array['review','audit','verify','qa_gate','security_review',
+                                          'compliance_check','legal_review','supplier_verify',
+                                          'capability_review','self_review'];
 begin
-  with open_tasks as (
-    select t.id, t.dept_key, t.created_at, t.action_class
+  -- ONE TASK AT A TIME, TO THE CURRENTLY-LEAST-LOADED ELIGIBLE COLLEAGUE. Assigning inside the
+  -- transaction makes each pick see the assignments already made in this sweep, so the load spreads
+  -- breadth-first across the department and a single sweep fills it.
+  for r in
+    select t.id, t.dept_key, t.action_class
       from public.org_tasks t
      where t.assigned_agent is null
        and t.status in ('assigned','in_progress')
-     order by t.created_at
+     order by t.created_at, t.id
      limit greatest(coalesce(p_limit, 200), 1)
-  ),
-  load as (
-    select a.agent_key, a.department, coalesce(a.max_open_tasks, 6) as cap,
-           coalesce(r.runtime_mode, 'on_demand_specialist') as runtime_mode,
-           (select count(*) from public.org_tasks o
-             where o.assigned_agent = a.agent_key and o.status in ('assigned','in_progress')) as open_now,
-           case when p.tier = 'probation' then 1 else 0 end as probation_rank
+  loop
+    v_considered := v_considered + 1;
+    select a.agent_key into v_pick
       from public.org_agents a
       left join public.agent_reputation p on p.agent_key = a.agent_key
-      left join public.org_role r on r.runtime_agent_key = a.agent_key and r.status = 'active'
+      left join public.org_role rr on rr.runtime_agent_key = a.agent_key and rr.status = 'active'
      where a.active
        and coalesce(a.available, true)
        and (a.unavailable_until is null or a.unavailable_until < now())
-  ),
-  ranked as (
-    select ot.id as task_id, l.agent_key, l.cap, l.open_now,
-           row_number() over (partition by ot.id
-                              order by l.probation_rank, l.open_now, l.agent_key) as pick,
-           row_number() over (partition by l.agent_key
-                              order by ot.created_at, ot.id) as nth_for_agent
-      from open_tasks ot
-      join load l on l.department = ot.dept_key
-      -- AN INDEPENDENT REVIEWER CARRYING THE DEPARTMENT'S ROUTINE QUEUE IS NOT INDEPENDENT OF IT.
-      -- Review work still reaches them: the review action classes are the exception, and
-      -- fn_pick_reviewer routes review directly rather than through this queue.
-     where l.runtime_mode <> 'independent_reviewer'
-        or coalesce(ot.action_class,'') in ('review','audit','verify','qa_gate','security_review',
-                                            'compliance_check','legal_review','supplier_verify',
-                                            'capability_review','self_review')
-  ),
-  chosen as (
-    select task_id, agent_key from ranked
-     where pick = 1 and (open_now + nth_for_agent) <= cap
-  ),
-  done as (
-    update public.org_tasks t
-       set assigned_agent = c.agent_key, updated_at = now()
-      from chosen c
-     where t.id = c.task_id and t.assigned_agent is null
-    returning t.id
-  )
-  select (select count(*) from done), (select count(*) from open_tasks)
-    into v_assigned, v_considered;
+       and a.department = r.dept_key
+       -- AN INDEPENDENT REVIEWER CARRYING THE DEPARTMENT'S ROUTINE QUEUE IS NOT INDEPENDENT OF IT.
+       -- Review work still reaches them: the review action classes are the exception, and
+       -- fn_pick_reviewer routes review directly rather than through this queue.
+       and (coalesce(rr.runtime_mode, 'on_demand_specialist') <> 'independent_reviewer'
+            or coalesce(r.action_class, '') = any (REVIEW_CLASSES))
+       -- REMAINING CAPACITY, RECOMPUTED EACH PICK so it counts what this sweep already assigned.
+       and (select count(*) from public.org_tasks o
+             where o.assigned_agent = a.agent_key
+               and o.status in ('assigned','in_progress')) < coalesce(a.max_open_tasks, 6)
+     order by case when p.tier = 'probation' then 1 else 0 end,
+              (select count(*) from public.org_tasks o
+                where o.assigned_agent = a.agent_key
+                  and o.status in ('assigned','in_progress')),
+              a.agent_key
+     limit 1;
 
-  v_no_capacity := v_considered - v_assigned;
+    if v_pick is not null then
+      update public.org_tasks set assigned_agent = v_pick, updated_at = now() where id = r.id;
+      v_assigned := v_assigned + 1;
+    else
+      v_no_capacity := v_no_capacity + 1;
+    end if;
+  end loop;
 
+  -- Departments that genuinely could not take all their open work: every eligible colleague was at
+  -- max_open_tasks. Now that a sweep fills a department, this is a TRUE saturation signal.
   select string_agg(x.dept_key||' '||x.unowned||'/'||x.capacity, ', ' order by x.unowned desc)
     into v_saturated
     from (select t.dept_key, count(*) as unowned,
@@ -42882,12 +42887,12 @@ begin
   values ('org_task_assign', now(), now(), 'ok',
           jsonb_build_object('considered', v_considered, 'assigned', v_assigned,
                              'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none')),
-          'Assigned '||v_assigned||' of '||v_considered||' unowned open task(s) to a named employee '
-          ||'in the owning department, skipping independent reviewers for non-review work. '
-          ||v_no_capacity||' left unowned because no colleague in that department had capacity '
-          ||'under max_open_tasks - deliberate: an unowned task is visible, an overloaded one is '
-          ||'not. Departments carrying more open work than they staff (unowned/capacity): '
-          ||coalesce(v_saturated,'none')||'.');
+          'Assigned '||v_assigned||' of '||v_considered||' unowned open task(s) to the currently '
+          ||'least-loaded named colleague in the owning department, spreading within the department '
+          ||'and skipping independent reviewers for non-review work. '||v_no_capacity||' left unowned '
+          ||'only where every eligible colleague was already at max_open_tasks - deliberate: an '
+          ||'unowned task is visible, an overloaded one is not. Departments still carrying more open '
+          ||'work than they staff (unowned/capacity): '||coalesce(v_saturated,'none')||'.');
 
   return jsonb_build_object('considered', v_considered, 'assigned', v_assigned,
                             'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none'));
@@ -71713,6 +71718,7 @@ declare
   c_actor text := nullif(btrim(coalesce(ctx->>'actor', ctx->>'agent_key', '')), '');
   v_route text; v_basis text; v_note text;
   v_mgr text; v_mgr_dept text; v_pick jsonb;
+  v_actor_res text;
 begin
   select value::numeric into conf_min   from decision_policy where key='confidence_min';
   select value::numeric into fin_review  from decision_policy where key='financial_review_aed';
@@ -71760,8 +71766,25 @@ begin
     end loop;
   end if;
 
+  -- THE APEX ESCALATES TO THE FOUNDER (2026-08-31). Resolved FIRST, before any other party, because
+  -- the company's apex has no internal superior and a configured subordinate owner must not capture
+  -- its escalation. The apex is the active agent with no manager_key — the CEO reports to the founder,
+  -- not to another agent — so the only party "up" from it is the founder himself. Without this the
+  -- CEO's escalation fell to the exec fallback below and was addressed to chief_of_staff, routing the
+  -- apex DOWN to a subordinate. 'founder' is the routing decision; delivering the alert to his channel
+  -- is Stage-4 work and is not done here.
+  if c_actor is not null then
+    v_actor_res := coalesce(public.fn_org_agent_resolve(c_actor), c_actor);
+    perform 1 from org_agents a where a.agent_key = v_actor_res and a.active and a.manager_key is null;
+    if found then
+      v_route := 'founder'; v_basis := 'apex_to_founder';
+      v_note  := 'the company apex ('||v_actor_res||') has no manager; the only party above it is the '
+              || 'founder, whose major-issue channel is the single human signal the design allows';
+    end if;
+  end if;
+
   -- RESOLVE THE PARTY. Four attempts, strongest first; each one is a party the org model contains.
-  if owner is not null and btrim(owner) <> '' then
+  if v_route is null and owner is not null and btrim(owner) <> '' then
     select a.agent_key into v_route from org_agents a
      where a.active and a.agent_key = owner limit 1;
     if v_route is not null then v_basis := 'employee'; end if;
@@ -82235,6 +82258,29 @@ CREATE OR REPLACE FUNCTION public.trg_goal_cascade()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
+  -- (A) DECOMPOSE ON SET/EDIT. A measurable, active goal owned by an active department hands down its
+  -- department objective immediately, instead of waiting for the weekly fn_goal_decompose cron. Same
+  -- adopt/create logic as fn_goal_decompose, for this one goal. Objectives only, never tasks.
+  if new.active and coalesce(new.measure_sql,'') <> ''
+     and exists (select 1 from org_departments d where d.dept_key = new.owner_dept and d.active) then
+    if exists (select 1 from department_objective
+                where dept_key = new.owner_dept and goal_key = new.key and active) then
+      update department_objective
+         set target_value = coalesce(target_value, new.target_value),
+             unit         = coalesce(unit,         new.unit),
+             measure_sql  = coalesce(measure_sql,  new.measure_sql),
+             updated_at   = now()
+       where dept_key = new.owner_dept and goal_key = new.key and active
+         and (measure_sql is null or target_value is null or unit is null);
+    else
+      insert into department_objective
+        (dept_key, objective, horizon, goal_key, target_value, unit, measure_sql, status, active)
+      values
+        (new.owner_dept, new.goal, coalesce(new.horizon,'year_1'), new.key,
+         new.target_value, new.unit, new.measure_sql, 'active', true);
+    end if;
+  end if;
+
   if old.active is true and new.active is false then
     -- (1) KEPT. An objective serving a retired goal is superseded. This is the goal's own record
     -- being made consistent, not the creation of work, and leaving it out would strand objectives
@@ -83333,7 +83379,7 @@ CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER company_faq_sync AFTER INSERT OR DELETE OR UPDATE ON public.company_faq FOR EACH STATEMENT EXECUTE FUNCTION trg_company_faq_sync();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
-CREATE TRIGGER trg_goal_cascade AFTER UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
 CREATE TRIGGER z95_contact_message_to_kernel AFTER INSERT ON public.contact_messages FOR EACH ROW EXECUTE FUNCTION trg_contact_message_to_kernel();
