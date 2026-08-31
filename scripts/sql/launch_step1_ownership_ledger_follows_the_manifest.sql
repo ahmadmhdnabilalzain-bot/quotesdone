@@ -53,4 +53,10 @@ update public.kernel_routine_ownership
  where schema_name = 'public' and routine_name = 'fn_policy_consistency_check'
    and source_file = 'scripts/sql/source_of_truth_the_repository_records_what_production_runs.sql';
 
+-- fn_exec_meeting superseded by launch_step1_ceo_priorities_reach_their_officer.sql (the ON CONFLICT fix).
+update public.kernel_routine_ownership
+   set source_file = 'scripts/sql/launch_step1_ceo_priorities_reach_their_officer.sql', recorded_at = now()
+ where schema_name = 'public' and routine_name = 'fn_exec_meeting'
+   and source_file = 'scripts/sql/fn_exec_meeting_priorities_approvable.sql';
+
 commit;
