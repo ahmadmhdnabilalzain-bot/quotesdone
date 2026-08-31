@@ -1748,3 +1748,8 @@ scripts/sql/stage0_remove_two_stale_authority_grants.sql
 scripts/sql/stage1_ai_managerial_approval_tier.sql
 scripts/sql/expertise_istqb_ctfl_qa_test_design.sql
 scripts/sql/fix_policy_consistency_kb_scale.sql
+scripts/sql/launch_step1_ceo_escalates_to_founder.sql
+scripts/sql/launch_step1_task_assign_fills_the_department.sql
+scripts/sql/launch_step1_founder_reports_read_live_objectives.sql
+scripts/sql/launch_step1_a_new_target_cascades.sql
+scripts/sql/launch_step1_escalation_targets_resolve.sql
