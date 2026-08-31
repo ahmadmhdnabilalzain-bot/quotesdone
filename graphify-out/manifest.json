@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "src/components/osx/OsxShell.tsx": {
-    "mtime": 1786945492.6678913,
-    "ast_hash": "2f52115eba3a1292e4b54822e369e6a0",
+    "mtime": 1787851082.8952303,
+    "ast_hash": "b8eeb2fcf0961a11ea7bb445117de633",
     "semantic_hash": ""
   },
   "src/components/portal/SupplierPortal.tsx": {
@@ -715,8 +715,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/kb_embed/index.ts": {
-    "mtime": 1786467030.260357,
-    "ast_hash": "7b7c908c62c727888d77336bdbc96b98",
+    "mtime": 1788197778.9780493,
+    "ast_hash": "8fc9463703c5abdfa8fd5895e3b6f26f",
     "semantic_hash": ""
   },
   "supabase/functions/kb_fill_gap/index.ts": {
@@ -2080,8 +2080,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_14_17.mjs": {
-    "mtime": 1786226428.7832327,
-    "ast_hash": "2e9c198fd370f512bcd56866bdf3d7b8",
+    "mtime": 1787855835.8759398,
+    "ast_hash": "3626f0560a66122f8d80b27b9b1c9dce",
     "semantic_hash": ""
   },
   "scripts/staging/os_blueprint/components_1_9.mjs": {
@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1787622810.0559583,
-    "ast_hash": "aa5b5e283313e9f537b40311282a894d",
+    "mtime": 1788218732.9451797,
+    "ast_hash": "bad392a1235a69ba97199f20b3a7158e",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -3090,13 +3090,13 @@
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/layers_1_8.mjs": {
-    "mtime": 1786487355.530071,
-    "ast_hash": "02f8f82a8a7d8f5ecd6a529b85dbf065",
+    "mtime": 1787851082.8868997,
+    "ast_hash": "f0dc456fbcaf491b4a8298cf551f73cc",
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/layers_9_15.mjs": {
-    "mtime": 1786226428.7749152,
-    "ast_hash": "85b6f189912e0c1a858df76b032db57f",
+    "mtime": 1787851082.8868997,
+    "ast_hash": "7571512e007de19fe08686b3f32eb587",
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/screens_10_17.mjs": {
@@ -3105,13 +3105,13 @@
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/screens_1_9.mjs": {
-    "mtime": 1786242511.5965471,
-    "ast_hash": "cc7b2dbd77be335e81597a0bbd9d0807",
+    "mtime": 1787851082.8868997,
+    "ast_hash": "83d73c7e084af9032bbe5b86f7a44618",
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/sections_21_40.mjs": {
-    "mtime": 1786545530.3936565,
-    "ast_hash": "2b28c693dfab7479bd93de6c4e29a6a8",
+    "mtime": 1787851082.8918414,
+    "ast_hash": "33270c5763f2d4d3eb9ad4db00925162",
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/ui_closure.mjs": {
@@ -4825,8 +4825,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_report_recommendation_approve.sql": {
-    "mtime": 1786298597.9393404,
-    "ast_hash": "33bf70449e57261447d870005be1a631",
+    "mtime": 1788218895.8652954,
+    "ast_hash": "3d45cc1b6b5c8c399f58b2a1257b7b21",
     "semantic_hash": ""
   },
   "scripts/sql/fn_reputation_recompute_learning_speed.sql": {
@@ -10710,8 +10710,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/project-parity.yml": {
-    "mtime": 1787445011.5359807,
-    "ast_hash": "d46d52b07fb50dfc9a3ce67c854a43ce",
+    "mtime": 1788210802.5786948,
+    "ast_hash": "c63364feb966162f3049ee7b001477e3",
     "semantic_hash": ""
   },
   "docs/audits/WORD_BY_WORD_2026_08_11/01_02_architecture_and_os.md": {
@@ -11275,8 +11275,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/the_queue_that_had_nobody_to_hand_it_to.sql": {
-    "mtime": 1786578050.6972275,
-    "ast_hash": "e7995c3d321f3ad246ff585813095197",
+    "mtime": 1788218345.216305,
+    "ast_hash": "e6390dc759bec8ababce5ecd53b6b87c",
     "semantic_hash": ""
   },
   "scripts/sql/the_reflection_budget_counted_what_had_finished.sql": {
@@ -12115,8 +12115,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/v3_repair_05_ctx_v3_query.sql": {
-    "mtime": 1786772793.652718,
-    "ast_hash": "819a3c5060f7b3771ae243118cebfc93",
+    "mtime": 1787871699.98595,
+    "ast_hash": "bae75bace3969e1de1ecbc4784eac711",
     "semantic_hash": ""
   },
   "scripts/sql/v3_repair_06_role_isolation.sql": {
@@ -12590,8 +12590,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/cancellation_reaches_the_kernel.test.mjs": {
-    "mtime": 1787419472.7664895,
-    "ast_hash": "caa3e8af0370cbb8f08cdeb5265f54fc",
+    "mtime": 1787746263.0984008,
+    "ast_hash": "9071326d49f92cc5f3659ab17657a5db",
     "semantic_hash": ""
   },
   "scripts/checks/canonical_routine_manifest.mjs": {
@@ -12635,8 +12635,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/kernel-boards.json": {
-    "mtime": 1787622810.0135446,
-    "ast_hash": "bc00155cc204754e57d55e5d8bf169df",
+    "mtime": 1788202116.3054476,
+    "ast_hash": "80255dc00cae95d86c098fdc1e75937e",
     "semantic_hash": ""
   },
   "scripts/checks/kernel_boards_are_green.test.mjs": {
@@ -12650,8 +12650,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/kernel_positive_controls.test.mjs": {
-    "mtime": 1787579558.9937272,
-    "ast_hash": "8a0a92036fb8b7110e29cc816770f6b1",
+    "mtime": 1787838773.1617339,
+    "ast_hash": "851f417a80e234885612dc115f17f69c",
     "semantic_hash": ""
   },
   "scripts/checks/kernel_write_guard_both_directions.test.mjs": {
@@ -12680,8 +12680,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/phase_c_command_center_entry_point.test.mjs": {
-    "mtime": 1787419472.7715564,
-    "ast_hash": "efa74228011981930d677d76a728d550",
+    "mtime": 1787746263.1029203,
+    "ast_hash": "24abdc40d8948ee5d652f24d03452fae",
     "semantic_hash": ""
   },
   "scripts/checks/phase_c_component_crosswalk.test.mjs": {
@@ -12695,8 +12695,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/phase_c_guards_reject_injected_defects.test.mjs": {
-    "mtime": 1787579558.994898,
-    "ast_hash": "51ffb5a06089985ff73c248edb281265",
+    "mtime": 1787838773.1617339,
+    "ast_hash": "8e24b32093681064d5ca98a76c940781",
     "semantic_hash": ""
   },
   "scripts/checks/phase_c_invariants.test.mjs": {
@@ -13550,32 +13550,32 @@
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_02_identity_aliases.sql": {
-    "mtime": 1787594633.6594982,
+    "mtime": 1787837032.5225053,
     "ast_hash": "d98d9075b4b0ccdb4437404567939947",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_03_registry_core.sql": {
-    "mtime": 1787594633.662182,
+    "mtime": 1787837032.5265486,
     "ast_hash": "b4cc99c54f57b097b7a1f3ca3c8c3cc8",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_04_steps.sql": {
-    "mtime": 1787594633.6655142,
+    "mtime": 1787837032.530148,
     "ast_hash": "8f65cdcc9fcd2e88e9da6fad7cc62f3b",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_05_handoffs_and_exceptions.sql": {
-    "mtime": 1787594633.6655142,
+    "mtime": 1787837032.530148,
     "ast_hash": "262fc16e9df721cd13d875fb83e12407",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_06_events.sql": {
-    "mtime": 1787594633.6670985,
+    "mtime": 1787837032.530148,
     "ast_hash": "948dafc7908943f8850b0eba7c70c02a",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_07_crosswalk.sql": {
-    "mtime": 1787594633.6771238,
+    "mtime": 1787837032.5429487,
     "ast_hash": "4f6d569a5f7e6fb3ab14bb48f7768508",
     "semantic_hash": ""
   },
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1787622810.0191035,
-    "ast_hash": "2c2b827c5e2b4bb9281d5ec6a55e0817",
+    "mtime": 1788218791.8275661,
+    "ast_hash": "89763795f59a57e7a611ddb2a91e0e0b",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -15400,8 +15400,8 @@
     "semantic_hash": ""
   },
   "scripts/phase_d/run_section8_security_probes.mjs": {
-    "mtime": 1787508047.7322304,
-    "ast_hash": "1b356414cb74c8dcc4690f969edbbb40",
+    "mtime": 1787746263.1049275,
+    "ast_hash": "38d99888117cb7c968b34548a5dd592b",
     "semantic_hash": ""
   },
   "scripts/sql/phase_d_d10_seven_cases_for_every_one_of_the_257_steps.sql": {
@@ -15680,8 +15680,8 @@
     "semantic_hash": ""
   },
   "MEMORY.md": {
-    "mtime": 1787080040.0462277,
-    "ast_hash": "23f6a01095a25b12fd3aefeff19f8228",
+    "mtime": 1787754347.2186682,
+    "ast_hash": "8043445e40589e23fae167b4fd3eb5d7",
     "semantic_hash": ""
   },
   "docs/phase-d/PHASE_D_BUILDER_CLOSURE.md": {
@@ -15710,8 +15710,8 @@
     "semantic_hash": ""
   },
   "docs/phase-d/PHASE_D_FINANCIAL_PRIVACY_RESULT.md": {
-    "mtime": 1787579558.975807,
-    "ast_hash": "972a272a99500b9f58ae93ad62b36271",
+    "mtime": 1787746263.0881395,
+    "ast_hash": "1f963f3c2a4d10dd856cd38ea02e82a6",
     "semantic_hash": ""
   },
   "docs/phase-d/PHASE_D_IDEMPOTENCY_CONCURRENCY_RESULT.md": {
@@ -15735,23 +15735,23 @@
     "semantic_hash": ""
   },
   "docs/phase-d/PHASE_D_STORAGE_RLS_SECURITY_RESULT.md": {
-    "mtime": 1787579558.988695,
-    "ast_hash": "5d880a19896bcc7ea8ae56238ace5e03",
+    "mtime": 1787746263.094394,
+    "ast_hash": "4851ceff40cc4cc7e366dcd7580fe18b",
     "semantic_hash": ""
   },
   "docs/phase-d/PHASE_D_ZERO_COST_EVIDENCE.md": {
-    "mtime": 1787597817.3636754,
-    "ast_hash": "91e76528646d9b33fbba8e9f56499b22",
+    "mtime": 1787871190.8954346,
+    "ast_hash": "66ce37d7c209976a1041b2f6fba6fbcb",
     "semantic_hash": ""
   },
   "scripts/checks/a_failed_scheduled_run_has_a_reader.test.mjs": {
-    "mtime": 1787233354.2284534,
-    "ast_hash": "8f891e10252382739741f0fb3919f9c1",
+    "mtime": 1788200074.2702768,
+    "ast_hash": "f0f46dc3ca0843f92f3a84fc6222a258",
     "semantic_hash": ""
   },
   "scripts/checks/anon_cannot_execute_security_definer.test.mjs": {
-    "mtime": 1787445011.5512333,
-    "ast_hash": "c0681d9f56ae48fce0847953108cd78b",
+    "mtime": 1787838773.1526835,
+    "ast_hash": "8af3ce11043f067162c39d9415d4123c",
     "semantic_hash": ""
   },
   "scripts/checks/phase_d_deliverables_match_production.test.mjs": {
@@ -16045,8 +16045,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/freeze_amendment_names_a_real_change_request.test.mjs": {
-    "mtime": 1787445011.5512333,
-    "ast_hash": "0c9ca8388b1b4ac1b5e9ab5430e22761",
+    "mtime": 1787838773.1526835,
+    "ast_hash": "9f6c39c3b55baa98efd4c9a56df9dcf6",
     "semantic_hash": ""
   },
   "scripts/checks/no_edge_function_calls_a_provider_directly.test.mjs": {
@@ -16055,13 +16055,13 @@
     "semantic_hash": ""
   },
   "scripts/checks/pccr_approval_matches_committed_tables.test.mjs": {
-    "mtime": 1787445011.553928,
-    "ast_hash": "de7d8c5795eaf1eadccf80db7b301c46",
+    "mtime": 1787746263.1009052,
+    "ast_hash": "d7174748b4c57339afb026caefc20ae9",
     "semantic_hash": ""
   },
   "scripts/checks/phase_d_dispatch_reaches_executed.test.mjs": {
-    "mtime": 1787419472.7764456,
-    "ast_hash": "ce10c831ae70d90fd041e09e87539df6",
+    "mtime": 1787838773.1617339,
+    "ast_hash": "02b56e098ef9d197f802bba6ff5eb117",
     "semantic_hash": ""
   },
   "scripts/checks/phase_d_documents_do_not_contradict_each_other.test.mjs": {
@@ -16070,8 +16070,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/phase_d_fixture_catalogue_matches_the_file.test.mjs": {
-    "mtime": 1787419472.7774632,
-    "ast_hash": "abd9b812ef9b13198c5be8600548a356",
+    "mtime": 1787838773.1617339,
+    "ast_hash": "52b08b4c8ed302572cd436efb1be3a05",
     "semantic_hash": ""
   },
   "scripts/checks/phase_d_input_schemas_are_typed_and_closed.test.mjs": {
@@ -16095,8 +16095,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/protected_table_guards_actually_fire.test.mjs": {
-    "mtime": 1787579558.997209,
-    "ast_hash": "7ab57f5d769d24a10a65a18cba643459",
+    "mtime": 1787838773.1617339,
+    "ast_hash": "3dfd6a2d279ebe24fbddaa46c32ba40b",
     "semantic_hash": ""
   },
   "scripts/checks/zero_cost_evidence_window_covers_the_work.test.mjs": {
@@ -16555,13 +16555,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/phase_c_pccr006_governance_approval_authenticity.sql": {
-    "mtime": 1787597817.419674,
-    "ast_hash": "96de1b3e6c3cdd92a6eb7d9c8a3bb5df",
-    "semantic_hash": ""
-  },
-  "scripts/sql/phase_c_pccr006_governance_approval_authenticity_down.sql": {
-    "mtime": 1787597817.419674,
-    "ast_hash": "26d6b7647fb16737745b836326f62680",
+    "mtime": 1787645999.7645085,
+    "ast_hash": "f319c25f219cb8d116b80b4706b55884",
     "semantic_hash": ""
   },
   "scripts/sql/phase_d_e10_a_mechanism_count_read_as_a_refusal_count.sql": {
@@ -20300,8 +20295,8 @@
     "semantic_hash": ""
   },
   "docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-006.md": {
-    "mtime": 1787608075.361726,
-    "ast_hash": "c249cc009bf9b3461e18302ae95fc4b4",
+    "mtime": 1787746263.0834274,
+    "ast_hash": "1387cc7da27710b5cff61294fd23346f",
     "semantic_hash": ""
   },
   "docs/phase-d/PCCR_004_AMENDMENT_TABLE.md": {
@@ -20375,8 +20370,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/PENDING.txt": {
-    "mtime": 1787616730.9336224,
-    "ast_hash": "1886b08ab5f526cea6f92adf4527d684",
+    "mtime": 1787746263.1079426,
+    "ast_hash": "ecbafd0bb782e14cc511ccc2f43a6424",
     "semantic_hash": ""
   },
   "scripts/tmp_diag/_sc.txt": {
@@ -21092,6 +21087,776 @@
   "docs/phase-d/PHASE_D_Q_SERIES_BUILDER_EVIDENCE.md": {
     "mtime": 1787622810.009179,
     "ast_hash": "e155de7027d8b3de29c62ad747e21945",
+    "semantic_hash": ""
+  },
+  "dbcheck.json": {
+    "mtime": 1787909624.545054,
+    "ast_hash": "ad4617b753cd1b8972bc0f621ef0f07f",
+    "semantic_hash": ""
+  },
+  "fd_now.sql": {
+    "mtime": 1787677312.7679434,
+    "ast_hash": "a01886a012aa48ae9f552136f2336ee7",
+    "semantic_hash": ""
+  },
+  "final.json": {
+    "mtime": 1787911147.3147361,
+    "ast_hash": "a8957e704ab06d97cf4e2c849add1cd1",
+    "semantic_hash": ""
+  },
+  "getdef.mjs": {
+    "mtime": 1787833564.4816692,
+    "ast_hash": "bee48864d0c792fbd23a7cb9696de43d",
+    "semantic_hash": ""
+  },
+  "getdef2.mjs": {
+    "mtime": 1787834737.4289305,
+    "ast_hash": "d734f731573e7f1a88866bfc439e3cda",
+    "semantic_hash": ""
+  },
+  "idr.sql": {
+    "mtime": 1787644399.4056985,
+    "ast_hash": "a01886a012aa48ae9f552136f2336ee7",
+    "semantic_hash": ""
+  },
+  "q.json": {
+    "mtime": 1788193747.9393532,
+    "ast_hash": "151bff49b99c85fad7d72407798046a1",
+    "semantic_hash": ""
+  },
+  "scripts/checks/org_connectivity_scenarios.test.mjs": {
+    "mtime": 1788218718.9778037,
+    "ast_hash": "100ba837e521bcf3bf7c61f251a909a1",
+    "semantic_hash": ""
+  },
+  "scripts/checks/org_connectivity_signal_path.test.mjs": {
+    "mtime": 1788206667.991067,
+    "ast_hash": "59586f346f127f61cc524345f1cc1048",
+    "semantic_hash": ""
+  },
+  "scripts/kb/ingest_extracted.mjs": {
+    "mtime": 1787913203.1945138,
+    "ast_hash": "f9577f7f6ef34c3444ee495fee709dbc",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/build_edge_function_inventory.mjs": {
+    "mtime": 1787838773.1617339,
+    "ast_hash": "52137d4c51eac068ca95cbf444271c20",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/prove_governance_door.mjs": {
+    "mtime": 1787838773.166854,
+    "ast_hash": "8461f3dd94c92a390f63fd0646114957",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/regenerate_zero_cost_evidence.mjs": {
+    "mtime": 1787838773.166854,
+    "ast_hash": "921b1480ff5be0003ea0b70e00573226",
+    "semantic_hash": ""
+  },
+  "scripts/phase_d/spec3_classify.mjs": {
+    "mtime": 1787851082.8786063,
+    "ast_hash": "722e59115f93b969543cccdb5923f04f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/expertise_istqb_ctfl_qa_test_design_down.sql": {
+    "mtime": 1787870155.3309562,
+    "ast_hash": "13241987770382ad68fcf80d34efee54",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_active_work_whose_business_parent_is_gone_down.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "83e6210e74d6954542a3eff19b18035e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_fdr002_reserves_the_pricing_model_not_every_run_down.sql": {
+    "mtime": 1787746263.1079426,
+    "ast_hash": "b49679085c5e18103f3339b450e5f0b0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_pccr006_governance_approval_authenticity_down.sql": {
+    "mtime": 1787746263.1079426,
+    "ast_hash": "26d6b7647fb16737745b836326f62680",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_pccr006_the_ledger_kept_its_truncate_grant_down.sql": {
+    "mtime": 1787746263.1106467,
+    "ast_hash": "43c1caad1406661cd64f73c93136630b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_pccr006_the_ledger_kept_its_write_grants_too_down.sql": {
+    "mtime": 1787746263.1106467,
+    "ast_hash": "886d1b570d36a08817bdfa07d7835bfc",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_pd_fin_004_is_deferred_to_the_founder_session_path_down.sql": {
+    "mtime": 1787746263.1116495,
+    "ast_hash": "df18ef07b0a85db67deb0f394e0df821",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_pd_fin_004_reported_a_control_it_could_not_reach_down.sql": {
+    "mtime": 1787746263.1116495,
+    "ast_hash": "1bda213639013ef996c20446f142e222",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_amendment_guard_only_watched_one_basis_down.sql": {
+    "mtime": 1787746263.1116495,
+    "ast_hash": "98f35c05be6f744aebb3bdbba5221e68",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_approved_digest_was_compared_to_nothing_down.sql": {
+    "mtime": 1787746263.1116495,
+    "ast_hash": "4fe26378edfcc94bed1355e42c3512e1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_bind_door_took_the_subject_as_an_argument_down.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "8a1eb1a95ddbde77fb9865c59a292e29",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_delegated_answer_named_no_boundary_down.sql": {
+    "mtime": 1787746263.1116495,
+    "ast_hash": "267ddbc2dcfe95b6708113d6077789c7",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_export_had_no_tiebreaker_down.sql": {
+    "mtime": 1787746263.1136522,
+    "ast_hash": "0172e937255f606abd4c1d608c7b38b3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_ownership_ledger_named_a_file_the_manifest_had_superseded_down.sql": {
+    "mtime": 1787746263.1136522,
+    "ast_hash": "9ce81da1f6aede1a2eec0be14081d65c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_ownership_ledger_named_the_pccr006_file_again_down.sql": {
+    "mtime": 1787753744.312006,
+    "ast_hash": "50052c3743ede75952c97fe570932de1",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_ownership_ledger_named_two_superseded_files_down.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "6382e431a6c28ed130e816897e895e89",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_refund_guard_could_not_record_stripes_own_refund_down.sql": {
+    "mtime": 1787753744.314011,
+    "ast_hash": "3cbc3bd9c9d07c7f5ecee0393605df18",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_refund_guard_refused_his_own_words_down.sql": {
+    "mtime": 1787753744.314011,
+    "ast_hash": "1529ae594f664c7e5e09f6359be5923e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_the_scorer_would_have_read_a_hold_as_underperformance_down.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "a6ff38222cff5b817970ed7de86dfa3f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_c_two_boards_written_when_the_door_had_never_opened_down.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "2b80623217f3509f700ea8f83b0a2029",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_d_q07_a_founder_answer_with_no_hash_and_no_guard_down.sql": {
+    "mtime": 1787645999.7602334,
+    "ast_hash": "1f004d532a56603f7b267d03e60d96a7",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_d_q08_a_deliverable_that_counted_the_whole_table_down.sql": {
+    "mtime": 1787645999.7627616,
+    "ast_hash": "c70716e22c4f29f3e6201c50a618322f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_d_the_fixture_asked_for_a_refund_the_same_minute_it_paid_down.sql": {
+    "mtime": 1787753744.314011,
+    "ast_hash": "6a1c868d944f26b91894846967290c09",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/phase_d_the_refund_probe_was_refused_before_its_own_guard_down.sql": {
+    "mtime": 1787753744.314011,
+    "ast_hash": "add92046bf85b69298282664ab662da6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/spec3_the_ownership_ledger_still_named_the_superseded_file_down.sql": {
+    "mtime": 1787851082.8827512,
+    "ast_hash": "78bff8ccbecd50deefd5ae072075663c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/spec3_the_sixth_reputation_axis_had_no_column_down.sql": {
+    "mtime": 1787851082.8837545,
+    "ast_hash": "b4a8d6116b33d0a450310a060638d896",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/spec3_three_rows_a_capability_was_waiting_on_down.sql": {
+    "mtime": 1787851082.8837545,
+    "ast_hash": "5fd7a6ae8a62d6742e42f23a63770569",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/stage0_remove_two_stale_authority_grants_down.sql": {
+    "mtime": 1787865114.291848,
+    "ast_hash": "0ec294c4ae0cc1ac1ec548f031750882",
+    "semantic_hash": ""
+  },
+  "scripts/sql/down/stage1_ai_managerial_approval_tier_down.sql": {
+    "mtime": 1787868007.7041266,
+    "ast_hash": "159c7975ecaff1a7df24503b5f638915",
+    "semantic_hash": ""
+  },
+  "scripts/sql/expertise_istqb_ctfl_qa_test_design.sql": {
+    "mtime": 1787870096.8195996,
+    "ast_hash": "f3d0eb2ba0646633a692298e3a9a51f8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fix_policy_consistency_kb_scale.sql": {
+    "mtime": 1788199979.7283256,
+    "ast_hash": "fabe6c3da6e004f6e3d4f5679e75ba34",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_a_new_target_cascades.sql": {
+    "mtime": 1788204894.7415133,
+    "ast_hash": "84a251027db5e51a0b5407c693e86bce",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_ceo_escalates_to_founder.sql": {
+    "mtime": 1788204710.0907917,
+    "ast_hash": "8af42b775ed6a10d8fa663e83bdb42c7",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_ceo_priorities_reach_their_officer.sql": {
+    "mtime": 1788212262.3365228,
+    "ast_hash": "cde968d3785220279c699626f84bd127",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_escalation_targets_resolve.sql": {
+    "mtime": 1788204964.536853,
+    "ast_hash": "6fe281c825944fe63803f47d70b98e68",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_founder_reports_read_live_objectives.sql": {
+    "mtime": 1788204836.1773677,
+    "ast_hash": "6e8fbf194557af3dfbe3650c9b3663d2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_kpi_assignment.sql": {
+    "mtime": 1788211665.832697,
+    "ast_hash": "71416450f2bf7409aa2cde856b8169cb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_ownership_ledger_follows_the_manifest.sql": {
+    "mtime": 1788212300.7191212,
+    "ast_hash": "2f1c93a08b8ae0f1c93da4210655e2bb",
+    "semantic_hash": ""
+  },
+  "scripts/sql/launch_step1_task_assign_fills_the_department.sql": {
+    "mtime": 1788204763.6912274,
+    "ast_hash": "e4c7ca078a05fe76421011c7554c49a4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/only_refunds_ownership_ledger.sql": {
+    "mtime": 1788215536.2974877,
+    "ast_hash": "853d87b602cdef763f17ecd07b0ac207",
+    "semantic_hash": ""
+  },
+  "scripts/sql/only_refunds_reach_the_founder.sql": {
+    "mtime": 1788215095.4108436,
+    "ast_hash": "2377ad8fc583a2f417f768b109fab861",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_a_refund_amount_was_a_number_somebody_typed.sql": {
+    "mtime": 1787753744.3165147,
+    "ast_hash": "6b8c0906500f061b4266ee372b36eab0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_active_work_whose_business_parent_is_gone.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "0dc2fb09ba1b4194abfddef3e078265d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_fdr002_reserves_the_pricing_model_not_every_run.sql": {
+    "mtime": 1787746263.1136522,
+    "ast_hash": "af064bf01b14f669869e3a14facccef0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_pccr006_bootstrap_approval_record.sql": {
+    "mtime": 1787746263.1136522,
+    "ast_hash": "074249c84d3f97429a69b6bd2724778c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_pccr006_the_ledger_kept_its_truncate_grant.sql": {
+    "mtime": 1787746263.1136522,
+    "ast_hash": "5aac15de25ebc87b7b31112d1dd9a33f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_pccr006_the_ledger_kept_its_write_grants_too.sql": {
+    "mtime": 1787746263.116508,
+    "ast_hash": "7a6993831096f601244a41695ac27c32",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_pd_fin_004_is_deferred_to_the_founder_session_path.sql": {
+    "mtime": 1787746263.116508,
+    "ast_hash": "8e8b7396e62a617cca99ff5629763d74",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_pd_fin_004_reported_a_control_it_could_not_reach.sql": {
+    "mtime": 1787746263.116508,
+    "ast_hash": "258ab54833fdfcdf272598039adb39d6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_amendment_guard_only_watched_one_basis.sql": {
+    "mtime": 1787746263.1190853,
+    "ast_hash": "62b0956a6e33ccce32c9eac542136c0b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_approved_digest_was_compared_to_nothing.sql": {
+    "mtime": 1787746263.1190853,
+    "ast_hash": "a19c91f938f162db94eaae5f8e74c91b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_bind_door_took_the_subject_as_an_argument.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "3b00de3a2a538a7631802985eb4278f4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_delegated_answer_named_no_boundary.sql": {
+    "mtime": 1787746263.1210923,
+    "ast_hash": "2d0a996b45c128e19362ba5a9d0fc807",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_export_had_no_tiebreaker.sql": {
+    "mtime": 1787746263.1210923,
+    "ast_hash": "b9584ba4e81b5abdfbe3ea58c0ca173e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_founder_door_read_a_setting.sql": {
+    "mtime": 1787753744.3165147,
+    "ast_hash": "4bbe548ba968aed41b1d625e535dce00",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_ownership_ledger_named_a_file_the_manifest_had_superseded.sql": {
+    "mtime": 1787746263.1210923,
+    "ast_hash": "4ae568b777d090f89865d4ef5225984d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_ownership_ledger_named_the_pccr006_file_again.sql": {
+    "mtime": 1787753744.3180537,
+    "ast_hash": "9c491ec33caaa88216700bb85a99978b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "f351b911fbe8ab7a88c70d34ba9fa034",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_refund_guard_could_not_record_stripes_own_refund.sql": {
+    "mtime": 1787753744.3180537,
+    "ast_hash": "501636b500c627691644c0d1ad0c8c10",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_refund_guard_refused_his_own_words.sql": {
+    "mtime": 1787753744.3200598,
+    "ast_hash": "7f57fd9e1150ca51cc6483374eb71dba",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_the_scorer_would_have_read_a_hold_as_underperformance.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "37c32a9956e491143f76faf6b551589a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_c_two_boards_written_when_the_door_had_never_opened.sql": {
+    "mtime": 1787838773.1691067,
+    "ast_hash": "e2b281a1095eeb8ffee0a1e81982062e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_q07_a_founder_answer_with_no_hash_and_no_guard.sql": {
+    "mtime": 1787645999.7645085,
+    "ast_hash": "1381c1576b0369c273f21ad5f931a143",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_q08_a_deliverable_that_counted_the_whole_table.sql": {
+    "mtime": 1787645999.7645085,
+    "ast_hash": "54b298ce7498368f0f69c49f4a85f802",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_the_fixture_asked_for_a_refund_the_same_minute_it_paid.sql": {
+    "mtime": 1787753744.3200598,
+    "ast_hash": "7e1e42f7aa0a5e9c6d6e0c781c3ecac5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/phase_d_the_refund_probe_was_refused_before_its_own_guard.sql": {
+    "mtime": 1787753744.3220649,
+    "ast_hash": "71505ca4aa832dd05967f04bd3e958c0",
+    "semantic_hash": ""
+  },
+  "scripts/sql/spec3_the_ownership_ledger_still_named_the_superseded_file.sql": {
+    "mtime": 1787851082.8837545,
+    "ast_hash": "51d993f0caded03628b444b5b783d9dd",
+    "semantic_hash": ""
+  },
+  "scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql": {
+    "mtime": 1788216729.5196526,
+    "ast_hash": "713eca8cfa51f64d1a86529e211724f2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql": {
+    "mtime": 1787851082.8868997,
+    "ast_hash": "d2e3a60d6ba4a9b3743066e429f7802e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/stage0_remove_two_stale_authority_grants.sql": {
+    "mtime": 1787865094.8451705,
+    "ast_hash": "a2bebad11d039eaae3b4cabc38ad8859",
+    "semantic_hash": ""
+  },
+  "scripts/sql/stage1_ai_managerial_approval_tier.sql": {
+    "mtime": 1788218192.9086804,
+    "ast_hash": "ac541cbdec523c478359eb8129594c49",
+    "semantic_hash": ""
+  },
+  "$S/$f.txt": {
+    "mtime": 1787842216.2631054,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/cdx_sgsa.txt": {
+    "mtime": 1787925174.503318,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/fs_rec_pdfs.txt": {
+    "mtime": 1787925884.1059754,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/m1.txt": {
+    "mtime": 1787841210.4107387,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/m2.txt": {
+    "mtime": 1787841210.4462688,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/m3.txt": {
+    "mtime": 1787842134.3941307,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/only_comp16.txt": {
+    "mtime": 1787846944.4139075,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/only_comp16b.txt": {
+    "mtime": 1787847697.161612,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/only_comp16c.txt": {
+    "mtime": 1787847738.211606,
+    "ast_hash": "e6bd1ddba820ac762ae7a99e71ae95e2",
+    "semantic_hash": ""
+  },
+  "$S/only_comp16e.txt": {
+    "mtime": 1787852832.802911,
+    "ast_hash": "e6bd1ddba820ac762ae7a99e71ae95e2",
+    "semantic_hash": ""
+  },
+  "$S/only_emp.txt": {
+    "mtime": 1787841302.2552624,
+    "ast_hash": "3e37f77c5b98fd9bf6c031aee9d5020f",
+    "semantic_hash": ""
+  },
+  "$S/only_s21.txt": {
+    "mtime": 1787840353.9038365,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/only_s3.txt": {
+    "mtime": 1787840198.7534668,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/s2a.txt": {
+    "mtime": 1787855176.4054308,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/s2b.txt": {
+    "mtime": 1787855176.4174833,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/spec2_run2.txt": {
+    "mtime": 1787848607.1500092,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/spec2_run3.txt": {
+    "mtime": 1787853397.6337898,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/spec3_run2.txt": {
+    "mtime": 1787840831.2262926,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/spec3_run3.txt": {
+    "mtime": 1787841694.8467493,
+    "ast_hash": "83427eb4780d221350470686d4e01144",
+    "semantic_hash": ""
+  },
+  "$S/urls_fs1.txt": {
+    "mtime": 1787926035.4986744,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "$S/urls_fs2.txt": {
+    "mtime": 1787926118.7738855,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "PHASE_D_V1_APPLICATION_SECURITY_RESULT.md": {
+    "mtime": 1787742057.8548727,
+    "ast_hash": "9630a5da0735c663b51dd687f7b6369a",
+    "semantic_hash": ""
+  },
+  "PHASE_D_V1_FD01_RESULT.md": {
+    "mtime": 1787744808.0711334,
+    "ast_hash": "16f055e98cd1ecc443b6b4312f01ee69",
+    "semantic_hash": ""
+  },
+  "PHASE_D_V1_POST_PHASE_FINDINGS.md": {
+    "mtime": 1787741420.8077142,
+    "ast_hash": "6ce2f74d0d6c9e5e90e2ae891bbe7036",
+    "semantic_hash": ""
+  },
+  "PHASE_D_V1_RESIDUE_REPORT.md": {
+    "mtime": 1787742102.9556727,
+    "ast_hash": "d0e239bd0ff0296134f343108b42ad59",
+    "semantic_hash": ""
+  },
+  "PHASE_D_V1_ZERO_COST_RESULT.md": {
+    "mtime": 1787741660.6367571,
+    "ast_hash": "dd5ea50e968d53d1373d0dcb0d7c8c45",
+    "semantic_hash": ""
+  },
+  "arxiv_ids.txt": {
+    "mtime": 1787907003.76047,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "chunk_counts.txt": {
+    "mtime": 1787925956.6927989,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "clean_slugs.txt": {
+    "mtime": 1787926156.080012,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "docs/LAUNCH_READINESS_PLAN.md": {
+    "mtime": 1787857846.4776292,
+    "ast_hash": "9174d99c37b20b607e7ca4de08dbc948",
+    "semantic_hash": ""
+  },
+  "docs/LAUNCH_STEP1_ORG_CONNECTIVITY.md": {
+    "mtime": 1788205890.3391423,
+    "ast_hash": "03d96e72ede1284857e87eb6f2a5a4e8",
+    "semantic_hash": ""
+  },
+  "docs/STAGE0_CHAIN_OF_COMMAND_FINDINGS.md": {
+    "mtime": 1787868619.0863745,
+    "ast_hash": "1ac98e1eecc8b45eae89e3da4ca11dea",
+    "semantic_hash": ""
+  },
+  "docs/expertise/AGENT_KNOWLEDGE_PATH.md": {
+    "mtime": 1787870235.6841528,
+    "ast_hash": "b44a006a3aa83513560dddec6af24ce0",
+    "semantic_hash": ""
+  },
+  "docs/expertise/CERTIFICATION_SOURCE_REGISTRY.md": {
+    "mtime": 1787865389.8493018,
+    "ast_hash": "bfb74131d657acd3b2eee11b2237a2f6",
+    "semantic_hash": ""
+  },
+  "docs/expertise/CERT_TARGETS.md": {
+    "mtime": 1788197043.909169,
+    "ast_hash": "167414520348e63b722c9edc8b5d5f89",
+    "semantic_hash": ""
+  },
+  "docs/expertise/CORPUS_INGESTION.md": {
+    "mtime": 1787926871.3558369,
+    "ast_hash": "2efd869f8e5ece5a41005da7d9378d31",
+    "semantic_hash": ""
+  },
+  "docs/expertise/PIPELINE_PILOT_ISTQB.md": {
+    "mtime": 1787869182.0932739,
+    "ast_hash": "090c1b7fc22af94c7308ebb7be4a6e5c",
+    "semantic_hash": ""
+  },
+  "docs/expertise/README.md": {
+    "mtime": 1787865679.2929668,
+    "ast_hash": "973b622f2a88197ff7302c0962e3fb9f",
+    "semantic_hash": ""
+  },
+  "docs/expertise/SEMANTIC_RETRIEVAL_STATE.md": {
+    "mtime": 1787869006.9658942,
+    "ast_hash": "15aad3dd33707eff292515e414784300",
+    "semantic_hash": ""
+  },
+  "docs/phase-c/PCCR-003_DISPOSITION.md": {
+    "mtime": 1787838773.1504624,
+    "ast_hash": "88e364248d41f9b5a2a01151a9e2e226",
+    "semantic_hash": ""
+  },
+  "docs/phase-c/PCCR-006_GOVERNANCE_DOOR_CANARY.md": {
+    "mtime": 1787838773.151683,
+    "ast_hash": "a1a7f9e1b4592e7b130876f8e4af6713",
+    "semantic_hash": ""
+  },
+  "docs/phase-c/PCCR-006_PRE_APPROVAL_REHEARSAL.md": {
+    "mtime": 1787645999.751561,
+    "ast_hash": "4907b11cc809776c5249ee96d11e5a16",
+    "semantic_hash": ""
+  },
+  "docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-007.md": {
+    "mtime": 1787753744.3019874,
+    "ast_hash": "b462763f4943c0f63292ab66dcebac27",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_EDGE_FUNCTION_INVENTORY.md": {
+    "mtime": 1787838773.1526835,
+    "ast_hash": "7035bacaa6074101633992b0c1cc53c2",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_FINDING_W04S04_REGRESSION.md": {
+    "mtime": 1787746263.0881395,
+    "ast_hash": "6162219922faff3d3f7aa2f2b6f66cba",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_NARROW_CORRECTION_CLOSURE_2026-08-27.md": {
+    "mtime": 1787838773.1526835,
+    "ast_hash": "0deaa8d0673ae7c452036120cec8ca73",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_ORPHAN_WORK_REPAIR.md": {
+    "mtime": 1787838773.1526835,
+    "ast_hash": "dd1529b3a0df00202e891ba52fe5a7a0",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/PHASE_D_REPUTATION_STANDDOWN_POLICY.md": {
+    "mtime": 1787838773.1526835,
+    "ast_hash": "7752ee2224106dd7c7c0260b32d5383e",
+    "semantic_hash": ""
+  },
+  "docs/phase-d/SPEC_FILE_SCOREBOARD_2026-08-27.md": {
+    "mtime": 1787855835.8759398,
+    "ast_hash": "dd58a63cd44e6bb5135bbaed1efe4281",
+    "semantic_hash": ""
+  },
+  "done_slugs.txt": {
+    "mtime": 1787925795.8050478,
+    "ast_hash": "5bf4d722bf751b397d31b52dc491058e",
+    "semantic_hash": ""
+  },
+  "log_books.txt": {
+    "mtime": 1787887183.0068674,
+    "ast_hash": "26eda1332c5426aedb764d9b2e5785cc",
+    "semantic_hash": ""
+  },
+  "log_books2.txt": {
+    "mtime": 1787887450.0736277,
+    "ast_hash": "26eda1332c5426aedb764d9b2e5785cc",
+    "semantic_hash": ""
+  },
+  "log_books3.txt": {
+    "mtime": 1787887571.292174,
+    "ast_hash": "26eda1332c5426aedb764d9b2e5785cc",
+    "semantic_hash": ""
+  },
+  "log_ostep.txt": {
+    "mtime": 1787887491.0928888,
+    "ast_hash": "b3963b40931e3902de55fcbc8d431152",
+    "semantic_hash": ""
+  },
+  "tools/PUBLIC_APIS_REFERENCE.md": {
+    "mtime": 1787859654.8683894,
+    "ast_hash": "cec5b5e8ae9e8f588b21a26e724f23de",
+    "semantic_hash": ""
+  },
+  "tools/TOOLBOX.md": {
+    "mtime": 1787860149.7653837,
+    "ast_hash": "7a97795d23cc32a8a7d36e4a7b768407",
+    "semantic_hash": ""
+  },
+  "tools/venv-requirements.txt": {
+    "mtime": 1787860019.773891,
+    "ast_hash": "bef94d7345fb89156f27ccc7ccf66b2f",
+    "semantic_hash": ""
+  },
+  "1.pdf": {
+    "mtime": 1787874080.2318034,
+    "ast_hash": "169f4d640c79b11d09be4a2ed02c4f55",
+    "semantic_hash": ""
+  },
+  "cement.pdf": {
+    "mtime": 1787906674.6581702,
+    "ast_hash": "a7459b2dcbdfd84fbac0db891ccac8d8",
+    "semantic_hash": ""
+  },
+  "mahc-code.pdf": {
+    "mtime": 1787909107.554266,
+    "ast_hash": "846dd454836d96c03c607557df56c9be",
+    "semantic_hash": ""
+  },
+  "t1.pdf": {
+    "mtime": 1787912104.7848547,
+    "ast_hash": "4bcf402c26601ebc3c73e6c9dc01e97e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/pacr_002_the_real_company_reporting_shape.sql": {
+    "mtime": 1788216094.4096923,
+    "ast_hash": "ff714e8c578977497801b8b328e71b9f",
+    "semantic_hash": ""
+  },
+  "docs/phase-a/PHASE_A_CHANGE_REQUEST_PACR-002.md": {
+    "mtime": 1788216308.8147476,
+    "ast_hash": "83a135b536c1f42f7ef09c23b9e1bf72",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_missed_kpi_opens_remediation.sql": {
+    "mtime": 1788216894.4350822,
+    "ast_hash": "5983deee8aa97285fa6b6eb5a4a66f33",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_missed_kpi_ownership_ledger.sql": {
+    "mtime": 1788216971.9023972,
+    "ast_hash": "6a847b512a3cb2c34fb31016795dd65d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_task_is_born_owned_and_tied_to_its_target.sql": {
+    "mtime": 1788217556.703297,
+    "ast_hash": "8407bb5fb752670f31301f8d9aa1967f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/dual_approval_for_spend_and_contract.sql": {
+    "mtime": 1788218447.0077167,
+    "ast_hash": "c715afe7b19b542ab2fed4ed135040d6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/spend_contract_dispatch_needs_two.sql": {
+    "mtime": 1788218390.14721,
+    "ast_hash": "f3abbb67212bb10173946a7455979373",
+    "semantic_hash": ""
+  },
+  "scripts/sql/spend_contract_dispatch_ownership_ledger.sql": {
+    "mtime": 1788218757.8087556,
+    "ast_hash": "c8cddef234b81d7594c875f45505a8c8",
     "semantic_hash": ""
   }
 }
