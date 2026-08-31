@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-08-28T20:44:22.605Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-08-31T18:20:04.941Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -66533,6 +66533,7 @@ CREATE OR REPLACE FUNCTION public.fn_policy_consistency_check()
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
+ SET statement_timeout TO '300000'
 AS $function$
 declare r record; f jsonb := '[]'::jsonb; n int := 0; v_admin text; v_crit int := 0;
 begin
@@ -66558,8 +66559,12 @@ begin
              from agent_memory where content ~* r.forbid_regex), '[]'::jsonb);
       f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','org_memory','location',scope||' / '||kind||' (#'||id||')'))
              from org_memory where active and content ~* r.forbid_regex), '[]'::jsonb);
+      -- kb_chunks: scan only the COMPANY-AUTHORED, policy-bearing kinds (see header) — ~95k rows, the
+      -- table's pre-ingestion scope. Third-party reference standards ('standard'/'reference'/'cert'/…)
+      -- are excluded: they cannot state QuotesDone policy, and scanning 2.6M of them times out.
       f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','kb_chunks','location',coalesce(category,'?')||' (#'||id||')'))
-             from kb_chunks where content ~* r.forbid_regex), '[]'::jsonb);
+             from kb_chunks where source_kind in ('qd_kb_pack','company_faq','generated','memory','library','document','material')
+                              and content ~* r.forbid_regex), '[]'::jsonb);
     end if;
   end loop;
   n := jsonb_array_length(f);
