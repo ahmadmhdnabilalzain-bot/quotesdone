@@ -80,6 +80,10 @@ const inv = await q(`
     union all select 16,'revenue_objective_aed',(fn_objective_cascade()->>'revenue_objective_aed'),'1000000'
     union all select 17,'department_objectives_with_a_dangling_goal_key',(select count(*)::text from department_objective o where coalesce(o.goal_key,'')<>'' and o.active and not exists(select 1 from company_goals g where g.key=o.goal_key and g.active)),'0'
     union all select 18,'cascadeable_goals_missing_their_objective',(select count(*)::text from company_goals g where g.active and coalesce(g.measure_sql,'')<>'' and exists(select 1 from org_departments d where d.dept_key=g.owner_dept and d.active) and not exists(select 1 from department_objective o where o.goal_key=g.key and o.active)),'0'
+    -- ONLY REFUNDS REACH THE FOUNDER. The old agent_actions queue must route nothing to him, and
+    -- every decision/alert it does route must land on a live accountable authority.
+    union all select 19,'agent_action_kinds_routing_to_founder',(select count(*)::text from agent_action_kind_policy where policy='founder'),'0'
+    union all select 20,'officer_notify_kinds_without_a_live_authority',(select count(*)::text from agent_action_kind_policy p where p.policy in ('officer','notify') and not exists(select 1 from org_role r join org_agents a on a.agent_key=r.runtime_agent_key and a.active where r.role_id=p.authority_role and r.status='active')),'0'
   ) z order by ord`);
 for (const r of inv) eq(r.k, r.v, r.e);
 
@@ -203,6 +207,39 @@ const c3 = await probe(`do $p$ declare res jsonb; cross_dept int; over_cap int; 
   raise exception 'MARK|assigned=%|cross_dept=%|over_cap=%', (res->>'assigned'), cross_dept, over_cap; end $p$;`);
 eq('a sweep assigns tasks and never crosses a department boundary', c3.cross_dept, '0');
 eq('  -> and never exceeds any agent\u2019s capacity', c3.over_cap, '0');
+
+// ============================================================================================
+console.log('\n== ONLY REFUNDS REACH THE FOUNDER — decisions route to officers, alerts notify ==');
+// ============================================================================================
+// a genuine major-issue ALERT notifies the founder (Stage 4) and is handed to the accountable
+// authority, WITHOUT ever entering his blocking queue.
+const f1 = await probe(`do $p$ declare aid bigint; fa0 int; fa1 int; new_agent text; q0 int; q1 int; begin
+  select count(*) into fa0 from founder_alerts;
+  q0 := (fn_founder_queue(5)->>'waiting_on_you_total')::int;
+  insert into agent_actions(agent,kind,status,risk,title,recommendation)
+    values('cfo','security_incident','pending','high','ZZ probe — a real alert','probe body') returning id into aid;
+  perform fn_agent_action_work_sweep(50);
+  select count(*) into fa1 from founder_alerts;
+  select agent into new_agent from agent_actions where id=aid;
+  q1 := (fn_founder_queue(5)->>'waiting_on_you_total')::int;
+  raise exception 'MARK|notified=%|routed_to=%|queue_delta=%', (fa1>fa0)::text, new_agent, (q1-q0); end $p$;`);
+eq('a major-issue alert notifies the founder (Stage 4)', f1.notified, 'true');
+eq('  -> and is handed to the accountable authority', f1.routed_to, 'cto');
+eq('  -> and never enters his blocking queue', f1.queue_delta, '0');
+// an officer DECISION is re-addressed to the accountable authority, not the founder
+const f2 = await probe(`do $p$ declare aid bigint; new_agent text; begin
+  insert into agent_actions(agent,kind,status,risk,title,recommendation)
+    values('cfo','finance_marketing_budget','pending','medium','ZZ probe — a budget decision','probe body') returning id into aid;
+  perform fn_agent_action_work_sweep(50);
+  select agent into new_agent from agent_actions where id=aid;
+  raise exception 'MARK|routed_to=%', new_agent; end $p$;`);
+eq('an officer decision routes to the accountable AI authority', f2.routed_to, 'sales_director');
+// the schema itself now refuses to put a non-refund kind in front of the founder
+const f3 = await probe(`do $p$ declare refused text; begin
+  begin insert into agent_action_kind_policy(kind,policy) values('zz_probe_kind','founder'); refused:='NOT_REFUSED';
+  exception when others then refused:='REFUSED'; end;
+  raise exception 'MARK|refused=%', refused; end $p$;`);
+eq('the policy CHECK refuses a founder-routed kind (structural)', f3.refused, 'REFUSED');
 
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);

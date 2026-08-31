@@ -1756,3 +1756,11 @@ scripts/sql/launch_step1_escalation_targets_resolve.sql
 scripts/sql/launch_step1_ownership_ledger_follows_the_manifest.sql
 scripts/sql/launch_step1_kpi_assignment.sql
 scripts/sql/launch_step1_ceo_priorities_reach_their_officer.sql
+scripts/sql/only_refunds_reach_the_founder.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/only_refunds_ownership_ledger.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
