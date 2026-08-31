@@ -96,10 +96,17 @@ const p1a = await probe('CASCADE', `do $p$
 truthy('a new target cascades to a department_objective', p1a.before === '0' && p1a.after === '1' && p1a.dept === 'finance',
        `before=${p1a.before} after=${p1a.after} dept=${p1a.dept}`);
 
-// The open work reaches an accountable owner: one sweep fills the department (fn_org_task_assign). Aborted.
+// The open work reaches an accountable owner. A task is now owned AT CREATION by
+// a05_org_task_fill_ownership, so to prove the SWEEP still claims an unowned one we seed a task and
+// null its owner AFTER insert (the trigger is BEFORE INSERT, so an UPDATE does not re-fire it). The
+// sweep must then claim it and leave nothing open-and-unowned. Aborted.
 const p1b = await probe('ASSIGN', `do $p$
-  declare before_null int; res jsonb; now_owned int; still_null int;
+  declare seed bigint; before_null int; res jsonb; now_owned int; still_null int;
   begin
+    insert into org_tasks (dept_key,title,detail,status,tier,needs_founder,action_class)
+      values ('finance','ZZ probe unowned task','probe: the sweep must claim this','assigned','advisory',false,'recommend')
+      returning id into seed;
+    update org_tasks set assigned_agent = null where id = seed;   -- BEFORE INSERT trigger does not fire on UPDATE
     select count(*) into before_null from org_tasks where status in ('assigned','in_progress') and assigned_agent is null;
     res := fn_org_task_assign(500);
     select count(*) into now_owned  from org_tasks where status in ('assigned','in_progress') and assigned_agent is not null;
@@ -108,7 +115,7 @@ const p1b = await probe('ASSIGN', `do $p$
       before_null, (res->>'assigned'), now_owned, still_null;
   end $p$;`);
 truthy('a sweep gives every unowned open task a real owner',
-       Number(p1b.assigned) >= Number(p1b.before_null) && p1b.still_null === '0' && Number(p1b.assigned) > 0,
+       Number(p1b.before_null) >= 1 && Number(p1b.assigned) >= 1 && p1b.still_null === '0',
        `unowned_before=${p1b.before_null} assigned=${p1b.assigned} still_unowned=${p1b.still_null}`);
 
 // ============================================================================================
