@@ -189,6 +189,10 @@ begin
     v_n := v_n + 1;
   end loop;
 
+  -- The org directory (everyone knows everyone: role, line manager, KPI, live rating) and the
+  -- published content (FAQ, social, blog, website) are recomposed in the same refresh.
+  perform public.fn_company_org_directory_sync();
+
   return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now(),
     'revenue_30d_aed', v_snap->>'revenue_30d_aed', 'reveal_fee_pct', round(v_fee*100,2),
     'employees', v_snap->>'employees');

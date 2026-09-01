@@ -1831,3 +1831,5 @@ scripts/sql/unclassified_work_escalates.sql
 scripts/sql/unclassified_work_escalates_ownership_ledger.sql
 scripts/sql/consequential_actions_reach_the_gate.sql
 scripts/sql/every_agent_knows_the_company.sql
+scripts/sql/agent_knows_its_own_kpis.sql
+scripts/sql/every_agent_knows_the_org_and_content.sql

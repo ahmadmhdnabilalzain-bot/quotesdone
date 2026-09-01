@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788285111.204379,
-    "ast_hash": "e861d430345c56b985461c0411ff0f62",
+    "mtime": 1788286918.4038887,
+    "ast_hash": "0b8e6c6a7ec53bbc30ceccaed2e58bc7",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788284661.5117044,
-    "ast_hash": "7ec7d54a79d67e3254f80568aafaabe1",
+    "mtime": 1788286797.4319549,
+    "ast_hash": "c0511c8b0ad994a0d52571fc60fd5877",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -22000,8 +22000,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_company.sql": {
-    "mtime": 1788285042.2880085,
-    "ast_hash": "313243ec3502f8d2d1d78997e9b1108c",
+    "mtime": 1788286787.602859,
+    "ast_hash": "a7ba42c1d38c7e5ac3d3378e6daae0fa",
     "semantic_hash": ""
   },
   "scripts/sql/goals_carry_a_deadline_pace.sql": {
@@ -22087,6 +22087,16 @@
   "docs/phase-c/PCCR-007_KERNEL_HANDOFF_REJECT.md": {
     "mtime": 1788271808.3730185,
     "ast_hash": "9e590cb14ed4e0005d021183d83a534c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/agent_knows_its_own_kpis.sql": {
+    "mtime": 1788286607.6160967,
+    "ast_hash": "fe4d3a85040d5681228827e05a066243",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_knows_the_org_and_content.sql": {
+    "mtime": 1788286776.8827143,
+    "ast_hash": "5eaef5dd11166723ecc53ece49a4c91d",
     "semantic_hash": ""
   }
 }

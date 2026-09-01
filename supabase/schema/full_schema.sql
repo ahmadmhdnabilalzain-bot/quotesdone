@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T18:13:47.252Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T18:21:58.391Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17068,126 +17068,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -17734,6 +17614,126 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
  RETURNS text
  LANGUAGE plpgsql
@@ -17981,6 +17981,15 @@ begin
          'budget_limit_aed', v_role.budget_limit,
          'evaluation_suite', v_role.evaluation_suite,
          'committees', v_role.committees) end;
+
+  -- Its OWN KPIs: what this agent is measured on and its current rating. Per-agent (employee_kpi),
+  -- always present so an agent knows how it is judged without having to ask. current_rating is live.
+  v_identity := v_identity || jsonb_build_object('kpis', coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'kpi', kpi, 'measures', metric, 'target', target_value, 'unit', unit,
+             'current_rating', actual_value, 'measured_at', measured_at, 'cadence', cadence,
+             'serves_goal', serves_goal) order by id)
+      from public.employee_kpi where agent_key = p_agent_key and coalesce(active, true)), '[]'::jsonb));
 
   if p_task_text is not null and length(p_task_text) > 1 then
     v_q := public.fn_task_tsquery(p_task_text);
@@ -22009,6 +22018,31 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_company_knowledge_upsert(p_rid text, p_module text, p_title text, p_content text, p_kw text[])
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  insert into public.ops_knowledge(
+    record_id, scope_type, scope_key, layer, module, record_type, title, content,
+    structured_data, source_ids, implementation_status, validation_status, authority_tier,
+    risk_level, version, keywords, dependencies, escalation_rule, jurisdiction, source_freshness,
+    confidentiality, runtime_eligible, deterministic, supersession_state, embedding_status, effective_date)
+  values (
+    'qd-company:'||p_rid, 'company', 'company_core', 'company_core', p_module, 'md', p_title,
+    p_content || E'\n\nYou can answer questions about: ' || array_to_string(p_kw, ', ') || '.',
+    '{}'::jsonb, array['fn_company_org_directory_sync'], 'active', 'validated', 'autonomous',
+    'low', '1', p_kw, '{}'::text[], '{}'::jsonb, 'UAE', 'current',
+    'internal', true, true, 'current', 'pending', current_date)
+  on conflict (record_id) do update set
+    module=excluded.module, title=excluded.title, content=excluded.content,
+    keywords=excluded.keywords, effective_date=excluded.effective_date,
+    supersession_state='current', embedding_status='pending';
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_company_map(p_per_class integer DEFAULT 40)
  RETURNS jsonb
  LANGUAGE sql
@@ -22049,6 +22083,77 @@ AS $function$
       '[]'::jsonb)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_org_directory_sync()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_n int := 0;
+begin
+  -- 1. THE WHOLE ORG DIRECTORY — one record per department; everyone knows everyone's role, line
+  --    manager, what they are measured on and their live rating.
+  for d in select dept_key, name, charter, north_star, lead_agent from public.org_departments where active order by dept_key loop
+    select string_agg(
+             '  - ' || a.agent_key || ' (' || coalesce(a.title, a.role, '') || ') — reports to ' || coalesce(a.manager_key,'—')
+             || coalesce((select ' — measured on: ' || string_agg(k.kpi || ' [target ' || coalesce(k.target_value::text,'—')
+                          || ', current ' || coalesce(k.actual_value::text,'—') || ']', '; ')
+                          from public.employee_kpi k where k.agent_key = a.agent_key and coalesce(k.active,true)), ''),
+             E'\n' order by a.agent_key)
+      into a_txt from public.org_agents a where a.active and a.department = d.dept_key;
+    perform public.fn_company_knowledge_upsert(
+      'org-' || d.dept_key, 'organization',
+      'QuotesDone Org — the ' || coalesce(d.name, d.dept_key) || ' team',
+      'DEPARTMENT: ' || coalesce(d.name, d.dept_key) || ' [' || d.dept_key || ']. Lead: ' || coalesce(d.lead_agent,'—')
+      || '. North star: ' || coalesce(d.north_star,'—') || E'\n'
+      || 'Members — agent — role — reports to (line manager) — measured on [target, current rating]:' || E'\n'
+      || coalesce(a_txt, '(none)'),
+      array[d.dept_key, coalesce(d.name,''), 'who works in ' || coalesce(d.name,d.dept_key), 'department team',
+            'line manager', 'who reports to whom', 'kpi', 'measured on', 'current rating', 'colleagues',
+            'who leads ' || coalesce(d.name,d.dept_key)]);
+    v_n := v_n + 1;
+  end loop;
+
+  -- 2. THE PUBLISHED FAQ — grouped by section; the 484 answers a colleague could give a customer or supplier.
+  for s in select coalesce(nullif(btrim(section),''),'general') sec, string_agg('Q: '||question||E'\n'||'A: '||coalesce(answer,''), E'\n' order by sort nulls last, id) qa
+             from public.company_faq where coalesce(public,true) and coalesce(status,'approved') <> 'rejected'
+             group by 1 loop
+    perform public.fn_company_knowledge_upsert(
+      'faq-' || regexp_replace(lower(s.sec),'[^a-z0-9]+','-','g'), 'faq',
+      'QuotesDone FAQ — ' || s.sec,
+      'FREQUENTLY ASKED (published answers — you may give these to customers and suppliers):' || E'\n' || left(s.qa, 6000),
+      array['faq', 'frequently asked', s.sec, 'question', 'answer', 'how do i', 'what is', 'customer question', 'supplier question']);
+    v_n := v_n + 1;
+  end loop;
+
+  -- 3. SOCIAL, BLOG, WEBSITE — the company's own published content.
+  select string_agg('  - ['||to_char(created_at,'DD Mon YYYY')||', '||coalesce(channels::text,'')||', '||coalesce(status,'')||'] '
+                    || left(coalesce(content->>'text', content->>'body', content::text), 200), E'\n' order by created_at desc)
+    into v_social from public.social_posts;
+  perform public.fn_company_knowledge_upsert('content-social','content','QuotesDone — Our Social Media Posts',
+    'SOCIAL MEDIA POSTS (most recent first):' || E'\n' || coalesce(v_social,'(none yet)'),
+    array['social media','social post','last post','latest post','instagram','linkedin','what did we post','our content','marketing post']);
+  v_n := v_n + 1;
+
+  select string_agg('  - ['||coalesce(to_char(published_at,'DD Mon YYYY'),'draft')||', '||coalesce(category,'')||'] '||title
+                    ||coalesce(' — '||excerpt,''), E'\n' order by published_at desc nulls last)
+    into v_blog from public.blog_posts where published;
+  perform public.fn_company_knowledge_upsert('content-blog','content','QuotesDone — Our Blog Articles',
+    'BLOG ARTICLES (published):' || E'\n' || left(coalesce(v_blog,'(none yet)'), 6000),
+    array['blog','article','blog post','our articles','what have we written','content','seo','latest blog']);
+  v_n := v_n + 1;
+
+  select string_agg('  - /'||slug, E'\n' order by slug) into v_web from public.pages;
+  perform public.fn_company_knowledge_upsert('content-website','content','QuotesDone — Our Website Pages',
+    'WEBSITE PAGES we publish (the public site an agent should know exists):' || E'\n' || coalesce(v_web,'(none)')
+    || E'\n\nThe published legal terms, services and marketing copy live on these pages; the terms and commercials are also summarised in the company terms and commercials knowledge.',
+    array['website','web page','our site','pages','website content','what is on our website','public site']);
+  v_n := v_n + 1;
+
+  return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now());
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_company_reflect()
@@ -22287,6 +22392,10 @@ begin
       supersession_state = 'current', embedding_status = 'pending';
     v_n := v_n + 1;
   end loop;
+
+  -- The org directory (everyone knows everyone: role, line manager, KPI, live rating) and the
+  -- published content (FAQ, social, blog, website) are recomposed in the same refresh.
+  perform public.fn_company_org_directory_sync();
 
   return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now(),
     'revenue_30d_aed', v_snap->>'revenue_30d_aed', 'reveal_fee_pct', round(v_fee*100,2),
