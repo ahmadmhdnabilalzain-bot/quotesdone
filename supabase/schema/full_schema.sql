@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T01:42:00.306Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T02:05:47.144Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -25512,26 +25512,27 @@ CREATE OR REPLACE FUNCTION public.fn_employee_kpi_assign()
 AS $function$
 declare v_retired int := 0; v_created int := 0; v_uncovered int;
 begin
-  -- (1) A KPI whose owner is no longer active is not a live target — retire it.
   update public.employee_kpi k set active = false
    where k.active
      and not exists (select 1 from public.org_agents a where a.agent_key = k.agent_key and a.active);
   get diagnostics v_retired = row_count;
 
-  -- (2) Every active agent without a KPI gets one tied to its department's primary active objective,
-  --     inheriting that objective's measure/target so a miss is detectable. Measurable objectives are
-  --     preferred over un-measured ones for the link.
-  -- Linked upward by serves_goal (the company-goal text key the objective cascade counts);
-  -- serves_objective is a FK to os_objective, a different objective layer, so it stays null here.
+  -- Every active agent without a KPI gets one tied to its department's primary active objective
+  -- (serves_goal, the upward company-goal link) AND to its operating system's primary objective
+  -- (serves_objective -> os_objective, the OS layer that was left null before B5).
   insert into public.employee_kpi
     (agent_key, kpi, metric, target_value, unit, cadence, serves_goal,
-     measure_sql, no_measure_reason, active)
+     measure_sql, no_measure_reason, serves_objective, active)
   select a.agent_key,
          'Contribute to: ' || left(o.objective, 120),
          coalesce(nullif(o.objective, ''), 'department objective'),
          o.target_value, o.unit, 'monthly', o.goal_key,
          nullif(o.measure_sql, ''),
          case when coalesce(o.measure_sql, '') = '' then 'department objective carries no measure yet' end,
+         (select oo.id from public.os_objective oo
+            join public.os_department od on od.os_key = oo.os_key
+           where od.dept_key = a.department and oo.active
+           order by (coalesce(oo.measure_sql,'') <> '') desc, oo.id limit 1),
          true
     from public.org_agents a
     join lateral (
@@ -25553,9 +25554,8 @@ begin
   values ('employee_kpi_assign', now(), now(), 'ok',
           jsonb_build_object('retired', v_retired, 'created', v_created, 'still_uncovered', v_uncovered),
           'Retired '||v_retired||' KPI(s) whose owner is no longer active; created '||v_created||
-          ' KPI(s) tying an un-KPI''d active agent to its department''s primary objective. '||
-          v_uncovered||' active agent(s) still without a KPI because their department has no active '||
-          'objective — reported, not given an unmeasurable placeholder.');
+          ' KPI(s) tying an un-KPI''d active agent to its department''s primary objective and its OS objective. '||
+          v_uncovered||' active agent(s) still without a KPI because their department has no active objective.');
 
   return jsonb_build_object('retired', v_retired, 'created', v_created, 'still_uncovered', v_uncovered);
 end $function$
@@ -39910,13 +39910,18 @@ begin
     v_title := 'KPI missed: '||r.metric||' ('||r.agent_key||')';
     if exists (select 1 from org_tasks where title=v_title and status<>'done') then continue; end if;
 
-    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
+    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, objective_id)
     values (coalesce(r.department,'exec'), v_title,
       'Owner: '||r.agent_key||'. Target '||coalesce(r.target::text,'?')||' '||coalesce(r.unit,'')||
       ', actual '||coalesce(r.actual::text,'?')||' ('||coalesce(r.attainment::text,'?')||'% of target), cadence '||coalesce(r.cadence,'?')||
       '. Serves company goal: '||coalesce(r.serves_goal,'unassigned')||
       '. Diagnose the cause and either close the gap or propose a revised target with evidence.',
-      'proposed','advisory', false, 'recommend')
+      'proposed','advisory', false, 'recommend',
+      -- the objective this KPI serves, resolved precisely from serves_goal -> department_objective
+      (select o.id from public.department_objective o
+        where o.active and o.status='active' and o.dept_key = coalesce(r.department,'exec')
+          and coalesce(r.serves_goal,'') <> '' and o.goal_key = r.serves_goal
+        order by o.id limit 1))
     returning id into v_task;
 
     perform fn_outcome_open(
@@ -39930,13 +39935,7 @@ begin
       p_measure_after   => case when r.cadence='weekly' then interval '14 days' else interval '35 days' end
     );
 
-    -- REMEDIATION + PRACTICE. Once per (employee, metric) while a remediation is still open, so a
-    -- persistent miss does not open a new remediation every week.
     v_comp := coalesce(nullif(r.serves_goal,''), r.metric);
-    -- A remediation can only be opened against a real, active employee: agent_remediation FKs to
-    -- org_agents. Some KPIs are owned by a key that resolves to no employee (e.g. a department word);
-    -- those still get the task and outcome_record above, but a remediation cannot be opened against
-    -- nobody. Resolve the owner through the alias map first, exactly as fn_assign_training does.
     v_agent := coalesce(public.fn_org_agent_resolve(r.agent_key), r.agent_key);
     if exists (select 1 from org_agents o where o.agent_key = v_agent and o.active)
        and not exists (select 1 from agent_remediation ar
@@ -39947,11 +39946,10 @@ begin
                            'target', r.target, 'actual', r.actual, 'serves_goal', r.serves_goal,
                            'org_task_id', v_task, 'owner_key', r.agent_key, 'source', 'fn_kpi_review'));
       v_remediated := v_remediated + 1;
-      -- queue unseen practice from the employee's own pool; a no-op if it has no case pool.
       begin
         v_tr := fn_assign_training(v_agent, null, 'practice', 3);
         v_trained := v_trained + coalesce((v_tr->>'assigned')::int, 0);
-      exception when others then null;  -- practice is best-effort; a miss must still be remediated
+      exception when others then null;
       end;
     end if;
 
@@ -43258,10 +43256,14 @@ begin
      order by length(o.goal_key) desc, o.id
      limit 1;
     if v_obj is null then
-      -- exactly one active objective in the department => that is the one it serves
-      select case when count(*)=1 then min(o.id) end into v_obj
+      -- DEFAULT: a department's work serves its PRIMARY active objective unless its text names
+      -- another. This replaced 'exactly one objective', which never fired (every department has
+      -- several) and left the spine empty. Measurable objectives are preferred for the default.
+      select o.id into v_obj
         from public.department_objective o
-       where o.active and o.status='active' and o.dept_key = new.dept_key;
+       where o.active and o.status='active' and o.dept_key = new.dept_key
+       order by (coalesce(o.measure_sql,'') <> '') desc, o.sort, o.id
+       limit 1;
     end if;
     new.objective_id := v_obj;
   end if;

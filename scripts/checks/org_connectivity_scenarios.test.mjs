@@ -347,5 +347,27 @@ const oc = await q(`select 'active_departments_without_an_operating_system' k,
   (select (count(*)=2)::text from operating_system where os_key in ('customer_experience','assurance') and active), 'true'`);
 for (const r of oc) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== MEASUREMENT SPINE — work and KPIs are tied to objectives ==');
+// ============================================================================================
+// A task is tied to its department objective at creation (the exact one if its text names a goal_key,
+// else the department's primary objective); KPIs are tied to their operating system's objective.
+const sp = await probe(`do $p$ declare v_gk text; v_precise bigint; v_oid1 bigint; v_oid2 bigint; v_valid bool; begin
+  select goal_key, id into v_gk, v_precise from department_objective where dept_key='finance' and active and status='active' and coalesce(goal_key,'')<>'' order by id limit 1;
+  insert into org_tasks(dept_key,title,detail,status,tier,needs_founder,action_class) values('finance','ZZ probe plain','no key','proposed','advisory',false,'recommend') returning objective_id into v_oid1;
+  select exists(select 1 from department_objective o where o.id=v_oid1 and o.dept_key='finance' and o.active) into v_valid;
+  insert into org_tasks(dept_key,title,detail,status,tier,needs_founder,action_class) values('finance','ZZ probe '||v_gk,'targets '||v_gk,'proposed','advisory',false,'recommend') returning objective_id into v_oid2;
+  raise exception 'MARK|default_valid=%|precise=%', v_valid::text, (v_oid2=v_precise)::text; end $p$;`);
+eq('a departmental task is tied to a real department objective', sp.default_valid, 'true');
+eq('  -> a task naming a goal_key gets that exact objective', sp.precise, 'true');
+const spr = await q(`select 'open_dept_tasks_without_an_objective' k,
+  (select count(*)::text from org_tasks t where t.objective_id is null and coalesce(t.dept_key,'')<>''
+     and exists(select 1 from department_objective o where o.dept_key=t.dept_key and o.active and o.status='active')) v, '0' e
+  union all select 'active_kpis_tied_to_an_os_objective_gt0',
+  ((select count(*) from employee_kpi where active and serves_objective is not null) > 0)::text, 'true'
+  union all select 'org_tasks_with_a_dangling_objective_fk',
+  (select count(*)::text from org_tasks t where t.objective_id is not null and not exists(select 1 from department_objective o where o.id=t.objective_id)), '0'`);
+for (const r of spr) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
