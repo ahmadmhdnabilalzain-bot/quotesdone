@@ -1824,3 +1824,4 @@ scripts/sql/pccr_007b_phase_d_reject_calls_the_kernel_door.sql
 scripts/sql/the_founder_reserves_the_target_not_every_run_toward_it.sql
 scripts/sql/reputation_tier_gates_every_decision.sql
 scripts/sql/the_backbone_reaches_every_ear.sql
+scripts/sql/v_peer_lessons.sql

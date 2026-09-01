@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T15:02:22.761Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T15:09:04.371Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -14244,6 +14244,20 @@ CREATE OR REPLACE VIEW public.v_payment_reconciliation AS  SELECT started_at,
    FROM agent_runs r
   WHERE ((agent = 'stripe_webhook'::text) AND ((status = 'error'::text) OR (note ~~* '%PAID BUT NOT RECORDED%'::text)))
   ORDER BY started_at DESC;
+
+CREATE OR REPLACE VIEW public.v_peer_lessons AS  SELECT m.id,
+    COALESCE(d.merged_into, m.scope) AS current_dept,
+    m.scope AS origin_scope,
+    m.kind,
+    m.content,
+    m.created_at,
+    m.source,
+    (m.scope = 'global'::text) AS is_shared
+   FROM (org_memory m
+     LEFT JOIN org_departments d ON ((d.dept_key = m.scope)))
+  WHERE (m.active AND (m.kind = 'lesson'::text) AND ((m.scope = 'global'::text) OR (COALESCE(d.merged_into, m.scope) IN ( SELECT org_departments.dept_key
+           FROM org_departments
+          WHERE org_departments.active))));
 
 CREATE OR REPLACE VIEW public.v_phase_c_event_binding_state AS  SELECT b.event_id,
     b.event_name,
