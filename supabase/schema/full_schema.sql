@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T02:14:53.472Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T02:25:50.571Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -82803,8 +82803,7 @@ CREATE OR REPLACE FUNCTION public.trg_goal_cascade()
 AS $function$
 begin
   -- (A) DECOMPOSE ON SET/EDIT. A measurable, active goal owned by an active department hands down its
-  -- department objective immediately, instead of waiting for the weekly fn_goal_decompose cron. Same
-  -- adopt/create logic as fn_goal_decompose, for this one goal. Objectives only, never tasks.
+  -- department objective immediately, instead of waiting for the weekly fn_goal_decompose cron.
   if new.active and coalesce(new.measure_sql,'') <> ''
      and exists (select 1 from org_departments d where d.dept_key = new.owner_dept and d.active) then
     if exists (select 1 from department_objective
@@ -82826,38 +82825,22 @@ begin
   end if;
 
   if old.active is true and new.active is false then
-    -- (1) KEPT. An objective serving a retired goal is superseded. This is the goal's own record
-    -- being made consistent, not the creation of work, and leaving it out would strand objectives
-    -- against a goal that no longer exists.
+    -- (1) KEPT. An objective serving a retired goal is superseded.
     update department_objective
        set status='superseded', updated_at=now()
      where goal_key = new.key and status='active';
 
-    -- (2) DISABLED BY K31 — this was the bypass. It created an operational task per affected
-    -- department, with no workflow run, no step, no accountable owner resolved through the kernel
-    -- and no trace. No Phase B workflow starts from a goal retirement, so there is nowhere honest
-    -- to route it; inventing a workflow to obtain a connected count is what §3 forbids. The
-    -- statement is left here, commented, so a reader sees what was removed:
-    --
-    --   insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
-    --   select distinct o.dept_key,
-    --          'Re-plan after goal retired: '||new.key,
-    --          'Company goal "'||coalesce(new.goal,new.key)||'" was retired. Objectives serving it
-    --           are now superseded. Propose replacement objectives that serve an active goal.',
-    --          'proposed','advisory', false, 'coordinate'
-    --     from department_objective o
-    --    where o.goal_key = new.key and o.status='superseded'
-    --      and not exists (select 1 from org_tasks t
-    --                       where t.title='Re-plan after goal retired: '||new.key and t.status<>'done');
-    --
-    -- It had never produced a row: org_tasks held zero 'Re-plan after goal retired' titles when
-    -- this was written. The owed behaviour is recorded in phase_b_phase_c_wiring_gap.
+    -- (2) The re-plan is NO LONGER a direct org_tasks insert here (K31 removed that bypass). It now
+    -- runs through the kernel: goal.retired (emitted below) starts a run of the runtime workflow
+    -- goal_retirement_replan (public.workflow), whose steps are accountable to
+    -- corporate_performance_director. Restored as work with a run, a step, an owner and a trace.
 
-    -- (3) KEPT. fn_emit_event does not write phase_c_event_outbox — measured, not assumed — so
-    -- this is a legacy notice and not a second copy of a canonical domain event.
+    -- (3) goal.retired now travels. It was calling the TRIGGER function fn_emit_event() with five
+    -- positional args, which raised and was swallowed, so nothing was emitted. fn_emit writes
+    -- company_event, which fn_workflow_start_due reads to start the re-plan workflow.
     begin
-      perform fn_emit_event('goal.retired','company_goals',new.key,'ceo',
-                            jsonb_build_object('goal',new.key));
+      perform public.fn_emit('goal.retired', 'company_goals', new.key, 'ceo',
+                             jsonb_build_object('goal', new.key, 'title', new.goal, 'owner_dept', new.owner_dept));
     exception when others then null; end;
   end if;
   return new;

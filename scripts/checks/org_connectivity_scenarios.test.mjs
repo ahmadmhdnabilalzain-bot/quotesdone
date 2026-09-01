@@ -399,5 +399,29 @@ const es = await q(`select 'five_new_events_all_have_active_subscribers' k,
      and event_type in ('content.drafted','customer.complaint','customer.churn_signal','campaign.published','department.conflict')) v, '5' e`);
 for (const r of es) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== GOAL RETIREMENT — the re-plan flows through the kernel, with an owner ==');
+// ============================================================================================
+// Retiring a company goal now emits goal.retired (the emit was broken — a trigger function called with
+// positional args and swallowed) and starts a run of the runtime workflow goal_retirement_replan, whose
+// steps are accountable to corporate_performance_director. No frozen Phase B row moves.
+const gr = await probe(`do $p$ declare v_key text; v_ev int; v_rb int; v_ra int; v_owner text; begin
+  select key into v_key from company_goals where active order by key limit 1;
+  select count(*) into v_rb from workflow_run where workflow_key='goal_retirement_replan';
+  update company_goals set active=false where key=v_key;
+  select count(*) into v_ev from company_event where event_type='goal.retired' and entity_id=v_key;
+  perform fn_workflow_start_due(60);
+  select count(*) into v_ra from workflow_run where workflow_key='goal_retirement_replan';
+  select actor_role into v_owner from workflow_step where workflow_key='goal_retirement_replan' and step_no=1;
+  raise exception 'MARK|emitted=%|run_started=%|owner=%', v_ev, (v_ra>v_rb)::text, v_owner; end $p$;`);
+eq('retiring a company goal emits goal.retired', gr.emitted, '1');
+eq('  -> a kernel workflow run starts from it', gr.run_started, 'true');
+eq('  -> its steps are accountable to corporate performance', gr.owner, 'corporate_performance_director');
+const grr = await q(`select 'goal_retirement_wiring_gap_open' k,
+  (select count(*)::text from phase_b_phase_c_wiring_gap where gap ilike '%goal%retir%') v, '0' e
+  union all select 'phase_a_and_b_baselines_undrifted',
+  ((select count(*) from fn_phase_a_baseline_drift()) + (select count(*) from fn_phase_b_baseline_drift()) = 0)::text, 'true'`);
+for (const r of grr) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
