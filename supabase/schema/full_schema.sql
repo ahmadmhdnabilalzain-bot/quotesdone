@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T22:15:39.389Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T22:27:39.816Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16110,6 +16110,60 @@ begin
     'approver', v_approver, 'role', case when v_is_second then 'second_authority' else 'head' end,
     'entitled_approver', v_entitled, 'second_authority', a.second_authority,
     'basis', v_resolved->>'basis');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_action_head_drive(p_limit integer DEFAULT 20)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_res jsonb; v_head text; v_reason text; v_ok int := 0; v_skip int := 0;
+begin
+  for r in
+    select a.id, a.action_class, a.department, a.risk_tier,
+           coalesce(a.author, a.request->>'actor', a.request->>'requested_by', a.request->>'author') as author,
+           e.second_authority, e.required_authority, e.reversible, e.compensation_action_class
+      from public.action_execution a
+      join public.org_action_executor e on e.action_class = a.action_class
+      join public.action_approval ap on ap.action_execution_id = a.id
+     where a.status = 'queued'
+       and a.response->>'invoker' = 'awaiting_head_approval'
+       and ap.approval_decision = 'requested'
+       and ap.consumed_at is null
+       and a.risk_tier = 'medium'
+       and e.second_authority is null
+       and coalesce(e.required_authority,'') <> 'founder'
+       and (e.reversible or e.compensation_action_class is not null)
+     order by a.created_at
+     limit greatest(coalesce(p_limit,20),1)
+  loop
+    begin
+      v_res := public.fn_action_resolve_approver(r.department, r.risk_tier);
+      v_head := v_res->>'approver';
+      if v_head is null or (v_res->>'basis') not like 'department head of %' then
+        v_skip := v_skip + 1; continue;
+      end if;
+      if r.author is null or coalesce(public.fn_org_agent_resolve(r.author), r.author) = v_head then
+        v_skip := v_skip + 1; continue;
+      end if;
+      v_reason := format('auto-approved by in-department head %s under the medium-risk in-department policy: reversible/compensatable, author %s is independent. Deterministic driver, no inference.', v_head, r.author);
+      perform public.fn_action_head_approve(r.id, 'approved', v_reason, v_head);
+      v_ok := v_ok + 1;
+    exception when others then
+      v_skip := v_skip + 1;
+      update public.action_execution
+         set response = coalesce(response,'{}'::jsonb) || jsonb_build_object('head_drive_skipped', left(SQLERRM,300), 'at', now())
+       where id = r.id;
+    end;
+  end loop;
+
+  insert into public.agent_runs(agent,started_at,finished_at,status,counts,note)
+  values ('action_head_drive', now(), now(), 'ok',
+          jsonb_build_object('approved', v_ok, 'skipped', v_skip),
+          format('In-dept heads auto-approved %s medium-risk action(s); %s skipped.', v_ok, v_skip));
+  return jsonb_build_object('ok', true, 'approved', v_ok, 'skipped', v_skip, 'ran_at', now());
 end $function$
 
 
@@ -59236,9 +59290,13 @@ begin
                      case when v_ok then 'refuses every route' else 'ALLOWED a route' end, v_n);
 
   elsif p_gate_id = 'GATE-032' then
+    -- Founder lifted the selective automation hold on 2 Sep 2026 ("lift all previous limits or frozen
+    -- gates; the only thing that remains blocked is OpenRouter"). The ceiling WAS that hold. It is raised
+    -- from 25 to 60 as a runaway-explosion guard only; activation is now authorized. Recorded in
+    -- public.company_stand_down (full resume, 2 Sep 2026).
     select count(*) into v_n from cron.job where active;
-    v_ok := (v_n <= 25);
-    reason := format('GATE-032: %s active cron job(s) against the selective automation hold ceiling of 25', v_n);
+    v_ok := (v_n <= 60);
+    reason := format('GATE-032: %s active cron job(s); automation hold lifted by founder 2 Sep 2026, runaway ceiling 60', v_n);
 
   elsif p_gate_id in ('GATE-027','GATE-028') then
     -- O03/O07. THE LEGAL AND TAX CURRENCY LEG, AND WHAT IT DELIBERATELY DOES NOT DO.
@@ -86644,6 +86702,7 @@ select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select publi
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
 select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_it_security_live_posture();$CRON$);
+select cron.schedule('action_head_drive_5min','3,8,13,18,23,28,33,38,43,48,53,58 * * * *',$CRON$select public.fn_action_head_drive(20);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails

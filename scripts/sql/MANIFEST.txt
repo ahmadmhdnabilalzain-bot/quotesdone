@@ -1841,3 +1841,5 @@ scripts/sql/it_cyber_deep_knowledge.sql
 scripts/sql/it_cyber_v3_and_search_scoping.sql
 scripts/sql/it_cyber_v3_and_search_scoping_ownership_ledger.sql
 scripts/sql/secops_autonomous_watch.sql
+scripts/sql/lift_automation_hold_gate032.sql
+scripts/sql/turn_on_execution_layer.sql
