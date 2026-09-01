@@ -208,4 +208,18 @@ values ('company_self_knowledge_sync_15min','Every agent knows the company (refr
  || 'is pulled from its source of truth on refresh.')
 on conflict (jobname) do update set human_name=excluded.human_name, category=excluded.category, purpose=excluded.purpose;
 
+-- REGISTER WITH THE COMMITTED-SCENARIO GUARD. fn_phase_d_committed_scenario_guards flags every active
+-- cron whose function body merely CONTAINS a watched-relation name as a substring. This cron's body
+-- contains the words customers/documents/leads/quotes only as descriptive prose in the company
+-- knowledge it stores; it writes public.ops_knowledge and nothing else, so it reaches no watched
+-- relation and needs no quarantine. Registered honestly so open() stops refusing (jobid resolved by
+-- name so a reschedule keeps the row correct).
+delete from public.phase_d_committed_scenario_cron
+ where jobname = 'company_self_knowledge_sync_15min';
+insert into public.phase_d_committed_scenario_cron (jobid, jobname, reaches, quarantine)
+select j.jobid, j.jobname,
+  'nothing watched — writes only public.ops_knowledge (not a watched relation); the names customers/documents/leads/quotes appear solely as descriptive words in the company-knowledge prose it stores, never as writes',
+  'none required — this cron writes no watched relation, so a committed scenario''s open() has nothing of it to remove; only ops_knowledge rows change, which no scenario watches'
+  from cron.job j where j.jobname = 'company_self_knowledge_sync_15min';
+
 commit;
