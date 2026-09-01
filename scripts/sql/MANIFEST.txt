@@ -1789,3 +1789,4 @@ scripts/sql/spend_contract_dispatch_ownership_ledger.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/incidents_get_an_owner_a_task_and_a_watchdog.sql

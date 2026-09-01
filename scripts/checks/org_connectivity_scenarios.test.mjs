@@ -285,5 +285,37 @@ const l2 = await probe(`do $p$ declare n int; begin
   raise exception 'MARK|agents=%', n; end $p$;`);
 eq('learning_speed is measurable from graded training', Number(l2.agents) > 0 ? 'yes' : 'no', 'yes');
 
+// ============================================================================================
+console.log('\n== INCIDENTS — every incident is owned, tracked, and chased past SLA ==');
+// ============================================================================================
+// Opening an incident sets an owner (the security.event incident-response subscriber) and opens ONE
+// linked task in the owner's department; starting the task acknowledges the incident; completing it
+// resolves the incident; an overdue high incident is re-escalated to the founder-alert channel.
+const iw = await probe(`do $p$ declare v_id bigint; v_owner text; v_task bigint; v_dept text; v_ac text;
+  v_ack timestamptz; v_st text; v_fa0 int; v_fa1 int; e jsonb; v_over bigint; begin
+  insert into os_incidents(title,kind,severity,detail,opened_by)
+    values('ZZ probe incident','silent_failure','high',jsonb_build_object('description','probe'),'os') returning id into v_id;
+  select owner, org_task_id into v_owner, v_task from os_incidents where id=v_id;
+  select dept_key, action_class into v_dept, v_ac from org_tasks where id=v_task;
+  update org_tasks set status='in_progress' where id=v_task; select acknowledged_at into v_ack from os_incidents where id=v_id;
+  update org_tasks set status='done' where id=v_task; select status into v_st from os_incidents where id=v_id;
+  insert into os_incidents(title,kind,severity,detail,opened_by,opened_at)
+    values('ZZ probe overdue','silent_failure','high','{}'::jsonb,'os',now()-interval '2 days') returning id into v_over;
+  update os_incidents set due_at=now()-interval '1 day', escalated_at=null where id=v_over;
+  select count(*) into v_fa0 from founder_alerts; e := fn_os_incident_watchdog(); select count(*) into v_fa1 from founder_alerts;
+  raise exception 'MARK|owner=%|task_dept=%|task_ac=%|ack=%|status=%|reesc=%|fa_delta=%',
+    v_owner, v_dept, v_ac, (v_ack is not null)::text, v_st, (e->>'reescalated'), (v_fa1-v_fa0); end $p$;`);
+eq('a new incident is owned by the security incident-response role', iw.owner, 'security');
+eq('  -> opens ONE linked task in the owner’s department', iw.task_dept, 'assurance');
+eq('  -> tagged as incident work', iw.task_ac, 'incident');
+eq('starting the task acknowledges the incident', iw.ack, 'true');
+eq('completing the task resolves the incident', iw.status, 'resolved');
+eq('the watchdog re-escalates an overdue high incident', iw.reesc, '1');
+eq('  -> and it reaches the founder-alert channel', iw.fa_delta, '1');
+// org-wide, at rest: no OPEN incident is left without an owner
+const io = await q(`select 'open_incidents_without_an_owner' k,
+  (select count(*)::text from os_incidents where status='open' and coalesce(owner,'')='') v, '0' e`);
+for (const r of io) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
