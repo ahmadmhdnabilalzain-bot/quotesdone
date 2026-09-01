@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788291035.3223765,
-    "ast_hash": "1dc1d43e05da0a2ec017dc621660bfcb",
+    "mtime": 1788291296.5040102,
+    "ast_hash": "9a2e8b6b526b555a7371829471d03c69",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -22000,8 +22000,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_company.sql": {
-    "mtime": 1788290264.8707201,
-    "ast_hash": "7e32b4897674f73648c7919481eca13c",
+    "mtime": 1788291253.7159119,
+    "ast_hash": "b28df32fa2531c7670b7cccb9e9ca031",
     "semantic_hash": ""
   },
   "scripts/sql/goals_carry_a_deadline_pace.sql": {

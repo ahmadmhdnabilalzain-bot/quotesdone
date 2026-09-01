@@ -72,7 +72,9 @@ begin
 
     jsonb_build_object('rid','identity','module','company_identity',
       'title','QuotesDone — Identity, Vision and Mission',
-      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b']),
+      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b',
+        'who is the founder','company founder','who owns quotesdone','founder name','ahmad alzain','the owner',
+        'company target and deadline','revenue target','what is our goal','aed 1 million target','1000000 by 2027','when is the deadline']),
       'content',
         'WHO WE ARE. ' || coalesce(v_state->>'mission','') || E'\n' ||
         'VISION: ' || coalesce(v_state->>'vision','') || E'\n' ||
@@ -187,7 +189,19 @@ begin
         '  Open tasks: ' || coalesce(v_snap->>'open_tasks','0') || ' · Items needing the founder: ' || coalesce(v_snap->>'needs_founder','0') || E'\n' ||
         '  AI spend (last 30 days): ' || coalesce(v_snap->>'ai_cost_30d_aed','0') || ' AED' || E'\n' ||
         '  Last social post: ' || coalesce(nullif(v_social,''),'(none yet)') || case when v_social_at is not null then ' [' || v_social_at || ']' else '' end || E'\n' ||
-        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end)
+        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end),
+
+    jsonb_build_object('rid','stage','module','company_stage',
+      'title','QuotesDone — What Stage the Company Is At',
+      'kw', to_jsonb(array['stage','pre-launch','have we launched','are we live','do we have customers','how many customers','are we operating','company status','how far along','launched yet','traction','are we making money']),
+      'content',
+        'COMPANY STAGE — READ THIS BEFORE ANSWERING ANYTHING ABOUT TRACTION. QuotesDone is PRE-LAUNCH. The '
+        'platform and the AI organization are built and being readied; there are ' || coalesce(v_snap->>'customers','0') ||
+        ' real customers and AED ' || coalesce(v_snap->>'revenue_30d_aed','0') || ' revenue so far. What is already in place: '
+        '10 departments and ' || coalesce(v_snap->>'employees','90') || ' AI agents, 30 workflows, 86 supplier categories, '
+        'the knowledge base and ' || coalesce(v_snap->>'approved_suppliers','1') || ' approved supplier(s). What is still pending before real '
+        'operation: the marketplace go-live, real customer inquiries arriving, and funded AI inference so the agents can reason. '
+        'NEVER claim customers, revenue, or results the numbers above do not show — we are building toward AED 1,000,000 by 31 Aug 2027, not there yet.')
   );
 
   for r in select * from jsonb_array_elements(v_records) loop
