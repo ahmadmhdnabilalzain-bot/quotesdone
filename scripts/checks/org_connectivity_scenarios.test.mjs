@@ -457,5 +457,26 @@ eq('an autonomy-blocked employee’s action is refused by the dispatcher', dt.bl
 eq('an escalated remediation opens a manager task', dt.handled, '1');
 eq('  -> exactly one, deduplicated', dt.task, '1');
 
+// ============================================================================================
+console.log('\n== PROMOTION — the org can promote, not only punish (and respects the hold) ==');
+// ============================================================================================
+const pr = await probe(`do $p$ declare v_paused text; v_agent text; v_res jsonb; v_sen text; v_wide int; begin
+  select fn_promotion_review()->>'status' into v_paused;
+  delete from company_stand_down;
+  select agent_key into v_agent from org_agents where active and seniority is not null order by agent_key limit 1;
+  update org_agents set seniority='junior' where agent_key=v_agent;
+  insert into agent_reputation(agent_key,correctness,reliability,score,tier,computed_at) values(v_agent,95,100,90,'senior_trusted',now())
+    on conflict (agent_key) do update set correctness=95,reliability=100,tier='senior_trusted',computed_at=now();
+  insert into agent_runs(agent,started_at,finished_at,status) select v_agent,now()-interval '1 day',now(),'ok' from generate_series(1,60);
+  insert into employee_authority(agent_key,action_class,max_tier,threshold_aed,note) values(v_agent,'zz_probe_grant','gated',0,'Advisory-safe action, may run autonomously');
+  v_res := fn_promotion_review();
+  select seniority into v_sen from org_agents where agent_key=v_agent;
+  select count(*) into v_wide from employee_authority where agent_key=v_agent and action_class='zz_probe_grant' and max_tier='autonomous';
+  raise exception 'MARK|paused=%|promoted_gt0=%|seniority=%|widened=%', v_paused, ((v_res->>'promoted')::int>0)::text, v_sen, v_wide; end $p$;`);
+eq('promotion review respects the founder stand-down', pr.paused, 'PAUSED_BY_FOUNDER_STANDDOWN');
+eq('a qualifying employee is promoted (seniority advances)', pr.seniority, 'specialist');
+eq('  -> and their advisory-safe authority widens to autonomous', pr.widened, '1');
+eq('  -> at least one promotion once the hold is lifted', pr.promoted_gt0, 'true');
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);

@@ -1801,3 +1801,4 @@ scripts/sql/goal_retirement_re_plans_through_the_kernel.sql
 scripts/sql/goal_retirement_re_plans_through_the_kernel_ownership_ledger.sql
 scripts/sql/the_executor_gate_gets_teeth.sql
 scripts/sql/the_executor_gate_gets_teeth_ownership_ledger.sql
+scripts/sql/the_org_can_promote_not_only_punish.sql
