@@ -6,8 +6,12 @@
 -- a 'ROLL BACK' org_task on a 'worse' outcome — work — and the founder stood the workforce down.
 --
 -- THIS FILE makes outcome grading behave exactly like reputation and promotion: it SELF-PAUSES on the
--- founder stand-down (so it opens no corrective work while the hold is open), and the cron is re-enabled.
--- When the hold lifts, the daily cron grades the due outcomes and the correctness signal flows again.
+-- founder stand-down (so it opens no corrective work while the hold is open). The self-pause is the fix.
+-- The daily cron stays DISABLED (see the footer): fn_outcome_evaluate opens corrective ROLL BACK work, so
+-- it is a state-changing cron component that kernel_boards_are_green requires be classified in
+-- phase_c_source_cutover and wrapped through fn_kernel_cron_exec before it may run — Phase C kernel work
+-- deliberately not done in this pass. Once it is classified and wrapped, enabling it is safe: during the
+-- hold it self-pauses, and when the hold lifts it grades the due backlog and the correctness signal flows.
 --
 -- decision_log.confidence/sources are already a live column pair the action gate populates when the
 -- producing agent states them; their sparsity is the model's recording habit (an unfunded, model-side

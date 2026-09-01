@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/agent_brain/index.ts": {
-    "mtime": 1786772793.6828828,
-    "ast_hash": "1f88266541d1f30a552ca7ba6ebb3894",
+    "mtime": 1788232019.862383,
+    "ast_hash": "49313824523b4dec526d41e972272db0",
     "semantic_hash": ""
   },
   "supabase/functions/agent_learnings_report/index.ts": {
@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788218732.9451797,
-    "ast_hash": "bad392a1235a69ba97199f20b3a7158e",
+    "mtime": 1788231837.433963,
+    "ast_hash": "2acca74881d71330c9053df813f8bcd5",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -4825,8 +4825,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/fn_report_recommendation_approve.sql": {
-    "mtime": 1788218895.8652954,
-    "ast_hash": "3d45cc1b6b5c8c399f58b2a1257b7b21",
+    "mtime": 1788218948.7895415,
+    "ast_hash": "888ddc4a713e52934ffa582a2fa2b7bb",
     "semantic_hash": ""
   },
   "scripts/sql/fn_reputation_recompute_learning_speed.sql": {
@@ -12695,8 +12695,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/phase_c_guards_reject_injected_defects.test.mjs": {
-    "mtime": 1787838773.1617339,
-    "ast_hash": "8e24b32093681064d5ca98a76c940781",
+    "mtime": 1788235431.3629184,
+    "ast_hash": "d9b13f49e31cd4b17708265c203ad9d5",
     "semantic_hash": ""
   },
   "scripts/checks/phase_c_invariants.test.mjs": {
@@ -13550,32 +13550,32 @@
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_02_identity_aliases.sql": {
-    "mtime": 1787837032.5225053,
+    "mtime": 1788232421.0177941,
     "ast_hash": "d98d9075b4b0ccdb4437404567939947",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_03_registry_core.sql": {
-    "mtime": 1787837032.5265486,
+    "mtime": 1788232421.0207984,
     "ast_hash": "b4cc99c54f57b097b7a1f3ca3c8c3cc8",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_04_steps.sql": {
-    "mtime": 1787837032.530148,
+    "mtime": 1788232421.0230174,
     "ast_hash": "8f65cdcc9fcd2e88e9da6fad7cc62f3b",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_05_handoffs_and_exceptions.sql": {
-    "mtime": 1787837032.530148,
+    "mtime": 1788232421.0250182,
     "ast_hash": "262fc16e9df721cd13d875fb83e12407",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_06_events.sql": {
-    "mtime": 1787837032.530148,
+    "mtime": 1788232421.0260189,
     "ast_hash": "948dafc7908943f8850b0eba7c70c02a",
     "semantic_hash": ""
   },
   "scripts/sql/phase_b_07_crosswalk.sql": {
-    "mtime": 1787837032.5429487,
+    "mtime": 1788232421.042033,
     "ast_hash": "4f6d569a5f7e6fb3ab14bb48f7768508",
     "semantic_hash": ""
   },
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788218791.8275661,
-    "ast_hash": "89763795f59a57e7a611ddb2a91e0e0b",
+    "mtime": 1788234625.5331974,
+    "ast_hash": "28a8d5b7a4806333edcb238faec0c28e",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -21125,13 +21125,13 @@
     "semantic_hash": ""
   },
   "scripts/checks/org_connectivity_scenarios.test.mjs": {
-    "mtime": 1788218718.9778037,
-    "ast_hash": "100ba837e521bcf3bf7c61f251a909a1",
+    "mtime": 1788233721.2092168,
+    "ast_hash": "f3ecd53b7543ba5cbd1552909efacdd4",
     "semantic_hash": ""
   },
   "scripts/checks/org_connectivity_signal_path.test.mjs": {
-    "mtime": 1788206667.991067,
-    "ast_hash": "59586f346f127f61cc524345f1cc1048",
+    "mtime": 1788231344.033916,
+    "ast_hash": "5fa3fcdb6ce229a68348320c03588616",
     "semantic_hash": ""
   },
   "scripts/kb/ingest_extracted.mjs": {
@@ -21857,6 +21857,126 @@
   "scripts/sql/spend_contract_dispatch_ownership_ledger.sql": {
     "mtime": 1788218757.8087556,
     "ast_hash": "c8cddef234b81d7594c875f45505a8c8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/an_apex_backup_stands_in_for_the_ceo.sql": {
+    "mtime": 1788230665.9902005,
+    "ast_hash": "62d04350f17aa5268e5ebfbdafeac3b7",
+    "semantic_hash": ""
+  },
+  "scripts/sql/an_apex_backup_stands_in_for_the_ceo_ownership_ledger.sql": {
+    "mtime": 1788230785.8523932,
+    "ast_hash": "545b08476e37360936842eb7201b4223",
+    "semantic_hash": ""
+  },
+  "scripts/sql/customer_experience_and_assurance_get_their_own_os.sql": {
+    "mtime": 1788226599.5503285,
+    "ast_hash": "922776c8d9273630d76eeea2acee1613",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_queued_action_has_an_author.sql": {
+    "mtime": 1788231292.832938,
+    "ast_hash": "8495f4be8e449001a3eec75cab0ee278",
+    "semantic_hash": ""
+  },
+  "scripts/sql/five_events_that_can_wake_a_workflow.sql": {
+    "mtime": 1788228619.1480663,
+    "ast_hash": "13288f55a704cd6af7a135a0dd1a5cd4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/goal_retirement_re_plans_through_the_kernel.sql": {
+    "mtime": 1788229379.047748,
+    "ast_hash": "9c6c031e3e83e0484f6a86b9e3896f6e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/goal_retirement_re_plans_through_the_kernel_ownership_ledger.sql": {
+    "mtime": 1788229514.8871303,
+    "ast_hash": "336d829d1a4b6e63fffe15c84a10165f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/incidents_get_an_owner_a_task_and_a_watchdog.sql": {
+    "mtime": 1788225712.7179804,
+    "ast_hash": "d995e980acd766c2161cd8178f292a47",
+    "semantic_hash": ""
+  },
+  "scripts/sql/outcome_grading_resumes_and_respects_the_hold.sql": {
+    "mtime": 1788235756.5181458,
+    "ast_hash": "ac4be766c30631b9415c101c6b59a889",
+    "semantic_hash": ""
+  },
+  "scripts/sql/outcome_grading_resumes_and_respects_the_hold_ownership_ledger.sql": {
+    "mtime": 1788231793.8551145,
+    "ast_hash": "9fbd4b878e05181f096027345667bf44",
+    "semantic_hash": ""
+  },
+  "scripts/sql/pbcr_003_the_security_role_owns_the_security_workflow.sql": {
+    "mtime": 1788227658.55205,
+    "ast_hash": "132a8a86e8ad95e41ef0f5c999eac8e4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/pbcr_004_reviewers_are_independent_across_departments.sql": {
+    "mtime": 1788232256.8810284,
+    "ast_hash": "0b7ef4003deacf584afabc557bd68b42",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_amendment_reaches_the_step_binding.sql": {
+    "mtime": 1788230982.764673,
+    "ast_hash": "db871c28a5699274c8db91de1c61e755",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_amendment_reaches_the_step_binding_ownership_ledger.sql": {
+    "mtime": 1788231098.8561523,
+    "ast_hash": "7a3e46d723450d8963db42b50dc85197",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_board_sees_runway_cash_and_burn.sql": {
+    "mtime": 1788226539.5985866,
+    "ast_hash": "8c5e80f525e36c866adaed4396ea5f63",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_board_sees_runway_cash_and_burn_ownership_ledger.sql": {
+    "mtime": 1788226869.337039,
+    "ast_hash": "b089c85d4fe034ee165c1f8cd836262a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_executor_gate_gets_teeth.sql": {
+    "mtime": 1788229853.3729894,
+    "ast_hash": "dd50ca3f938522ec817083eb8260d788",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_executor_gate_gets_teeth_ownership_ledger.sql": {
+    "mtime": 1788230110.446414,
+    "ast_hash": "d957effe1623b4983a772c5ccd5407ca",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_measurement_spine_carries_a_signal.sql": {
+    "mtime": 1788228151.704592,
+    "ast_hash": "01eea7d8dafa25d315cd871b7a3eddd8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_measurement_spine_carries_a_signal_ownership_ledger.sql": {
+    "mtime": 1788228312.5894504,
+    "ast_hash": "19e604f59142e75d91d9398c63465f66",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_org_can_promote_not_only_punish.sql": {
+    "mtime": 1788230356.6555212,
+    "ast_hash": "b9604d28691c7e99d556bf5122412a4e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/work_creating_crons_stay_disabled_until_kernel_registered.sql": {
+    "mtime": 1788234614.6987777,
+    "ast_hash": "5e291e576eb5f6e5dd149e77bb665fc4",
+    "semantic_hash": ""
+  },
+  "docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-003.md": {
+    "mtime": 1788227738.7357006,
+    "ast_hash": "ac5c95470da18724199c5f76fb417f03",
+    "semantic_hash": ""
+  },
+  "docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-004.md": {
+    "mtime": 1788232390.4084077,
+    "ast_hash": "eade3b79c89e1f22b5f35a79e17a9228",
     "semantic_hash": ""
   }
 }
