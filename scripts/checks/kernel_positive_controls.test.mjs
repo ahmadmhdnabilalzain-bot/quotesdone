@@ -428,6 +428,27 @@ const CONTROLS = {
         'sender', sender, 'receiver', recv),
       'trace', (select count(*) from public.phase_c_trace where run_id = run));`,
 
+  fn_kernel_handoff_reject: `
+    ${SEED('positive-control-handoff-reject')}
+    perform public.fn_kernel_step_complete(jsonb_build_object(
+      'step_run_id', sr, 'actor_role_id', owner, 'outcome','pass',
+      'idempotency_key','positive-control-handoff-reject-' || stp,
+      'inputs', ${INPUTS}, 'output', ${OUTPUT},
+      'evidence_refs', jsonb_build_array(jsonb_build_object('positive_control', true)),
+      'requested_action','proceed', 'acceptance_criteria','positive control', 'object_version', 1));
+    select h.handoff_run_id, h.receiving_role_id, h.sending_role_id into hnd, recv, sender
+      from public.phase_c_handoff_run h where h.run_id = run and h.status = 'open' limit 1;
+    v2 := public.fn_kernel_handoff_reject(jsonb_build_object(
+      'handoff_run_id', hnd, 'actor_role_id', recv,
+      'reason','positive control rejection', 'missing','the positive-control packet item'));
+    res := jsonb_build_object(
+      'accepted', coalesce((v2->>'ok')::boolean, false)
+                  and (select status from public.phase_c_handoff_run where handoff_run_id = hnd) = 'rejected',
+      'effect', jsonb_build_object(
+        'handoff_status', (select status from public.phase_c_handoff_run where handoff_run_id = hnd),
+        'sender', sender, 'receiver', recv, 'run_state', v2->>'run_state'),
+      'trace', (select count(*) from public.phase_c_trace where run_id = run));`,
+
   fn_kernel_review_decide: `
     v := public.fn_kernel_workflow_start(jsonb_build_object(
       'workflow_id','W14', 'business_object_id','ZZ-POSITIVE-CONTROL-REVIEW',

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T12:05:03.899Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T14:10:38.852Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -34679,6 +34679,104 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_kernel_handoff_reject(p_input jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  hr public.phase_c_handoff_run%rowtype;
+  r  public.phase_c_workflow_run%rowtype;
+  h  public.phase_b_handoff%rowtype;
+  v_id      bigint := nullif(p_input->>'handoff_run_id','')::bigint;
+  v_actor_in text  := nullif(btrim(coalesce(p_input->>'actor_role_id','')), '');
+  v_reason  text   := nullif(btrim(coalesce(p_input->>'reason','')), '');
+  v_missing text   := nullif(btrim(coalesce(p_input->>'missing','')), '');
+  v_actor  text; v_kind text; v_n bigint; v_return text; v_target text; v_dec jsonb; v_opened jsonb;
+begin
+  perform public.fn_kernel_assert_not_in_delivery('fn_kernel_handoff_reject');
+
+  if v_id is null or v_actor_in is null then
+    raise exception 'fn_kernel_handoff_reject: handoff_run_id and actor_role_id are both required'
+      using errcode = '22023';
+  end if;
+  -- A rejection with no missing item leaves the work nowhere; the frozen rejection_condition wants both.
+  if v_reason is null or v_missing is null then
+    raise exception 'fn_kernel_handoff_reject: a rejection needs BOTH a reason and the exact missing item'
+      using errcode = '22023';
+  end if;
+
+  select run_id into v_n from public.phase_c_handoff_run where handoff_run_id = v_id;
+  if v_n is null then
+    raise exception 'fn_kernel_handoff_reject: no handoff run % (k3_handoff_not_found)', v_id using errcode = '23503';
+  end if;
+  select * into r  from public.phase_c_workflow_run where run_id = v_n for update;
+  select * into hr from public.phase_c_handoff_run where handoff_run_id = v_id for update;
+  if hr.status <> 'open' then
+    raise exception 'fn_kernel_handoff_reject: handoff run % is % and cannot be rejected (k3_handoff_not_open)',
+      v_id, hr.status using errcode = '23514';
+  end if;
+  select * into h from public.phase_b_handoff where handoff_id = hr.handoff_id;
+  if not found then
+    raise exception 'fn_kernel_handoff_reject: handoff % is not in the frozen registry', hr.handoff_id using errcode = '23503';
+  end if;
+
+  select kind, role_id into v_kind, v_actor from public.fn_phase_c_resolve_actor(v_actor_in);
+  if v_actor is null or v_kind is distinct from 'canonical' then
+    raise exception 'fn_kernel_handoff_reject: actor % resolves to % (k3_actor_unresolved)',
+      v_actor_in, coalesce(v_kind,'nothing') using errcode = '23514';
+  end if;
+  if v_actor is distinct from (select role_id from public.fn_phase_c_resolve_actor(hr.receiving_role_id)) then
+    raise exception 'fn_kernel_handoff_reject: handoff run % is addressed to % and % may not reject it (k3_not_the_receiver)',
+      v_id, hr.receiving_role_id, v_actor using errcode = '23514';
+  end if;
+
+  -- The return owner is the frozen contract's, never the caller's.
+  v_return := coalesce(nullif(hr.return_owner_role_id,''), nullif(h.return_owner_role_id,''), h.sending_role_id);
+  select role_id into v_target from public.fn_phase_c_resolve_actor(v_return);
+  if v_target is null or not public.fn_phase_c_actor_may_own(v_target) then
+    raise exception 'fn_kernel_handoff_reject: return owner % does not resolve to an active canonical role (k3_return_owner_unresolved)',
+      coalesce(v_return,'(none)') using errcode = '23514';
+  end if;
+
+  -- Record the rejection through the kernel-internal decide path: status -> rejected, accountable -> return owner.
+  v_dec := public.fn_phase_c_handoff_decide(v_id, 'reject', v_actor,
+    jsonb_build_object('reason', v_reason, 'missing', v_missing, 'return_owner', v_return));
+  if not coalesce((v_dec->>'ok')::boolean, false) then
+    raise exception 'fn_kernel_handoff_reject: handoff run % refused rejection: %',
+      v_id, coalesce(v_dec->>'error','(no error given)') using errcode = '23514';
+  end if;
+
+  -- The run runs again; a rejected handoff must not leave it parked.
+  if r.state is distinct from 'active' then
+    update public.phase_c_workflow_run set state = 'active' where run_id = r.run_id;
+  end if;
+
+  -- Open a remediation step for the return owner at the sending step, so the work goes somewhere. If a
+  -- live step for it already exists, that IS the remediation venue — not a second, duplicate one.
+  begin
+    v_opened := public.fn_kernel_open_step(jsonb_build_object(
+      'run_id', r.run_id, 'step_id', h.from_step_id, 'owner_role_id', v_target,
+      'source_kind','handoff_rejected', 'source_ref','handoff_run:' || v_id,
+      'command_id', r.command_id, 'business_object_id', r.business_object_id,
+      'priority', coalesce(nullif(p_input->>'priority',''), 'P2'),
+      'opened_because', format('handoff %s was rejected by %s: %s (missing: %s)',
+                               hr.handoff_id, v_actor, v_reason, v_missing)));
+  exception when unique_violation then
+    v_opened := jsonb_build_object('note', 'the return owner already holds a live step at '||h.from_step_id||' to remediate');
+  end;
+
+  return jsonb_build_object('ok', true, 'outcome', 'rejected', 'handoff_run_id', v_id,
+    'handoff_id', hr.handoff_id, 'run_id', r.run_id, 'workflow_id', r.workflow_id,
+    'rejected_by', v_actor, 'accountable_now', v_return, 'return_owner_role_id', v_target,
+    'remediation_step', h.from_step_id, 'reason', v_reason, 'missing', v_missing,
+    'step_run_id', v_opened->'step_run_id', 'task_id', v_opened->'task_id',
+    'handoff_trace_id', v_dec->'trace_id', 'run_state','active',
+    'kernel_handoff_status', (select status from public.phase_c_handoff_run where handoff_run_id = v_id));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_kernel_handoff_run_trace_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -59567,23 +59665,15 @@ begin
   select state into v_state_before from public.phase_c_workflow_run where run_id = hr.run_id;
   v_hstatus_before := hr.status;
 
-  -- NO KERNEL PRIMITIVE IS CALLED. See the header: there is no fn_kernel_handoff_reject, Phase C is
-  -- frozen, and fn_phase_c_handoff_decide is kernel-internal. The decision is recorded on the Phase D
-  -- side and the kernel's handoff run is left exactly as it was.
+  -- PCCR-007. Close the handoff through the kernel door: it moves the run to 'rejected', returns
+  -- accountability to the return owner, reactivates the run, and opens or finds the remediation step.
+  perform public.fn_kernel_handoff_reject(jsonb_build_object(
+    'handoff_run_id', v_id, 'actor_role_id', v_actor,
+    'reason', v_reason, 'missing', v_missing, 'return_owner', v_return));
 
   select count(*) into v_after from public.phase_c_workflow_step_run where run_id = hr.run_id;
   select state into v_state_after from public.phase_c_workflow_run where run_id = hr.run_id;
   select status into v_hstatus_after from public.phase_c_handoff_run where handoff_run_id = v_id;
-
-  -- Asserted, not assumed. A rejection that advanced the workflow would be the defect §4 names.
-  if v_after <> v_before then
-    raise exception 'fn_phase_d_handoff_reject: rejecting handoff run % opened % new step run(s). A rejected handoff advances nothing. (pd_handoff_rejection_advanced_workflow)',
-      v_id, v_after - v_before using errcode = '23514';
-  end if;
-  if v_state_after is distinct from v_state_before then
-    raise exception 'fn_phase_d_handoff_reject: rejecting handoff run % moved run % from % to %. (pd_handoff_rejection_moved_run)',
-      v_id, hr.run_id, v_state_before, v_state_after using errcode = '23514';
-  end if;
 
   insert into public.phase_d_handoff_acceptance
     (handoff_run_id, handoff_id, run_id, workflow_id, outcome, actor_role_id,
@@ -59592,8 +59682,7 @@ begin
      return_owner_role_id, sla_policy_id, due_at, idempotency_key)
   values (v_id, c.handoff_id, hr.run_id, c.workflow_id, 'rejected', v_resolved,
           c.accountable_before_accept,
-          -- ACCOUNTABILITY DOES NOT TRANSFER ON A REJECTION. It returns to the named return owner,
-          -- which is the whole point of the field; recording the receiver here would lose it.
+          -- ACCOUNTABILITY DOES NOT TRANSFER ON A REJECTION. It returns to the named return owner.
           v_return, c.to_step_id,
           encode(sha256(convert_to(coalesce(p_input->'packet','{}'::jsonb)::text,'UTF8')),'hex'),
           '{}', coalesce(v_code, c.rejection_code), v_reason, v_missing, v_return,
@@ -59611,7 +59700,7 @@ begin
     'workflow_advanced', false,
     'kernel_handoff_status', v_hstatus_after,
     'kernel_handoff_still_open', (v_hstatus_after = 'open'),
-    'disclosure', 'the frozen kernel exposes no handoff rejection routine, so the kernel-side handoff run is left open; closing it needs a Phase C change request, not a Phase D increment');
+    'note', 'PCCR-007: the kernel handoff run is closed to rejected and the return owner holds the remediation step');
 end $function$
 
 
