@@ -103,4 +103,16 @@ select j.jobid, j.jobname,
 from cron.job j where j.jobname in ('action_invoke_collect_5min','action_head_drive_5min')
 on conflict (jobid) do update set jobname=excluded.jobname, reaches=excluded.reaches, quarantine=excluded.quarantine;
 
+-- 6. RPC executors (the bulk of the department capability) dispatch through the rpc invoker, which does
+--    NOT call inference. Of the active rpc executors only one target called the LLM — deactivate it so
+--    the deterministic-only bar holds — then enable the rpc dispatch cron. Verified end-to-end: a queued
+--    org_scorecard action ran to 'succeeded' through fn_action_invoke_rpc (aborted-tx probe).
+update public.org_action_executor
+   set active = false, note = coalesce(note,'') || ' | deactivated 2 Sep 2026: target calls inference, held while OpenRouter is off'
+ where kind = 'rpc' and active
+   and exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                where n.nspname='public' and p.proname = org_action_executor.target
+                  and pg_get_functiondef(p.oid) ~* 'ai_gateway|openrouter|llm\(');
+select cron.alter_job((select jobid from cron.job where jobname='action_invoke_rpc_5min'), active := true);
+
 commit;
