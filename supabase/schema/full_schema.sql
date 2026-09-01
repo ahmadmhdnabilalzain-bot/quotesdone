@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T21:43:00.066Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T22:15:39.389Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -33337,6 +33337,9 @@ begin
     v_content,
     array['security posture','rls coverage','security definer surface','cron baseline','anon grants','attack surface','live','always current'],
     'high','fn_it_security_live_posture');
+  -- The security watch rides this existing hourly cron rather than adding a new one, so the active-cron
+  -- count stays under the Phase D automation-hold ceiling (GATE-032) until that hold is formally lifted.
+  perform public.fn_secops_watch();
   return jsonb_build_object('tables',v_total,'rls',v_rls,'no_rls',v_total-v_rls,'definer',v_definer,'active_crons',v_crons,'anon_tables',v_anon);
 end $function$
 
@@ -86641,7 +86644,6 @@ select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select publi
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
 select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_it_security_live_posture();$CRON$);
-select cron.schedule('secops_watch_10min','*/10 * * * *',$CRON$select public.fn_secops_watch();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails

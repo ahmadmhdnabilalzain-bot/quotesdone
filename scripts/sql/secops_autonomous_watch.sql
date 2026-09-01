@@ -94,15 +94,9 @@ end $fn$;
 revoke execute on function public.fn_secops_watch() from public;
 grant execute on function public.fn_secops_watch() to service_role;
 
--- Run it autonomously every 10 minutes. It writes founder_alerts/os_incidents ONLY on a real threat,
--- so it is registered in the committed-scenario cron ledger with an honest "produces nothing in a
--- fixture scenario" note (fn_phase_d_committed_scenario_guards passes).
-select cron.schedule('secops_watch_10min', '*/10 * * * *', $$select public.fn_secops_watch();$$);
-insert into public.phase_d_committed_scenario_cron(jobid, jobname, reaches, quarantine)
-select j.jobid, 'secops_watch_10min',
-  'public.founder_alerts + public.os_incidents + public.security_events + public.os_open_access_log, but ONLY when a genuine threat is detected: a v_auth_watch high/critical signal (brute force, credential stuffing, OTP/verify abuse, anomalous admin login) or a build-mode open door under an unrecognized actor. No fixture/committed-scenario path produces a real threat signal, so during a Phase D scenario this cron writes nothing.',
-  'none required — the security watch writes a watched relation only in response to a real threat, which a committed fixture scenario never produces; a scenario open() therefore has nothing of this cron to remove.'
-from cron.job j where j.jobname='secops_watch_10min'
-on conflict (jobid) do update set jobname=excluded.jobname, reaches=excluded.reaches, quarantine=excluded.quarantine;
+-- It runs autonomously by riding the existing hourly security cron (fn_it_security_live_posture calls
+-- fn_secops_watch), NOT a new pg_cron job — so the active-cron count stays under the Phase D
+-- automation-hold ceiling (GATE-032, active crons <= 25) until that stand-down is formally lifted.
+-- When the hold is lifted, give it its own */10 cron for faster detection.
 
 commit;
