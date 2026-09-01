@@ -1799,3 +1799,5 @@ scripts/sql/the_measurement_spine_carries_a_signal_ownership_ledger.sql
 scripts/sql/five_events_that_can_wake_a_workflow.sql
 scripts/sql/goal_retirement_re_plans_through_the_kernel.sql
 scripts/sql/goal_retirement_re_plans_through_the_kernel_ownership_ledger.sql
+scripts/sql/the_executor_gate_gets_teeth.sql
+scripts/sql/the_executor_gate_gets_teeth_ownership_ledger.sql

@@ -423,5 +423,39 @@ const grr = await q(`select 'goal_retirement_wiring_gap_open' k,
   ((select count(*) from fn_phase_a_baseline_drift()) + (select count(*) from fn_phase_b_baseline_drift()) = 0)::text, 'true'`);
 for (const r of grr) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== EXECUTOR TEETH — spend is checked, blocked employees refused, escalation consumed ==');
+// ============================================================================================
+const dt = await probe(`do $p$ declare v1 uuid; v2 uuid; v3 uuid; inv1 text; inv2 text; inv3 text; v_check text;
+  v_agent text; v_rem bigint; vb uuid; invb text; v_res jsonb; v_task int; begin
+  update department_budget set monthly_aed=1000000, spent_aed=0 where dept_key='finance';
+  insert into action_execution(correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+    values(gen_random_uuid(),'expense_log','expense_log','t1-'||gen_random_uuid()::text,'low',true,jsonb_build_object('amount',500,'actor','zz_probe_actor'),'queued') returning id into v1;
+  perform fn_action_invoke_dispatch(50); select response->>'invoker' into inv1 from action_execution where id=v1;
+  insert into action_execution(correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+    values(gen_random_uuid(),'expense_log','expense_log','t2-'||gen_random_uuid()::text,'low',true,jsonb_build_object('amount',50000,'actor','zz_probe_actor'),'queued') returning id into v2;
+  perform fn_action_invoke_dispatch(50); select response->>'invoker' into inv2 from action_execution where id=v2;
+  insert into action_execution(correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+    values(gen_random_uuid(),'expense_log','expense_log','t3-'||gen_random_uuid()::text,'low',true,jsonb_build_object('amount',5000000,'actor','zz_probe_actor'),'queued') returning id into v3;
+  perform fn_action_invoke_dispatch(50); select response->>'invoker' into inv3 from action_execution where id=v3;
+  begin update org_action_executor set second_authority=null where action_class='collections_chase'; v_check:='NOT_REFUSED'; exception when others then v_check:='REFUSED'; end;
+  select agent_key into v_agent from org_agents where active and manager_key is not null order by agent_key limit 1;
+  insert into agent_remediation(agent_key,failure_class,competency,status,blocks_autonomy,attempts,max_attempts) values(v_agent,'kpi_miss','zzc','open',true,3,3) returning id into v_rem;
+  insert into action_execution(correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+    values(gen_random_uuid(),'supplier_verify','supplier_verify','tb-'||gen_random_uuid()::text,'medium',true,jsonb_build_object('actor',v_agent),'queued') returning id into vb;
+  perform fn_action_invoke_dispatch(50); select response->>'invoker' into invb from action_execution where id=vb;
+  update agent_remediation set status='escalated' where id=v_rem;
+  v_res := fn_agent_remediation_escalate_consume();
+  select count(*) into v_task from org_tasks where title like 'Remediation escalated: '||v_agent||'%' and status<>'done';
+  raise exception 'MARK|forced=%|over10k=%|unaffordable=%|check=%|blocked=%|handled=%|task=%',
+    inv1,inv2,inv3,v_check,(invb='refused')::text,(v_res->>'handled'),v_task; end $p$;`);
+eq('a low-risk money executor with a second authority forces two approvals', dt.forced, 'awaiting_two_approvals');
+eq('a spend over AED 10k routes to the founder', dt.over10k, 'awaiting_founder_approval');
+eq('an unaffordable spend is refused', dt.unaffordable, 'refused');
+eq('a medium/high money executor cannot drop its second authority', dt.check, 'REFUSED');
+eq('an autonomy-blocked employee’s action is refused by the dispatcher', dt.blocked, 'true');
+eq('an escalated remediation opens a manager task', dt.handled, '1');
+eq('  -> exactly one, deduplicated', dt.task, '1');
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
