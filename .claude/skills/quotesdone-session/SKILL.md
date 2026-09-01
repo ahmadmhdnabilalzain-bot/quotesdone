@@ -55,6 +55,29 @@ comes from perfection reached and verified in the sandbox, not from a live pilot
 re-pitching "prove it runs live" or "fund inference to see it work" — the founder has a plan; your job
 is to keep building and sandbox-validating toward perfect, not to push the machine on before it is.
 
+## 1d. Every agent is an expert human staff member who ACTS
+
+Founder's rule (2 Sep 2026): **consider every agent as an expert real human staff member, and a real
+human staff always acts — so our agents must act too.** When you build for a role, build for **agency**,
+not just knowledge. An agent that only *knows*, or that sits dormant, is not doing its job — a real
+expert monitors, investigates, decides, responds, remediates, follows up.
+
+- Ask "what would a real expert human in this role DO here?" then wire the agent to actually do it —
+  real actions with real effects, not just observe or advise.
+- The **deterministic** parts of a job (routine monitoring, raising alerts, opening tickets, pre-authorised
+  responses) must ACT **now**, without waiting on inference — a real employee doesn't stop working because
+  one decision is hard. The reasoning layer adds judgment on top when the runtime is on; it does not gate
+  the whole role into dormancy.
+- Never ship a "knows but does nothing" capability and call it done — that is not how real staff behave.
+  This is the acting half of §1b (build the connection even with no real data).
+- **"Act" means the agent SOLVES it — not notify the founder.** (Founder, 2 Sep 2026: "by act i mean it,
+  its not that they just send a notification on my email for me to open a session with you to solve it.")
+  The agent does the remediating work itself: security stops the attack / rotates the key; eng diagnoses,
+  fixes and deploys. An alert is a RECORD of what the agent did, never a substitute for doing it, and never
+  a hand-off asking the founder to fix it with Claude. Escalation to the founder stays reserved for his real
+  boundaries only (money/refunds, destructive production changes, decisions only he holds — see §3), never
+  the default. "Detect → email the founder" is a failure of this rule; build "detect → the agent resolves it".
+
 ## 2. There is exactly one thing you may say when finished
 
 > `all verified and fixed and merged and deployed 100%`

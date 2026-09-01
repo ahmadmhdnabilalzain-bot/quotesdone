@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T20:40:23.725Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T21:43:00.066Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -73174,6 +73174,25 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_secops_close_build_mode_door(p_reason text DEFAULT 'closed by security'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_door record;
+begin
+  select * into v_door from public.os_open_access_log order by id desc limit 1;
+  if v_door.state is distinct from 'open' then
+    return jsonb_build_object('ok', true, 'action', 'none', 'reason', 'door already closed');
+  end if;
+  insert into public.os_open_access_log(at, actor, state, reason, detail)
+  values (now(), 'fn_secops_watch', 'closed', coalesce(p_reason,'closed by security'),
+          jsonb_build_object('closed_open_id', v_door.id, 'open_actor', v_door.actor));
+  return jsonb_build_object('ok', true, 'action', 'closed', 'closed_open_id', v_door.id, 'was_open_by', v_door.actor);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_secops_test(sample text)
  RETURNS TABLE(rule_key text, category text, severity text, response text)
  LANGUAGE sql
@@ -73184,6 +73203,68 @@ AS $function$
   from public.secops_rule r
   where r.active and r.pattern is not null and sample ~* r.pattern;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_secops_watch()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_found int := 0; v_acted int := 0; r record; v_door record;
+  v_authorized text[] := array['management@quotesdone.com']; -- founder-authorized door openers
+begin
+  -- 1. AUTH ATTACKS — consume v_auth_watch (the signature aggregator that had no consumer): brute force,
+  --    credential stuffing, OTP/verify abuse, anomalous admin logins. The agent OWNS each as an incident.
+  for r in select at, signal, severity, subject, detail from public.v_auth_watch
+           where severity in ('high','critical') loop
+    if not exists (
+      select 1 from public.security_events se
+       where se.kind='auth_attack' and coalesce(se.subject,'')=coalesce(r.subject,'')
+         and se.detail->>'signal'=r.signal and se.created_at > now() - interval '1 hour') then
+      insert into public.security_events(kind, severity, source, subject, detail)
+      values ('auth_attack', r.severity, 'fn_secops_watch', r.subject,
+              jsonb_build_object('signal', r.signal, 'detail', r.detail, 'observed_at', r.at));
+      insert into public.os_incidents(title, kind, severity, status, detail, opened_by, owner, opened_at)
+      values (left('Auth attack: '||r.signal||' on '||coalesce(r.subject,'unknown'),200),
+              'security', r.severity, 'open',
+              jsonb_build_object('signal', r.signal, 'subject', r.subject, 'detail', r.detail, 'source','fn_secops_watch'),
+              'fn_secops_watch', 'security', now());
+      insert into public.founder_alerts(level, event, detail, channel)
+      values (r.severity, 'security: auth attack detected',
+              'signal='||r.signal||' subject='||coalesce(r.subject,'unknown')
+              ||' — the security agent opened and owns an incident and is responding.', 'log');
+      v_found := v_found + 1;
+    end if;
+  end loop;
+
+  -- 2. BUILD-MODE OPEN DOOR — an open under an UNRECOGNIZED actor is not a founder command; the agent
+  --    CLOSES it itself and records the action. A founder-authorized open is left alone (never fight him).
+  select * into v_door from public.os_open_access_log order by id desc limit 1;
+  if v_door.state = 'open' then
+    if v_door.actor is null or lower(v_door.actor) <> all(v_authorized) then
+      perform public.fn_secops_close_build_mode_door(
+        'Auto-closed by the security watch: build-mode door was open under an unrecognized actor ('
+        || coalesce(v_door.actor,'null') || '), which no founder command justifies.');
+      insert into public.security_events(kind, severity, source, subject, detail)
+      values ('build_mode_door_unauthorized_open', 'critical', 'fn_secops_watch', v_door.actor,
+              jsonb_build_object('open_id', v_door.id, 'open_reason', v_door.reason));
+      insert into public.os_incidents(title, kind, severity, status, detail, opened_by, owner, opened_at, resolved_by, resolved_at, resolution)
+      values ('Unauthorized build-mode door open — auto-closed', 'security', 'critical', 'resolved',
+              jsonb_build_object('open_actor', v_door.actor, 'open_id', v_door.id),
+              'fn_secops_watch', 'security', now(), 'fn_secops_watch', now(),
+              'The security agent auto-closed the unauthorized open door.');
+      insert into public.founder_alerts(level, event, detail, channel)
+      values ('critical', 'security: unauthorized build-mode door auto-closed',
+              'An open build-mode door under actor '||coalesce(v_door.actor,'null')
+              ||' was auto-closed by the security agent. No action needed from you.', 'log');
+      v_acted := v_acted + 1;
+    end if;
+  end if;
+
+  return jsonb_build_object('checked_at', now(), 'threats_found', v_found, 'auto_actions', v_acted);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_security_ai()
@@ -86560,6 +86641,7 @@ select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select publi
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
 select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_it_security_live_posture();$CRON$);
+select cron.schedule('secops_watch_10min','*/10 * * * *',$CRON$select public.fn_secops_watch();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails

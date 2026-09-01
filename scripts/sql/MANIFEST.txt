@@ -1840,3 +1840,4 @@ scripts/sql/every_agent_is_a_twenty_year_veteran_ownership_ledger.sql
 scripts/sql/it_cyber_deep_knowledge.sql
 scripts/sql/it_cyber_v3_and_search_scoping.sql
 scripts/sql/it_cyber_v3_and_search_scoping_ownership_ledger.sql
+scripts/sql/secops_autonomous_watch.sql
