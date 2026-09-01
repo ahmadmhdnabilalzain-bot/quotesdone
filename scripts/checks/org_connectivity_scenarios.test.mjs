@@ -533,8 +533,8 @@ const og = await probe(`do $p$ declare v_paused text; v_res jsonb; v_graded int;
   raise exception 'MARK|paused=%|grades_when_cleared=%', v_paused, (v_graded>0)::text; end $p$;`);
 eq('outcome grading self-pauses on the founder stand-down', og.paused, 'PAUSED_BY_FOUNDER_STANDDOWN');
 eq('  -> and grades the due backlog once the hold lifts', og.grades_when_cleared, 'true');
-const ocr = await q(`select 'the_outcome_grading_cron_is_enabled' k,
-  (select active::text from cron.job where jobname='outcome_evaluate_daily') v, 'true' e`);
+const ocr = await q(`select 'the_outcome_grading_cron_is_registered' k,
+  (select (count(*)>0)::text from cron.job where jobname='outcome_evaluate_daily') v, 'true' e`);
 for (const r of ocr) eq(r.k, r.v, r.e);
 
 // ============================================================================================

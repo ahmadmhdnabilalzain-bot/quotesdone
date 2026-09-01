@@ -147,9 +147,13 @@ begin
 end
 $function$;
 
--- Re-enable the daily cron. Safe now: fn_outcome_evaluate self-pauses on the hold, so an enabled cron
--- does nothing while the workforce is stood down and grades the backlog the day the hold lifts.
-select cron.schedule('outcome_evaluate_daily', '30 3 * * *', 'select public.fn_outcome_evaluate();');
-select cron.alter_job((select jobid from cron.job where jobname='outcome_evaluate_daily'), active := true);
+-- The daily cron is LEFT DISABLED. fn_outcome_evaluate is a state-changing cron component (it opens
+-- ROLL BACK org_tasks), and kernel_boards_are_green requires such a component to be classified in
+-- phase_c_source_cutover and wrapped through fn_kernel_cron_exec before it runs. fn_outcome_evaluate now
+-- self-pauses on the founder hold, so an enabled cron would do NOTHING during the stand-down anyway —
+-- the self-pause is the real fix here, making it safe to enable once it is classified and wrapped as a
+-- kernel cron component (Phase C kernel work, deliberately not done in this change).
+-- Ensure it stays disabled regardless of prior state:
+select cron.alter_job((select jobid from cron.job where jobname='outcome_evaluate_daily'), active := false);
 
 commit;
