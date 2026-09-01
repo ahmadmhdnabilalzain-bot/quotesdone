@@ -96,10 +96,19 @@ Deno.serve(async (req) => {
     // defect the comment above this one records.
     const kinds = Array.isArray(body.source_kinds)
       ? body.source_kinds.map((s: unknown) => String(s)).filter(Boolean).slice(0, 8) : null;
+    // Optional category allowlist (mirrors source_kinds): lets a driver drain a FINITE, named set of
+    // categories first — e.g. the professional-cert functional fields, whose chunks are the NEWEST in
+    // the table and would otherwise sit behind millions of older rows under the default oldest-first
+    // FIFO. Bounded to 20 and only applied to kb_chunks; default is unchanged so the fair FIFO cron is
+    // untouched. `newest` flips to newest-first for the same prioritisation without naming categories.
+    const cats = Array.isArray(body.categories)
+      ? body.categories.map((s: unknown) => String(s)).filter(Boolean).slice(0, 20) : null;
+    const newest = body.newest === true;
     let sel = admin.from(tgt.table).select(tgt.cols).is('embedding_gte', null);
     if (kinds && kinds.length && tgt.table === 'kb_chunks') sel = sel.in('source_kind', kinds);
+    if (cats && cats.length && tgt.table === 'kb_chunks') sel = sel.in('category', cats);
     const { data, error: qerr } = await sel
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: !newest })
       .limit(lim);
 
     if (!data || data.length === 0) {

@@ -1,0 +1,181 @@
+role_id,department,primary_track,primary_credential,certifying_body,secondary_tracks,uae_overlays,notes
+ai_quality_reviewer,assurance,qa-istqb,ISTQB Certified Tester (Foundation+Advanced),ISTQB,qual-lss,,AI output QA; add AI-evaluation methodology on top of ISTQB
+cybersecurity_engineer,assurance,sec-cissp,CISSP,ISC2,sec-iso27001,uae-pdpl,Security engineering; ISO 27001 controls + UAE PDPL
+it_operations_engineer,assurance,sec-iso27001,ISO/IEC 27001 + ITIL 4,ISO;AXELOS,sec-cissp,,SRE/IT ops; ITIL service management
+model_evaluator,assurance,qa-istqb,ISTQB + model-evaluation methodology,ISTQB,data-cdmp,,Model evaluation reviewer
+quality_and_release_director,assurance,qa-istqb,ISTQB Advanced + ISO 9001,ISTQB;ISO,qual-lss;pm-pmp,,QA & release management leadership
+test_automation_engineer,assurance,qa-istqb,ISTQB CTFL + CT-TAE,ISTQB,swe-swebok,,Test automation
+communications_manager,customer_experience,cs-iso18295,ISO 18295 customer contact,ISO,mkt-cim,,Customer comms
+customer_onboarding,customer_experience,cs-iso18295,ISO 18295 customer contact,ISO,proc-cips,,Onboarding specialist
+customer_retention,customer_experience,cs-iso18295,ISO 18295 customer contact,ISO,sales-revops,,Retention specialist
+customer_success_director,customer_experience,cs-iso18295,ISO 18295 + customer success,ISO,pm-pmp,,CS leadership
+customer_support,customer_experience,cs-iso18295,ISO 18295 customer contact,ISO,,,Support specialist
+lifecycle_channel_operations,customer_experience,cs-iso18295,ISO 18295 customer contact,ISO,mkt-cim,,Lifecycle channel ops
+rfq_success,customer_experience,cs-iso18295,ISO 18295 customer contact,ISO,proc-cips,,RFQ success
+business_intelligence_analyst,data_intel,data-cdmp,CDMP,DAMA International,,,BI analytics
+category_curator,data_intel,km-iso30401,ISO 30401 KM + ISO 25964,ISO,data-cdmp,,Category knowledge curation
+data_engineer,data_intel,data-cdmp,CDMP + data engineering,DAMA International,swe-swebok,,Data engineering
+data_intelligence_director,data_intel,data-cdmp,CDMP,DAMA International,exec-strategy,,Data & intelligence leadership
+forecasting_analyst,data_intel,acct-cma,CMA + CFA quantitative methods,IMA;CFA Institute,data-cdmp,,Forecasting/FP&A
+knowledge_director,data_intel,km-iso30401,ISO 30401 knowledge management,ISO,data-cdmp,,Knowledge leadership
+knowledge_engineer,data_intel,km-iso30401,ISO 30401 + ISO 25964,ISO,data-cdmp,,Knowledge engineering
+knowledge_validator,data_intel,data-cdmp,CDMP (data quality),DAMA International,km-iso30401,,Knowledge validation
+market_intelligence_analyst,data_intel,data-cdmp,CDMP + market research,DAMA International,mkt-cim,,Market intelligence
+supplier_intelligence_analyst,data_intel,data-cdmp,CDMP,DAMA International,proc-cips,,Supplier intelligence
+taxonomy_manager,data_intel,km-iso30401,ISO 25964 thesauri,ISO,data-cdmp,,Taxonomy governance
+ceo,exec,exec-strategy,CMI L7 strategic management,CMI,fin-cfa;pm-pmp,,Composite exec; finance+ops literacy
+chief_of_staff,exec,exec-strategy,CMI L7 strategic management,CMI,pm-pmp,,Chief of staff
+chief_performance_officer,exec,exec-strategy,CMI L7 + Balanced Scorecard,CMI,qual-lss,,Performance
+corporate_performance_director,exec,exec-strategy,CMI L7 + Balanced Scorecard,CMI,acct-cma,,Corporate performance
+strategy_director,exec,exec-strategy,CMI L7 strategic management,CMI,fin-cfa,,Strategy
+accounts_payable,finance,acct-cma,CMA / bookkeeping,IMA,uae-vat,uae-vat,AP + VAT input tax
+billing_operations,finance,acct-cma,CMA / bookkeeping,IMA,uae-vat,uae-vat,Billing & reconciliation
+cfo,finance,acct-cpa,CPA (2024 CPA Evolution),AICPA/NASBA,acct-ifrs;fin-cfa,uae-ct;uae-vat,Founder exemplar cert
+collections_and_revenue_assurance,finance,acct-cma,CMA,IMA,,uae-vat,Collections & revenue assurance
+financial_controller,finance,acct-cpa,CPA + IFRS,AICPA/NASBA,acct-ifrs,uae-ct;uae-vat,Founder exemplar cert
+fpna_analyst,finance,acct-cma,CMA,IMA,fin-cfa,,FP&A
+payments_and_billing_manager,finance,acct-cma,CMA,IMA,,uae-vat,Payments & billing
+tax_overlay_uae,finance,uae-ct,FTA Corporate Tax + VAT + Tax Agent,Federal Tax Authority,uae-vat;uae-taxagent,uae-ct;uae-vat,UAE tax specialist (Decree-Law 47/2022)
+account_management,growth,sales-revops,professional selling body of practice,(no license),,,Account management
+brand_and_creative,growth,mkt-cim,CIM Professional Marketing,CIM,ux-nng,,Brand & creative
+business_development,growth,sales-revops,professional selling body of practice,(no license),,,Business development
+chief_revenue_officer,growth,sales-revops,RevOps + selling body of practice,(no license),exec-strategy,,CRO
+content_strategy_and_copy,growth,mkt-cim,CIM / DMI,CIM,,,Content strategy & copy
+crm_and_revenue_operations,growth,sales-revops,RevOps body of practice,(no license),data-cdmp,,CRM & RevOps
+government_relations,growth,sales-revops,UAE government relations,(no license),uae-ccl,,Gov & enterprise relations
+marketing_director,growth,mkt-cim,CIM Professional Marketing,CIM,exec-strategy,,Marketing leadership
+marketing_performance_analyst,growth,mkt-cim,CIM + analytics,CIM,data-cdmp,,Marketing performance
+partnerships,growth,sales-revops,partnerships body of practice,(no license),,,Partnerships
+social_media_and_community,growth,mkt-cim,CIM / DMI,CIM,,,Social & community
+strategic_partnerships_government_relations_manager,growth,sales-revops,partnerships + UAE gov relations,(no license),uae-ccl,,Strategic partnerships & gov relations
+visual_design,growth,ux-nng,NN/g UX + visual design,Nielsen Norman Group,mkt-cim,,Visual design
+compliance_and_privacy_officer,legal,priv-cipm,CIPM + CIPP/E,IAPP,uae-pdpl;uae-aml,uae-pdpl,Compliance & privacy
+contract_manager,legal,uae-ccl,UAE Commercial Companies Law 32/2021,Ministry of Economy,proc-cips,uae-ccl,Contract management UAE
+fraud_analyst,legal,fraud-cfe,CFE,ACFE,uae-aml,,Fraud reviewer
+general_counsel,legal,uae-legal-lic,Advocate licence / DIFC Register,MOJ / DIFC Courts,uae-ccl;uae-difc,uae-ccl,General counsel
+marketplace_content_privacy_reviewer,legal,priv-cippe,CIPP/E,IAPP,uae-pdpl,uae-pdpl,Content & privacy review
+risk_and_governance_manager,legal,audit-cia,CIA + ISO 31000,The IIA,,,Risk & governance
+trust_and_safety_manager,legal,priv-cippe,CIPP/E + trust & safety,IAPP,uae-pdpl,,Trust & safety
+agent_workforce_capability_director,people_ops,td-atd,ATD CPTD,ATD,hr-shrm,,Agent workforce & capability
+chief_operating_officer,people_ops,exec-strategy,CMI L7 operations,CMI,qual-lss;pm-pmp,,COO
+culture_and_performance_manager,people_ops,hr-shrm,SHRM-CP/SCP,SHRM,td-atd,,Culture & performance
+document_operations_specialist,people_ops,km-iso30401,ISO 30401 KM + records mgmt,ISO,data-cdmp,,Document operations
+learning_and_development_manager,people_ops,td-atd,ATD CPTD,ATD,hr-shrm,,L&D
+organization_designer,people_ops,hr-shrm,SHRM + organization design,SHRM,exec-strategy,,Org design
+process_improvement_manager,people_ops,qual-lss,Lean Six Sigma Black Belt,ASQ,pm-pmp,,Process improvement
+project_coordinator,people_ops,pm-pmp,PMP / PRINCE2 / PMI-ACP,PMI,pm-prince2,,PMO
+recruitment_specialist,people_ops,hr-shrm,SHRM + recruiting,SHRM,,,Recruitment (MOHRE context)
+ai_architect,product_eng,aieng-iso42001,ISO/IEC 42001 AI management,ISO,swe-swebok,,AI architecture
+ai_director,product_eng,aieng-iso42001,ISO/IEC 42001 AI management,ISO,exec-strategy,,AI leadership
+backend_engineer,product_eng,swe-swebok,IEEE SWEBOK + OWASP ASVS,IEEE,sec-cissp,,Backend engineering
+cto,product_eng,aieng-iso42001,ISO/IEC 42001 + SWEBOK,ISO;IEEE,swe-swebok;exec-strategy,,CPTO
+engineering_manager,product_eng,swe-swebok,IEEE SWEBOK,IEEE,pm-pmp,,Engineering management
+frontend_engineer,product_eng,swe-swebok,IEEE SWEBOK + OWASP ASVS,IEEE,ux-nng,,Frontend engineering
+product_manager,product_eng,prod-pm,product management body of practice,SVPG,mkt-cim,,Product management
+product_optimization_engineer,product_eng,swe-swebok,IEEE SWEBOK,IEEE,data-cdmp,,Product optimization
+product_ux_designer,product_eng,ux-nng,NN/g UX,Nielsen Norman Group,prod-pm,,Product/UX design
+prompt_engineer,product_eng,aieng-iso42001,ISO/IEC 42001 + prompt/agent eng,ISO,swe-swebok,,Agent & prompt engineering
+solution_architect,product_eng,aieng-iso42001,ISO/IEC 42001 + solution arch,ISO,swe-swebok,,Solution architecture
+boq_analyst,marketplace,trade-concrete,RICS QS + ACI 318 + BOQ,RICS;ACI,proc-cips,uae-fire,BOQ & specification analysis (quantity surveying)
+document_intelligence_manager,marketplace,data-cdmp,CDMP + document intelligence,DAMA International,km-iso30401,,Document intelligence
+drawing_analyst,marketplace,trade-concrete,ISO 128 / BS 8888 drawing standards,ISO,,,Drawing & CAD analysis
+inquiry_quality_analyst,marketplace,proc-cips,CIPS Diploma,CIPS,data-cdmp,,Inquiry quality & scoring
+inquiry_router,marketplace,proc-cips,CIPS Diploma,CIPS,,,Inquiry routing
+marketplace_director,marketplace,proc-cips,MCIPS (CIPS L6),CIPS,exec-strategy,,Marketplace leadership
+quote_evaluation,marketplace,proc-cips,CIPS Diploma,CIPS,,,Quote evaluation
+rfq_qualification_manager,marketplace,proc-cips,CIPS Advanced Diploma,CIPS,,,RFQ qualification
+spec_construction,marketplace,trade-concrete,ACI 318 + BS EN 206 + RICS,ACI;RICS,proc-cips,uae-fire,Construction & civil specialist
+spec_fitout,marketplace,trade-fitout,ASTM C1396 + BS EN 13830,ASTM;CEN,proc-cips,,Interior & fit-out specialist
+spec_industrial,marketplace,trade-oilgas,API 6A/610/650 + ISA 61511,API;ISA,trade-automation,,Industrial & energy specialist
+spec_mep,marketplace,trade-hvac,ASHRAE + IEC 60364 + NFPA,ASHRAE;IEC;NFPA,trade-electrical;trade-fire;trade-plumbing,uae-fire,MEP specialist
+supplier_coverage,marketplace,proc-cips,CIPS Diploma,CIPS,,,Supplier coverage & liquidity
+supplier_matching_dispatch_operator,marketplace,proc-cips,CIPS Diploma,CIPS,,,Supplier matching & dispatch
+supplier_onboarding_specialist,marketplace,proc-cips,CIPS + KYC/AML,CIPS,uae-aml,uae-aml,Supplier onboarding
+supplier_retention,marketplace,proc-cips,CIPS + supplier relationship mgmt,CIPS,sales-revops,,Supplier retention
+supplier_verification,marketplace,trade-tic,ISO/IEC 17020 + KYC/AML,ISO;ILAC,proc-cips;uae-aml,uae-aml,Supplier verification
+category_overlay_001_construction-materials-suppliers,marketplace,trade-concrete,ACI 318 / BS EN 206,ACI,,,Construction materials
+category_overlay_002_steel-and-reinforcement-suppliers,marketplace,trade-steel,ASTM A615 / AWS D1.1,ASTM;AWS,,,Steel & reinforcement
+category_overlay_003_cement-and-concrete-suppliers,marketplace,trade-concrete,ACI 318 / BS EN 206,ACI,,,Cement & concrete
+category_overlay_004_formwork-and-scaffolding-suppliers,marketplace,trade-concrete,BS EN 12812 formwork / EN 12811 scaffolding,CEN,,,Formwork & scaffolding
+category_overlay_005_waterproofing-suppliers,marketplace,trade-envelope,ASHRAE 90.1 envelope / Estidama,ASHRAE,,,Waterproofing
+category_overlay_006_insulation-suppliers,marketplace,trade-envelope,ASHRAE 90.1 envelope / Estidama,ASHRAE,,,Insulation
+category_overlay_007_roofing-suppliers,marketplace,trade-envelope,ASHRAE 90.1 envelope,ASHRAE,,,Roofing
+category_overlay_008_mep-suppliers-electromechanical-suppliers,marketplace,trade-hvac,ASHRAE + IEC 60364,ASHRAE;IEC,trade-electrical,,MEP / electromechanical
+category_overlay_009_hvac-suppliers,marketplace,trade-hvac,ASHRAE 90.1 / 62.1 / 55,ASHRAE,,,HVAC
+category_overlay_010_electrical-suppliers,marketplace,trade-electrical,IEC 60364 / DEWA regs,IEC,,,Electrical
+category_overlay_011_plumbing-and-sanitaryware-suppliers,marketplace,trade-plumbing,IAPMO UPC,IAPMO,,,Plumbing & sanitaryware
+category_overlay_012_fire-fighting-equipment-suppliers,marketplace,trade-fire,NFPA 13 + UAE Fire Code 2018,NFPA;Civil Defence,,uae-fire,Fire fighting equipment
+category_overlay_013_fire-alarm-and-life-safety-suppliers,marketplace,trade-fire,NFPA 72 + UAE Fire Code 2018,NFPA;Civil Defence,,uae-fire,Fire alarm & life safety
+category_overlay_014_elv-and-security-systems-suppliers,marketplace,trade-electrical,ISO/IEC 11801 + Dubai SIRA,IEC;SIRA,,,ELV & security systems
+category_overlay_015_smart-home-and-home-automation-suppliers,marketplace,trade-electrical,ISO/IEC 11801 / KNX,IEC,,,Smart home & automation
+category_overlay_016_fit-out-contractors-interior-fit-out-suppliers,marketplace,trade-fitout,ASTM C1396 / EN 13830,ASTM;CEN,,,Interior fit-out
+category_overlay_017_gypsum-and-false-ceiling-suppliers,marketplace,trade-fitout,ASTM C1396 gypsum board,ASTM,,,Gypsum & false ceiling
+category_overlay_018_flooring-suppliers,marketplace,trade-fitout,EN 14041 / ISO 10874 flooring,CEN;ISO,,,Flooring
+category_overlay_019_aluminium-and-glass-suppliers,marketplace,trade-fitout,BS EN 13830 curtain walling / EN 14351,CEN,,,Aluminium & glass
+category_overlay_020_joinery-and-carpentry-suppliers,marketplace,trade-fitout,EN 14351 / joinery standards,CEN,,,Joinery & carpentry
+category_overlay_021_paints-and-finishing-materials-suppliers,marketplace,trade-fitout,ISO 12944 protective coatings,ISO,,,Paints & finishing
+category_overlay_022_interior-decoration,marketplace,trade-fitout,ASTM C1396 / EN 13830,ASTM;CEN,ux-nng,,Interior decoration
+category_overlay_023_furniture-suppliers-ff-and-e-suppliers,marketplace,trade-fitout,BIFMA / EN 1728 furniture,BIFMA;CEN,,,Furniture / FF&E
+category_overlay_024_kitchen-and-bathroom-suppliers,marketplace,trade-fitout,IAPMO UPC + EN 13310 sanitary,IAPMO;CEN,trade-plumbing,,Kitchen & bathroom
+category_overlay_025_swimming-pool-suppliers-and-contractors,marketplace,trade-plumbing,IAPMO UPC + EN 15288 pools,IAPMO;CEN,trade-hvac,,Swimming pool
+category_overlay_026_cold-room-and-refrigeration-suppliers,marketplace,trade-hvac,ASHRAE + EN 378 refrigeration,ASHRAE;CEN,,,Cold room & refrigeration
+category_overlay_027_catering-companies,marketplace,trade-uae-licensed,ISO 22000 + Dubai Municipality food licence,Dubai Municipality;ISO,,,Catering (food safety)
+category_overlay_028_hospitality-supplies-companies,marketplace,trade-uae-licensed,ISO 22000 / DTCM hospitality,Dubai Municipality,,,Hospitality supplies
+category_overlay_029_bakery-equipment-suppliers,marketplace,trade-uae-licensed,NSF/ISO 22000 food equipment,NSF;ISO,,,Bakery equipment
+category_overlay_030_food-processing-equipment-suppliers,marketplace,trade-uae-licensed,NSF/ISO 22000 food equipment,NSF;ISO,,,Food processing equipment
+category_overlay_031_event-management-companies,marketplace,trade-uae-licensed,DTCM event permit + ISO 20121,DTCM;ISO,,,Event management
+category_overlay_032_exhibition-stand-contractors,marketplace,trade-fitout,ASTM C1396 / EN 13830 + fire,ASTM;CEN,trade-fire,,Exhibition stands
+category_overlay_033_av-and-media-equipment-suppliers,marketplace,trade-electrical,ISO/IEC 11801 + AVIXA,IEC;AVIXA,,,AV & media equipment
+category_overlay_034_marketing-and-advertising-agencies,marketplace,mkt-cim,CIM Professional Marketing,CIM,,,Marketing & advertising agencies
+category_overlay_035_it-companies-it-services-providers,marketplace,sec-iso27001,ISO/IEC 27001 + ITIL,ISO;AXELOS,sec-cissp,,IT services providers
+category_overlay_036_data-centre-suppliers-and-service-providers,marketplace,sec-iso27001,ANSI/TIA-942 + Uptime Tier,TIA;Uptime Institute,,,Data centre suppliers
+category_overlay_037_telecommunication-companies,marketplace,trade-uae-licensed,TDRA telecom licence + ITU-T,TDRA;ITU,trade-electrical,,Telecom (TDRA regulated)
+category_overlay_038_accounting-and-audit-firms,marketplace,trade-prof-acct,IFRS + ISA,IFRS Foundation;IAASB,acct-cpa,,Accounting & audit firms
+category_overlay_039_tax-consultants,marketplace,trade-prof-tax,FTA Tax Agent programme,Federal Tax Authority,uae-ct,uae-ct,Tax consultants
+category_overlay_040_corporate-service-providers-pro-services,marketplace,trade-prof-legal,MoE PRO / company formation licence,Ministry of Economy,uae-ccl,uae-ccl,Corporate service / PRO
+category_overlay_041_law-firms,marketplace,trade-prof-legal,Advocate licence / DIFC Register,MOJ;DIFC Courts,uae-ccl,uae-ccl,Law firms
+category_overlay_042_management-consulting-firms,marketplace,trade-prof-consult,CMC (ICMCI) + ISO 20700,CMC-Global,,,Management consulting
+category_overlay_043_hr-and-recruitment-agencies,marketplace,hr-shrm,SHRM + MOHRE recruitment licence,SHRM;MOHRE,,,HR & recruitment agencies
+category_overlay_044_staffing-companies,marketplace,trade-uae-licensed,MOHRE labour-supply licence,MOHRE,hr-shrm,,Staffing companies
+category_overlay_045_facilities-management-companies,marketplace,fm-ifma,CFM / FMP + ISO 41001,IFMA;ISO,,,Facilities management
+category_overlay_046_cleaning-companies,marketplace,fm-ifma,ISO 41001 + Dubai Municipality permit,IFMA;Dubai Municipality,,,Cleaning companies
+category_overlay_047_security-companies,marketplace,trade-uae-licensed,Dubai SIRA security licence,SIRA,,,Security guarding (SIRA)
+category_overlay_048_business-centres-and-coworking-spaces,marketplace,trade-uae-licensed,RERA / Ejari + DED licence,RERA;DLD,,,Business centres & coworking
+category_overlay_049_logistics-and-freight-forwarding-companies,marketplace,trade-logistics,FIATA Model Rules + IATA Cargo,FIATA;IATA,,,Logistics & freight forwarding
+category_overlay_050_warehousing-and-3pl-companies,marketplace,trade-logistics,FIATA + ISO 9001 warehousing,FIATA;ISO,scm-ascm,,Warehousing & 3PL
+category_overlay_051_oil-and-gas-equipment-suppliers,marketplace,trade-oilgas,API 6A / 610 / 650,API,,,Oil & gas equipment
+category_overlay_052_industrial-equipment-suppliers,marketplace,trade-oilgas,API + ISO industrial standards,API;ISO,trade-automation,,Industrial equipment
+category_overlay_053_industrial-automation-suppliers,marketplace,trade-automation,ANSI/ISA-61511 + IEC 61508,ISA;IEC,,,Industrial automation
+category_overlay_054_bearings-and-power-transmission-suppliers,marketplace,trade-oilgas,ISO 15 / ABMA bearings,ISO;ABMA,,,Bearings & power transmission
+category_overlay_055_fasteners-and-fixings-suppliers,marketplace,trade-steel,ISO 898 fasteners,ISO,,,Fasteners & fixings
+category_overlay_056_tools-and-abrasives-suppliers,marketplace,trade-oilgas,ISO/FEPA abrasives,ISO;FEPA,,,Tools & abrasives
+category_overlay_057_air-compressor-and-pneumatic-suppliers,marketplace,trade-automation,ISO 8573 compressed air,ISO,,,Air compressor & pneumatic
+category_overlay_058_chemical-suppliers,marketplace,trade-uae-licensed,GHS + MoIAT chemical registration,MoIAT;UN GHS,,,Chemical suppliers
+category_overlay_059_laboratory-equipment-suppliers,marketplace,trade-tic,ISO/IEC 17025 lab,ISO,trade-medical,,Laboratory equipment
+category_overlay_060_cleanroom-suppliers-and-contractors,marketplace,trade-tic,ISO 14644 cleanrooms,ISO,,,Cleanroom
+category_overlay_061_medical-equipment-suppliers,marketplace,trade-medical,ISO 13485 + MOHAP registration,ISO;MOHAP,,,Medical equipment
+category_overlay_062_pharmaceutical-suppliers,marketplace,trade-medical,GMP/GDP + EDE registration,EDE;MOHAP,,,Pharmaceutical
+category_overlay_063_education-equipment-suppliers,marketplace,trade-uae-licensed,KHDA + EN 1729 education furniture,KHDA;CEN,,,Education equipment
+category_overlay_064_aviation-and-ground-support-suppliers,marketplace,trade-uae-licensed,GCAA + EASA/FAA airworthiness,GCAA,,,Aviation & ground support
+category_overlay_065_marine-equipment-and-marine-safety-suppliers,marketplace,trade-uae-licensed,IMO SOLAS + class society,IMO,,,Marine equipment & safety
+category_overlay_066_offshore-and-marine-construction-companies,marketplace,trade-oilgas,API + DNV offshore,API;DNV,,,Offshore & marine construction
+category_overlay_067_renewable-energy-companies,marketplace,trade-electrical,IEC 61215 PV + IEC 61400 wind,IEC,,,Renewable energy
+category_overlay_068_real-estate-agencies,marketplace,trade-uae-licensed,RERA broker + DLD,RERA;DLD,,,Real estate agencies
+category_overlay_069_property-management-companies,marketplace,trade-uae-licensed,RERA + ISO 41001,RERA;ISO,fm-ifma,,Property management
+category_overlay_070_textile-and-uniform-suppliers,marketplace,trade-uae-licensed,OEKO-TEX + ISO 105 textiles,OEKO-TEX;ISO,,,Textile & uniform
+category_overlay_071_beauty-and-spa-equipment-suppliers,marketplace,trade-uae-licensed,Dubai Municipality health permit,Dubai Municipality,,,Beauty & spa equipment
+category_overlay_072_gym-and-sports-equipment-suppliers,marketplace,trade-uae-licensed,EN 957 / ISO 20957 gym equipment,CEN;ISO,,,Gym & sports equipment
+category_overlay_073_jewelry-suppliers-gold-and-diamond-traders,marketplace,uae-gold,DMCC Good Delivery + DCL hallmarking,DMCC;Dubai Central Laboratory,,,Gold & diamond traders (UAE hallmarking)
+category_overlay_074_luxury-and-concierge-service-providers,marketplace,trade-uae-licensed,DTCM + DED licence,DTCM,,,Luxury & concierge
+category_overlay_075_travel-agencies,marketplace,trade-uae-licensed,IATA + DTCM travel licence,IATA;DTCM,,,Travel agencies
+category_overlay_076_domestic-services-companies,marketplace,trade-uae-licensed,MOHRE Tadbeer licence,MOHRE,,,Domestic services
+category_overlay_077_pet-care-and-veterinary-services,marketplace,trade-uae-licensed,MOCCAE veterinary licence,MOCCAE,,,Pet care & veterinary
+category_overlay_078_translation-and-interpretation-companies,marketplace,trade-uae-licensed,MOJ legal translation licence,Ministry of Justice,,,Translation & interpretation
+category_overlay_079_tender-and-bid-management-consultants,marketplace,proc-cips,CIPS + bid management,CIPS,,,Tender & bid management
+category_overlay_080_testing-inspection-and-certification-companies,marketplace,trade-tic,ISO/IEC 17020 + 17025,ISO;ILAC;EIAC,,,Testing inspection & certification
+category_overlay_081_modular-and-prefab-building-suppliers,marketplace,trade-concrete,ISO 22111 + prefab standards,ISO,trade-fitout,,Modular & prefab building
+category_overlay_082_gas-systems-suppliers,marketplace,trade-plumbing,NFPA 54 / EN 15001 gas,NFPA;CEN,,,Gas systems
+category_overlay_083_utility-contractors,marketplace,trade-electrical,IEC 60364 + DEWA/utility regs,IEC;DEWA,trade-plumbing,,Utility contractors
+category_overlay_084_wastewater-and-drainage-contractors,marketplace,trade-plumbing,EN 752 drainage + IAPMO,CEN;IAPMO,,,Wastewater & drainage
+category_overlay_085_signage-and-printing-suppliers,marketplace,trade-uae-licensed,Dubai Municipality signage permit + ISO 12647,Dubai Municipality;ISO,,,Signage & printing
+category_overlay_086_lifts-and-escalator-suppliers,marketplace,trade-lifts,EN 81-20/50 + ASME A17.1,CEN;ASME,,uae-fire,Lifts & escalators

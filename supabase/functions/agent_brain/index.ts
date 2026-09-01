@@ -506,6 +506,8 @@ Deno.serve(async (req)=>{
     let finalReply=clean||rawReply; const notes:string[]=[];
     if (incomplete) notes.push('incomplete:'+incomplete);
     if(acts&&Array.isArray(acts.handoffs)){
+      // The sender's department, resolved once, so a contract handoff (E15) can name a real from-dept.
+      let fromDept=''; try{ const {data:sd}=await admin.from('org_agents').select('department').eq('agent_key',key).maybeSingle(); fromDept=String((sd as any)?.department||''); }catch(_e){}
       for(const h of acts.handoffs.slice(0,5)){
         const to=String(h?.to||'').toLowerCase(); if(!VALID_AGENTS.includes(to)||to===key) continue;
         const title=String(h?.title||'task').slice(0,160); const details=String(h?.details||'').slice(0,800);
@@ -523,10 +525,32 @@ Deno.serve(async (req)=>{
         // and tell the next reader nothing, which is the failure this column set exists to prevent.
         const strList=(v:unknown,n:number,len:number)=>Array.isArray(v)&&v.length?v.map((x)=>String(x).slice(0,len)).slice(0,n):null;
         const strOrNull=(v:unknown,len:number)=>{const s=String(v??'').trim(); return s?s.slice(0,len):null;};
-        try{ await admin.from('agent_actions').insert({agent:to,kind:'handoff',status:'pending',risk:'low',title:('Handoff — '+title).slice(0,200),recommendation:details,
-          assumptions:strList(h?.assumptions,6,300), alternatives:strList(h?.alternatives,6,300),
-          expected_impact:strOrNull(h?.impact,400), cost:strOrNull(h?.cost,300),
-          detail:{from:key,from_name:m.name,requested_at:new Date().toISOString()},target_table:null}); notes.push('→ Handed to '+(NAMES[to]||to)+': '+title); }catch(_e){}
+        // CONTRACT HANDOFF (org audit E15). When the employee states a COMPLETE contract — a receiving
+        // department and role, a deadline, escalation conditions and closure criteria — route it through
+        // fn_handoff_open, which validates it and writes a handoff_contract the receiver can accept and
+        // close, instead of the contract-less agent_actions row this used to write. Nothing is invented:
+        // an incomplete handoff falls back to the legacy record below rather than being padded with
+        // default terms. Eliciting these fields from the model is the remaining, currently-unfunded, piece.
+        const toDept=strOrNull(h?.to_dept,40); const toRole=strOrNull(h?.to_role,60);
+        const deadline=strOrNull(h?.deadline,40); const escalation=strOrNull(h?.escalation,400);
+        const closure=strList(h?.closure,6,200);
+        let opened=false;
+        if(fromDept&&toDept&&toRole&&deadline&&escalation&&closure){
+          try{ const {data:ho}=await admin.rpc('fn_handoff_open',{p:{
+            from_dept:fromDept, accountable_owner:key, to_dept:toDept, to_role:toRole,
+            purpose:(strOrNull(h?.purpose,400)||title), requested_action:(details||title),
+            escalation_conditions:escalation, deadline:deadline,
+            acceptance_criteria:strList(h?.acceptance,6,200)||[], closure_criteria:closure,
+            evidence:strList(h?.assumptions,6,300)||[]}});
+            if((ho as any)?.ok){ opened=true; notes.push('→ Contract handoff to '+(NAMES[to]||to)+': '+title); }
+          }catch(_e){}
+        }
+        if(!opened){
+          try{ await admin.from('agent_actions').insert({agent:to,kind:'handoff',status:'pending',risk:'low',title:('Handoff — '+title).slice(0,200),recommendation:details,
+            assumptions:strList(h?.assumptions,6,300), alternatives:strList(h?.alternatives,6,300),
+            expected_impact:strOrNull(h?.impact,400), cost:strOrNull(h?.cost,300),
+            detail:{from:key,from_name:m.name,requested_at:new Date().toISOString()},target_table:null}); notes.push('→ Handed to '+(NAMES[to]||to)+': '+title); }catch(_e){}
+        }
       }
     }
     // ANSWERS: close a handoff a colleague raised. fn_handoff_answer refuses anything that is not an

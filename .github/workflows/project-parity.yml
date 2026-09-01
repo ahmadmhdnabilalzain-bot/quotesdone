@@ -85,6 +85,26 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/checks/export_from_either_source_is_identical.mjs
+      # LAUNCH STEP 1 — the four org signal paths, proven against production on every PR. It needs the
+      # credential, so per the rule above it belongs in a token-holding job or it "runs when somebody
+      # remembers, which is not a gate". Every write is an aborted-transaction probe (RAISE rolls it
+      # back — verified: 0 residue), it calls no model, and it retries a bare 429 so a concurrent
+      # management-API job cannot fail it falsely.
+      - name: The org connects like a real company (cascade, messaging, approval, escalation)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          NO_PAID_AI: 'true'
+          OPENROUTER_DISABLED: 'true'
+        run: node scripts/checks/org_connectivity_signal_path.test.mjs
+      # The adversarial companion: org-wide invariants (every role, every department) + the refusal
+      # cases (an empty department, an incomplete contract, a wrong approver, a refund by an AI, an
+      # unmeasurable goal). Same aborted-tx discipline, zero residue, no model.
+      - name: The org connectivity is correct under pressure (refusals + org-wide invariants)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          NO_PAID_AI: 'true'
+          OPENROUTER_DISABLED: 'true'
+        run: node scripts/checks/org_connectivity_scenarios.test.mjs
 
   # ============================================================================================
   # THE PHASE C GATE, RUN FOR REAL ON EVERY PULL REQUEST.

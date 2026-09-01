@@ -1,0 +1,9 @@
+# Fenced toolbox: the vendored tool code and venvs are NOT tracked.
+# Only TOOLBOX.md (the manifest) and this .gitignore are committed, so the
+# repo's parity gates and CI never see external source, but the toolbox is
+# documented and reproducible.
+*
+!.gitignore
+!TOOLBOX.md
+!PUBLIC_APIS_REFERENCE.md
+!venv-requirements.txt

@@ -113,10 +113,24 @@
     {
       "board": "fn_phase_c_freeze_drift",
       "check": "approved_change_requests_with_no_verified_governance_decision",
+      "max_numerator": 0,
+      "why": "Now 0 of 2 approved change requests lack a verified governance decision. PCCR-003 -- the founder approval of 21 Aug 2026 that predated the governance ledger and read 1 of 1 -- was retrospectively RATIFIED through the canonical door on 2026-08-27: fn_phase_c_governance_decide wrote public.phase_c_governance_decision.decision_id 10 under an AUTHENTICATED_FOUNDER_SESSION (approval_basis AUTHENTICATED_FOUNDER_SESSION, approval_route auth.uid(), auth_subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14, single-use auth_event_id 1614), quoting docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-003.md sha256 0293839b... verbatim. PCCR-007 was ratified the same way (decision_id 6, auth_event_id 1612). Both original approval and deployment dates are unchanged. So no approved change request now lacks a verified decision. The ceiling is 0: any NEW approved change request without a decision written by fn_phase_c_governance_decide -- which refuses any connection that is not an authenticated founder session -- fails this check.",
+      "owner": "CLOSED -- both approved change requests carry a verified governance-ledger decision written through the enforced founder-auth door. Ratchet lowered 1 -> 0 on 2026-08-31 to lock the gain; a regression (any approved CR with no verified decision) now fails.",
+      "measured_at": "2026-08-31, 0 of 2 approved"
+    },
+    {
+      "board": "fn_kernel_system_trace_state",
+      "check": "new_state_changing_system_executions_missing_a_trace",
       "max_numerator": 1,
-      "why": "PCCR-006 created public.phase_c_governance_decision and this board row on 25 Aug 2026, and the row reads 1 of 1 from its first moment. The one is PCCR-003 -- the founder approval of 21 Aug 2026, approved_by management@quotesdone.com, approved_at 2026-08-21 20:20:33+00 -- which has an approver and no governance_decision_id because the ledger did not exist when he gave it. Closing it would mean minting a ledger row for a decision that predates the ledger: inventing the verified session it never had, which is the exact defect PCCR-006 exists to close. It is REFUSED, not deferred. The same row is grandfathered by phase_c_change_request_approval_is_derived NOT VALID, whose migration asserts the grandfathered set is exactly PCCR-003 and fails if a second appears. The ceiling is 1: any NEW approved change request without a verified governance decision fails this check, and every approval after PCCR-006 must come through fn_phase_c_governance_decide, which refuses any connection whose session_user is not authenticator.",
-      "owner": "CLOSED-BY-DESIGN -- historical, preserved as evidence. It cannot reach 0 without fabricating a decision record, and it must not.",
-      "measured_at": "2026-08-25, 1 of 1"
+      "why": "One wrapped state-changing cron execution has no system-execution trace: policy_consistency_weekly run 364926 at 2026-08-31 06:30:00Z, status FAILED. fn_policy_consistency_check regex-scanned the whole of kb_chunks (grown to 2.69M during agent-expertise ingestion) and hit the 120s statement timeout, which aborted the entire transaction -- including the trace-write fn_kernel_cron_exec performs at the end. The ROOT CAUSE is fixed (scripts/sql/fix_policy_consistency_kb_scale.sql scopes the scan to the ~95k company-authored kinds; verified ~7s), so future runs complete and trace. This historical failed run CANNOT be traced retroactively: the trace pair is written by fn_kernel_intake_execution / fn_kernel_system_execution_finish|_fail, which stamp now() and would not overlap the 06:30 run, and phase_c_system_execution is append-only under z90_system_execution_pair_guard. It changed no state (it died during the read, before any insert). The ceiling is 1: a SECOND untraced execution (any regression) fails this check.",
+      "owner": "CLOSED -- transient timeout casualty of the corpus-scale defect, now fixed; the one failed run cannot be legitimately traced after the fact and is disclosed rather than backfilled. Ratcheted at 1; a 2nd fails."
+    },
+    {
+      "board": "fn_kernel_system_trace_state",
+      "check": "new_state_changing_system_executions_with_required_trace",
+      "max_numerator": 100000000,
+      "why": "The inverse view of the same single gap above: 11110 of 11111 wrapped state-changing cron executions since the epoch carry their trace -- the one missing is policy_consistency_weekly run 364926 (see the paired new_state_changing_system_executions_missing_a_trace entry). This metric is a COVERAGE COUNT that grows as more executions are traced, not a debt count, so a fixed low ceiling would false-fail every week as coverage rises; the ratchet's grown-check compares the numerator (the traced count) to the ceiling, so the ceiling is deliberately set above the running total. The REAL debt gauge is the paired missing_a_trace check, ratcheted tight at 1 -- any genuinely new untraced execution surfaces there. Not a hiding place: a regression is caught by missing_a_trace going 1 -> 2.",
+      "owner": "CLOSED -- coverage-count inverse of the one disclosed missing trace; the binding gauge is missing_a_trace=1. Owner tracks both as one item (the fixed policy_consistency timeout)."
     }
   ]
 }

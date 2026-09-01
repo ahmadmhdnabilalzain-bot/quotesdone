@@ -1744,3 +1744,70 @@ scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
 scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql
 scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql
 scripts/sql/spec3_the_ownership_ledger_still_named_the_superseded_file.sql
+scripts/sql/stage0_remove_two_stale_authority_grants.sql
+scripts/sql/stage1_ai_managerial_approval_tier.sql
+scripts/sql/expertise_istqb_ctfl_qa_test_design.sql
+scripts/sql/fix_policy_consistency_kb_scale.sql
+scripts/sql/launch_step1_ceo_escalates_to_founder.sql
+scripts/sql/launch_step1_task_assign_fills_the_department.sql
+scripts/sql/launch_step1_founder_reports_read_live_objectives.sql
+scripts/sql/launch_step1_a_new_target_cascades.sql
+scripts/sql/launch_step1_escalation_targets_resolve.sql
+scripts/sql/launch_step1_ownership_ledger_follows_the_manifest.sql
+scripts/sql/launch_step1_kpi_assignment.sql
+scripts/sql/launch_step1_ceo_priorities_reach_their_officer.sql
+scripts/sql/only_refunds_reach_the_founder.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/only_refunds_ownership_ledger.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/pacr_002_the_real_company_reporting_shape.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/the_missed_kpi_opens_remediation.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/the_missed_kpi_ownership_ledger.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/a_task_is_born_owned_and_tied_to_its_target.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/dual_approval_for_spend_and_contract.sql
+scripts/sql/spend_contract_dispatch_needs_two.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/spend_contract_dispatch_ownership_ledger.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/incidents_get_an_owner_a_task_and_a_watchdog.sql
+scripts/sql/the_board_sees_runway_cash_and_burn.sql
+scripts/sql/customer_experience_and_assurance_get_their_own_os.sql
+scripts/sql/the_board_sees_runway_cash_and_burn_ownership_ledger.sql
+scripts/sql/pbcr_003_the_security_role_owns_the_security_workflow.sql
+scripts/sql/the_measurement_spine_carries_a_signal.sql
+scripts/sql/the_measurement_spine_carries_a_signal_ownership_ledger.sql
+scripts/sql/five_events_that_can_wake_a_workflow.sql
+scripts/sql/goal_retirement_re_plans_through_the_kernel.sql
+scripts/sql/goal_retirement_re_plans_through_the_kernel_ownership_ledger.sql
+scripts/sql/the_executor_gate_gets_teeth.sql
+scripts/sql/the_executor_gate_gets_teeth_ownership_ledger.sql
+scripts/sql/the_org_can_promote_not_only_punish.sql
+scripts/sql/an_apex_backup_stands_in_for_the_ceo.sql
+scripts/sql/an_apex_backup_stands_in_for_the_ceo_ownership_ledger.sql
+scripts/sql/the_amendment_reaches_the_step_binding.sql
+scripts/sql/the_amendment_reaches_the_step_binding_ownership_ledger.sql
+scripts/sql/every_queued_action_has_an_author.sql
+scripts/sql/outcome_grading_resumes_and_respects_the_hold.sql
+scripts/sql/outcome_grading_resumes_and_respects_the_hold_ownership_ledger.sql
+scripts/sql/pbcr_004_reviewers_are_independent_across_departments.sql
+scripts/sql/work_creating_crons_stay_disabled_until_kernel_registered.sql

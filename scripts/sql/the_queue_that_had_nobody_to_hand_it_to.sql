@@ -69,6 +69,7 @@ create or replace function public.fn_action_invoke_dispatch(p_limit integer defa
 as $function$
 declare r record; v_req bigint; v_sent int := 0; v_refused int := 0; v_skipped int := 0;
         v_url text; v_secret text; v_ref text; v_key text;
+        v_awaiting int := 0; v_appr record; v_resolved jsonb; v_entitled text;
 begin
   select value into v_secret from app_secrets where key = 'cred_action_invoker';
   if v_secret is null then
@@ -87,7 +88,7 @@ begin
     select a.id, a.action_class, a.request, a.idempotency_key, a.attempts,
            e.target, e.kind, e.active, e.risk_tier, e.advisory_safe, e.reversible,
            e.required_authority, e.compensation_action_class, e.idempotency_strategy, e.params,
-           e.notifies_human, e.unattended_ok,
+           e.notifies_human, e.unattended_ok, e.department,
            coalesce(e.timeout_seconds, 60) timeout_seconds, coalesce(e.max_attempts, 1) max_attempts
       from public.action_execution a
       join public.org_action_executor e on e.action_class = a.action_class
@@ -95,30 +96,63 @@ begin
      order by a.created_at
      limit greatest(coalesce(p_limit, 5), 1)
   loop
-    -- ---- the three absolute refusals, the human-contact refusal, then the risk tier -----------
-    -- notifies_human is checked BEFORE the risk tier on purpose. The tier answers "how much
-    -- damage if this is wrong"; notifies_human answers "does a person hear from us either way",
-    -- and a message that should not have been sent cannot be un-sent by a low risk score.
+    -- ---- absolute refusals: inactive, founder-reserved (refunds), irreversible-with-no-undo -----
+    -- These are never dispatched and never AI-approvable. The refund gate stays with the founder; an
+    -- irreversible action with no compensation has no safe autonomous path even with a head's approval.
     if not r.active
        or coalesce(r.required_authority,'') = 'founder'
-       or (not r.reversible and r.compensation_action_class is null)
-       or (coalesce(r.notifies_human,false) and not coalesce(r.unattended_ok,false))
-       or not (r.risk_tier = 'low' and r.advisory_safe and r.reversible) then
+       or (not r.reversible and r.compensation_action_class is null) then
       update public.action_execution
          set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
                'invoker', 'refused', 'at', now(),
                'reason', case
                  when not r.active then 'executor row is inactive'
                  when coalesce(r.required_authority,'') = 'founder' then 'reserved to the founder'
-                 when (not r.reversible and r.compensation_action_class is null)
-                   then 'not reversible and declares no compensation_action_class'
-                 when (coalesce(r.notifies_human,false) and not coalesce(r.unattended_ok,false))
-                   then 'notifies_human is true and unattended_ok has not been set for this class — a person hears from us when this runs, and nobody has decided it may run unattended'
-                 else format('risk gate: tier=%s advisory_safe=%s reversible=%s — the invoker dispatches low/advisory_safe/reversible only',
-                             r.risk_tier, r.advisory_safe, r.reversible) end)
+                 else 'not reversible and declares no compensation_action_class' end)
        where id = r.id;
       v_refused := v_refused + 1;
       continue;
+    end if;
+
+    -- ---- the AI-managerial middle tier -------------------------------------------------------------
+    -- Auto-dispatch is the old gate: low risk, advisory-safe, reversible, and not a human-notifying
+    -- class that nobody cleared to run unattended. Anything else is CONSEQUENTIAL. Instead of the old
+    -- dead refusal, a consequential action routes to its accountable AI head/officer (never the
+    -- founder — that path was refused above) and dispatches only once the head records an approval.
+    if not (r.risk_tier = 'low' and r.advisory_safe and r.reversible
+            and not (coalesce(r.notifies_human,false) and not coalesce(r.unattended_ok,false))) then
+      select * into v_appr from public.action_approval where action_execution_id = r.id;
+
+      if found and v_appr.approval_decision = 'approved' and v_appr.consumed_at is null then
+        -- an AI head/officer approved this specific action: consume it (single-use) and dispatch below.
+        update public.action_approval set consumed_at = now() where action_execution_id = r.id;
+      elsif found and v_appr.approval_decision = 'rejected' then
+        update public.action_execution
+           set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                 'invoker','refused','at',now(),'approver', v_appr.approver_role,
+                 'reason','the accountable AI head rejected this action: '||coalesce(v_appr.reason,''))
+         where id = r.id;
+        v_refused := v_refused + 1;
+        continue;
+      else
+        -- not yet decided: route to the entitled head/officer and park it (still queued, no dispatch).
+        v_resolved := public.fn_action_resolve_approver(r.department, r.risk_tier);
+        v_entitled := v_resolved->>'approver';
+        insert into public.action_approval
+          (action_execution_id, action_class, department, accountable_approver,
+           approval_decision, risk_tier, authority_basis)
+        values (r.id, r.action_class, r.department, coalesce(v_entitled,'(unresolved)'),
+                'requested', r.risk_tier, v_resolved->>'basis')
+        on conflict (action_execution_id) do nothing;
+        update public.action_execution
+           set response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                 'invoker','awaiting_head_approval','at',now(),
+                 'entitled_approver', v_entitled, 'risk_tier', r.risk_tier,
+                 'basis', v_resolved->>'basis')
+         where id = r.id;
+        v_awaiting := v_awaiting + 1;
+        continue;
+      end if;
     end if;
 
     -- ---- idempotency: the column exists on both tables and was never consulted ---------------
@@ -166,7 +200,7 @@ begin
   end loop;
 
   return jsonb_build_object('dispatched', v_sent, 'refused', v_refused,
-                            'deduplicated', v_skipped, 'ran_at', now());
+                            'deduplicated', v_skipped, 'awaiting_approval', v_awaiting, 'ran_at', now());
 end $function$;
 
 -- ---------------------------------------------------------------------------------------------
