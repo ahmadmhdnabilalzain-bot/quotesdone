@@ -1835,3 +1835,5 @@ scripts/sql/agent_knows_its_own_kpis.sql
 scripts/sql/every_agent_knows_the_org_and_content.sql
 scripts/sql/agent_knows_its_own_kpis_ownership_ledger.sql
 scripts/sql/agents_can_look_up_any_business_entity.sql
+scripts/sql/every_agent_is_a_twenty_year_veteran.sql
+scripts/sql/every_agent_is_a_twenty_year_veteran_ownership_ledger.sql

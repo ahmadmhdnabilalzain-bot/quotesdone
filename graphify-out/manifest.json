@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788292402.5371351,
-    "ast_hash": "26ee9c647c88621a52993f99043e7d2c",
+    "mtime": 1788293239.7730048,
+    "ast_hash": "69c176e1d8cf0fd3b3440fbd0d99cbc8",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788292011.7444844,
-    "ast_hash": "deb3a7fecc96d17bb3f317781e8c2b76",
+    "mtime": 1788293202.913088,
+    "ast_hash": "fda3a44c814aed484555d896ec3752ad",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -22107,6 +22107,16 @@
   "scripts/sql/agents_can_look_up_any_business_entity.sql": {
     "mtime": 1788292105.2425666,
     "ast_hash": "ae144252784f1243c515ad83ac1d1aff",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_is_a_twenty_year_veteran.sql": {
+    "mtime": 1788293118.046861,
+    "ast_hash": "e52a8171ae62da36f732bfa40513d45f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_is_a_twenty_year_veteran_ownership_ledger.sql": {
+    "mtime": 1788293202.9115806,
+    "ast_hash": "b0b5bc6f853d481d7f8ea2bc00d08d7a",
     "semantic_hash": ""
   }
 }
