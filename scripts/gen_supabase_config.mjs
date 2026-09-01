@@ -2,10 +2,19 @@
 //
 // THE PROBLEM THIS SOLVES. There was no supabase/config.toml, so `supabase functions deploy` took
 // verify_jwt from whatever flag it was given. The habit in the deploy scripts is a blanket
-// --no-verify-jwt. 17 of the 190 deployed functions genuinely REQUIRE a JWT - including
-// stripe_setup, project_api, brand_upload and the whole os_* operator console. One routine
-// redeploy of any of those with the blanket flag silently removes that requirement, and nothing
-// fails, nothing logs, and no test catches it. A security regression introduced by a security fix.
+// --no-verify-jwt. 13 functions genuinely REQUIRE a JWT at the edge - stripe_setup, project_api,
+// brand_upload and 10 others. One routine redeploy of any of those with the blanket flag silently
+// removes that requirement, and nothing fails, nothing logs, and no test catches it. A security
+// regression introduced by a security fix.
+//
+// NOTE (2 Sep 2026): the os_* operator console is DELIBERATELY verify_jwt=false, NOT an oversight.
+// The os_* functions share a build-mode "open door" (fn_os_open_access): when that DB flag is open,
+// they run with NO JWT under build-mode@quotesdone.local for operator/build-time recovery, and the OS
+// frontend (src/lib/osClient.ts) sends tokenless requests to use it. verify_jwt=true would sever that
+// door at the edge, so os_* stay edge-open and are guarded IN CODE (admin.auth.getUser +
+// app_secrets.admin_emails, skipped only under the build-mode flag). Do NOT hand-add os_* to the JWT
+// list - this file is generated from the LIVE values; the count is whatever live actually is (13).
+// Edge-gating os_* is only correct AFTER build mode is retired (a launch decision, see docs/step3).
 //
 // This generates an explicit block per function from the LIVE Management API values, so the auth
 // posture is reviewable in git and a diff is the alarm.

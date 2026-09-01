@@ -3,24 +3,24 @@
   "rid": "itsec_edge-function-attack-surface_01",
   "dept": "product_eng",
   "module": "edge-function-attack-surface",
-  "subdomain": "",
-  "title": "JWT posture of the ~203 edge functions — MEASURED, not as the stale comment claims",
-  "content": "MEASURED 2 Sep 2026 from supabase/config.toml. EXACTLY 13 functions pin verify_jwt=true at the edge: brand_upload, contact_submit, customer_intelligence, negotiation_assistant, procurement_api, project_api, put_src, quote_quality, rate_dims, src_io, stripe_setup, wa_optin_set, wa_templates_watch. The config HEADER COMMENT claims \"20\" and additionally lists os_automation, os_catalog, os_health, os_incidents, os_ops, os_pages, os_settings — but those 7 os_* admin functions have NO verify_jwt block, so they are verify_jwt=false (reachable unauthenticated at the edge). They are NOT open: each enforces admin auth IN CODE against app_secrets.admin_emails (admin.auth.getUser then email must be in the allowlist). So this is a DEFENSE-IN-DEPTH DRIFT on the OS/admin surface — the intended edge JWT gate is missing while the in-code allowlist still protects it — NOT an exploitable hole. Every other (~180) function is verify_jwt=false by design: internal, shared-secret (requireInternal/fn_internal_auth), or in-code guarded. config.toml is pinned because deploy passes a blanket --no-verify-jwt; without it a routine redeploy would silently strip JWT from the 13. RULE for an agent: never trust the header count — the authoritative fact is the count of per-function verify_jwt=true blocks (13). Open finding: reconcile the header to 13, or restore verify_jwt=true on the 7 os_* to match documented intent (test the OS dashboard callers first — they must then present a JWT).",
+  "subdomain": "edge auth posture",
+  "title": "JWT posture of the ~202 edge functions — MEASURED (13 gated), and WHY os_* are edge-open",
+  "content": "MEASURED 2 Sep 2026 from the live project and supabase/config.toml (regenerated to match). EXACTLY 13 functions are verify_jwt=true at the edge: brand_upload, contact_submit, customer_intelligence, negotiation_assistant, procurement_api, project_api, put_src, quote_quality, rate_dims, src_io, stripe_setup, wa_optin_set, wa_templates_watch. All 7 os_* admin functions are verify_jwt=FALSE at the edge — this is BY DESIGN, not a gap: they share the build-mode open door (see the \"Build-mode OPEN DOOR\" record / fn_os_open_access), and verify_jwt=true would sever it. Off the build-mode path they are guarded IN CODE (admin.auth.getUser + app_secrets.admin_emails). config.toml is a generated MIRROR of the live values (scripts/gen_supabase_config.mjs); its header had been hand-edited to falsely claim 20 including os_* — corrected by regeneration. RULE for an agent: config.toml is generated from live; never hand-edit it, and never trust its header over the count of per-function verify_jwt=true blocks (13). Edge-gating os_* is only correct AFTER build mode is retired (a launch decision). Every other (~180) function is verify_jwt=false by design: internal/shared-secret (requireInternal/fn_internal_auth) or in-code guarded.",
   "kw": [
    "verify_jwt",
    "config.toml",
    "edge function",
    "attack surface",
-   "unauthenticated",
-   "public endpoint",
    "os_api",
    "admin_emails",
-   "defense in depth",
-   "config drift",
-   "13 not 20"
+   "build mode",
+   "fn_os_open_access",
+   "13 not 20",
+   "generated mirror",
+   "defense in depth"
   ],
   "risk": "high",
-  "source": "MEASURED against supabase/config.toml 2 Sep 2026 (13 verify_jwt=true blocks; header comment overclaims 20; os_* code-guarded by admin_emails)"
+  "source": "MEASURED vs live project + supabase/config.toml regenerated 2 Sep 2026; build-mode door is why os_* are edge-open"
  },
  {
   "rid": "itsec_edge-function-attack-surface_02",
@@ -3467,5 +3467,26 @@
   ],
   "risk": "medium",
   "source": "Synthesizes the platform's monitors (ai_health, resilience_ping, uptime_check, cost_snapshot, fn_day_conductor) with MEMORY 'never state what you have not measured', 'decide do not present options'. Method: Google SRE error-budget policy."
+ },
+ {
+  "rid": "itsec_kernel-and-app-controls_build_mode_door",
+  "dept": "assurance",
+  "module": "kernel-and-app-controls",
+  "subdomain": "build-mode open door",
+  "title": "Build-mode OPEN DOOR — the whole os_* operator console can run with NO JWT",
+  "content": "The 7 os_* edge functions (os_ops, os_health, os_settings, os_incidents, os_automation, os_catalog, os_pages) share a build-mode \"open door\". Each checks the DB flag fn_os_open_access() near the top: when it returns TRUE and the request has no/invalid token, the function sets viaBuildMode, adopts identity build-mode@quotesdone.local, SKIPS admin.auth.getUser AND the app_secrets.admin_emails check, and performs real work (pause/resume/reschedule/run pg_cron jobs, catalog and settings mutations). Access is authorised by a DB flag, not by a JWT. The OS frontend (src/lib/osClient.ts) is written to send TOKENLESS requests (no Authorization header) when no session exists, precisely to use this door for operator/build-time recovery (the \"session expired\" case). CURRENT STATE (2 Sep 2026): the door is CLOSED — fn_os_open_access() returns false; newest public.os_open_access_log row id=3 state=closed since 2026-08-16 — so the only live traffic is the logged-in admin sending a valid Supabase JWT, and no cron/server-to-server caller exists. SECURITY IMPLICATIONS: (1) This is a deliberate, re-openable backdoor. Whoever can INSERT a state=open row into public.os_open_access_log re-opens unauthenticated admin access to the entire OS console — so write-authority on os_open_access_log IS the real control; audit who can write it and alert on any new state=open row. (2) It is exactly why the os_* functions are verify_jwt=false at the edge: verify_jwt=true would reject tokenless requests BEFORE the function runs, permanently severing the door (re-opening the flag would silently have no effect). (3) To edge-gate os_* (defense-in-depth) you must FIRST retire build mode (remove the fn_os_open_access branch + stop osClient sending tokenless requests) — a launch-time decision.",
+  "kw": [
+   "build mode",
+   "fn_os_open_access",
+   "os_open_access_log",
+   "open door",
+   "unauthenticated admin",
+   "os_ops",
+   "verify_jwt",
+   "backdoor",
+   "operator recovery"
+  ],
+  "risk": "critical",
+  "source": "audit 2 Sep 2026 of os_* index.ts (build-mode branch) + src/lib/osClient.ts + os_open_access_log state"
  }
 ]
