@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T18:21:58.391Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T20:40:23.725Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8875,7 +8875,7 @@ ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_ident
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_status_check CHECK ((status = ANY (ARRAY['open'::text, 'pursuing'::text, 'won'::text, 'dismissed'::text])));
-ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_layer_ck CHECK (((layer IS NULL) OR (layer = ANY (ARRAY['company_core'::text, 'department_shared'::text, 'role_specific'::text, 'task_specific'::text, 'category_specialist'::text, 'validated_experience'::text, 'policy'::text, 'authority'::text, 'kpi'::text, 'decision_playbook'::text, 'case_training'::text, 'failure_mode'::text, 'remediation'::text, 'source_reference'::text]))));
+ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_layer_ck CHECK (((layer IS NULL) OR (layer = ANY (ARRAY['company_core'::text, 'department_shared'::text, 'role_specific'::text, 'task_specific'::text, 'category_specialist'::text, 'validated_experience'::text, 'policy'::text, 'authority'::text, 'kpi'::text, 'decision_playbook'::text, 'case_training'::text, 'failure_mode'::text, 'remediation'::text, 'source_reference'::text, 'it_security_deep'::text]))));
 ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_supersession_ck CHECK ((supersession_state = ANY (ARRAY['current'::text, 'superseded'::text, 'withdrawn'::text])));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_idem_chk CHECK (((idempotency_strategy IS NULL) OR (idempotency_strategy = ANY (ARRAY['natural_key'::text, 'request_hash'::text, 'external_id'::text, 'upsert_on_conflict'::text, 'none_read_only'::text]))));
 ALTER TABLE public.org_action_executor ADD CONSTRAINT org_action_executor_kind_check CHECK ((kind = ANY (ARRAY['rpc'::text, 'edge'::text])));
@@ -18027,6 +18027,18 @@ begin
          case when p_category_key is null then '[]'::jsonb
               else fn_context_slice(null, null, p_category_key, 'category_specialist', v_q, v_budget / 6) end);
 
+  -- WHOLE-COMPANY RECALL (the 20-year veteran). The scoped slices above give the agent its own
+  -- department; this gives it the rest of the company: the top matches from the ENTIRE knowledge base,
+  -- any department, so the agent can act on any company fact, not only its own corner.
+  v_out := v_out || jsonb_build_object('company_wide_knowledge',
+    case when v_q is null then '[]'::jsonb else public.fn_company_knowledge_search(p_task_text, 6) end);
+
+  -- IT/CYBERSECURITY DEEP LAYER (Step 3). The company knowledge above is universal; the app's code
+  -- and its security are the ONE extra layer, and only the engineering + assurance agents carry it.
+  -- fn_it_security_slice returns [] for every other department, so this stays scoped to IT/cyber.
+  v_out := v_out || jsonb_build_object('it_security_knowledge',
+    public.fn_it_security_slice(v_agent.department, v_q, v_budget / 3));
+
   -- 4. VALIDATED EXPERIENCE — only lessons a manager or evaluator has validated. A proposed
   --    lesson is deliberately invisible here; that is the whole point of the two states.
   v_out := v_out || jsonb_build_object('validated_experience', coalesce((
@@ -20721,6 +20733,85 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_business_entity_list(p_entity text, p_filter text DEFAULT NULL::text, p_limit integer DEFAULT 25)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; e text := lower(btrim(coalesce(p_entity,''))); f text := btrim(coalesce(p_filter,'')); n int := least(greatest(coalesce(p_limit,25),1),200);
+begin
+  if e in ('customer','buyer') then
+    select jsonb_agg(to_jsonb(c)) into v from (select id,email,phone,created_at from public.customers order by created_at desc limit n) c;
+  elsif e in ('supplier','lead','vendor') then
+    select jsonb_agg(to_jsonb(l)) into v from (
+      select id,company_name,contact_name,email,phone,approval_status,created_at from public.leads
+       where f='' or company_name ilike '%'||f||'%' or approval_status=f
+       order by (approval_status='approved') desc, created_at desc limit n) l;
+  elsif e in ('inquiry','rfq','request') then
+    select jsonb_agg(to_jsonb(i)) into v from (
+      select id,customer_id,category,status,created_at from public.inquiries
+       where f='' or status=f or category ilike '%'||f||'%' order by created_at desc limit n) i;
+  elsif e in ('quote','quotation','offer') then
+    select jsonb_agg(to_jsonb(q)) into v from (select id,inquiry_id,supplier_id,quote_amount,status,created_at from public.quotes order by created_at desc limit n) q;
+  elsif e in ('transaction','payment','order','reveal') then
+    select jsonb_agg(to_jsonb(t)) into v from (select id,inquiry_id,supplier_id,customer_id,quote_amount from public.transactions limit n) t;
+  else
+    return jsonb_build_object('ok',false,'error','unknown entity "'||e||'". Use: customer, supplier, inquiry, quote or transaction.');
+  end if;
+  return jsonb_build_object('ok',true,'entity',e,'filter',nullif(f,''),'items',coalesce(v,'[]'::jsonb),'count',jsonb_array_length(coalesce(v,'[]'::jsonb)));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_business_entity_lookup(p_entity text, p_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; e text := lower(btrim(coalesce(p_entity,''))); k text := btrim(coalesce(p_key,''));
+begin
+  if k = '' then return jsonb_build_object('ok',false,'error','a key is required (id, email, company name or phone)'); end if;
+  if e in ('customer','buyer') then
+    select to_jsonb(c) into v from public.customers c where c.id::text=k or lower(c.email)=lower(k) or c.phone=k limit 1;
+  elsif e in ('supplier','lead','vendor') then
+    select to_jsonb(l) into v from public.leads l where l.id::text=k or lower(l.email)=lower(k) or l.company_name ilike k or l.phone=k limit 1;
+  elsif e in ('inquiry','rfq','request') then
+    select to_jsonb(i) into v from public.inquiries i where i.id::text=k limit 1;
+  elsif e in ('quote','quotation','offer') then
+    select to_jsonb(q) into v from public.quotes q where q.id::text=k limit 1;
+  elsif e in ('transaction','payment','order','reveal') then
+    select to_jsonb(t) into v from public.transactions t where t.id::text=k limit 1;
+  else
+    return jsonb_build_object('ok',false,'error','unknown entity "'||e||'". Use: customer, supplier, inquiry, quote or transaction.');
+  end if;
+  if v is null then return jsonb_build_object('ok',true,'entity',e,'key',k,'found',false); end if;
+  return jsonb_build_object('ok',true,'entity',e,'found',true,'profile',v);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_business_entity_summary()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'as_of', now(),
+    'customers',            (select count(*) from public.customers),
+    'customers_with_inquiry',(select count(distinct customer_id) from public.inquiries where customer_id is not null),
+    'suppliers_total',      (select count(*) from public.leads),
+    'suppliers_approved',   (select count(*) from public.leads where approval_status='approved'),
+    'suppliers_prospective',(select count(*) from public.leads where coalesce(approval_status,'') <> 'approved'),
+    'sendable_supplier_pool',(select coalesce(sum(sendable),0)::int from public.v_supply_gap),
+    'inquiries',            (select count(*) from public.inquiries),
+    'quotes',               (select count(*) from public.quotes),
+    'transactions',         (select count(*) from public.transactions),
+    'categories_total',     (select count(*) from public.catalog_supplier_categories),
+    'categories_at_target', (select count(*) from public.v_supply_gap where approved >= 10));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_cancel_inquiry(p_inquiry uuid, p_customer uuid, p_reason text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -22018,6 +22109,32 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_company_knowledge_search(p_question text, p_limit integer DEFAULT 8)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with q as (select public.fn_task_tsquery(p_question) as tsq)
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'title', title,
+           'scope', case when scope_type='company' then 'company-wide' else coalesce(dept_key, scope_key, layer) end,
+           'layer', layer,
+           'content', left(content, 1500))
+         order by rank desc), '[]'::jsonb)
+  from (
+    select k.title, k.scope_type, k.dept_key, k.scope_key, k.layer, k.content,
+           ts_rank(k.tsv, (select tsq from q)) as rank
+      from public.ops_knowledge k
+     where k.runtime_eligible and k.supersession_state = 'current'
+       and k.layer is distinct from 'it_security_deep' -- IT/cyber layer is scoped, not universal
+       and (select tsq from q) is not null and k.tsv @@ (select tsq from q)
+     order by ts_rank(k.tsv, (select tsq from q)) desc, coalesce(k.effective_date,'1900-01-01') desc
+     limit greatest(least(coalesce(p_limit,8), 30), 1)
+  ) x;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_company_knowledge_upsert(p_rid text, p_module text, p_title text, p_content text, p_kw text[])
  RETURNS void
  LANGUAGE plpgsql
@@ -22091,7 +22208,8 @@ CREATE OR REPLACE FUNCTION public.fn_company_org_directory_sync()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_n int := 0;
+declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_cat text;
+        v_wf text; v_legal text; v_compl text; v_biz jsonb; v_n int := 0;
 begin
   -- 1. THE WHOLE ORG DIRECTORY — one record per department; everyone knows everyone's role, line
   --    manager, what they are measured on and their live rating.
@@ -22150,6 +22268,61 @@ begin
     'WEBSITE PAGES we publish (the public site an agent should know exists):' || E'\n' || coalesce(v_web,'(none)')
     || E'\n\nThe published legal terms, services and marketing copy live on these pages; the terms and commercials are also summarised in the company terms and commercials knowledge.',
     array['website','web page','our site','pages','website content','what is on our website','public site']);
+  v_n := v_n + 1;
+
+  -- 4. THE SUPPLIER CATEGORY TAXONOMY — every category an RFQ can be routed to.
+  select string_agg('  ' || num || '. ' || name || case when regulated then ' (regulated)' else '' end, E'\n' order by sort, num)
+    into v_cat from public.catalog_supplier_categories;
+  perform public.fn_company_knowledge_upsert('categories', 'taxonomy',
+    'QuotesDone — The Supplier Categories We Cover',
+    'SUPPLIER CATEGORIES (' || (select count(*) from public.catalog_supplier_categories)::text
+      || ' in total) — every category an RFQ can be routed to, in order:' || E'\n' || coalesce(v_cat, '(none)'),
+    array['categories','supplier categories','what do we cover','category list','taxonomy','trades','how many categories','what categories','regulated categories','which category','list the categories']);
+  v_n := v_n + 1;
+
+  -- 5. THE FULL OPERATING CATALOG — all 30 workflows the company runs, every domain (not just the funnel).
+  select string_agg('  ' || workflow_id || ' [' || coalesce(domain,'') || '] ' || workflow_name, E'\n' order by workflow_id)
+    into v_wf from public.phase_b_workflow;
+  perform public.fn_company_knowledge_upsert('workflows', 'operating_model',
+    'QuotesDone — The 30 Workflows We Run',
+    'THE COMPANY''S FULL OPERATING MODEL — every workflow the company runs, by id, domain and purpose:' || E'\n'
+    || coalesce(v_wf,'') || E'\n'
+    || 'The marketplace core (customer to suppliers to reveal) is W05 to W06 to W07 to W08 to W12 to W13 to W14 to W15 to W16; '
+    || 'the rest run growth (W01-W03,W20,W21), product/AI (W22-W24), finance (W16,W27), legal (W28), assurance/security (W24,W29), '
+    || 'data/knowledge (W25,W26) and people/org (W30).',
+    array['workflows','processes','how we operate','operating model','what workflows do we run','what does workflow','the 30 workflows','how does work flow end to end','our processes','company operations']);
+  v_n := v_n + 1;
+
+  -- 6. LEGAL, COMPLIANCE AND POLICY FRAMEWORK.
+  select string_agg('  - ' || coalesce(title, slug) || case when coalesce(category,'') <> '' then ' [' || category || ']' else '' end
+         || case when coalesce(summary,'') <> '' then ': ' || left(summary,140) else '' end, E'\n' order by category, title)
+    into v_legal from public.legal_documents;
+  select string_agg('  - ' || requirement || ' (' || case when present then 'in place' else 'pending' end || ')', E'\n' order by priority nulls last, id)
+    into v_compl from public.legal_checklist;
+  perform public.fn_company_knowledge_upsert('legal', 'legal_compliance',
+    'QuotesDone — Legal, Compliance and Policy Framework',
+    'LEGAL & COMPLIANCE. QuotesDone operates under UAE law (Asia/Dubai; PDPL data protection). Published legal documents:' || E'\n'
+    || coalesce(v_legal,'(none)') || E'\n' || 'Compliance checklist:' || E'\n' || coalesce(v_compl,'(none)') || E'\n'
+    || 'Posture: anonymous marketplace, buyer/supplier identities protected until reveal, EVERY refund is founder-approved, '
+    || 'late fees under UAE Federal Decree-Law 50/2022, disputes handled through a defined escalation ladder.',
+    array['legal','compliance','regulatory','policy','terms of service','privacy policy','pdpl','data protection','uae law','are we compliant','legal documents','what laws apply','governing law','gdpr']);
+  v_n := v_n + 1;
+
+  -- 7. THE BUSINESS ENTITIES — the live customer/supplier/order landscape, and HOW to look up any one.
+  begin v_biz := public.fn_business_entity_summary(); exception when others then v_biz := '{}'::jsonb; end;
+  perform public.fn_company_knowledge_upsert('business-entities', 'business_data',
+    'QuotesDone — Our Customers, Suppliers and Orders (live), and how to look them up',
+    'THE BUSINESS RIGHT NOW (live counts):' || E'\n' ||
+    '  Customers: ' || coalesce(v_biz->>'customers','0') || ' (with an inquiry: ' || coalesce(v_biz->>'customers_with_inquiry','0') || ')' || E'\n' ||
+    '  Suppliers: ' || coalesce(v_biz->>'suppliers_total','0') || ' total — ' || coalesce(v_biz->>'suppliers_approved','0') || ' approved, '
+      || coalesce(v_biz->>'suppliers_prospective','0') || ' prospective; sendable pool ' || coalesce(v_biz->>'sendable_supplier_pool','0') || E'\n' ||
+    '  Inquiries/RFQs: ' || coalesce(v_biz->>'inquiries','0') || '  ·  Quotes: ' || coalesce(v_biz->>'quotes','0') || '  ·  Transactions/orders: ' || coalesce(v_biz->>'transactions','0') || E'\n' ||
+    '  Categories: ' || coalesce(v_biz->>'categories_total','0') || ' (' || coalesce(v_biz->>'categories_at_target','0') || ' at the 10-supplier target)' || E'\n' ||
+    'HOW TO KNOW A SPECIFIC ONE (do not memorise the records — look them up live):' || E'\n' ||
+    '  - fn_business_entity_lookup(entity, key): one customer/supplier/inquiry/quote/transaction by id, email, company name or phone -> its full profile.' || E'\n' ||
+    '  - fn_business_entity_list(entity, filter, limit): list or search them (e.g. all approved suppliers, recent inquiries).' || E'\n' ||
+    '  - fn_business_entity_summary(): these live counts. Call these functions directly — you run with the database access to do so.',
+    array['customers','suppliers','how many customers','how many suppliers','who are our customers','who are our suppliers','their profiles','their orders','look up a supplier','find a customer','list suppliers','our orders','the crm','business data','inquiries','quotes','transactions','entity lookup']);
   v_n := v_n + 1;
 
   return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now());
@@ -22240,8 +22413,17 @@ declare
   v_target text; v_deadline text;
   v_social text; v_social_at text; v_blog text; v_blog_at text;
   v_funnel text;
+  v_founder text;
+  v_rev numeric; v_exp numeric; v_pnl text;
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
 begin
+  -- the founder identity (who leads the company)
+  select string_agg(identity, ' / ' order by identity) into v_founder
+    from public.phase_c_founder_identity where active and kind = 'email';
+  -- the live P&L (financial state beyond headline revenue)
+  select coalesce(sum(amount) filter (where type='revenue'),0), coalesce(sum(amount) filter (where type='expense'),0),
+         string_agg(case when amount <> 0 then '  - '||type||': '||name||' = AED '||amount::text else null end, E'\n' order by type, code)
+    into v_rev, v_exp, v_pnl from public.gl_pnl;
   select standard_reveal_rate, supplier_reg_fee, supplier_charging_starts, refund_window_working_days,
          coalesce(reveal_currency,'AED')
     into v_fee, v_sup_fee, v_charge, v_refund_wd, v_cur
@@ -22267,7 +22449,9 @@ begin
 
     jsonb_build_object('rid','identity','module','company_identity',
       'title','QuotesDone — Identity, Vision and Mission',
-      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b']),
+      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b',
+        'who is the founder','company founder','who owns quotesdone','founder name','ahmad alzain','the owner',
+        'company target and deadline','revenue target','what is our goal','aed 1 million target','1000000 by 2027','when is the deadline']),
       'content',
         'WHO WE ARE. ' || coalesce(v_state->>'mission','') || E'\n' ||
         'VISION: ' || coalesce(v_state->>'vision','') || E'\n' ||
@@ -22275,7 +22459,21 @@ begin
           ' — every department''s objectives trace to this one number.' || E'\n' ||
         'HOW IT WORKS IN ONE LINE: an anonymous UAE B2B quotation marketplace — buyers post an RFQ, verified UAE '
         'suppliers submit quotes, and the buyer pays a small reveal fee to unlock and contact a chosen supplier. '
-        'Every department is an autonomous AI expert that plans and executes toward the vision.'),
+        'Every department is an autonomous AI expert that plans and executes toward the vision.' || E'\n' ||
+        'FOUNDER / OWNER: Ahmad Alzain (' || coalesce(v_founder,'management@quotesdone.com') || '). The company is '
+        'founder-led: he sets the vision, the target and the boundaries, and he is the ONLY approver of refunds. '
+        'The AI departments run everything else on their own.'),
+
+    jsonb_build_object('rid','financials','module','financials',
+      'title','QuotesDone — Our Financials (live P&L)',
+      'kw', to_jsonb(array['financials','finance','p&l','profit and loss','expenses','costs','revenue','how much did we spend','what were our expenses','net','burn','money','accounting','are we profitable']),
+      'content',
+        'LIVE FINANCIAL STATE (from the general ledger; refreshes):' || E'\n' ||
+        '  Total revenue: AED ' || round(coalesce(v_rev,0),2)::text || '  ·  Total expenses: AED ' || round(coalesce(v_exp,0),2)::text ||
+        '  ·  Net: AED ' || round(coalesce(v_rev,0)-coalesce(v_exp,0),2)::text || E'\n' ||
+        'By account (non-zero lines):' || E'\n' || coalesce(v_pnl,'  (no posted amounts yet)') || E'\n' ||
+        'Read it honestly: revenue is ' || case when coalesce(v_rev,0)=0 then 'AED 0 because the marketplace is pre-launch' else 'as above' end ||
+        '; the spend so far is mostly software and AI infrastructure while the company is being built.'),
 
     jsonb_build_object('rid','operating-model','module','operating_model',
       'title','QuotesDone — How the Marketplace Works, End to End',
@@ -22348,8 +22546,10 @@ begin
     -- DYNAMIC: regenerated from the live org every run.
     jsonb_build_object('rid','organization','module','organization',
       'title','QuotesDone — The Organization: Departments, Colleagues and Roles',
-      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what']),
-      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team):' || E'\n' || coalesce(v_brief,'')),
+      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what','name the ten departments','list the departments','what are our departments','department names','the 10 departments']),
+      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team).' || E'\n' ||
+        'THE TEN DEPARTMENTS: ' || coalesce((select string_agg(name, ', ' order by sort nulls last, dept_key) from public.org_departments where active),'') || E'\n' ||
+        coalesce(v_brief,'')),
 
     -- DYNAMIC: the live snapshot every run.
     jsonb_build_object('rid','live-state','module','live_state',
@@ -22366,7 +22566,19 @@ begin
         '  Open tasks: ' || coalesce(v_snap->>'open_tasks','0') || ' · Items needing the founder: ' || coalesce(v_snap->>'needs_founder','0') || E'\n' ||
         '  AI spend (last 30 days): ' || coalesce(v_snap->>'ai_cost_30d_aed','0') || ' AED' || E'\n' ||
         '  Last social post: ' || coalesce(nullif(v_social,''),'(none yet)') || case when v_social_at is not null then ' [' || v_social_at || ']' else '' end || E'\n' ||
-        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end)
+        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end),
+
+    jsonb_build_object('rid','stage','module','company_stage',
+      'title','QuotesDone — What Stage the Company Is At',
+      'kw', to_jsonb(array['stage','pre-launch','have we launched','are we live','do we have customers','how many customers','are we operating','company status','how far along','launched yet','traction','are we making money']),
+      'content',
+        'COMPANY STAGE — READ THIS BEFORE ANSWERING ANYTHING ABOUT TRACTION. QuotesDone is PRE-LAUNCH. The '
+        'platform and the AI organization are built and being readied; there are ' || coalesce(v_snap->>'customers','0') ||
+        ' real customers and AED ' || coalesce(v_snap->>'revenue_30d_aed','0') || ' revenue so far. What is already in place: '
+        '10 departments and ' || coalesce(v_snap->>'employees','90') || ' AI agents, 30 workflows, 86 supplier categories, '
+        'the knowledge base and ' || coalesce(v_snap->>'approved_suppliers','1') || ' approved supplier(s). What is still pending before real '
+        'operation: the marketplace go-live, real customer inquiries arriving, and funded AI inference so the agents can reason. '
+        'NEVER claim customers, revenue, or results the numbers above do not show — we are building toward AED 1,000,000 by 31 Aug 2027, not there yet.')
   );
 
   for r in select * from jsonb_array_elements(v_records) loop
@@ -33063,6 +33275,94 @@ CREATE OR REPLACE FUNCTION public.fn_is_working_day(p_date date)
 AS $function$
   select extract(isodow from p_date) < 6
      and not exists (select 1 from public.public_holidays h where h.holiday_date = p_date);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_security_knowledge_upsert(p_rid text, p_dept text, p_module text, p_rtype text, p_subdomain text, p_title text, p_content text, p_kw text[], p_risk text, p_source text)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.ops_knowledge
+    (record_id, scope_type, scope_key, dept_key, module, layer, record_type, title, content,
+     structured_data, source_ids, implementation_status, validation_status, authority_tier, risk_level,
+     version, keywords, runtime_eligible, supersession_state, embedding_status)
+  values
+    (p_rid, 'department', 'it_security', p_dept, coalesce(p_module,'security'), 'it_security_deep',
+     coalesce(p_rtype,'knowledge_domain'), p_title,
+     p_content || case when coalesce(array_length(p_kw,1),0) > 0
+                       then E'\n\nkeywords: ' || array_to_string(p_kw,', ') else '' end,
+     jsonb_build_object('subdomain', p_subdomain, 'source_note', p_source),
+     array[coalesce(p_source,'step3_it_cyber')]::text[],
+     'active', 'author_verified', 'advisory', coalesce(p_risk,'medium'),
+     '1.0', coalesce(p_kw,'{}'::text[]), true, 'current', 'pending')
+  on conflict (record_id) do update set
+     dept_key = excluded.dept_key, module = excluded.module, record_type = excluded.record_type,
+     title = excluded.title, content = excluded.content, structured_data = excluded.structured_data,
+     keywords = excluded.keywords, risk_level = excluded.risk_level,
+     supersession_state = 'current', runtime_eligible = true, embedding_status = 'pending';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_security_live_posture()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_total int; v_rls int; v_definer int; v_crons int; v_anon int; v_content text;
+begin
+  select count(*) into v_total   from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r';
+  select count(*) into v_rls     from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity;
+  select count(*) into v_definer from pg_proc  p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef;
+  select count(*) into v_crons   from cron.job where active;
+  select count(distinct table_name) into v_anon from information_schema.role_table_grants where table_schema='public' and grantee='anon';
+  v_content :=
+    'LIVE SECURITY POSTURE of the QuotesDone Supabase project (htdblwldjkcgjvmqkbeh), recomputed every run — nothing static. As of '
+      || to_char(now(),'YYYY-MM-DD HH24:MI') || ' UTC:' || E'\n'
+    || '- public tables: ' || v_total || '; RLS enabled: ' || v_rls || '; WITHOUT RLS: ' || (v_total - v_rls)
+      || ' (a table reachable through PostgREST without RLS is an access-control gap to justify or close).' || E'\n'
+    || '- SECURITY DEFINER functions in public: ' || v_definer
+      || ' (each runs as its owner and is a privilege boundary; confirm search_path is pinned on every one).' || E'\n'
+    || '- active cron jobs: ' || v_crons
+      || ' (hold this against the known baseline; a new or off-cadence job is a detection signal worth chasing).' || E'\n'
+    || '- public tables granted to anon (unauthenticated): ' || v_anon
+      || ' (every anon grant must be intended and RLS-guarded).' || E'\n'
+    || 'External threat intelligence is NOT derivable here — refresh it via npm audit, Supabase get_advisors, and CVE feeds for Postgres/Deno/Next.js.';
+  perform public.fn_it_security_knowledge_upsert(
+    'it_sec_live_posture','assurance','security','live_data_binding','live-posture',
+    'Live security posture (auto-refreshed): RLS coverage, definer surface, cron baseline, anon grants',
+    v_content,
+    array['security posture','rls coverage','security definer surface','cron baseline','anon grants','attack surface','live','always current'],
+    'high','fn_it_security_live_posture');
+  return jsonb_build_object('tables',v_total,'rls',v_rls,'no_rls',v_total-v_rls,'definer',v_definer,'active_crons',v_crons,'anon_tables',v_anon);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_security_slice(p_dept text, p_q tsquery, p_budget integer)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_dept in ('product_eng','assurance') and p_q is not null then
+      coalesce((
+        select jsonb_agg(jsonb_build_object(
+                 'title', title,
+                 'area', coalesce(structured_data->>'subdomain', module),
+                 'content', left(content, 1600)) order by rank desc)
+        from (
+          select k.title, k.module, k.structured_data, k.content, ts_rank(k.tsv, p_q) rank
+            from public.ops_knowledge k
+           where k.runtime_eligible and k.supersession_state = 'current'
+             and k.layer = 'it_security_deep' and k.tsv @@ p_q
+           order by ts_rank(k.tsv, p_q) desc, coalesce(k.effective_date,'1900-01-01') desc
+           limit greatest(least(coalesce(p_budget,4800) / 1600, 8), 3)
+        ) x), '[]'::jsonb)
+    else '[]'::jsonb end;
 $function$
 
 
@@ -77227,7 +77527,12 @@ begin
   -- and the budget window then keeps whatever sorts first, which is the failure we are leaving.
   if array_length(v_words, 1) > 24 then v_words := v_words[1:24]; end if;
 
-  v_q := to_tsquery('english', array_to_string(v_words, ' | '));
+  -- Cast the already-stemmed lexemes straight to tsquery. Passing them back through
+  -- to_tsquery('english', ...) STEMS THEM A SECOND TIME — 'expens' becomes 'expen', 'analys' becomes
+  -- 'analy' — and the double-stemmed term no longer matches the tsv it came from, so whole classes of
+  -- questions (expenses, analysis, ...) silently retrieved nothing. The cast preserves the single
+  -- stemming to_tsvector already did, which is the whole point of building the words from to_tsvector.
+  v_q := array_to_string(v_words, ' | ')::tsquery;
   return v_q;
 exception when others then
   -- A malformed lexeme must degrade to "no query" (and therefore to labelled fallback), never to
@@ -86254,6 +86559,7 @@ select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_
 select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_employee_kpi_assign();$CRON$);
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
+select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_it_security_live_posture();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails

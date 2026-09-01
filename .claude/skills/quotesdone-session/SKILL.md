@@ -20,6 +20,41 @@ Apply this on every QuotesDone session, whether or not it is invoked by name. It
 - **When something needs time, start it in the background and pick up different work.** Never idle
   against a clock. Long scorers, imports and CI runs go to the background; you keep working.
 
+## 1b. Build the connection even when there is no data yet, and never stop short
+
+The company is **pre-launch**: `customers`, `inquiries`, `quotes` and `transactions` sit at 0, and
+suppliers are an invited `leads` pool. **The absence of real data is NEVER a reason not to build a
+feature, a wire, or a connection.** Build it so it is ready the instant real data arrives — build the
+pipe now, the water comes later. Do **not** report "there is no real data yet" as a caveat, an excuse
+or a blocker; the founder has said this repeatedly and it wastes his time. If a lookup, a binding, a
+refresh or a capability is missing, build it against the empty tables and verify it works on the shape
+of the data, not its presence.
+
+And **never stop until what he asked for is FULLY done** — not "the core is in", not "here are the
+remaining gaps", not a partial with a to-do list. Keep building, stress-testing and closing gaps
+(find them yourself; do not make him enumerate) until the request is completely satisfied, then report.
+Handing him a list of what is still left, or declaring "done" before it is, is the failure mode he most
+dislikes short of fabricating completion. When a task is large, chew through it end to end — background
+the slow parts and keep going — rather than stopping at the first reportable milestone.
+
+## 1c. Never launch, never test with real users — the sandbox is where everything is proven
+
+The founder **cannot launch until the product is PERFECT** — genuinely the smartest automated
+procurement marketplace in the world, complete and flawless. You launch a marketplace once; real
+customers and real suppliers then depend on it. Launching something unfinished — or "testing" with a
+real customer, a real supplier, or a real inquiry, and then editing the code while real people are
+registering — is unacceptable and must never be proposed. **"Let's run one real inquiry / a small live
+pilot to prove it works" IS launching. Do not suggest it, ever.** Do not frame a live run as validation.
+
+Everything is validated in the **SANDBOX** before go-live: synthetic/demo data (the `ZZ DEMO` /
+`@example.invalid` convention), isolated, aborted-transaction probes that commit nothing, cleaned up
+afterwards. That is how the entire funnel is proven end to end **without a single real participant and
+without spending real money**. When you need to see the flow work, seed a demo case in the sandbox and
+drive it there — never reach for real users or real spend to "see if it runs." Confidence to launch
+comes from perfection reached and verified in the sandbox, not from a live pilot. And do not keep
+re-pitching "prove it runs live" or "fund inference to see it work" — the founder has a plan; your job
+is to keep building and sandbox-validating toward perfect, not to push the machine on before it is.
+
 ## 2. There is exactly one thing you may say when finished
 
 > `all verified and fixed and merged and deployed 100%`

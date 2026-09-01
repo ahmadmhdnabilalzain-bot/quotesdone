@@ -50,7 +50,12 @@ begin
   -- and the budget window then keeps whatever sorts first, which is the failure we are leaving.
   if array_length(v_words, 1) > 24 then v_words := v_words[1:24]; end if;
 
-  v_q := to_tsquery('english', array_to_string(v_words, ' | '));
+  -- Cast the already-stemmed lexemes straight to tsquery. Passing them back through
+  -- to_tsquery('english', ...) STEMS THEM A SECOND TIME — 'expens' becomes 'expen', 'analys' becomes
+  -- 'analy' — and the double-stemmed term no longer matches the tsv it came from, so whole classes of
+  -- questions (expenses, analysis, ...) silently retrieved nothing. The cast preserves the single
+  -- stemming to_tsvector already did, which is the whole point of building the words from to_tsvector.
+  v_q := array_to_string(v_words, ' | ')::tsquery;
   return v_q;
 exception when others then
   -- A malformed lexeme must degrade to "no query" (and therefore to labelled fallback), never to

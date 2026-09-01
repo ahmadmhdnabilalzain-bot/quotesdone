@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788286918.4038887,
-    "ast_hash": "0b8e6c6a7ec53bbc30ceccaed2e58bc7",
+    "mtime": 1788295223.7350426,
+    "ast_hash": "5c7916955ae4d9a7170cbd9f59238f4a",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -10700,8 +10700,8 @@
     "semantic_hash": ""
   },
   ".claude/skills/quotesdone-session/SKILL.md": {
-    "mtime": 1786783486.3314266,
-    "ast_hash": "4ece79ac5cfe029c44990a3a9c9f5cd1",
+    "mtime": 1788293848.7492368,
+    "ast_hash": "680568a303fe90741e11fc346ed16382",
     "semantic_hash": ""
   },
   ".github/workflows/deploy-functions.yml": {
@@ -12110,8 +12110,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/v3_repair_04_task_query.sql": {
-    "mtime": 1786772793.6513276,
-    "ast_hash": "dca07cc1ab4db1b5c3e87d335d4f7646",
+    "mtime": 1788290978.9198112,
+    "ast_hash": "a1a1d2b3ab36cd3761e6d4ddf1c58140",
     "semantic_hash": ""
   },
   "scripts/sql/v3_repair_05_ctx_v3_query.sql": {
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788286797.4319549,
-    "ast_hash": "c0511c8b0ad994a0d52571fc60fd5877",
+    "mtime": 1788295093.463301,
+    "ast_hash": "ef976fbe3b432e4923b0bad41e4bbe79",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -22000,8 +22000,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_company.sql": {
-    "mtime": 1788286787.602859,
-    "ast_hash": "a7ba42c1d38c7e5ac3d3378e6daae0fa",
+    "mtime": 1788291253.7159119,
+    "ast_hash": "b28df32fa2531c7670b7cccb9e9ca031",
     "semantic_hash": ""
   },
   "scripts/sql/goals_carry_a_deadline_pace.sql": {
@@ -22095,8 +22095,43 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_org_and_content.sql": {
-    "mtime": 1788286776.8827143,
-    "ast_hash": "5eaef5dd11166723ecc53ece49a4c91d",
+    "mtime": 1788292356.4737773,
+    "ast_hash": "aea1623d6562998b288348328c4eb7cf",
+    "semantic_hash": ""
+  },
+  "scripts/sql/agent_knows_its_own_kpis_ownership_ledger.sql": {
+    "mtime": 1788288812.524117,
+    "ast_hash": "15593d307d8469ab104e41e9f7440931",
+    "semantic_hash": ""
+  },
+  "scripts/sql/agents_can_look_up_any_business_entity.sql": {
+    "mtime": 1788292105.2425666,
+    "ast_hash": "ae144252784f1243c515ad83ac1d1aff",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_is_a_twenty_year_veteran.sql": {
+    "mtime": 1788293118.046861,
+    "ast_hash": "e52a8171ae62da36f732bfa40513d45f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_is_a_twenty_year_veteran_ownership_ledger.sql": {
+    "mtime": 1788293202.9115806,
+    "ast_hash": "b0b5bc6f853d481d7f8ea2bc00d08d7a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/it_cyber_deep_knowledge.sql": {
+    "mtime": 1788295166.0418634,
+    "ast_hash": "9cf2828fa14e7ce4baeb042c96a34387",
+    "semantic_hash": ""
+  },
+  "scripts/sql/it_cyber_v3_and_search_scoping.sql": {
+    "mtime": 1788295053.9316013,
+    "ast_hash": "c8563424dba55739f033db347ac63ab8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/it_cyber_v3_and_search_scoping_ownership_ledger.sql": {
+    "mtime": 1788295093.4405077,
+    "ast_hash": "27977d0c39941b77438ec04899e37620",
     "semantic_hash": ""
   }
 }

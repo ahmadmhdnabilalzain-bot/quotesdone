@@ -36,8 +36,17 @@ declare
   v_target text; v_deadline text;
   v_social text; v_social_at text; v_blog text; v_blog_at text;
   v_funnel text;
+  v_founder text;
+  v_rev numeric; v_exp numeric; v_pnl text;
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
 begin
+  -- the founder identity (who leads the company)
+  select string_agg(identity, ' / ' order by identity) into v_founder
+    from public.phase_c_founder_identity where active and kind = 'email';
+  -- the live P&L (financial state beyond headline revenue)
+  select coalesce(sum(amount) filter (where type='revenue'),0), coalesce(sum(amount) filter (where type='expense'),0),
+         string_agg(case when amount <> 0 then '  - '||type||': '||name||' = AED '||amount::text else null end, E'\n' order by type, code)
+    into v_rev, v_exp, v_pnl from public.gl_pnl;
   select standard_reveal_rate, supplier_reg_fee, supplier_charging_starts, refund_window_working_days,
          coalesce(reveal_currency,'AED')
     into v_fee, v_sup_fee, v_charge, v_refund_wd, v_cur
@@ -63,7 +72,9 @@ begin
 
     jsonb_build_object('rid','identity','module','company_identity',
       'title','QuotesDone — Identity, Vision and Mission',
-      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b']),
+      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b',
+        'who is the founder','company founder','who owns quotesdone','founder name','ahmad alzain','the owner',
+        'company target and deadline','revenue target','what is our goal','aed 1 million target','1000000 by 2027','when is the deadline']),
       'content',
         'WHO WE ARE. ' || coalesce(v_state->>'mission','') || E'\n' ||
         'VISION: ' || coalesce(v_state->>'vision','') || E'\n' ||
@@ -71,7 +82,21 @@ begin
           ' — every department''s objectives trace to this one number.' || E'\n' ||
         'HOW IT WORKS IN ONE LINE: an anonymous UAE B2B quotation marketplace — buyers post an RFQ, verified UAE '
         'suppliers submit quotes, and the buyer pays a small reveal fee to unlock and contact a chosen supplier. '
-        'Every department is an autonomous AI expert that plans and executes toward the vision.'),
+        'Every department is an autonomous AI expert that plans and executes toward the vision.' || E'\n' ||
+        'FOUNDER / OWNER: Ahmad Alzain (' || coalesce(v_founder,'management@quotesdone.com') || '). The company is '
+        'founder-led: he sets the vision, the target and the boundaries, and he is the ONLY approver of refunds. '
+        'The AI departments run everything else on their own.'),
+
+    jsonb_build_object('rid','financials','module','financials',
+      'title','QuotesDone — Our Financials (live P&L)',
+      'kw', to_jsonb(array['financials','finance','p&l','profit and loss','expenses','costs','revenue','how much did we spend','what were our expenses','net','burn','money','accounting','are we profitable']),
+      'content',
+        'LIVE FINANCIAL STATE (from the general ledger; refreshes):' || E'\n' ||
+        '  Total revenue: AED ' || round(coalesce(v_rev,0),2)::text || '  ·  Total expenses: AED ' || round(coalesce(v_exp,0),2)::text ||
+        '  ·  Net: AED ' || round(coalesce(v_rev,0)-coalesce(v_exp,0),2)::text || E'\n' ||
+        'By account (non-zero lines):' || E'\n' || coalesce(v_pnl,'  (no posted amounts yet)') || E'\n' ||
+        'Read it honestly: revenue is ' || case when coalesce(v_rev,0)=0 then 'AED 0 because the marketplace is pre-launch' else 'as above' end ||
+        '; the spend so far is mostly software and AI infrastructure while the company is being built.'),
 
     jsonb_build_object('rid','operating-model','module','operating_model',
       'title','QuotesDone — How the Marketplace Works, End to End',
@@ -144,8 +169,10 @@ begin
     -- DYNAMIC: regenerated from the live org every run.
     jsonb_build_object('rid','organization','module','organization',
       'title','QuotesDone — The Organization: Departments, Colleagues and Roles',
-      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what']),
-      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team):' || E'\n' || coalesce(v_brief,'')),
+      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what','name the ten departments','list the departments','what are our departments','department names','the 10 departments']),
+      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team).' || E'\n' ||
+        'THE TEN DEPARTMENTS: ' || coalesce((select string_agg(name, ', ' order by sort nulls last, dept_key) from public.org_departments where active),'') || E'\n' ||
+        coalesce(v_brief,'')),
 
     -- DYNAMIC: the live snapshot every run.
     jsonb_build_object('rid','live-state','module','live_state',
@@ -162,7 +189,19 @@ begin
         '  Open tasks: ' || coalesce(v_snap->>'open_tasks','0') || ' · Items needing the founder: ' || coalesce(v_snap->>'needs_founder','0') || E'\n' ||
         '  AI spend (last 30 days): ' || coalesce(v_snap->>'ai_cost_30d_aed','0') || ' AED' || E'\n' ||
         '  Last social post: ' || coalesce(nullif(v_social,''),'(none yet)') || case when v_social_at is not null then ' [' || v_social_at || ']' else '' end || E'\n' ||
-        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end)
+        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end),
+
+    jsonb_build_object('rid','stage','module','company_stage',
+      'title','QuotesDone — What Stage the Company Is At',
+      'kw', to_jsonb(array['stage','pre-launch','have we launched','are we live','do we have customers','how many customers','are we operating','company status','how far along','launched yet','traction','are we making money']),
+      'content',
+        'COMPANY STAGE — READ THIS BEFORE ANSWERING ANYTHING ABOUT TRACTION. QuotesDone is PRE-LAUNCH. The '
+        'platform and the AI organization are built and being readied; there are ' || coalesce(v_snap->>'customers','0') ||
+        ' real customers and AED ' || coalesce(v_snap->>'revenue_30d_aed','0') || ' revenue so far. What is already in place: '
+        '10 departments and ' || coalesce(v_snap->>'employees','90') || ' AI agents, 30 workflows, 86 supplier categories, '
+        'the knowledge base and ' || coalesce(v_snap->>'approved_suppliers','1') || ' approved supplier(s). What is still pending before real '
+        'operation: the marketplace go-live, real customer inquiries arriving, and funded AI inference so the agents can reason. '
+        'NEVER claim customers, revenue, or results the numbers above do not show — we are building toward AED 1,000,000 by 31 Aug 2027, not there yet.')
   );
 
   for r in select * from jsonb_array_elements(v_records) loop
