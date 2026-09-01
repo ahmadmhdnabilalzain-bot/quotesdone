@@ -366,8 +366,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_citations_isknownurl",
-      "community": 0,
-      "community_name": "OsxShell.tsx",
+      "community": 110,
+      "community_name": "backup/index.ts",
       "norm_label": "isknownurl()"
     },
     {
@@ -443,8 +443,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_citations_sanitizecitations",
-      "community": 110,
-      "community_name": "backup/index.ts",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "sanitizecitations()"
     },
     {
@@ -5052,8 +5052,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "rate-limit.mjs"
     },
     {
@@ -5063,8 +5063,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_provider_limits",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "provider_limits"
     },
     {
@@ -5074,8 +5074,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_metadata",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "metadata"
     },
     {
@@ -5085,8 +5085,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_provider_re",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "provider_re"
     },
     {
@@ -5096,8 +5096,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_apply",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "apply()"
     },
     {
@@ -5107,8 +5107,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_collecttext",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "collecttext()"
     },
     {
@@ -5118,8 +5118,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_matchproviders",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "matchproviders()"
     },
     {
@@ -5129,8 +5129,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_rate_limit_matchconcurrency",
-      "community": 2314,
-      "community_name": "cross_os.mjs - sound=False",
+      "community": 777,
+      "community_name": "verify_portal_blueprint.mjs",
       "norm_label": "matchconcurrency()"
     },
     {
@@ -5184,8 +5184,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_undeclared_dep",
-      "community": 777,
-      "community_name": "verify_portal_blueprint.mjs",
+      "community": 2615,
+      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
       "norm_label": "undeclared-dep.mjs"
     },
     {
@@ -5195,8 +5195,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_undeclared_dep_node_builtins",
-      "community": 777,
-      "community_name": "verify_portal_blueprint.mjs",
+      "community": 2615,
+      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
       "norm_label": "node_builtins"
     },
     {
@@ -5206,8 +5206,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_undeclared_dep_metadata",
-      "community": 777,
-      "community_name": "verify_portal_blueprint.mjs",
+      "community": 2615,
+      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
       "norm_label": "metadata"
     },
     {
@@ -5217,8 +5217,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_undeclared_dep_apply",
-      "community": 777,
-      "community_name": "verify_portal_blueprint.mjs",
+      "community": 2615,
+      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
       "norm_label": "apply()"
     },
     {
@@ -5228,8 +5228,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_undeclared_dep_pkgroot",
-      "community": 777,
-      "community_name": "verify_portal_blueprint.mjs",
+      "community": 2615,
+      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
       "norm_label": "pkgroot()"
     },
     {
@@ -5239,8 +5239,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "agents_skills_vercel_optimize_lib_sanitizers_undeclared_dep_extractcodeblocks",
-      "community": 777,
-      "community_name": "verify_portal_blueprint.mjs",
+      "community": 2615,
+      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
       "norm_label": "extractcodeblocks()"
     },
     {
@@ -11719,8 +11719,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "quotesdone_phase_d_deterministic_business_handler_implementation_production_direct_v2026_08_17_schemas_phase_d_test_evidence_schema_properties_subject_id",
-      "community": 3734,
-      "community_name": "created_at",
+      "community": 1257,
+      "community_name": "rendering-conditional-render.md",
       "norm_label": "subject_id"
     },
     {
@@ -11730,8 +11730,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "quotesdone_phase_d_deterministic_business_handler_implementation_production_direct_v2026_08_17_schemas_phase_d_test_evidence_schema_subject_id_type",
-      "community": 3734,
-      "community_name": "created_at",
+      "community": 1257,
+      "community_name": "rendering-conditional-render.md",
       "norm_label": "type"
     },
     {
@@ -11807,8 +11807,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "quotesdone_phase_d_deterministic_business_handler_implementation_production_direct_v2026_08_17_schemas_phase_d_test_evidence_schema_properties_finished_at",
-      "community": 1257,
-      "community_name": "rendering-conditional-render.md",
+      "community": 3734,
+      "community_name": "created_at",
       "norm_label": "finished_at"
     },
     {
@@ -11818,8 +11818,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "quotesdone_phase_d_deterministic_business_handler_implementation_production_direct_v2026_08_17_schemas_phase_d_test_evidence_schema_finished_at_type",
-      "community": 1257,
-      "community_name": "rendering-conditional-render.md",
+      "community": 3734,
+      "community_name": "created_at",
       "norm_label": "type"
     },
     {
@@ -14106,8 +14106,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "docs_agents_runtime_blueprint_schemas_decision_trace_schema_properties_started_at",
-      "community": 3215,
-      "community_name": "gen_g07.mjs",
+      "community": 706,
+      "community_name": "20260802143532_p1_04b_control_mode_sweep_cron.sql",
       "norm_label": "started_at"
     },
     {
@@ -14117,8 +14117,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "docs_agents_runtime_blueprint_schemas_decision_trace_schema_started_at_type",
-      "community": 3215,
-      "community_name": "gen_g07.mjs",
+      "community": 706,
+      "community_name": "20260802143532_p1_04b_control_mode_sweep_cron.sql",
       "norm_label": "type"
     },
     {
@@ -14128,8 +14128,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "docs_agents_runtime_blueprint_schemas_decision_trace_schema_started_at_format",
-      "community": 3215,
-      "community_name": "gen_g07.mjs",
+      "community": 706,
+      "community_name": "20260802143532_p1_04b_control_mode_sweep_cron.sql",
       "norm_label": "format"
     },
     {
@@ -16867,8 +16867,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_properties_execution_id",
-      "community": 2604,
-      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
+      "community": 2156,
+      "community_name": "observability-events-attribution.mjs",
       "norm_label": "execution_id"
     },
     {
@@ -16878,8 +16878,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_execution_id_type",
-      "community": 2604,
-      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
+      "community": 2156,
+      "community_name": "observability-events-attribution.mjs",
       "norm_label": "type"
     },
     {
@@ -16889,8 +16889,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_execution_id_minlength",
-      "community": 2604,
-      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
+      "community": 2156,
+      "community_name": "observability-events-attribution.mjs",
       "norm_label": "minlength"
     },
     {
@@ -16933,8 +16933,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_properties_system_actor_id",
-      "community": 2156,
-      "community_name": "observability-events-attribution.mjs",
+      "community": 3215,
+      "community_name": "gen_g07.mjs",
       "norm_label": "system_actor_id"
     },
     {
@@ -16944,8 +16944,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_system_actor_id_type",
-      "community": 2156,
-      "community_name": "observability-events-attribution.mjs",
+      "community": 3215,
+      "community_name": "gen_g07.mjs",
       "norm_label": "type"
     },
     {
@@ -16955,8 +16955,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_system_actor_id_minlength",
-      "community": 2156,
-      "community_name": "observability-events-attribution.mjs",
+      "community": 3215,
+      "community_name": "gen_g07.mjs",
       "norm_label": "minlength"
     },
     {
@@ -17087,8 +17087,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_properties_action_class",
-      "community": 2156,
-      "community_name": "observability-events-attribution.mjs",
+      "community": 3180,
+      "community_name": "v3_roster_report.mjs",
       "norm_label": "action_class"
     },
     {
@@ -17098,8 +17098,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_action_class_type",
-      "community": 2156,
-      "community_name": "observability-events-attribution.mjs",
+      "community": 3180,
+      "community_name": "v3_roster_report.mjs",
       "norm_label": "type"
     },
     {
@@ -17109,8 +17109,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_action_class_minlength",
-      "community": 2156,
-      "community_name": "observability-events-attribution.mjs",
+      "community": 3180,
+      "community_name": "v3_roster_report.mjs",
       "norm_label": "minlength"
     },
     {
@@ -17241,8 +17241,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_properties_output_hash",
-      "community": 3794,
-      "community_name": "recon_f.mjs",
+      "community": 821,
+      "community_name": "@radix-ui/react-dropdown-menu",
       "norm_label": "output_hash"
     },
     {
@@ -17252,8 +17252,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_output_hash_type",
-      "community": 3794,
-      "community_name": "recon_f.mjs",
+      "community": 821,
+      "community_name": "@radix-ui/react-dropdown-menu",
       "norm_label": "type"
     },
     {
@@ -17373,8 +17373,8 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_properties_trace_id",
-      "community": 821,
-      "community_name": "@radix-ui/react-dropdown-menu",
+      "community": 2156,
+      "community_name": "observability-events-attribution.mjs",
       "norm_label": "trace_id"
     },
     {
@@ -17384,8 +17384,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_action_execution_schema_trace_id_type",
-      "community": 821,
-      "community_name": "@radix-ui/react-dropdown-menu",
+      "community": 2156,
+      "community_name": "observability-events-attribution.mjs",
       "norm_label": "type"
     },
     {
@@ -17604,8 +17604,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_properties_requester_role_id",
-      "community": 3238,
-      "community_name": "dispatch_census.mjs",
+      "community": 2295,
+      "community_name": "P2-C1 repository recovery \u2014 verification record",
       "norm_label": "requester_role_id"
     },
     {
@@ -17615,8 +17615,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_requester_role_id_type",
-      "community": 3238,
-      "community_name": "dispatch_census.mjs",
+      "community": 2295,
+      "community_name": "P2-C1 repository recovery \u2014 verification record",
       "norm_label": "type"
     },
     {
@@ -17626,8 +17626,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_requester_role_id_minlength",
-      "community": 3238,
-      "community_name": "dispatch_census.mjs",
+      "community": 2295,
+      "community_name": "P2-C1 repository recovery \u2014 verification record",
       "norm_label": "minlength"
     },
     {
@@ -17637,8 +17637,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_properties_approver_identity_type",
-      "community": 3742,
-      "community_name": "enum",
+      "community": 2295,
+      "community_name": "P2-C1 repository recovery \u2014 verification record",
       "norm_label": "approver_identity_type"
     },
     {
@@ -17648,8 +17648,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_approver_identity_type_type",
-      "community": 3742,
-      "community_name": "enum",
+      "community": 2295,
+      "community_name": "P2-C1 repository recovery \u2014 verification record",
       "norm_label": "type"
     },
     {
@@ -17758,8 +17758,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_properties_business_object_id",
-      "community": 2295,
-      "community_name": "P2-C1 repository recovery \u2014 verification record",
+      "community": 3238,
+      "community_name": "dispatch_census.mjs",
       "norm_label": "business_object_id"
     },
     {
@@ -17769,8 +17769,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_business_object_id_type",
-      "community": 2295,
-      "community_name": "P2-C1 repository recovery \u2014 verification record",
+      "community": 3238,
+      "community_name": "dispatch_census.mjs",
       "norm_label": "type"
     },
     {
@@ -17780,8 +17780,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_business_object_id_minlength",
-      "community": 2295,
-      "community_name": "P2-C1 repository recovery \u2014 verification record",
+      "community": 3238,
+      "community_name": "dispatch_census.mjs",
       "norm_label": "minlength"
     },
     {
@@ -17868,8 +17868,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_properties_status",
-      "community": 2295,
-      "community_name": "P2-C1 repository recovery \u2014 verification record",
+      "community": 2296,
+      "community_name": "supabase/functions/messages_api/index.ts",
       "norm_label": "status"
     },
     {
@@ -17879,8 +17879,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_approval_request_schema_status_type",
-      "community": 2295,
-      "community_name": "P2-C1 repository recovery \u2014 verification record",
+      "community": 2296,
+      "community_name": "supabase/functions/messages_api/index.ts",
       "norm_label": "type"
     },
     {
@@ -19034,8 +19034,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_decision_trace_id",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 3256,
+      "community_name": "started_at",
       "norm_label": "decision_trace_id"
     },
     {
@@ -19045,8 +19045,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_decision_trace_id_type",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 3256,
+      "community_name": "started_at",
       "norm_label": "type"
     },
     {
@@ -19056,8 +19056,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_decision_trace_id_minlength",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 3256,
+      "community_name": "started_at",
       "norm_label": "minlength"
     },
     {
@@ -19177,8 +19177,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_actor_role_id",
-      "community": 3319,
-      "community_name": "ai",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "actor_role_id"
     },
     {
@@ -19188,8 +19188,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_actor_role_id_type",
-      "community": 3319,
-      "community_name": "ai",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "type"
     },
     {
@@ -19199,8 +19199,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_actor_role_id_minlength",
-      "community": 3319,
-      "community_name": "ai",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "minlength"
     },
     {
@@ -19254,8 +19254,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_action_class",
-      "community": 3256,
-      "community_name": "started_at",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "action_class"
     },
     {
@@ -19265,8 +19265,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_action_class_type",
-      "community": 3256,
-      "community_name": "started_at",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "type"
     },
     {
@@ -19276,8 +19276,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_action_class_minlength",
-      "community": 3256,
-      "community_name": "started_at",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "minlength"
     },
     {
@@ -19309,8 +19309,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_reviewer_role_id",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 719,
+      "community_name": "20260803152812_audit_95_d5_exact_scope_outbound_credentials.sql",
       "norm_label": "reviewer_role_id"
     },
     {
@@ -19320,8 +19320,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_reviewer_role_id_type",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 719,
+      "community_name": "20260803152812_audit_95_d5_exact_scope_outbound_credentials.sql",
       "norm_label": "type"
     },
     {
@@ -19331,8 +19331,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_review_independence_result",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 3730,
+      "community_name": "record_provider_bypass_scan.mjs",
       "norm_label": "review_independence_result"
     },
     {
@@ -19342,8 +19342,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_review_independence_result_type",
-      "community": 1252,
-      "community_name": "js-request-idle-callback.md",
+      "community": 3730,
+      "community_name": "record_provider_bypass_scan.mjs",
       "norm_label": "type"
     },
     {
@@ -19408,8 +19408,8 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_rule_ids",
-      "community": 1253,
-      "community_name": "js-set-map-lookups.md",
+      "community": 2818,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
       "norm_label": "rule_ids"
     },
     {
@@ -19419,8 +19419,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_rule_ids_type",
-      "community": 1253,
-      "community_name": "js-set-map-lookups.md",
+      "community": 2818,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
       "norm_label": "type"
     },
     {
@@ -19430,8 +19430,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_rule_ids_items",
-      "community": 1253,
-      "community_name": "js-set-map-lookups.md",
+      "community": 2818,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
       "norm_label": "items"
     },
     {
@@ -19441,8 +19441,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_rule_ids_uniqueitems",
-      "community": 1253,
-      "community_name": "js-set-map-lookups.md",
+      "community": 2818,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
       "norm_label": "uniqueitems"
     },
     {
@@ -19540,8 +19540,8 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_knowledge_record_ids",
-      "community": 3037,
-      "community_name": "platform-bot-protection.mjs",
+      "community": 1253,
+      "community_name": "js-set-map-lookups.md",
       "norm_label": "knowledge_record_ids"
     },
     {
@@ -19551,8 +19551,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_knowledge_record_ids_type",
-      "community": 3037,
-      "community_name": "platform-bot-protection.mjs",
+      "community": 1253,
+      "community_name": "js-set-map-lookups.md",
       "norm_label": "type"
     },
     {
@@ -19562,8 +19562,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_knowledge_record_ids_items",
-      "community": 3037,
-      "community_name": "platform-bot-protection.mjs",
+      "community": 1253,
+      "community_name": "js-set-map-lookups.md",
       "norm_label": "items"
     },
     {
@@ -19573,8 +19573,8 @@
       "source_location": "L113",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_knowledge_record_ids_uniqueitems",
-      "community": 3037,
-      "community_name": "platform-bot-protection.mjs",
+      "community": 1253,
+      "community_name": "js-set-map-lookups.md",
       "norm_label": "uniqueitems"
     },
     {
@@ -19650,8 +19650,8 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_state_after",
-      "community": 719,
-      "community_name": "20260803152812_audit_95_d5_exact_scope_outbound_credentials.sql",
+      "community": 3733,
+      "community_name": "requester_role_id",
       "norm_label": "state_after"
     },
     {
@@ -19661,8 +19661,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_state_after_type",
-      "community": 719,
-      "community_name": "20260803152812_audit_95_d5_exact_scope_outbound_credentials.sql",
+      "community": 3733,
+      "community_name": "requester_role_id",
       "norm_label": "type"
     },
     {
@@ -19672,8 +19672,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_properties_status",
-      "community": 3642,
-      "community_name": "business_object_id",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "status"
     },
     {
@@ -19683,8 +19683,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_status_type",
-      "community": 3642,
-      "community_name": "business_object_id",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "type"
     },
     {
@@ -19694,8 +19694,8 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_decision_trace_schema_status_minlength",
-      "community": 3642,
-      "community_name": "business_object_id",
+      "community": 1252,
+      "community_name": "js-request-idle-callback.md",
       "norm_label": "minlength"
     },
     {
@@ -23302,8 +23302,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_tool_result_schema_properties_tool_result_id",
-      "community": 3053,
-      "community_name": "started_at",
+      "community": 2302,
+      "community_name": "SPEC #1 \u2014 the architecture",
       "norm_label": "tool_result_id"
     },
     {
@@ -23313,8 +23313,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_tool_result_schema_tool_result_id_type",
-      "community": 3053,
-      "community_name": "started_at",
+      "community": 2302,
+      "community_name": "SPEC #1 \u2014 the architecture",
       "norm_label": "type"
     },
     {
@@ -23324,8 +23324,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_tool_result_schema_tool_result_id_minlength",
-      "community": 3053,
-      "community_name": "started_at",
+      "community": 2302,
+      "community_name": "SPEC #1 \u2014 the architecture",
       "norm_label": "minlength"
     },
     {
@@ -23753,8 +23753,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_tool_result_schema_properties_started_at",
-      "community": 2302,
-      "community_name": "SPEC #1 \u2014 the architecture",
+      "community": 3319,
+      "community_name": "ai",
       "norm_label": "started_at"
     },
     {
@@ -23764,8 +23764,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_tool_result_schema_started_at_type",
-      "community": 2302,
-      "community_name": "SPEC #1 \u2014 the architecture",
+      "community": 3319,
+      "community_name": "ai",
       "norm_label": "type"
     },
     {
@@ -23775,8 +23775,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "docs_phase_c_package_schemas_tool_result_schema_started_at_minlength",
-      "community": 2302,
-      "community_name": "SPEC #1 \u2014 the architecture",
+      "community": 3319,
+      "community_name": "ai",
       "norm_label": "minlength"
     },
     {
@@ -26679,8 +26679,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "package_dependencies_clsx",
-      "community": 16,
-      "community_name": "dependencies",
+      "community": 3642,
+      "community_name": "business_object_id",
       "norm_label": "clsx"
     },
     {
@@ -26690,8 +26690,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "clsx",
-      "community": 16,
-      "community_name": "dependencies",
+      "community": 3642,
+      "community_name": "business_object_id",
       "norm_label": "clsx"
     },
     {
@@ -26899,8 +26899,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "package_dependencies_recharts",
-      "community": 3733,
-      "community_name": "requester_role_id",
+      "community": 16,
+      "community_name": "dependencies",
       "norm_label": "recharts"
     },
     {
@@ -26910,8 +26910,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "recharts",
-      "community": 3733,
-      "community_name": "requester_role_id",
+      "community": 16,
+      "community_name": "dependencies",
       "norm_label": "recharts"
     },
     {
@@ -28219,8 +28219,8 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "scripts_apply_sql_tok",
-      "community": 145,
-      "community_name": "finance_doc/index.ts",
+      "community": 317,
+      "community_name": "5. Refunds",
       "norm_label": "tok()"
     },
     {
@@ -43163,8 +43163,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "edge_callers.mjs"
     },
     {
@@ -43174,8 +43174,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_fn_dir",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "fn_dir"
     },
     {
@@ -43185,8 +43185,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_slugs",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "slugs"
     },
     {
@@ -43196,8 +43196,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_walk",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "walk()"
     },
     {
@@ -43207,8 +43207,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_front",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "front"
     },
     {
@@ -43218,8 +43218,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_edgesrc",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "edgesrc"
     },
     {
@@ -43229,8 +43229,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_forms",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "forms()"
     },
     {
@@ -43240,8 +43240,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_out",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "out"
     },
     {
@@ -43251,8 +43251,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "scripts_phase_b_edge_callers_orphans",
-      "community": 860,
-      "community_name": "next-font-cls-self-hosting.md",
+      "community": 2198,
+      "community_name": "$WT/knowledge-import/test_idempotency.py",
       "norm_label": "orphans"
     },
     {
@@ -43988,8 +43988,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "scripts_phase_b_lib_package_splitlist",
-      "community": 794,
-      "community_name": "pdpl_erase/index.ts",
+      "community": 145,
+      "community_name": "finance_doc/index.ts",
       "norm_label": "splitlist()"
     },
     {
@@ -45451,8 +45451,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_cutover",
-      "community": 2615,
-      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "gen_cutover.mjs"
     },
     {
@@ -45462,8 +45462,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_cutover_specpath_outpath_headerpath",
-      "community": 2615,
-      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "[specpath, outpath, headerpath]"
     },
     {
@@ -45473,8 +45473,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_cutover_spec",
-      "community": 2615,
-      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "spec"
     },
     {
@@ -45484,8 +45484,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_cutover_parts",
-      "community": 2615,
-      "community_name": "$WT/supabase/functions/gen_category_personas/index.ts",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "parts"
     },
     {
@@ -45495,8 +45495,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k14",
-      "community": 3180,
-      "community_name": "v3_roster_report.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "gen_k14.mjs"
     },
     {
@@ -45506,8 +45506,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k14_i",
-      "community": 3180,
-      "community_name": "v3_roster_report.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "i"
     },
     {
@@ -45517,8 +45517,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k14_j",
-      "community": 3180,
-      "community_name": "v3_roster_report.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "j"
     },
     {
@@ -45528,8 +45528,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k14_header",
-      "community": 3180,
-      "community_name": "v3_roster_report.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "header"
     },
     {
@@ -45539,8 +45539,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k15",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 3037,
+      "community_name": "platform-bot-protection.mjs",
       "norm_label": "gen_k15.mjs"
     },
     {
@@ -45550,8 +45550,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k15_keys",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 3037,
+      "community_name": "platform-bot-protection.mjs",
       "norm_label": "keys"
     },
     {
@@ -45561,8 +45561,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k15_approved",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 3037,
+      "community_name": "platform-bot-protection.mjs",
       "norm_label": "approved()"
     },
     {
@@ -45572,8 +45572,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "scripts_phase_c_gen_k15_survivor",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 3037,
+      "community_name": "platform-bot-protection.mjs",
       "norm_label": "survivor"
     },
     {
@@ -48883,8 +48883,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "build_step_branch_coverage.mjs"
     },
     {
@@ -48894,8 +48894,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_arg",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "arg()"
     },
     {
@@ -48905,8 +48905,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_only",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "only"
     },
     {
@@ -48916,8 +48916,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_jobs",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "jobs"
     },
     {
@@ -48927,8 +48927,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_wfs",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "wfs"
     },
     {
@@ -48938,8 +48938,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_pre",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "pre()"
     },
     {
@@ -48949,8 +48949,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_emit",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "emit()"
     },
     {
@@ -48960,8 +48960,8 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_passarm",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "passarm()"
     },
     {
@@ -48971,8 +48971,8 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_failarm",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "failarm()"
     },
     {
@@ -48982,8 +48982,8 @@
       "source_location": "L249",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_results",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "results"
     },
     {
@@ -48993,8 +48993,8 @@
       "source_location": "L250",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_queue",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "queue"
     },
     {
@@ -49004,8 +49004,8 @@
       "source_location": "L251",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_worker",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "worker()"
     },
     {
@@ -49015,8 +49015,8 @@
       "source_location": "L268",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_rows",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "rows"
     },
     {
@@ -49026,8 +49026,8 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_cols",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "cols"
     },
     {
@@ -49037,8 +49037,8 @@
       "source_location": "L352",
       "_origin": "ast",
       "id": "scripts_phase_d_build_step_branch_coverage_n",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 103,
+      "community_name": "postiz_publish/index.ts",
       "norm_label": "n()"
     },
     {
@@ -49994,8 +49994,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "prove_governance_door.mjs"
     },
     {
@@ -50005,8 +50005,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_record",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "record"
     },
     {
@@ -50016,8 +50016,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_mgmt",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "mgmt"
     },
     {
@@ -50027,8 +50027,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_revisions",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "revisions"
     },
     {
@@ -50038,8 +50038,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_matching",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "matching"
     },
     {
@@ -50049,8 +50049,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_headdigest",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "headdigest"
     },
     {
@@ -50060,8 +50060,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_bearerfor",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "bearerfor()"
     },
     {
@@ -50071,8 +50071,8 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_claims",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "claims"
     },
     {
@@ -50082,8 +50082,8 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_expiredtoken",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "expiredtoken"
     },
     {
@@ -50093,8 +50093,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_rpc",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "rpc()"
     },
     {
@@ -50104,8 +50104,8 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_results",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "results"
     },
     {
@@ -50115,8 +50115,8 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_note",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "note()"
     },
     {
@@ -50126,8 +50126,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_good",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "good"
     },
     {
@@ -50137,8 +50137,8 @@
       "source_location": "L289",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_cols",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "cols"
     },
     {
@@ -50148,8 +50148,8 @@
       "source_location": "L290",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_governance_door_cell",
-      "community": 2345,
-      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
+      "community": 480,
+      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
       "norm_label": "cell()"
     },
     {
@@ -50159,8 +50159,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "prove_object_reference_round_trip.mjs"
     },
     {
@@ -50170,8 +50170,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_rs",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "rs"
     },
     {
@@ -50181,8 +50181,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_us",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "us"
     },
     {
@@ -50192,8 +50192,8 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_intent_probe",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "intent_probe()"
     },
     {
@@ -50203,8 +50203,8 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_unwrap",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "unwrap()"
     },
     {
@@ -50214,8 +50214,8 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_codes",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "codes"
     },
     {
@@ -50225,8 +50225,8 @@
       "source_location": "L208",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_verdictat",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "verdictat()"
     },
     {
@@ -50236,8 +50236,8 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_stagesa_stagesb_liveobjects_dupes",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "[stagesa, stagesb, liveobjects, dupes]"
     },
     {
@@ -50247,8 +50247,8 @@
       "source_location": "L229",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_intentverdict",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "intentverdict"
     },
     {
@@ -50258,8 +50258,8 @@
       "source_location": "L251",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_decode",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "decode()"
     },
     {
@@ -50269,8 +50269,8 @@
       "source_location": "L254",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_flag",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "flag()"
     },
     {
@@ -50280,8 +50280,8 @@
       "source_location": "L257",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_cols",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "cols"
     },
     {
@@ -50291,8 +50291,8 @@
       "source_location": "L259",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_cell",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "cell()"
     },
     {
@@ -50302,8 +50302,8 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_rows",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "rows"
     },
     {
@@ -50313,8 +50313,8 @@
       "source_location": "L279",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_intentfailed",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "intentfailed"
     },
     {
@@ -50324,8 +50324,8 @@
       "source_location": "L280",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_mismatch",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "mismatch"
     },
     {
@@ -50335,8 +50335,8 @@
       "source_location": "L281",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_refused",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "refused"
     },
     {
@@ -50346,8 +50346,8 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_nostage",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "nostage"
     },
     {
@@ -50357,8 +50357,8 @@
       "source_location": "L315",
       "_origin": "ast",
       "id": "scripts_phase_d_prove_object_reference_round_trip_fatal",
-      "community": 480,
-      "community_name": "20260728191919_os_independent_knowledge_and_weekly_improvement.sql",
+      "community": 2345,
+      "community_name": "$WT/scripts/staging/verify_agent_knowledge.mjs",
       "norm_label": "fatal"
     },
     {
@@ -60370,6 +60370,72 @@
       "community": 2853,
       "community_name": "MODULE 5 BUILT AND REFUTED \u2014 `performance_and_risk.mjs`, \u00a713-\u00a717, EXPECTED 39",
       "norm_label": "public.fn_index_slowdown_watch()"
+    },
+    {
+      "label": "it_cyber_deep_knowledge.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_it_cyber_deep_knowledge",
+      "community": 3053,
+      "community_name": "started_at",
+      "norm_label": "it_cyber_deep_knowledge.sql"
+    },
+    {
+      "label": "public.ops_knowledge",
+      "file_type": "code",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "scripts_sql_it_cyber_deep_knowledge_public_ops_knowledge",
+      "community": 3053,
+      "community_name": "started_at",
+      "norm_label": "public.ops_knowledge"
+    },
+    {
+      "label": "public.fn_it_security_knowledge_upsert()",
+      "file_type": "code",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "scripts_sql_it_cyber_deep_knowledge_public_fn_it_security_knowledge_upsert",
+      "community": 3053,
+      "community_name": "started_at",
+      "norm_label": "public.fn_it_security_knowledge_upsert()"
+    },
+    {
+      "label": "public.fn_it_security_slice()",
+      "file_type": "code",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L55",
+      "_origin": "ast",
+      "id": "scripts_sql_it_cyber_deep_knowledge_public_fn_it_security_slice",
+      "community": 3053,
+      "community_name": "started_at",
+      "norm_label": "public.fn_it_security_slice()"
+    },
+    {
+      "label": "it_cyber_v3_and_search_scoping.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/it_cyber_v3_and_search_scoping.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_it_cyber_v3_and_search_scoping",
+      "community": 3748,
+      "community_name": "it_cyber_v3_and_search_scoping.sql",
+      "norm_label": "it_cyber_v3_and_search_scoping.sql"
+    },
+    {
+      "label": "it_cyber_v3_and_search_scoping_ownership_ledger.sql",
+      "file_type": "code",
+      "source_file": "scripts/sql/it_cyber_v3_and_search_scoping_ownership_ledger.sql",
+      "source_location": null,
+      "_origin": "ast",
+      "id": "scripts_sql_it_cyber_v3_and_search_scoping_ownership_ledger",
+      "community": 3794,
+      "community_name": "recon_f.mjs",
+      "norm_label": "it_cyber_v3_and_search_scoping_ownership_ledger.sql"
     },
     {
       "label": "kb_embed_backfill_boost.sql",
@@ -95006,8 +95072,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_tmp_diag_dispatch_census",
-      "community": 3730,
-      "community_name": "record_provider_bypass_scan.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "dispatch_census.mjs"
     },
     {
@@ -95017,8 +95083,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "scripts_tmp_diag_dispatch_census_ids",
-      "community": 3730,
-      "community_name": "record_provider_bypass_scan.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "ids"
     },
     {
@@ -95028,8 +95094,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "scripts_tmp_diag_dispatch_census_out",
-      "community": 3730,
-      "community_name": "record_provider_bypass_scan.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "out"
     },
     {
@@ -95039,8 +95105,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "scripts_tmp_diag_dispatch_census_cell",
-      "community": 3730,
-      "community_name": "record_provider_bypass_scan.mjs",
+      "community": 98,
+      "community_name": "gen_category_knowledge/index.ts",
       "norm_label": "cell()"
     },
     {
@@ -95908,8 +95974,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "scripts_tmp_diag_fourmore_gen_patch_line",
-      "community": 145,
-      "community_name": "finance_doc/index.ts",
+      "community": 117,
+      "community_name": "exec_board/index.ts",
       "norm_label": "line()"
     },
     {
@@ -96513,8 +96579,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scripts_tmp_diag_gen_g07",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 2816,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
       "norm_label": "gen_g07.mjs"
     },
     {
@@ -96524,8 +96590,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "scripts_tmp_diag_gen_g07_splice",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 2816,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
       "norm_label": "splice()"
     },
     {
@@ -96535,8 +96601,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "scripts_tmp_diag_gen_g07_at",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 2816,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
       "norm_label": "at"
     },
     {
@@ -96546,8 +96612,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "scripts_tmp_diag_gen_g07_start",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 2816,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
       "norm_label": "start"
     },
     {
@@ -96557,8 +96623,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "scripts_tmp_diag_gen_g07_parts",
-      "community": 98,
-      "community_name": "gen_category_knowledge/index.ts",
+      "community": 2816,
+      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
       "norm_label": "parts"
     },
     {
@@ -110263,8 +110329,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_portal_approvals_orderslist_field",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "field()"
     },
     {
@@ -114113,8 +114179,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieradvisor.tsx"
     },
     {
@@ -114124,8 +114190,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_rec",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "rec"
     },
     {
@@ -114135,8 +114201,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_advice",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "advice"
     },
     {
@@ -114146,8 +114212,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_lang",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -114157,8 +114223,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_call",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -114168,8 +114234,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_t",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -114179,8 +114245,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_sev",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "sev"
     },
     {
@@ -114190,8 +114256,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieradvisor_supplieradvisor",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieradvisor()"
     },
     {
@@ -114267,8 +114333,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "suppliercertifications.tsx"
     },
     {
@@ -114278,8 +114344,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_lang",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -114289,8 +114355,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_cert",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "cert"
     },
     {
@@ -114300,8 +114366,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_payload",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "payload"
     },
     {
@@ -114311,8 +114377,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_call",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -114322,8 +114388,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_t",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -114333,8 +114399,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_dot",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "dot"
     },
     {
@@ -114344,8 +114410,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_impact_style",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "impact_style"
     },
     {
@@ -114355,8 +114421,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliercertifications_suppliercertifications",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "suppliercertifications()"
     },
     {
@@ -114399,8 +114465,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplierdocumentimpact.tsx"
     },
     {
@@ -114410,8 +114476,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_lang",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -114421,8 +114487,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_doc",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "doc"
     },
     {
@@ -114432,8 +114498,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_impact",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "impact"
     },
     {
@@ -114443,8 +114509,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_call",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -114454,8 +114520,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_t",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -114465,8 +114531,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierdocumentimpact_supplierdocumentimpact",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplierdocumentimpact()"
     },
     {
@@ -114641,8 +114707,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "supplierinsightboard.tsx"
     },
     {
@@ -114652,8 +114718,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_lang",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "lang"
     },
     {
@@ -114663,8 +114729,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_metric",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "metric"
     },
     {
@@ -114674,8 +114740,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_call",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "call()"
     },
     {
@@ -114685,8 +114751,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_t",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "t"
     },
     {
@@ -114696,8 +114762,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_num",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "num()"
     },
     {
@@ -114707,8 +114773,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_chartdefs",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "chartdefs()"
     },
     {
@@ -114718,8 +114784,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_signalchart",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "signalchart()"
     },
     {
@@ -114729,8 +114795,8 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_cardid",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "cardid"
     },
     {
@@ -114740,8 +114806,8 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinsightboard_supplierinsightboard",
-      "community": 1328,
-      "community_name": "clsx",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "supplierinsightboard()"
     },
     {
@@ -114751,8 +114817,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplierinventory.tsx"
     },
     {
@@ -114762,8 +114828,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_lang",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -114773,8 +114839,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_attrs",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "attrs"
     },
     {
@@ -114784,8 +114850,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_product",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "product"
     },
     {
@@ -114795,8 +114861,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_call",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -114806,8 +114872,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_t",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -114817,8 +114883,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_attr",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "attr()"
     },
     {
@@ -114828,8 +114894,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplierinventory_supplierinventory",
-      "community": 2383,
-      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplierinventory()"
     },
     {
@@ -115015,8 +115081,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "suppliernetworkmap.tsx"
     },
     {
@@ -115026,8 +115092,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_marker",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "marker"
     },
     {
@@ -115037,8 +115103,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_layer",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "layer"
     },
     {
@@ -115048,8 +115114,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_mapdata",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "mapdata"
     },
     {
@@ -115059,8 +115125,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_lang",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "lang"
     },
     {
@@ -115070,8 +115136,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_layerkey",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "layerkey"
     },
     {
@@ -115081,8 +115147,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_call",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "call()"
     },
     {
@@ -115092,8 +115158,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_t",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "t"
     },
     {
@@ -115103,8 +115169,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_tovec",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "tovec()"
     },
     {
@@ -115114,8 +115180,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_globe",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "globe()"
     },
     {
@@ -115125,8 +115191,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliernetworkmap_suppliernetworkmap",
-      "community": 816,
-      "community_name": "cmdk",
+      "community": 2383,
+      "community_name": "Session 8 (10 Aug 2026, opened 12:15 UTC) \u2014 ALL SIX PACKS 100%, IN USE 22 OF 37 \u2192 37 OF 37",
       "norm_label": "suppliernetworkmap()"
     },
     {
@@ -115235,8 +115301,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieropportunities.tsx"
     },
     {
@@ -115246,8 +115312,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_lang",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -115257,8 +115323,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_reason",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "reason"
     },
     {
@@ -115268,8 +115334,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_opportunity",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "opportunity"
     },
     {
@@ -115279,8 +115345,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_payload",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "payload"
     },
     {
@@ -115290,8 +115356,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_call",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -115301,8 +115367,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_t",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -115312,8 +115378,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_reason_label",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "reason_label"
     },
     {
@@ -115323,8 +115389,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_components_portal_supplier_supplieropportunities_supplieropportunities",
-      "community": 2412,
-      "community_name": "Email & Inbound Comms + OTP",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "supplieropportunities()"
     },
     {
@@ -115554,8 +115620,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "suppliertier.tsx"
     },
     {
@@ -115565,8 +115631,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_lang",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "lang"
     },
     {
@@ -115576,8 +115642,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_rung",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "rung"
     },
     {
@@ -115587,8 +115653,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_payload",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "payload"
     },
     {
@@ -115598,8 +115664,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_call",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "call()"
     },
     {
@@ -115609,8 +115675,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_t",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "t"
     },
     {
@@ -115620,8 +115686,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_order",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "order"
     },
     {
@@ -115631,8 +115697,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_style",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "style"
     },
     {
@@ -115642,8 +115708,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_components_portal_supplier_suppliertier_suppliertier",
-      "community": 2307,
-      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
+      "community": 570,
+      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
       "norm_label": "suppliertier()"
     },
     {
@@ -115785,8 +115851,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "supplierrelationship.tsx"
     },
     {
@@ -115796,8 +115862,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_portalquote",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "portalquote"
     },
     {
@@ -115807,8 +115873,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_portalinquiry",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "portalinquiry"
     },
     {
@@ -115818,8 +115884,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_supplierscore",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "supplierscore"
     },
     {
@@ -115829,8 +115895,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_historyproject",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "historyproject"
     },
     {
@@ -115840,8 +115906,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_historysupplier",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "historysupplier"
     },
     {
@@ -115851,8 +115917,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_historyresponse",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "historyresponse"
     },
     {
@@ -115862,8 +115928,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_lang",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "lang"
     },
     {
@@ -115873,8 +115939,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_s",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "s"
     },
     {
@@ -115884,8 +115950,8 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_ar",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "ar()"
     },
     {
@@ -115895,8 +115961,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_call",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "call()"
     },
     {
@@ -115906,8 +115972,8 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_stat",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "stat()"
     },
     {
@@ -115917,8 +115983,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_meter",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "meter()"
     },
     {
@@ -115928,8 +115994,8 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_supplierrelationshipcardprops",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "supplierrelationshipcardprops"
     },
     {
@@ -115939,8 +116005,8 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_supplierrelationshipcard",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "supplierrelationshipcard()"
     },
     {
@@ -115950,8 +116016,8 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_supplierhistorypanelprops",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "supplierhistorypanelprops"
     },
     {
@@ -115961,8 +116027,8 @@
       "source_location": "L336",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_supplierhistorypanel",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "supplierhistorypanel()"
     },
     {
@@ -115972,8 +116038,8 @@
       "source_location": "L548",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_discoveryreachpanelprops",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "discoveryreachpanelprops"
     },
     {
@@ -115983,8 +116049,8 @@
       "source_location": "L559",
       "_origin": "ast",
       "id": "src_components_portal_suppliers_supplierrelationship_discoveryreachpanel",
-      "community": 103,
-      "community_name": "postiz_publish/index.ts",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "discoveryreachpanel()"
     },
     {
@@ -116313,8 +116379,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_accordion",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "accordion.tsx"
     },
     {
@@ -116324,8 +116390,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_components_ui_accordion_accordionitem",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "accordionitem"
     },
     {
@@ -116335,8 +116401,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_ui_accordion_accordiontrigger",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "accordiontrigger"
     },
     {
@@ -116346,8 +116412,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_ui_accordion_accordioncontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "accordioncontent"
     },
     {
@@ -116357,8 +116423,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_avatar",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "avatar.tsx"
     },
     {
@@ -116368,8 +116434,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_components_ui_avatar_avatar",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "avatar"
     },
     {
@@ -116379,8 +116445,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_components_ui_avatar_avatarimage",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "avatarimage"
     },
     {
@@ -116390,8 +116456,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_components_ui_avatar_avatarfallback",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "avatarfallback"
     },
     {
@@ -116401,8 +116467,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_badge",
-      "community": 245,
-      "community_name": "sync_staging_reference.mjs",
+      "community": 283,
+      "community_name": "backfill_production_embeddings.mjs",
       "norm_label": "badge.tsx"
     },
     {
@@ -116412,8 +116478,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_components_ui_badge_badgevariants",
-      "community": 245,
-      "community_name": "sync_staging_reference.mjs",
+      "community": 283,
+      "community_name": "backfill_production_embeddings.mjs",
       "norm_label": "badgevariants"
     },
     {
@@ -116423,8 +116489,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_components_ui_badge_badgeprops",
-      "community": 245,
-      "community_name": "sync_staging_reference.mjs",
+      "community": 283,
+      "community_name": "backfill_production_embeddings.mjs",
       "norm_label": "badgeprops"
     },
     {
@@ -116434,8 +116500,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_components_ui_badge_badge",
-      "community": 245,
-      "community_name": "sync_staging_reference.mjs",
+      "community": 283,
+      "community_name": "backfill_production_embeddings.mjs",
       "norm_label": "badge()"
     },
     {
@@ -116500,8 +116566,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_ui_card_card",
-      "community": 92,
-      "community_name": "clsx",
+      "community": 144,
+      "community_name": "export_leads_csv/index.ts",
       "norm_label": "card"
     },
     {
@@ -116753,8 +116819,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_dialog",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "dialog.tsx"
     },
     {
@@ -116764,8 +116830,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogoverlay",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "dialogoverlay"
     },
     {
@@ -116775,8 +116841,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogcontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "dialogcontent"
     },
     {
@@ -116786,8 +116852,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogheader",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "dialogheader()"
     },
     {
@@ -116797,8 +116863,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogtitle",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "dialogtitle"
     },
     {
@@ -116808,8 +116874,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_components_ui_dialog_dialogdescription",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "dialogdescription"
     },
     {
@@ -116819,8 +116885,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdown-menu.tsx"
     },
     {
@@ -116830,8 +116896,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenusubtrigger",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenusubtrigger"
     },
     {
@@ -116841,8 +116907,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenusubcontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenusubcontent"
     },
     {
@@ -116852,8 +116918,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenucontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenucontent"
     },
     {
@@ -116863,8 +116929,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenuitem",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenuitem"
     },
     {
@@ -116874,8 +116940,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenucheckboxitem",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenucheckboxitem"
     },
     {
@@ -116885,8 +116951,8 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenuradioitem",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenuradioitem"
     },
     {
@@ -116896,8 +116962,8 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenulabel",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenulabel"
     },
     {
@@ -116907,8 +116973,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenuseparator",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenuseparator"
     },
     {
@@ -116918,8 +116984,8 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "src_components_ui_dropdown_menu_dropdownmenushortcut",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 672,
+      "community_name": "20260724_gstack_role_principles.sql",
       "norm_label": "dropdownmenushortcut()"
     },
     {
@@ -116951,8 +117017,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_popover",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "popover.tsx"
     },
     {
@@ -116962,8 +117028,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_ui_popover_popovercontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "popovercontent"
     },
     {
@@ -116995,8 +117061,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_scroll_area",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "scroll-area.tsx"
     },
     {
@@ -117006,8 +117072,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_ui_scroll_area_scrollarea",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "scrollarea"
     },
     {
@@ -117017,8 +117083,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_separator",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "separator.tsx"
     },
     {
@@ -117028,8 +117094,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_ui_separator_separator",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "separator"
     },
     {
@@ -117127,8 +117193,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_skeleton",
-      "community": 283,
-      "community_name": "backfill_production_embeddings.mjs",
+      "community": 161,
+      "community_name": "vt_scan/index.ts",
       "norm_label": "skeleton.tsx"
     },
     {
@@ -117138,8 +117204,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_components_ui_skeleton_skeleton",
-      "community": 283,
-      "community_name": "backfill_production_embeddings.mjs",
+      "community": 161,
+      "community_name": "vt_scan/index.ts",
       "norm_label": "skeleton()"
     },
     {
@@ -117281,8 +117347,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_tabs",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "tabs.tsx"
     },
     {
@@ -117292,8 +117358,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_components_ui_tabs_tabslist",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "tabslist"
     },
     {
@@ -117303,8 +117369,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_components_ui_tabs_tabstrigger",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "tabstrigger"
     },
     {
@@ -117314,8 +117380,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_components_ui_tabs_tabscontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "tabscontent"
     },
     {
@@ -117325,8 +117391,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_ui_tooltip",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "tooltip.tsx"
     },
     {
@@ -117336,8 +117402,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_components_ui_tooltip_tooltipcontent",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "tooltipcontent"
     },
     {
@@ -117776,8 +117842,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_lib_utils_cn",
-      "community": 570,
-      "community_name": "20260728193632_fn_company_reflect_fix_actor_column.sql",
+      "community": 2,
+      "community_name": "CustomerPortal.tsx",
       "norm_label": "cn()"
     },
     {
@@ -119360,8 +119426,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "agent_train/index.ts"
     },
     {
@@ -119371,8 +119437,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index_admin",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "admin"
     },
     {
@@ -119382,8 +119448,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index_cors",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "cors"
     },
     {
@@ -119393,8 +119459,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index_j",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "j()"
     },
     {
@@ -119404,8 +119470,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index_callgw",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "callgw()"
     },
     {
@@ -119415,8 +119481,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index_parsejson",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "parsejson()"
     },
     {
@@ -119426,8 +119492,8 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "supabase_functions_agent_train_index_requirements",
-      "community": 2816,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/cdn-cache-auth-safety.md",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "requirements()"
     },
     {
@@ -120746,8 +120812,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_backup_index",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "backup/index.ts"
     },
     {
@@ -120757,8 +120823,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_admin",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "admin"
     },
     {
@@ -120768,8 +120834,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_sec",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "sec()"
     },
     {
@@ -120779,8 +120845,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_secretok",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "secretok()"
     },
     {
@@ -120790,8 +120856,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_full",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "full"
     },
     {
@@ -120801,8 +120867,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_dumptablepaged",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "dumptablepaged()"
     },
     {
@@ -120812,8 +120878,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_listbucket",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "listbucket()"
     },
     {
@@ -120823,8 +120889,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "supabase_functions_backup_index_slot",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2307,
+      "community_name": "Handover \u2014 13 Aug 2026 (session ran 19:40\u201322:40 UTC / 23:40\u201302:40 Dubai)",
       "norm_label": "slot"
     },
     {
@@ -120834,8 +120900,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "blog_weekly/index.ts"
     },
     {
@@ -120845,8 +120911,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_admin",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "admin"
     },
     {
@@ -120856,8 +120922,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_llm",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "llm"
     },
     {
@@ -120867,8 +120933,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_j",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "j()"
     },
     {
@@ -120878,8 +120944,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_sec",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "sec()"
     },
     {
@@ -120889,8 +120955,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_secretok",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "secretok()"
     },
     {
@@ -120900,8 +120966,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_slugify",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "slugify()"
     },
     {
@@ -120911,8 +120977,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "supabase_functions_blog_weekly_index_llmjson",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2314,
+      "community_name": "cross_os.mjs - sound=False",
       "norm_label": "llmjson()"
     },
     {
@@ -121164,8 +121230,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "canon_eval/index.ts"
     },
     {
@@ -121175,8 +121241,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_admin",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "admin"
     },
     {
@@ -121186,8 +121252,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_cors",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "cors"
     },
     {
@@ -121197,8 +121263,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_j",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "j()"
     },
     {
@@ -121208,8 +121274,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_judge",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "judge"
     },
     {
@@ -121219,8 +121285,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_sec",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -121230,8 +121296,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_authed",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "authed()"
     },
     {
@@ -121241,8 +121307,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_canon_eval_index_shuffle",
-      "community": 2478,
-      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "shuffle()"
     },
     {
@@ -123507,8 +123573,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "dispatch_inquiry/index.ts"
     },
     {
@@ -123518,8 +123584,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_admin",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "admin"
     },
     {
@@ -123529,8 +123595,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_j",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "j()"
     },
     {
@@ -123540,8 +123606,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_sec",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "sec()"
     },
     {
@@ -123551,8 +123617,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_secretok",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "secretok()"
     },
     {
@@ -123562,8 +123628,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_policyint",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "policyint()"
     },
     {
@@ -123573,8 +123639,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_t0",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "t0"
     },
     {
@@ -123584,8 +123650,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_logrun",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "logrun()"
     },
     {
@@ -123595,8 +123661,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_escalate",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "escalate()"
     },
     {
@@ -123606,8 +123672,8 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "supabase_functions_dispatch_inquiry_index_rationale_191",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 816,
+      "community_name": "cmdk",
       "norm_label": "note: force skips the freshness check but still takes the claim below, so a forc"
     },
     {
@@ -125102,8 +125168,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "exec_agents/index.ts"
     },
     {
@@ -125113,8 +125179,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_admin",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "admin"
     },
     {
@@ -125124,8 +125190,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_j",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "j()"
     },
     {
@@ -125135,8 +125201,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_sec",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "sec()"
     },
     {
@@ -125146,8 +125212,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_secretok",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "secretok()"
     },
     {
@@ -125157,8 +125223,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_parsejson",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "parsejson()"
     },
     {
@@ -125168,8 +125234,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_llm",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "llm"
     },
     {
@@ -125179,8 +125245,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_officers",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "officers"
     },
     {
@@ -125190,8 +125256,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_metricsfingerprint",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "metricsfingerprint()"
     },
     {
@@ -125201,8 +125267,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "supabase_functions_exec_agents_index_runofficer",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 1328,
+      "community_name": "clsx",
       "norm_label": "runofficer()"
     },
     {
@@ -125663,8 +125729,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "gen_category_knowledge/index.ts"
     },
     {
@@ -125674,8 +125740,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_admin",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "admin"
     },
     {
@@ -125685,8 +125751,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_t0",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "t0"
     },
     {
@@ -125696,8 +125762,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_logrun",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "logrun()"
     },
     {
@@ -125707,8 +125773,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_llmshared",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "llmshared"
     },
     {
@@ -125718,8 +125784,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_sec",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "sec()"
     },
     {
@@ -125729,8 +125795,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_secretok",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "secretok()"
     },
     {
@@ -125740,8 +125806,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_knowledge_index_llm",
-      "community": 143,
-      "community_name": "email_triage/index.ts",
+      "community": 2412,
+      "community_name": "Email & Inbound Comms + OTP",
       "norm_label": "llm()"
     },
     {
@@ -125751,8 +125817,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "gen_category_personas/index.ts"
     },
     {
@@ -125762,8 +125828,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_admin",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "admin"
     },
     {
@@ -125773,8 +125839,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_t0",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "t0"
     },
     {
@@ -125784,8 +125850,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_logrun",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "logrun()"
     },
     {
@@ -125795,8 +125861,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_llmshared",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "llmshared"
     },
     {
@@ -125806,8 +125872,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_sec",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -125817,8 +125883,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_secretok",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -125828,8 +125894,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_gen_category_personas_index_llm",
-      "community": 2480,
-      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "llm()"
     },
     {
@@ -126631,8 +126697,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "kb_autofill_gaps/index.ts"
     },
     {
@@ -126642,8 +126708,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_admin",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "admin"
     },
     {
@@ -126653,8 +126719,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_t0",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "t0"
     },
     {
@@ -126664,8 +126730,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_logrun",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "logrun()"
     },
     {
@@ -126675,8 +126741,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_j",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "j()"
     },
     {
@@ -126686,8 +126752,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_sec",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "sec()"
     },
     {
@@ -126697,8 +126763,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "supabase_functions_kb_autofill_gaps_index_secretok",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2480,
+      "community_name": "$WT/supabase/migrations_history/20260803044744_internal_credential_model_and_verifier_audit_9_5.sql",
       "norm_label": "secretok()"
     },
     {
@@ -128677,8 +128743,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "marketing_draft/index.ts"
     },
     {
@@ -128688,8 +128754,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_admin",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "admin"
     },
     {
@@ -128699,8 +128765,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_cors",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "cors"
     },
     {
@@ -128710,8 +128776,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_j",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "j()"
     },
     {
@@ -128721,8 +128787,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_llm",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "llm"
     },
     {
@@ -128732,8 +128798,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_channels",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "channels"
     },
     {
@@ -128743,8 +128809,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_sec",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -128754,8 +128820,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "supabase_functions_marketing_draft_index_authed",
-      "community": 2818,
-      "community_name": "$WT/.agents/skills/vercel-optimize/references/support-topics/core-web-vitals-client-bottlenecks.md",
+      "community": 143,
+      "community_name": "email_triage/index.ts",
       "norm_label": "authed()"
     },
     {
@@ -129007,8 +129073,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "match_eval/index.ts"
     },
     {
@@ -129018,8 +129084,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_admin",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "admin"
     },
     {
@@ -129029,8 +129095,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_t0",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "t0"
     },
     {
@@ -129040,8 +129106,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_logrun",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "logrun()"
     },
     {
@@ -129051,8 +129117,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_j",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "j()"
     },
     {
@@ -129062,8 +129128,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_sec",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -129073,8 +129139,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_secretok",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -129084,8 +129150,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_fix",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "fix"
     },
     {
@@ -129095,8 +129161,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "supabase_functions_match_eval_index_cases",
-      "community": 2581,
-      "community_name": "supabase/functions/canon_eval/index.ts",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "cases"
     },
     {
@@ -132439,8 +132505,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "quote_extract/index.ts"
     },
     {
@@ -132450,8 +132516,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_admin",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "admin"
     },
     {
@@ -132461,8 +132527,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_t0",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "t0"
     },
     {
@@ -132472,8 +132538,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_logrun",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "logrun()"
     },
     {
@@ -132483,8 +132549,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_j",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "j()"
     },
     {
@@ -132494,8 +132560,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_sec",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -132505,8 +132571,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_secretok",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -132516,8 +132582,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_parsejson",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "parsejson()"
     },
     {
@@ -132527,8 +132593,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_scrub",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "scrub()"
     },
     {
@@ -132538,8 +132604,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "supabase_functions_quote_extract_index_dataurl",
-      "community": 2198,
-      "community_name": "$WT/knowledge-import/test_idempotency.py",
+      "community": 87,
+      "community_name": "quote_review/index.ts",
       "norm_label": "dataurl()"
     },
     {
@@ -133517,8 +133583,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "retention_purge/index.ts"
     },
     {
@@ -133528,8 +133594,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index_admin",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "admin"
     },
     {
@@ -133539,8 +133605,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index_t0",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "t0"
     },
     {
@@ -133550,8 +133616,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index_logrun",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "logrun()"
     },
     {
@@ -133561,8 +133627,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index_j",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "j()"
     },
     {
@@ -133572,8 +133638,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index_sec",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "sec()"
     },
     {
@@ -133583,8 +133649,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "supabase_functions_retention_purge_index_secretok",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2581,
+      "community_name": "supabase/functions/canon_eval/index.ts",
       "norm_label": "secretok()"
     },
     {
@@ -137136,8 +137202,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "uptime_check/index.ts"
     },
     {
@@ -137147,8 +137213,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index_admin",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "admin"
     },
     {
@@ -137158,8 +137224,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index_j",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "j()"
     },
     {
@@ -137169,8 +137235,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index_sec",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "sec()"
     },
     {
@@ -137180,8 +137246,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index_secretok",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "secretok()"
     },
     {
@@ -137191,8 +137257,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index_setsec",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "setsec()"
     },
     {
@@ -137202,8 +137268,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "supabase_functions_uptime_check_index_checks",
-      "community": 87,
-      "community_name": "quote_review/index.ts",
+      "community": 2604,
+      "community_name": "$WT/src/components/portal/supplier/SupplierInventory.tsx",
       "norm_label": "checks"
     },
     {
@@ -175256,17 +175322,6 @@
       "norm_label": "public.fn_agent_autonomy_blocked()"
     },
     {
-      "label": "public.fn_agent_context()",
-      "file_type": "code",
-      "source_file": "supabase/schema/full_schema.sql",
-      "source_location": "L17071",
-      "_origin": "ast",
-      "id": "supabase_schema_full_schema_public_fn_agent_context",
-      "community": 12,
-      "community_name": "crm_api/index.ts",
-      "norm_label": "public.fn_agent_context()"
-    },
-    {
       "label": "agent_knowledge.seed.sql",
       "file_type": "code",
       "source_file": "supabase/seeds/agent_knowledge.seed.sql",
@@ -189017,10 +189072,21 @@
       "norm_label": "1b. build the connection even when there is no data yet, and never stop short"
     },
     {
-      "label": "2. There is exactly one thing you may say when finished",
+      "label": "1c. Never launch, never test with real users \u2014 the sandbox is where everything is proven",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
       "source_location": "L40",
+      "_origin": "ast",
+      "id": "claude_skills_quotesdone_session_skill_1c_never_launch_never_test_with_real_users_the_sandbox_is_where_everything_is_proven",
+      "community": 466,
+      "community_name": "20260724_cos_execution_engine.sql",
+      "norm_label": "1c. never launch, never test with real users \u2014 the sandbox is where everything is proven"
+    },
+    {
+      "label": "2. There is exactly one thing you may say when finished",
+      "file_type": "document",
+      "source_file": ".claude/skills/quotesdone-session/SKILL.md",
+      "source_location": "L58",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_2_there_is_exactly_one_thing_you_may_say_when_finished",
       "community": 466,
@@ -189031,7 +189097,7 @@
       "label": "3. What needs his approval",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L51",
+      "source_location": "L69",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_3_what_needs_his_approval",
       "community": 466,
@@ -189042,7 +189108,7 @@
       "label": "A brief that says \"ask me first\" does NOT override this",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L61",
+      "source_location": "L79",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_a_brief_that_says_ask_me_first_does_not_override_this",
       "community": 466,
@@ -189053,7 +189119,7 @@
       "label": "4. \"Fixed\" has a specific meaning here",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L86",
+      "source_location": "L104",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_4_fixed_has_a_specific_meaning_here",
       "community": 466,
@@ -189064,7 +189130,7 @@
       "label": "5. One project \u2014 and the read-back is what survived",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L102",
+      "source_location": "L120",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_5_one_project_and_the_read_back_is_what_survived",
       "community": 466,
@@ -189075,7 +189141,7 @@
       "label": "6. Read the guards before working around them",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L135",
+      "source_location": "L153",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_6_read_the_guards_before_working_around_them",
       "community": 466,
@@ -189086,7 +189152,7 @@
       "label": "7. Traps that have already cost time",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L144",
+      "source_location": "L162",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_7_traps_that_have_already_cost_time",
       "community": 466,
@@ -189097,7 +189163,7 @@
       "label": "8. Specs are build orders",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L169",
+      "source_location": "L187",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_8_specs_are_build_orders",
       "community": 466,
@@ -189108,7 +189174,7 @@
       "label": "9. End-of-session sweep, every time",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L178",
+      "source_location": "L196",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_9_end_of_session_sweep_every_time",
       "community": 466,
@@ -189119,7 +189185,7 @@
       "label": "10. Never state anything you are not 100% sure of",
       "file_type": "document",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L232",
+      "source_location": "L250",
       "_origin": "ast",
       "id": "claude_skills_quotesdone_session_skill_10_never_state_anything_you_are_not_100_sure_of",
       "community": 466,
@@ -204269,8 +204335,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_02_duplicates",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 673,
+      "community_name": "20260724_human_writing_voice.sql",
       "norm_label": "02_duplicates.md"
     },
     {
@@ -204731,8 +204797,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_04_contradictions",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 673,
+      "community_name": "20260724_human_writing_voice.sql",
       "norm_label": "04_contradictions.md"
     },
     {
@@ -204907,8 +204973,8 @@
       "source_location": "L299",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_04_contradictions_the_shape_behind_eleven_of_the_fourteen",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 673,
+      "community_name": "20260724_human_writing_voice.sql",
       "norm_label": "the shape behind eleven of the fourteen"
     },
     {
@@ -204918,8 +204984,8 @@
       "source_location": "L323",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_04_contradictions_the_identity_vocabulary_problem_stated_precisely",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 673,
+      "community_name": "20260724_human_writing_voice.sql",
       "norm_label": "the identity vocabulary problem, stated precisely"
     },
     {
@@ -205061,8 +205127,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_07_agents_and_knowledge",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 673,
+      "community_name": "20260724_human_writing_voice.sql",
       "norm_label": "07_agents_and_knowledge.md"
     },
     {
@@ -205325,8 +205391,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_08_openrouter",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 511,
+      "community_name": "20260803164929_audit_95_restore_verifier_and_add_legacy_attribution_correctly.sql",
       "norm_label": "08_openrouter.md"
     },
     {
@@ -205446,8 +205512,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_audits_word_by_word_2026_08_11_readme",
-      "community": 672,
-      "community_name": "20260724_gstack_role_principles.sql",
+      "community": 673,
+      "community_name": "20260724_human_writing_voice.sql",
       "norm_label": "word_by_word_2026_08_11/readme.md"
     },
     {
@@ -220439,8 +220505,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual",
-      "community": 581,
-      "community_name": "20260729141532_customer_master_tracker_view.sql",
+      "community": 506,
+      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
       "norm_label": "agent_by_agent_operating_manual.md"
     },
     {
@@ -220450,8 +220516,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_quotesdone_agent_by_agent_reporting_and_operating_manual",
-      "community": 581,
-      "community_name": "20260729141532_customer_master_tracker_view.sql",
+      "community": 506,
+      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
       "norm_label": "quotesdone \u2014 agent-by-agent reporting and operating manual"
     },
     {
@@ -235641,8 +235707,8 @@
       "source_location": "L6063",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_exact_phase_b_workflow_participation_6063",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "exact phase b workflow participation"
     },
     {
@@ -235652,8 +235718,8 @@
       "source_location": "L6065",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_workflow_level_accountability_6065",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "workflow-level accountability"
     },
     {
@@ -235663,8 +235729,8 @@
       "source_location": "L6068",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_workflow_level_contribution_6068",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "workflow-level contribution"
     },
     {
@@ -235674,8 +235740,8 @@
       "source_location": "L6071",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_workflow_level_independent_review_challenge_6071",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "workflow-level independent review/challenge"
     },
     {
@@ -235685,8 +235751,8 @@
       "source_location": "L6074",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_steps_owned_6074",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "steps owned"
     },
     {
@@ -235696,8 +235762,8 @@
       "source_location": "L6077",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_steps_contributed_to_6077",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "steps contributed to"
     },
     {
@@ -235707,8 +235773,8 @@
       "source_location": "L6082",
       "_origin": "ast",
       "id": "docs_phase_c_agent_dossiers_agent_by_agent_operating_manual_steps_reviewed_independently_6082",
-      "community": 506,
-      "community_name": "20260802205600_p2_c1_stage_b7_detection_performance.sql",
+      "community": 2478,
+      "community_name": "$WT/supabase/functions/refunds_api/index.ts",
       "norm_label": "steps reviewed independently"
     },
     {
@@ -382882,6 +382948,50 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_it_cyber_deep_knowledge",
+      "target": "scripts_sql_it_cyber_deep_knowledge_public_fn_it_security_knowledge_upsert",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L55",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_it_cyber_deep_knowledge",
+      "target": "scripts_sql_it_cyber_deep_knowledge_public_fn_it_security_slice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_it_cyber_deep_knowledge",
+      "target": "scripts_sql_it_cyber_deep_knowledge_public_ops_knowledge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "reads_from",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/sql/it_cyber_deep_knowledge.sql",
+      "source_location": "L67",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "scripts_sql_it_cyber_deep_knowledge_public_fn_it_security_slice",
+      "target": "scripts_sql_it_cyber_deep_knowledge_public_ops_knowledge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/sql/kernel_k0_founder_authentication.sql",
       "source_location": "L95",
       "weight": 1.0,
@@ -512046,17 +512156,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "supabase/schema/full_schema.sql",
-      "source_location": "L17071",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_schema_full_schema",
-      "target": "supabase_schema_full_schema_public_fn_agent_context",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/schema/full_schema.sql",
       "source_location": "L2398",
       "weight": 1.0,
       "_origin": "ast",
@@ -530593,7 +530692,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L232",
+      "source_location": "L250",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530630,6 +530729,17 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
+      "target": "claude_skills_quotesdone_session_skill_1c_never_launch_never_test_with_real_users_the_sandbox_is_where_everything_is_proven",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".claude/skills/quotesdone-session/SKILL.md",
+      "source_location": "L58",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
       "target": "claude_skills_quotesdone_session_skill_2_there_is_exactly_one_thing_you_may_say_when_finished",
       "confidence_score": 1.0
     },
@@ -530637,7 +530747,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L51",
+      "source_location": "L69",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530648,7 +530758,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L86",
+      "source_location": "L104",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530659,7 +530769,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L102",
+      "source_location": "L120",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530670,7 +530780,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L135",
+      "source_location": "L153",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530681,7 +530791,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L144",
+      "source_location": "L162",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530692,7 +530802,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L169",
+      "source_location": "L187",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530703,7 +530813,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L178",
+      "source_location": "L196",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_quotesdone_how_this_founder_wants_the_session_run",
@@ -530714,7 +530824,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": ".claude/skills/quotesdone-session/SKILL.md",
-      "source_location": "L61",
+      "source_location": "L79",
       "weight": 1.0,
       "_origin": "ast",
       "source": "claude_skills_quotesdone_session_skill_3_what_needs_his_approval",
@@ -630977,5 +631087,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a6c96c2710f63afe12b379fa594586077caa1f77"
+  "built_at_commit": "14d7991b835b9808720019a8bb1946e594634887"
 }
