@@ -20,6 +20,23 @@ Apply this on every QuotesDone session, whether or not it is invoked by name. It
 - **When something needs time, start it in the background and pick up different work.** Never idle
   against a clock. Long scorers, imports and CI runs go to the background; you keep working.
 
+## 1b. Build the connection even when there is no data yet, and never stop short
+
+The company is **pre-launch**: `customers`, `inquiries`, `quotes` and `transactions` sit at 0, and
+suppliers are an invited `leads` pool. **The absence of real data is NEVER a reason not to build a
+feature, a wire, or a connection.** Build it so it is ready the instant real data arrives — build the
+pipe now, the water comes later. Do **not** report "there is no real data yet" as a caveat, an excuse
+or a blocker; the founder has said this repeatedly and it wastes his time. If a lookup, a binding, a
+refresh or a capability is missing, build it against the empty tables and verify it works on the shape
+of the data, not its presence.
+
+And **never stop until what he asked for is FULLY done** — not "the core is in", not "here are the
+remaining gaps", not a partial with a to-do list. Keep building, stress-testing and closing gaps
+(find them yourself; do not make him enumerate) until the request is completely satisfied, then report.
+Handing him a list of what is still left, or declaring "done" before it is, is the failure mode he most
+dislikes short of fabricating completion. When a task is large, chew through it end to end — background
+the slow parts and keep going — rather than stopping at the first reportable milestone.
+
 ## 2. There is exactly one thing you may say when finished
 
 > `all verified and fixed and merged and deployed 100%`

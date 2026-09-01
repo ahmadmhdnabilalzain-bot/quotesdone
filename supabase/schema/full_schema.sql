@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T19:34:56.494Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T19:49:33.801Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -20721,6 +20721,85 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_business_entity_list(p_entity text, p_filter text DEFAULT NULL::text, p_limit integer DEFAULT 25)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; e text := lower(btrim(coalesce(p_entity,''))); f text := btrim(coalesce(p_filter,'')); n int := least(greatest(coalesce(p_limit,25),1),200);
+begin
+  if e in ('customer','buyer') then
+    select jsonb_agg(to_jsonb(c)) into v from (select id,email,phone,created_at from public.customers order by created_at desc limit n) c;
+  elsif e in ('supplier','lead','vendor') then
+    select jsonb_agg(to_jsonb(l)) into v from (
+      select id,company_name,contact_name,email,phone,approval_status,created_at from public.leads
+       where f='' or company_name ilike '%'||f||'%' or approval_status=f
+       order by (approval_status='approved') desc, created_at desc limit n) l;
+  elsif e in ('inquiry','rfq','request') then
+    select jsonb_agg(to_jsonb(i)) into v from (
+      select id,customer_id,category,status,created_at from public.inquiries
+       where f='' or status=f or category ilike '%'||f||'%' order by created_at desc limit n) i;
+  elsif e in ('quote','quotation','offer') then
+    select jsonb_agg(to_jsonb(q)) into v from (select id,inquiry_id,supplier_id,quote_amount,status,created_at from public.quotes order by created_at desc limit n) q;
+  elsif e in ('transaction','payment','order','reveal') then
+    select jsonb_agg(to_jsonb(t)) into v from (select id,inquiry_id,supplier_id,customer_id,quote_amount from public.transactions limit n) t;
+  else
+    return jsonb_build_object('ok',false,'error','unknown entity "'||e||'". Use: customer, supplier, inquiry, quote or transaction.');
+  end if;
+  return jsonb_build_object('ok',true,'entity',e,'filter',nullif(f,''),'items',coalesce(v,'[]'::jsonb),'count',jsonb_array_length(coalesce(v,'[]'::jsonb)));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_business_entity_lookup(p_entity text, p_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; e text := lower(btrim(coalesce(p_entity,''))); k text := btrim(coalesce(p_key,''));
+begin
+  if k = '' then return jsonb_build_object('ok',false,'error','a key is required (id, email, company name or phone)'); end if;
+  if e in ('customer','buyer') then
+    select to_jsonb(c) into v from public.customers c where c.id::text=k or lower(c.email)=lower(k) or c.phone=k limit 1;
+  elsif e in ('supplier','lead','vendor') then
+    select to_jsonb(l) into v from public.leads l where l.id::text=k or lower(l.email)=lower(k) or l.company_name ilike k or l.phone=k limit 1;
+  elsif e in ('inquiry','rfq','request') then
+    select to_jsonb(i) into v from public.inquiries i where i.id::text=k limit 1;
+  elsif e in ('quote','quotation','offer') then
+    select to_jsonb(q) into v from public.quotes q where q.id::text=k limit 1;
+  elsif e in ('transaction','payment','order','reveal') then
+    select to_jsonb(t) into v from public.transactions t where t.id::text=k limit 1;
+  else
+    return jsonb_build_object('ok',false,'error','unknown entity "'||e||'". Use: customer, supplier, inquiry, quote or transaction.');
+  end if;
+  if v is null then return jsonb_build_object('ok',true,'entity',e,'key',k,'found',false); end if;
+  return jsonb_build_object('ok',true,'entity',e,'found',true,'profile',v);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_business_entity_summary()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'as_of', now(),
+    'customers',            (select count(*) from public.customers),
+    'customers_with_inquiry',(select count(distinct customer_id) from public.inquiries where customer_id is not null),
+    'suppliers_total',      (select count(*) from public.leads),
+    'suppliers_approved',   (select count(*) from public.leads where approval_status='approved'),
+    'suppliers_prospective',(select count(*) from public.leads where coalesce(approval_status,'') <> 'approved'),
+    'sendable_supplier_pool',(select coalesce(sum(sendable),0)::int from public.v_supply_gap),
+    'inquiries',            (select count(*) from public.inquiries),
+    'quotes',               (select count(*) from public.quotes),
+    'transactions',         (select count(*) from public.transactions),
+    'categories_total',     (select count(*) from public.catalog_supplier_categories),
+    'categories_at_target', (select count(*) from public.v_supply_gap where approved >= 10));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_cancel_inquiry(p_inquiry uuid, p_customer uuid, p_reason text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -22092,7 +22171,7 @@ CREATE OR REPLACE FUNCTION public.fn_company_org_directory_sync()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_cat text;
-        v_wf text; v_legal text; v_compl text; v_n int := 0;
+        v_wf text; v_legal text; v_compl text; v_biz jsonb; v_n int := 0;
 begin
   -- 1. THE WHOLE ORG DIRECTORY — one record per department; everyone knows everyone's role, line
   --    manager, what they are measured on and their live rating.
@@ -22189,6 +22268,24 @@ begin
     || 'Posture: anonymous marketplace, buyer/supplier identities protected until reveal, EVERY refund is founder-approved, '
     || 'late fees under UAE Federal Decree-Law 50/2022, disputes handled through a defined escalation ladder.',
     array['legal','compliance','regulatory','policy','terms of service','privacy policy','pdpl','data protection','uae law','are we compliant','legal documents','what laws apply','governing law','gdpr']);
+  v_n := v_n + 1;
+
+  -- 7. THE BUSINESS ENTITIES — the live customer/supplier/order landscape, and HOW to look up any one.
+  begin v_biz := public.fn_business_entity_summary(); exception when others then v_biz := '{}'::jsonb; end;
+  perform public.fn_company_knowledge_upsert('business-entities', 'business_data',
+    'QuotesDone — Our Customers, Suppliers and Orders (live), and how to look them up' || E'\n' ||
+    'THE BUSINESS RIGHT NOW (live counts):' || E'\n' ||
+    '  Customers: ' || coalesce(v_biz->>'customers','0') || ' (with an inquiry: ' || coalesce(v_biz->>'customers_with_inquiry','0') || ')' || E'\n' ||
+    '  Suppliers: ' || coalesce(v_biz->>'suppliers_total','0') || ' total — ' || coalesce(v_biz->>'suppliers_approved','0') || ' approved, '
+      || coalesce(v_biz->>'suppliers_prospective','0') || ' prospective; sendable pool ' || coalesce(v_biz->>'sendable_supplier_pool','0') || E'\n' ||
+    '  Inquiries/RFQs: ' || coalesce(v_biz->>'inquiries','0') || '  ·  Quotes: ' || coalesce(v_biz->>'quotes','0') || '  ·  Transactions/orders: ' || coalesce(v_biz->>'transactions','0') || E'\n' ||
+    '  Categories: ' || coalesce(v_biz->>'categories_total','0') || ' (' || coalesce(v_biz->>'categories_at_target','0') || ' at the 10-supplier target)' || E'\n' ||
+    'HOW TO KNOW A SPECIFIC ONE (do not memorise the records — look them up live):' || E'\n' ||
+    '  - fn_business_entity_lookup(entity, key): one customer/supplier/inquiry/quote/transaction by id, email, company name or phone -> its full profile.' || E'\n' ||
+    '  - fn_business_entity_list(entity, filter, limit): list or search them (e.g. all approved suppliers, recent inquiries).' || E'\n' ||
+    '  - fn_business_entity_summary(): these live counts. Call these functions directly — you run with the database access to do so.',
+    'business_data',
+    array['customers','suppliers','how many customers','how many suppliers','who are our customers','who are our suppliers','their profiles','their orders','look up a supplier','find a customer','list suppliers','our orders','the crm','business data','inquiries','quotes','transactions','entity lookup']);
   v_n := v_n + 1;
 
   return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now());

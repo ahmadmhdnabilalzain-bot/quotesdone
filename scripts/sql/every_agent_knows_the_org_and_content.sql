@@ -40,7 +40,7 @@ create or replace function public.fn_company_org_directory_sync()
  returns jsonb language plpgsql security definer set search_path to 'public','pg_temp'
 as $fn$
 declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_cat text;
-        v_wf text; v_legal text; v_compl text; v_n int := 0;
+        v_wf text; v_legal text; v_compl text; v_biz jsonb; v_n int := 0;
 begin
   -- 1. THE WHOLE ORG DIRECTORY — one record per department; everyone knows everyone's role, line
   --    manager, what they are measured on and their live rating.
@@ -137,6 +137,24 @@ begin
     || 'Posture: anonymous marketplace, buyer/supplier identities protected until reveal, EVERY refund is founder-approved, '
     || 'late fees under UAE Federal Decree-Law 50/2022, disputes handled through a defined escalation ladder.',
     array['legal','compliance','regulatory','policy','terms of service','privacy policy','pdpl','data protection','uae law','are we compliant','legal documents','what laws apply','governing law','gdpr']);
+  v_n := v_n + 1;
+
+  -- 7. THE BUSINESS ENTITIES — the live customer/supplier/order landscape, and HOW to look up any one.
+  begin v_biz := public.fn_business_entity_summary(); exception when others then v_biz := '{}'::jsonb; end;
+  perform public.fn_company_knowledge_upsert('business-entities', 'business_data',
+    'QuotesDone — Our Customers, Suppliers and Orders (live), and how to look them up' || E'\n' ||
+    'THE BUSINESS RIGHT NOW (live counts):' || E'\n' ||
+    '  Customers: ' || coalesce(v_biz->>'customers','0') || ' (with an inquiry: ' || coalesce(v_biz->>'customers_with_inquiry','0') || ')' || E'\n' ||
+    '  Suppliers: ' || coalesce(v_biz->>'suppliers_total','0') || ' total — ' || coalesce(v_biz->>'suppliers_approved','0') || ' approved, '
+      || coalesce(v_biz->>'suppliers_prospective','0') || ' prospective; sendable pool ' || coalesce(v_biz->>'sendable_supplier_pool','0') || E'\n' ||
+    '  Inquiries/RFQs: ' || coalesce(v_biz->>'inquiries','0') || '  ·  Quotes: ' || coalesce(v_biz->>'quotes','0') || '  ·  Transactions/orders: ' || coalesce(v_biz->>'transactions','0') || E'\n' ||
+    '  Categories: ' || coalesce(v_biz->>'categories_total','0') || ' (' || coalesce(v_biz->>'categories_at_target','0') || ' at the 10-supplier target)' || E'\n' ||
+    'HOW TO KNOW A SPECIFIC ONE (do not memorise the records — look them up live):' || E'\n' ||
+    '  - fn_business_entity_lookup(entity, key): one customer/supplier/inquiry/quote/transaction by id, email, company name or phone -> its full profile.' || E'\n' ||
+    '  - fn_business_entity_list(entity, filter, limit): list or search them (e.g. all approved suppliers, recent inquiries).' || E'\n' ||
+    '  - fn_business_entity_summary(): these live counts. Call these functions directly — you run with the database access to do so.',
+    'business_data',
+    array['customers','suppliers','how many customers','how many suppliers','who are our customers','who are our suppliers','their profiles','their orders','look up a supplier','find a customer','list suppliers','our orders','the crm','business data','inquiries','quotes','transactions','entity lookup']);
   v_n := v_n + 1;
 
   return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now());
