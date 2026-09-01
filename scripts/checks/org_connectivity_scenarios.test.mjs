@@ -369,5 +369,35 @@ const spr = await q(`select 'open_dept_tasks_without_an_objective' k,
   (select count(*)::text from org_tasks t where t.objective_id is not null and not exists(select 1 from department_objective o where o.id=t.objective_id)), '0'`);
 for (const r of spr) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== EVENTS — the five missing emitters can wake their workflows ==');
+// ============================================================================================
+// Each of the five events with an active subscriber now has an emitter: four AFTER triggers on the
+// real originating tables, and a cross-department-conflict detector for the one with no source table.
+const ev = await probe(`do $p$ declare v_cd int; v_cc int; v_ch int; v_cp int; v_dc int; begin
+  insert into content_drafts(channel,category,title,body,status,source) values('blog','news','ZZ ev probe','b','draft','x');
+  select count(*) into v_cd from company_event where event_type='content.drafted' and payload->>'title'='ZZ ev probe';
+  insert into feedback(source,subject_type,subject_id,rating,comment) values('survey','customer','zzev',1,'x');
+  select count(*) into v_cc from company_event where event_type='customer.complaint' and payload->>'subject_id'='zzev';
+  insert into customer_score(customer_id,rfqs_posted,rfqs_awarded,churn_risk,computed_at) values(999999002,0,0,0.9,now());
+  select count(*) into v_ch from company_event where event_type='customer.churn_signal' and entity_id='999999002';
+  insert into phase_d_object_record(object_id,business_key,version,state,owner_scope,owner_ref,payload,created_by)
+    values('content_campaign','zzev_camp',1,'active','COMPANY','company',jsonb_build_object('t','x'),'x');
+  update phase_d_object_record set state='published' where object_id='content_campaign' and business_key='zzev_camp';
+  select count(*) into v_cp from company_event where event_type='campaign.published' and payload->>'business_key'='zzev_camp';
+  insert into decision_log(actor,kind,decision,created_at) values('cfo','zzev_conflict','approve',now()),('cto','zzev_conflict','reject',now());
+  perform fn_emit_department_conflict();
+  select count(*) into v_dc from company_event where event_type='department.conflict' and entity_id='zzev_conflict';
+  raise exception 'MARK|content=%|complaint=%|churn=%|campaign=%|conflict=%', v_cd,v_cc,v_ch,v_cp,v_dc; end $p$;`);
+eq('content.drafted fires on a new content draft', ev.content, '1');
+eq('customer.complaint fires on a low-rating feedback', ev.complaint, '1');
+eq('customer.churn_signal fires when churn risk enters the danger band', ev.churn, '1');
+eq('campaign.published fires when a campaign object is published', ev.campaign, '1');
+eq('department.conflict fires on a cross-department decision conflict', ev.conflict, '1');
+const es = await q(`select 'five_new_events_all_have_active_subscribers' k,
+  (select count(distinct event_type)::text from event_subscription where active
+     and event_type in ('content.drafted','customer.complaint','customer.churn_signal','campaign.published','department.conflict')) v, '5' e`);
+for (const r of es) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
