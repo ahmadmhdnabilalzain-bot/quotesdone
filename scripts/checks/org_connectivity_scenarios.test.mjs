@@ -478,5 +478,18 @@ eq('a qualifying employee is promoted (seniority advances)', pr.seniority, 'spec
 eq('  -> and their advisory-safe authority widens to autonomous', pr.widened, '1');
 eq('  -> at least one promotion once the hold is lifted', pr.promoted_gt0, 'true');
 
+// ============================================================================================
+console.log('\n== APEX BACKUP — a deputy stands in for the CEO before the generic fallback ==');
+// ============================================================================================
+const ab = await q(`select 'the_ceo_still_routes_to_the_founder' k,
+  (fn_should_escalate('{"actor":"ceo","confidence":0.1}')->>'route_to') v, 'founder' e
+  union all select 'an_unresolved_escalation_reaches_the_named_apex_backup',
+  (fn_should_escalate('{"actor":"zz_unresolvable_actor","confidence":0.1}')->>'route_basis'), 'apex_backup'
+  union all select 'the_apex_backup_is_the_coo_not_the_generic_exec_fallback',
+  (fn_should_escalate('{"actor":"zz_unresolvable_actor","confidence":0.1}')->>'route_to'), 'ops_director'
+  union all select 'a_reporting_line_escalation_is_unaffected',
+  (fn_should_escalate('{"actor":"bookkeeper","confidence":0.1}')->>'route_basis'), 'reporting_line'`);
+for (const r of ab) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
