@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T15:20:25.219Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T15:23:48.540Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16542,6 +16542,72 @@ AS $function$
       where d.key = 'founder_review_gates' and p_kind is not null and d.value ? p_kind)
   ], null);
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_action_queue_consequential_sweep(p_limit integer DEFAULT 5)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s record; t record; v_q_step int := 0; v_q_task int := 0; v_key text;
+begin
+  -- SELF-PAUSE: this queues real consequential business work; it pauses with the workforce.
+  if exists (select 1 from public.company_stand_down where resumed_at is null) then
+    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN', 'queued_steps',0, 'queued_tasks',0);
+  end if;
+
+  -- LOOP A: ready workflow steps whose executor is consequential AND the edge gate can PROGRESS on.
+  for s in
+    select r.id, r.workflow_run_id, r.step_no, r.actor, r.action_class, r.input, e.target, e.risk_tier, e.reversible
+      from public.workflow_step_run r
+      join public.org_action_executor e on e.action_class = r.action_class
+     where r.status='ready' and r.finished_at is null
+       and e.kind='edge' and e.active and not e.advisory_safe
+       and coalesce(e.required_authority,'') <> 'founder'
+       and (e.reversible or e.compensation_action_class is not null)
+       and not exists (select 1 from public.action_execution x where x.idempotency_key = 'workflow_step:'||r.id)
+     order by r.id limit greatest(coalesce(p_limit,5),1)
+  loop
+    v_key := 'workflow_step:'||s.id;
+    insert into public.action_execution(id,correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status,attempts,workflow_step_run_id)
+    values (gen_random_uuid(),gen_random_uuid(),s.action_class,s.target,v_key,s.risk_tier,s.reversible,
+            jsonb_build_object('workflow_step_run_id',s.id,'workflow_run_id',s.workflow_run_id,'step_no',s.step_no,'actor',s.actor,'input',coalesce(s.input,'{}'::jsonb),'source','fn_action_queue_consequential_sweep'),
+            'queued',0,s.id)
+    on conflict (idempotency_key) do nothing;
+    update public.workflow_step_run set status='running' where id=s.id and status='ready';
+    v_q_step := v_q_step + 1;
+  end loop;
+
+  -- LOOP B: open org_tasks with a consequential edge executor (same predicate). incident_fix lands here.
+  for t in
+    select k.id,k.dept_key,k.title,k.action_class,e.target,e.risk_tier,e.reversible
+      from public.org_tasks k
+      join public.org_action_executor e on e.action_class = k.action_class
+     where k.status in ('assigned','in_progress')
+       and e.kind='edge' and e.active and not e.advisory_safe
+       and coalesce(e.required_authority,'') <> 'founder'
+       and (e.reversible or e.compensation_action_class is not null)
+       and not exists (select 1 from public.action_execution x where x.idempotency_key = 'org_task:'||k.id)
+     order by k.id limit greatest(coalesce(p_limit,5),1)
+  loop
+    v_key := 'org_task:'||t.id;
+    insert into public.action_execution(id,correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status,attempts)
+    values (gen_random_uuid(),gen_random_uuid(),t.action_class,t.target,v_key,t.risk_tier,t.reversible,
+            jsonb_build_object('org_task_id',t.id,'dept_key',t.dept_key,'title',left(coalesce(t.title,''),300),'source','fn_action_queue_consequential_sweep'),
+            'queued',0)
+    on conflict (idempotency_key) do nothing;
+    update public.org_tasks set status='in_progress',last_run_at=now(),updated_at=now() where id=t.id and status='assigned';
+    v_q_task := v_q_task + 1;
+  end loop;
+
+  insert into public.agent_runs(agent,started_at,finished_at,status,counts,note)
+  values ('action_queue_consequential_sweep',now(),now(),'ok',
+    jsonb_build_object('queued_steps',v_q_step,'queued_tasks',v_q_task),
+    'Queued '||v_q_step||' consequential workflow step(s) and '||v_q_task||' org_task(s) for the approval gate.');
+  return jsonb_build_object('ok',true,'queued_steps',v_q_step,'queued_tasks',v_q_task,'ran_at',now(),
+    'ready_consequential_remaining',(select count(*) from public.workflow_step_run r join public.org_action_executor e on e.action_class=r.action_class where r.status='ready' and r.finished_at is null and e.kind='edge' and e.active and not e.advisory_safe and coalesce(e.required_authority,'')<>'founder' and (e.reversible or e.compensation_action_class is not null)));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_action_queue_sweep()
@@ -85904,6 +85970,7 @@ select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.
 select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_org_task_sla_watch();$CRON$);
 select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_handoff_watchdog();$CRON$);
 select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_employee_kpi_assign();$CRON$);
+select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails

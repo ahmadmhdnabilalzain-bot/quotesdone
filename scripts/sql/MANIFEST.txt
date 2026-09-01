@@ -1829,3 +1829,4 @@ scripts/sql/reputation_tier_gates_every_decision_ownership_ledger.sql
 scripts/sql/goals_carry_a_deadline_pace.sql
 scripts/sql/unclassified_work_escalates.sql
 scripts/sql/unclassified_work_escalates_ownership_ledger.sql
+scripts/sql/consequential_actions_reach_the_gate.sql
