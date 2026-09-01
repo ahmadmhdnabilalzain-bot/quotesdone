@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T11:45:27.087Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T12:05:03.899Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -43333,6 +43333,28 @@ AS $function$
         )) as dept_queue
     from public.org_departments d where d.active
   ) x;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_structure_invariants()
+ RETURNS TABLE(invariant text, subject text, detail text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- every active operating system must own at least one department
+  select 'os_without_department', o.os_key,
+         'active operating system "'||coalesce(o.name,o.os_key)||'" maps to no department'
+    from public.operating_system o
+   where coalesce(o.active, true)
+     and not exists (select 1 from public.os_department d where d.os_key = o.os_key)
+  union all
+  -- every active department must roll up to an operating system
+  select 'department_without_os', d.dept_key,
+         'active department "'||d.dept_key||'" maps to no operating system'
+    from public.org_departments d
+   where coalesce(d.active, true)
+     and not exists (select 1 from public.os_department m where m.dept_key = d.dept_key)
 $function$
 
 
