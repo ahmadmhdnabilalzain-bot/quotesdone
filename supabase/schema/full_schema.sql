@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T03:03:57.420Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T09:57:54.064Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -21819,6 +21819,7 @@ declare
   d_supp numeric; d_sec numeric; d_res numeric; d_inno numeric; d_strat numeric; v_mat numeric;
   e_vel numeric; e_backlog numeric; e_collab numeric; e_knowcreate numeric; e_autorate numeric; v_energy numeric;
   m_quality numeric; m_speed numeric; m_completion numeric; m_fraud numeric; m_conf numeric; v_mh numeric;
+  m_satisf numeric; m_revenue numeric; m_retention numeric;
   v_kpis int; v_gaps int;
 begin
   select coalesce(100 - round(100.0*count(*) filter (where needs_founder)/nullif(count(*),0),1),100)
@@ -21872,11 +21873,25 @@ begin
            /nullif(count(*),0),1),0) into m_completion from inquiries i where i.created_at > now()-interval '30 days';
   select coalesce(100 - least(100,count(*)*5),100) into m_fraud from fraud_flags;
   select coalesce(round(avg(confidence)*100,1),50) into m_conf from decision_log where confidence is not null;
-  v_mh := round((m_quality+m_speed+coalesce(m_completion,0)+m_fraud+m_conf)/5.0,1);
+  -- THE THREE ADDED INPUTS. Deterministic, model-free; null (not a guess) when the axis is unmeasured.
+  select round(avg(rating)*20.0, 1) into m_satisf
+    from reviews where rating is not null and created_at > now()-interval '90 days';
+  -- coalesce the SUM to 0 BEFORE least(): least(100, NULL) is 100 in Postgres (least ignores nulls), which
+  -- would read an empty marketplace as maximum revenue. Fold the empty case to 0 inside the aggregate.
+  select least(100, round(coalesce(sum(coalesce(reveal_fee,0)+coalesce(app_fee,0)), 0)/100.0, 1)) into m_revenue
+    from transactions where revealed_at > now()-interval '30 days';
+  select round(100.0*count(*) filter (where active_recently)/nullif(count(*),0), 1) into m_retention
+    from (select c.id,
+                 exists(select 1 from inquiries i where i.customer_id=c.id and i.created_at > now()-interval '90 days')
+              or exists(select 1 from transactions t where t.customer_id=c.id and t.revealed_at > now()-interval '90 days') as active_recently
+          from customers c) z;
+  v_mh := round((m_quality+m_speed+coalesce(m_completion,0)+m_fraud+m_conf
+                 +coalesce(m_satisf,50)+m_revenue+coalesce(m_retention,50))/8.0,1);
   insert into company_index (measured_on,index_name,dimensions,score,band)
   values (current_date,'marketplace_health',
     jsonb_build_object('supplier_quality',m_quality,'quote_speed',m_speed,'rfq_completion',m_completion,
-      'fraud_clean',m_fraud,'ai_confidence',m_conf), v_mh,
+      'fraud_clean',m_fraud,'ai_confidence',m_conf,
+      'customer_satisfaction',m_satisf,'revenue',m_revenue,'customer_retention',m_retention), v_mh,
     case when v_mh>=75 then 'healthy' when v_mh>=50 then 'fragile' else 'unhealthy' end)
   on conflict (measured_on,index_name) do update set dimensions=excluded.dimensions, score=excluded.score, band=excluded.band;
 

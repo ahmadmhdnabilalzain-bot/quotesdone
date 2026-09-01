@@ -415,24 +415,29 @@ export default async function ({ req, q, one, Q: Qesc, B: Bhelp }) {
        ||(select count(*) from public.exec_reports r where r.officer='ceo'
            and r.created_at between ${MRUN} - interval '10 minutes' and ${MRUN} + interval '60 minutes')`);
 
-  // "The ten named officers participate."
+  // "Every active officer participates."
   //
-  // A per-OS NOT EXISTS against operating_system, which holds exactly the ten the spec names, scored
-  // over the LATEST meeting only — a meeting in March that had all ten does not make this week's
-  // meeting complete. Matching is on the OS's own `name` from the table rather than on a list
-  // written here, so renaming an OS cannot silently drop a participant. A contribution with no owner
-  // is not a participant, so that is asserted too. position(), never LIKE: the name comes out of a
-  // table, and on the pattern side of LIKE a stored '_' is a single-character wildcard that can only
-  // ever produce a false MET — 35 of row #2's 72 interpolated values carried exactly that character.
+  // A per-OS NOT EXISTS against operating_system, scored over the LATEST meeting only — a meeting in
+  // March that had all officers does not make this week's meeting complete. Matching is on the OS's own
+  // `name` from the table rather than on a list written here, so renaming an OS cannot silently drop a
+  // participant. A contribution with no owner is not a participant, so that is asserted too. position(),
+  // never LIKE: the name comes out of a table, and on the pattern side of LIKE a stored '_' is a
+  // single-character wildcard that can only ever produce a false MET.
+  //
+  // COUNT: the spec named ten officers; the founder-approved A4 restructure (PACR, customer_experience +
+  // assurance) grew the org to twelve active operating systems. OS_ABSENT = 0 is the real participation
+  // test and is count-agnostic — it keys off `where o.active`, so all twelve must contribute. The size
+  // floor is therefore `OS_ACTIVE >= 10` (the founding ten or more), matching screens_1_9's own >= 10,
+  // NOT a pinned `= 10` that the approved restructure would make impossible to satisfy.
   const MITEMS = `(select jsonb_array_elements(r.findings) e from public.exec_reports r
       where r.id = ${MEETING} and jsonb_typeof(r.findings)='array')`;
   const OS_ABSENT = `(select count(*) from public.operating_system o where o.active
       and not exists (select 1 from (${MITEMS}) f
                       where position(lower(o.name) in lower(f.e->>'item')) > 0 or f.e->>'owner' = o.owner_agent))`;
   const ITEMS_UNOWNED = `(select count(*) from (${MITEMS}) f where coalesce(f.e->>'owner','') = '')`;
-  await req(S, 'exec-meeting-ten-participants', 'All ten named officers participate in the meeting',
+  await req(S, 'exec-meeting-ten-participants', 'Every active operating-system officer participates in the meeting (the founding ten or more)',
     `select coalesce(${MEETING} is not null and ${OS_ABSENT} = 0 and ${ITEMS_UNOWNED} = 0
-       and ${OS_ACTIVE} = 10, false)`,
+       and ${OS_ACTIVE} >= 10, false)`,
     `select (${OS_ACTIVE} - ${OS_ABSENT})||' of '||${OS_ACTIVE}
        ||' active operating system(s) contributed to the meeting of '
        ||coalesce(${MEETING_AT}::timestamp(0)::text, 'never')||' ('
