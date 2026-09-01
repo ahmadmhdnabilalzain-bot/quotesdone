@@ -40,3 +40,23 @@ SRE/operational excellence.
 
 External threat intelligence (CVEs, npm/Supabase advisories) is **not** derivable from the database and
 must be refreshed via `npm audit`, Supabase `get_advisors`, and CVE feeds — the records say so explicitly.
+
+## The `os_*` edge-JWT decision (2 Sep 2026)
+
+Building this layer surfaced a config drift: `supabase/config.toml`'s header comment claimed **20**
+functions require a JWT and listed the 7 `os_*` operator-console functions, but only **13** actually
+have `verify_jwt = true`, and all 7 `os_*` are `verify_jwt = false` live. An audit of every `os_*`
+function, its callers, and the config generator settled it:
+
+- `config.toml` is a **generated mirror** of the live project's `verify_jwt` values
+  (`scripts/gen_supabase_config.mjs`, `--check` guards drift). The "20 + os_*" header had been
+  hand-edited — the exact thing the file warns against. Fixed by **regenerating** (header now 13).
+- The `os_*` are `verify_jwt=false` **by design**, not by oversight: they share a **build-mode open
+  door** (`fn_os_open_access`) that, when open, runs the whole console with **no JWT** for
+  operator/build-time recovery, and the OS frontend sends tokenless requests to use it. Enabling
+  `verify_jwt=true` would sever that door at the edge (6 of 7 audited `would_break`). Off the
+  build-mode path the `os_*` are guarded **in code** (`admin.auth.getUser` + `admin_emails`).
+- **Decision: Option 2** — correct the doc, do **not** edge-gate. Edge-gating `os_*` is only correct
+  **after build mode is retired** (a launch-time decision). The build-mode door is documented as a
+  `critical`-risk record in the IT/cyber layer, since write-access to `os_open_access_log` is the real
+  control on unauthenticated admin access.
