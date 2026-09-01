@@ -1793,3 +1793,4 @@ scripts/sql/incidents_get_an_owner_a_task_and_a_watchdog.sql
 scripts/sql/the_board_sees_runway_cash_and_burn.sql
 scripts/sql/customer_experience_and_assurance_get_their_own_os.sql
 scripts/sql/the_board_sees_runway_cash_and_burn_ownership_ledger.sql
+scripts/sql/pbcr_003_the_security_role_owns_the_security_workflow.sql
