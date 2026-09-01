@@ -430,8 +430,12 @@ const VALUE_CASES = [
   ['an overlay outside its declared scope cannot own a step',
    `select public.fn_phase_c_step_owner_valid('W01-S01','category_overlay_004_formwork-and-scaffolding-suppliers')::text`,
    'false'],
-  ['the ONE frozen overlay-owned analysis step is permitted',
-   `select public.fn_phase_c_step_owner_valid('W14-S05','relevant_category_overlay')::text`,
+  // A category overlay may own an analysis step in W05/W06/W07/W10 (positive control for the validator).
+  // NOT W14: PBCR-001 moved W14-S05 to the canonical role quote_evaluation, and E13 dropped W14 from the
+  // overlay hardcode + repointed the step binding, so the overlay is now correctly REFUSED there. W05-S03
+  // is a genuinely overlay-ownable analysis step, so it stands in as the permitted example.
+  ['a legitimate overlay-owned analysis step is permitted',
+   `select public.fn_phase_c_step_owner_valid('W05-S03','relevant_category_overlay')::text`,
    'true'],
 ];
 
