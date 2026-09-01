@@ -36,8 +36,17 @@ declare
   v_target text; v_deadline text;
   v_social text; v_social_at text; v_blog text; v_blog_at text;
   v_funnel text;
+  v_founder text;
+  v_rev numeric; v_exp numeric; v_pnl text;
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
 begin
+  -- the founder identity (who leads the company)
+  select string_agg(identity, ' / ' order by identity) into v_founder
+    from public.phase_c_founder_identity where active and kind = 'email';
+  -- the live P&L (financial state beyond headline revenue)
+  select coalesce(sum(amount) filter (where type='revenue'),0), coalesce(sum(amount) filter (where type='expense'),0),
+         string_agg(case when amount <> 0 then '  - '||type||': '||name||' = AED '||amount::text else null end, E'\n' order by type, code)
+    into v_rev, v_exp, v_pnl from public.gl_pnl;
   select standard_reveal_rate, supplier_reg_fee, supplier_charging_starts, refund_window_working_days,
          coalesce(reveal_currency,'AED')
     into v_fee, v_sup_fee, v_charge, v_refund_wd, v_cur
@@ -71,7 +80,21 @@ begin
           ' — every department''s objectives trace to this one number.' || E'\n' ||
         'HOW IT WORKS IN ONE LINE: an anonymous UAE B2B quotation marketplace — buyers post an RFQ, verified UAE '
         'suppliers submit quotes, and the buyer pays a small reveal fee to unlock and contact a chosen supplier. '
-        'Every department is an autonomous AI expert that plans and executes toward the vision.'),
+        'Every department is an autonomous AI expert that plans and executes toward the vision.' || E'\n' ||
+        'FOUNDER / OWNER: Ahmad Alzain (' || coalesce(v_founder,'management@quotesdone.com') || '). The company is '
+        'founder-led: he sets the vision, the target and the boundaries, and he is the ONLY approver of refunds. '
+        'The AI departments run everything else on their own.'),
+
+    jsonb_build_object('rid','financials','module','financials',
+      'title','QuotesDone — Our Financials (live P&L)',
+      'kw', to_jsonb(array['financials','finance','p&l','profit and loss','expenses','costs','revenue','how much did we spend','what were our expenses','net','burn','money','accounting','are we profitable']),
+      'content',
+        'LIVE FINANCIAL STATE (from the general ledger; refreshes):' || E'\n' ||
+        '  Total revenue: AED ' || round(coalesce(v_rev,0),2)::text || '  ·  Total expenses: AED ' || round(coalesce(v_exp,0),2)::text ||
+        '  ·  Net: AED ' || round(coalesce(v_rev,0)-coalesce(v_exp,0),2)::text || E'\n' ||
+        'By account (non-zero lines):' || E'\n' || coalesce(v_pnl,'  (no posted amounts yet)') || E'\n' ||
+        'Read it honestly: revenue is ' || case when coalesce(v_rev,0)=0 then 'AED 0 because the marketplace is pre-launch' else 'as above' end ||
+        '; the spend so far is mostly software and AI infrastructure while the company is being built.'),
 
     jsonb_build_object('rid','operating-model','module','operating_model',
       'title','QuotesDone — How the Marketplace Works, End to End',
@@ -144,8 +167,10 @@ begin
     -- DYNAMIC: regenerated from the live org every run.
     jsonb_build_object('rid','organization','module','organization',
       'title','QuotesDone — The Organization: Departments, Colleagues and Roles',
-      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what']),
-      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team):' || E'\n' || coalesce(v_brief,'')),
+      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what','name the ten departments','list the departments','what are our departments','department names','the 10 departments']),
+      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team).' || E'\n' ||
+        'THE TEN DEPARTMENTS: ' || coalesce((select string_agg(name, ', ' order by sort nulls last, dept_key) from public.org_departments where active),'') || E'\n' ||
+        coalesce(v_brief,'')),
 
     -- DYNAMIC: the live snapshot every run.
     jsonb_build_object('rid','live-state','module','live_state',

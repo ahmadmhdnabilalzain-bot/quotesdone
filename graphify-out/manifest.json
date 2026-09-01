@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788286918.4038887,
-    "ast_hash": "0b8e6c6a7ec53bbc30ceccaed2e58bc7",
+    "mtime": 1788290321.2321272,
+    "ast_hash": "5acb2c9a04ef5a182e12726cd1053764",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788286797.4319549,
-    "ast_hash": "c0511c8b0ad994a0d52571fc60fd5877",
+    "mtime": 1788288834.1801078,
+    "ast_hash": "d19fa3656d9e164aa05929b424c4dc18",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -22000,8 +22000,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_company.sql": {
-    "mtime": 1788286787.602859,
-    "ast_hash": "a7ba42c1d38c7e5ac3d3378e6daae0fa",
+    "mtime": 1788290264.8707201,
+    "ast_hash": "7e32b4897674f73648c7919481eca13c",
     "semantic_hash": ""
   },
   "scripts/sql/goals_carry_a_deadline_pace.sql": {
@@ -22095,8 +22095,13 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_org_and_content.sql": {
-    "mtime": 1788286776.8827143,
-    "ast_hash": "5eaef5dd11166723ecc53ece49a4c91d",
+    "mtime": 1788290068.2777183,
+    "ast_hash": "2b4a80d39c1f7cc34ce0b6ec634b7be7",
+    "semantic_hash": ""
+  },
+  "scripts/sql/agent_knows_its_own_kpis_ownership_ledger.sql": {
+    "mtime": 1788288812.524117,
+    "ast_hash": "15593d307d8469ab104e41e9f7440931",
     "semantic_hash": ""
   }
 }

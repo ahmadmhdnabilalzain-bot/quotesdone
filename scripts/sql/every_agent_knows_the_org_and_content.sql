@@ -39,7 +39,7 @@ revoke execute on function public.fn_company_knowledge_upsert(text,text,text,tex
 create or replace function public.fn_company_org_directory_sync()
  returns jsonb language plpgsql security definer set search_path to 'public','pg_temp'
 as $fn$
-declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_n int := 0;
+declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_cat text; v_n int := 0;
 begin
   -- 1. THE WHOLE ORG DIRECTORY — one record per department; everyone knows everyone's role, line
   --    manager, what they are measured on and their live rating.
@@ -98,6 +98,16 @@ begin
     'WEBSITE PAGES we publish (the public site an agent should know exists):' || E'\n' || coalesce(v_web,'(none)')
     || E'\n\nThe published legal terms, services and marketing copy live on these pages; the terms and commercials are also summarised in the company terms and commercials knowledge.',
     array['website','web page','our site','pages','website content','what is on our website','public site']);
+  v_n := v_n + 1;
+
+  -- 4. THE SUPPLIER CATEGORY TAXONOMY — every category an RFQ can be routed to.
+  select string_agg('  ' || num || '. ' || name || case when regulated then ' (regulated)' else '' end, E'\n' order by sort, num)
+    into v_cat from public.catalog_supplier_categories;
+  perform public.fn_company_knowledge_upsert('categories', 'taxonomy',
+    'QuotesDone — The Supplier Categories We Cover',
+    'SUPPLIER CATEGORIES (' || (select count(*) from public.catalog_supplier_categories)::text
+      || ' in total) — every category an RFQ can be routed to, in order:' || E'\n' || coalesce(v_cat, '(none)'),
+    array['categories','supplier categories','what do we cover','category list','taxonomy','trades','how many categories','what categories','regulated categories','which category','list the categories']);
   v_n := v_n + 1;
 
   return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now());
