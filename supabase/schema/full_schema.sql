@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T15:15:53.318Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T15:20:25.219Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16776,7 +16776,7 @@ CREATE OR REPLACE FUNCTION public.fn_agent_action_work_sweep(p_limit integer DEF
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_q int := 0; v_officer int := 0; v_notify int := 0; r record; v_key text;
+declare v_q int := 0; v_officer int := 0; v_notify int := 0; r record; v_key text; v_escalated int := 0;
 begin
   for r in
     select a.id, a.kind,
@@ -16868,7 +16868,33 @@ begin
     v_notify := v_notify + 1;
   end loop;
 
-  return jsonb_build_object('queued', v_q, 'officer_routed', v_officer, 'notify_sent', v_notify,
+  -- ESCALATE the unclassified: an emitted kind with no agent_action_kind_policy row is owned by no one,
+  -- so the sweep can neither settle nor route it. Tell the founder it needs a classification rather than
+  -- leaving it to rot unrouted. (0 such rows today, so this notifies no one now.)
+  for r in
+    select a.id, a.kind, a.title, a.recommendation, a.risk, a.agent from public.agent_actions a
+     where a.status in ('pending','needs_review','held_for_review','proposed','open')
+       and (a.detail->>'routed_at') is null
+       and not exists (select 1 from public.agent_action_kind_policy p where p.kind = a.kind)
+  loop
+    perform public.fn_notify_founder(
+      'Unclassified work item: ' || coalesce(nullif(r.kind,''),'(no kind)'),
+      coalesce(nullif(r.title,''), r.kind) || E'
+
+Raised by ' || coalesce(r.agent,'?')
+        || '. This kind has no agent_action_kind_policy row, so no employee owns it and the sweep cannot '
+        || 'settle or route it. Classify it (auto/officer/notify).',
+      'warn');
+    update public.agent_actions
+       set escalated = true,
+           escalation_reason = case when coalesce(escalation_reason,'')='' then '' else escalation_reason||' | ' end
+                               || 'no agent_action_kind_policy for kind '||coalesce(r.kind,'(none)'),
+           detail = coalesce(detail,'{}'::jsonb) || jsonb_build_object('routed_at', now(), 'route_basis', 'escalated_unclassified')
+     where id = r.id;
+    v_escalated := v_escalated + 1;
+  end loop;
+
+  return jsonb_build_object('queued', v_q, 'officer_routed', v_officer, 'notify_sent', v_notify, 'escalated', v_escalated,
     'ran_at', now(),
     'eligible_remaining', (select count(*) from public.agent_actions a
                              join public.org_agents o on o.agent_key = a.agent and o.active

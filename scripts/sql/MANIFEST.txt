@@ -1827,3 +1827,5 @@ scripts/sql/the_backbone_reaches_every_ear.sql
 scripts/sql/v_peer_lessons.sql
 scripts/sql/reputation_tier_gates_every_decision_ownership_ledger.sql
 scripts/sql/goals_carry_a_deadline_pace.sql
+scripts/sql/unclassified_work_escalates.sql
+scripts/sql/unclassified_work_escalates_ownership_ledger.sql
