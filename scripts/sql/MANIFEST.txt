@@ -1815,3 +1815,4 @@ scripts/sql/the_marketplace_score_uses_all_eight_inputs.sql
 scripts/sql/the_marketplace_score_uses_all_eight_inputs_ownership_ledger.sql
 scripts/sql/objectives_and_goals_that_miss_become_corrective_work.sql
 scripts/sql/corrective_tasks_get_a_watchdog.sql
+scripts/sql/a_resolved_incident_leaves_a_lesson.sql

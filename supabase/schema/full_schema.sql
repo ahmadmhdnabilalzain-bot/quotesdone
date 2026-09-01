@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T11:11:37.747Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T11:17:18.769Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -44389,11 +44389,23 @@ CREATE OR REPLACE FUNCTION public.fn_os_incident_close_task()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  if new.status in ('resolved','closed') and coalesce(old.status,'') not in ('resolved','closed')
-     and new.org_task_id is not null then
-    update public.org_tasks
-       set status='done', updated_at=now()
-     where id = new.org_task_id and status <> 'done';
+  if new.status in ('resolved','closed') and coalesce(old.status,'') not in ('resolved','closed') then
+    -- close the corrective task the incident opened
+    if new.org_task_id is not null then
+      update public.org_tasks
+         set status='done', updated_at=now()
+       where id = new.org_task_id and status <> 'done';
+    end if;
+    -- capture the lesson so the resolution is remembered, not re-learned
+    begin
+      insert into public.institutional_memory
+        (kind, subject_type, subject_id, headline, detail, outcome, learned_by, confidence, evidence_ref, occurred_at)
+      values ('incident', 'os_incident', new.id::text,
+              left('Incident resolved: '||coalesce(new.title, '#'||new.id::text), 200),
+              left(coalesce(new.detail->>'resolution', new.detail->>'description',
+                            'Resolved on '||to_char(now(),'DD Mon YYYY')), 2000),
+              'resolved', coalesce(new.owner, 'system'), 0.7, 'os_incident#'||new.id, now());
+    exception when others then null; end;
   end if;
   return new;
 end $function$
