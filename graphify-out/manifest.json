@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788231837.433963,
-    "ast_hash": "2acca74881d71330c9053df813f8bcd5",
+    "mtime": 1788286918.4038887,
+    "ast_hash": "0b8e6c6a7ec53bbc30ceccaed2e58bc7",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -3090,8 +3090,8 @@
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/layers_1_8.mjs": {
-    "mtime": 1787851082.8868997,
-    "ast_hash": "f0dc456fbcaf491b4a8298cf551f73cc",
+    "mtime": 1788254397.599404,
+    "ast_hash": "d9412898c4e1cabb25f0158253c31770",
     "semantic_hash": ""
   },
   "scripts/staging/os2_blueprint/layers_9_15.mjs": {
@@ -12650,8 +12650,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/kernel_positive_controls.test.mjs": {
-    "mtime": 1787838773.1617339,
-    "ast_hash": "851f417a80e234885612dc115f17f69c",
+    "mtime": 1788272676.5974936,
+    "ast_hash": "8aef8219c2e4bc49fee961f338b15790",
     "semantic_hash": ""
   },
   "scripts/checks/kernel_write_guard_both_directions.test.mjs": {
@@ -15295,8 +15295,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788234625.5331974,
-    "ast_hash": "28a8d5b7a4806333edcb238faec0c28e",
+    "mtime": 1788286797.4319549,
+    "ast_hash": "c0511c8b0ad994a0d52571fc60fd5877",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -21977,6 +21977,126 @@
   "docs/phase-b/PHASE_B_CHANGE_REQUEST_PBCR-004.md": {
     "mtime": 1788232390.4084077,
     "ast_hash": "eade3b79c89e1f22b5f35a79e17a9228",
+    "semantic_hash": ""
+  },
+  "docs/phase-e/PROPOSED_workflow_succession_live_sender.sql": {
+    "mtime": 1788281478.066479,
+    "ast_hash": "970c1e6aa69844ff962e9a925f9e0cdc",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_resolved_incident_leaves_a_lesson.sql": {
+    "mtime": 1788261230.5203521,
+    "ast_hash": "16f44df9c7cfdbff5ff66bec1f8bd32c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/consequential_actions_reach_the_gate.sql": {
+    "mtime": 1788276101.85723,
+    "ast_hash": "b6d12d82732686b951b9d1ddab88c2ba",
+    "semantic_hash": ""
+  },
+  "scripts/sql/corrective_tasks_get_a_watchdog.sql": {
+    "mtime": 1788260946.7249541,
+    "ast_hash": "fda70cc92465a49d10ce0dc6fca10442",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_knows_the_company.sql": {
+    "mtime": 1788286787.602859,
+    "ast_hash": "a7ba42c1d38c7e5ac3d3378e6daae0fa",
+    "semantic_hash": ""
+  },
+  "scripts/sql/goals_carry_a_deadline_pace.sql": {
+    "mtime": 1788275612.243482,
+    "ast_hash": "9a81d3ec96dba509ee8fc1a1aa3643ad",
+    "semantic_hash": ""
+  },
+  "scripts/sql/no_operating_system_is_an_orphan.sql": {
+    "mtime": 1788264172.9400623,
+    "ast_hash": "673965bedda16c0aed746da4b39dd5c2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/objectives_and_goals_that_miss_become_corrective_work.sql": {
+    "mtime": 1788259676.408285,
+    "ast_hash": "e434384cde82dc7320dee2b032901246",
+    "semantic_hash": ""
+  },
+  "scripts/sql/overdue_handoffs_get_escalated.sql": {
+    "mtime": 1788261575.8606167,
+    "ast_hash": "83547dee29c5ff6b0410d7129b72a849",
+    "semantic_hash": ""
+  },
+  "scripts/sql/pccr_007_the_kernel_can_reject_a_handoff.sql": {
+    "mtime": 1788271433.3277323,
+    "ast_hash": "ce856254a3b2f499139cad2822eccbfe",
+    "semantic_hash": ""
+  },
+  "scripts/sql/pccr_007b_phase_d_reject_calls_the_kernel_door.sql": {
+    "mtime": 1788271598.2980726,
+    "ast_hash": "e19271775fe88bd5a17bfe4585aebb47",
+    "semantic_hash": ""
+  },
+  "scripts/sql/reputation_tier_gates_every_decision.sql": {
+    "mtime": 1788274772.4244294,
+    "ast_hash": "e680a1e5f008772861ecabb4bdb10e16",
+    "semantic_hash": ""
+  },
+  "scripts/sql/reputation_tier_gates_every_decision_ownership_ledger.sql": {
+    "mtime": 1788275469.3523338,
+    "ast_hash": "a121ba1533961fc596ac0907b12c85c4",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_backbone_reaches_every_ear.sql": {
+    "mtime": 1788275096.9487114,
+    "ast_hash": "fae53b0ecaf36f622786370e232122ea",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_founder_reserves_the_target_not_every_run_toward_it.sql": {
+    "mtime": 1788272225.5741706,
+    "ast_hash": "26e57e6cdbd831f735e21c82f6550533",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_marketplace_score_uses_all_eight_inputs.sql": {
+    "mtime": 1788256161.3284454,
+    "ast_hash": "5b3ffebe922eddae254b175b4d7a8048",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_marketplace_score_uses_all_eight_inputs_ownership_ledger.sql": {
+    "mtime": 1788256540.42107,
+    "ast_hash": "f91994acbad18ff4af880818c27bd4b6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_measure_spine_leaves_no_kpi_unlinked.sql": {
+    "mtime": 1788263058.3641856,
+    "ast_hash": "bfd1e6b450067dfa6bcd7ace33e190a9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/unclassified_work_escalates.sql": {
+    "mtime": 1788275847.4920845,
+    "ast_hash": "46e406b2b9e69c73b59b8a5f25f6b285",
+    "semantic_hash": ""
+  },
+  "scripts/sql/unclassified_work_escalates_ownership_ledger.sql": {
+    "mtime": 1788275967.1113236,
+    "ast_hash": "d9fd88172424f3123b2b7095c7175d44",
+    "semantic_hash": ""
+  },
+  "scripts/sql/v_peer_lessons.sql": {
+    "mtime": 1788275233.2693968,
+    "ast_hash": "337313014310f5ef45ec5c8b89983bb1",
+    "semantic_hash": ""
+  },
+  "docs/phase-c/PCCR-007_KERNEL_HANDOFF_REJECT.md": {
+    "mtime": 1788271808.3730185,
+    "ast_hash": "9e590cb14ed4e0005d021183d83a534c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/agent_knows_its_own_kpis.sql": {
+    "mtime": 1788286607.6160967,
+    "ast_hash": "fe4d3a85040d5681228827e05a066243",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_agent_knows_the_org_and_content.sql": {
+    "mtime": 1788286776.8827143,
+    "ast_hash": "5eaef5dd11166723ecc53ece49a4c91d",
     "semantic_hash": ""
   }
 }

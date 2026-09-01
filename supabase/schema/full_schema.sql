@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T15:23:48.540Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T18:21:58.391Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17982,6 +17982,15 @@ begin
          'evaluation_suite', v_role.evaluation_suite,
          'committees', v_role.committees) end;
 
+  -- Its OWN KPIs: what this agent is measured on and its current rating. Per-agent (employee_kpi),
+  -- always present so an agent knows how it is judged without having to ask. current_rating is live.
+  v_identity := v_identity || jsonb_build_object('kpis', coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'kpi', kpi, 'measures', metric, 'target', target_value, 'unit', unit,
+             'current_rating', actual_value, 'measured_at', measured_at, 'cadence', cadence,
+             'serves_goal', serves_goal) order by id)
+      from public.employee_kpi where agent_key = p_agent_key and coalesce(active, true)), '[]'::jsonb));
+
   if p_task_text is not null and length(p_task_text) > 1 then
     v_q := public.fn_task_tsquery(p_task_text);
   end if;
@@ -22009,6 +22018,31 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_company_knowledge_upsert(p_rid text, p_module text, p_title text, p_content text, p_kw text[])
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  insert into public.ops_knowledge(
+    record_id, scope_type, scope_key, layer, module, record_type, title, content,
+    structured_data, source_ids, implementation_status, validation_status, authority_tier,
+    risk_level, version, keywords, dependencies, escalation_rule, jurisdiction, source_freshness,
+    confidentiality, runtime_eligible, deterministic, supersession_state, embedding_status, effective_date)
+  values (
+    'qd-company:'||p_rid, 'company', 'company_core', 'company_core', p_module, 'md', p_title,
+    p_content || E'\n\nYou can answer questions about: ' || array_to_string(p_kw, ', ') || '.',
+    '{}'::jsonb, array['fn_company_org_directory_sync'], 'active', 'validated', 'autonomous',
+    'low', '1', p_kw, '{}'::text[], '{}'::jsonb, 'UAE', 'current',
+    'internal', true, true, 'current', 'pending', current_date)
+  on conflict (record_id) do update set
+    module=excluded.module, title=excluded.title, content=excluded.content,
+    keywords=excluded.keywords, effective_date=excluded.effective_date,
+    supersession_state='current', embedding_status='pending';
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_company_map(p_per_class integer DEFAULT 40)
  RETURNS jsonb
  LANGUAGE sql
@@ -22049,6 +22083,77 @@ AS $function$
       '[]'::jsonb)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_org_directory_sync()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d record; s record; a_txt text; sec_txt text; v_social text; v_blog text; v_web text; v_n int := 0;
+begin
+  -- 1. THE WHOLE ORG DIRECTORY — one record per department; everyone knows everyone's role, line
+  --    manager, what they are measured on and their live rating.
+  for d in select dept_key, name, charter, north_star, lead_agent from public.org_departments where active order by dept_key loop
+    select string_agg(
+             '  - ' || a.agent_key || ' (' || coalesce(a.title, a.role, '') || ') — reports to ' || coalesce(a.manager_key,'—')
+             || coalesce((select ' — measured on: ' || string_agg(k.kpi || ' [target ' || coalesce(k.target_value::text,'—')
+                          || ', current ' || coalesce(k.actual_value::text,'—') || ']', '; ')
+                          from public.employee_kpi k where k.agent_key = a.agent_key and coalesce(k.active,true)), ''),
+             E'\n' order by a.agent_key)
+      into a_txt from public.org_agents a where a.active and a.department = d.dept_key;
+    perform public.fn_company_knowledge_upsert(
+      'org-' || d.dept_key, 'organization',
+      'QuotesDone Org — the ' || coalesce(d.name, d.dept_key) || ' team',
+      'DEPARTMENT: ' || coalesce(d.name, d.dept_key) || ' [' || d.dept_key || ']. Lead: ' || coalesce(d.lead_agent,'—')
+      || '. North star: ' || coalesce(d.north_star,'—') || E'\n'
+      || 'Members — agent — role — reports to (line manager) — measured on [target, current rating]:' || E'\n'
+      || coalesce(a_txt, '(none)'),
+      array[d.dept_key, coalesce(d.name,''), 'who works in ' || coalesce(d.name,d.dept_key), 'department team',
+            'line manager', 'who reports to whom', 'kpi', 'measured on', 'current rating', 'colleagues',
+            'who leads ' || coalesce(d.name,d.dept_key)]);
+    v_n := v_n + 1;
+  end loop;
+
+  -- 2. THE PUBLISHED FAQ — grouped by section; the 484 answers a colleague could give a customer or supplier.
+  for s in select coalesce(nullif(btrim(section),''),'general') sec, string_agg('Q: '||question||E'\n'||'A: '||coalesce(answer,''), E'\n' order by sort nulls last, id) qa
+             from public.company_faq where coalesce(public,true) and coalesce(status,'approved') <> 'rejected'
+             group by 1 loop
+    perform public.fn_company_knowledge_upsert(
+      'faq-' || regexp_replace(lower(s.sec),'[^a-z0-9]+','-','g'), 'faq',
+      'QuotesDone FAQ — ' || s.sec,
+      'FREQUENTLY ASKED (published answers — you may give these to customers and suppliers):' || E'\n' || left(s.qa, 6000),
+      array['faq', 'frequently asked', s.sec, 'question', 'answer', 'how do i', 'what is', 'customer question', 'supplier question']);
+    v_n := v_n + 1;
+  end loop;
+
+  -- 3. SOCIAL, BLOG, WEBSITE — the company's own published content.
+  select string_agg('  - ['||to_char(created_at,'DD Mon YYYY')||', '||coalesce(channels::text,'')||', '||coalesce(status,'')||'] '
+                    || left(coalesce(content->>'text', content->>'body', content::text), 200), E'\n' order by created_at desc)
+    into v_social from public.social_posts;
+  perform public.fn_company_knowledge_upsert('content-social','content','QuotesDone — Our Social Media Posts',
+    'SOCIAL MEDIA POSTS (most recent first):' || E'\n' || coalesce(v_social,'(none yet)'),
+    array['social media','social post','last post','latest post','instagram','linkedin','what did we post','our content','marketing post']);
+  v_n := v_n + 1;
+
+  select string_agg('  - ['||coalesce(to_char(published_at,'DD Mon YYYY'),'draft')||', '||coalesce(category,'')||'] '||title
+                    ||coalesce(' — '||excerpt,''), E'\n' order by published_at desc nulls last)
+    into v_blog from public.blog_posts where published;
+  perform public.fn_company_knowledge_upsert('content-blog','content','QuotesDone — Our Blog Articles',
+    'BLOG ARTICLES (published):' || E'\n' || left(coalesce(v_blog,'(none yet)'), 6000),
+    array['blog','article','blog post','our articles','what have we written','content','seo','latest blog']);
+  v_n := v_n + 1;
+
+  select string_agg('  - /'||slug, E'\n' order by slug) into v_web from public.pages;
+  perform public.fn_company_knowledge_upsert('content-website','content','QuotesDone — Our Website Pages',
+    'WEBSITE PAGES we publish (the public site an agent should know exists):' || E'\n' || coalesce(v_web,'(none)')
+    || E'\n\nThe published legal terms, services and marketing copy live on these pages; the terms and commercials are also summarised in the company terms and commercials knowledge.',
+    array['website','web page','our site','pages','website content','what is on our website','public site']);
+  v_n := v_n + 1;
+
+  return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now());
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_company_reflect()
@@ -22118,6 +22223,183 @@ begin
   values ('company_reflect',now(),now(),'ok',jsonb_build_object('concerns',n_concern,'actions',n_act),
     'Nightly self-reflection: '||n_concern||' concern(s), '||n_act||' action(s) opened. Nobody asked for this.');
   return jsonb_build_object('concerns',n_concern,'actions',n_act,'answers',a);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_self_knowledge_sync()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_state jsonb := public.fn_company_state();
+  v_snap  jsonb := public.fn_company_snapshot();
+  v_brief text  := public.fn_company_brief(6000);
+  v_fee   numeric; v_sup_fee numeric; v_charge date; v_refund_wd int; v_cur text;
+  v_target text; v_deadline text;
+  v_social text; v_social_at text; v_blog text; v_blog_at text;
+  v_funnel text;
+  v_records jsonb; r jsonb; v_rid text; v_n int := 0;
+begin
+  select standard_reveal_rate, supplier_reg_fee, supplier_charging_starts, refund_window_working_days,
+         coalesce(reveal_currency,'AED')
+    into v_fee, v_sup_fee, v_charge, v_refund_wd, v_cur
+    from public.pricing_config order by id limit 1;
+
+  select coalesce(target_value::text,'1000000'), coalesce(to_char(deadline,'DD Mon YYYY'),'31 Aug 2027')
+    into v_target, v_deadline
+    from public.company_goals
+   where active and (lower(coalesce(key,'')) like '%revenue%' or lower(coalesce(goal,'')) like '%revenue%'
+                     or category = 'Financial')
+   order by sort nulls last limit 1;
+
+  select left(coalesce(content->>'text', content->>'body', content::text), 240), to_char(created_at,'DD Mon YYYY')
+    into v_social, v_social_at from public.social_posts order by created_at desc limit 1;
+  select title, to_char(coalesce(published_at, updated_at),'DD Mon YYYY')
+    into v_blog, v_blog_at from public.blog_posts where published order by published_at desc nulls last limit 1;
+
+  select string_agg('  ' || workflow_id || ' — ' || workflow_name, E'\n' order by workflow_id)
+    into v_funnel from public.phase_b_workflow
+   where workflow_id in ('W04','W05','W06','W07','W08','W09','W10','W12','W13','W14','W15','W16','W17','W18');
+
+  v_records := jsonb_build_array(
+
+    jsonb_build_object('rid','identity','module','company_identity',
+      'title','QuotesDone — Identity, Vision and Mission',
+      'kw', to_jsonb(array['vision','mission','what is quotesdone','who are we','company','marketplace','target','revenue goal','anonymous','uae','b2b']),
+      'content',
+        'WHO WE ARE. ' || coalesce(v_state->>'mission','') || E'\n' ||
+        'VISION: ' || coalesce(v_state->>'vision','') || E'\n' ||
+        'TARGET: AED ' || v_target || ' in revenue by ' || v_deadline ||
+          ' — every department''s objectives trace to this one number.' || E'\n' ||
+        'HOW IT WORKS IN ONE LINE: an anonymous UAE B2B quotation marketplace — buyers post an RFQ, verified UAE '
+        'suppliers submit quotes, and the buyer pays a small reveal fee to unlock and contact a chosen supplier. '
+        'Every department is an autonomous AI expert that plans and executes toward the vision.'),
+
+    jsonb_build_object('rid','operating-model','module','operating_model',
+      'title','QuotesDone — How the Marketplace Works, End to End',
+      'kw', to_jsonb(array['funnel','operating model','how it works','journey','inquiry','rfq','routing','packaging','dispatch','reveal','pipeline','workflow']),
+      'content',
+        'THE FUNNEL. A customer''s job travels the pipeline autonomously:' || E'\n' ||
+        '  W04 register/onboard the customer → W05 intake and qualify the inquiry (RFQ) → W06 route it to the right '
+        'category → W07 process any drawings/BOQ/documents → W08 build and approve a supplier-SAFE package (customer '
+        'identity and any contact details stripped) → W09/W10 onboard and verify suppliers → W12 match and dispatch to '
+        'enough confirmed suppliers → W13 notify them → W14 suppliers submit and we evaluate quotations → W15 build the '
+        'top-3 comparison and reveal path → W16 the customer pays the reveal fee and gets supplier contact → W17 handles '
+        'any refund/dispute, W18 support and retention.' || E'\n' ||
+        'ANONYMITY: buyers and suppliers never see each other until the buyer pays to reveal. Quotes are anonymized/'
+        'masked until then. The 30 workflows that run this: ' || coalesce(v_funnel,'(registry)') ),
+
+    jsonb_build_object('rid','commercials','module','commercials',
+      'title','QuotesDone — Fees, Pricing and Refund Terms (live)',
+      'kw', to_jsonb(array['fee','reveal fee','review fee','pricing','how much','commission','refund','supplier fee','registration fee','late fee','cost','price','supplier charging','when does supplier charging start','how much do suppliers pay','are suppliers charged','supplier registration','supplier pays']),
+      'content',
+        'REVEAL FEE (what the customer pays to unlock a supplier): ' || round(v_fee*100,2) || '% of the deal, in ' || v_cur ||
+          ' — read live from pricing_config, so this figure is always the current one.' || E'\n' ||
+        'SUPPLIERS: registration is FREE until ' || coalesce(to_char(v_charge,'DD Mon YYYY'),'01 Aug 2027') ||
+          ', then ' || coalesce(v_sup_fee::text,'1000') || ' ' || v_cur || ' per year. Suppliers are auto-approved on a verified file.' || E'\n' ||
+        'REFUNDS: window is ' || coalesce(v_refund_wd::text,'3') || ' UAE working days from reveal (Fri IS a working day; '
+        'weekend is Sat+Sun); a 3% processing deduction applies; EVERY refund of any amount requires the founder''s approval.' || E'\n' ||
+        'LATE FEE on overdue recoverables: 9% per annum (UAE Federal Decree-Law 50/2022).'),
+
+    jsonb_build_object('rid','comparison-report','module','comparison_report',
+      'title','QuotesDone — The Top-3 Comparison Report',
+      'kw', to_jsonb(array['comparison report','compare','top 3','top three','quote comparison','ranking','shortlist','quote_compare','how do we compare','side by side']),
+      'content',
+        'THE COMPARISON REPORT IS ALWAYS THE TOP 3. However many quotations arrive — 3 or 100 — quote_compare ranks '
+        'them ALL and returns the top three (ranks 1, 2, 3). It is NOT cheapest-wins: quotes are scored across multiple '
+        'technical and commercial factors — price positioned across the range of offers, lead time, warranty, scope match, '
+        'payment terms — so the strongest overall quote wins, not merely the lowest. The ranking is deterministic; the model '
+        'writes the plain-language explanation of why the top three are the top three. The customer sees an anonymized '
+        'side-by-side comparison table, saveable as a PDF, and only then decides whom to reveal.'),
+
+    jsonb_build_object('rid','quotation-format','module','quotation_format',
+      'title','QuotesDone — What a Supplier Quotation Contains',
+      'kw', to_jsonb(array['quotation format','quote format','what is in a quote','quote fields','lead time','validity','payment terms','warranty','scope','exclusions','anonymized']),
+      'content',
+        'A supplier quotation carries: the quote amount, lead time, validity period, payment terms, warranty, scope of '
+        'supply, conditions, exclusions, and notes. It may be typed or extracted from an uploaded file, then structured '
+        'and committed (hashed) so it cannot be silently changed. BEFORE the customer sees it, the supplier''s identity '
+        'and any contact details are anonymized/masked. The price the customer sees (customer_price) includes the '
+        'platform margin/app fee on top of the supplier''s amount.'),
+
+    jsonb_build_object('rid','terms','module','terms_and_conditions',
+      'title','QuotesDone — Terms, Anonymity and Working Days',
+      'kw', to_jsonb(array['terms','conditions','t&c','anonymous','reveal','working days','jurisdiction','policy','rules','uae']),
+      'content',
+        'QuotesDone is an ANONYMOUS UAE B2B marketplace. Suppliers are verified before they can quote. Buyer and supplier '
+        'identities are hidden from each other until the buyer pays the reveal fee to contact a chosen supplier. All time '
+        'windows use UAE working days (Asia/Dubai; Friday is a working day; the weekend is Saturday and Sunday; public '
+        'holidays excluded). The reveal refund window is ' || coalesce(v_refund_wd::text,'3') || ' working days. Late fees '
+        'follow UAE Federal Decree-Law 50/2022 (9% p.a.). The platform mediates disputes through a defined escalation ladder.'),
+
+    jsonb_build_object('rid','governance','module','governance',
+      'title','QuotesDone — How the Company Governs Itself',
+      'kw', to_jsonb(array['governance','who approves','autonomy','refund approval','founder','escalation','boundaries','decisions','authority']),
+      'content',
+        'QuotesDone runs as ten autonomous AI departments (90 brain agents) that plan and execute toward the vision '
+        'WITHOUT needing the founder''s approval for ordinary work. The founder is escalated to only for: money that '
+        'leaves the company (every refund, any amount, needs his approval), destructive/irreversible production changes, '
+        'and decisions only he holds (his intentions, external credentials, commercial direction). Everything else — '
+        'routing, packaging, matching, pricing within policy, content — the agents decide and own. Colleagues hand work '
+        'to one another through defined handoffs; nothing is left unowned.'),
+
+    -- DYNAMIC: regenerated from the live org every run.
+    jsonb_build_object('rid','organization','module','organization',
+      'title','QuotesDone — The Organization: Departments, Colleagues and Roles',
+      'kw', to_jsonb(array['organization','org chart','departments','how many agents','who works here','colleagues','roles','manager','line manager','team','north star','who does what']),
+      'content', 'THE COMPANY YOU WORK IN (live roster — these are your colleagues; know who does what and who leads each team):' || E'\n' || coalesce(v_brief,'')),
+
+    -- DYNAMIC: the live snapshot every run.
+    jsonb_build_object('rid','live-state','module','live_state',
+      'title','QuotesDone — Live Company State (current)',
+      'kw', to_jsonb(array['live','current','right now','revenue','last month revenue','how much revenue','customers','suppliers','open tasks','kpi','last social post','last blog','latest post','state','status','how are we doing']),
+      'content',
+        'LIVE STATE as of ' || to_char(now(),'DD Mon YYYY HH24:MI') || ' UTC (this refreshes; if a figure is 0 the company '
+        'is pre-launch, not broken):' || E'\n' ||
+        '  Revenue (last 30 days): ' || coalesce(v_snap->>'revenue_30d_aed','0') || ' AED' || E'\n' ||
+        '  Customers: ' || coalesce(v_snap->>'customers','0') || ' (with an inquiry: ' || coalesce(v_snap->>'customers_with_inquiry','0') || ')' || E'\n' ||
+        '  Approved suppliers: ' || coalesce(v_snap->>'approved_suppliers','0') || ' · Sendable supplier pool: ' || coalesce(v_snap->>'sendable_pool','0') || E'\n' ||
+        '  Employees (brain agents): ' || coalesce(v_snap->>'employees','90') || ' · Departments: ' || coalesce(v_snap->>'departments','10') || E'\n' ||
+        '  KPIs tracked: ' || coalesce(v_snap->>'kpis','0') || ' (open gaps: ' || coalesce(v_snap->>'kpi_gaps_open','0') || ')' || E'\n' ||
+        '  Open tasks: ' || coalesce(v_snap->>'open_tasks','0') || ' · Items needing the founder: ' || coalesce(v_snap->>'needs_founder','0') || E'\n' ||
+        '  AI spend (last 30 days): ' || coalesce(v_snap->>'ai_cost_30d_aed','0') || ' AED' || E'\n' ||
+        '  Last social post: ' || coalesce(nullif(v_social,''),'(none yet)') || case when v_social_at is not null then ' [' || v_social_at || ']' else '' end || E'\n' ||
+        '  Last blog post: ' || coalesce(nullif(v_blog,''),'(none yet)') || case when v_blog_at is not null then ' [' || v_blog_at || ']' else '' end)
+  );
+
+  for r in select * from jsonb_array_elements(v_records) loop
+    v_rid := 'qd-company:' || (r->>'rid');
+    insert into public.ops_knowledge(
+      record_id, scope_type, scope_key, layer, module, record_type, title, content,
+      structured_data, source_ids, implementation_status, validation_status, authority_tier,
+      risk_level, version, keywords, dependencies, escalation_rule, jurisdiction, source_freshness,
+      confidentiality, runtime_eligible, deterministic, supersession_state, embedding_status,
+      effective_date)
+    values (
+      v_rid, 'company', 'company_core', 'company_core', r->>'module', 'md', r->>'title',
+      -- fold the keyword vocabulary into the content so the generated tsv (title+content) indexes the
+      -- phrasings agents actually ask in, not only the prose. This is what makes deep questions match.
+      (r->>'content') || E'\n\nYou can answer questions about: ' ||
+        array_to_string(array(select jsonb_array_elements_text(r->'kw')), ', ') || '.',
+      '{}'::jsonb, array['fn_company_self_knowledge_sync'], 'active', 'validated', 'autonomous',
+      'low', '1', array(select jsonb_array_elements_text(r->'kw')), '{}'::text[], '{}'::jsonb, 'UAE', 'current',
+      'internal', true, true, 'current', 'pending', current_date)
+    on conflict (record_id) do update set
+      module = excluded.module, title = excluded.title, content = excluded.content,
+      keywords = excluded.keywords, effective_date = excluded.effective_date,
+      supersession_state = 'current', embedding_status = 'pending';
+    v_n := v_n + 1;
+  end loop;
+
+  -- The org directory (everyone knows everyone: role, line manager, KPI, live rating) and the
+  -- published content (FAQ, social, blog, website) are recomposed in the same refresh.
+  perform public.fn_company_org_directory_sync();
+
+  return jsonb_build_object('ok', true, 'records', v_n, 'ran_at', now(),
+    'revenue_30d_aed', v_snap->>'revenue_30d_aed', 'reveal_fee_pct', round(v_fee*100,2),
+    'employees', v_snap->>'employees');
 end $function$
 
 
@@ -85971,6 +86253,7 @@ select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.
 select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_handoff_watchdog();$CRON$);
 select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_employee_kpi_assign();$CRON$);
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
+select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
