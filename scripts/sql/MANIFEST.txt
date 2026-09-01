@@ -1844,3 +1844,4 @@ scripts/sql/secops_autonomous_watch.sql
 scripts/sql/lift_automation_hold_gate032.sql
 scripts/sql/turn_on_execution_layer.sql
 scripts/sql/department_autonomous_capability.sql
+scripts/sql/department_ops_heartbeat.sql
