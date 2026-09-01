@@ -1817,3 +1817,4 @@ scripts/sql/objectives_and_goals_that_miss_become_corrective_work.sql
 scripts/sql/corrective_tasks_get_a_watchdog.sql
 scripts/sql/a_resolved_incident_leaves_a_lesson.sql
 scripts/sql/overdue_handoffs_get_escalated.sql
+scripts/sql/the_measure_spine_leaves_no_kpi_unlinked.sql

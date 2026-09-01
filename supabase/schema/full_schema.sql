@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T11:21:52.286Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T11:45:27.087Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -85698,6 +85698,7 @@ select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.
 select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_objective_review();$CRON$);
 select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_org_task_sla_watch();$CRON$);
 select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_handoff_watchdog();$CRON$);
+select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_employee_kpi_assign();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
