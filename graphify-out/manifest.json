@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788292173.8133106,
-    "ast_hash": "6b38df777c4b930910f58457b8ba1815",
+    "mtime": 1788292402.5371351,
+    "ast_hash": "26ee9c647c88621a52993f99043e7d2c",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -22095,8 +22095,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_org_and_content.sql": {
-    "mtime": 1788292110.9137383,
-    "ast_hash": "2baa350b03acfee03e87bfe05e99750b",
+    "mtime": 1788292356.4737773,
+    "ast_hash": "aea1623d6562998b288348328c4eb7cf",
     "semantic_hash": ""
   },
   "scripts/sql/agent_knows_its_own_kpis_ownership_ledger.sql": {

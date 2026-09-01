@@ -142,7 +142,7 @@ begin
   -- 7. THE BUSINESS ENTITIES — the live customer/supplier/order landscape, and HOW to look up any one.
   begin v_biz := public.fn_business_entity_summary(); exception when others then v_biz := '{}'::jsonb; end;
   perform public.fn_company_knowledge_upsert('business-entities', 'business_data',
-    'QuotesDone — Our Customers, Suppliers and Orders (live), and how to look them up' || E'\n' ||
+    'QuotesDone — Our Customers, Suppliers and Orders (live), and how to look them up',
     'THE BUSINESS RIGHT NOW (live counts):' || E'\n' ||
     '  Customers: ' || coalesce(v_biz->>'customers','0') || ' (with an inquiry: ' || coalesce(v_biz->>'customers_with_inquiry','0') || ')' || E'\n' ||
     '  Suppliers: ' || coalesce(v_biz->>'suppliers_total','0') || ' total — ' || coalesce(v_biz->>'suppliers_approved','0') || ' approved, '
@@ -153,7 +153,6 @@ begin
     '  - fn_business_entity_lookup(entity, key): one customer/supplier/inquiry/quote/transaction by id, email, company name or phone -> its full profile.' || E'\n' ||
     '  - fn_business_entity_list(entity, filter, limit): list or search them (e.g. all approved suppliers, recent inquiries).' || E'\n' ||
     '  - fn_business_entity_summary(): these live counts. Call these functions directly — you run with the database access to do so.',
-    'business_data',
     array['customers','suppliers','how many customers','how many suppliers','who are our customers','who are our suppliers','their profiles','their orders','look up a supplier','find a customer','list suppliers','our orders','the crm','business data','inquiries','quotes','transactions','entity lookup']);
   v_n := v_n + 1;
 
