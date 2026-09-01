@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788290321.2321272,
-    "ast_hash": "5acb2c9a04ef5a182e12726cd1053764",
+    "mtime": 1788291035.3223765,
+    "ast_hash": "1dc1d43e05da0a2ec017dc621660bfcb",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -12110,8 +12110,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/v3_repair_04_task_query.sql": {
-    "mtime": 1786772793.6513276,
-    "ast_hash": "dca07cc1ab4db1b5c3e87d335d4f7646",
+    "mtime": 1788290978.9198112,
+    "ast_hash": "a1a1d2b3ab36cd3761e6d4ddf1c58140",
     "semantic_hash": ""
   },
   "scripts/sql/v3_repair_05_ctx_v3_query.sql": {
@@ -22095,8 +22095,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_agent_knows_the_org_and_content.sql": {
-    "mtime": 1788290068.2777183,
-    "ast_hash": "2b4a80d39c1f7cc34ce0b6ec634b7be7",
+    "mtime": 1788290780.8825254,
+    "ast_hash": "861ed798ae0d90dad942e160f9f6cb0b",
     "semantic_hash": ""
   },
   "scripts/sql/agent_knows_its_own_kpis_ownership_ledger.sql": {
