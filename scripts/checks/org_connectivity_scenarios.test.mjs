@@ -537,5 +537,17 @@ const ocr = await q(`select 'the_outcome_grading_cron_is_enabled' k,
   (select active::text from cron.job where jobname='outcome_evaluate_daily') v, 'true' e`);
 for (const r of ocr) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== REVIEW INDEPENDENCE — no workflow is reviewed inside its own department ==');
+// ============================================================================================
+const ri = await q(`select 'workflows_reviewed_inside_their_own_department' k,
+  (select count(*)::text from org_workflow_ownership o
+     join org_role r1 on r1.role_id=o.accountable_role_id
+     join org_role r2 on r2.role_id=o.independent_reviewer
+    where r1.primary_department_id = r2.primary_department_id) v, '0' e
+  union all select 'w11_reviewer_is_now_cross_department',
+  (select independent_reviewer from org_workflow_ownership where workflow_id='W11'), 'quality_and_release_director'`);
+for (const r of ri) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
