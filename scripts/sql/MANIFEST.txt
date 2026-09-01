@@ -1806,3 +1806,4 @@ scripts/sql/an_apex_backup_stands_in_for_the_ceo.sql
 scripts/sql/an_apex_backup_stands_in_for_the_ceo_ownership_ledger.sql
 scripts/sql/the_amendment_reaches_the_step_binding.sql
 scripts/sql/the_amendment_reaches_the_step_binding_ownership_ledger.sql
+scripts/sql/every_queued_action_has_an_author.sql

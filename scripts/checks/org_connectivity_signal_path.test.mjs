@@ -165,7 +165,7 @@ const p3 = await probe('APPROVAL', `do $p$
   begin
     insert into action_execution (correlation_id, action_class, executor, idempotency_key, risk_tier, reversible, request, status)
     values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,
-            jsonb_build_object('probe',true),'queued')
+            jsonb_build_object('probe',true,'actor','cfo'),'queued')
     returning id into v_id;
     s1 := fn_action_invoke_dispatch(50);
     select response->>'invoker' into inv1 from action_execution where id=v_id;

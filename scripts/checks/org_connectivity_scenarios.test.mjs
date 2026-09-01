@@ -157,7 +157,7 @@ eq('  -> a department head cannot approve a refund', a1.head, 'REFUSED');
 // a non-entitled approver is refused; the entitled head approves and it dispatches
 const a2 = await probe(`do $p$ declare v_id uuid; s1 jsonb; s2 jsonb; ap record; inv1 text; inv2 text; wrong text; begin
   insert into action_execution (correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
-  values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,'{}'::jsonb,'queued') returning id into v_id;
+  values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,jsonb_build_object('actor','cfo'),'queued') returning id into v_id;
   s1 := fn_action_invoke_dispatch(50); select response->>'invoker' into inv1 from action_execution where id=v_id;
   select * into ap from action_approval where action_execution_id=v_id;
   begin perform fn_action_head_approve(v_id,'approved','x','cfo'); wrong:='NOT_REFUSED'; exception when others then wrong:='REFUSED'; end;
@@ -181,7 +181,7 @@ eq('an irreversible-no-compensation action is refused (never dispatched)', a3.in
 const a4 = await probe(`do $p$ declare v_id uuid; a1 jsonb; a2 jsonb; inv1 text; inv2 text; wrong text; gate boolean; begin
   update org_action_executor set second_authority='legal' where action_class='supplier_verify';
   insert into action_execution (correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
-  values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,'{}'::jsonb,'queued') returning id into v_id;
+  values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,jsonb_build_object('actor','cfo'),'queued') returning id into v_id;
   perform fn_action_invoke_dispatch(50); select response->>'invoker' into inv1 from action_execution where id=v_id;
   a1 := fn_action_head_approve(v_id,'approved','head ok',null);
   begin perform fn_action_head_approve(v_id,'approved','x','cfo'); wrong:='NOT_REFUSED'; exception when others then wrong:='REFUSED'; end;
@@ -503,6 +503,24 @@ const sb = await q(`select 'w14_s05_binding_owner_is_the_amended_role' k,
       and not exists(select 1 from org_role_alias a where a.alias=b.accountable_role_id)
       and b.accountable_role_id <> s.accountable_role_id), '0'`);
 for (const r of sb) eq(r.k, r.v, r.e);
+
+// ============================================================================================
+console.log('\n== ACTION AUTHOR — self-approval fails closed on an unattributed action ==');
+// ============================================================================================
+const au = await probe(`do $p$ declare v1 uuid; v2 uuid; a1 text; a2 text; v_auth text; begin
+  insert into action_execution(correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+    values(gen_random_uuid(),'supplier_verify','supplier_verify','au1-'||gen_random_uuid()::text,'medium',true,'{}'::jsonb,'queued') returning id into v1;
+  perform fn_action_invoke_dispatch(50);
+  begin perform fn_action_head_approve(v1,'approved','x','procurement'); a1:='NOT_REFUSED'; exception when others then a1:='REFUSED'; end;
+  insert into action_execution(correlation_id,action_class,executor,idempotency_key,risk_tier,reversible,request,status)
+    values(gen_random_uuid(),'supplier_verify','supplier_verify','au2-'||gen_random_uuid()::text,'medium',true,jsonb_build_object('actor','procurement'),'queued') returning id into v2;
+  select author into v_auth from action_execution where id=v2;
+  perform fn_action_invoke_dispatch(50);
+  begin perform fn_action_head_approve(v2,'approved','x','procurement'); a2:='NOT_REFUSED'; exception when others then a2:='REFUSED'; end;
+  raise exception 'MARK|no_author_refused=%|author_stamped=%|self_approval_refused=%', a1, v_auth, a2; end $p$;`);
+eq('an action with no recorded author cannot be approved', au.no_author_refused, 'REFUSED');
+eq('the author is stamped from the queuing actor', au.author_stamped, 'procurement');
+eq('the author may not approve their own work', au.self_approval_refused, 'REFUSED');
 
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
