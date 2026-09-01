@@ -33,7 +33,7 @@ as $fn$
 declare r record; v_res jsonb; v_head text; v_reason text; v_ok int := 0; v_skip int := 0;
 begin
   for r in
-    select a.id, a.action_class, a.department, a.risk_tier,
+    select a.id, a.action_class, e.department, a.risk_tier,
            coalesce(a.author, a.request->>'actor', a.request->>'requested_by', a.request->>'author') as author,
            e.second_authority, e.required_authority, e.reversible, e.compensation_action_class
       from public.action_execution a
