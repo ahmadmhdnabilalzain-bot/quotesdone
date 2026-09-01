@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T02:47:04.454Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T02:52:22.835Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51779,14 +51779,16 @@ begin
   if public.fn_phase_c_actor_may_own(p_owner) then return true; end if;
   select * into s from public.phase_b_workflow_step where step_id = p_step_id;
   if not found then return false; end if;
+  -- W14 removed: W14-S05 is now the canonical role quote_evaluation (PBCR-001), so no W14 step uses a
+  -- category overlay. W05/W06/W07/W10 analysis steps legitimately still do.
   if p_owner = 'relevant_category_overlay'
      and s.step_type = 'analysis'
-     and s.workflow_id in ('W05','W06','W07','W10','W14') then
+     and s.workflow_id in ('W05','W06','W07','W10') then
     return true;
   end if;
   select kind into v_kind from public.fn_phase_c_resolve_actor(p_owner);
   return v_kind = 'overlay' and s.step_type = 'analysis'
-     and s.workflow_id in ('W05','W06','W07','W10','W14');
+     and s.workflow_id in ('W05','W06','W07','W10');
 end $function$
 
 

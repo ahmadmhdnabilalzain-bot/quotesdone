@@ -491,5 +491,18 @@ const ab = await q(`select 'the_ceo_still_routes_to_the_founder' k,
   (fn_should_escalate('{"actor":"bookkeeper","confidence":0.1}')->>'route_basis'), 'reporting_line'`);
 for (const r of ab) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== STEP BINDINGS — every owner is a real role or the frozen spec’s own owner ==');
+// ============================================================================================
+const sb = await q(`select 'w14_s05_binding_owner_is_the_amended_role' k,
+  (select accountable_role_id from phase_c_step_binding where step_id='W14-S05') v, 'quote_evaluation' e
+  union all select 'step_binding_owners_absent_from_org_role_and_diverging_from_the_spec',
+  (select count(*)::text from phase_c_step_binding b join phase_b_workflow_step s on s.step_id=b.step_id
+    where b.accountable_role_id is not null
+      and not exists(select 1 from org_role r where r.role_id=b.accountable_role_id)
+      and not exists(select 1 from org_role_alias a where a.alias=b.accountable_role_id)
+      and b.accountable_role_id <> s.accountable_role_id), '0'`);
+for (const r of sb) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
