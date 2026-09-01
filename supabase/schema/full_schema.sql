@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T01:27:41.190Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T01:42:00.306Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -26982,6 +26982,8 @@ declare m jsonb; findings jsonb := '[]'::jsonb; actions int := 0; recs jsonb;
   v_rev numeric; v_spend numeric; v_sup int; v_open int; v_avail numeric;
   v_red int; v_amber int; v_green int; r record; v_drivers text;
   v_report_id bigint; v_raised int := 0;
+  -- SURVIVAL LINE: cash, burn and runway, read once from fn_ws_finance (already computed).
+  v_fin jsonb; v_cash numeric; v_burn numeric; v_runway numeric; v_fin_health text; v_fin_raised int := 0;
 begin
   -- ensure the OS reviews for this week exist before the meeting reads them
   if not exists (select 1 from os_review where period = v_period) then
@@ -27005,6 +27007,20 @@ begin
        'approved_suppliers',v_sup,'supplier_target',860,
        'open_tasks',v_open,'platform_availability_pct',v_avail);
 
+  -- THE SURVIVAL LINE. One read of fn_ws_finance; carry it in the metrics so the meeting's KPI blob
+  -- and every report built from it carries cash/burn/runway. runway_months is only a real number
+  -- when the company is burning AND has cash, so burn and cash are tested first.
+  v_fin := public.fn_ws_finance();
+  v_cash := coalesce((v_fin->'cash'->>'total')::numeric, 0);
+  v_burn := coalesce((v_fin->'run_rate'->>'monthly_burn')::numeric, 0);
+  v_runway := nullif(v_fin->'run_rate'->>'runway_months','')::numeric;
+  v_fin_health := case when v_burn <= 0 then 'green'
+                       when v_cash <= 0 then 'red'
+                       when v_runway < 3 then 'red'
+                       when v_runway < 6 then 'amber'
+                       else 'green' end;
+  m := m || jsonb_build_object('cash_aed', v_cash, 'monthly_burn_aed', v_burn, 'runway_months', v_runway);
+
   -- AGENDA ITEM 1..10: every operating system that is not green, named with its owner AND with the
   -- live per-OS figures out of v_os_health that put it there. LEFT JOIN: an OS the view cannot
   -- resolve still reaches the agenda, it just reaches it without drivers.
@@ -27012,10 +27028,6 @@ begin
     select o.num, o.name, r2.health, r2.owner_agent, r2.findings,
            h.open_risks, h.kpi_gaps, h.backlog_per_head, h.stale_tasks,
            h.review_pass_pct, h.budget_pct, h.needs_founder_pct,
-           -- CAPACITY IS THE ONE DIMENSION v_os_health DOES NOT COMPUTE (6 Aug 2026). It is
-           -- resource_pool committed/capacity and it exists only in os_review.metrics, so it
-           -- was the one of the eight figures with no reader outside its own writer. Taken off
-           -- the report row the meeting is already reading.
            r2.metrics->>'capacity_pct' capacity_pct
     from os_review r2 join operating_system o on o.os_key = r2.os_key
     left join v_os_health h on h.os_key = r2.os_key
@@ -27030,9 +27042,6 @@ begin
       ||', review_pass_pct '||coalesce(r.review_pass_pct::text,'?')
       ||', budget_pct '||coalesce(r.budget_pct::text,'?')
       ||', needs_founder_pct '||coalesce(r.needs_founder_pct::text,'?');
-    -- THE SIX AGENDA SECTIONS. Each is a count over live rows and the top three by name; a
-    -- section with nothing in it states the zero rather than being omitted, because a meeting is
-    -- entitled to hear "no open risks" and a missing section is not the same claim.
     v_dept := (select department from org_agents where agent_key = r.owner_agent);
 
     v_wins := (select count(*) from org_tasks
@@ -27096,10 +27105,17 @@ begin
   if coalesce(v_avail,100) < 99.5 then
     findings := findings || jsonb_build_array(jsonb_build_object('item','Platform availability','owner','cto','health','amber','finding','Availability '||coalesce(v_avail,0)||'% against 99.5%.'));
   end if;
+  -- SURVIVAL LINE ON THE AGENDA. The CFO owns it. It joins the agenda only when it is not green,
+  -- like the three items above, and it always exists as a board report below.
+  if v_fin_health <> 'green' then
+    findings := findings || jsonb_build_array(jsonb_build_object('item','Runway & cash','owner','cfo','health',v_fin_health,
+      'finding','Cash AED '||round(v_cash)||', monthly burn AED '||round(v_burn)||', runway '
+        ||coalesce(v_runway::text,'—')||' months against a break-even target.'));
+    v_fin_raised := 1;
+  end if;
 
   -- The company-level items above are contributions too, so they carry the same six sections,
-  -- scoped to the company rather than to one department. Merged rather than typed into each of
-  -- the three: an item added later inherits the sections instead of arriving with four.
+  -- scoped to the company rather than to one department.
   v_co := jsonb_build_object(
     'wins', (select count(*) from org_tasks where status='done' and updated_at > now()-interval '7 days')
             ||' task(s) closed company-wide in the last 7 days.',
@@ -27125,45 +27141,52 @@ begin
     and not exists (select 1 from org_tasks t where t.title='Exec meeting '||v_period||': '||(f->>'item') and t.status<>'done');
   get diagnostics actions = row_count;
 
-  -- AGREED PRIORITIES, RANKED AND OWNED. One object per contribution that is not green, red
-  -- before amber and then in operating-system order, which is the order the constitution gives:
-  -- compliance and trust sit in the red band before anything amber is opened. `title` is the key
-  -- fn_report_recommendation_approve already reads, so the founder's approve control gets a name
-  -- rather than 160 characters of JSON.
   select coalesce(jsonb_agg(jsonb_build_object(
            'rank', x.rn, 'owner', x.owner, 'priority', x.health,
            'title', x.item, 'why', x.finding) order by x.rn), '[]'::jsonb)
     into recs from (
       select row_number() over (order by case f->>'health' when 'red' then 1 else 2 end, ord) rn,
              f->>'item' item, f->>'owner' owner, f->>'health' health,
-             -- an operating system's readable problem statement lives in `problems`; `finding` is
-             -- the raw os_review JSON. The three company items are the other way round.
              case when f ? 'drivers' then f->>'problems' else f->>'finding' end finding
         from jsonb_array_elements(findings) with ordinality as t(f, ord)
        where coalesce(f->>'health','') <> 'green') x;
   if jsonb_array_length(recs) = 0 then
     recs := jsonb_build_array(jsonb_build_object('rank', 1, 'owner', 'ceo', 'priority', 'hold',
       'title', 'Hold current priorities',
-      'why', 'All ten operating systems green and company metrics within tolerance.'));
+      'why', 'All operating systems green and company metrics within tolerance.'));
   end if;
 
   insert into exec_reports (officer,period,summary,findings,recommendations,metrics,status)
   values ('ceo',v_period,
-    'Weekly executive meeting across ten operating systems. '||v_green||' green, '||v_amber||' amber, '||v_red
+    'Weekly executive meeting across all operating systems. '||v_green||' green, '||v_amber||' amber, '||v_red
     ||' red. '||jsonb_array_length(findings)||' agenda contribution(s), '||actions||' action(s) assigned.',
     findings, recs, m, 'open')
   on conflict do nothing;
 
-  -- THE DEBATE. The CEO's proposed priority order is put to another officer, who evaluates it
-  -- through fn_challenge against challenge_heuristic and any prior outcome in institutional_memory
-  -- and answers support / concern / recommend_against with its reasoning. The challenger is the
-  -- first officer in the list who is not the one proposing, so this is officers challenging each
-  -- other rather than the CEO agreeing with itself. Top three only: a debate, not thirteen rows of
-  -- boilerplate a week.
-  --
-  -- In its own block because a challenge that throws must not fail the meeting — the cron's own
-  -- success is what exec-meeting-weekly-autostart measures. The number that actually landed goes
-  -- into the run note below, so a swallowed failure is visible rather than silent.
+  -- THE FINANCE BOARD REPORT. One report_type='finance' board_reports row per week, carrying the
+  -- survival figures, so the board has a standing finance record independent of whether the agenda
+  -- surfaced runway this week. Its own block: a failure here must not fail the meeting.
+  begin
+    if not exists (select 1 from board_reports
+                    where report_type='finance' and week_start = date_trunc('week',current_date)::date) then
+      insert into board_reports(week_start, title, body, kpis, report_type)
+      values (date_trunc('week',current_date)::date,
+        'Finance — runway, cash & burn ('||v_period||')',
+        'Cash AED '||round(v_cash)||' · monthly burn AED '||round(v_burn)||' · runway '
+          ||coalesce(v_runway::text,'—')||' months · ARR est AED '
+          ||round(coalesce((v_fin->'run_rate'->>'arr_estimate')::numeric,0))
+          ||' · net income (all-time) AED '||round(coalesce((v_fin->'pnl'->>'net_income')::numeric,0))
+          ||'. Health: '||v_fin_health||'.',
+        jsonb_build_object('cash_aed',v_cash,'monthly_burn_aed',v_burn,'runway_months',v_runway,
+          'arr_estimate',(v_fin->'run_rate'->>'arr_estimate'),'net_income',(v_fin->'pnl'->>'net_income'),
+          'health',v_fin_health,'period',v_period),
+        'finance');
+    end if;
+  exception when others then
+    v_fin_raised := v_fin_raised;   -- board report is best-effort; the meeting proceeds
+  end;
+
+  -- THE DEBATE.
   begin
     for p in select (e->>'rank')::int prank, e->>'title' ptitle, e->>'owner' powner
                from jsonb_array_elements(recs) e
@@ -27181,20 +27204,6 @@ begin
   end;
 
   -- THE PRIORITIES REACH THE DECISION QUEUE.
-  -- 33 of 40 exec_reports carried recommendations and agent_actions held ZERO row pointing at a
-  -- report, so the founder could read the meeting's ranked priorities and had no way to act on
-  -- them: the report surface has five approve controls bound to nothing. Each ranked priority is
-  -- now raised once per period as an approvable action carrying target_table='exec_reports' and the
-  -- report's id, which is what the approve control resolves.
-  --
-  -- One row per priority per week — typically two, one when every OS is green — so this cannot
-  -- flood the queue. A bulk backfill of the 107 recommendation entries sitting in the last 30 days
-  -- was deliberately NOT done: it would have taken the paused share of agent_actions from 2.6% to
-  -- roughly 10.4% and regressed approval-center-everything-else-automatic, and most of those
-  -- entries are superseded weekly anyway.
-  --
-  -- Its own block, like the debate above: a failure here must not fail the meeting, because the
-  -- cron's own success is what exec-meeting-weekly-autostart measures.
   begin
     select id into v_report_id from exec_reports
      where officer='ceo' and period=v_period order by created_at desc limit 1;
@@ -27217,10 +27226,6 @@ begin
                   jsonb_build_object('source','fn_exec_meeting','period',v_period,'rank',p.prank,
                                      'owner',p.powner,'health',p.phealth,'report_id',v_report_id),
                   'exec_reports', v_report_id::text)
-          -- ONE COLLISION MUST NOT LOSE THE WHOLE AGENDA. agent_actions_dedupe is UNIQUE(agent, kind,
-          -- target_id) WHERE status='pending'. Two ranked priorities owned by the same officer collide
-          -- on it; the enclosing block caught the error and rolled back EVERY priority insert, so zero
-          -- of the CEO's priorities reached the founder queue. Skipping the duplicate keeps the rest.
           on conflict (agent, kind, target_id) where status = 'pending' do nothing;
           v_raised := v_raised + 1;
         end if;
@@ -27233,16 +27238,19 @@ begin
   insert into agent_runs (agent,started_at,finished_at,status,counts,note)
   values ('exec_meeting',now(),now(),'ok',
     jsonb_build_object('os_green',v_green,'os_amber',v_amber,'os_red',v_red,'findings',jsonb_array_length(findings),'actions',actions,
-      'priorities',jsonb_array_length(recs),'challenges',v_ch,'raised_for_approval',v_raised),
-    'Executive meeting '||v_period||': '||v_green||' green / '||v_amber||' amber / '||v_red||' red across ten operating systems, '||actions||' actions assigned, '
+      'priorities',jsonb_array_length(recs),'challenges',v_ch,'raised_for_approval',v_raised,
+      'runway_months',v_runway,'finance_health',v_fin_health),
+    'Executive meeting '||v_period||': '||v_green||' green / '||v_amber||' amber / '||v_red||' red across all operating systems, '||actions||' actions assigned, '
     ||jsonb_array_length(recs)||' ranked priorities, '
     ||case when v_ch < 0 then 'the challenge round failed' else v_ch||' challenge(s) put to a second officer' end
-    ||', '||case when v_raised < 0 then 'raising priorities for approval failed' else v_raised||' priority(ies) raised for founder approval' end||'.');
+    ||', '||case when v_raised < 0 then 'raising priorities for approval failed' else v_raised||' priority(ies) raised for founder approval' end
+    ||'. Finance '||v_fin_health||' (runway '||coalesce(v_runway::text,'—')||'mo).');
 
   return jsonb_build_object('week',v_period,'green',v_green,'amber',v_amber,'red',v_red,
                             'findings',jsonb_array_length(findings),'actions',actions,
                             'priorities',jsonb_array_length(recs),'challenges',v_ch,
-                            'raised_for_approval',v_raised,'metrics',m);
+                            'raised_for_approval',v_raised,
+                            'finance_health',v_fin_health,'runway_months',v_runway,'metrics',m);
 end $function$
 
 

@@ -317,5 +317,35 @@ const io = await q(`select 'open_incidents_without_an_owner' k,
   (select count(*)::text from os_incidents where status='open' and coalesce(owner,'')='') v, '0' e`);
 for (const r of io) eq(r.k, r.v, r.e);
 
+// ============================================================================================
+console.log('\n== SURVIVAL LINE — the board sees runway, cash and burn ==');
+// ============================================================================================
+// The weekly exec meeting reads fn_ws_finance, carries cash/burn/runway in its metrics and a finance
+// health verdict, and writes a report_type='finance' board report. (Aborted; the meeting is heavy but
+// every write rolls back.)
+const sv = await probe(`do $p$ declare res jsonb; v_br int; begin
+  res := fn_exec_meeting();
+  select count(*) into v_br from board_reports where report_type='finance' and week_start=date_trunc('week',current_date)::date;
+  raise exception 'MARK|fin_health=%|has_cash=%|has_burn=%|has_runway=%|finance_report=%',
+    (res ? 'finance_health')::text, (res->'metrics' ? 'cash_aed')::text, (res->'metrics' ? 'monthly_burn_aed')::text,
+    (res->'metrics' ? 'runway_months')::text, (v_br>0)::text; end $p$;`);
+eq('the exec meeting carries a finance health verdict', sv.fin_health, 'true');
+eq('  -> cash on the board metrics', sv.has_cash, 'true');
+eq('  -> monthly burn on the board metrics', sv.has_burn, 'true');
+eq('  -> runway on the board metrics', sv.has_runway, 'true');
+eq('a report_type=finance board report is written each week', sv.finance_report, 'true');
+
+// ============================================================================================
+console.log('\n== OS COVERAGE — every active department maps to an operating system ==');
+// ============================================================================================
+// customer_experience and assurance were buried inside the marketplace and operations OS; now each of
+// the ten departments maps to its own operating system, so the weekly review surfaces all of them.
+const oc = await q(`select 'active_departments_without_an_operating_system' k,
+  (select count(*)::text from org_departments d where d.active
+     and not exists(select 1 from os_department od where od.dept_key=d.dept_key)) v, '0' e
+  union all select 'both_new_operating_systems_present',
+  (select (count(*)=2)::text from operating_system where os_key in ('customer_experience','assurance') and active), 'true'`);
+for (const r of oc) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);
