@@ -522,5 +522,20 @@ eq('an action with no recorded author cannot be approved', au.no_author_refused,
 eq('the author is stamped from the queuing actor', au.author_stamped, 'procurement');
 eq('the author may not approve their own work', au.self_approval_refused, 'REFUSED');
 
+// ============================================================================================
+console.log('\n== OUTCOME GRADING — resumes on the cron, self-pauses on the hold ==');
+// ============================================================================================
+const og = await probe(`do $p$ declare v_paused text; v_res jsonb; v_graded int; begin
+  select fn_outcome_evaluate()->>'status' into v_paused;
+  delete from company_stand_down;
+  v_res := fn_outcome_evaluate();
+  v_graded := coalesce((v_res->>'improved')::int,0)+coalesce((v_res->>'worse')::int,0)+coalesce((v_res->>'no_change')::int,0)+coalesce((v_res->>'unmeasurable')::int,0);
+  raise exception 'MARK|paused=%|grades_when_cleared=%', v_paused, (v_graded>0)::text; end $p$;`);
+eq('outcome grading self-pauses on the founder stand-down', og.paused, 'PAUSED_BY_FOUNDER_STANDDOWN');
+eq('  -> and grades the due backlog once the hold lifts', og.grades_when_cleared, 'true');
+const ocr = await q(`select 'the_outcome_grading_cron_is_enabled' k,
+  (select active::text from cron.job where jobname='outcome_evaluate_daily') v, 'true' e`);
+for (const r of ocr) eq(r.k, r.v, r.e);
+
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'} — ${fail} assertion(s) failed`);
 process.exit(fail ? 1 : 0);

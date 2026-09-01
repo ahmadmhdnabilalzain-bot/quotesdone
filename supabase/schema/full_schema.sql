@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T02:57:44.166Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T03:03:57.420Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -45374,8 +45374,15 @@ declare
   n_improved int := 0; n_worse int := 0; n_flat int := 0; n_unmeasurable int := 0;
   v_claimants int; v_others text; v_lead_id bigint; v_is_lead boolean; v_conf numeric;
 begin
-  -- How many due outcomes share each reading, and which one speaks for the group. Computed once,
-  -- over the same set the loop below walks, so the grouping cannot drift mid-run.
+  -- THE FOUNDER STAND-DOWN. Grading opens corrective ROLL BACK work on a 'worse' verdict, so it pauses
+  -- with the workforce exactly as fn_reputation_recompute and fn_promotion_review do. It resumes and
+  -- grades the due backlog once the hold lifts.
+  if exists (select 1 from public.company_stand_down where resumed_at is null) then
+    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN',
+      'improved',0,'worse',0,'no_change',0,'unmeasurable',0,
+      'note','Outcome grading opens corrective work and pauses with the founder hold; it resumes when the hold lifts.');
+  end if;
+
   create temporary table _due_group on commit drop as
   select o.id,
          count(*)      over w as claimants,
@@ -45443,7 +45450,6 @@ begin
 
     update outcome_record
        set observed_value=v_now, observed_at=now(), delta=v_delta, verdict=v_verdict, lesson=v_lesson,
-           -- a shared reading never promotes: it has not shown which decision was the lever
            promoted=(v_verdict='improved' and v_claimants = 1),
            rollback_reason=case when v_verdict='worse' then 'Graded worse than baseline on '||to_char(now(),'DD Mon YYYY') else null end,
            closed_at=now()
@@ -45454,8 +45460,6 @@ begin
                                  'baseline', r.baseline_value, 'observed', v_now, 'delta', v_delta,
                                  'claimants', v_claimants));
 
-    -- One lesson per reading. The co-claimants are named inside it rather than each minting their
-    -- own copy, so retrieval sees one observation instead of N agreeing witnesses who are one witness.
     if v_is_lead then
       begin
         insert into institutional_memory (kind, subject_type, subject_id, headline, detail, outcome,
