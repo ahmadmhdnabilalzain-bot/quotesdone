@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T09:57:54.064Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T11:21:52.286Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -31281,6 +31281,43 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_handoff_watchdog()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_esc int := 0;
+begin
+  if exists (select 1 from public.company_stand_down where resumed_at is null) then
+    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN', 'escalated',0);
+  end if;
+
+  for r in select * from public.fn_phase_c_handoff_overdue() order by hours_late desc loop
+    -- dedup: one alert per stuck handoff run per day
+    if exists (select 1 from public.founder_alerts
+                where event like '%handoff run #'||r.handoff_run_id||'%'
+                  and created_at > now() - interval '24 hours') then
+      continue;
+    end if;
+    perform public.fn_notify_founder(
+      'Stalled handoff run #'||r.handoff_run_id||' ('||coalesce(r.handoff_id,'?')||') '
+        ||round(r.hours_late)||'h past SLA',
+      'From '||coalesce(r.sender,'?')||' to '||coalesce(r.receiver,'?')||', due '
+        ||to_char(r.due_at,'YYYY-MM-DD HH24:MI')||' UTC and still not accepted. The receiver has not '
+        ||'picked up the baton; the workflow cannot advance until it does.',
+      'high');
+    v_esc := v_esc + 1;
+  end loop;
+
+  insert into public.agent_runs(agent, started_at, finished_at, status, counts, note)
+  values ('handoff_watchdog', now(), now(), 'ok',
+          jsonb_build_object('escalated', v_esc),
+          'Handoff watchdog raised '||v_esc||' alert(s) on overdue handoffs.');
+  return jsonb_build_object('ok', true, 'escalated', v_esc);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_health_index()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -42063,6 +42100,64 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_objective_review()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_opened int:=0; v_missed int:=0; v_title text; v_task bigint; v_detail text;
+begin
+  -- THE FOUNDER STAND-DOWN. This opens corrective work, so it pauses with the workforce exactly as
+  -- fn_outcome_evaluate, fn_reputation_recompute and fn_promotion_review do.
+  if exists (select 1 from public.company_stand_down where resumed_at is null) then
+    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN', 'opened',0, 'missed',0,
+      'note','Objective review opens corrective work and pauses with the founder hold; it resumes when the hold lifts.');
+  end if;
+
+  for r in
+    -- department objectives below target (higher = better; a ceiling unit is not a miss)
+    select 'department_objective' as kind, o.id, o.dept_key, o.objective as label, o.target_value, o.actual_value,
+           o.unit, o.goal_key
+      from public.department_objective o
+     where o.active and o.status='active'
+       and o.target_value is not null and o.actual_value is not null
+       and o.actual_value < o.target_value
+       and coalesce(o.unit,'') not ilike '%max%' and coalesce(o.unit,'') not ilike '%cost%'
+    union all
+    -- company goal periods flagged at risk, or measured below target
+    select 'goal_period' as kind, g.id, g.owner_dept as dept_key, g.goal_key as label, g.target_value, g.actual_value,
+           null::text as unit, g.goal_key
+      from public.goal_period g
+     where g.status = 'at_risk'
+        or (g.target_value is not null and g.actual_value is not null and g.actual_value < g.target_value)
+  loop
+    v_missed := v_missed + 1;
+    v_title := 'Objective off-target: '||left(coalesce(r.label, r.goal_key, 'objective'),80)||' ('||r.kind||'#'||r.id||')';
+    if exists (select 1 from public.org_tasks where title = v_title and status <> 'done') then continue; end if;
+
+    v_detail := 'Owner dept: '||coalesce(r.dept_key,'exec')||'. Target '||coalesce(r.target_value::text,'?')||' '||coalesce(r.unit,'')
+      ||', actual '||coalesce(r.actual_value::text,'?')
+      ||case when coalesce(r.target_value,0) > 0
+             then ' ('||round(100.0*coalesce(r.actual_value,0)/nullif(r.target_value,0),1)::text||'% of target)' else '' end
+      ||case when r.goal_key is not null then '. Serves company goal: '||r.goal_key else '' end
+      ||'. Diagnose the cause and either close the gap or propose a revised target with evidence.';
+
+    insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, objective_id)
+    values (coalesce(r.dept_key,'exec'), v_title, v_detail, 'proposed', 'advisory', false, 'recommend',
+            case when r.kind='department_objective' then r.id else null end)
+    returning id into v_task;
+    v_opened := v_opened + 1;
+  end loop;
+
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('objective_review', now(), now(), 'ok',
+          jsonb_build_object('missed', v_missed, 'opened', v_opened),
+          'Objective review: '||v_missed||' objective(s)/goal(s) below target, '||v_opened||' corrective task(s) opened.');
+  return jsonb_build_object('missed', v_missed, 'opened', v_opened);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_officer_recs(n integer DEFAULT 8)
  RETURNS text
  LANGUAGE sql
@@ -43546,6 +43641,71 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_org_task_sla_watch()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_esc int:=0; v_founder int:=0; v_reassigned int:=0; v_mgr text; v_stage int;
+begin
+  if exists (select 1 from public.company_stand_down where resumed_at is null) then
+    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN', 'escalated',0);
+  end if;
+
+  for r in
+    select t.id, t.title, t.detail, t.tier, t.dept_key, t.assigned_agent, t.result,
+           extract(day from now() - t.created_at)::int as age_days,
+           case t.tier when 'advisory' then 14 when 'gated' then 7 else 5 end as sla_days
+      from public.org_tasks t
+     where t.status not in ('done','cancelled')
+       and t.action_class in ('recommend','incident_fix')
+       and t.created_at < now() - (case t.tier when 'advisory' then interval '14 days'
+                                                when 'gated'    then interval '7 days'
+                                                else interval '5 days' end)
+  loop
+    v_stage := coalesce((r.result->'_sla'->>'stage')::int, 0);
+    -- the owner's manager is the accountable owner of its department; the department is the escalation
+    -- address. The exact manager-chain role is deliberately NOT resolved here — the role-chain resolver
+    -- is a deferred (unimplemented) kernel component, and referencing it would make deferred machinery
+    -- reachable and redden a kernel board.
+    v_mgr := coalesce(r.dept_key, 'exec') || ' manager';
+
+    if v_stage = 0 then
+      update public.org_tasks
+         set result = coalesce(result,'{}'::jsonb)
+             || jsonb_build_object('_sla', jsonb_build_object('stage',1,'escalated_at',now(),
+                                   'escalated_to', coalesce(v_mgr,'exec'), 'sla_days', r.sla_days))
+       where id = r.id;
+      v_esc := v_esc + 1;
+    elsif v_stage = 1 and r.age_days >= r.sla_days * 2 then
+      perform public.fn_notify_founder(
+        'Corrective task #'||r.id||' overdue '||r.age_days||'d (2x SLA): '||left(coalesce(r.title,'task'),80),
+        'Owner '||coalesce(r.assigned_agent, r.dept_key, 'exec')||', manager '||coalesce(v_mgr,'exec')
+          ||' was notified at stage 1 and it is still open. '||left(coalesce(r.detail,''),200),
+        'high');
+      update public.org_tasks
+         set result = coalesce(result,'{}'::jsonb)
+             || jsonb_build_object('_sla', jsonb_build_object('stage',2,'escalated_at',now(),
+                                   'escalated_to','founder_alert', 'sla_days', r.sla_days))
+       where id = r.id;
+      v_founder := v_founder + 1;
+    end if;
+  end loop;
+
+  begin
+    v_reassigned := coalesce((public.fn_org_task_assign(50)->>'assigned')::int, 0);
+  exception when others then v_reassigned := 0; end;
+
+  insert into public.agent_runs(agent, started_at, finished_at, status, counts, note)
+  values ('org_task_sla_watch', now(), now(), 'ok',
+          jsonb_build_object('escalated_to_manager',v_esc,'escalated_to_founder',v_founder,'reassigned',v_reassigned),
+          'Corrective-task SLA watch: '||v_esc||' escalated to a manager, '||v_founder
+            ||' raised to a founder alert, '||v_reassigned||' re-assigned.');
+  return jsonb_build_object('ok',true,'escalated_to_manager',v_esc,'escalated_to_founder',v_founder,'reassigned',v_reassigned);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_os_ai_quality()
  RETURNS jsonb
  LANGUAGE sql
@@ -44266,11 +44426,23 @@ CREATE OR REPLACE FUNCTION public.fn_os_incident_close_task()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  if new.status in ('resolved','closed') and coalesce(old.status,'') not in ('resolved','closed')
-     and new.org_task_id is not null then
-    update public.org_tasks
-       set status='done', updated_at=now()
-     where id = new.org_task_id and status <> 'done';
+  if new.status in ('resolved','closed') and coalesce(old.status,'') not in ('resolved','closed') then
+    -- close the corrective task the incident opened
+    if new.org_task_id is not null then
+      update public.org_tasks
+         set status='done', updated_at=now()
+       where id = new.org_task_id and status <> 'done';
+    end if;
+    -- capture the lesson so the resolution is remembered, not re-learned
+    begin
+      insert into public.institutional_memory
+        (kind, subject_type, subject_id, headline, detail, outcome, learned_by, confidence, evidence_ref, occurred_at)
+      values ('incident', 'os_incident', new.id::text,
+              left('Incident resolved: '||coalesce(new.title, '#'||new.id::text), 200),
+              left(coalesce(new.detail->>'resolution', new.detail->>'description',
+                            'Resolved on '||to_char(now(),'DD Mon YYYY')), 2000),
+              'resolved', coalesce(new.owner, 'system'), 0.7, 'os_incident#'||new.id, now());
+    exception when others then null; end;
   end if;
   return new;
 end $function$
@@ -85523,6 +85695,9 @@ select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public
 select cron.schedule('department_conflict_scan_weekly','0 6 * * 1',$CRON$select public.fn_emit_department_conflict();$CRON$);
 select cron.schedule('remediation_escalate_consume_daily','15 5 * * *',$CRON$select public.fn_agent_remediation_escalate_consume();$CRON$);
 select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.fn_promotion_review();$CRON$);
+select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_objective_review();$CRON$);
+select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_org_task_sla_watch();$CRON$);
+select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_handoff_watchdog();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
