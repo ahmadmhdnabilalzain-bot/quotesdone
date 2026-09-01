@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T14:10:38.852Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-01T15:02:22.761Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -23866,6 +23866,7 @@ declare
   v_options jsonb; v_amount numeric; v_dept text;
   v_problem text; v_imp_bus text; v_imp_fin text; v_imp_leg text; v_imp_cus text;
   v_escalates boolean; v_status text; v_approver text; v_authorised boolean;
+  v_actor_tier text;   -- reputation tier of the acting agent (gap 8)
   v_dr_id bigint; v_dr_status text; v_verdict text; v_gate_reason text;
   v_corr uuid; v_trace uuid; v_prior jsonb;
 begin
@@ -24054,10 +24055,19 @@ begin
       format('%s has no employee_authority record, so this decision is escalated rather than taken autonomously', p_actor));
   end if;
 
+  -- Reputation is load-bearing beyond spend: an agent on probation does not take a decision
+  -- autonomously, whatever its kind. This is the demotion signal the spend check already reads.
+  select r.tier into v_actor_tier from public.agent_reputation r where r.agent_key = p_actor;
+  if v_actor_tier = 'probation' then
+    reasons := coalesce(reasons,'[]'::jsonb) || jsonb_build_array(
+      format('%s is on probation in the reputation system, so this decision is escalated to a person rather than taken autonomously', p_actor));
+  end if;
+
   v_escalates := decision in ('escalate','human_review','unsupported_kind')
                  or conf < 0.7
                  or jsonb_array_length(v_evidence) = 0
-                 or not v_authorised;
+                 or not v_authorised
+                 or v_actor_tier = 'probation';
   v_status   := case when v_escalates then 'proposed' else 'approved' end;
   v_approver := case when v_escalates then null else p_actor end;
 
@@ -24219,6 +24229,13 @@ begin
                           coalesce(v_actor, '(no approver named)'));
         end if;
       end if;
+    end if;
+
+    -- Reputation gate (gap 8): an approver on probation may not approve any decision, money or not,
+    -- mirroring how the spend gate already refuses a demoted agent.
+    if v_reason is null and coalesce(v_actor,'') <> 'founder'
+       and exists (select 1 from public.agent_reputation r where r.agent_key = v_actor and r.tier = 'probation') then
+      v_reason := format('%s is on probation in the reputation system and may not approve a decision until reinstated.', v_actor);
     end if;
 
     if v_reason is null and coalesce(new.financial_aed,0) > 0 then
