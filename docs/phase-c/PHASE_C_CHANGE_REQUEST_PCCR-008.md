@@ -121,6 +121,37 @@ approval, it does not gate the automation.
 **None.** No paid provider is called by any re-enabled cron; `wa_flush`/`sms_flush` (the only
 crons that could reach a paid channel) stay OFF, and OpenRouter stays held. Cost: **AED 0**.
 
+## 9a. Evidence
+
+The §7 measurements are the evidence, all taken on production 2 Sep 2026: each re-enabled cron's
+command is `select public.fn_kernel_cron_exec(<jobid>);` with `active = true`;
+`active_state_changing_cron_components_not_wrapped` = 0; `fn_phase_c_freeze_drift().frozen_subjects_drifted`
+= 0 once amendment #512 is recorded; one `phase_c_system_execution` trace per re-enabled cron run;
+`fn_phase_a_baseline_drift()` and `fn_phase_b_baseline_drift()` both 0 rows.
+
+## 9b. Current behaviour and proposed behaviour
+
+**Current behaviour** (before this change): the stand-down's deterministic crons were inactive, so
+the consumer/handler and delivery halves of dozens of loops did not run — a failed scheduled run had
+no reader, an escalation no consumer, a stalled workflow no reaper.
+
+**Proposed behaviour** (after this change): those crons run again, each as a traced kernel component
+via `fn_kernel_cron_exec`. The three inference-bound crons stay OFF until OpenRouter. No workflow
+order, gate, state, ownership or founder boundary changes — only which crons are active, recorded as a
+freeze amendment to `component_crosswalk`.
+
+## 9c. Security and privacy impact
+
+None. No identity is revealed, no retention window moves, no data becomes readable to anyone it was
+not readable to. The re-enabled crons are deterministic SQL/Resend/Twilio work; `wa_flush`/`sms_flush`
+stay OFF and OpenRouter stays held, so no paid or outbound channel is opened by this change.
+
+## 9d. Backward compatibility
+
+No historical record is deleted, edited or back-dated. The frozen baseline `3e50290d…` is untouched;
+amendment #4 (PCCR-001) is undisturbed and simply stops matching the live body, which is the intended
+mechanism. Re-disabling the named crons returns the subject to amendment #4's state.
+
 ## 10. Rollback
 
 | | |
