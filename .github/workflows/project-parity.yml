@@ -184,6 +184,7 @@ jobs:
                    kernel_write_guard_both_directions \
                    cancellation_reaches_the_kernel \
                    active_signal_types_are_executable \
+                   company_is_fully_wired \
                    kernel_boards_are_green \
                    every_discharge_claim_reaches_its_table \
                    application_source_of_truth \

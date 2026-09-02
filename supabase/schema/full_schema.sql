@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T13:43:07.173Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T15:22:59.720Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17122,126 +17122,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -17786,6 +17666,126 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -21986,6 +21986,78 @@ begin
   end loop;
   return left(out, greatest(p_max_chars, 400));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_connectivity_register()
+ RETURNS TABLE(gap_class text, subject text, detail text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- A · a live workflow step with a side-effect action_class and no active executor. Nothing can
+  -- perform the step; the workflow stalls at it. (Mirror of v_workflow_side_effects_without_executor.)
+  select 'step_without_executor',
+         w.workflow_key || ' step ' || s.step_no,
+         'action_class ' || s.action_class || ' has no active org_action_executor'
+    from public.workflow w
+    join public.workflow_step s on s.workflow_key = w.workflow_key
+    left join public.org_action_executor e on e.action_class = s.action_class and e.active
+   where w.active and s.action_class is not null and e.action_class is null
+
+  union all
+  -- B · a live workflow step whose actor_role the RUNTIME resolver (fn_org_agent_resolve, the same
+  -- function the dispatcher and handoff paths use) cannot resolve to any agent. Excluded: 'owner' and
+  -- 'Director' in the generic employee_task workflow — those are CONTEXTUAL roles resolved per task
+  -- from the task's own assigned_agent / manager, never global agents, so a null here is correct.
+  select distinct 'actor_role_unresolved',
+         s.actor_role,
+         'used in active workflow steps; fn_org_agent_resolve() returns null'
+    from public.workflow_step s
+    join public.workflow w on w.workflow_key = s.workflow_key and w.active
+   where s.actor_role is not null
+     and s.actor_role not in ('owner', 'Director')                       -- contextual (employee_task)
+     and public.fn_org_agent_resolve(s.actor_role) is null
+
+  union all
+  -- C · an event_type that has ACTUALLY been emitted into company_event but has no active subscriber.
+  -- The dispatcher (fn_event_dispatch) delivers only through event_subscription, so such an event
+  -- reaches no one. Excluded: 'task.assigned' — task assignment is delivered by the direct
+  -- fn_org_task_assign path (the org_task row IS the delivery); a bus subscriber would double-create.
+  select distinct 'event_emitted_no_subscriber',
+         ce.event_type,
+         'emitted into company_event, no active event_subscription — the dispatcher delivers it nowhere'
+    from public.company_event ce
+   where ce.event_type <> 'task.assigned'
+     and not exists (select 1 from public.event_subscription es
+                      where es.active and es.event_type = ce.event_type)
+
+  union all
+  -- D · an active subscription pointing at an agent that is missing or inactive. The dispatcher joins
+  -- company_event -> event_subscription -> org_agents on agent_key (it does NOT run the resolver), so
+  -- the event is delivered to a dormant agent and dies there. Repoint to the active successor.
+  select 'dead_subscription',
+         es.event_type || ' -> ' || es.agent_key,
+         case when a.agent_key is null then 'subscriber agent does not exist'
+              else 'subscriber agent is inactive' end
+    from public.event_subscription es
+    left join public.org_agents a on a.agent_key = es.agent_key
+   where es.active and (a.agent_key is null or not a.active)
+
+  union all
+  -- E · an active rpc executor whose target needs arguments the queue invoker cannot supply AND whose
+  -- action_class is actually reachable from a live workflow step. fn_action_invoke_rpc fails any
+  -- args>0 target, so a reachable one is a guaranteed runtime failure. (Registry rows for functions
+  -- called only directly, never queued from a step, are not gaps and are excluded by the step join.)
+  select distinct 'executor_target_needs_args',
+         e.action_class || ' -> ' || e.target,
+         'rpc target requires ' || (p.pronargs - p.pronargdefaults)::text
+           || ' arg(s) with no default; reachable from a live workflow step; the queue invoker cannot call it'
+    from public.org_action_executor e
+    join pg_proc p on p.proname = e.target and p.pronamespace = 'public'::regnamespace
+    join public.workflow_step s on s.action_class = e.action_class
+    join public.workflow w on w.workflow_key = s.workflow_key and w.active
+   where e.active and e.kind = 'rpc' and (p.pronargs - p.pronargdefaults) > 0
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_company_facts_sync()
@@ -79025,6 +79097,41 @@ begin
   return jsonb_build_object('ok', true, 'lesson_id', p_lesson_id, 'status', p_verdict,
                             'validator', p_validator, 'was_line_manager', p_validator = v_mgr);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_verify_objectives_superseded()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_retired int; v_pending int; v_details jsonb;
+begin
+  select count(*) into v_retired from public.company_goals where active = false;
+
+  select count(*),
+         coalesce(jsonb_agg(jsonb_build_object(
+           'objective_id', o.id, 'dept', o.dept_key, 'goal_key', o.goal_key, 'status', o.status)
+           order by o.id), '[]'::jsonb)
+    into v_pending, v_details
+  from public.department_objective o
+  where o.goal_key is not null
+    and exists (select 1 from public.company_goals g where g.key = o.goal_key and g.active = false)
+    and coalesce(o.status, '') <> 'superseded'
+    and coalesce(o.active, true) = true;
+
+  return jsonb_build_object(
+    'ok', v_pending = 0,
+    'verified_at', now(),
+    'retired_goals', v_retired,
+    'objectives_pending_supersession', v_pending,
+    'pending', v_details,
+    'note', case when v_pending = 0
+                 then 'Every objective serving a retired goal is superseded'
+                 else format('%s objective(s) still serve a retired goal and are not superseded', v_pending)
+            end);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_voice_metrics()

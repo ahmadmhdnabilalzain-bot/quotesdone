@@ -1861,3 +1861,6 @@ scripts/sql/pccr009_declare_the_new_cron_component.sql
 scripts/sql/pccr009_component_registry_amendment.sql
 scripts/sql/evolution_proposals_reach_a_decider.sql
 scripts/sql/register_pccr009_crons_in_scenario_registry.sql
+scripts/sql/wire_goal_retirement_loop.sql
+scripts/sql/company_connectivity_register.sql
+scripts/sql/repoint_metric_alert_subscription.sql
