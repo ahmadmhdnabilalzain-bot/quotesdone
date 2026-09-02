@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T19:15:59.720Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T20:06:34.176Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4286,7 +4286,8 @@ CREATE TABLE IF NOT EXISTS public.ops_knowledge (
   checksum text,
   ingestion_run_id uuid,
   embedding_status text DEFAULT 'not_required'::text NOT NULL,
-  source_path text
+  source_path text,
+  embedding_gte vector(384)
 );
 
 CREATE TABLE IF NOT EXISTS public.ops_kpi_snapshots (
@@ -9797,11 +9798,13 @@ CREATE INDEX model_outcome_class_idx ON public.model_outcome USING btree (task_c
 CREATE INDEX notifications_status_idx ON public.notifications USING btree (status, created_at);
 CREATE INDEX ops_knowledge_category ON public.ops_knowledge USING btree (category_key) WHERE (category_key IS NOT NULL);
 CREATE INDEX ops_knowledge_dept_idx ON public.ops_knowledge USING btree (dept_key, record_type);
+CREATE INDEX ops_knowledge_emb_hnsw ON public.ops_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX ops_knowledge_role ON public.ops_knowledge USING btree (role_key) WHERE (role_key IS NOT NULL);
 CREATE INDEX ops_knowledge_run ON public.ops_knowledge USING btree (ingestion_run_id);
 CREATE INDEX ops_knowledge_runtime_lookup ON public.ops_knowledge USING btree (runtime_eligible, layer, scope_type, scope_key) WHERE (supersession_state = 'current'::text);
 CREATE INDEX ops_knowledge_scope_idx ON public.ops_knowledge USING btree (scope_key, module);
 CREATE INDEX ops_knowledge_tsv_idx ON public.ops_knowledge USING gin (tsv);
+CREATE INDEX ops_knowledge_unembedded ON public.ops_knowledge USING btree (record_id) WHERE (embedding_gte IS NULL);
 CREATE UNIQUE INDEX ops_kpi_snap_day ON public.ops_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX org_role_dept_ix ON public.org_role USING btree (primary_department_id) WHERE (status = 'active'::text);
 CREATE INDEX org_role_identity_dept ON public.org_role_identity USING btree (packaged_department);
@@ -43887,6 +43890,46 @@ select jsonb_build_object(
     from (select headline, outcome from public.institutional_memory order by created_at desc limit 3) m),
   'note', 'Decision rules, SOPs and exception playbooks are ENABLED as of 2026-08-10, after all 282 pack scenarios returned RUNNABLE. Hard gates still bind, and money still routes to the founder. Records marked target_state describe a capability that is NOT built yet.'
 );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ops_knowledge_match(p_query_embedding vector, p_agent_key text, p_match_count integer DEFAULT 8)
+ RETURNS TABLE(record_id text, title text, content text, layer text, record_type text, authority_tier text, dept_key text, role_key text, similarity real)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_key      text;
+  v_dept     text;
+  v_scope    text[];
+  v_role_ids text[];
+begin
+  if p_query_embedding is null then return; end if;
+  -- resolve exactly as v3 does, so an alias or packaged role resolves to the same identity
+  v_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  select a.department into v_dept from public.org_agents a where a.agent_key = v_key;
+  if v_dept is null then return; end if;
+  v_scope := public.fn_dept_scope(v_dept);
+  select array_agg(packaged_role_id) into v_role_ids
+    from public.org_role_identity where agent_key = v_key;
+
+  return query
+    select o.record_id, o.title, o.content, o.layer, o.record_type, o.authority_tier,
+           o.dept_key, o.role_key,
+           (1 - (o.embedding_gte <=> p_query_embedding))::real as similarity
+      from public.ops_knowledge o
+     where o.embedding_gte is not null
+       and o.runtime_eligible
+       and o.supersession_state = 'current'
+       and (
+             o.scope_type in ('company','external_source')
+          or (o.scope_type = 'department' and o.dept_key = any(v_scope))
+          or (o.role_key = any(coalesce(v_role_ids, '{}')))
+       )
+     order by o.embedding_gte <=> p_query_embedding
+     limit greatest(1, least(coalesce(p_match_count, 8), 20));
+end
 $function$
 
 
@@ -87037,6 +87080,15 @@ select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select 
 select cron.schedule('action_head_drive_5min','3,8,13,18,23,28,33,38,43,48,53,58 * * * *',$CRON$select public.fn_action_head_drive(20);$CRON$);
 select cron.schedule('dept_ops_heartbeat_hourly','23 * * * *',$CRON$select public.fn_dept_ops_heartbeat();$CRON$);
 select cron.schedule('supplier_suspension_proposed_daily','30 2 * * *',$CRON$select public.fn_kernel_cron_exec(313);$CRON$);
+select cron.schedule('kb_embed_ops_knowledge','* * * * *',$CRON$
+  select net.http_post(
+    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/kb_embed',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_knowledge'),
+                               'target', 'ops_knowledge',
+                               'limit', 8))
+  from generate_series(1, 6);
+$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails

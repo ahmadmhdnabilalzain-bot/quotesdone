@@ -319,6 +319,25 @@ async function retrieve(key:string, msg:string){
     return '\n\nRETRIEVED REFERENCE KNOWLEDGE (semantic + keyword matches from the company knowledge base — UAE codes, standards, regulations, materials and internal know-how relevant to this question; use it to VERIFY, cite the reference in [brackets] when you use it):\n'+rows.slice(0,10).map((x:any)=>'- ['+(x.citation||x.category||'ref')+'] '+String(x.snippet||'').replace(/\s+/g,' ').slice(0,400)).join('\n');
   }catch(_e){ return ''; }
 }
+// Semantic retrieval over the agent's OWN operating knowledge (ops_knowledge): authority, policy,
+// decision playbooks, failure modes and the department library. fn_agent_context still retrieves this
+// layer by tsquery — exactly the keyword matching we are moving off. Here the task is embedded ONCE
+// (free in-region gte-small, the same model kb_search uses) and matched by COSINE, scoped by
+// fn_ops_knowledge_match to precisely what fn_agent_context_v3 lets this agent see (company +
+// department-through-merge + packaged roles). This is the operating-knowledge half of "reason from
+// linked knowledge, not keyword cross-matching"; the kb_chunks half already runs through kb_search.
+async function retrieveOps(key:string, msg:string){
+  try{
+    const q = String(msg||'').trim(); if(!q) return '';
+    // deno-lint-ignore no-explicit-any
+    const model = new (globalThis as any).Supabase.ai.Session('gte-small');
+    const emb = await model.run(q.slice(0,1200), { mean_pool: true, normalize: true }) as number[];
+    const { data } = await admin.rpc('fn_ops_knowledge_match', { p_query_embedding: '[' + emb.join(',') + ']', p_agent_key: key, p_match_count: 8 });
+    const rows = Array.isArray(data) ? data : [];
+    if(!rows.length) return '';
+    return '\n\nOPERATING KNOWLEDGE (your own authority, policy, decision playbooks and department know-how, semantically matched to THIS task — this is how the company decides; reason from it and follow its authority limits):\n'+rows.map((x:any)=>'- ['+(x.layer||x.record_type||'ops')+'] '+String(x.title||'')+': '+String(x.content||'').replace(/\s+/g,' ').slice(0,500)).join('\n');
+  }catch(_e){ return ''; }
+}
 async function context(key:string){
   const since7=new Date(Date.now()-7*864e5).toISOString();
   // TWO JSONB BLOBS NOBODY READ, CUT MID-OBJECT BY A .slice() (14 Aug 2026).
@@ -422,7 +441,7 @@ Deno.serve(async (req)=>{
     const teammates=VALID_AGENTS.filter(a=>a!==key).map(a=>a+' ('+(NAMES[a]||a)+')').join(', ');
     const base='You are '+m.name+' at QuotesDone, a UAE B2B anonymous quotation marketplace — a senior executive employee, not an assistant. Your full employment context follows (identity, company canon, your professional expertise, live operational state, organizational experience) — it governs how you think and act. DOCTRINE: default to action within your delegated authority — complete work and report results; prepare and route gated work (money, publishing, legal action, security) for approval rather than abandoning it; never ask permission you already have. Be specific, practical and concise. Never invent numbers — operational figures come only from the LIVE OPERATIONAL STATE and LIVE DATA SNAPSHOT.\n\nTEAMWORK: You can hand a task to a colleague specialist when it clearly belongs to them. Your colleagues: '+teammates+'.\n\nKNOWLEDGE (your window to the world): if answering this well needs domain knowledge you do not have, you may RESEARCH THE INTERNET to fill the gap permanently — real UAE sources are pulled, verified and saved into the relevant specialist\'s knowledge so it is there for everyone next time. Use this for genuine gaps in durable domain knowledge (materials, standards, authorities, methods, market facts) — NOT for live/one-off data. Prefer answering from what you already know; reach for research only when there is a real gap worth closing.\n\nTo act, AFTER your normal reply append on a NEW LINE exactly @@ACTIONS@@ followed by compact JSON. You may include any of these keys: {"confidence":<0.0-1.0>,"handoffs":[{"to":"<agent_key>","title":"<short task title>","details":"<what to do and why>","assumptions":["<what you are taking on trust in handing this over>"],"alternatives":["<who else could have taken it, or what you considered doing instead>"],"impact":"<what will be true once this is done>","cost":"<what it costs us: money, time, or the thing given up to do it>"}],"research":[{"agent":"<specialist_slug_or_your_own_key>","topics":["<specific sub-topic to research>","<another>"]}],"answers":[{"id":<handoff id from HANDED TO YOU>,"answer":"<your answer, or what is blocking it>"}]}. ALWAYS include "confidence": how sure you are that the reply you just gave is correct and complete, judged on the evidence you actually had. 0.9+ means you had the facts and the expertise; 0.5 means you reasoned from partial information; below 0.4 means you were guessing and the work needs a specialist, a source or a question answered. Be honest and discriminating - a confidence that is always high tells the company nothing and it is used to route your next task to a stronger or cheaper model. A HANDOFF MUST STATE ITS TERMS. assumptions, alternatives, impact and cost are what turn "please do this" into a decision a colleague can weigh and the company can audit — the same four things you would want stated if the task were being handed to YOU. Every one must be a TRUE statement about this specific handoff: what you are actually taking on trust, who else you actually considered, what will actually be different afterwards, what it will actually cost. If one genuinely does not apply, omit that key rather than filling it — an absent field is recorded as absent and is honest; an invented one is not, and the company reads these. Only request real, specific, useful work; if you have nothing to do, append the @@ACTIONS@@ line with the confidence alone. Never mention this mechanism or the word @@ACTIONS@@ in your visible reply.';
     const persona=(m as any).persona?('\n\n'+(m as any).persona):'';
-    const [layered, instr, kb, inbox] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg), handoffInbox(key)]);
+    const [layered, instr, kb, inbox, ops] = await Promise.all([layeredContext(key, msg), instructions(key), retrieve(key, msg), handoffInbox(key), retrieveOps(key, msg)]);
     // STABLE HALF / VOLATILE HALF. A provider prompt cache only pays on a BYTE-IDENTICAL block, and
     // this prompt's tail says "captured just now" — so marking the whole thing, which is what
     // ai_gateway did, bought a cache WRITE at 1.25x on every call and a read on none of them.
@@ -474,7 +493,7 @@ Deno.serve(async (req)=>{
     const volatileCtx = cutAt >= 0 ? layered.slice(cutAt)    : layered;
     // instr moves ahead of the context so the stable half is contiguous from the first character.
     const sysStable = stableCtx ? (base+persona+instr+stableCtx) : '';
-    const sysVolatile = (stableCtx ? '' : base+persona+instr)+volatileCtx+kb+inbox
+    const sysVolatile = (stableCtx ? '' : base+persona+instr)+volatileCtx+kb+ops+inbox
       +'\n\nLIVE DATA SNAPSHOT (read-only, captured just now):\n'+JSON.stringify(ctx).slice(0,9000);
     // V3 REMEDIATION. One correlation id ties this turn's tool calls and its decision trace
     // together, so "which evidence did this decision actually rest on" is answerable afterwards.
