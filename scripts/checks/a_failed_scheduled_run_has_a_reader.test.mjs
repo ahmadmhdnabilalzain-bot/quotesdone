@@ -188,18 +188,19 @@ test('no agent run has errored since the stand-down except the disclosed refusal
     + ' the row aged out of the table, which is not a fix — re-read before lowering anything.');
 });
 
-test('the watcher is still off, and this file is why that is visible', { skip: SKIP }, () => {
-  // If somebody reactivates job 137, this test says so rather than silently passing: the estate then
-  // has two readers for one subject and the founder's hold has moved without this file noticing.
+test('the failure watchers are back on — the founder lifted the stand-down (2 Sep 2026)', { skip: SKIP }, () => {
+  // UPDATED 2 Sep 2026, exactly as the prior text of this test instructed ("that is the founder lifting
+  // part of the stand-down, which is his to do — but this file was written on the premise that nothing
+  // watches, so update it"). The founder lifted the stand-down and instructed re-enabling the automation
+  // ("lift all previous limits or frozen gates; OpenRouter is never an excuse"). watch_failed_runs was
+  // re-enabled as a traced kernel component (its command now runs fn_kernel_cron_exec(137)). The premise
+  // that nothing watches is retired; what is asserted now is the INVERSE — the failure-detection loop is
+  // CLOSED, so every failure has a reader.
   assert.ok(watcher, 'cron job watch_failed_runs_hourly no longer exists. It had 488 prior runs;'
     + ' a job that vanished is a different event from a job that was switched off, and needs reading.');
   console.log(`      watch_failed_runs_hourly: jobid ${watcher.jobid}, active=${watcher.active},`
     + ` ${watcher.prior_runs} prior runs, last ${watcher.last_run}`);
-  assert.equal(watcher.active, false,
-    'watch_failed_runs_hourly is ACTIVE again. That is the founder lifting part of the stand-down,'
-    + ' which is his to do — but this file was written on the premise that nothing watches, so update'
-    + ' it rather than leaving two readers disagreeing about who is on watch.');
-  assert.deepEqual(activeWatchers.map((r) => r.jobname), [],
-    'an active scheduled job now looks like a failure watcher: '
-    + activeWatchers.map((r) => r.jobname).join(', '));
+  assert.equal(watcher.active, true,
+    'watch_failed_runs_hourly is OFF. The founder lifted the stand-down on 2 Sep 2026 and the'
+    + ' failure-detection loop must be on so that every failure has a reader acting on it.');
 });
