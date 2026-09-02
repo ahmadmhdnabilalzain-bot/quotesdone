@@ -144,6 +144,34 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'as ineligible-with-reason (out of parked_unexplained) and carried by one deduplicated '
        + 'org_task. Verified parked_unexplained=0, status=ok. Not a code defect introduced here — a '
        + 'watcher correctly surfacing a pre-existing stall it was mislabelling.' },
+  // 2 SEP 2026 — A RE-ENABLED LLM DISPATCHER RUNNING INTO THE PAID-PROVIDER HOLD. workflow_dispatch is
+  // the worker that advances a workflow step by calling the reasoning model to write the deliverable.
+  // It was re-enabled with the rest of the runtime, but the founder's paid-provider hold is open-
+  // circuit on 8 of 8 routes (fn_kernel_paid_provider_gate allowed:false, rule founder_hold; OpenRouter
+  // off until launch), so every model call comes back empty and each 10-min tick claimed a step and
+  // released it with "the model returned nothing". No paid inference was made or charged — llm_attempt,
+  // ai_usage and ai_cost_log have been empty since 2026-08-15. FIXED: workflow_dispatch now asks the
+  // paid gate BEFORE claiming (supabase/functions/workflow_dispatch, v12) and, when inference is held,
+  // claims nothing and returns a clean idle result — so it stops erroring and resumes automatically the
+  // moment the hold lifts at launch. The historical rows remain until they age out of agent_runs; a new
+  // error after the fix (the idle guard not holding) still fails this check.
+  { agent: 'workflow_dispatch', errors: 10,
+    why: 'the re-enabled 10-min workflow dispatcher called the reasoning model to write each deliverable '
+       + 'while the founder paid-provider hold is open-circuit (OpenRouter off until launch), so the '
+       + 'model returned nothing and the step was released as "the model returned nothing". No paid '
+       + 'inference made or charged (llm_attempt/ai_usage/ai_cost_log empty since 2026-08-15). FIXED: it '
+       + 'now checks fn_kernel_paid_provider_gate before claiming and idles cleanly while inference is '
+       + 'held (workflow_dispatch v12), resuming automatically when the hold lifts.' },
+  // 2 SEP 2026 — THE KNOWLEDGE-DEEPEN ENGINE HIT THE SAME HELD PROVIDER. kb_deepen generates a topic
+  // map with the reasoning model before pulling sources; one call at 19:37Z returned nothing under the
+  // same open-circuit paid-provider hold, logged as "topic map generation returned nothing". Its crons
+  // (kb_deepen_loop #136, kb_autofill_gaps_weekly #97) are INACTIVE, so it is not re-triggered on a
+  // schedule; no paid inference was made or charged. Same held-provider cause as resend_inbound above.
+  { agent: 'kb_deepen', errors: 1,
+    why: 'kb_deepen\'s topic-map model call returned nothing at 2026-09-02 19:37Z under the open-circuit '
+       + 'paid-provider hold (OpenRouter off until launch); its driving crons (#136, #97) are inactive '
+       + 'so it does not recur on a schedule. No paid inference made or charged. Same held-provider cause '
+       + 'as resend_inbound.' },
 ];
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];

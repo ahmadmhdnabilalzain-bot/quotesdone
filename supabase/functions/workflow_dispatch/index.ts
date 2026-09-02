@@ -37,6 +37,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -87,6 +88,20 @@ Deno.serve(async (req: Request) => {
       .in('key', ['cos_frozen', 'ai_kill_switch']);
     if ((frozen || []).some((r: { value: string }) => String(r.value) === 'true')) {
       return J({ ok: true, frozen: true, worked: 0, note: 'AI execution is frozen; no step dispatched.' });
+    }
+
+    // INFERENCE HELD = IDLE, NOT FAILURE. Every step this dispatcher works ends in a model call that
+    // writes the deliverable. While the founder's paid-provider hold is in force (OpenRouter off until
+    // launch) that call only ever comes back empty, so claiming a step here just marks it 'running'
+    // and then releases it with "the model returned nothing" — a deliberate config state logged as an
+    // error on every tick. Ask the ONE paid gate first: if inference is held, claim nothing and return
+    // a clean idle result. The per-minute cron stays enabled and resumes the moment the hold lifts, so
+    // the loop is ready for launch without spending the interval erroring.
+    const infGate = await paidProviderGate(admin, SONNET_FIRST[0]);
+    if (!infGate.allowed) {
+      return J({ ok: true, idle: true, worked: 0,
+        note: 'paid inference held (' + infGate.rule + '): ' + infGate.reason
+            + ' — no workflow step claimed; the dispatcher resumes automatically when the hold lifts.' });
     }
 
     const want = Math.max(1, Math.min(Number(body?.limit) || BATCH, 10));
