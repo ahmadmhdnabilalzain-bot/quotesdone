@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T15:22:59.720Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T16:35:21.610Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49170,6 +49170,12 @@ CREATE OR REPLACE FUNCTION public.fn_phase_a_freeze_guard()
 AS $function$
 declare v_reason text; v_depts int; v_roles int; v_overlays int; b public.org_phase_baseline%rowtype;
 begin
+  -- FREEZES LIFTED (founder decision 2026-09-02: "not a single phase should be frozen").
+  if (coalesce((select (value #>> '{}')::boolean from public.decision_policy where key = 'phase_freezes_lifted'), false)
+       and coalesce(current_setting('app.enforce_phase_freezes', true), '') <> '1') then
+    raise notice 'PHASE A freeze lifted; org shape change allowed';
+    return null;
+  end if;
   select * into b from public.org_phase_baseline where phase = 'A';
   if not found then return null; end if;   -- nothing approved yet, nothing to freeze
 
@@ -49500,6 +49506,12 @@ declare
   v_moved text;
   v_count bigint;
 begin
+  -- FREEZES LIFTED (founder decision 2026-09-02: "not a single phase should be frozen").
+  if (coalesce((select (value #>> '{}')::boolean from public.decision_policy where key = 'phase_freezes_lifted'), false)
+       and coalesce(current_setting('app.enforce_phase_freezes', true), '') <> '1') then
+    raise notice 'PHASE B freeze lifted; workflow architecture change allowed';
+    return null;
+  end if;
   select * into b from public.org_phase_baseline where phase = 'B';
   if not found then return null; end if;    -- nothing approved yet, nothing to freeze
 
@@ -51070,7 +51082,9 @@ AS $function$
   select 'frozen_subjects_drifted', '0',
          count(*) filter (where now_digest is distinct from frozen and not amended)::text
            || ' of ' || count(*)::text,
-         count(*) filter (where now_digest is distinct from frozen and not amended) = 0
+         (count(*) filter (where now_digest is distinct from frozen and not amended) = 0
+          or (coalesce((select (value #>> '{}')::boolean from public.decision_policy where key = 'phase_freezes_lifted'), false)
+       and coalesce(current_setting('app.enforce_phase_freezes', true), '') <> '1'))   -- freezes lifted: a subject may evolve without an amendment
     from judged
   union all
   select 'frozen_subjects_whose_object_no_longer_exists', '0',
@@ -79683,10 +79697,15 @@ begin
 
   -- 'Director' on employee_task step 10 is "department head review" - the owner's own manager,
   -- which org_agents.manager_key already models for 93 of 94 employees, acyclically.
-  return (select m.agent_key
-            from public.org_agents o
-            join public.org_agents m on m.agent_key = o.manager_key and m.active
-           where o.agent_key = v_live);
+  -- The owner's active manager is the department head. If the owner has no active manager (only the
+  -- ceo, the top of the org), the owner is its own department head, so 'Director' never resolves to
+  -- no employee and never stalls a run at step 10.
+  return coalesce(
+    (select m.agent_key
+       from public.org_agents o
+       join public.org_agents m on m.agent_key = o.manager_key and m.active
+      where o.agent_key = v_live),
+    v_live);
 end
 $function$
 
@@ -86835,7 +86854,7 @@ select cron.schedule('memory_promotion_weekly','15 5 * * 2',$CRON$select public.
 select cron.schedule('emit_metric_alerts','0 3 * * 1',$CRON$select public.fn_kernel_cron_exec(190);$CRON$);
 select cron.schedule('event_consolidate','25 * * * *',$CRON$select public.fn_kernel_cron_exec(191);$CRON$);
 select cron.schedule('os_objective_measure_daily','20 3 * * *',$CRON$select public.fn_os_objective_measure();$CRON$);
-select cron.schedule('workflow_start_due','*/15 * * * *',$CRON$select public.fn_workflow_start_due(1440);$CRON$);
+select cron.schedule('workflow_start_due','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(195);$CRON$);
 select cron.schedule('execution_sweep_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(200);$CRON$);
 select cron.schedule('execution_run_hourly','10 * * * *',$CRON$select public.fn_execution_run();$CRON$);
 select cron.schedule('learning_loop_sweep_hourly','35 * * * *',$CRON$select public.fn_learning_loop_sweep();$CRON$);

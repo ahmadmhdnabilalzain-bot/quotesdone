@@ -1864,3 +1864,7 @@ scripts/sql/register_pccr009_crons_in_scenario_registry.sql
 scripts/sql/wire_goal_retirement_loop.sql
 scripts/sql/company_connectivity_register.sql
 scripts/sql/repoint_metric_alert_subscription.sql
+scripts/sql/lift_all_phase_freezes.sql
+scripts/sql/wire_the_company_loop_tier1.sql
+scripts/sql/director_placeholder_always_resolves.sql
+scripts/sql/register_workflow_start_due_in_scenario_registry.sql

@@ -217,8 +217,14 @@ const CASES = [
   },
   {
     name: 'frozen architecture changed with no change request',
-    why: 'Phase B was approved and frozen; an owner swap must be refused even though no count moves',
-    sql: mustAffect(`update public.phase_b_workflow_step
+    why: 'the Phase B freeze machinery must still REFUSE an unreasoned owner swap when enforced — even '
+       + 'though the founder lifted the freeze in production (2026-09-02: "not a single phase should be '
+       + 'frozen"). This forces enforcement for one transaction via app.enforce_phase_freezes and proves '
+       + 'the guard is intact and reversible, not gone.',
+    // Production runs with phase_freezes_lifted=true, so the guard is advisory by default. The session-
+    // local override re-arms it inside this aborted transaction; without it the update would be allowed.
+    sql: `set local app.enforce_phase_freezes = '1';\n`
+       + mustAffect(`update public.phase_b_workflow_step
              set accountable_role_id = 'ceo'
            where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`),
     expect: /PHASE B IS FROZEN/i,
