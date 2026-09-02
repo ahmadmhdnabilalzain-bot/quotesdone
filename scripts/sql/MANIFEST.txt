@@ -1878,3 +1878,6 @@ scripts/sql/phase_b_step_terminality_is_consistent.sql
 scripts/sql/refund_within_window_reaches_the_founder.sql
 scripts/sql/reenable_the_dispatch_and_action_runtime.sql
 scripts/sql/ledger_follows_manifest_autonomy_class.sql
+scripts/sql/approval_chain_close_the_wiring_gaps.sql
+scripts/sql/money_reaches_only_the_founder_at_the_real_path.sql
+scripts/sql/ledger_autonomy_class_final_and_transactions_gate.sql
