@@ -1874,3 +1874,4 @@ scripts/sql/declare_supplier_suspension_cron_component.sql
 scripts/sql/raise_operational_limits.sql
 scripts/sql/ledger_follows_the_manifest_freeze_lift.sql
 scripts/sql/remove_the_phase_freeze_totally.sql
+scripts/sql/phase_b_step_terminality_is_consistent.sql
