@@ -23,4 +23,23 @@ where j.jobname in (
                      from pg_proc p join pg_namespace n on n.oid=p.pronamespace
                     where n.nspname='public' and p.prokind='f' and position(p.proname in j.command) > 0), false);
 
+-- TIER 2 — the delivery layer, so alerts/notifications actually reach a person (email/WhatsApp/SMS,
+-- the digest, and the dead_letter drainer). All deterministic (Resend/Twilio/SQL). Owner: assurance.
+select public.fn_kernel_wrap_and_enable_cron(j.jobid, 'it_operations_engineer', 'assurance')
+from cron.job j where j.jobname in ('email_cron_2min','wa_flush','sms_flush','pending_suppliers_digest','dead_letter_drain_held')
+  and not coalesce((select bool_or(pg_get_functiondef(p.oid) ~* 'ai_gateway|openrouter|_shared/llm|llm\(')
+                     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                    where n.nspname='public' and p.prokind='f' and position(p.proname in j.command) > 0), false);
+
+-- TIER 3 — the state-management sweeps: stall reapers, escalation consumers, task assignment/approval,
+-- event consolidation, overdue-handoff watchdog. Pure SQL state transitions, no inference. Owner: exec.
+-- (The work-dispatch crons that drive agent REASONING — workflow_dispatch, execution_run,
+-- org_task_execute_sweep — are wired and ready; their activation drives inference and waits on OpenRouter.)
+select public.fn_kernel_wrap_and_enable_cron(j.jobid, 'chief_of_staff', 'exec')
+from cron.job j where j.jobname in ('workflow_step_sweep_10min','execution_sweep_hourly','action_queue_sweep_hourly',
+  'remediation_escalate_consume_daily','event_consolidate','org_task_assign_hourly','task_approve_hourly','emit_task_assigned')
+  and not coalesce((select bool_or(pg_get_functiondef(p.oid) ~* 'ai_gateway|openrouter|_shared/llm|llm\(')
+                     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                    where n.nspname='public' and p.prokind='f' and position(p.proname in j.command) > 0), false);
+
 commit;
