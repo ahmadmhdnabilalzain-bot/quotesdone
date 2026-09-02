@@ -1855,3 +1855,4 @@ scripts/sql/triage_standdown_silent_failure_incidents.sql
 scripts/sql/register_reenabled_crons_in_scenario_registry.sql
 scripts/sql/the_ownership_ledger_named_the_sweep_file_the_manifest_superseded.sql
 scripts/sql/audit_fix_unresolved_actor_role_aliases.sql
+scripts/sql/edge_health_scan_it_owns_technical_failures.sql
