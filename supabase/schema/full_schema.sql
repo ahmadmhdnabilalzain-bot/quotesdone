@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-01T23:20:07.533Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T01:28:30.366Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17122,6 +17122,126 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -17666,126 +17786,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -40569,6 +40569,51 @@ begin
     'created', jsonb_build_object('run',1, 'step_run',1, 'task',1, 'traces',
       3,
       'handoff', 0, 'event',1));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kernel_wrap_and_enable_cron(p_jobid bigint, p_role text, p_dept text, p_authority text DEFAULT 'routine_operational_decision'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'cron', 'pg_temp'
+AS $function$
+declare v_name text; v_cmd text; v_sched text; v_src text;
+begin
+  select jobname, command, schedule into v_name, v_cmd, v_sched from cron.job where jobid = p_jobid;
+  if v_name is null then return jsonb_build_object('ok',false,'error','no such cron job '||p_jobid); end if;
+  if v_cmd ilike '%fn_kernel_cron_exec%' then
+    -- already wrapped: just make sure it is active
+    perform cron.alter_job(p_jobid, active := true);
+    return jsonb_build_object('ok',true,'jobid',p_jobid,'jobname',v_name,'action','already_wrapped_activated');
+  end if;
+  -- the routine/target the original command runs (best-effort, for the component source)
+  v_src := coalesce((select 'public.'||p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                      where n.nspname='public' and p.prokind='f' and position(p.proname in v_cmd) > 0
+                      order by length(p.proname) desc limit 1), 'cron.job:'||p_jobid);
+
+  insert into public.phase_c_component(
+    component_id, component_type, source_path_or_db_object, entry_method, current_callers, external_entry,
+    schedule_or_trigger, mutates_state, current_actor, canonical_system_actor, accountable_role_id,
+    department_id, workflow_id, step_id, authority_class, trace_policy_id, idempotency_strategy, retry_policy,
+    activation_state, classification, gap, repair_or_keep_action, evidence, measured_at)
+  values (
+    'cron:'||v_name, 'cron_job', 'cron.job/'||p_jobid, 'pg_cron schedule', 'pg_cron', 'no',
+    v_sched, true, 'system.scheduler', 'system.scheduler', p_role,
+    p_dept, 'SYSTEM_SCOPE', '', p_authority, 'TRACE-SYSTEM-EXECUTION', 'schedule_tick:jobname:scheduled_at', 'next_scheduled_tick',
+    'active', 'WIRE_TO_CANONICAL', '', 'kept; re-enabled as a traced kernel component 2 Sep 2026 (stand-down lifted)',
+    'wrapped + re-enabled 2 Sep 2026', now()::date)
+  on conflict (component_id) do update set
+    accountable_role_id = excluded.accountable_role_id, department_id = excluded.department_id,
+    authority_class = excluded.authority_class, activation_state = 'active',
+    canonical_system_actor = 'system.scheduler', trace_policy_id = 'TRACE-SYSTEM-EXECUTION';
+
+  insert into public.phase_c_system_execution_wrapper(jobid, component_id, original_command, wrapped_at, note)
+  values (p_jobid, 'cron:'||v_name, v_cmd, now(), 're-enabled 2 Sep 2026 after the stand-down')
+  on conflict (jobid) do update set component_id = excluded.component_id, original_command = excluded.original_command, wrapped_at = now();
+
+  perform cron.alter_job(p_jobid, command := format('select public.fn_kernel_cron_exec(%s);', p_jobid), active := true);
+  return jsonb_build_object('ok',true,'jobid',p_jobid,'jobname',v_name,'action','wrapped_and_enabled','owner',p_role,'dept',p_dept);
 end $function$
 
 
@@ -79994,6 +80039,13 @@ begin
                 when not e.advisory_safe then sr.action_class || ' is not advisory_safe'
                 when not e.reversible then sr.action_class || ' is not reversible'
                 when e.notifies_human then sr.action_class || ' notifies a human'
+                when exists(select 1 from public.action_execution x where x.workflow_step_run_id = sr.id)
+                     and not exists(select 1 from public.action_execution x
+                                     where x.workflow_step_run_id = sr.id
+                                       and x.status in ('queued','running','succeeded')) then
+                     sr.action_class || ' has only a terminal (cancelled/failed) action_execution and the '
+                       || 'sweep will not re-queue over it, so the step is stranded ready; it needs re-opening '
+                       || 'or awaits a gate/decision that never resolved'
            end as why
       from public.workflow_step_run sr
       left join public.org_action_executor e on e.action_class = sr.action_class
@@ -80051,6 +80103,33 @@ begin
              'proposed', 'gated', false, 'incident_fix'
       where not exists (select 1 from public.org_tasks
                          where title = 'Classify the workflow steps no executor can run'
+                           and status <> 'done');
+    exception when others then null; end;
+  end if;
+
+  -- Steps stranded by a terminal (cancelled/failed) action_execution the sweep cannot re-queue over.
+  -- A real backlog (a re-open or the review-decision loop must clear it), carried by one dedup task
+  -- so it is owned rather than paged 144x/day as an unexplained stall.
+  if (select count(*) from public.workflow_step_run sr
+               where sr.status='ready' and sr.finished_at is null and sr.action_class is not null
+                 and exists(select 1 from public.action_execution x where x.workflow_step_run_id=sr.id)
+                 and not exists(select 1 from public.action_execution x
+                                 where x.workflow_step_run_id=sr.id and x.status in ('queued','running','succeeded'))) > 0 then
+    begin
+      insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
+      select 'exec', 'Re-open workflow steps stranded by a cancelled action',
+             (select count(*) from public.workflow_step_run sr
+               where sr.status='ready' and sr.finished_at is null and sr.action_class is not null
+                 and exists(select 1 from public.action_execution x where x.workflow_step_run_id=sr.id)
+                 and not exists(select 1 from public.action_execution x
+                                 where x.workflow_step_run_id=sr.id and x.status in ('queued','running','succeeded')))
+             || ' workflow step(s) are ready but each has only a terminal (cancelled/failed) '
+             || 'action_execution, so the sweep will not re-queue over it. They were cancelled by '
+             || 'fn_execution_sweep with no gate decision. Re-open them for a fresh attempt or drive '
+             || 'the review-decision loop they await; a cancelled action must also settle its step.',
+             'proposed', 'gated', false, 'incident_fix'
+      where not exists (select 1 from public.org_tasks
+                         where title = 'Re-open workflow steps stranded by a cancelled action'
                            and status <> 'done');
     exception when others then null; end;
   end if;
@@ -86262,11 +86341,7 @@ CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO
 
 -- ===== CRON JOBS =====
 select cron.schedule('supplier_invites_daily','0 9 * * *',$CRON$ select enqueue_supplier_invites(); $CRON$);
-select cron.schedule('sms_flush','*/2 * * * *',$CRON$select net.http_post(
-     url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/send_sms',
-     headers:='{"Content-Type":"application/json"}'::jsonb,
-     body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_notifications'))
-   )$CRON$);
+select cron.schedule('sms_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron_exec(3);$CRON$);
 select cron.schedule('auto_deploy','*/2 * * * *',$CRON$select public.run_auto_deploy()$CRON$);
 select cron.schedule('no_quote_nudges','17 * * * *',$CRON$select public.run_no_quote_nudges()$CRON$);
 select cron.schedule('health_check','*/30 * * * *',$CRON$select public.fn_kernel_cron_exec(7);$CRON$);
@@ -86287,7 +86362,7 @@ select cron.schedule('agent_reflect_weekly','0 2 * * 0',$CRON$
   )
 $CRON$);
 select cron.schedule('agent_supply_health_daily','40 6 * * *',$CRON$ select fn_supply_health() $CRON$);
-select cron.schedule('ops_watch_hourly','25 * * * *',$CRON$ select fn_ops_watch() $CRON$);
+select cron.schedule('ops_watch_hourly','25 * * * *',$CRON$select public.fn_kernel_cron_exec(25);$CRON$);
 select cron.schedule('smoke_test_30min','*/30 * * * *',$CRON$select public.fn_kernel_cron_exec(26);$CRON$);
 select cron.schedule('social_stage_hourly','17 * * * *',$CRON$
   select net.http_post(
@@ -86311,14 +86386,8 @@ select cron.schedule('gen_category_knowledge_daily','17 3 * * *',$CRON$
   );
 $CRON$);
 select cron.schedule('site_autodeploy','* * * * *',$CRON$select public.run_site_autodeploy();$CRON$);
-select cron.schedule('pending_suppliers_digest','30 4 * * *',$CRON$select public.run_pending_digest();$CRON$);
-select cron.schedule('wa_flush','*/2 * * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/send_whatsapp',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
-    body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_notifications'))
-  );
-$CRON$);
+select cron.schedule('pending_suppliers_digest','30 4 * * *',$CRON$select public.fn_kernel_cron_exec(32);$CRON$);
+select cron.schedule('wa_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron_exec(34);$CRON$);
 select cron.schedule('uptime_check_15min','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(35);$CRON$);
 select cron.schedule('cost_snapshot_weekly','0 7 * * 1',$CRON$
   select net.http_post(
@@ -86402,7 +86471,7 @@ select cron.schedule('dr_drill_monthly','50 3 1 * *',$CRON$
     body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_backup')),
     timeout_milliseconds := 120000);
 $CRON$);
-select cron.schedule('exception_alerts_hourly','35 * * * *',$CRON$select public.fn_exception_alerts();$CRON$);
+select cron.schedule('exception_alerts_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(56);$CRON$);
 select cron.schedule('board_report_weekly','0 7 * * 1',$CRON$select public.fn_kernel_cron_exec(57);$CRON$);
 select cron.schedule('archive_completed_daily','20 4 * * *',$CRON$
 do $inner$
@@ -86465,7 +86534,7 @@ select cron.schedule('collections_legal_daily','15 6 * * *',$CRON$
     body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_finance')),
     timeout_milliseconds:=25000);
 $CRON$);
-select cron.schedule('backup_watch_daily','0 8 * * *',$CRON$select public.fn_backup_watch();$CRON$);
+select cron.schedule('backup_watch_daily','0 8 * * *',$CRON$select public.fn_kernel_cron_exec(90);$CRON$);
 select cron.schedule('security_selfaudit_daily','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(92);$CRON$);
 select cron.schedule('ai_quality_watch_daily','40 3 * * *',$CRON$select public.fn_ai_quality_watch();$CRON$);
 select cron.schedule('cron_history_prune','20 0 * * *',$CRON$delete from cron.job_run_details where end_time < now() - interval '14 days'$CRON$);
@@ -86502,18 +86571,9 @@ select cron.schedule('retention_purge_weekly','0 3 * * 0',$CRON$
     )
   )
   $CRON$);
-select cron.schedule('email_cron_2min','*/2 * * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/email_cron',
-    headers := jsonb_build_object(
-      'Content-Type','application/json',
-      'apikey',(select value from app_secrets where key='anon_key')
-    ),
-    body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_notifications'))
-  );
-$CRON$);
+select cron.schedule('email_cron_2min','*/2 * * * *',$CRON$select public.fn_kernel_cron_exec(99);$CRON$);
 select cron.schedule('licence_block_reconcile_daily','15 3 * * *',$CRON$select public.fn_reconcile_doc_blocks(0)$CRON$);
-select cron.schedule('sla_watch_hourly','20 * * * *',$CRON$select public.fn_sla_watch()$CRON$);
+select cron.schedule('sla_watch_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(101);$CRON$);
 select cron.schedule('ai_health_15min','7,22,37,52 * * * *',$CRON$select public.fn_kernel_cron_exec(102);$CRON$);
 select cron.schedule('policy_consistency_weekly','30 6 * * 1',$CRON$select public.fn_kernel_cron_exec(103);$CRON$);
 select cron.schedule('founding_rank_daily','10 2 * * *',$CRON$select public.fn_assign_founding_ranks()$CRON$);
@@ -86531,7 +86591,7 @@ select cron.schedule('kb_embed_backfill','* * * * *',$CRON$ select net.http_post
      ) $CRON$);
 select cron.schedule('backup_daily','30 3 * * *',$CRON$select public.fn_kernel_cron_exec(109);$CRON$);
 select cron.schedule('agent_security_hourly','5 * * * *',$CRON$select public.fn_kernel_cron_exec(110);$CRON$);
-select cron.schedule('agent_silence_watch_daily','40 */6 * * *',$CRON$select public.fn_agent_silence_watch();$CRON$);
+select cron.schedule('agent_silence_watch_daily','40 */6 * * *',$CRON$select public.fn_kernel_cron_exec(112);$CRON$);
 select cron.schedule('dues_interest_daily','15 3 * * *',$CRON$select public.fn_accrue_dues_interest();$CRON$);
 select cron.schedule('dues_ban_overdue_daily','25 3 * * *',$CRON$select public.fn_ban_overdue_dues();$CRON$);
 select cron.schedule('doc_final_notice_daily','10 5 * * *',$CRON$select public.fn_doc_final_notice(7)$CRON$);
@@ -86590,8 +86650,8 @@ select cron.schedule('kb_deepen_loop','4,14,24,34,44,54 * * * *',$CRON$
     timeout_milliseconds:=150000
   )
   $CRON$);
-select cron.schedule('watch_failed_runs_hourly','15 * * * *',$CRON$select public.fn_watch_failed_runs();$CRON$);
-select cron.schedule('watch_health_daily','0 7 * * *',$CRON$select public.fn_watch_health();$CRON$);
+select cron.schedule('watch_failed_runs_hourly','15 * * * *',$CRON$select public.fn_kernel_cron_exec(137);$CRON$);
+select cron.schedule('watch_health_daily','0 7 * * *',$CRON$select public.fn_kernel_cron_exec(138);$CRON$);
 select cron.schedule('self_review_weekly','0 5 * * 1',$CRON$select public.fn_self_review();$CRON$);
 select cron.schedule('kpi_review_weekly','0 4 * * 1',$CRON$select public.fn_kpi_review();$CRON$);
 select cron.schedule('event_dispatch_15min','*/15 * * * *',$CRON$select public.fn_event_dispatch();$CRON$);
@@ -86614,7 +86674,7 @@ select cron.schedule('company_indices_daily','40 3 * * *',$CRON$select public.fn
 select cron.schedule('opportunity_scan_daily','50 3 * * *',$CRON$select public.fn_opportunity_scan();$CRON$);
 select cron.schedule('reallocate_monthly','0 8 1 * *',$CRON$select public.fn_reallocate();$CRON$);
 select cron.schedule('company_snapshot_daily','55 23 * * *',$CRON$select public.fn_company_snapshot();$CRON$);
-select cron.schedule('edge_health_scan_15min','3,18,33,48 * * * *',$CRON$ select fn_edge_health_scan() $CRON$);
+select cron.schedule('edge_health_scan_15min','3,18,33,48 * * * *',$CRON$select public.fn_kernel_cron_exec(171);$CRON$);
 select cron.schedule('ai_spend_guard_hourly','40 * * * *',$CRON$select public.fn_kernel_cron_exec(172);$CRON$);
 select cron.schedule('model_benchmark_daily','25 4 * * *',$CRON$ select fn_model_benchmark() $CRON$);
 select cron.schedule('model_autoswitch_daily','35 4 * * *',$CRON$ select fn_model_autoswitch() $CRON$);
@@ -86638,20 +86698,20 @@ $CRON$);
 select cron.schedule('supplier_exception_sweep_daily','20 6 * * *',$CRON$select public.fn_supplier_exception_sweep()$CRON$);
 select cron.schedule('control_mode_sweep_5min','*/5 * * * *',$CRON$select public.fn_kernel_cron_exec(179);$CRON$);
 select cron.schedule('supplier_registration_state_resync_daily','5 0 * * *',$CRON$select public.fn_resync_supplier_registration_state();$CRON$);
-select cron.schedule('dead_letter_drain_held','17 3 * * *',$CRON$select public.fn_notifications_dead_letter_held(30);$CRON$);
-select cron.schedule('task_approve_hourly','40 * * * *',$CRON$select public.fn_task_approve()$CRON$);
+select cron.schedule('dead_letter_drain_held','17 3 * * *',$CRON$select public.fn_kernel_cron_exec(182);$CRON$);
+select cron.schedule('task_approve_hourly','40 * * * *',$CRON$select public.fn_kernel_cron_exec(183);$CRON$);
 select cron.schedule('improvement_plan_daily','20 2 * * *',$CRON$select public.fn_improvement_plan_refresh()$CRON$);
 select cron.schedule('os_health_brief_weekly','50 4 * * 1',$CRON$select public.fn_os_health_brief();$CRON$);
 select cron.schedule('memory_promotion_weekly','15 5 * * 2',$CRON$select public.fn_promote_memory_sweep();$CRON$);
-select cron.schedule('emit_metric_alerts','0 3 * * 1',$CRON$select public.fn_emit_metric_alerts();$CRON$);
-select cron.schedule('event_consolidate','25 * * * *',$CRON$select public.fn_event_consolidate();$CRON$);
+select cron.schedule('emit_metric_alerts','0 3 * * 1',$CRON$select public.fn_kernel_cron_exec(190);$CRON$);
+select cron.schedule('event_consolidate','25 * * * *',$CRON$select public.fn_kernel_cron_exec(191);$CRON$);
 select cron.schedule('os_objective_measure_daily','20 3 * * *',$CRON$select public.fn_os_objective_measure();$CRON$);
 select cron.schedule('workflow_start_due','*/15 * * * *',$CRON$select public.fn_workflow_start_due(1440);$CRON$);
-select cron.schedule('execution_sweep_hourly','20 * * * *',$CRON$select public.fn_execution_sweep();$CRON$);
+select cron.schedule('execution_sweep_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(200);$CRON$);
 select cron.schedule('execution_run_hourly','10 * * * *',$CRON$select public.fn_execution_run();$CRON$);
 select cron.schedule('learning_loop_sweep_hourly','35 * * * *',$CRON$select public.fn_learning_loop_sweep();$CRON$);
 select cron.schedule('improvement_handover_hourly','10 * * * *',$CRON$select public.fn_improvement_handover();$CRON$);
-select cron.schedule('emit_task_assigned','*/15 * * * *',$CRON$select public.fn_emit_task_assigned(60);$CRON$);
+select cron.schedule('emit_task_assigned','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(206);$CRON$);
 select cron.schedule('supplier_score_refresh_daily','40 3 * * *',$CRON$select public.fn_supplier_score_refresh();$CRON$);
 select cron.schedule('supplier_risk_complaints','20 * * * *',$CRON$select public.fn_supplier_risk_monitor('complaints');$CRON$);
 select cron.schedule('supplier_risk_response_delays','35 4 * * *',$CRON$select public.fn_supplier_risk_monitor('response_delays');$CRON$);
@@ -86659,7 +86719,7 @@ select cron.schedule('supplier_risk_performance_drops','50 4 * * *',$CRON$select
 select cron.schedule('approval_trace_audit_weekly','10 6 * * 1',$CRON$select public.fn_kernel_cron_exec(213);$CRON$);
 select cron.schedule('decision_conflict_scan_weekly','20 6 * * 1',$CRON$select public.fn_kernel_cron_exec(214);$CRON$);
 select cron.schedule('regulation_watch_weekly','40 6 * * 1',$CRON$select public.fn_kernel_cron_exec(215);$CRON$);
-select cron.schedule('action_queue_sweep_hourly','35 * * * *',$CRON$select public.fn_action_queue_sweep();$CRON$);
+select cron.schedule('action_queue_sweep_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(217);$CRON$);
 select cron.schedule('bi_snapshot_6h','35 */6 * * *',$CRON$select public.fn_bi_snapshot();$CRON$);
 select cron.schedule('capability_verify_daily','15 2 * * *',$CRON$select public.fn_capability_verify();$CRON$);
 select cron.schedule('index_slowdown_watch_daily','15 4 * * *',$CRON$select public.fn_index_slowdown_watch();$CRON$);
@@ -86680,8 +86740,8 @@ select cron.schedule('kb_embed_backfill_boost','* * * * *',$CRON$
   from generate_series(1, 6);
 $CRON$);
 select cron.schedule('agent_action_work_sweep_hourly','35 * * * *',$CRON$select public.fn_agent_action_work_sweep(10);$CRON$);
-select cron.schedule('workflow_step_sweep_10min','6,16,26,36,46,56 * * * *',$CRON$select public.fn_workflow_step_sweep(5);$CRON$);
-select cron.schedule('runner_silence_watch_daily','10 7 * * *',$CRON$select public.fn_runner_silence_watch();$CRON$);
+select cron.schedule('workflow_step_sweep_10min','6,16,26,36,46,56 * * * *',$CRON$select public.fn_kernel_cron_exec(247);$CRON$);
+select cron.schedule('runner_silence_watch_daily','10 7 * * *',$CRON$select public.fn_kernel_cron_exec(248);$CRON$);
 select cron.schedule('dept_objective_measure_daily','25 3 * * *',$CRON$select public.fn_dept_objective_measure();$CRON$);
 select cron.schedule('employee_kpi_measure_daily','30 3 * * *',$CRON$select public.fn_employee_kpi_measure();$CRON$);
 select cron.schedule('goal_decompose_weekly','10 3 * * 1',$CRON$select public.fn_goal_decompose();$CRON$);
@@ -86704,7 +86764,7 @@ select cron.schedule('boq_fixture_check_weekly','10 4 * * 0',$CRON$
     body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_agents')),
     timeout_milliseconds := 280000);
 $CRON$);
-select cron.schedule('org_task_assign_hourly','20 * * * *',$CRON$ select public.fn_org_task_assign(200); $CRON$);
+select cron.schedule('org_task_assign_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(262);$CRON$);
 select cron.schedule('scenario_staffing_weekly','40 5 * * 1',$CRON$ select public.fn_scenario_run_all(); $CRON$);
 select cron.schedule('rfq_redispatch_6h','15 */6 * * *',$CRON$select public.fn_rfq_redispatch_sweep(20);$CRON$);
 select cron.schedule('capability_enrich_retry_6h','45 */6 * * *',$CRON$select public.fn_capability_enrich_sweep(10);$CRON$);
@@ -86727,13 +86787,13 @@ select cron.schedule('v3_role_readiness_daily','30 1 * * *',$CRON$select public.
 select cron.schedule('v3_category_readiness_daily','35 1 * * *',$CRON$select public.fn_category_readiness_recompute();$CRON$);
 select cron.schedule('v3_context_retrieval_prune_daily','40 1 * * *',$CRON$select public.fn_context_retrieval_prune();$CRON$);
 select cron.schedule('phase_c_outbox_deliver_1min','* * * * *',$CRON$select public.fn_kernel_outbox_deliver(25, 'cron:phase_c_outbox_deliver_1min');$CRON$);
-select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public.fn_os_incident_watchdog();$CRON$);
+select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(279);$CRON$);
 select cron.schedule('department_conflict_scan_weekly','0 6 * * 1',$CRON$select public.fn_emit_department_conflict();$CRON$);
-select cron.schedule('remediation_escalate_consume_daily','15 5 * * *',$CRON$select public.fn_agent_remediation_escalate_consume();$CRON$);
+select cron.schedule('remediation_escalate_consume_daily','15 5 * * *',$CRON$select public.fn_kernel_cron_exec(281);$CRON$);
 select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.fn_promotion_review();$CRON$);
 select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_objective_review();$CRON$);
-select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_org_task_sla_watch();$CRON$);
-select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_handoff_watchdog();$CRON$);
+select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_kernel_cron_exec(286);$CRON$);
+select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_kernel_cron_exec(289);$CRON$);
 select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_employee_kpi_assign();$CRON$);
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
