@@ -1871,3 +1871,4 @@ scripts/sql/register_workflow_start_due_in_scenario_registry.sql
 scripts/sql/wire_the_company_loop_tier2.sql
 scripts/sql/schedule_supplier_suspension_emitter.sql
 scripts/sql/declare_supplier_suspension_cron_component.sql
+scripts/sql/raise_operational_limits.sql

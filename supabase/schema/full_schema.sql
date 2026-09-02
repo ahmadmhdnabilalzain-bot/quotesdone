@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T16:43:16.643Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T16:48:28.581Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27408,14 +27408,14 @@ declare v_delivered integer := 0; v_tasks integer := 0; v_gated integer := 0;
         -- sales 36, marketing 32 (over) — finance 19, evolution 19, intelligence 19, legal 12,
         -- it 12, procurement 1 (under). So the bus keeps minting per-event work for six of the
         -- eleven departments and stops piling it onto the five that are already buried.
-        c_max_open_per_dept constant integer := 25;
+        c_max_open_per_dept integer := coalesce((select (value #>> '{}')::int from public.decision_policy where key = 'dispatch_max_open_per_dept'), 250);
         -- 50, MEASURED, NOT GUESSED. The backlog this uncovers is 147 undelivered (event,
         -- subscriber) pairs — 145 routable, 2 unroutable, across 99 events — against 182 open
         -- tasks today. Draining it in one tick would nearly double the open queue in fifteen
         -- minutes; at 50 it lands over three ticks and the first one can be inspected before the
         -- rest arrives. The cap bounds the RATE, not the total: the backlog is finite and the
         -- loop still delivers every pair.
-        c_max_batch constant integer := 50;
+        c_max_batch integer := coalesce((select (value #>> '{}')::int from public.decision_policy where key = 'dispatch_max_batch'), 500);
 begin
   -- Policy, not deploy. 0 disables the cool-down and restores the pre-14-Aug behaviour exactly.
   select coalesce((value #>> '{}')::int, 7) into v_cooldown_days
