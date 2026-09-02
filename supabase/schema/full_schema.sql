@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T21:03:04.269Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T23:33:05.442Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19440,6 +19440,67 @@ begin
   end if;
   return new;
 end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_min_similarity real DEFAULT 0.35, p_k integer DEFAULT 5)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_row        record;
+  v_top        record := null;
+  v_candidates jsonb := '[]'::jsonb;
+  v_outcome    text;
+begin
+  if p_query_embedding is null then
+    return jsonb_build_object('matched', false, 'reason', 'no query embedding supplied');
+  end if;
+
+  -- Nearest in-scope company knowledge, by meaning (fn_ops_knowledge_match already scopes to exactly
+  -- what this agent may see: company + department-through-merge + its packaged roles).
+  for v_row in
+    select * from public.fn_ops_knowledge_match(p_query_embedding, p_agent_key, greatest(coalesce(p_k,5), 1))
+  loop
+    if v_top is null then v_top := v_row; end if;
+    v_candidates := v_candidates || jsonb_build_object(
+      'record_id', v_row.record_id, 'title', v_row.title, 'layer', v_row.layer,
+      'record_type', v_row.record_type, 'similarity', round(v_row.similarity::numeric, 4));
+  end loop;
+
+  -- No confident match: do NOT invent a determination. Report the gap so the executor escalates.
+  if v_top is null or v_top.similarity < p_min_similarity then
+    return jsonb_build_object(
+      'matched', false,
+      'reason', case when v_top is null then 'no in-scope knowledge for this agent'
+                     else 'best match ' || round(v_top.similarity::numeric, 3)
+                          || ' is below the apply floor ' || p_min_similarity end,
+      'candidates', v_candidates);
+  end if;
+
+  -- APPLY the top playbook/rule as this step's determination — deterministic, no model.
+  v_outcome := 'Applied the company '
+             || coalesce(nullif(v_top.record_type, ''), 'playbook')
+             || ' "' || v_top.title || '" to this step (match '
+             || round(v_top.similarity::numeric, 3) || ').';
+
+  return jsonb_build_object(
+    'matched',       true,
+    'record_id',     v_top.record_id,
+    'title',         v_top.title,
+    'layer',         v_top.layer,
+    'record_type',   v_top.record_type,
+    'authority_tier',v_top.authority_tier,
+    'similarity',    round(v_top.similarity::numeric, 4),
+    'confidence',    round(v_top.similarity::numeric, 3),
+    'determination', v_top.content,
+    'outcome',       v_outcome,
+    'candidates',    v_candidates,
+    'basis',         'deterministic: nearest company knowledge by meaning, no model call'
+  );
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_approval_decide(p_request uuid, p_actor uuid, p_decision text, p_note text DEFAULT NULL::text)
