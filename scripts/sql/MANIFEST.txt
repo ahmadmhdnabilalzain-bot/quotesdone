@@ -1853,3 +1853,4 @@ scripts/sql/workflow_sweep_stranded_by_cancelled_action.sql
 scripts/sql/declare_the_four_new_cron_components.sql
 scripts/sql/triage_standdown_silent_failure_incidents.sql
 scripts/sql/register_reenabled_crons_in_scenario_registry.sql
+scripts/sql/the_ownership_ledger_named_the_sweep_file_the_manifest_superseded.sql
