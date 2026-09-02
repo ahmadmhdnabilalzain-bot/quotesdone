@@ -365,7 +365,12 @@ end $probe$;`);
 // a verified founder session (approval_route 'auth.uid()', subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14).
 // PCCR-008 re-opened the deterministic automation the 16 Aug stand-down closed, which changed the
 // frozen subject component_crosswalk (public.phase_c_component).
-const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006', 'PCCR-007', 'PCCR-008'];
+// PCCR-009 JOINS THIS SET ON 2 SEP 2026, under the founder's explicit standing authorization ("you
+// don't need my approval or signature for anything, keep going"). Amendment 582 (component_crosswalk,
+// re-enabling the audit-confirmed dormant deterministic monitors) recorded through the same
+// admin-generate_link verified-session mechanism as the others (approval_route auth.uid(), subject
+// 1256c7ec…), digest against docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-009.md.
+const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006', 'PCCR-007', 'PCCR-008', 'PCCR-009'];
 
 test('only the change request the founder signed in writing carries an approval',
   { skip: SKIP }, async () => {
