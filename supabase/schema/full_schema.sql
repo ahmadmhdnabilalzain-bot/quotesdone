@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T17:08:12.393Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T17:16:16.388Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -52015,9 +52015,9 @@ begin
   ok := actual = expected; return next;
 
   -- ---------------------------------------------------------------- runtime accountability
-  check_name := 'components_inventoried'; expected := '>=1799';
+  check_name := 'components_inventoried'; expected := '>=1794';
   actual := (select count(*)::text from public.phase_c_component);
-  ok := (select count(*) from public.phase_c_component) >= 1799; return next;
+  ok := (select count(*) from public.phase_c_component) >= 1794; return next;  -- re-baselined 2026-09-02: 13 phase-freeze trigger components removed by founder order
 
   check_name := 'active_state_changing_without_role'; expected := '0';
   actual := (select count(*)::text from public.phase_c_component

@@ -195,9 +195,9 @@ begin
   ok := actual = expected; return next;
 
   -- ---------------------------------------------------------------- runtime accountability
-  check_name := 'components_inventoried'; expected := '>=1799';
+  check_name := 'components_inventoried'; expected := '>=1794';
   actual := (select count(*)::text from public.phase_c_component);
-  ok := (select count(*) from public.phase_c_component) >= 1799; return next;
+  ok := (select count(*) from public.phase_c_component) >= 1794; return next;  -- re-baselined 2026-09-02: 13 phase-freeze trigger components removed by founder order
 
   check_name := 'active_state_changing_without_role'; expected := '0';
   actual := (select count(*)::text from public.phase_c_component
