@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T18:12:38.139Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T18:47:00.957Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19975,9 +19975,9 @@ CREATE OR REPLACE FUNCTION public.fn_autonomy_class(p_kind text, p_target_table 
 AS $function$
 declare pol jsonb; d text;
 begin
-  -- Policy-bounded carve-out (chairman doctrine 2026-07-24): a refund fully inside
-  -- the published policy window is routine work, not an executive decision.
-  if p_kind = 'refund_within_window' then return 'ack'; end if;
+  -- SUPERSEDED 2026-09-02: the 2026-07-24 "refund within the policy window is routine work" carve-out
+  -- ('refund_within_window' -> 'ack') is removed. The founder's 2026-08-17 ruling is absolute — every
+  -- refund at any amount reaches him — so refund_within_window now falls straight into the money rail.
   -- HARD RAILS: money, destructive, and supplier approval can never be auto-cleared by policy.
   if p_kind ~* 'refund|payout|payment|withdraw|transfer|invoice_pay|money|charge' then return 'founder'; end if;
   if p_kind ~* 'delete|purge|remove_record' and coalesce(p_target_table,'') in ('leads','customers') then return 'founder'; end if;
@@ -86869,7 +86869,7 @@ select cron.schedule('watch_failed_runs_hourly','15 * * * *',$CRON$select public
 select cron.schedule('watch_health_daily','0 7 * * *',$CRON$select public.fn_kernel_cron_exec(138);$CRON$);
 select cron.schedule('self_review_weekly','0 5 * * 1',$CRON$select public.fn_self_review();$CRON$);
 select cron.schedule('kpi_review_weekly','0 4 * * 1',$CRON$select public.fn_kpi_review();$CRON$);
-select cron.schedule('event_dispatch_15min','*/15 * * * *',$CRON$select public.fn_event_dispatch();$CRON$);
+select cron.schedule('event_dispatch_15min','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(141);$CRON$);
 select cron.schedule('evolution_scan_weekly','0 6 * * 1',$CRON$select public.fn_kernel_cron_exec(142);$CRON$);
 select cron.schedule('outcome_evaluate_daily','30 3 * * *',$CRON$select public.fn_outcome_evaluate();$CRON$);
 select cron.schedule('day_conductor_daily','0 2 * * *',$CRON$select public.fn_day_conductor();$CRON$);
@@ -86943,8 +86943,8 @@ select cron.schedule('ops_scenarios_hourly','25 * * * *',$CRON$select public.fn_
 select cron.schedule('kb_corpus_integrity_daily','40 3 * * *',$CRON$select public.fn_kb_corpus_integrity();$CRON$);
 select cron.schedule('model_catalog_drift_daily','50 3 * * *',$CRON$select public.fn_model_catalog_drift();$CRON$);
 select cron.schedule('tool_readiness_daily','55 3 * * *',$CRON$select public.fn_tool_readiness();$CRON$);
-select cron.schedule('action_invoke_dispatch_5min','2,7,12,17,22,27,32,37,42,47,52,57 * * * *',$CRON$select public.fn_action_invoke_dispatch(5);$CRON$);
-select cron.schedule('action_invoke_collect_5min','4,9,14,19,24,29,34,39,44,49,54,59 * * * *',$CRON$select public.fn_action_invoke_collect();$CRON$);
+select cron.schedule('action_invoke_dispatch_5min','2,7,12,17,22,27,32,37,42,47,52,57 * * * *',$CRON$select public.fn_kernel_cron_exec(230);$CRON$);
+select cron.schedule('action_invoke_collect_5min','4,9,14,19,24,29,34,39,44,49,54,59 * * * *',$CRON$select public.fn_kernel_cron_exec(231);$CRON$);
 select cron.schedule('org_task_execute_sweep_hourly','45 * * * *',$CRON$select public.fn_org_task_execute_sweep(5);$CRON$);
 select cron.schedule('kb_embed_backfill_boost','* * * * *',$CRON$
   select net.http_post(
@@ -86962,15 +86962,7 @@ select cron.schedule('employee_kpi_measure_daily','30 3 * * *',$CRON$select publ
 select cron.schedule('goal_decompose_weekly','10 3 * * 1',$CRON$select public.fn_goal_decompose();$CRON$);
 select cron.schedule('spend_concentration_weekly','40 3 * * 1',$CRON$select public.fn_spend_concentration_check();$CRON$);
 select cron.schedule('delete_proposer_weekly','50 3 * * 1',$CRON$select public.fn_delete_proposer();$CRON$);
-select cron.schedule('workflow_dispatch_10min','1,11,21,31,41,51 * * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from app_secrets where key = 'project_ref')
-                      || '.supabase.co/functions/v1/workflow_dispatch',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_agents'),
-                               'limit', 2),
-    timeout_milliseconds := 150000);
-$CRON$);
+select cron.schedule('workflow_dispatch_10min','1,11,21,31,41,51 * * * *',$CRON$select public.fn_kernel_cron_exec(255);$CRON$);
 select cron.schedule('boq_fixture_check_weekly','10 4 * * 0',$CRON$
   select net.http_post(
     url := 'https://' || (select value from app_secrets where key = 'project_ref')
@@ -86981,9 +86973,9 @@ select cron.schedule('boq_fixture_check_weekly','10 4 * * 0',$CRON$
 $CRON$);
 select cron.schedule('org_task_assign_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(262);$CRON$);
 select cron.schedule('scenario_staffing_weekly','40 5 * * 1',$CRON$ select public.fn_scenario_run_all(); $CRON$);
-select cron.schedule('rfq_redispatch_6h','15 */6 * * *',$CRON$select public.fn_rfq_redispatch_sweep(20);$CRON$);
+select cron.schedule('rfq_redispatch_6h','15 */6 * * *',$CRON$select public.fn_kernel_cron_exec(264);$CRON$);
 select cron.schedule('capability_enrich_retry_6h','45 */6 * * *',$CRON$select public.fn_capability_enrich_sweep(10);$CRON$);
-select cron.schedule('action_invoke_rpc_5min','0,5,10,15,20,25,30,35,40,45,50,55 * * * *',$CRON$select public.fn_action_invoke_rpc(5)$CRON$);
+select cron.schedule('action_invoke_rpc_5min','0,5,10,15,20,25,30,35,40,45,50,55 * * * *',$CRON$select public.fn_kernel_cron_exec(266);$CRON$);
 select cron.schedule('founder_habits_daily','20 4 * * *',$CRON$select public.fn_founder_habits_learn();$CRON$);
 select cron.schedule('scenario_rehearsal_weekly','10 3 * * 0',$CRON$select public.fn_scenario_rehearse_all();$CRON$);
 select cron.schedule('agent_context_head_refresh','40 */6 * * *',$CRON$select public.fn_agent_context_head_refresh();$CRON$);

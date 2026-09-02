@@ -1875,3 +1875,6 @@ scripts/sql/raise_operational_limits.sql
 scripts/sql/ledger_follows_the_manifest_freeze_lift.sql
 scripts/sql/remove_the_phase_freeze_totally.sql
 scripts/sql/phase_b_step_terminality_is_consistent.sql
+scripts/sql/refund_within_window_reaches_the_founder.sql
+scripts/sql/reenable_the_dispatch_and_action_runtime.sql
+scripts/sql/ledger_follows_manifest_autonomy_class.sql
