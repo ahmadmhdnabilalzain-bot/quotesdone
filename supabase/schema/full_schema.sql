@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T01:42:41.213Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T03:51:31.110Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -25789,8 +25789,11 @@ begin
           'reaches its own error handler, so agent_runs will look clean. Check ' ||
           'net._http_response and the edge function logs directly.',
           'proposed', 'supervised', 'investigate',
-          -- a dark backup or a dark availability probe is founder-visible, not just a ticket
-          (r.severity = 'high'));
+          -- IT owns technical failures: a dark capability is the technology department's to
+          -- investigate and auto-heal, never the founder's to triage. Only refunds reach the founder
+          -- (founder standing rule, 2 Sep 2026). The task carries dept_key so the owning department
+          -- picks it up; needs_founder stays false. Audit AP-01.
+          false);
       end if;
     else
       update os_incidents
