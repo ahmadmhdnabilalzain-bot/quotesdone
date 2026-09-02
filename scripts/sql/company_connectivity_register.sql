@@ -85,6 +85,32 @@ as $function$
     join public.workflow_step s on s.action_class = e.action_class
     join public.workflow w on w.workflow_key = s.workflow_key and w.active
    where e.active and e.kind = 'rpc' and (p.pronargs - p.pronargdefaults) > 0
+
+  union all
+  -- F · an active workflow whose trigger_event has NO producer, so it can never auto-start. The live
+  -- loop starts a workflow only when a company_event.event_type equals a workflow.trigger_event (via
+  -- fn_workflow_start_due), so a trigger nothing emits is a workflow that never runs. "Has a producer"
+  -- = some db function body contains the event literal (an emitter) OR the event has already occurred
+  -- in company_event. Excluded: the declared EXTERNAL-INTAKE events, which arrive from real inbound
+  -- traffic (edge functions, sales/contract intake, the CI deploy hook), not an internal db producer —
+  -- they are wired at the edge layer and fire when that traffic is real, not a structural gap.
+  select 'workflow_trigger_has_no_producer',
+         w.workflow_key,
+         'trigger_event ' || w.trigger_event || ' is emitted by no db function, has never occurred, and '
+           || 'is not a declared external-intake event — the workflow can never auto-start'
+    from public.workflow w
+   where w.active and w.trigger_event is not null
+     and not exists (select 1 from public.company_event ce where ce.event_type = w.trigger_event)
+     and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                      where n.nspname = 'public' and p.prosrc like '%''' || w.trigger_event || '''%')
+     and w.trigger_event not in (
+       'inquiry.created',    -- marketplace edge (supplier_portal / customer intake)
+       'rfq.created',        -- marketplace edge function
+       'quote.received',     -- marketplace edge function
+       'lead.qualified',     -- inbound sales-lead intake (no internal producer until a sales surface exists)
+       'contract.submitted', -- third-party contract intake (arrives from counterparties)
+       'deploy.completed'    -- CI / deploy hook
+     )
 $function$;
 
 revoke execute on function public.fn_company_connectivity_register() from public;
