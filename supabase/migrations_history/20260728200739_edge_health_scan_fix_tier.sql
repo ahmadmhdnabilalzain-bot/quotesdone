@@ -90,8 +90,11 @@ begin
           'reaches its own error handler, so agent_runs will look clean. Check ' ||
           'net._http_response and the edge function logs directly.',
           'proposed', 'supervised', 'investigate',
-          -- a dark backup or a dark availability probe is founder-visible, not just a ticket
-          (r.severity = 'high'));
+          -- IT owns technical failures: a dark capability is the technology department's to
+          -- investigate and auto-heal, never the founder's to triage. Only refunds reach the founder
+          -- (founder standing rule, 2 Sep 2026). The task carries dept_key so the owning department
+          -- picks it up; needs_founder stays false. Audit AP-01.
+          false);
       end if;
     else
       update os_incidents
