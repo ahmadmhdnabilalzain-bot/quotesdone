@@ -75,11 +75,17 @@ Deno.serve(async (req) => {
     // table. Allowlisted rather than free-form: this runs as service_role and a caller-supplied
     // table name would be an update primitive for the whole schema. Default is unchanged, so the
     // kb_chunks backfill running on kb_embed_backfill_boost is not touched by this.
-    const TARGETS: Record<string, { table: string; cols: string; text: (r: Record<string, unknown>) => string }> = {
-      kb_chunks:   { table: 'kb_chunks',   cols: 'id, title, content',
+    // idcol/orderby let a target key on something other than `id`/`created_at`. ops_knowledge is keyed
+    // on record_id (text) and has no created_at, so a strict FIFO orders on record_id. The agents'
+    // OWN operating knowledge (authority, policy, playbooks, department library) is embedded here with
+    // the same free in-region gte-small, so fn_ops_knowledge_match can retrieve it by meaning.
+    const TARGETS: Record<string, { table: string; cols: string; idcol: string; orderby: string; text: (r: Record<string, unknown>) => string }> = {
+      kb_chunks:   { table: 'kb_chunks',   cols: 'id, title, content', idcol: 'id', orderby: 'created_at',
                      text: (r) => String(r.title || '') + '\n' + String(r.content || '') },
-      company_faq: { table: 'company_faq', cols: 'id, question, answer',
+      company_faq: { table: 'company_faq', cols: 'id, question, answer', idcol: 'id', orderby: 'created_at',
                      text: (r) => String(r.question || '') + '\n' + String(r.answer || '') },
+      ops_knowledge: { table: 'ops_knowledge', cols: 'record_id, title, content', idcol: 'record_id', orderby: 'record_id',
+                     text: (r) => String(r.title || '') + '\n' + String(r.content || '') },
     };
     const tgt = TARGETS[String(body.target ?? 'kb_chunks')] ?? TARGETS.kb_chunks;
 
@@ -108,7 +114,7 @@ Deno.serve(async (req) => {
     if (kinds && kinds.length && tgt.table === 'kb_chunks') sel = sel.in('source_kind', kinds);
     if (cats && cats.length && tgt.table === 'kb_chunks') sel = sel.in('category', cats);
     const { data, error: qerr } = await sel
-      .order('created_at', { ascending: !newest })
+      .order(tgt.orderby, { ascending: !newest })
       .limit(lim);
 
     if (!data || data.length === 0) {
@@ -124,11 +130,11 @@ Deno.serve(async (req) => {
       if (Date.now() - T0 > BUDGET_MS) { budgetHit = true; break; }
       const text = tgt.text(r).slice(0, 1200);
       const emb = await model.run(text, { mean_pool: true, normalize: true }) as number[];
-      const { error: uerr } = await admin.from(tgt.table).update({ embedding_gte: '[' + emb.join(',') + ']' }).eq('id', r.id);
+      const { error: uerr } = await admin.from(tgt.table).update({ embedding_gte: '[' + emb.join(',') + ']' }).eq(tgt.idcol, (r as any)[tgt.idcol]);
       if (uerr) { writeFailed++; lastWriteErr = String(uerr?.message || uerr).slice(0, 160); }
       n++;
     }
-    const { count: remaining } = await admin.from(tgt.table).select('id', { count: 'exact', head: true }).is('embedding_gte', null);
+    const { count: remaining } = await admin.from(tgt.table).select(tgt.idcol, { count: 'exact', head: true }).is('embedding_gte', null);
     if (writeFailed > 0) {
       await logThrottled('embedding_write_failed', 60, 'error', { attempted: n, write_failed: writeFailed, remaining }, 'kb_embed computed embeddings but failed to write ' + writeFailed + ' of ' + n + ' back to kb_chunks. Those chunks stay unembedded and are re-picked on every run, so the backfill loops forever without progressing and that content never becomes searchable. ' + lastWriteErr);
     } else {
