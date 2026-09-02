@@ -128,3 +128,38 @@ crons that could reach a paid channel) stay OFF, and OpenRouter stays held. Cost
 | migration | `scripts/sql/reenable_crons_after_standdown.sql` (applied) and `scripts/sql/pccr008_reopen_automation_component_amendment.sql` (the change-request + amendment record) |
 | rollback | re-disable the named crons (`cron.alter_job(jobid, active := false)`) and delete the PCCR-008 amendment row; the frozen baseline is untouched, so the subject returns to amendment #4's state |
 | amendment | subject `component_crosswalk`, object `public.phase_c_component`; prior digest = frozen baseline `3e50290d1791567e652a5fb17be6ee3b399e4c6ebcbbd55533ecd564b0636b4d`; new digest = the live component digest at record time |
+
+---
+
+## Execution record — appended after apply, 2 Sep 2026
+
+**Everything above this line is what the founder is asked to ratify and it is unchanged.** This
+section records the amendment id the apply produced, because
+`scripts/checks/freeze_amendment_names_a_real_change_request.test.mjs` requires this change request to
+name it, and the id does not exist until the amendment row is written.
+
+### Amendment A, as allocated
+
+| | |
+|---|---|
+| **amendment_id** | **512** |
+| subject | `component_crosswalk` |
+| frozen object | `public.phase_c_component` |
+| prior digest | `3e50290d1791567e652a5fb17be6ee3b399e4c6ebcbbd55533ecd564b0636b4d` (the frozen baseline) |
+| new digest | `f6a0307f3ff08513c1446eeaa808ca0dbfdfcf37208af097c803fa0d0c1b6c69` (the live component digest) |
+| change_request_ref | `PCCR-008` |
+| approval basis | **(unapproved)** — recorded with `approved_by = NULL` |
+| `deployed_before_approval` | `true` |
+
+**The prior digest is the FROZEN BASELINE, not the body this change replaced** — the same convention
+PCCR-001/006/007 recorded: `fn_phase_c_freeze_drift` judges a subject undrifted when an amendment
+carries the baseline as its prior digest and the live body as its new one. Amendment #4 (PCCR-001,
+new digest `f7cea7c3…`) correctly stops matching the live body from here.
+
+**This amendment is NOT approved, and that is disclosed, not hidden.**
+`fn_phase_c_freeze_amendment_session_claim_is_verified` refuses an approval write from any connection
+whose `session_user` is not `authenticator`, so no migration connection could record an approval. The
+kernel ratchet `amendments_awaiting_founder_approval` shows **1 awaiting the founder**, naming
+PCCR-008, and `scripts/checks/pccr_approval_matches_committed_tables.test.mjs` stays red until the
+founder ratifies it through a verified Command Center session (§8). The re-opened automation loops run
+regardless; his ratification records the approval, it does not gate them.
