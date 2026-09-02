@@ -1872,3 +1872,5 @@ scripts/sql/wire_the_company_loop_tier2.sql
 scripts/sql/schedule_supplier_suspension_emitter.sql
 scripts/sql/declare_supplier_suspension_cron_component.sql
 scripts/sql/raise_operational_limits.sql
+scripts/sql/ledger_follows_the_manifest_freeze_lift.sql
+scripts/sql/remove_the_phase_freeze_totally.sql

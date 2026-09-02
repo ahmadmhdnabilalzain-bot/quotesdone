@@ -215,29 +215,11 @@ const CASES = [
           end $$;`),
     expect: /DETECTED \d+ owner change\(s\) with no contract/i,
   },
-  {
-    name: 'frozen architecture changed with no change request',
-    why: 'the Phase B freeze machinery must still REFUSE an unreasoned owner swap when enforced — even '
-       + 'though the founder lifted the freeze in production (2026-09-02: "not a single phase should be '
-       + 'frozen"). This forces enforcement for one transaction via app.enforce_phase_freezes and proves '
-       + 'the guard is intact and reversible, not gone.',
-    // Production runs with phase_freezes_lifted=true, so the guard is advisory by default. The session-
-    // local override re-arms it inside this aborted transaction; without it the update would be allowed.
-    sql: `set local app.enforce_phase_freezes = '1';\n`
-       + mustAffect(`update public.phase_b_workflow_step
-             set accountable_role_id = 'ceo'
-           where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`),
-    expect: /PHASE B IS FROZEN/i,
-  },
-  {
-    name: 'frozen architecture changed WITH a change request',
-    why: 'the freeze must be a gate, not a wall — a declared change request has to open it',
-    sql: underChangeRequest(`${mustAffect(`update public.phase_b_workflow_step
-             set accountable_role_id = 'ceo'
-           where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`)}
-          do $$ begin raise exception 'HATCH OPENED as designed'; end $$;`),
-    expect: /HATCH OPENED as designed/i,
-  },
+  // The two Phase B "frozen architecture" cases were removed on 2026-09-02: the founder had the phase
+  // freeze taken out entirely ("what is the point of the freeze — remove it totally"), so the
+  // z90_phase_b_freeze trigger no longer exists and there is no freeze to inject against. Every OTHER
+  // case here still stands — they exercise the a10 owner-integrity guards, CHECKs, FKs and state guards
+  // that protect the workflow registry regardless of the (now removed) freeze.
   {
     name: 'exception escalating to its own detector',
     why: 'escalating to the identity that raised it is not a second pair of eyes',
