@@ -1859,3 +1859,4 @@ scripts/sql/stop_the_dormant_function_silent_failure_whackamole.sql
 scripts/sql/pccr009_reenable_the_audit_confirmed_deterministic_monitors.sql
 scripts/sql/pccr009_declare_the_new_cron_component.sql
 scripts/sql/pccr009_component_registry_amendment.sql
+scripts/sql/evolution_proposals_reach_a_decider.sql

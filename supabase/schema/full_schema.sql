@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T03:51:31.110Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T13:43:07.173Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27748,6 +27748,20 @@ begin
           where p.trigger_kind = 'prompt_unmeasured'
             and p.created_at > now() - interval '30 days')
   on conflict do nothing;
+
+  -- PE-02 (audit 2 Sep 2026): a proposal that reaches no decider is a one-way connection.
+  -- Open ONE consolidated, deduped triage task owned by product_manager (dept product_eng) whenever
+  -- proposals are pending and none is open, so the self-improvement backlog is always owned and
+  -- decided rather than accumulating unseen. Bounded to a single task to avoid a capacity burst.
+  if exists (select 1 from evolution_proposal where status = 'proposed')
+     and not exists (select 1 from org_tasks where title = 'Decide the pending evolution proposals'
+                      and status not in ('done','cancelled','rejected')) then
+    insert into org_tasks (dept_key, title, detail, status, tier, action_class, assigned_agent, needs_founder)
+    select 'product_eng', 'Decide the pending evolution proposals',
+           (select count(*) from evolution_proposal where status='proposed')
+             || ' self-improvement proposals await a decision (evolution_proposal where status=proposed). Review and accept or reject each.',
+           'assigned', 'advisory', 'analysis', public.fn_org_agent_resolve('product_manager'), false;
+  end if;
 
   return (select count(*) from evolution_proposal where status='proposed');
 end; $function$
@@ -86517,7 +86531,7 @@ select cron.schedule('kb_ingest_queue','*/20 * * * *',$CRON$select net.http_post
      headers:='{"Content-Type":"application/json"}'::jsonb,
      body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_knowledge')));$CRON$);
 select cron.schedule('ai_trainer_daily','30 5 * * *',$CRON$select public.fn_ai_trainer();$CRON$);
-select cron.schedule('legal_ai_daily','15 5 * * *',$CRON$select public.fn_legal_ai();$CRON$);
+select cron.schedule('legal_ai_daily','15 5 * * *',$CRON$select public.fn_kernel_cron_exec(76);$CRON$);
 select cron.schedule('security_ai_daily','5 5 * * *',$CRON$select public.fn_kernel_cron_exec(77);$CRON$);
 select cron.schedule('operations_ai_daily','45 4 * * *',$CRON$select public.fn_operations_ai();$CRON$);
 select cron.schedule('ea_assistant_daily','0 4 * * *',$CRON$select public.fn_ea_assistant();$CRON$);
@@ -86607,7 +86621,7 @@ select cron.schedule('supplier_capability_chase_daily','30 6 * * *',$CRON$select
 select cron.schedule('category_sales_daily','30 5 * * *',$CRON$select public.fn_category_sales();$CRON$);
 select cron.schedule('backfill_invite_trades','15 4 * * *',$CRON$select public.fn_leads_retrade_stale(3000);$CRON$);
 select cron.schedule('invite_ramp_daily','45 8 * * *',$CRON$select public.fn_invite_ramp();$CRON$);
-select cron.schedule('resilience_watch_10min','*/10 * * * *',$CRON$select public.fn_resilience_watch()$CRON$);
+select cron.schedule('resilience_watch_10min','*/10 * * * *',$CRON$select public.fn_kernel_cron_exec(123);$CRON$);
 select cron.schedule('cos_execute_hourly','50 * * * *',$CRON$
   select net.http_post(
     url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/cos_execute',
@@ -86802,7 +86816,7 @@ select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.
 select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_objective_review();$CRON$);
 select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_kernel_cron_exec(286);$CRON$);
 select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_kernel_cron_exec(289);$CRON$);
-select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_employee_kpi_assign();$CRON$);
+select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_kernel_cron_exec(290);$CRON$);
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
 select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
 select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_it_security_live_posture();$CRON$);
