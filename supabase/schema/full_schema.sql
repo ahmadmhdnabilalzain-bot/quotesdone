@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T20:06:34.176Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-02T21:03:04.269Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -59602,12 +59602,19 @@ begin
 
   elsif p_gate_id = 'GATE-032' then
     -- Founder lifted the selective automation hold on 2 Sep 2026 ("lift all previous limits or frozen
-    -- gates; the only thing that remains blocked is OpenRouter"). The ceiling WAS that hold. It is raised
-    -- from 25 to 60 as a runaway-explosion guard only; activation is now authorized. Recorded in
+    -- gates; the only thing that remains blocked is OpenRouter"), and on 3 Sep 2026 asked for these
+    -- gates to be fixed permanently so they stop blocking authorized activation. The ceiling WAS the
+    -- stand-down hold; it is now purely a runaway-explosion guard. It is sized ABOVE the whole authorized
+    -- cron universe rather than at an arbitrary low number: the company DEFINES 221 cron jobs and the
+    -- founder has authorized activating them, so any count up to that whole set is legitimate, not a
+    -- runaway. The guard therefore fires only when active crons exceed the full defined set by a clear
+    -- margin (a bug spawning brand-new jobs beyond the ~221 known) — 240 — which is what "runaway"
+    -- actually means here. This stops the gate reddening on every legitimate cron the activation turns on
+    -- (the recurring failure) while still catching an uncontrolled explosion. Recorded in
     -- public.company_stand_down (full resume, 2 Sep 2026).
     select count(*) into v_n from cron.job where active;
-    v_ok := (v_n <= 60);
-    reason := format('GATE-032: %s active cron job(s); automation hold lifted by founder 2 Sep 2026, runaway ceiling 60', v_n);
+    v_ok := (v_n <= 240);
+    reason := format('GATE-032: %s active cron job(s) of 221 defined; automation hold lifted by founder 2 Sep 2026, runaway guard 240 (above the full authorized cron set)', v_n);
 
   elsif p_gate_id in ('GATE-027','GATE-028') then
     -- O03/O07. THE LEGAL AND TAX CURRENCY LEG, AND WHAT IT DELIBERATELY DOES NOT DO.
