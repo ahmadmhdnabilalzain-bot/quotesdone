@@ -87,20 +87,35 @@ const cats = [...new Set([...byId.values()].map(r => r[1]))].sort();
 const rows = [];
 for (const cat of cats) {
   let payload = null;
-  try {
-    await sql(RUN.replace('__CAT__', cat));
-    console.error(`the probe did not raise for ${cat}`);
-    process.exit(1);
-  } catch (err) {
-    const msg = String(err?.message ?? err);
-    const at = msg.indexOf('PHASE_D_DEFECTS');
-    if (at < 0) { console.error(`the probe for ${cat} failed:\n` + msg); process.exit(1); }
-    payload = msg.slice(at + 'PHASE_D_DEFECTS'.length)
-      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
-      .replace(/\\"/g, '"')
-      .replace(/\\n/g, '\n');
-    const ctx = payload.indexOf('\nCONTEXT:');
-    if (ctx >= 0) payload = payload.slice(0, ctx);
+  // The live company loop's crons now run concurrently against production, so a single injection
+  // probe can lose a lock race and come back as a deadlock / lock_timeout rather than its result.
+  // That is transient infrastructure contention, not a defect the catalogue is wrong about, so retry
+  // the probe a few times before giving up. A genuine probe error (anything that is not a transient
+  // lock error) and every content check below still fail on the first occurrence — the retry only
+  // covers the lock race, never a wrong answer.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await sql(RUN.replace('__CAT__', cat));
+      console.error(`the probe did not raise for ${cat}`);
+      process.exit(1);
+    } catch (err) {
+      const msg = String(err?.message ?? err);
+      const at = msg.indexOf('PHASE_D_DEFECTS');
+      if (at < 0) {
+        if (attempt < 6 && /deadlock detected|40P01|lock_timeout|55P03|canceling statement due to (lock|statement) timeout|could not serialize|40001/i.test(msg)) {
+          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+          continue;
+        }
+        console.error(`the probe for ${cat} failed:\n` + msg); process.exit(1);
+      }
+      payload = msg.slice(at + 'PHASE_D_DEFECTS'.length)
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+        .replace(/\\"/g, '"')
+        .replace(/\\n/g, '\n');
+      const ctx = payload.indexOf('\nCONTEXT:');
+      if (ctx >= 0) payload = payload.slice(0, ctx);
+      break;
+    }
   }
   const got = payload.split(String.fromCharCode(30)).filter(r => r.trim() !== '')
     .map(r => r.split(String.fromCharCode(31)));
