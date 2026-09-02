@@ -1,11 +1,21 @@
 # QuotesDone — Hardening & Upgrade Plan
 
-**Written 2 September 2026. Step 3 of the founder's directive** (steps 1–2 — lifting
-development freezes and wiring every agent/department connection — are being done by the
-main session). This document owns *what to harden and upgrade* so the company can run
-itself for a year with only the founder's email as an inbound human signal. It does not
-re-freeze anything and it proposes **nothing that requires paid inference** — OpenRouter
-stays off; embeddings are free/in-region.
+**Written 2 September 2026. Step 3 of the founder's directive.** Steps 1–2 are DONE and
+merged: (1) all Phase A/B/C development freezes are lifted behind one reversible switch
+(`decision_policy.phase_freezes_lifted`), keeping only the money/OpenRouter/data-loss/audit
+safety controls; (2) the live company loop — dormant since 2026-08-15 because its
+event→workflow bridge cron was off — is back on, a real actor-resolution bug that stalled
+`employee_task` is fixed, the trigger/sink mismatches are wired, and
+`fn_company_connectivity_register()` now proves 0 structural gaps across six classes
+(including loop-startability) with a CI gate. This document owns *what to harden and
+upgrade next* so the company can run itself for a year with only the founder's email as an
+inbound human signal. It does not re-freeze anything and proposes **nothing that requires
+paid inference** — OpenRouter stays off; embeddings are free/in-region.
+
+> The freezes are off, so the company can now change itself. That makes the feedback loops
+> in §1–§3 (alert bridge, observability, canary + rate-limit) the priority: a company that
+> acts more, and rewrites itself, needs the guardrails that catch it acting wrong **before**
+> throughput rises — not a wall that stops it.
 
 All numbers below were measured directly against production (`htdblwldjkcgjvmqkbeh`) on
 2 Sep 2026 via read-only SELECTs. Where a number is load-bearing it is cited inline.
