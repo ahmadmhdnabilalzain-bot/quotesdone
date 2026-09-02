@@ -97,12 +97,11 @@ Deno.serve(async (req: Request) => {
     // error on every tick. Ask the ONE paid gate first: if inference is held, claim nothing and return
     // a clean idle result. The per-minute cron stays enabled and resumes the moment the hold lifts, so
     // the loop is ready for launch without spending the interval erroring.
+    // Deterministic-first still runs while the model is held (founder doctrine: internal work is ~95%
+    // code + knowledge). Only the ~5% model FALLBACK is gated — so we claim and work steps regardless,
+    // and merely record whether the fallback is available.
     const infGate = await paidProviderGate(admin, SONNET_FIRST[0]);
-    if (!infGate.allowed) {
-      return J({ ok: true, idle: true, worked: 0,
-        note: 'paid inference held (' + infGate.rule + '): ' + infGate.reason
-            + ' — no workflow step claimed; the dispatcher resumes automatically when the hold lifts.' });
-    }
+    const modelHeld = !infGate.allowed;
 
     const want = Math.max(1, Math.min(Number(body?.limit) || BATCH, 10));
     const worked: unknown[] = [];
@@ -182,29 +181,59 @@ Deno.serve(async (req: Request) => {
             ? 'The process names this step\'s owner as "' + String(s.addressed_as) + '"; that is you.\n' : '')
         + 'WHAT TRIGGERED THIS RUN: ' + JSON.stringify(s.context ?? {}).slice(0, 1500);
 
-      const out = await llmAs(employee)(sys, user, 8000);
-      const raw = (out ?? '').trim();
-      // The confidence tail is the gateway's business (it parses `out` itself and writes
-      // ai_cost_log.confidence); it is not part of the work product the founder reads.
-      const confTail = raw.match(/\{\s*"confidence"\s*:\s*[0-9.]+\s*\}\s*$/);
-      const selfConfidence = confTail ? Number(confTail[0].replace(/[^0-9.]/g, '')) : null;
-      const deliverable = confTail ? raw.slice(0, confTail.index).trim() : raw;
+      // DETERMINISTIC-FIRST (founder doctrine: internal work is ~95% code + linked knowledge, no model).
+      // Work the step by APPLYING the nearest company playbook/rule to it BY MEANING — no model call.
+      // Only a step with no confident knowledge match falls through to the model path below (the ~5%:
+      // genuine novelty, marketing reading live data, content generation — held now, live at launch).
+      let deliverable = '';
+      let outcome = '';
+      let selfConfidence: number | null = null;
+      let workedBy = 'deterministic';
+      try {
+        // deno-lint-ignore no-explicit-any
+        const emb = await (new (globalThis as any).Supabase.ai.Session('gte-small'))
+          .run((wfName + ' — ' + stepText).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+        const { data: det } = await admin.rpc('fn_apply_playbook',
+          { p_agent_key: employee, p_query_embedding: '[' + emb.join(',') + ']', p_min_similarity: 0.42, p_k: 5 });
+        // deno-lint-ignore no-explicit-any
+        const d = det as any;
+        if (d && d.matched === true && typeof d.determination === 'string' && d.determination.length >= MIN_CHARS) {
+          deliverable = String(d.determination);
+          outcome = String(d.outcome || deliverable.slice(-200)).trim();
+          selfConfidence = typeof d.confidence === 'number' ? d.confidence : null;
+        }
+      } catch (_e) { /* deterministic path optional; fall through to the model */ }
+
+      // Only reach for the model when the deterministic engine found no company knowledge for the step,
+      // AND the model is available (the ~5% path; skipped while the founder holds it — the step is then
+      // released cleanly rather than erroring).
+      if (!deliverable && !modelHeld) {
+        workedBy = 'model';
+        const out = await llmAs(employee)(sys, user, 8000);
+        const raw = (out ?? '').trim();
+        // The confidence tail is the gateway's business (it parses `out` itself and writes
+        // ai_cost_log.confidence); it is not part of the work product the founder reads.
+        const confTail = raw.match(/\{\s*"confidence"\s*:\s*[0-9.]+\s*\}\s*$/);
+        selfConfidence = confTail ? Number(confTail[0].replace(/[^0-9.]/g, '')) : null;
+        deliverable = confTail ? raw.slice(0, confTail.index).trim() : raw;
+        // The LAST OUTCOME line, not the first — action_worker measured a model using the word
+        // mid-document and storing a code fragment as the human-skimmable field.
+        const m = [...deliverable.matchAll(/^\s*(?:\*\*)?OUTCOME:?(?:\*\*)?\s*(.+)$/gm)];
+        outcome = (m.length ? m[m.length - 1][1] : deliverable.slice(-200)).trim();
+      }
 
       if (!deliverable || deliverable.length < MIN_CHARS || NOT_WORK.test(deliverable)) {
-        const reason = !deliverable ? 'the model returned nothing'
-          : NOT_WORK.test(deliverable) ? 'the reply is an apology, not a deliverable'
-          : 'deliverable shorter than ' + MIN_CHARS + ' characters';
+        const reason = workedBy === 'deterministic'
+          ? 'no company playbook or rule confidently covers this step; needs a specialist, a source, or the ~5% model path'
+          : (!deliverable ? 'the model returned nothing'
+             : NOT_WORK.test(deliverable) ? 'the reply is an apology, not a deliverable'
+             : 'deliverable shorter than ' + MIN_CHARS + ' characters');
         // Back to 'ready', never left 'running'. A false success is worse than an unworked step
         // because an unworked step is still counted by fn_workflow_actor_coverage.
         await admin.rpc('fn_workflow_step_release', { p_step_run_id: stepRunId, p_reason: reason });
         refused.push({ step_run_id: stepRunId, employee, reason, chars: deliverable.length });
         continue;
       }
-
-      // The LAST OUTCOME line, not the first — action_worker measured a model using the word
-      // mid-document and storing a code fragment as the human-skimmable field.
-      const m = [...deliverable.matchAll(/^\s*(?:\*\*)?OUTCOME:?(?:\*\*)?\s*(.+)$/gm)];
-      const outcome = (m.length ? m[m.length - 1][1] : deliverable.slice(-200)).trim();
 
       const { data: adv, error: doneErr } = await admin.rpc('fn_workflow_step_done', {
         p_run: String(s.run_id),
@@ -237,7 +266,9 @@ Deno.serve(async (req: Request) => {
     // which discards the value — is indistinguishable from a healthy one from the outside.
     const { data: cov } = await admin.rpc('fn_workflow_actor_coverage');
     const stillReady = Number((cov as Record<string, unknown> | null)?.ready_dispatchable ?? 0);
-    const bad = worked.length === 0 && refused.length > 0;
+    // While the model is held, a tick that worked nothing and only released steps with no deterministic
+    // match is IDLE, not a failure — those steps are waiting for the ~5% model path (live at launch).
+    const bad = worked.length === 0 && refused.length > 0 && !modelHeld;
     await admin.from('agent_runs').insert({
       agent: 'workflow_dispatch',
       status: bad ? 'error' : 'ok',
