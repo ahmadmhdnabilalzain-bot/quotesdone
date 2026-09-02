@@ -118,6 +118,32 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + '(fn_enqueue_doc_backups runs in 78 ms in an aborted-transaction probe now; its enqueue is '
        + 'catch-up, so the next successful run re-queues any document missed in the window). Transient '
        + 'load, verified healthy again.' },
+  // 2 SEP 2026 — A WATCHER RE-ENABLED AFTER THE STAND-DOWN, CORRECTLY ALARMING ON A PRE-EXISTING
+  // STALL IT WAS MISCLASSIFYING. workflow_step_sweep_10min is one of the deterministic crons the
+  // founder had re-enabled (2 Sep). On its first runs it raised status=error reporting 3 "unexplained
+  // true stalls". They were NOT unexplained: three knowledge_fill steps (runs improvement_lifecycle
+  // step_run 1888, knowledge_lifecycle step_run 2065/2072) were queued on 13-14 Aug, cancelled by
+  // fn_execution_sweep with no gate decision, and left status=ready. The sweep will not re-queue over
+  // a terminal action_execution, and its settle loop only handles succeeded/failed executions, so the
+  // steps sat stranded and were counted as parked_unexplained. FIXED
+  // (scripts/sql/workflow_sweep_stranded_by_cancelled_action.sql): a step whose only action_execution
+  // is terminal (cancelled/failed) is now classified as ineligible-with-reason — out of
+  // parked_unexplained — and carried by one deduplicated org_task, the same way the no-action_class
+  // backlog is. Verified by execution: fn_workflow_step_sweep(5) returns parked_unexplained=0 and
+  // status=ok. Nothing is hidden: the count and reason stay in the payload and the note; the
+  // underlying stranded steps and the review-decision loop they await are a tracked structural item.
+  // A genuinely unexplained stall (ready, classified, eligible, with NO action_execution) still
+  // raises. The 5 historical error rows remain until they age out of agent_runs; a 6th (the fix not
+  // holding) still fails this check.
+  { agent: 'workflow_step_sweep', errors: 5,
+    why: 'the re-enabled 10-min sweep raised status=error 5 times on 2 Sep (00:16-01:16Z) reporting 3 '
+       + '"unexplained true stalls" that were actually three knowledge_fill steps stranded since 13-14 '
+       + 'Aug — cancelled by fn_execution_sweep with no gate decision, left ready, and not re-queueable '
+       + 'over their terminal action_execution. FIXED '
+       + '(scripts/sql/workflow_sweep_stranded_by_cancelled_action.sql): such a step is now classified '
+       + 'as ineligible-with-reason (out of parked_unexplained) and carried by one deduplicated '
+       + 'org_task. Verified parked_unexplained=0, status=ok. Not a code defect introduced here — a '
+       + 'watcher correctly surfacing a pre-existing stall it was mislabelling.' },
 ];
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];
@@ -188,18 +214,19 @@ test('no agent run has errored since the stand-down except the disclosed refusal
     + ' the row aged out of the table, which is not a fix — re-read before lowering anything.');
 });
 
-test('the watcher is still off, and this file is why that is visible', { skip: SKIP }, () => {
-  // If somebody reactivates job 137, this test says so rather than silently passing: the estate then
-  // has two readers for one subject and the founder's hold has moved without this file noticing.
+test('the failure watchers are back on — the founder lifted the stand-down (2 Sep 2026)', { skip: SKIP }, () => {
+  // UPDATED 2 Sep 2026, exactly as the prior text of this test instructed ("that is the founder lifting
+  // part of the stand-down, which is his to do — but this file was written on the premise that nothing
+  // watches, so update it"). The founder lifted the stand-down and instructed re-enabling the automation
+  // ("lift all previous limits or frozen gates; OpenRouter is never an excuse"). watch_failed_runs was
+  // re-enabled as a traced kernel component (its command now runs fn_kernel_cron_exec(137)). The premise
+  // that nothing watches is retired; what is asserted now is the INVERSE — the failure-detection loop is
+  // CLOSED, so every failure has a reader.
   assert.ok(watcher, 'cron job watch_failed_runs_hourly no longer exists. It had 488 prior runs;'
     + ' a job that vanished is a different event from a job that was switched off, and needs reading.');
   console.log(`      watch_failed_runs_hourly: jobid ${watcher.jobid}, active=${watcher.active},`
     + ` ${watcher.prior_runs} prior runs, last ${watcher.last_run}`);
-  assert.equal(watcher.active, false,
-    'watch_failed_runs_hourly is ACTIVE again. That is the founder lifting part of the stand-down,'
-    + ' which is his to do — but this file was written on the premise that nothing watches, so update'
-    + ' it rather than leaving two readers disagreeing about who is on watch.');
-  assert.deepEqual(activeWatchers.map((r) => r.jobname), [],
-    'an active scheduled job now looks like a failure watcher: '
-    + activeWatchers.map((r) => r.jobname).join(', '));
+  assert.equal(watcher.active, true,
+    'watch_failed_runs_hourly is OFF. The founder lifted the stand-down on 2 Sep 2026 and the'
+    + ' failure-detection loop must be on so that every failure has a reader acting on it.');
 });

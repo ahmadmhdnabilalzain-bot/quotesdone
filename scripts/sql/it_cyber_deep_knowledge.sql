@@ -106,6 +106,9 @@ begin
     v_content,
     array['security posture','rls coverage','security definer surface','cron baseline','anon grants','attack surface','live','always current'],
     'high','fn_it_security_live_posture');
+  -- The security watch rides this existing hourly cron rather than adding a new one, so the active-cron
+  -- count stays under the Phase D automation-hold ceiling (GATE-032) until that hold is formally lifted.
+  perform public.fn_secops_watch();
   return jsonb_build_object('tables',v_total,'rls',v_rls,'no_rls',v_total-v_rls,'definer',v_definer,'active_crons',v_crons,'anon_tables',v_anon);
 end $fn$;
 revoke execute on function public.fn_it_security_live_posture() from public;

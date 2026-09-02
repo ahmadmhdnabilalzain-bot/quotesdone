@@ -253,6 +253,11 @@ if (ids.length !== nWorkflows) {
 const rows = [];
 for (const id of ids) {
   let got = null;
+  // The live company loop's crons run concurrently against production, so a drive can lose a lock
+  // race and come back as a deadlock / lock_timeout instead of its result. That is transient
+  // contention, not a wrong answer, so retry the drive a few times. A genuine failure and every
+  // content check below still fail on the first occurrence — the retry only covers the lock race.
+  for (let attempt = 0; ; attempt++) {
   try {
     await sql(DRIVE.replace('__WORKFLOW_ID__', id));
     console.error(`the drive block for ${id} did not raise — it must abort its own transaction`);
@@ -261,6 +266,10 @@ for (const id of ids) {
     const msg = String(err?.message ?? err);
     const at = msg.indexOf('PHASE_D_WORKFLOW_RESULT');
     if (at < 0) {
+      if (attempt < 6 && /deadlock detected|40P01|lock_timeout|55P03|canceling statement due to (lock|statement) timeout|could not serialize|40001/i.test(msg)) {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        continue;
+      }
       console.error(`the drive for ${id} failed before it could report:\n` + msg);
       process.exit(1);
     }
@@ -277,6 +286,8 @@ for (const id of ids) {
       .replace(/\\n/g, '\n');
     const ctx = got.indexOf('\nCONTEXT:');
     if (ctx >= 0) got = got.slice(0, ctx);
+    break;
+  }
   }
   const parsed = got.split('').filter((r) => r.trim() !== '').map((r) => r.split(''));
   if (parsed.length !== 1) {

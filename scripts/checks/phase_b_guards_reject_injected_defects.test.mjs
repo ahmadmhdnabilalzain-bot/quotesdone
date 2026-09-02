@@ -215,23 +215,11 @@ const CASES = [
           end $$;`),
     expect: /DETECTED \d+ owner change\(s\) with no contract/i,
   },
-  {
-    name: 'frozen architecture changed with no change request',
-    why: 'Phase B was approved and frozen; an owner swap must be refused even though no count moves',
-    sql: mustAffect(`update public.phase_b_workflow_step
-             set accountable_role_id = 'ceo'
-           where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`),
-    expect: /PHASE B IS FROZEN/i,
-  },
-  {
-    name: 'frozen architecture changed WITH a change request',
-    why: 'the freeze must be a gate, not a wall — a declared change request has to open it',
-    sql: underChangeRequest(`${mustAffect(`update public.phase_b_workflow_step
-             set accountable_role_id = 'ceo'
-           where step_id = 'W01-S02' and accountable_role_id <> 'ceo'`)}
-          do $$ begin raise exception 'HATCH OPENED as designed'; end $$;`),
-    expect: /HATCH OPENED as designed/i,
-  },
+  // The two Phase B "frozen architecture" cases were removed on 2026-09-02: the founder had the phase
+  // freeze taken out entirely ("what is the point of the freeze — remove it totally"), so the
+  // z90_phase_b_freeze trigger no longer exists and there is no freeze to inject against. Every OTHER
+  // case here still stands — they exercise the a10 owner-integrity guards, CHECKs, FKs and state guards
+  // that protect the workflow registry regardless of the (now removed) freeze.
   {
     name: 'exception escalating to its own detector',
     why: 'escalating to the identity that raised it is not a second pair of eyes',
