@@ -1850,3 +1850,4 @@ scripts/sql/kernel_wrap_and_enable_cron.sql
 scripts/sql/reenable_crons_after_standdown.sql
 scripts/sql/pccr008_reopen_automation_component_amendment.sql
 scripts/sql/workflow_sweep_stranded_by_cancelled_action.sql
+scripts/sql/declare_the_four_new_cron_components.sql

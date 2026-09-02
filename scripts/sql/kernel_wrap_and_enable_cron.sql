@@ -31,12 +31,17 @@ begin
     schedule_or_trigger, mutates_state, current_actor, canonical_system_actor, accountable_role_id,
     department_id, workflow_id, step_id, authority_class, trace_policy_id, idempotency_strategy, retry_policy,
     activation_state, classification, gap, repair_or_keep_action, evidence, measured_at)
-  values (
+  -- insert ... SELECT (not VALUES): fn_kernel_wrap_and_enable_cron builds component_id dynamically
+  -- as 'cron:'||v_name, so this is NOT a literal declaration. phase_c_component_crosswalk.test.mjs
+  -- records insert...select as a non-literal source and does not read it as a component declaration
+  -- (a VALUES form here declares a bogus component literally named "'cron:'||v_name"). The real cron
+  -- components are declared statically (e.g. scripts/sql/declare_the_four_new_cron_components.sql).
+  select
     'cron:'||v_name, 'cron_job', 'cron.job/'||p_jobid, 'pg_cron schedule', 'pg_cron', 'no',
     v_sched, true, 'system.scheduler', 'system.scheduler', p_role,
     p_dept, 'SYSTEM_SCOPE', '', p_authority, 'TRACE-SYSTEM-EXECUTION', 'schedule_tick:jobname:scheduled_at', 'next_scheduled_tick',
     'active', 'WIRE_TO_CANONICAL', '', 'kept; re-enabled as a traced kernel component 2 Sep 2026 (stand-down lifted)',
-    'wrapped + re-enabled 2 Sep 2026', now()::date)
+    'wrapped + re-enabled 2 Sep 2026', now()::date
   on conflict (component_id) do update set
     accountable_role_id = excluded.accountable_role_id, department_id = excluded.department_id,
     authority_class = excluded.authority_class, activation_state = 'active',
