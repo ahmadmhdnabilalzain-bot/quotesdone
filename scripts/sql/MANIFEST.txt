@@ -1852,3 +1852,4 @@ scripts/sql/pccr008_reopen_automation_component_amendment.sql
 scripts/sql/workflow_sweep_stranded_by_cancelled_action.sql
 scripts/sql/declare_the_four_new_cron_components.sql
 scripts/sql/triage_standdown_silent_failure_incidents.sql
+scripts/sql/register_reenabled_crons_in_scenario_registry.sql

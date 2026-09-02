@@ -356,7 +356,16 @@ end $probe$;`);
 // 'authenticator', and fn_phase_c_freeze_amendment_approve calls that resolver first, so from this
 // amendment onwards a recorded approval cannot come from a management or migration connection that
 // set request.jwt.claims for itself.
-const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006', 'PCCR-007'];
+// PCCR-008 JOINS THIS SET ON 2 SEP 2026, THROUGH THE SAME CANONICAL DOOR. He approved it as a new
+// Command Center command -- founder_command_message 70561, channel command_center, received
+// 2026-09-02 02:07:14+00 -- whose words quote this document's sha256
+// d9e8cdc370641a7f5a19912adc48c6b67b623e3055e5df9e1d594f524b4de5d0, stored on amendment 512 as
+// approved_amendment_table_digest against docs/phase-c/PHASE_C_CHANGE_REQUEST_PCCR-008.md. The
+// approval was recorded through fn_phase_c_governance_decide + fn_phase_c_freeze_amendment_approve in
+// a verified founder session (approval_route 'auth.uid()', subject 1256c7ec-17bf-4b1e-af8f-aaa32a8fdd14).
+// PCCR-008 re-opened the deterministic automation the 16 Aug stand-down closed, which changed the
+// frozen subject component_crosswalk (public.phase_c_component).
+const APPROVED_BY_THE_FOUNDER_IN_WRITING = ['PCCR-001', 'PCCR-002', 'PCCR-003', 'PCCR-006', 'PCCR-007', 'PCCR-008'];
 
 test('only the change request the founder signed in writing carries an approval',
   { skip: SKIP }, async () => {
