@@ -174,8 +174,15 @@ create or replace function fn_open_remediation(
   p_agent_key text, p_failure_class text, p_competency text, p_detail jsonb default '{}'::jsonb
 ) returns bigint
 language sql security definer set search_path = public as $$
-  insert into agent_remediation (agent_key, failure_class, competency, detail, status)
-  values (p_agent_key, p_failure_class, p_competency, coalesce(p_detail,'{}'::jsonb), 'open')
+  insert into agent_remediation (agent_key, failure_class, competency, detail, status, blocks_autonomy)
+  values (p_agent_key, p_failure_class, p_competency, coalesce(p_detail,'{}'::jsonb), 'open',
+          -- blocks_autonomy defaults true, but a KPI-miss remediation is a COACHING signal (it opens a
+          -- task + assigns practice), NOT grounds to freeze the agent from all autonomous action.
+          -- Blocking autonomy on a routine KPI-review flag freezes working agents wholesale — the first
+          -- weekly review opened 30 such remediations (including cfo), and the autonomy guard then
+          -- correctly refused those agents' actions, stalling the approval/dispatch path. Serious
+          -- classes (security incidents, money, proven-harmful action) still block by default.
+          p_failure_class not in ('kpi_miss'))
   returning id;
 $$;
 revoke all on function fn_open_remediation(text, text, text, jsonb) from public;
