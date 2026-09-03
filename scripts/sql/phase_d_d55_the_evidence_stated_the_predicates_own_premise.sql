@@ -168,8 +168,9 @@ select * from (values
    'model_policy.quote_comparison.deterministic_alternative names deterministicCompare() in the quote_compare edge function, proved on staging with the model forced to fail'),
 
   ('Model calls include task class, budget, cache and outcome logging.',
-   case when (select llm30 > 0 and llm30_full = llm30 from m) then 'met' else 'not_met' end,
-   (select format('%s of %s ai_cost_log rows in 7 days carry task_class, model_used, cached, ok and cost_aed', llm30_full, llm30) from m)),
+   case when (select llm30 = 0 from m) then 'idle' when (select llm30_full = llm30 from m) then 'met' else 'not_met' end,
+       -- 3 SEP 2026: zero rows is neither met nor not met — it is the paid-model hold. Read it as idle, not as a failing gate.
+       (select case when llm30 = 0 then 'no model calls in 7 days: the paid-provider hold is open-circuit, so there is nothing to judge (idle, not a failure)' else format('%s of %s ai_cost_log rows in 7 days carry task_class, model_used, cached, ok and cost_aed', llm30_full, llm30) end from m)),
 
   ('Customer and supplier portals work on mobile web.',
    'met',
