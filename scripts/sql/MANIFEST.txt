@@ -1900,3 +1900,4 @@ scripts/sql/held_executors_are_parked_not_dead_lettered.sql
 scripts/sql/v_cron_stale_the_dead_guard_blind_spot.sql
 scripts/sql/kernel_ledger_follows_the_manifest_3_sep.sql
 scripts/sql/reveal_notifies_both_parties_on_both_channels.sql
+scripts/sql/kernel_ledger_follows_the_manifest_3_sep_b.sql
