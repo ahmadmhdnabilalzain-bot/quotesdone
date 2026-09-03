@@ -18,10 +18,21 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..', '..');
 const src = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', 'stripe_webhook', 'index.ts'), 'utf8');
+// 3 SEP 2026: the event names live in ONE shared list (_shared/stripe_events.ts) that both the
+// handler and stripe_setup read, so a branch cannot exist without its subscription. The handler
+// branches on the exported arrays rather than on string literals, so this check reads the shared
+// list for the names and the handler for the branches.
+const shared = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', '_shared', 'stripe_events.ts'), 'utf8');
 
 test('the webhook handles all four refund event types', () => {
+  assert.ok(src.includes("from '../_shared/stripe_events.ts'") && src.includes('REFUND_EVENTS'),
+    'stripe_webhook does not read the shared REFUND_EVENTS list');
+  assert.ok(src.includes('(REFUND_EVENTS as readonly string[]).includes(String(event.type))'),
+    'stripe_webhook does not branch on REFUND_EVENTS');
+  const start = shared.indexOf('REFUND_EVENTS = [');
+  const list = start >= 0 ? shared.slice(start, shared.indexOf(']', start)) : '';
   for (const evt of ['charge.refunded', 'refund.updated', 'refund.created', 'refund.failed']) {
-    assert.ok(src.includes(evt), `stripe_webhook does not handle ${evt}`);
+    assert.ok(list.includes(`'${evt}'`), `the shared REFUND_EVENTS list (read by stripe_webhook) does not carry ${evt}`);
   }
 });
 

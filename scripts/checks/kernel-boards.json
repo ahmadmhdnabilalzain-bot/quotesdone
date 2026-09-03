@@ -57,12 +57,14 @@
     {
       "board": "fn_kernel_trace_integrity",
       "check": "system_execution_components_with_no_trace",
-      "max_numerator": 532,
+      "max_numerator": 528,
       "why_2026_09_03": "Lowered 589 -> 534 on 3 Sep 2026 to lock in the gain the check reported (components that have never produced a trace fell as the self-management crons were wrapped and began tracing).",
       "why": "Counts components that have never produced a trace. 430 of the 635 are edge functions, database triggers or event subscriptions, for which this database holds no invocation log at all — fn_kernel_system_trace_state states that explicitly and declines to score them. The number is therefore a coverage-unknown figure, not a defect count, and kernel_k6 keeps it visible under section G rather than filtering it. What IS asserted, on the same board, is that 933 of 933 post-epoch wrapped cron executions carry their required trace and 0 are missing one.",
       "owner": "open — falls as sources are cut over to the kernel and begin tracing",
       "measured_at": "2026-08-18, 589 of 635",
-      "why_2026_09_03_b": "Lowered 534 -> 532 later on 3 Sep 2026: the ad spend autopilot tick (cron:ads_autopilot_daily, job 316) and meta_sync_daily (job 72) were wrapped and produced their first traces. The sibling suggestion to lock new_state_changing_system_executions_with_required_trace at 15204 was NOT taken: that numerator is a coverage count of executions carrying a trace and grows every tick, so a ceiling on it reddens as the company runs."
+      "why_2026_09_03_b": "Lowered 534 -> 532 later on 3 Sep 2026: the ad spend autopilot tick (cron:ads_autopilot_daily, job 316) and meta_sync_daily (job 72) were wrapped and produced their first traces. The sibling suggestion to lock new_state_changing_system_executions_with_required_trace at 15204 was NOT taken: that numerator is a coverage count of executions carrying a trace and grows every tick, so a ceiling on it reddens as the company runs.",
+      "why_2026_09_03_c": "Lowered 532 -> 526 on 3 Sep 2026 (STAFF_ORG re-carve PR): six more components produced their first trace while the re-carve was verified; locked in as the check asked.",
+      "why_2026_09_03_d": "526 -> 528 later on 3 Sep 2026: two event subscriptions were DECLARED today (evsub:eng_manager@deploy.completed, evsub:qa_manager@deploy.completed) with their emitter in scripts/deploy_functions.mjs; a subscription has no trace until its first delivery, so the count rose by exactly the two new components and falls again on the next deploy."
     },
     {
       "board": "fn_kernel_cutover_measure",
@@ -135,7 +137,8 @@
       "check": "new_state_changing_system_executions_with_required_trace",
       "max_numerator": 100000000,
       "why": "The inverse view of the same single gap above: 11110 of 11111 wrapped state-changing cron executions since the epoch carry their trace -- the one missing is policy_consistency_weekly run 364926 (see the paired new_state_changing_system_executions_missing_a_trace entry). This metric is a COVERAGE COUNT that grows as more executions are traced, not a debt count, so a fixed low ceiling would false-fail every week as coverage rises; the ratchet's grown-check compares the numerator (the traced count) to the ceiling, so the ceiling is deliberately set above the running total. The REAL debt gauge is the paired missing_a_trace check, ratcheted tight at 1 -- any genuinely new untraced execution surfaces there. Not a hiding place: a regression is caught by missing_a_trace going 1 -> 2.",
-      "owner": "CLOSED -- coverage-count inverse of the one disclosed missing trace; the binding gauge is missing_a_trace=1. Owner tracks both as one item (the fixed policy_consistency timeout)."
+      "owner": "CLOSED -- coverage-count inverse of the one disclosed missing trace; the binding gauge is missing_a_trace=1. Owner tracks both as one item (the fixed policy_consistency timeout).",
+      "why_2026_09_03": "Left at the placeholder ceiling on purpose (3 Sep 2026): this numerator is the COUNT of traced state-changing executions and grows with every cron tick (16796 -> 16830 within one hour), so it can never be ratcheted; the binding gauge is missing_a_trace on the same board."
     }
   ]
 }

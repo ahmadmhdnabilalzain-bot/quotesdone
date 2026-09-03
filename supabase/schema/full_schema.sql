@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T07:28:12.715Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T16:58:19.475Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -37345,12 +37345,23 @@ begin
         v_super using errcode = '23503';
     end if;
 
+  -- 3 SEP 2026 (MASTER_PLAN 5.3): the refund executor and reconciler are DATA (decision_policy
+  -- refund_executor_role_id / refund_reconciler_role_id), resolved through the alias registry so a
+  -- role rename cannot orphan the money path, and an unset or unresolvable policy refuses rather
+  -- than defaulting to a name typed here.
+  v_exec_role := coalesce(v_exec_role, public.fn_org_role_resolve((select p.value #>> '{}' from public.decision_policy p where p.key = 'refund_executor_role_id')));
+  v_rec_role  := coalesce(v_rec_role,  public.fn_org_role_resolve((select p.value #>> '{}' from public.decision_policy p where p.key = 'refund_reconciler_role_id')));
+  if v_exec_role is null or v_rec_role is null then
+    raise exception 'fn_kernel_refund_decision_record: refund executor/reconciler roles are not configured or do not resolve to an active canonical role (decision_policy refund_executor_role_id / refund_reconciler_role_id) (pd_refund_roles_unconfigured)'
+      using errcode = '22023';
+  end if;
+
     insert into public.phase_c_refund_decision
       (request_id, decided_by, decision, reason, supersedes_decision_id, supersession_reason,
        executor_role_id, reconciler_role_id)
     values (v_request, v_founder, v_decision, v_reason, v_super, nullif(v_super_why,''),
-            coalesce(v_exec_role, 'payments_and_billing_manager'),
-            coalesce(v_rec_role,  'financial_controller'))
+            v_exec_role,
+            v_rec_role)
     returning decision_id into v_id;
 
     select * into d from public.phase_c_refund_decision where decision_id = v_id;
@@ -50314,7 +50325,11 @@ role_use as (
 ),
 coverage(check_name, expected, actual) as (
   values
-    ('coverage.canonical_roles_total', '90',
+    ('coverage.canonical_roles_total',
+      -- 3 SEP 2026 (PACR-004): the approved size of the canonical org is the Phase A baseline's
+      -- count, not a literal typed into the check that guards it. 90 was true from 15 Aug to 3 Sep;
+      -- the STAFF_ORG re-carve seated 56 and the baseline records it.
+      (select b.counts->>'canonical_roles' from public.org_phase_baseline b where b.phase = 'A'),
       (select count(*)::text from public.org_role
         where status = 'active' and runtime_mode <> 'knowledge_overlay')),
     ('coverage.roles_unrepresented', '0',
@@ -73631,7 +73646,13 @@ CREATE OR REPLACE FUNCTION public.fn_secops_watch()
 AS $function$
 declare
   v_found int := 0; v_acted int := 0; r record; v_door record;
-  v_authorized text[] := array['management@quotesdone.com']; -- founder-authorized door openers
+  -- 3 SEP 2026 (MASTER_PLAN 5.3): the founder allow-list is DATA — app_secrets.admin_emails, the same
+  -- list every admin-gated edge function reads — not a literal typed into the watcher. Unset means
+  -- nobody is a founder-authorized door opener, never "fall back to a name".
+  v_authorized text[] := coalesce(
+    (select array_agg(lower(btrim(x))) from public.app_secrets s, unnest(string_to_array(s.value, ',')) x
+      where s.key = 'admin_emails' and btrim(x) <> ''),
+    '{}'::text[]);
 begin
   -- 1. AUTH ATTACKS — consume v_auth_watch (the signature aggregator that had no consumer): brute force,
   --    credential stuffing, OTP/verify abuse, anomalous admin logins. The agent OWNS each as an incident.
@@ -87324,6 +87345,7 @@ select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_k
 --   cred_fn_wa_docs
 --   cred_fn_wa_pdf
 --   cred_fn_workflow_dispatch
+--   cred_ops_doc_render
 --   cred_ops_phone_diag
 --   cred_ops_wa_replay
 --   cred_ops_wa_template_setup

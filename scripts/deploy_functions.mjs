@@ -24,6 +24,7 @@
 //    before and after; a deploy that did not bump the version did not happen, whatever it printed.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { sql } from './phase_c/lib/db.mjs';
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const args = process.argv.slice(2);
@@ -201,3 +202,16 @@ if (failed.length) console.log('DEPLOY FAILURES: ' + failed.join(' '));
 if (notVerified.length) console.log('NOT VERIFIED:    ' + notVerified.join(' '));
 if (failed.length || notVerified.length) process.exit(1);
 console.log('ALL GOOD');
+
+// 3 SEP 2026 (MASTER_PLAN A5): a verified deploy is a company event. The change_deployment workflow
+// waited on deploy.completed and nothing in the estate ever emitted it; this is the only place that
+// KNOWS a deploy completed and was read back, so it says so. Best-effort: a deploy that succeeded is
+// not un-succeeded by a failed event write, but the failure is printed, never swallowed.
+try {
+  const payload = JSON.stringify({ ref, functions: slugs, count: slugs.length, at: new Date().toISOString() });
+  const q = (v) => "'" + String(v).replace(/'/g, "''") + "'";
+  await sql(`select public.fn_emit('deploy.completed', 'deploy', ${q(new Date().toISOString())}, 'deploy_functions', ${q(payload)}::jsonb)`);
+  console.log(`deploy.completed emitted for ${slugs.length} function(s)`);
+} catch (e) {
+  console.log(`deploy.completed NOT emitted: ${String(e?.message || e).slice(0, 200)}`);
+}

@@ -76,7 +76,9 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.dupes), 0, 'an agent holds two active canonical roles');
     assert.equal(Number(r.unowned_agents), 0, 'an active employee maps to no canonical role');
     assert.equal(Number(r.overlays), 86, 'the 86 category overlays must all exist as roles');
-    assert.ok(Number(r.roles) >= 176, `expected at least 176 active roles, got ${r.roles}`);
+    // 3 SEP 2026 (PACR-004): the approved size lives in the Phase A baseline, not in this file.
+    const approved = await one(ref, `select (counts->>'canonical_roles')::int + (counts->>'category_overlays')::int n from org_phase_baseline where phase='A'`);
+    assert.ok(Number(r.roles) >= Number(approved.n), `expected at least ${approved.n} active roles (Phase A baseline), got ${r.roles}`);
   });
 
   // ---- 2. Old IDs still resolve --------------------------------------------------------------
@@ -157,7 +159,8 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
         jsonb_array_length(c->'identity'->'authority') auth,
         (c->>'knowledge_count')::int kc
       from org_agents a, lateral (select fn_agent_context_v3(a.agent_key) c) x
-      where a.agent_key in ('marketing','procurement','it','security','followup','cfo','onboarding','docs')`);
+      -- marketing and docs were parked by the 3 Sep 2026 re-carve; bd and qa_manager moved that day.
+      where a.agent_key in ('bd','procurement','it','security','followup','cfo','onboarding','qa_manager')`);
     assert.equal(rows.length, 8);
     for (const row of rows) {
       assert.ok(Number(row.dept_k) > 0,
@@ -225,8 +228,8 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
     // Two statements, not one: a single SELECT reads its snapshot before the function inside it
     // performs the INSERT, so the count would be 0 for a row that exists.
     const counts = await probe(ref, `
-      select (fn_specialist_invoke('rfq_qualification_manager','spec_fitout','inquiry','reorg-probe-3',
-                'fit-out technical judgement')->>'ok') into v_out;
+      select (fn_specialist_invoke('rfq_qualification_manager','boq_analyst','inquiry','reorg-probe-3',
+                'BOQ technical judgement')->>'ok') into v_out;
       select v_out||'/'||(select count(*)::text from review_chain
                            where subject_id='reorg-probe-3' and stage='specialist_invocation')
         into v_out;`);
@@ -468,11 +471,14 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
         (select 1 from org_departments d where d.dept_key=k.dept_key)) orphaned_knowledge,
       (select count(*) from org_agents a where a.active and a.manager_key=a.agent_key) self_managed`);
     assert.equal(Number(r.active_depts), 10, 'the ten-department structure is frozen');
-    assert.equal(Number(r.merged_rows), 22, '22 departments were merged away');
-    assert.equal(Number(r.accountable), 90, '90 accountable runtime roles');
+    // 3 SEP 2026 (PACR-004): assurance merged into product_eng (23 merged rows); the accountable role
+    // count is the Phase A baseline's, recomputed by every PACR, not a literal typed here.
+    const base = await one(ref, `select (counts->>'canonical_roles')::int n from org_phase_baseline where phase='A'`);
+    assert.equal(Number(r.merged_rows), 23, '23 departments were merged away');
+    assert.equal(Number(r.accountable), Number(base.n), `${base.n} accountable runtime roles (Phase A baseline)`);
     assert.equal(Number(r.overlays), 86, '86 category overlays');
     assert.equal(Number(r.packaged), 96, 'all 96 packaged roles are held');
-    assert.equal(Number(r.identity_agents), 90, 'the 90 accountable roles are the identity holders');
+    assert.equal(Number(r.identity_agents), Number(base.n), `the ${base.n} accountable roles are the identity holders`);
     assert.equal(Number(r.violations), 0, 'fn_org_role_violations() must return no rows');
     assert.equal(Number(r.merged_to_dead), 0, 'a department merged into a dead department');
     assert.equal(Number(r.role_without_identity), 0, 'an accountable role with no packaged identity');

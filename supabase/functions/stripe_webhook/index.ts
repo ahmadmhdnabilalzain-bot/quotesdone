@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { CHECKOUT_EVENTS, REFUND_EVENTS } from '../_shared/stripe_events.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
     if (evId) await admin.rpc('fn_stripe_event_seen', { p_event_id: evId, p_type: String(event?.type || ''), p_status: String(event?.data?.object?.payment_status || '') });
   } catch (_e) { /* ledger is best-effort */ }
   try {
-    if (event.type === 'checkout.session.completed') {
+    if ((CHECKOUT_EVENTS as readonly string[]).includes(String(event.type))) {
       const s = event.data?.object || {};
       if (s.payment_status === 'paid') {
         const md = s.metadata || {};
@@ -193,8 +194,7 @@ Deno.serve(async (req) => {
     // typically the customer's bank rejecting the credit days after the fact. Without it the ledger
     // would keep a refund reading 'processing' forever and finance would chase money that never
     // moved. It carries the same bare refund object as refund.created/updated.
-    if (event.type === 'charge.refunded' || event.type === 'refund.updated'
-        || event.type === 'refund.created' || event.type === 'refund.failed') {
+    if ((REFUND_EVENTS as readonly string[]).includes(String(event.type))) {
       const o = event.data?.object || {};
       // charge.refunded delivers a charge with a refunds list; refund.* deliver the refund itself.
       const refunds = Array.isArray(o?.refunds?.data) ? o.refunds.data : (o?.object === 'refund' ? [o] : []);

@@ -25,6 +25,16 @@
 # nothing when the token is absent, rather than passing quietly.
 name: repo and database agree
 
+# 3 SEP 2026 — ONE RUN PER PULL REQUEST HEAD. This workflow takes ~10 minutes against production
+# and carried no concurrency group, so when a fix was pushed while the previous head was still
+# running, the superseded run kept going, failed on a commit that no longer existed on the branch,
+# and emailed the founder a failure for it — six of eight failure emails on 3 Sep 2026 were of
+# that kind. A superseded PR run is now cancelled (a cancelled run sends no failure email); main
+# and the daily schedule are never cancelled, because there the old run is still the truth.
+concurrency:
+  group: repo-and-database-agree-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 on:
   pull_request:
   push:

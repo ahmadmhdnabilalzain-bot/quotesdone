@@ -15,9 +15,14 @@
 // does today, and removing it would turn a silent wrong target into a hard outage. What changes is
 // that it exists once, and every consumer inherits the warning instead of four of them opting out
 // by copy-paste.
-export const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co';
+// 3 SEP 2026: the fallback stays for a PRODUCTION build (an unconfigured production build must not
+// become an outage), but a PREVIEW build with the variable unset now gets NO target instead of the
+// live database. Vercel stamps VERCEL_ENV=preview on every branch deployment; there, a blank URL fails
+// the first request loudly rather than writing a preview's fixtures into production.
+const IS_PREVIEW = process.env.VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
+export const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || (IS_PREVIEW ? '' : 'https://htdblwldjkcgjvmqkbeh.supabase.co');
 export const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+  || (IS_PREVIEW ? '' : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo');
 export const SUPA_FN = `${SUPA_URL}/functions/v1`;
 
 // A silent fallback is how a staging page ends up writing to production. Say so, loudly, in the

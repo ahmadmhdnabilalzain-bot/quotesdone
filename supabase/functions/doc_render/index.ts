@@ -1,6 +1,7 @@
 // doc_render v9 - branded document generator. Opus writes ONLY the body (in the requested language); this wraps it in
 // letterhead HTML (kept for on-screen view) AND renders a native branded PDF via pdf_native (pdf-lib, no CloudConvert).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, OPUS_FIRST } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -40,7 +41,12 @@ Deno.serve(async (req) => {
     const layout = String(body.layout||body.brief||body.instruction||'').slice(0,4000);
     if(!layout) return J({ error:'layout/brief required' }, 400);
     const data = body.data!=null ? (typeof body.data==='string'?body.data:JSON.stringify(body.data)).slice(0,8000) : '';
-    const key = await sec('openrouter_api_key'); if(!key) return J({ error:'ai_unavailable' }, 500);
+    // 3 SEP 2026: the render itself goes through ai_gateway (makeLlm), the single paid door — this
+    // line used to read the raw provider key only to decide availability, which read like a bypass
+    // and answered a held model with a 502 'render_failed' after the round trip. Ask the gate first and
+    // say 'held' honestly; nothing here calls the provider directly.
+    const gate = await paidProviderGate(admin, OPUS_FIRST[0]);
+    if (!gate.allowed) return J({ ok:false, held:true, reason:'inference_held', rule: gate.rule || null }, 200);
     const langDirective = lang==='ar' ? '\n\nLANGUAGE: Write the ENTIRE document body in formal Modern Standard Arabic (العربية الفصحى). Keep numbers, currency codes (AED) and proper names as-is.' : (lang==='bi' ? '\n\nLANGUAGE: Produce the document BILINGUALLY. For every section, write the English version first, then immediately its Modern Standard Arabic translation as a separate paragraph/heading. Keep numbers and AED as-is.' : '');
     const user = `DOCUMENT TITLE: ${title}\n\nLAYOUT / CONTENT INSTRUCTIONS:\n${layout}${langDirective}\n\nDATA TO USE${data?':\n'+data:' : (none provided — use [placeholders] where needed)'}`;
     let frag=''; let lastErr='';

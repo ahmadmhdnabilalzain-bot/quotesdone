@@ -22,7 +22,14 @@ Deno.serve(async (req) => {
     for (const q of (qs || [])) {
       if (!owned.has(q.inquiry_id)) continue;
       const ql = q.quality || {};
-      const miss = Array.isArray(ql.missing) ? ql.missing.filter((m: any) => m && m.mandatory).length : null;
+      // 3 SEP 2026 (MASTER_PLAN #10): quality.missing is a text[] of plain strings (trg_quote_quality writes
+      // to_jsonb(gmiss)), so filtering it on .mandatory matched nothing and the badge said 0 missing for
+      // every quote ever scored. The objects that carry mandatory live under quality.category, and the
+      // trigger already counted them into quality.category.mandatory_missing - read that number, the same
+      // way quote_compare does, and stay null (not 0) when the category has no spec group.
+      const cq = (ql.category && typeof ql.category === 'object') ? ql.category : null;
+      const mmRaw = cq ? Number(cq.mandatory_missing) : Number.NaN;
+      const miss = Number.isFinite(mmRaw) ? mmRaw : null;
       out[String(q.id)] = { score: ql.score ?? null, pass: ql.pass ?? null, missing_mandatory: miss };
     }
     return J({ ok: true, quality: out });
