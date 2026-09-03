@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-02T23:33:05.442Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T02:21:25.310Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -43445,8 +43445,15 @@ CREATE OR REPLACE FUNCTION public.fn_open_remediation(p_agent_key text, p_failur
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  insert into agent_remediation (agent_key, failure_class, competency, detail, status)
-  values (p_agent_key, p_failure_class, p_competency, coalesce(p_detail,'{}'::jsonb), 'open')
+  insert into agent_remediation (agent_key, failure_class, competency, detail, status, blocks_autonomy)
+  values (p_agent_key, p_failure_class, p_competency, coalesce(p_detail,'{}'::jsonb), 'open',
+          -- blocks_autonomy defaults true, but a KPI-miss remediation is a COACHING signal (it opens a
+          -- task + assigns practice), NOT grounds to freeze the agent from all autonomous action.
+          -- Blocking autonomy on a routine KPI-review flag freezes working agents wholesale — the first
+          -- weekly review opened 30 such remediations (including cfo), and the autonomy guard then
+          -- correctly refused those agents' actions, stalling the approval/dispatch path. Serious
+          -- classes (security incidents, money, proven-harmful action) still block by default.
+          p_failure_class not in ('kpi_miss'))
   returning id;
 $function$
 
@@ -86871,7 +86878,7 @@ select cron.schedule('ea_assistant_daily','0 4 * * *',$CRON$select public.fn_ea_
 select cron.schedule('document_controller_daily','25 4 * * *',$CRON$select public.fn_document_controller();$CRON$);
 select cron.schedule('dropbox_sync_daily','40 2 * * *',$CRON$select public.fn_kernel_cron_exec(81);$CRON$);
 select cron.schedule('reporting_ai_daily','20 4 * * *',$CRON$select public.fn_reporting_ai();$CRON$);
-select cron.schedule('strategy_ai_daily','25 5 * * *',$CRON$select public.fn_strategy_ai();$CRON$);
+select cron.schedule('strategy_ai_daily','25 5 * * *',$CRON$select public.fn_kernel_cron_exec(84);$CRON$);
 select cron.schedule('scan_new_supplier_categories','20 3 * * *',$CRON$select public.fn_scan_new_supplier_categories();$CRON$);
 select cron.schedule('capability_backfill_daily','40 2 * * *',$CRON$select net.http_post(
   url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/enrich_capability',
@@ -86955,14 +86962,7 @@ select cron.schedule('category_sales_daily','30 5 * * *',$CRON$select public.fn_
 select cron.schedule('backfill_invite_trades','15 4 * * *',$CRON$select public.fn_leads_retrade_stale(3000);$CRON$);
 select cron.schedule('invite_ramp_daily','45 8 * * *',$CRON$select public.fn_invite_ramp();$CRON$);
 select cron.schedule('resilience_watch_10min','*/10 * * * *',$CRON$select public.fn_kernel_cron_exec(123);$CRON$);
-select cron.schedule('cos_execute_hourly','50 * * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/cos_execute',
-    headers := jsonb_build_object('Content-Type','application/json'),
-    body := jsonb_build_object('__secret', (select value from public.app_secrets where key='cred_cron_agents')),
-    timeout_milliseconds := 30000
-  );
-  $CRON$);
+select cron.schedule('cos_execute_hourly','50 * * * *',$CRON$select public.fn_kernel_cron_exec(124);$CRON$);
 select cron.schedule('kb_reconcile_daily','5 3 * * *',$CRON$select public.fn_kb_reconcile();$CRON$);
 select cron.schedule('company_selfknowledge_refresh','13 */3 * * *',$CRON$update public.agent_knowledge set content=public.fn_company_brief(4000), updated_at=now() where agent_key='_global' and topic='company:self_knowledge'$CRON$);
 select cron.schedule('dept_plan_daily','0 1 * * *',$CRON$select net.http_post(
@@ -87007,11 +87007,11 @@ select cron.schedule('kb_deepen_loop','4,14,24,34,44,54 * * * *',$CRON$
   $CRON$);
 select cron.schedule('watch_failed_runs_hourly','15 * * * *',$CRON$select public.fn_kernel_cron_exec(137);$CRON$);
 select cron.schedule('watch_health_daily','0 7 * * *',$CRON$select public.fn_kernel_cron_exec(138);$CRON$);
-select cron.schedule('self_review_weekly','0 5 * * 1',$CRON$select public.fn_self_review();$CRON$);
-select cron.schedule('kpi_review_weekly','0 4 * * 1',$CRON$select public.fn_kpi_review();$CRON$);
+select cron.schedule('self_review_weekly','0 5 * * 1',$CRON$select public.fn_kernel_cron_exec(139);$CRON$);
+select cron.schedule('kpi_review_weekly','0 4 * * 1',$CRON$select public.fn_kernel_cron_exec(140);$CRON$);
 select cron.schedule('event_dispatch_15min','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(141);$CRON$);
 select cron.schedule('evolution_scan_weekly','0 6 * * 1',$CRON$select public.fn_kernel_cron_exec(142);$CRON$);
-select cron.schedule('outcome_evaluate_daily','30 3 * * *',$CRON$select public.fn_outcome_evaluate();$CRON$);
+select cron.schedule('outcome_evaluate_daily','30 3 * * *',$CRON$select public.fn_kernel_cron_exec(143);$CRON$);
 select cron.schedule('day_conductor_daily','0 2 * * *',$CRON$select public.fn_day_conductor();$CRON$);
 select cron.schedule('audit_prune_weekly','15 2 * * 0',$CRON$select public.fn_audit_prune();$CRON$);
 select cron.schedule('goal_period_refresh_daily','45 2 * * *',$CRON$select public.fn_goal_period_refresh();$CRON$);
@@ -87020,7 +87020,7 @@ select cron.schedule('exec_meeting_weekly','0 5 * * 1',$CRON$select public.fn_ex
 select cron.schedule('ceo_questions_weekly','30 5 * * 1',$CRON$select public.fn_ceo_questions();$CRON$);
 select cron.schedule('knowledge_decay_daily','10 3 * * *',$CRON$select public.fn_knowledge_decay();$CRON$);
 select cron.schedule('supply_gap_scan_daily','20 3 * * *',$CRON$select public.fn_supply_gap_scan();$CRON$);
-select cron.schedule('os_review_weekly','45 4 * * 1',$CRON$select public.fn_os_review();$CRON$);
+select cron.schedule('os_review_weekly','45 4 * * 1',$CRON$select public.fn_kernel_cron_exec(156);$CRON$);
 select cron.schedule('os_improve_weekly','15 6 * * 1',$CRON$select public.fn_os_improve();$CRON$);
 select cron.schedule('sop_update_weekly','30 6 * * 1',$CRON$select public.fn_sop_update();$CRON$);
 select cron.schedule('company_reflect_nightly','30 21 * * *',$CRON$select public.fn_company_reflect();$CRON$);
@@ -87055,17 +87055,17 @@ select cron.schedule('control_mode_sweep_5min','*/5 * * * *',$CRON$select public
 select cron.schedule('supplier_registration_state_resync_daily','5 0 * * *',$CRON$select public.fn_resync_supplier_registration_state();$CRON$);
 select cron.schedule('dead_letter_drain_held','17 3 * * *',$CRON$select public.fn_kernel_cron_exec(182);$CRON$);
 select cron.schedule('task_approve_hourly','40 * * * *',$CRON$select public.fn_kernel_cron_exec(183);$CRON$);
-select cron.schedule('improvement_plan_daily','20 2 * * *',$CRON$select public.fn_improvement_plan_refresh()$CRON$);
+select cron.schedule('improvement_plan_daily','20 2 * * *',$CRON$select public.fn_kernel_cron_exec(184);$CRON$);
 select cron.schedule('os_health_brief_weekly','50 4 * * 1',$CRON$select public.fn_os_health_brief();$CRON$);
 select cron.schedule('memory_promotion_weekly','15 5 * * 2',$CRON$select public.fn_promote_memory_sweep();$CRON$);
 select cron.schedule('emit_metric_alerts','0 3 * * 1',$CRON$select public.fn_kernel_cron_exec(190);$CRON$);
 select cron.schedule('event_consolidate','25 * * * *',$CRON$select public.fn_kernel_cron_exec(191);$CRON$);
-select cron.schedule('os_objective_measure_daily','20 3 * * *',$CRON$select public.fn_os_objective_measure();$CRON$);
+select cron.schedule('os_objective_measure_daily','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(194);$CRON$);
 select cron.schedule('workflow_start_due','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(195);$CRON$);
 select cron.schedule('execution_sweep_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(200);$CRON$);
 select cron.schedule('execution_run_hourly','10 * * * *',$CRON$select public.fn_execution_run();$CRON$);
-select cron.schedule('learning_loop_sweep_hourly','35 * * * *',$CRON$select public.fn_learning_loop_sweep();$CRON$);
-select cron.schedule('improvement_handover_hourly','10 * * * *',$CRON$select public.fn_improvement_handover();$CRON$);
+select cron.schedule('learning_loop_sweep_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(204);$CRON$);
+select cron.schedule('improvement_handover_hourly','10 * * * *',$CRON$select public.fn_kernel_cron_exec(205);$CRON$);
 select cron.schedule('emit_task_assigned','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(206);$CRON$);
 select cron.schedule('supplier_score_refresh_daily','40 3 * * *',$CRON$select public.fn_supplier_score_refresh();$CRON$);
 select cron.schedule('supplier_risk_complaints','20 * * * *',$CRON$select public.fn_supplier_risk_monitor('complaints');$CRON$);
@@ -87094,11 +87094,11 @@ select cron.schedule('kb_embed_backfill_boost','* * * * *',$CRON$
                                'limit', 5))
   from generate_series(1, 6);
 $CRON$);
-select cron.schedule('agent_action_work_sweep_hourly','35 * * * *',$CRON$select public.fn_agent_action_work_sweep(10);$CRON$);
+select cron.schedule('agent_action_work_sweep_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(243);$CRON$);
 select cron.schedule('workflow_step_sweep_10min','6,16,26,36,46,56 * * * *',$CRON$select public.fn_kernel_cron_exec(247);$CRON$);
 select cron.schedule('runner_silence_watch_daily','10 7 * * *',$CRON$select public.fn_kernel_cron_exec(248);$CRON$);
-select cron.schedule('dept_objective_measure_daily','25 3 * * *',$CRON$select public.fn_dept_objective_measure();$CRON$);
-select cron.schedule('employee_kpi_measure_daily','30 3 * * *',$CRON$select public.fn_employee_kpi_measure();$CRON$);
+select cron.schedule('dept_objective_measure_daily','25 3 * * *',$CRON$select public.fn_kernel_cron_exec(249);$CRON$);
+select cron.schedule('employee_kpi_measure_daily','30 3 * * *',$CRON$select public.fn_kernel_cron_exec(250);$CRON$);
 select cron.schedule('goal_decompose_weekly','10 3 * * 1',$CRON$select public.fn_goal_decompose();$CRON$);
 select cron.schedule('spend_concentration_weekly','40 3 * * 1',$CRON$select public.fn_spend_concentration_check();$CRON$);
 select cron.schedule('delete_proposer_weekly','50 3 * * 1',$CRON$select public.fn_delete_proposer();$CRON$);
@@ -87137,8 +87137,8 @@ select cron.schedule('phase_c_outbox_deliver_1min','* * * * *',$CRON$select publ
 select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(279);$CRON$);
 select cron.schedule('department_conflict_scan_weekly','0 6 * * 1',$CRON$select public.fn_emit_department_conflict();$CRON$);
 select cron.schedule('remediation_escalate_consume_daily','15 5 * * *',$CRON$select public.fn_kernel_cron_exec(281);$CRON$);
-select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.fn_promotion_review();$CRON$);
-select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_objective_review();$CRON$);
+select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.fn_kernel_cron_exec(282);$CRON$);
+select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_kernel_cron_exec(285);$CRON$);
 select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.fn_kernel_cron_exec(286);$CRON$);
 select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_kernel_cron_exec(289);$CRON$);
 select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_kernel_cron_exec(290);$CRON$);
