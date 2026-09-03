@@ -1,6 +1,7 @@
 // os_incidents — Phase 5 incident capture, escalation, and runbook library.
 // Admin-gated. "Get help" opens an incident and notifies the founder (via fn_os_incident_open).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -27,15 +28,26 @@ Deno.serve(async (req) => {
       try { const { data } = await admin.rpc('fn_os_open_access'); return data === true; }
       catch (_e) { return false; }
     };
-    let viaBuildMode = false;
-    if (!token) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
-    const { data: u, error: uerr } = viaBuildMode ? { data: null as any, error: null as any } : await admin.auth.getUser(token);
+    // 3 SEP 2026 — THE INTERNAL CALLER. The action dispatcher (fn_action_invoke_dispatch) invokes this
+    // function as the incident_fix executor with a body-carried __secret and no JWT, and was answered
+    // 401 three times a night: every incident_fix action dead-lettered, and the org_task behind it
+    // never closed. The same door boost_recommend and the other executors carry: an internal
+    // credential scoped to os_incidents (fn_internal_auth) is accepted, and acts as a NAMED system
+    // identity — never as the founder's email. Admin JWT and build mode are unchanged.
+    const b = await req.json().catch(() => ({} as any));
+    let viaBuildMode = false, viaInternal = false;
+    if (!token && b?.__secret) {
+      const __auth = await requireInternal(admin, b.__secret, 'os_incidents');
+      if (__auth.ok) viaInternal = true; else return J({ error: 'forbidden' }, 403);
+    }
+    if (!token && !viaInternal) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
+    const { data: u, error: uerr } = (viaBuildMode || viaInternal) ? { data: null as any, error: null as any } : await admin.auth.getUser(token);
     let email = u?.user?.email || '';
-    if (!viaBuildMode && (uerr || !email)) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
-    if (viaBuildMode) email = 'build-mode@quotesdone.local';
+    if (!viaBuildMode && !viaInternal && (uerr || !email)) { if (await openAccess()) viaBuildMode = true; else return J({ error: 'unauthorized' }, 401); }
+    if (viaInternal) email = 'system.action_dispatcher@quotesdone.local';
+    else if (viaBuildMode) email = 'build-mode@quotesdone.local';
     else if (!(await isAdmin(email))) return J({ error: 'forbidden' }, 403);
 
-    const b = await req.json().catch(() => ({} as any));
     const action = String(b?.action || '');
 
     if (action === 'runbooks') {

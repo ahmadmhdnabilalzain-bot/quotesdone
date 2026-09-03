@@ -205,6 +205,12 @@ export const RUN_TAG_COL = (tag) => `'qd_run:${tag}'`;
 export async function withRun(fn, opts = {}) {
   const run = newRun(opts);
   run.log(`demo run ${run.tag} on ${REF}`);
+  // DECLARE THE WINDOW (3 Sep 2026). Every function this run exercises logs into agent_runs like a
+  // real call, and fn_watch_failed_runs paged the founder twice about one morning's rehearsals.
+  // A declared window tells the watcher these rows are the operator's; rows outside it are judged
+  // exactly as before. The row is never deleted by teardown — it is the record that a rehearsal ran.
+  try { await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by) values ('qd_run:${run.tag}', 'demo_factory.withRun')`, 'rehearsal window'); }
+  catch (e) { run.log(`(rehearsal window not declared: ${String(e.message || e).slice(0, 120)})`); }
   try {
     return await fn(run);
   } finally {
@@ -213,6 +219,8 @@ export async function withRun(fn, opts = {}) {
       const t = await teardown(run);
       run.log(`run ${run.tag} torn down: ${t.summary}`);
     }
+    try { await mgmtFixture(REF, `update public.rehearsal_window set ended_at = now() where run_tag = 'qd_run:${run.tag}' and ended_at is null`, 'rehearsal window'); }
+    catch (e) { run.log(`(rehearsal window not closed: ${String(e.message || e).slice(0, 120)})`); }
   }
 }
 
