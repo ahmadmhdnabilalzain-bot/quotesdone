@@ -27,6 +27,11 @@
 -- records the absence so the canonical engine reads it as retired, not as failed-to-deploy. No
 -- CASCADE anywhere; each drop names its exact signature.
 --
+-- RE-APPLY SEMANTICS. Applied once on 3 Sep 2026. apply_sql's reference guard refuses a file whose
+-- DROP lines name routines that are no longer on production, so a STANDALONE re-apply after the drops is
+-- refused by design (a file naming an absent routine is normally a bug). In a manifest-order rebuild the
+-- defining files run first, the routines exist, and this file applies. DROPPED.txt is what the canonical
+-- engine reads either way.
 --   node scripts/apply_sql.mjs scripts/sql/retire_orphaned_phase_governance_routines.sql --apply --ddl
 
 begin;

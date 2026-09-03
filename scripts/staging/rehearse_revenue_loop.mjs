@@ -61,6 +61,17 @@ await withRun(async (run) => {
      `quote=${tx.quote_amount} fee=${tx.reveal_fee} rate=${pc.rate} status=${tx.fee_status}`);
 });
 const after = await snapshot();
+// THE KERNEL'S OWN LEAK DETECTOR. A demo reveal starts a REAL W16 run on payment_transaction:<payment_ref>;
+// the kernel spine is append-only (a cancelled run is evidence, not residue), so row counts cannot judge
+// it — fn_kernel_orphaned_work can (called directly: fn_kernel_all_boards() fans out over every board and
+// times out on the management transport): after teardown, no active run, step run or task may be left under a
+// parent that is gone. (3 Sep 2026: four such orphans were the finding that fixed the parent-delete guard.)
+{
+  const rows = await mgmtRead(REF, `select check_name, actual, ok from public.fn_kernel_orphaned_work() where check_name in ('active_runs_whose_business_parent_is_gone','active_step_runs_under_a_missing_parent','live_tasks_under_a_missing_parent')`);
+  const red = rows.filter((x) => x.ok !== true);
+  ok('the kernel reports no orphaned work after teardown', rows.length === 3 && red.length === 0,
+     red.length ? red.map((x) => `${x.check_name}=${x.actual}`).join(' | ') : rows.map((x) => `${x.check_name}=${String(x.actual).split(' ')[0]}`).join(' | '));
+}
 const drift = diffSnapshots(before, after);
 console.log(`baseline drift after teardown: ${drift.length ? drift.map((d) => `${d.t} ${d.before}->${d.after}`).join(', ') : 'none'}`);
 const fails = checks.filter((c) => !c).length;
