@@ -24,10 +24,11 @@
 --                       money on Meta per day than the ceiling. The ceiling is enforced where every
 --                       path has to go through, not in each path.
 --
--- THE EFFECTIVE DAILY CEILING is the smaller of the policy's daily cap and what is left of the growth
--- department's month (department_budget.monthly_aed - spent_aed, spread over the days remaining), so
--- the month cannot be blown in a week even if every campaign is a winner. spent_aed is what meta_sync
--- writes back from the account once the token exists; the rehearsal sets it to prove the pacing arm.
+-- THE EFFECTIVE DAILY CEILING is the policy's daily cap, and when the founder has set a monthly cap,
+-- the smaller of that and what is left of the month (monthly_cap_aed - month_spent_aed, spread over the
+-- days remaining), so the month cannot be blown in a week even if every campaign is a winner.
+-- month_spent_aed is what meta_sync writes back from the account once the token exists; the rehearsal
+-- sets it inside an aborted transaction to prove the pacing arm.
 --
 -- THE RULES, in the order they are applied per tick (first match per campaign wins):
 --   pace_down / pace_pause   the active set already exceeds the ceiling (the ceiling moved, e.g. the
@@ -57,8 +58,8 @@
 --
 -- WHAT THIS DOES NOT DO (deliberately): it does not create campaigns or creatives (meta_ads
 -- quick_campaign + the content pipeline do; created objects arrive PAUSED and this manager activates
--- them), and it does not read the Meta account balance itself — meta_sync does, into
--- department_budget.spent_aed, once the founder mints the token. The token is the only switch.
+-- them), and it does not read the Meta account itself — meta_sync mirrors campaigns, ad-set budgets
+-- and month spend into these tables once the founder mints the token. The token is the only switch.
 
 create table if not exists public.ad_spend_policy (
   policy_key                 text primary key default 'default',
@@ -376,3 +377,11 @@ begin
   where campaign_id = d.campaign_id;
 end;
 $$;
+
+-- The ledger carries a raising trigger, which makes it an ENFORCING table in the kernel's eyes
+-- (fn_kernel_truncate_protection_state): a truncate would erase the trace behind every budget move,
+-- so it gets the same guard as every other enforcing table and no role may truncate it.
+revoke truncate on public.ad_decision from public, anon, authenticated, service_role;
+drop trigger if exists z00_kernel_truncate_guard on public.ad_decision;
+create trigger z00_kernel_truncate_guard before truncate on public.ad_decision
+  for each statement execute function public.fn_kernel_truncate_guard();

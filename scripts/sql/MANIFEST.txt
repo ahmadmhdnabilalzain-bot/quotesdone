@@ -1893,3 +1893,5 @@ scripts/sql/fn_supersede_lesson_keeps_the_chain.sql
 scripts/sql/retire_orphaned_phase_governance_routines.sql
 scripts/sql/parent_delete_guard_matches_how_producers_key_the_subject.sql
 scripts/sql/ad_spend_autopilot.sql
+scripts/sql/ads_autopilot_schedule.sql
+scripts/sql/declare_ads_autopilot_cron_component.sql
