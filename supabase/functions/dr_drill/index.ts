@@ -140,23 +140,21 @@ Deno.serve(async (req)=>{
     // small enough to finish. The loop stops early the moment a pass comes back empty, which is
     // the normal case.
     //
-    // THIS CLEAR IS FOR LEFTOVERS, NOT FOR THE PREVIOUS DRILL (3 Sep 2026). A completed drill now
+    // THIS CLEAR IS FOR LEFTOVERS, NOT FOR THE PREVIOUS DRILL (3 Sep 2026). A completed drill
     // deletes its own rows at the end (see the run_id cleanup after logRun), so what this loop
-    // meets is normally nothing. Its capacity is what PostgREST's max-rows allows — a select is
-    // capped at 1,000 rows whatever .limit says, measured: "cleared 200000 row(s) in 200 passes"
-    // — so 40 passes clears 40,000 rows, which is only the residue of a CRASHED chain. A residue
-    // larger than that is reported below as 'still remain' rather than carried into the counts,
-    // and drains over the following drills. ponytail: 40 x 1,000 per pre-clear; move the clear
-    // server-side (one bounded DELETE by ctid per pass) if a crashed chain must heal in one run.
+    // meets is normally nothing — the residue of a CRASHED chain. A residue larger than the pass
+    // budget is reported below as 'still remain' rather than carried into the counts.
+    // SERVER-SIDE SINCE 4 SEP 2026. Each pass is ONE bounded DELETE in fn_dr_restore_clear (up to
+    // 20,000 rows chosen by ctid, 1.4s measured against the 8s budget) that keeps the drill_at
+    // predicate. 40 passes now reach 800,000 rows — more than three crashed chains — where the
+    // PostgREST select/delete pairs reached 40,000 and reported "still remain" on a normal residue.
     let wiped = 0, wipePasses = 0; let wipeErr: { message?: string } | null = null;
     const cutoff = new Date(Date.now()-180e3).toISOString();
     for (; wipePasses < 40; wipePasses++) {
-      const { data: stale, error: selErr } = await sb.from('dr_restore').select('id').lt('drill_at', cutoff).limit(5000);
-      if (selErr) { wipeErr = selErr; break; }
-      if (!stale || !stale.length) break;
-      const { error: delErr } = await sb.from('dr_restore').delete().in('id', stale.map((r: { id: number }) => r.id));
-      if (delErr) { wipeErr = delErr; break; }
-      wiped += stale.length;
+      const { data: n, error: clrErr } = await sb.rpc('fn_dr_restore_clear', { p_before: cutoff });
+      if (clrErr) { wipeErr = clrErr; break; }
+      if (!n) break;
+      wiped += Number(n);
     }
     // Still not empty after the pass budget is the same untrustworthy state as a timeout, and is
     // reported as such rather than being carried silently into the row counts.
@@ -285,25 +283,24 @@ Deno.serve(async (req)=>{
     tables: report.map((r:any)=>({ t:r.table, backup:r.backup_rows??null, restored:r.restored_rows??null, live:r.live_rows??null, pages:r.pages??null, expected:r.pages_expected??null, s:r.status })) };
   if(ok) await logRun('ok', counts, '', started);
   else await logRun('error', counts, (failNotes.join('') || 'Disaster-recovery drill finished with mismatches, so one or more backups are not proven restorable. ')+'Backups for the failing tables cannot be relied on for recovery.', started);
-  // THE DRILL CLEANS UP AFTER ITSELF (3 Sep 2026). The pre-clear above is bounded at 40 passes and
-  // PostgREST caps each at 1,000 rows, while one drill now leaves ~234,000 rows in dr_restore
-  // (201 pages of kb_chunks alone) — so every drill was going to find the last drill's rows, run
-  // out of passes and call its own verdict untrustworthy. The verdict is written first; this
-  // runs after the response, kept alive by the runtime, deletes only THIS run's rows by run_id,
-  // and is bounded too: 400 x 1,000. An exhausted budget is logged; the next pre-clear reports
-  // what it finds rather than counting it.
-  const cleanup = (async () => {
+  // THE DRILL CLEANS UP AFTER ITSELF, BEFORE IT ANSWERS (3 Sep 2026, redone 4 Sep). One drill
+  // leaves ~234,000 rows in dr_restore (201 pages of kb_chunks alone), so every drill was going to
+  // find the last drill's rows, run out of pre-clear passes and call its own verdict untrustworthy.
+  // The 3 Sep version deleted its own rows AFTER the response in a fire-and-forget handed to
+  // EdgeRuntime.waitUntil; on 4 Sep the table still held all 234,047 rows of the 20:52Z run — it
+  // never ran. The verdict is written first (logRun above), then THIS run's rows go through the
+  // same bounded server-side DELETE as the pre-clear, synchronously: 60 x 20,000, ~1.4s a pass,
+  // 12 passes for a normal drill. An exhausted budget is logged; the next pre-clear reports what
+  // it finds rather than counting it.
+  {
     let n = 0, passes = 0;
-    for (; passes < 400; passes++) {
-      const { data: mine, error: se } = await sb.from('dr_restore').select('id').eq('run_id', runId).limit(1000);
-      if (se || !mine || !mine.length) break;
-      const { error: de } = await sb.from('dr_restore').delete().in('id', mine.map((r: { id: number }) => r.id));
-      if (de) break;
-      n += mine.length;
+    for (; passes < 60; passes++) {
+      const { data: gone, error: ce } = await sb.rpc('fn_dr_restore_clear', { p_run_id: runId });
+      if (ce) { console.error('dr_drill cleanup of run '+runId+' failed after '+n+' row(s): '+String(ce.message||ce.code||JSON.stringify(ce)).slice(0,160)); break; }
+      if (!gone) break;
+      n += Number(gone);
     }
-    if (passes >= 400) console.error('dr_drill cleanup of run '+runId+' exhausted 400 passes after '+n+' row(s); the next drill reports the leftovers');
-  })().catch((e)=>console.error('dr_drill cleanup of run '+runId+' failed: '+String(e).slice(0,160)));
-  const rtc = (globalThis as any).EdgeRuntime;
-  if(rtc && typeof rtc.waitUntil === 'function') rtc.waitUntil(cleanup); else await cleanup;
+    if (passes >= 60) console.error('dr_drill cleanup of run '+runId+' exhausted 60 passes after '+n+' row(s); the next drill reports the leftovers');
+  }
   return j({ ok, day, tables:report, total_restored, hops:hop+1, note:'Restored into public.dr_restore (staging); live tables untouched.' });
 });

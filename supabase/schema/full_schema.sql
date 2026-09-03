@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T23:02:33.457Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T23:26:51.327Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -26707,6 +26707,29 @@ begin
                             'critical_or_high_failed', n_crit_fail, 'restore_drill_fresh', v_restore_ok,
                             'restore_note', v_restore_note, 'failures', nullif(v_fail, ''));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dr_restore_clear(p_before timestamp with time zone DEFAULT NULL::timestamp with time zone, p_run_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 20000)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_n integer;
+begin
+  if p_before is null and p_run_id is null then
+    raise exception 'fn_dr_restore_clear needs p_before or p_run_id: an unbounded clear would race a running drill chain';
+  end if;
+  delete from public.dr_restore d
+   where d.ctid = any(array(
+           select r.ctid from public.dr_restore r
+            where (p_before is not null and r.drill_at < p_before)
+               or (p_run_id is not null and r.run_id = p_run_id)
+            limit greatest(1, least(coalesce(p_limit, 20000), 50000))));
+  get diagnostics v_n = row_count;
+  return v_n;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_dropbox_list(p_prefix text DEFAULT ''::text)
