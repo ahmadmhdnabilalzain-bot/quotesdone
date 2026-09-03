@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T06:25:24.418Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T06:39:14.956Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -9600,6 +9600,7 @@ ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_r
 -- ===== INDEXES =====
 CREATE INDEX acl_cheaper_idx ON public.ai_cost_log USING btree (could_be_cheaper) WHERE could_be_cheaper;
 CREATE INDEX acl_dept_idx ON public.ai_cost_log USING btree (dept_key, occurred_at DESC);
+CREATE INDEX ad_decision_campaign_idx ON public.ad_decision USING btree (campaign_id);
 CREATE INDEX ad_decision_unexecuted_idx ON public.ad_decision USING btree (id) WHERE (executed_at IS NULL);
 CREATE INDEX agent_action_log_created_idx ON public.agent_action_log USING btree (created_at DESC);
 CREATE UNIQUE INDEX agent_actions_dedupe ON public.agent_actions USING btree (agent, kind, target_id) WHERE (status = 'pending'::text);

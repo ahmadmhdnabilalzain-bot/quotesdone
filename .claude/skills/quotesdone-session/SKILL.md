@@ -225,12 +225,19 @@ Before the one line — or before an honest hand-over:
 2. Row #3 scorer run **to completion** — `node scripts/staging/verify_os2_blueprint.mjs`
 3. Pack scorecard — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
 4. `fn_os_portals_gates()`
-5. `node scripts/checks/sql_files_match_live.test.mjs` → 0 missing, 0 drifted
-6. `node scripts/checks/export_from_either_source_is_identical.mjs` → byte-identical
-7. `node scripts/verify_deploy_parity.mjs --all` → every edge function carries the repo's code
+5. `node scripts/checks/canonical_routines.test.mjs` → 0 gaps, 0 drift both ways, and
+   `node scripts/checks/application_source_of_truth.test.mjs` → every line 0, exit 0
+   *(these replaced `sql_files_match_live.test.mjs`, retired 17 Aug 2026 — it resolved a routine by
+   git commit time and certified the wrong body; the apply order decides now. A retired routine is
+   recorded in `scripts/sql/DROPPED.txt` AND dropped by a later manifest file; a moved canonical
+   file needs the ownership ledger reconciled: `--emit-ledger-sync` prints the statements)*
+6. `node scripts/checks/export_from_either_source_is_identical.mjs --write` after the LAST apply →
+   byte-identical, 0 project refs embedded
+7. `node scripts/verify_deploy_parity.mjs --ref=htdblwldjkcgjvmqkbeh --all` → every edge function carries the repo's code
 
-8. `select * from public.fn_phase_a_baseline_drift();` → **0 rows**
-9. `select * from public.fn_phase_b_baseline_drift();` → **0 rows**
+8. *(retired 2 Sep 2026 — the founder removed the phase freezes totally; `fn_phase_a_baseline_drift`
+   still exists and must still return 0 rows after any PACR, but there is no freeze to hold)*
+9. *(retired with 8)*
 
 **PHASE B IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-b-founder-approved-2026-08-15`,
 baseline in `org_phase_baseline` where `phase = 'B'`. Step 9 is how you know it still is.

@@ -116,6 +116,8 @@ create table if not exists public.ad_decision (
 );
 alter table public.ad_decision enable row level security;
 create index if not exists ad_decision_unexecuted_idx on public.ad_decision (id) where executed_at is null;
+-- the foreign key to ad_campaign_state is how the manager and the executor look decisions up (Supabase performance advisor: unindexed_foreign_keys)
+create index if not exists ad_decision_campaign_idx on public.ad_decision (campaign_id);
 
 -- The effective daily ceiling: the policy's daily cap, and when a monthly cap is set, what is left
 -- of the month spread over the days remaining (a month_spent figure from an earlier month counts as
