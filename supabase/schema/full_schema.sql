@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T06:47:14.904Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T06:48:21.577Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -18854,6 +18854,13 @@ begin
       left join cron_job_seen s on s.jobid = j.jobid
      where j.active
   loop
+    -- ACTIVATION IS THE FLOOR (3 Sep 2026). A job re-enabled today with a last success from before
+    -- the 16 Aug stand-down is not silent — its clock starts when it was put back on (the kernel
+    -- wrapper's wrapped_at). This watch paged the founder about 15 such jobs in one day.
+    if exists (select 1 from public.phase_c_system_execution_wrapper w
+                where w.jobid = r.jobid and w.wrapped_at > now() - (r.thresh_h||' hours')::interval) then
+      continue;
+    end if;
     -- Never-run: only when there is NO history AND we have never recorded a success.
     if r.history_rows = 0 and r.stored_ok is null then
       if r.first_seen is not null and r.first_seen < now() - (r.thresh_h||' hours')::interval then
@@ -18881,9 +18888,12 @@ begin
     end if;
 
     if r.last_ok is null or r.last_ok < now() - (r.thresh_h||' hours')::interval then
+      -- ONCE PER SILENCE EPISODE (3 Sep 2026): the episode is (job, last_success). It is paged the
+      -- first time it is seen and never again until the job succeeds again — the 24-hour dedupe
+      -- this replaced re-paged every silent job every day.
       if not exists (select 1 from founder_alerts where event='cron_silent'
-                      and detail like '%"'||r.jobname||'"%'
-                      and created_at > now() - interval '24 hours') then
+                      and detail like '%"job": "'||r.jobname||'"%'
+                      and detail like '%"last_success": "'||coalesce(r.last_ok::text,'no success on record')||'"%') then
         insert into founder_alerts(level,event,detail,channel)
         values ('high','cron_silent', jsonb_build_object(
           'job',r.jobname,'last_success',coalesce(r.last_ok::text,'no success on record'),
@@ -45962,7 +45972,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_os_health()
  RETURNS jsonb
  LANGUAGE plpgsql
- STABLE SECURITY DEFINER
+ SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
 DECLARE res jsonb;
@@ -45985,27 +45995,10 @@ BEGIN
     'health_check_fails_24h', (SELECT count(*) FROM public.health_checks WHERE ok=false AND created_at > now()-interval '24 hours'),
     'ai_health_fails', coalesce((SELECT value FROM public.app_secrets WHERE key='ai_health_fails'),'0'),
     'payments_7d_count', (SELECT count(*) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),
-    'payments_7d_revenue_aed', coalesce((SELECT round(sum(reveal_fee)::numeric,2) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),0),
-    -- CAN A REQUEST REACH ANYONE? Each number is counted at the gate it actually has to pass, so
-    -- the drop between them says WHERE the reach is lost rather than only that it is small.
-    'supplier_reach', jsonb_build_object(
-      'leads', (SELECT count(*) FROM public.leads),
-      'with_capability', (SELECT count(*) FROM public.supplier_capabilities WHERE coalesce(cardinality(trades),0) > 0),
-      'confirmed', (SELECT count(*) FROM public.supplier_capabilities WHERE confirmed_at IS NOT NULL),
-      -- the real ceiling: confirmed AND the lead itself still admissible to matching
-      'matchable_now', (
-        SELECT count(*) FROM public.supplier_capabilities sc
-        JOIN public.leads l ON l.id = sc.supplier_id
-        WHERE sc.confirmed_at IS NOT NULL
-          AND coalesce(cardinality(sc.trades),0) > 0
-          AND public.fn_is_matchable(l.verified, l.banned, l.matching_blocked,
-                                     l.approval_status, l.permanently_closed, l.chat_strikes)),
-      'meaning', 'matchable_now is the most suppliers the structured matcher can shortlist for any request. fn_match_capability requires a supplier to have CONFIRMED their own scope; that gate is deliberate. When this is far below with_capability the shortage is confirmations, not suppliers.'
-    )
+    'payments_7d_revenue_aed', coalesce((SELECT round(sum(reveal_fee)::numeric,2) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),0)
   ) INTO res;
   RETURN res;
-END
-$function$
+END $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_health_brief()
