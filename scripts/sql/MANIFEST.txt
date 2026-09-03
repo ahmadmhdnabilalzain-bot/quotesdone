@@ -1887,3 +1887,4 @@ scripts/sql/lift_deterministic_loop_throttle.sql
 scripts/sql/fix_rfq_handling_trigger_event.sql
 scripts/sql/enable_self_management_crons.sql
 scripts/sql/declare_review_cron_components.sql
+scripts/sql/register_self_management_crons_phase_d.sql
