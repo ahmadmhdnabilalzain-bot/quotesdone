@@ -1917,3 +1917,11 @@ scripts/sql/refund_roles_are_policy_not_literals.sql
 scripts/sql/retire_the_legacy_credential_and_the_parallel_task_executor.sql
 scripts/sql/staff_org_recarve_settlement_c_2026_09_03.sql
 scripts/sql/deploy_completed_has_subscribers.sql
+scripts/sql/kernel_ledger_follows_the_manifest_3_sep_d.sql
+$f
+;
+node
+scripts/apply_sql.mjs
+$f
+--apply
+--ddl
