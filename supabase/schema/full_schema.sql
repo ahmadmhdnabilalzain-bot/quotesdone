@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T20:50:29.382Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T21:42:47.274Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -40322,14 +40322,7 @@ with epoch as (
 runs as (   -- every firing of a wrapped state-changing cron job, split by the epoch
   select r.runid, r.jobid, w.component_id, r.start_time,
          coalesce(r.end_time, now()) as end_time,
-         -- 3 SEP 2026: a trace is required from the moment the DOOR exists. A run is NEW when it
-        -- started after the epoch AND after this job was wrapped (phase_c_system_execution_wrapper.
-        -- wrapped_at): a firing that happened before the job ran through fn_kernel_cron_exec had no
-        -- door to trace through and is history, not a missing trace. Without this, wrapping a job
-        -- that had run for weeks (kb_embed_ops_knowledge, 25,669 outbox ticks) reported every
-        -- historical firing as a new untraced execution. After the wrap every firing must trace,
-        -- which is exactly what this check still refuses to let slip.
-        (r.start_time >= greatest((select started_at from epoch), w.wrapped_at)) as is_new
+         (r.start_time >= greatest((select started_at from epoch), w.wrapped_at)) as is_new
     from cron.job_run_details r
     join public.phase_c_system_execution_wrapper w on w.jobid = r.jobid
 ),
@@ -40373,11 +40366,17 @@ traced as (
          -- minute), so it cannot match a DIFFERENT firing of the same job -- which is the only way
          -- widening this could hide a real gap. A run with no trace for its component and job within
          -- five seconds is still reported, which is what makes the check able to fail.
-         exists (select 1 from public.phase_c_system_execution se
+         -- 4 SEP 2026: the overlap join is computed ONLY for the runs this board judges (is_new). The
+         -- 27,000 pre-wrap firings need no trace lookup — check 8 counts them by is_new alone — and
+         -- looking one up for each of them is what took this board to 83 s and a statement timeout
+         -- under load. Same rows, same verdicts, a fraction of the work.
+         case when runs.is_new
+              then exists (select 1 from public.phase_c_system_execution se
                   where se.component_id = runs.component_id
                     and se.trigger_source like 'cron.job/' || runs.jobid::text || '%'
                     and se.started_at <= runs.end_time + interval '5 seconds'
-                    and coalesce(se.finished_at, se.started_at) >= runs.start_time - interval '5 seconds') as has_trace
+                    and coalesce(se.finished_at, se.started_at) >= runs.start_time - interval '5 seconds')
+              else false end as has_trace
     from runs
 ),
 scope as (   -- everything still governed by TRACE-SYSTEM-EXECUTION
@@ -53679,8 +53678,16 @@ begin
   -- the window forward and the check went green over whatever spend it had just stepped over, and
   -- emptying that table moved the anchor to now()-1 day. The start of Phase C is a fixed instant,
   -- and BOTH cost ledgers are counted, not one.
-  actual := ((select count(*) from public.ai_cost_log where occurred_at > timestamptz '2026-08-15 02:51:36+00')
-           + (select count(*) from public.llm_attempt where created_at  > timestamptz '2026-08-15 02:51:36+00'))::text;
+  -- 4 SEP 2026: a row in a cost ledger is not a paid call. Since the company loop restarted, a HELD
+  -- call writes an ai_cost_log row with model_used = 'none', cost 0 and no provider round trip
+  -- (the gate said so in model_selected_because), and this line counted it as paid inference.
+  -- "Paid" means a provider was reached: tokens, cost or an HTTP status on the attempt.
+  actual := ((select count(*) from public.ai_cost_log
+               where occurred_at > timestamptz '2026-08-15 02:51:36+00'
+                 and (coalesce(cost_aed, 0) > 0 or coalesce(prompt_tokens, 0) > 0 or coalesce(model_used, 'none') <> 'none'))
+           + (select count(*) from public.llm_attempt
+               where created_at > timestamptz '2026-08-15 02:51:36+00'
+                 and (coalesce(cost_aed, 0) > 0 or coalesce(prompt_tokens, 0) > 0 or http_status is not null)))::text;
   ok := actual = expected; return next;
 
   check_name := 'openrouter_routes_open'; expected := '0';

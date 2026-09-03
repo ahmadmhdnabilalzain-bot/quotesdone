@@ -1944,3 +1944,4 @@ scripts/sql/outcome_evaluator_is_registered_for_the_scenario_door.sql
 scripts/sql/paid_inference_means_a_provider_was_reached.sql
 scripts/sql/the_trace_board_looks_up_only_the_runs_it_judges.sql
 scripts/sql/licence_reconciliation_is_reachable_again.sql
+scripts/sql/kernel_ledger_follows_the_manifest_4_sep.sql
