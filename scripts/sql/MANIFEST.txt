@@ -1884,3 +1884,4 @@ scripts/sql/ledger_autonomy_class_final_and_transactions_gate.sql
 scripts/sql/ops_knowledge_semantic_retrieval.sql
 scripts/sql/deterministic_decision_engine.sql
 scripts/sql/lift_deterministic_loop_throttle.sql
+scripts/sql/fix_rfq_handling_trigger_event.sql
