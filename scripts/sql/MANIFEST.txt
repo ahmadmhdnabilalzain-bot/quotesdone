@@ -1926,3 +1926,14 @@ $f
 scripts/sql/every_live_entry_point_is_a_component.sql
 scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
 scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
+
+# --- supply engine 2026-09-03 ---
+scripts/sql/supply_engine_gap_scan_reports_real_gaps.sql
+scripts/sql/supply_engine_discovery_promotes_staged_rows.sql
+scripts/sql/supply_engine_doc_expiry_scan_acts.sql
+scripts/sql/supply_engine_invite_plan_is_real_and_held.sql
+scripts/sql/supply_engine_marketplace_eight_inputs_and_fall_investigated.sql
+scripts/sql/supply_engine_crons_run_through_the_kernel.sql
+scripts/sql/register_the_supply_engine_crons_phase_d.sql
+scripts/sql/supply_engine_routines_are_owned_by_their_canonical_files.sql
+scripts/sql/supply_engine_routines_are_owned_by_their_canonical_files.sql

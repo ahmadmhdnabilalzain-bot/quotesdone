@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T19:14:31.875Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T20:28:52.889Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (609) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (610) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -465,7 +465,8 @@ CREATE TABLE IF NOT EXISTS public.agent_reputation (
   score numeric,
   tier text,
   computed_at timestamp with time zone DEFAULT now() NOT NULL,
-  decision_quality numeric
+  decision_quality numeric,
+  evidence jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.agent_runs (
@@ -1419,7 +1420,9 @@ CREATE TABLE IF NOT EXISTS public.continuity_plan (
   recovery text NOT NULL,
   rto_minutes integer,
   owner_agent text,
-  last_tested date
+  last_tested date,
+  probe_sql text,
+  last_result text
 );
 
 CREATE TABLE IF NOT EXISTS public.control_mode_action (
@@ -1490,7 +1493,8 @@ CREATE TABLE IF NOT EXISTS public.critical_capability (
   test_kind text,
   test_ref text,
   last_verdict text,
-  last_checked timestamp with time zone
+  last_checked timestamp with time zone,
+  probe_sql text
 );
 
 CREATE TABLE IF NOT EXISTS public.crm_activities (
@@ -3608,6 +3612,12 @@ CREATE TABLE IF NOT EXISTS public.lead_category (
   method text DEFAULT 'keyword_v1'::text NOT NULL,
   evidence text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_category_scan (
+  lead_id bigint NOT NULL,
+  scanned_at timestamp with time zone DEFAULT now() NOT NULL,
+  matched integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.lead_subcategory (
@@ -8329,6 +8339,7 @@ ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_u
 ALTER TABLE public.knowledge_kpi_snapshots ADD CONSTRAINT knowledge_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_pkey PRIMARY KEY (lead_id, slug);
+ALTER TABLE public.lead_category_scan ADD CONSTRAINT lead_category_scan_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_pkey PRIMARY KEY (lead_id, sub_slug);
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_pkey PRIMARY KEY (trade_key);
 ALTER TABLE public.leads ADD CONSTRAINT leads_pkey PRIMARY KEY (id);
@@ -9395,6 +9406,7 @@ ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_run_id_fkey FOREIGN KEY (run_id) REFERENCES knowledge_ingestion_run(run_id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
+ALTER TABLE public.lead_category_scan ADD CONSTRAINT lead_category_scan_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
@@ -15906,11 +15918,9 @@ declare v_site text;
   v_today date := (now() at time zone 'UTC')::date;
   v_planned int; v_used int; v_remaining int; v_subj text; v_body text; v_count int;
   v_inv_recent int; v_bounced_recent int; v_rate numeric; v_max_rate numeric; v_target int; v_cap int;
-  v_pause boolean := false; v_why text;
+  v_pause boolean := false; v_why text; v_go boolean; v_pool int;
   v_hol_name text; v_hol_action text; v_hol_end date;
 begin
-  if coalesce((select value from app_secrets where key='invite_enabled'),'false') <> 'true' then return 0; end if;
-
   -- THE CALENDAR THE COMPANY KEEPS ABOUT ITSELF. Checked before anything is planned or written, so
   -- a frozen day leaves no invite_schedule row claiming it planned sends it never made.
   select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
@@ -15927,10 +15937,31 @@ begin
     return 0;
   end if;
 
+  -- THE PLAN, before the gate. The batch is the ramp's cap bounded by the pool that can be written
+  -- to today; the row says whether the day is open or held and why.
+  v_go  := coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true';
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
-  insert into invite_schedule(day, planned, status) values (v_today, v_cap, 'approved')
-    on conflict (day) do update set planned = excluded.planned, status = 'approved';
-  v_planned := least(coalesce(p_cap, v_cap), v_cap);
+  select count(*) into v_pool from leads l
+   where l.email is not null and l.email <> '' and l.invite_status is null
+     and coalesce(l.source,'') <> 'self_registered' and coalesce(l.claimed,false) = false
+     and coalesce(l.banned,false) = false;
+  v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
+  insert into invite_schedule(day, planned, status, note)
+  values (v_today, greatest(v_planned, 0),
+          case when v_go then 'approved' else 'pending' end,
+          'batch of ' || greatest(v_planned, 0) || ' from a pool of ' || v_pool || ' never-invited lead(s) with an email, cap ' || v_cap
+          || case when v_go then '; sending open' else '; HELD — real invitations wait for the founder''s go (app_secrets.invite_enabled)' end)
+    on conflict (day) do update
+      set planned = excluded.planned, status = excluded.status, note = excluded.note;
+
+  if not v_go then
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok',
+            jsonb_build_object('queued', 0, 'planned', greatest(v_planned, 0), 'pool', v_pool, 'cap', v_cap, 'held', true),
+            'Invites planned and HELD: ' || greatest(v_planned, 0) || ' of a pool of ' || v_pool
+            || ' would be queued at cap ' || v_cap || '; invite_enabled is false, so nothing was written to the outbox.', now(), now());
+    return 0;
+  end if;
   if v_planned <= 0 then return 0; end if;
 
   v_max_rate := coalesce((select nullif(value,'')::numeric from app_secrets where key='invite_max_bounce_rate'), 0.08);
@@ -15951,6 +15982,7 @@ begin
 
   if v_pause then
     update app_secrets set value='false' where key='invite_enabled';
+    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || v_why where day = v_today;
     if not exists (select 1 from founder_alerts where event='invite_paused_bounce' and created_at > now()-interval '24 hours') then
       insert into founder_alerts(level,event,detail,channel)
         values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. Clean the list before resuming.','system');
@@ -16036,6 +16068,10 @@ begin
   where invite_status is null and lower(email) in (select lower(to_email) from ins);
   get diagnostics v_count = row_count;
   update invite_schedule set sent = sent + v_count where day = v_today;
+  insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+  values ('supplier_invites', 'ok',
+          jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false),
+          'Invites: ' || v_count || ' queued of ' || v_planned || ' planned (pool ' || v_pool || ', cap ' || v_cap || ').', now(), now());
   return v_count;
 end;
 $function$
@@ -16944,11 +16980,20 @@ CREATE OR REPLACE FUNCTION public.fn_ad_decision_mark_executed(p_id bigint, p_mo
  LANGUAGE plpgsql
  SET search_path TO 'public'
 AS $function$
-declare d public.ad_decision%rowtype;
+declare
+  d      public.ad_decision%rowtype;
+  s      public.ad_campaign_state%rowtype;
+  p      public.ad_spend_policy%rowtype;
+  v_from numeric;
+  v_to   numeric;
 begin
   select * into d from public.ad_decision where id = p_id for update;
   if not found then raise exception 'ad_decision % does not exist', p_id; end if;
   if d.executed_at is not null then return; end if;
+
+  -- the channel's allocation BEFORE the move
+  select * into s from public.ad_campaign_state where campaign_id = d.campaign_id;
+
   update public.ad_decision set executed_at = now(), execution_mode = p_mode, api_response = p_response where id = p_id;
   update public.ad_campaign_state set
     status = case d.action when 'activate' then 'ACTIVE' when 'pause' then 'PAUSED' else status end,
@@ -16956,6 +17001,31 @@ begin
     started_at = case when d.action = 'activate' then coalesce(started_at, now()) else started_at end,
     updated_at = now()
   where campaign_id = d.campaign_id;
+
+  -- the reallocation ledger: marketing budget between channels, citing the policy that moved it
+  if s.campaign_id is null then return; end if;
+  v_from := case d.action
+              when 'set_daily_budget' then coalesce((d.evidence->>'from')::numeric, s.daily_budget_aed)
+              when 'pause'            then case when s.status = 'ACTIVE' then s.daily_budget_aed else 0 end
+              when 'activate'         then 0
+              else null end;
+  v_to   := case d.action
+              when 'set_daily_budget' then d.amount_aed
+              when 'pause'            then 0
+              when 'activate'         then s.daily_budget_aed
+              else null end;
+  if v_from is null or v_to is null or v_from = v_to then return; end if;
+
+  select * into p from public.ad_spend_policy where policy_key = 'default';
+  insert into public.allocation_change (resource, subject, from_value, to_value, reason, policy)
+  values ('marketing_budget_channels', d.campaign_id, v_from, v_to,
+          format('%s: %s [ad_decision %s executed %s on %s]',
+                 d.rule_key, d.reason, d.id, p_mode, coalesce(s.campaign_name, d.campaign_id)),
+          format('ad_spend_policy %s, rule %s: target CPL %s AED, kill at %sx, scale step %s%%, '
+                 || 'per-campaign %s..%s AED/day, daily cap %s AED, effective ceiling %s AED/day',
+                 coalesce(p.policy_key, 'default'), d.rule_key, p.target_cpl_aed, p.kill_multiplier,
+                 p.scale_step_pct, p.min_daily_per_campaign_aed, p.max_daily_per_campaign_aed,
+                 p.daily_cap_aed, public.fn_ad_spend_daily_ceiling()));
 end;
 $function$
 
@@ -17516,6 +17586,7 @@ declare
   v_alts     jsonb;
   v_decision text;
   v_amt      text;
+  v_held     boolean;
 begin
   -- Nothing to do once every field the caller could supply is already there.
   if NEW.alternatives is not null and NEW.assumptions is not null
@@ -17532,6 +17603,27 @@ begin
      and v_alts is not null
      and v_alts::text not in ('null', '[]', '{}') then
     NEW.alternatives := v_alts;
+  end if;
+
+  -- No linked decision, or a decision that recorded nothing: the dispositions this row can take,
+  -- with the selected one read from the row's own status and the basis said on the row.
+  if NEW.alternatives is null then
+    v_held := coalesce(NEW.status, '') in ('needs_review', 'held_for_review', 'pending', 'proposed', 'open');
+    NEW.alternatives := jsonb_build_array(
+      jsonb_build_object(
+        'option', 'act as recommended',
+        'selected', not v_held and coalesce(NEW.status, '') not in ('rejected', 'declined', 'dismissed'),
+        'basis', 'the recommendation as written: ' || left(coalesce(NEW.recommendation, NEW.title, ''), 160)),
+      jsonb_build_object(
+        'option', 'hold for human review',
+        'selected', v_held,
+        'basis', case when NEW.decision_log_id is null
+                      then 'no decision_log row is linked; the disposition is read from the action''s own status (' || coalesce(NEW.status, 'unset') || ')'
+                      else 'the linked decision recorded no alternatives; the disposition is read from the action''s own status (' || coalesce(NEW.status, 'unset') || ')' end),
+      jsonb_build_object(
+        'option', 'do nothing and re-measure at the next tick',
+        'selected', false,
+        'rejected_because', 'the condition this action reports (' || left(coalesce(NEW.title, ''), 120) || ') persists until acted on'));
   end if;
 
   if NEW.assumptions is null then
@@ -17580,6 +17672,126 @@ AS $function$
       from agent_remediation where agent_key = (select k from me) and status <> 'passed'), '[]'::jsonb),
     'readiness', coalesce((select jsonb_agg(distinct readiness) from org_role_identity
                             where agent_key = (select k from me)), '[]'::jsonb));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
 $function$
 
 
@@ -17941,8 +18153,9 @@ begin
   end if;
   if p_agent_key is not null then
     out := out || '# LAYER 2 - YOUR PROFESSIONAL EXPERTISE'||E'\n\n';
-    for r in select topic,content from agent_knowledge
+    for r in select topic,content,review_due,validation_status from agent_knowledge
              where coalesce(layer,'profession') in ('profession','state')
+               and coalesce(validation_status,'') <> 'quarantined'
                and (agent_key = p_agent_key
                     or (v_dept is not null
                         and not exists (select 1 from agent_knowledge k2
@@ -17952,7 +18165,7 @@ begin
                                            where b.active and b.department = v_dept
                                              and b.agent_key <> p_agent_key)))
              order by priority desc nulls last, updated_at desc loop
-      piece := '## '||coalesce(r.topic,'')||E'\n'||coalesce(r.content,'')||E'\n\n';
+      piece := '## '||public.fn_knowledge_staleness_tag(r.review_due, r.validation_status)||coalesce(r.topic,'')||E'\n'||coalesce(r.content,'')||E'\n\n';
       if length(out)+length(piece) <= own_cap + 2200 then out := out||piece; end if;
     end loop;
   end if;
@@ -17961,9 +18174,10 @@ begin
   -- item against the WHOLE-context cap, so "Company FAQ (canonical answers)" — 197,956 chars
   -- at priority 96, the highest global row there is — could never fit and was silently
   -- skipped on every call for every employee.
-  for r in select topic,content from agent_knowledge
-           where agent_key='_global' and coalesce(priority,0)>=90 order by priority desc nulls last, updated_at desc loop
-    piece := '## '||coalesce(r.topic,'')||E'\n'||
+  for r in select topic,content,review_due,validation_status from agent_knowledge
+           where agent_key='_global' and coalesce(priority,0)>=90 and coalesce(validation_status,'') <> 'quarantined'
+           order by priority desc nulls last, updated_at desc loop
+    piece := '## '||public.fn_knowledge_staleness_tag(r.review_due, r.validation_status)||coalesce(r.topic,'')||E'\n'||
              case when length(coalesce(r.content,'')) > 1500
                   then left(r.content, 1500)||E'\n'||'[… truncated here at 1,500 of '
                        ||length(r.content)||' characters. This item exists in full in '
@@ -17971,9 +18185,10 @@ begin
                   else coalesce(r.content,'') end||E'\n\n';
     if length(out)+length(piece) <= cap then out := out||piece; end if;
   end loop;
-  for r in select topic,content from agent_knowledge
-           where agent_key='_global' and coalesce(priority,0)<90 order by priority desc nulls last, updated_at desc loop
-    piece := '## '||coalesce(r.topic,'')||E'\n'||
+  for r in select topic,content,review_due,validation_status from agent_knowledge
+           where agent_key='_global' and coalesce(priority,0)<90 and coalesce(validation_status,'') <> 'quarantined'
+           order by priority desc nulls last, updated_at desc loop
+    piece := '## '||public.fn_knowledge_staleness_tag(r.review_due, r.validation_status)||coalesce(r.topic,'')||E'\n'||
              case when length(coalesce(r.content,'')) > 1500
                   then left(r.content, 1500)||E'\n'||'[… truncated here at 1,500 of '
                        ||length(r.content)||' characters. This item exists in full in '
@@ -17992,10 +18207,11 @@ begin
     end;
   end if;
   if p_agent_key is not null then
-    for r in select topic, content from agent_knowledge
+    for r in select topic, content, review_due, validation_status from agent_knowledge
              where layer='experience' and agent_key in (p_agent_key,'_global')
+               and coalesce(validation_status,'') <> 'quarantined'
              order by updated_at desc limit 12 loop
-      v_l4 := v_l4 || '## '||coalesce(r.topic,'')||E'\n'||coalesce(r.content,'')||E'\n\n';
+      v_l4 := v_l4 || '## '||public.fn_knowledge_staleness_tag(r.review_due, r.validation_status)||coalesce(r.topic,'')||E'\n'||coalesce(r.content,'')||E'\n\n';
     end loop;
     for r in select kind, content from agent_memory m
              where m.agent_key=p_agent_key and m.importance >= 5
@@ -18127,126 +18343,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -18637,6 +18733,81 @@ begin
   ) || v_out;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_daily_thought()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a record; n_written int := 0; n_skipped int := 0;
+  v_mine int; v_mine_title text; v_dept_open int; v_queue int; v_queue_title text;
+  v_kpi text; v_kpi_actual numeric; v_kpi_target numeric; v_kpi_unit text; v_kpi_pct numeric;
+  v_last_status text; v_last_at timestamptz; v_kn int; v_kn_stale int;
+  v_next text; v_txt text; v_imp int;
+begin
+  for a in select agent_key, department, coalesce(title, role, agent_key) title
+             from public.org_agents where active order by agent_key
+  loop
+    if exists (select 1 from public.agent_memory m
+                where m.agent_key = a.agent_key and m.source = 'fn_agent_daily_thought'
+                  and m.created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') then
+      n_skipped := n_skipped + 1; continue;
+    end if;
+
+    select count(*), min(title) filter (where rn = 1) into v_mine, v_mine_title
+      from (select title, row_number() over (order by created_at) rn
+              from public.org_tasks where assigned_agent = a.agent_key and coalesce(status,'') <> 'done') t;
+    select count(*) into v_dept_open from public.org_tasks
+     where dept_key = a.department and coalesce(status,'') <> 'done';
+    select count(*), min(title) filter (where rn = 1) into v_queue, v_queue_title
+      from (select title, row_number() over (order by created_at) rn
+              from public.agent_actions where agent = a.agent_key
+               and status in ('pending','held_for_review','proposed','open','needs_review')) q;
+    select kpi, actual_value, target_value, unit,
+           case when coalesce(target_value,0) <> 0 then round(100.0 * actual_value / target_value, 1) end
+      into v_kpi, v_kpi_actual, v_kpi_target, v_kpi_unit, v_kpi_pct
+      from public.employee_kpi
+     where agent_key = a.agent_key and active and actual_value is not null and coalesce(target_value,0) <> 0
+     order by actual_value / target_value asc limit 1;
+    select status, started_at into v_last_status, v_last_at
+      from public.agent_runs where agent = a.agent_key order by started_at desc limit 1;
+    select count(*), count(*) filter (where validation_status in ('stale','quarantined') or review_due < current_date)
+      into v_kn, v_kn_stale
+      from public.agent_knowledge where agent_key = a.agent_key;
+
+    v_next := case
+      when v_mine > 0 then 'work the oldest task assigned to me: ' || left(v_mine_title, 120)
+      when v_queue > 0 then 'close my oldest recommendation still awaiting a decision: ' || left(v_queue_title, 120)
+      when v_kpi is not null and coalesce(v_kpi_pct, 100) < 100 then 'move "' || v_kpi || '" toward target (' || v_kpi_pct || '% attained)'
+      when v_kn_stale > 0 then 'refresh my ' || v_kn_stale || ' stale knowledge item(s) before relying on them'
+      when v_dept_open > 0 then 'pick up unassigned work in ' || a.department || ' (' || v_dept_open || ' open)'
+      else 'no open work is assigned to me; monitor my department''s KPIs and keep my knowledge current' end;
+
+    v_txt := 'Today (' || to_char(now() at time zone 'UTC', 'DD Mon YYYY') || ') as ' || a.title || ': '
+      || v_mine || ' task(s) assigned to me and ' || v_dept_open || ' open in ' || a.department || '; '
+      || v_queue || ' recommendation(s) of mine awaiting a decision; '
+      || coalesce('weakest KPI "' || v_kpi || '" at ' || v_kpi_actual || coalesce(' ' || v_kpi_unit, '') || ' of ' || v_kpi_target
+                  || coalesce(' (' || v_kpi_pct || '%)', '') || '; ', 'no measured KPI yet; ')
+      || coalesce('last run ' || v_last_status || ' ' || to_char(v_last_at at time zone 'UTC', 'DD Mon HH24:MI') || ' UTC; ', 'never run by the scheduler; ')
+      || v_kn || ' knowledge item(s), ' || v_kn_stale || ' stale. Next: ' || v_next || '.';
+
+    -- something is waiting on this employee: the thought matters more today
+    v_imp := case when v_mine > 0 or v_queue > 0 or v_kn_stale > 0 or coalesce(v_kpi_pct, 100) < 50 then 4 else 3 end;
+
+    insert into public.agent_memory (agent_key, kind, content, source, importance, horizon)
+    values (a.agent_key, 'thought', v_txt, 'fn_agent_daily_thought', v_imp, 'short');
+    n_written := n_written + 1;
+  end loop;
+
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('agent_daily_thought', now(), now(), 'ok',
+          jsonb_build_object('written', n_written, 'already_today', n_skipped),
+          'Daily thought: ' || n_written || ' employee(s) wrote today''s thought, ' || n_skipped || ' already had one.');
+  return jsonb_build_object('written', n_written, 'already_today', n_skipped);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_decision(p_agent text, p_kind text, p_title text, p_recommendation text, p_confidence numeric DEFAULT NULL::numeric, p_evidence jsonb DEFAULT '[]'::jsonb, p_risk text DEFAULT 'low'::text, p_detail jsonb DEFAULT '{}'::jsonb)
@@ -21704,6 +21875,29 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_category_classify(p_text text)
+ RETURNS TABLE(slug text, score integer, evidence text)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with hay as (select ' ' || lower(regexp_replace(coalesce(p_text,''), '[^[:alnum:]]+', ' ', 'g')) || ' ' as h),
+  hit as (
+    select k.slug, k.weight, k.negative, k.pattern,
+           btrim(lower(regexp_replace(k.pattern, '[^[:alnum:]]+', ' ', 'g'))) as pat
+      from category_keyword k, hay
+     where hay.h like '%' || btrim(lower(regexp_replace(k.pattern, '[^[:alnum:]]+', ' ', 'g'))) || '%'
+  )
+  select h.slug,
+         sum(case when h.negative then -h.weight else h.weight end)::int as score,
+         string_agg(h.pattern, '; ' order by h.weight desc, h.pattern) filter (where not h.negative) as evidence
+    from hit h, hay
+   where h.pat <> '' and hay.h ~ ('\m' || h.pat || '\M')
+   group by h.slug
+  having sum(case when h.negative then -h.weight else h.weight end) >= 3
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_category_expert_ref(p_category text)
  RETURNS text
  LANGUAGE plpgsql
@@ -22709,8 +22903,8 @@ declare
   d_supp numeric; d_sec numeric; d_res numeric; d_inno numeric; d_strat numeric; v_mat numeric;
   e_vel numeric; e_backlog numeric; e_collab numeric; e_knowcreate numeric; e_autorate numeric; v_energy numeric;
   m_quality numeric; m_speed numeric; m_completion numeric; m_fraud numeric; m_conf numeric; v_mh numeric;
-  m_satisf numeric; m_revenue numeric; m_retention numeric;
-  v_kpis int; v_gaps int;
+  m_satisf numeric; m_revenue numeric; m_retention numeric; m_cust_n int; m_rev_n int;
+  v_kpis int; v_gaps int; v_watch jsonb;
 begin
   select coalesce(100 - round(100.0*count(*) filter (where needs_founder)/nullif(count(*),0),1),100)
     into d_auto from org_tasks where status<>'done';
@@ -22763,25 +22957,34 @@ begin
            /nullif(count(*),0),1),0) into m_completion from inquiries i where i.created_at > now()-interval '30 days';
   select coalesce(100 - least(100,count(*)*5),100) into m_fraud from fraud_flags;
   select coalesce(round(avg(confidence)*100,1),50) into m_conf from decision_log where confidence is not null;
-  -- THE THREE ADDED INPUTS. Deterministic, model-free; null (not a guess) when the axis is unmeasured.
-  select round(avg(rating)*20.0, 1) into m_satisf
-    from reviews where rating is not null and created_at > now()-interval '90 days';
   -- coalesce the SUM to 0 BEFORE least(): least(100, NULL) is 100 in Postgres (least ignores nulls), which
   -- would read an empty marketplace as maximum revenue. Fold the empty case to 0 inside the aggregate.
   select least(100, round(coalesce(sum(coalesce(reveal_fee,0)+coalesce(app_fee,0)), 0)/100.0, 1)) into m_revenue
     from transactions where revealed_at > now()-interval '30 days';
-  select round(100.0*count(*) filter (where active_recently)/nullif(count(*),0), 1) into m_retention
+
+  -- CUSTOMER SATISFACTION: every rating a customer has given in 90 days, on the 0-100 scale the other
+  -- inputs use. 0 when nobody has rated anything — the same convention as rfq_completion with no
+  -- inquiries — and the count of ratings sits beside it.
+  select coalesce(round(avg(z.rating) * 20.0, 1), 0), count(*) into m_satisf, m_rev_n
+    from (select r.rating::numeric from reviews r where r.rating is not null and r.created_at > now()-interval '90 days'
+          union all
+          select f.rating from feedback f where f.rating is not null and f.subject_type = 'customer' and f.created_at > now()-interval '90 days') z;
+  -- CUSTOMER RETENTION (the churn input): of the customers old enough to have lapsed, the share still
+  -- active in the last 90 days. 0 when nobody is old enough to retain.
+  select coalesce(round(100.0 * count(*) filter (where active_recently) / nullif(count(*), 0), 1), 0), count(*)
+    into m_retention, m_cust_n
     from (select c.id,
                  exists(select 1 from inquiries i where i.customer_id=c.id and i.created_at > now()-interval '90 days')
               or exists(select 1 from transactions t where t.customer_id=c.id and t.revealed_at > now()-interval '90 days') as active_recently
-          from customers c) z;
-  v_mh := round((m_quality+m_speed+coalesce(m_completion,0)+m_fraud+m_conf
-                 +coalesce(m_satisf,50)+m_revenue+coalesce(m_retention,50))/8.0,1);
+            from customers c where c.created_at < now() - interval '30 days') z;
+
+  v_mh := round((m_quality+m_speed+m_completion+m_fraud+m_conf+m_satisf+m_revenue+m_retention)/8.0,1);
   insert into company_index (measured_on,index_name,dimensions,score,band)
   values (current_date,'marketplace_health',
     jsonb_build_object('supplier_quality',m_quality,'quote_speed',m_speed,'rfq_completion',m_completion,
       'fraud_clean',m_fraud,'ai_confidence',m_conf,
-      'customer_satisfaction',m_satisf,'revenue',m_revenue,'customer_retention',m_retention), v_mh,
+      'customer_satisfaction',m_satisf,'revenue',m_revenue,'customer_retention',m_retention,
+      'reviews_measured',m_rev_n,'customers_measured',m_cust_n), v_mh,
     case when v_mh>=75 then 'healthy' when v_mh>=50 then 'fragile' else 'unhealthy' end)
   on conflict (measured_on,index_name) do update set dimensions=excluded.dimensions, score=excluded.score, band=excluded.band;
 
@@ -22789,7 +22992,11 @@ begin
   values ('company_indices',now(),now(),'ok',
     jsonb_build_object('maturity',v_mat,'energy',v_energy,'marketplace_health',v_mh),
     'Company indices: maturity '||v_mat||', energy '||v_energy||', marketplace health '||v_mh||'.');
-  return jsonb_build_object('maturity',v_mat,'energy',v_energy,'marketplace_health',v_mh);
+
+  -- The tick that measures a fall investigates it.
+  v_watch := public.fn_index_slowdown_watch();
+  return jsonb_build_object('maturity',v_mat,'energy',v_energy,'marketplace_health',v_mh,
+                            'falls_investigated', v_watch->'investigated');
 end $function$
 
 
@@ -23019,49 +23226,98 @@ CREATE OR REPLACE FUNCTION public.fn_company_reflect()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_night date; v_r jsonb; v_last jsonb; n_nights int := 0; n_late int := 0;
+  n_concern int := 0; n_act int := 0;
+begin
+  for v_night in
+    select d::date from generate_series(current_date - 7, current_date, interval '1 day') d
+     where d::date = current_date
+        or not exists (select 1 from company_reflection r where r.reflected_on = d::date)
+     order by 1
+  loop
+    v_r := public.fn_company_reflect_night(v_night);
+    n_nights := n_nights + 1;
+    if coalesce((v_r->>'late')::boolean, false) then n_late := n_late + 1; end if;
+    n_concern := n_concern + coalesce((v_r->>'concerns')::int, 0);
+    n_act     := n_act     + coalesce((v_r->>'actions')::int, 0);
+    v_last := v_r;
+  end loop;
+
+  insert into agent_runs (agent,started_at,finished_at,status,counts,note)
+  values ('company_reflect',now(),now(),'ok',
+    jsonb_build_object('nights',n_nights,'late',n_late,'concerns',n_concern,'actions',n_act),
+    'Nightly self-reflection: '||n_nights||' night(s) reflected ('||n_late||' caught up late), '
+      ||n_concern||' concern(s), '||n_act||' action(s) opened. Nobody asked for this.');
+
+  return jsonb_build_object('nights',n_nights,'late',n_late,'concerns',n_concern,'actions',n_act,
+                            'answers',v_last->'answers');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_reflect_night(p_night date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare a jsonb; n_concern int := 0; n_act int := 0;
+  w_start timestamptz := (p_night::timestamp at time zone 'UTC');
+  w_end   timestamptz := (p_night::timestamp at time zone 'UTC') + interval '1 day';
+  v_live boolean := (p_night = current_date);
+  v_late text := '';
   v_learned int; v_errors int; v_wrong int; v_dept text; v_improved text;
   v_stale int; v_missed int; v_comp int; v_worst text; v_bus text;
 begin
-  select count(*) into v_learned from institutional_memory where created_at > now()-interval '24 hours';
-  select count(*) into v_errors  from agent_runs where status='error' and started_at > now()-interval '24 hours';
-  select count(*) into v_wrong   from outcome_record where verdict='worse' and closed_at > now()-interval '24 hours';
-  select dept_key into v_dept from org_tasks where status<>'done' group by dept_key order by count(*) desc limit 1;
+  if p_night > current_date then
+    raise exception 'fn_company_reflect_night: % is in the future; a night is reflected on when it has happened', p_night;
+  end if;
+  if not v_live then
+    v_late := ' [state measured '||current_date||', reflecting late on '||p_night||']';
+  end if;
+
+  -- The night's own facts, from the night's own window.
+  select count(*) into v_learned from institutional_memory where created_at >= w_start and created_at < w_end;
+  select count(*) into v_errors  from agent_runs where status='error' and started_at >= w_start and started_at < w_end;
+  select count(*) into v_wrong   from outcome_record where verdict='worse' and closed_at >= w_start and closed_at < w_end;
   select string_agg(actor, ', ') into v_improved from (
-    select distinct actor from outcome_record where verdict='improved' and closed_at > now()-interval '7 days' limit 3) x;
+    select distinct actor from outcome_record where verdict='improved'
+       and closed_at >= w_start - interval '6 days' and closed_at < w_end limit 3) x;
+  -- The backlog as it stood at the end of that night: tasks that existed by then and were not
+  -- done by then (a task done later still counts as open for that night).
+  select dept_key into v_dept from org_tasks
+   where created_at < w_end and (status <> 'done' or coalesce(updated_at, created_at) >= w_end)
+   group by dept_key order by count(*) desc limit 1;
+
+  -- Present-state answers. Honest for tonight; labelled when reflected late.
   select count(*) into v_stale from agent_knowledge where validation_status in ('stale','quarantined');
   select count(*) into v_missed from v_supply_gap where status='READY - not yet invited';
   select count(*) into v_comp from competitor;
   select name into v_worst from v_supply_gap where status like 'NO POOL%' limit 1;
-
-  -- xos-15. The company asks itself whether its own nervous system is carrying traffic. A
-  -- subscribed event type that has never fired is a promise the company is not keeping.
   select coalesce(string_agg(event_type || ' ' || state, ', ' order by event_type),
                   'every subscribed event type is carrying traffic')
     into v_bus from v_event_backbone where state <> 'LIVE';
 
   a := jsonb_build_object(
-    'what_did_i_learn', v_learned||' lesson(s) entered institutional memory in the last 24 hours.',
-    'what_mistakes_did_i_make', v_errors||' agent run(s) errored.',
-    'which_decisions_were_wrong', v_wrong||' graded improvement(s) made things worse and were flagged for reversal.',
-    'which_departments_are_struggling', coalesce('Heaviest open backlog: '||v_dept,'No department is carrying an unusual backlog.'),
-    'which_employees_improved', coalesce('Improvements that worked came from: '||v_improved,'No graded improvement has closed successfully yet.'),
-    'which_knowledge_became_outdated', v_stale||' knowledge item(s) are stale or quarantined.',
-    'which_opportunities_did_i_miss', v_missed||' category/categories have a viable supplier pool and no invitations sent.',
-    'which_competitor_became_stronger', v_comp||' competitor(s) tracked but 0 market signals captured, so this cannot be answered honestly yet.',
-    'is_my_nervous_system_carrying_traffic', 'Event types subscribed but not live: '||v_bus,
-    'how_can_i_be_better_tomorrow', coalesce('Close the supply gap starting with '||v_worst,'Close the open KPI gaps before taking on new work.'));
+    'what_did_i_learn', v_learned||' lesson(s) entered institutional memory on '||p_night||'.',
+    'what_mistakes_did_i_make', v_errors||' agent run(s) errored on '||p_night||'.',
+    'which_decisions_were_wrong', v_wrong||' graded improvement(s) made things worse and were flagged for reversal on '||p_night||'.',
+    'which_departments_are_struggling', coalesce('Heaviest open backlog at the end of '||p_night||': '||v_dept,'No department was carrying an unusual backlog on '||p_night||'.'),
+    'which_employees_improved', coalesce('Improvements that worked in the week to '||p_night||' came from: '||v_improved,'No graded improvement closed successfully in the week to '||p_night||'.'),
+    'which_knowledge_became_outdated', v_stale||' knowledge item(s) are stale or quarantined.'||v_late,
+    'which_opportunities_did_i_miss', v_missed||' category/categories have a viable supplier pool and no invitations sent.'||v_late,
+    'which_competitor_became_stronger', v_comp||' competitor(s) tracked but 0 market signals captured, so this cannot be answered honestly yet.'||v_late,
+    'is_my_nervous_system_carrying_traffic', 'Event types subscribed but not live: '||v_bus||v_late,
+    'how_can_i_be_better_tomorrow', coalesce('Close the supply gap starting with '||v_worst,'Close the open KPI gaps before taking on new work.')||v_late,
+    'reflected_at', now()::timestamptz(0)::text,
+    'reflected_late', (not v_live));
 
   if v_errors > 10 then n_concern := n_concern + 1; end if;
   if v_wrong  > 0  then n_concern := n_concern + 1; end if;
   if v_stale  > 50 then n_concern := n_concern + 1; end if;
 
-  -- xos-12. This used to be `insert into org_tasks ... 'procurement'` — the Leadership OS writing
-  -- a command straight into the Marketplace OS's queue. It emits now, and procurement's
-  -- supply.gap subscription turns it into exactly the same one task, through the bus, with an
-  -- audit trail the direct write never had. Deduped on the same 24h window so a nightly
-  -- reflection cannot emit the same gap twice.
-  if v_missed > 0 then
+  -- xos-12. Emits through the bus; procurement's supply.gap subscription turns it into the task.
+  -- Live night only — the gap is a present-state fact and the dedupe is on the emission clock.
+  if v_live and v_missed > 0 then
     if not exists (select 1 from company_event
                     where event_type='supply.gap' and occurred_at > now()-interval '20 hours') then
       perform public.fn_emit('supply.gap', 'category', 'ready_uninvited', 'ceo',
@@ -23073,13 +23329,10 @@ begin
   end if;
 
   insert into company_reflection (reflected_on,answers,concerns,actions)
-  values (current_date,a,n_concern,n_act)
+  values (p_night,a,n_concern,n_act)
   on conflict (reflected_on) do update set answers=excluded.answers, concerns=excluded.concerns, actions=excluded.actions;
 
-  insert into agent_runs (agent,started_at,finished_at,status,counts,note)
-  values ('company_reflect',now(),now(),'ok',jsonb_build_object('concerns',n_concern,'actions',n_act),
-    'Nightly self-reflection: '||n_concern||' concern(s), '||n_act||' action(s) opened. Nobody asked for this.');
-  return jsonb_build_object('concerns',n_concern,'actions',n_act,'answers',a);
+  return jsonb_build_object('night',p_night,'late',(not v_live),'concerns',n_concern,'actions',n_act,'answers',a);
 end $function$
 
 
@@ -25745,17 +25998,43 @@ CREATE OR REPLACE FUNCTION public.fn_dept_authority(p_dept text, p_action_class 
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
-declare v jsonb;
+declare
+  v jsonb;
+  v_tier text;
+  v_reason text;
+  v_avg numeric; v_measured int; v_probation int;
+  v_capped boolean := false;
 begin
   v := public.fn_ops_authority_check(p_dept, p_action_class, p_amount_aed, null);
+  v_tier := v->>'effective_tier';
+  v_reason := v->>'reason';
+
+  -- The department's earned reputation: only employees with a measured tier count.
+  select round(avg(r.score), 1), count(*), count(*) filter (where r.tier = 'probation')
+    into v_avg, v_measured, v_probation
+    from public.agent_reputation r
+    join public.org_agents a on a.agent_key = r.agent_key
+   where a.active and a.department = p_dept and r.tier <> 'unmeasured' and r.score is not null;
+
+  if v_tier = 'autonomous' and coalesce(v_measured, 0) > 0 and v_avg < 50 then
+    v_tier := 'supervised';
+    v_capped := true;
+    v_reason := format('capped by reputation: %s measured employee(s) in %s average %s, below the '
+                       || 'probation line of 50, so autonomous work runs supervised until the '
+                       || 'department earns it back (%s)', v_measured, p_dept, v_avg, v_reason);
+  end if;
+
   return jsonb_build_object(
     'dept', p_dept,
     'action_class', p_action_class,
-    'tier', v->>'effective_tier',
+    'tier', v_tier,
     'threshold_aed', (v->>'threshold_aed')::numeric,
-    'capped', coalesce(v->>'production_tier', 'gated') is distinct from (v->>'effective_tier'),
+    'capped', coalesce(v->>'production_tier', 'gated') is distinct from v_tier,
+    'capped_by_reputation', v_capped,
+    'reputation', jsonb_build_object('avg_score', v_avg, 'measured', coalesce(v_measured, 0),
+                                     'on_probation', coalesce(v_probation, 0)),
     'reviewed', (v->>'reviewed')::boolean,
-    'reason', v->>'reason');
+    'reason', v_reason);
 end $function$
 
 
@@ -26068,29 +26347,97 @@ CREATE OR REPLACE FUNCTION public.fn_doc_expiry_scan()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare rec record; n int:=0; owner text;
+declare
+  rec record; v_go boolean; v_status text; v_n_actions int := 0; v_n_requests int := 0; v_n_held int := 0;
+  v_blocks json; v_site text; v_reply text;
 begin
-  select split_part(coalesce(value,'management@quotesdone.com'),',',1) into owner from app_secrets where key='admin_emails';
+  v_go := coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true';
+  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
+  select coalesce(nullif(btrim(value), ''), 'docs@mail.quotesdone.com') into v_reply from app_secrets where key = 'email_reply_supplier_docs';
+
   for rec in
-    select id, company_name, 'trade licence' as doc, license_expiry as exp from leads where license_expiry is not null and license_expiry <= current_date+30 and coalesce(approval_status,'')='approved'
-    union all
-    select id, company_name, 'insurance', insurance_expiry from leads where insurance_expiry is not null and insurance_expiry <= current_date+30 and coalesce(approval_status,'')='approved'
-    union all
-    select id, company_name, 'registration', registration_expires_at::date from leads where registration_expires_at is not null and registration_expires_at::date <= current_date+30 and coalesce(approval_status,'')='approved'
-    union all
-    select id, company_name, 'ISO certification', iso_expiry from leads where iso_expiry is not null and iso_expiry <= current_date+30 and coalesce(approval_status,'')='approved'
-    union all
-    select id, company_name, 'manufacturer authorisation', manufacturer_auth_expiry from leads where manufacturer_auth_expiry is not null and manufacturer_auth_expiry <= current_date+30 and coalesce(approval_status,'')='approved'
+    select l.id, l.company_name, l.email, d.doc, d.exp, (d.exp < current_date) as expired
+      from leads l
+      cross join lateral (values
+        ('trade licence', l.license_expiry),
+        ('insurance', l.insurance_expiry),
+        ('registration', l.registration_expires_at::date),
+        ('ISO certification', l.iso_expiry),
+        ('manufacturer authorisation', l.manufacturer_auth_expiry)) d(doc, exp)
+     where coalesce(l.approval_status, '') = 'approved' and coalesce(l.banned, false) = false
+       and d.exp is not null and d.exp <= current_date + 30
+     order by d.exp, l.id
   loop
-    if not exists (select 1 from notifications where type='doc_expiry' and lead_id=rec.id and subject like '%'||rec.doc||'%' and created_at > now()-interval '20 days') then
-      insert into notifications(type,to_email,to_role,lead_id,channel,subject,body)
-      values ('doc_expiry', owner, 'admin', rec.id, 'email',
-        'Supplier document expiring: '||rec.doc,
-        coalesce(rec.company_name,'Supplier #'||rec.id)||' — '||rec.doc||' expires '||rec.exp||'. Follow up for renewal.');
-      n:=n+1;
+    -- 1. the renewal request to the supplier, into the outbox.
+    if rec.email is not null and rec.email <> ''
+       and not exists (select 1 from notifications n
+                        where n.type = 'doc_renewal_request' and n.lead_id = rec.id
+                          and n.subject like '%' || rec.doc || '%' and n.created_at > now() - interval '20 days') then
+      v_status := case when v_go or rec.email ~* '@example[.]invalid$' then 'queued' else 'held' end;
+      insert into notifications (type, to_email, to_role, lead_id, channel, status, subject, body, last_error)
+      values ('doc_renewal_request', rec.email, 'supplier', rec.id, 'email', v_status,
+              case when rec.expired then 'Action needed: your ' || rec.doc || ' on QuotesDone has expired'
+                   else 'Your ' || rec.doc || ' on QuotesDone expires on ' || to_char(rec.exp, 'DD Mon YYYY') end,
+              'Dear ' || coalesce(nullif(btrim(rec.company_name), ''), 'supplier') || ',' || E'\n\n'
+              || case when rec.expired
+                      then 'The ' || rec.doc || ' on your QuotesDone supplier profile expired on ' || to_char(rec.exp, 'DD Mon YYYY')
+                           || '. Until a valid document is on file your company is not matched to new requests for quotation.'
+                      else 'The ' || rec.doc || ' on your QuotesDone supplier profile expires on ' || to_char(rec.exp, 'DD Mon YYYY')
+                           || '. To keep receiving requests for quotation without interruption, please upload the renewed document before that date.' end
+              || E'\n\n' || 'Upload it in your supplier portal: ' || v_site || '/en/portal' || E'\n'
+              || 'or reply to this email with the document attached (' || v_reply || ').' || E'\n\n'
+              || 'QuotesDone Supplier Verification',
+              case when v_status = 'held' then 'HELD by fn_doc_expiry_scan: supplier outbound waits for the founder''s go (app_secrets.invite_enabled).' end);
+      v_n_requests := v_n_requests + 1;
+      if v_status = 'held' then v_n_held := v_n_held + 1; end if;
+    end if;
+
+    -- 3. the record of it, once per document per 20 days.
+    if not exists (select 1 from agent_actions a
+                    where a.kind in ('licence_expiring', 'licence_expired') and a.target_table = 'leads'
+                      and a.target_id = rec.id::text and a.title like '%' || rec.doc || '%'
+                      and a.created_at > now() - interval '20 days') then
+      insert into agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id,
+                                 confidence, evidence, decided_by, decided_at, expected_impact, cost)
+      values ('supplier_verification',
+              case when rec.expired then 'licence_expired' else 'licence_expiring' end,
+              'auto_done', case when rec.expired then 'medium' else 'low' end,
+              coalesce(nullif(btrim(rec.company_name), ''), 'Supplier #' || rec.id) || ' — ' || rec.doc
+              || case when rec.expired then ' EXPIRED on ' else ' expires on ' end || to_char(rec.exp, 'DD Mon YYYY'),
+              case when rec.expired
+                   then 'Renewal request written to the supplier outbox; matching suspended by fn_reconcile_licence_blocks until the date on file is renewed.'
+                   else 'Renewal request written to the supplier outbox ' || (rec.exp - current_date) || ' day(s) ahead; matching is suspended automatically on the day it lapses.' end,
+              jsonb_build_object('document', rec.doc, 'expires_on', rec.exp, 'days_left', rec.exp - current_date,
+                                 'renewal_request', case when rec.email is null or rec.email = '' then 'no email on file'
+                                                         when v_go or rec.email ~* '@example[.]invalid$' then 'queued' else 'held' end,
+                                 'supplier_outbound_go', v_go),
+              'leads', rec.id::text, 1.0,
+              jsonb_build_object('basis', 'leads.' || case rec.doc when 'trade licence' then 'license_expiry' when 'insurance' then 'insurance_expiry'
+                                                                    when 'registration' then 'registration_expires_at' when 'ISO certification' then 'iso_expiry'
+                                                                    else 'manufacturer_auth_expiry' end || ' read by fn_doc_expiry_scan on ' || current_date),
+              'doc_expiry_scan', now(),
+              'An approved supplier with a lapsed document is not matched; a renewed one keeps its supply available.',
+              'No spend: one outbox email; the supplier bears the renewal fee.');
+      v_n_actions := v_n_actions + 1;
     end if;
   end loop;
-  return jsonb_build_object('flagged',n,'scanned_at',now());
+
+  -- 2. the suspension and the restoration, from the dates on file.
+  v_blocks := public.fn_reconcile_licence_blocks(0);
+
+  insert into agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('doc_expiry_scan', now(), now(), 'ok',
+          jsonb_build_object('actions', v_n_actions, 'renewal_requests', v_n_requests, 'held', v_n_held,
+                             'suspended', (v_blocks->>'suspended')::int, 'restored', (v_blocks->>'restored')::int,
+                             'supplier_outbound_go', v_go),
+          'Document expiry scan: ' || v_n_actions || ' action(s) recorded, ' || v_n_requests
+          || ' renewal request(s) written to the outbox (' || v_n_held || ' held pending the founder''s go), '
+          || (v_blocks->>'suspended') || ' supplier(s) suspended for a lapsed licence, '
+          || (v_blocks->>'restored') || ' restored.');
+
+  return jsonb_build_object('actions', v_n_actions, 'renewal_requests', v_n_requests, 'held', v_n_held,
+                            'suspended', (v_blocks->>'suspended')::int, 'restored', (v_blocks->>'restored')::int,
+                            'supplier_outbound_go', v_go, 'scanned_at', now());
 end $function$
 
 
@@ -26231,6 +26578,134 @@ begin
 
   select count(*) into n from agent_actions where agent='document_controller' and status in ('pending','needs_review');
   return jsonb_build_object('ran_at',now(),'doc_health',v_health,'kpis',to_jsonb(k),'open_tasks',n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dr_drill()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c record; v boolean; v_verdict text;
+  v_started timestamptz := clock_timestamp();
+  n_cap_ok int := 0; n_cap_fail int := 0; n_svc_ok int := 0; n_svc_fail int := 0; n_crit_fail int := 0;
+  v_fail text := ''; v_verify jsonb; v_restore_ok boolean; v_restore_note text := 'restore drill fresh';
+  v_url text; v_status text;
+begin
+  -- 1. the ledger: suites and scenarios as their last real run recorded them
+  v_verify := public.fn_capability_verify();
+
+  -- 2. capability probes, each in a subtransaction that is always rolled back
+  for c in select capability_key, probe_sql from public.critical_capability
+            where probe_sql is not null order by capability_key loop
+    v := null;
+    begin
+      execute c.probe_sql into v;
+      raise exception using errcode = 'P0001', message = '__probe_rollback__';
+    exception when others then
+      if sqlerrm = '__probe_rollback__' then
+        v_verdict := case when coalesce(v, false) then 'probe_ok' else 'probe_failed: returned false' end;
+      else
+        v_verdict := 'probe_failed: ' || left(sqlerrm, 200);
+      end if;
+    end;
+    update public.critical_capability
+       set last_verdict = v_verdict, last_checked = now()
+     where capability_key = c.capability_key;
+    if v_verdict = 'probe_ok' then n_cap_ok := n_cap_ok + 1;
+    else n_cap_fail := n_cap_fail + 1; v_fail := v_fail || c.capability_key || ': ' || v_verdict || '. ';
+    end if;
+  end loop;
+
+  -- 3. continuity probes: the detection or fallback each service documents, measured
+  for c in select service, criticality, probe_sql from public.continuity_plan
+            where probe_sql is not null order by service loop
+    v := null;
+    begin
+      execute c.probe_sql into v;
+      raise exception using errcode = 'P0001', message = '__probe_rollback__';
+    exception when others then
+      if sqlerrm = '__probe_rollback__' then
+        v_verdict := case when coalesce(v, false) then 'pass' else 'fail: probe returned false' end;
+      else
+        v_verdict := 'fail: ' || left(sqlerrm, 200);
+      end if;
+    end;
+    update public.continuity_plan
+       set last_tested = current_date, last_result = v_verdict
+     where service = c.service;
+    if v_verdict = 'pass' then n_svc_ok := n_svc_ok + 1;
+    else
+      n_svc_fail := n_svc_fail + 1;
+      if c.criticality in ('critical','high') then n_crit_fail := n_crit_fail + 1; end if;
+      v_fail := v_fail || c.service || ' (' || c.criticality || '): ' || v_verdict || '. ';
+    end if;
+  end loop;
+
+  -- 4. the continuity capability's verdict IS the continuity drill's result
+  update public.critical_capability
+     set last_verdict = case when n_crit_fail = 0 then 'probe_ok'
+                             else 'probe_failed: ' || n_crit_fail || ' critical/high service(s) failed their continuity probe' end,
+         last_checked = now()
+   where capability_key = 'continuity';
+
+  -- 5. a stale restore drill is re-run, not reported. Same call as dr_drill_monthly (job 55).
+  select exists (select 1 from public.agent_runs
+                  where agent = 'dr_drill' and status = 'ok'
+                    and coalesce((counts->>'tables_checked')::int, 0) > 0
+                    and started_at > now() - interval '45 days')
+    into v_restore_ok;
+  if not v_restore_ok then
+    begin
+      select 'https://' || value || '.supabase.co/functions/v1/dr_drill' into v_url
+        from public.app_secrets where key = 'project_ref';
+      perform net.http_post(
+        url := v_url,
+        headers := jsonb_build_object('Content-Type','application/json',
+                     'Authorization','Bearer '||(select value from public.app_secrets where key='anon_key')),
+        body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_cron_backup')),
+        timeout_milliseconds := 120000);
+      v_restore_note := 'no successful restore drill in 45 days: dr_drill triggered';
+    exception when others then
+      v_restore_note := 'no successful restore drill in 45 days and dr_drill could not be triggered: ' || left(sqlerrm, 160);
+      n_crit_fail := n_crit_fail + 1;
+      v_fail := v_fail || v_restore_note || '. ';
+    end;
+  end if;
+
+  -- 6. a failed probe is a ticket for IT, once per failure per day — the record of what the drill
+  --    found, for the employee who owns the fix.
+  if v_fail <> '' and not exists (
+       select 1 from public.agent_actions
+        where kind = 'resilience_probe_failed' and status in ('pending','needs_review')
+          and created_at > now() - interval '20 hours') then
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, detail)
+    values ('it', 'resilience_probe_failed', 'pending', 'medium',
+            'Resilience drill: ' || (n_cap_fail + n_svc_fail) || ' probe(s) failed',
+            'Read the probe_sql on each failing critical_capability / continuity_plan row and restore the mechanism it tests. ' || left(v_fail, 800),
+            'critical_capability',
+            jsonb_build_object('capabilities_failed', n_cap_fail, 'services_failed', n_svc_fail,
+                               'critical_or_high_failed', n_crit_fail, 'detail', left(v_fail, 2000)));
+  end if;
+
+  v_status := case when n_cap_fail + n_crit_fail > 0 then 'error' else 'ok' end;
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('resilience_drill', v_started, clock_timestamp(), v_status,
+          jsonb_build_object('capabilities_probed', n_cap_ok + n_cap_fail, 'capabilities_ok', n_cap_ok,
+                             'capabilities_failed', n_cap_fail, 'services_tested', n_svc_ok + n_svc_fail,
+                             'services_ok', n_svc_ok, 'services_failed', n_svc_fail,
+                             'critical_or_high_failed', n_crit_fail, 'ledger', v_verify,
+                             'restore_drill_fresh', v_restore_ok),
+          'Resilience drill: ' || n_cap_ok || ' of ' || (n_cap_ok + n_cap_fail) || ' capability probe(s) passed, '
+          || n_svc_ok || ' of ' || (n_svc_ok + n_svc_fail) || ' continuity service(s) passed their probe; '
+          || v_restore_note || case when v_fail <> '' then '. FAILED: ' || left(v_fail, 700) else '.' end);
+
+  return jsonb_build_object('status', v_status, 'capabilities_ok', n_cap_ok, 'capabilities_failed', n_cap_fail,
+                            'services_ok', n_svc_ok, 'services_failed', n_svc_fail,
+                            'critical_or_high_failed', n_crit_fail, 'restore_drill_fresh', v_restore_ok,
+                            'restore_note', v_restore_note, 'failures', nullif(v_fail, ''));
 end $function$
 
 
@@ -28603,6 +29078,7 @@ AS $function$
 declare m jsonb; findings jsonb := '[]'::jsonb; actions int := 0; recs jsonb;
   -- the six agenda sections, rebuilt per contribution, plus their company-scoped counterparts
   v_wins text; v_probs text; v_risks text; v_opps text; v_reqs text; v_kpis jsonb;
+  v_ask text; v_target jsonb;
   v_dept text; v_opp_all int; v_co jsonb; p record; v_challenger text; v_ch int := 0;
   v_period text := to_char(now(),'IYYY-"W"IW');
   v_rev numeric; v_spend numeric; v_sup int; v_open int; v_avail numeric;
@@ -28611,13 +29087,25 @@ declare m jsonb; findings jsonb := '[]'::jsonb; actions int := 0; recs jsonb;
   -- SURVIVAL LINE: cash, burn and runway, read once from fn_ws_finance (already computed).
   v_fin jsonb; v_cash numeric; v_burn numeric; v_runway numeric; v_fin_health text; v_fin_raised int := 0;
 begin
-  -- ensure the OS reviews for this week exist before the meeting reads them
-  if not exists (select 1 from os_review where period = v_period) then
+  -- EVERY ACTIVE OPERATING SYSTEM MUST HAVE THIS WEEK'S REVIEW BEFORE THE MEETING READS IT.
+  -- "A row exists for the period" let a review taken before an OS was created stand in for it, and
+  -- let a retired OS keep its seat. fn_os_review upserts on (os_key, period), so re-running it for a
+  -- missing OS is safe.
+  if exists (select 1 from operating_system o where o.active
+              and not exists (select 1 from os_review rv where rv.os_key = o.os_key and rv.period = v_period)) then
     perform fn_os_review();
   end if;
 
-  select count(*) filter (where health='red'), count(*) filter (where health='amber'), count(*) filter (where health='green')
-    into v_red, v_amber, v_green from os_review where period = v_period;
+  -- Counted over the ACTIVE operating systems, the same population the agenda iterates below. An
+  -- active OS the review could not produce a row for is amber: unreviewed is not green.
+  -- (alias rv, not r: r is the loop RECORD below, and plpgsql would read r.health as its field)
+  select count(*) filter (where rv.health='red'),
+         count(*) filter (where coalesce(rv.health,'amber')='amber'),
+         count(*) filter (where rv.health='green')
+    into v_red, v_amber, v_green
+    from operating_system o
+    left join os_review rv on rv.os_key = o.os_key and rv.period = v_period
+   where o.active;
 
   select coalesce(sum(coalesce(reveal_fee,app_fee,0)),0) into v_rev from transactions where revealed_at > now()-interval '7 days';
   select coalesce(sum(cost_aed),0) into v_spend from ai_cost_log where occurred_at > now()-interval '7 days';
@@ -28647,18 +29135,26 @@ begin
                        else 'green' end;
   m := m || jsonb_build_object('cash_aed', v_cash, 'monthly_burn_aed', v_burn, 'runway_months', v_runway);
 
-  -- AGENDA ITEM 1..10: every operating system that is not green, named with its owner AND with the
-  -- live per-OS figures out of v_os_health that put it there. LEFT JOIN: an OS the view cannot
-  -- resolve still reaches the agenda, it just reaches it without drivers.
+  -- AGENDA ITEM PER ACTIVE OPERATING SYSTEM, named with its owner AND with the live per-OS figures
+  -- out of v_os_health that put it there. Both joins are LEFT: an OS the review could not produce a
+  -- row for still reaches the agenda (amber, with a finding saying so), and an OS the view cannot
+  -- resolve reaches it without drivers.
   for r in
-    select o.num, o.name, r2.health, r2.owner_agent, r2.findings,
+    select o.num, o.name,
+           coalesce(r2.health, 'amber') health,
+           coalesce(r2.owner_agent, o.owner_agent) owner_agent,
+           coalesce(r2.findings, jsonb_build_array(jsonb_build_object(
+             'issue', 'no review this week',
+             'detail', 'fn_os_review produced no row for this operating system in '||v_period||'.'))) findings,
            h.open_risks, h.kpi_gaps, h.backlog_per_head, h.stale_tasks,
            h.review_pass_pct, h.budget_pct, h.needs_founder_pct,
            r2.metrics->>'capacity_pct' capacity_pct
-    from os_review r2 join operating_system o on o.os_key = r2.os_key
-    left join v_os_health h on h.os_key = r2.os_key
-    where r2.period = v_period order by
-      case r2.health when 'red' then 1 when 'amber' then 2 else 3 end, o.num
+    from operating_system o
+    left join os_review r2 on r2.os_key = o.os_key and r2.period = v_period
+    left join v_os_health h on h.os_key = o.os_key
+    where o.active
+    order by
+      case coalesce(r2.health, 'amber') when 'red' then 1 when 'amber' then 2 else 3 end, o.num
   loop
     v_drivers := 'open_risks '||coalesce(r.open_risks::text,'?')
       ||', kpi_gaps '||coalesce(r.kpi_gaps::text,'?')
@@ -28712,31 +29208,60 @@ begin
              select title from org_tasks where needs_founder and status <> 'done'
               and dept_key = v_dept order by created_at desc limit 3) q), '')||'.';
 
+    -- THE QUANTIFIED ASK. The three drivers the owner can move this week, with where they stand
+    -- and where they must be, in the same sentence and again as numbers. A green OS is asked to
+    -- hold its figures, not to improve on zero.
+    v_ask := case when r.health = 'green'
+      then 'Hold: '||coalesce(r.kpi_gaps,0)||' KPI gap(s), '||coalesce(r.stale_tasks,0)
+           ||' stale task(s), '||coalesce(r.open_risks,0)||' open risk(s) — keep all three at 0 through '
+           ||to_char(current_date + 7, 'YYYY-MM-DD')||'.'
+      else 'Close '||coalesce(r.kpi_gaps,0)||' KPI gap(s) → 0, clear '||coalesce(r.stale_tasks,0)
+           ||' stale task(s) → 0 and retire '||coalesce(r.open_risks,0)||' open risk(s) → 0 by '
+           ||to_char(current_date + 7, 'YYYY-MM-DD')
+           ||coalesce('; budget at '||r.budget_pct||'% of month, stay under 70%', '')||'.' end;
+    v_target := jsonb_build_object(
+      'kpi_gaps', 0, 'stale_tasks', 0, 'open_risks', 0, 'budget_pct_max', 70,
+      'current', jsonb_build_object('kpi_gaps', coalesce(r.kpi_gaps,0), 'stale_tasks', coalesce(r.stale_tasks,0),
+                                    'open_risks', coalesce(r.open_risks,0), 'budget_pct', r.budget_pct),
+      'by', to_char(current_date + 7, 'YYYY-MM-DD'));
+
     findings := findings || jsonb_build_array(jsonb_build_object(
       'item', r.num||'. '||r.name, 'owner', coalesce(r.owner_agent,'unassigned'),
       'health', r.health, 'finding', r.findings::text, 'drivers', v_drivers,
       'wins', v_wins, 'problems', v_probs, 'kpis', v_kpis,
-      'risks', v_risks, 'opportunities', v_opps, 'requests', v_reqs));
+      'risks', v_risks, 'opportunities', v_opps, 'requests', v_reqs,
+      'ask', v_ask, 'target', v_target));
   end loop;
 
-  -- COMPANY-LEVEL ITEMS the CEO owns directly
+  -- COMPANY-LEVEL ITEMS the CEO owns directly. Each carries the same quantified ask.
   if coalesce(v_rev,0)=0 then
-    findings := findings || jsonb_build_array(jsonb_build_object('item','Revenue','owner','cfo','health','amber','finding','No revenue recognised in the last 7 days.'));
+    findings := findings || jsonb_build_array(jsonb_build_object('item','Revenue','owner','cfo','health','amber',
+      'finding','No revenue recognised in the last 7 days.',
+      'ask','Revenue AED 0 in 7 days: book at least 1 revealed quote (3% reveal fee) by '||to_char(current_date + 7, 'YYYY-MM-DD')||'.',
+      'target',jsonb_build_object('reveals_7d',1,'revenue_7d_aed_min',1,'current',jsonb_build_object('revenue_7d_aed',v_rev),'by',to_char(current_date + 7, 'YYYY-MM-DD'))));
   end if;
   if v_sup < 860 then
     findings := findings || jsonb_build_array(jsonb_build_object('item','Supplier coverage','owner','procurement','health',
       case when v_sup=0 then 'red' else 'amber' end,
-      'finding', v_sup||' approved suppliers against a target of 860 (10 in each of 86 categories).'));
+      'finding', v_sup||' approved suppliers against a target of 860 (10 in each of 86 categories).',
+      'ask','Approve '||(860 - v_sup)||' more suppliers to reach 860 (now '||v_sup||'); at least 10 this week.',
+      'target',jsonb_build_object('approved_suppliers',860,'approved_this_week_min',10,'current',jsonb_build_object('approved_suppliers',v_sup))));
   end if;
   if coalesce(v_avail,100) < 99.5 then
-    findings := findings || jsonb_build_array(jsonb_build_object('item','Platform availability','owner','cto','health','amber','finding','Availability '||coalesce(v_avail,0)||'% against 99.5%.'));
+    findings := findings || jsonb_build_array(jsonb_build_object('item','Platform availability','owner','cto','health','amber',
+      'finding','Availability '||coalesce(v_avail,0)||'% against 99.5%.',
+      'ask','Raise 7-day availability from '||coalesce(v_avail,0)||'% to 99.5%.',
+      'target',jsonb_build_object('availability_pct',99.5,'current',jsonb_build_object('availability_pct',v_avail))));
   end if;
   -- SURVIVAL LINE ON THE AGENDA. The CFO owns it. It joins the agenda only when it is not green,
   -- like the three items above, and it always exists as a board report below.
   if v_fin_health <> 'green' then
     findings := findings || jsonb_build_array(jsonb_build_object('item','Runway & cash','owner','cfo','health',v_fin_health,
       'finding','Cash AED '||round(v_cash)||', monthly burn AED '||round(v_burn)||', runway '
-        ||coalesce(v_runway::text,'—')||' months against a break-even target.'));
+        ||coalesce(v_runway::text,'—')||' months against a break-even target.',
+      'ask','Cash AED '||round(v_cash)||' and burn AED '||round(v_burn)||'/month: cut burn or add cash until runway is at least 6 months (now '
+        ||coalesce(v_runway::text,'—')||').',
+      'target',jsonb_build_object('runway_months_min',6,'current',jsonb_build_object('cash_aed',v_cash,'monthly_burn_aed',v_burn,'runway_months',v_runway))));
     v_fin_raised := 1;
   end if;
 
@@ -28760,6 +29285,7 @@ begin
     'Exec meeting '||v_period||': '||(f->>'item'),
     'Health: '||(f->>'health')||'. Owner: '||(f->>'owner')||'. '||(f->>'finding')
     ||coalesce(' Drivers: '||(f->>'drivers')||'.','')
+    ||coalesce(' Ask: '||(f->>'ask'),'')
     ||' Raised at the weekly executive meeting. Close it, or bring evidence the standard is wrong.',
     'proposed','advisory',false,'exec_review'
   from jsonb_array_elements(findings) f
@@ -28769,17 +29295,20 @@ begin
 
   select coalesce(jsonb_agg(jsonb_build_object(
            'rank', x.rn, 'owner', x.owner, 'priority', x.health,
-           'title', x.item, 'why', x.finding) order by x.rn), '[]'::jsonb)
+           'title', x.item, 'why', x.finding, 'ask', x.ask, 'target', x.target) order by x.rn), '[]'::jsonb)
     into recs from (
       select row_number() over (order by case f->>'health' when 'red' then 1 else 2 end, ord) rn,
              f->>'item' item, f->>'owner' owner, f->>'health' health,
-             case when f ? 'drivers' then f->>'problems' else f->>'finding' end finding
+             case when f ? 'drivers' then f->>'problems' else f->>'finding' end finding,
+             f->>'ask' ask, f->'target' target
         from jsonb_array_elements(findings) with ordinality as t(f, ord)
        where coalesce(f->>'health','') <> 'green') x;
   if jsonb_array_length(recs) = 0 then
     recs := jsonb_build_array(jsonb_build_object('rank', 1, 'owner', 'ceo', 'priority', 'hold',
       'title', 'Hold current priorities',
-      'why', 'All operating systems green and company metrics within tolerance.'));
+      'why', 'All operating systems green and company metrics within tolerance.',
+      'ask', 'Hold: keep '||v_green||' of '||v_green||' active operating systems green through '||to_char(current_date + 7, 'YYYY-MM-DD')||'.',
+      'target', jsonb_build_object('os_green', v_green, 'os_red', 0, 'os_amber', 0, 'by', to_char(current_date + 7, 'YYYY-MM-DD'))));
   end if;
 
   insert into exec_reports (officer,period,summary,findings,recommendations,metrics,status)
@@ -28866,7 +29395,7 @@ begin
     jsonb_build_object('os_green',v_green,'os_amber',v_amber,'os_red',v_red,'findings',jsonb_array_length(findings),'actions',actions,
       'priorities',jsonb_array_length(recs),'challenges',v_ch,'raised_for_approval',v_raised,
       'runway_months',v_runway,'finance_health',v_fin_health),
-    'Executive meeting '||v_period||': '||v_green||' green / '||v_amber||' amber / '||v_red||' red across all operating systems, '||actions||' actions assigned, '
+    'Executive meeting '||v_period||': '||v_green||' green / '||v_amber||' amber / '||v_red||' red across all active operating systems, '||actions||' actions assigned, '
     ||jsonb_array_length(recs)||' ranked priorities, '
     ||case when v_ch < 0 then 'the challenge round failed' else v_ch||' challenge(s) put to a second officer' end
     ||', '||case when v_raised < 0 then 'raising priorities for approval failed' else v_raised||' priority(ies) raised for founder approval' end
@@ -31924,7 +32453,7 @@ CREATE OR REPLACE FUNCTION public.fn_graph_rebuild()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n_nodes int := 0; n_edges int := 0;
+declare n_nodes int := 0; n_edges int := 0; n_stage int := 0;
 begin
   delete from graph_edges; delete from graph_nodes;
 
@@ -31979,6 +32508,29 @@ begin
          coalesce(nullif(btrim(d.title), ''), 'draft ' || d.id::text)
          || ' — ' || coalesce(d.channel, 'unrouted') || ', ' || coalesce(d.status, 'draft')
     from content_drafts d
+  -- THE FUNNEL SPINE. One stage node per trade-chain class, labelled with the live count from the
+  -- real table. An aggregate, like supplier_pool; it says 0 when the table is empty.
+  union all select 'stage:customer', 'all',
+         'Customers — ' || (select count(*) from customers) || ' registered'
+  union all select 'stage:rfq', 'all',
+         'RFQs — ' || (select count(*) from inquiries) || ' raised'
+  union all select 'stage:category', 'all',
+         'Categories — ' || (select count(*) from catalog_supplier_categories) || ' trades'
+  union all select 'stage:supplier', 'all',
+         'Suppliers — ' || (select count(*) from leads where approval_status = 'approved') || ' approved of '
+         || (select count(*) from leads) || ' in the pool'
+  union all select 'stage:quote', 'all',
+         'Quotes — ' || (select count(*) from quotes) || ' priced'
+  union all select 'stage:revenue', 'all',
+         'Revenue — AED ' || (select coalesce(sum(reveal_fee), 0) from transactions where fee_status = 'paid')::text
+         || ' from ' || (select count(*) from transactions) || ' reveal(s)'
+  union all select 'stage:campaign', 'all',
+         'Campaigns — ' || (select count(*) from content_drafts) || ' piece(s) of content'
+  union all select 'stage:knowledge', 'all',
+         'Knowledge — ' || (select count(*) from kb_chunks) || ' chunk(s) in '
+         || (select count(distinct category) from kb_chunks where category is not null) || ' categor(ies)'
+  union all select 'stage:employee', 'all',
+         'Employees — ' || (select count(*) from org_agents where active) || ' active'
   on conflict do nothing;
   get diagnostics n_nodes = row_count;
 
@@ -32052,8 +32604,62 @@ begin
     from agent_knowledge k
    where k.agent_key <> '_global' and k.topic is not null
      and exists (select 1 from org_agents a where a.agent_key = k.agent_key and a.active)
+  -- ---- THE SPINE: every stage contains its instance nodes, so the map zooms from nine stages
+  -- down to the instances and back. Read from the nodes just written, never from a second source.
+  union all
+  select 'stage:' || m.cls, 'all', 'contains', g.kind, g.ref_id
+    from graph_nodes g
+    join (values ('customer','customer'), ('rfq','rfq'), ('category','category'),
+                 ('supplier','supplier_pool'), ('quote','quote'), ('revenue','revenue'),
+                 ('campaign','campaign'), ('knowledge','knowledge'), ('employee','employee')) m(cls, kind)
+      on g.kind = m.kind
   on conflict do nothing;
   get diagnostics n_edges = row_count;
+
+  -- THE EIGHT HOPS OF THE SPEC CHAIN, stage to stage, each carrying the MEASURED flow count so the
+  -- edge is a relationship the business has (customers raise RFQs) and a number it has not yet
+  -- produced (0) at the same time, and nobody can read one as the other.
+  insert into graph_edges (src_kind, src_ref, rel, dst_kind, dst_ref, props)
+  select 'stage:customer', 'all', 'raise', 'stage:rfq', 'all',
+         jsonb_build_object('n', (select count(*) from inquiries where customer_id is not null),
+                            'measure', 'inquiries with a customer')
+  union all
+  select 'stage:rfq', 'all', 'route_to', 'stage:category', 'all',
+         jsonb_build_object('n', (select count(*) from inquiries i
+                                   where exists (select 1 from catalog_supplier_categories c where c.slug = i.category)),
+                            'measure', 'inquiries in a catalogue category')
+  union all
+  select 'stage:category', 'all', 'supplied_by', 'stage:supplier', 'all',
+         jsonb_build_object('n', (select count(*) from v_supply_gap where approved > 0),
+                            'measure', 'categories with at least one approved supplier')
+  union all
+  select 'stage:supplier', 'all', 'price', 'stage:quote', 'all',
+         jsonb_build_object('n', (select count(*) from quotes), 'measure', 'quotes submitted')
+  union all
+  select 'stage:quote', 'all', 'realise_as', 'stage:revenue', 'all',
+         jsonb_build_object('n', (select count(*) from transactions where quote_id is not null),
+                            'measure', 'reveals paid against a quote')
+  union all
+  select 'stage:revenue', 'all', 'attributed_to', 'stage:campaign', 'all',
+         jsonb_build_object('n', (select count(*) from transactions t
+                                   join inquiries i on i.id = t.inquiry_id
+                                   join content_drafts d on d.category = i.category),
+                            'measure', 'reveals in a category a campaign covered')
+  union all
+  select 'stage:campaign', 'all', 'draw_on', 'stage:knowledge', 'all',
+         jsonb_build_object('n', (select count(*) from content_drafts d
+                                   where d.category is not null
+                                     and exists (select 1 from kb_chunks k where k.category = d.category)),
+                            'measure', 'content pieces written out of a KB category')
+  union all
+  select 'stage:knowledge', 'all', 'held_by', 'stage:employee', 'all',
+         jsonb_build_object('n', (select count(*) from (select distinct k.topic, k.agent_key from agent_knowledge k
+                                   where k.agent_key <> '_global' and k.topic is not null
+                                     and exists (select 1 from org_agents a where a.agent_key = k.agent_key and a.active)) x),
+                            'measure', 'knowledge domains held by an active employee')
+  on conflict do nothing;
+  get diagnostics n_stage = row_count;
+  n_edges := n_edges + n_stage;
 
   -- THE NIGHTLY REBUILD USED TO EAT THE SUPPLIER-MARKET EDGES. fn_graph_supplier_market is careful
   -- in one direction only — it deletes just the `adjacent_to` edges it owns, with a comment saying
@@ -32065,9 +32671,9 @@ begin
   perform public.fn_graph_supplier_market();
 
   insert into agent_runs (agent,started_at,finished_at,status,counts,note)
-  values ('graph_rebuild',now(),now(),'ok',jsonb_build_object('nodes',n_nodes,'edges',n_edges),
-    'Company brain rebuilt: '||n_nodes||' nodes, '||n_edges||' edges.');
-  return jsonb_build_object('nodes',n_nodes,'edges',n_edges);
+  values ('graph_rebuild',now(),now(),'ok',jsonb_build_object('nodes',n_nodes,'edges',n_edges,'stage_hops',n_stage),
+    'Company brain rebuilt: '||n_nodes||' nodes, '||n_edges||' edges, '||n_stage||' funnel hops.');
+  return jsonb_build_object('nodes',n_nodes,'edges',n_edges,'stage_hops',n_stage);
 end $function$
 
 
@@ -33144,7 +33750,7 @@ CREATE OR REPLACE FUNCTION public.fn_index_slowdown_watch()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n int := 0; r record; v_moved text; v_ins int;
+declare n int := 0; r record; v_moved text; v_ins int; v_moved_json jsonb;
 begin
   for r in
     select z.index_name, z.measured_on, z.score, z.prev, z.dims, z.prev_dims
@@ -33166,8 +33772,9 @@ begin
   loop
     -- WHERE THE DROP CAME FROM, out of the index's own stored dimensions. Only dimensions that
     -- actually fell, biggest mover first, with both values so the size is visible.
-    select string_agg(d.k||' '||d.was||' to '||d.now_v, ', ' order by (d.was - d.now_v) desc)
-      into v_moved
+    select string_agg(d.k||' '||d.was||' to '||d.now_v, ', ' order by (d.was - d.now_v) desc),
+           jsonb_object_agg(d.k, jsonb_build_object('was', d.was, 'now', d.now_v, 'fell_by', round(d.was - d.now_v, 2)))
+      into v_moved, v_moved_json
       from (select k, (r.prev_dims->>k)::numeric was, (r.dims->>k)::numeric now_v
               from jsonb_object_keys(r.dims) k
              where jsonb_typeof(r.dims->k) = 'number'
@@ -33187,8 +33794,23 @@ begin
     -- The partial unique index gets the final say. Its predicate is repeated verbatim so the
     -- arbiter resolves to evolution_proposal_dedupe_idx and nothing else.
     on conflict (trigger_kind, subject, change_class) where status = 'proposed' do nothing;
-    -- Count what was written, not what was attempted: a duplicate that was skipped is not an
-    -- investigation raised, and the note at the bottom is read as if it were.
+
+    -- THE RECORD OF THE INVESTIGATION. Not deduped: every fall is its own finding, and this is the
+    -- row the scorer and the founder both read when they ask "was this looked at".
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id,
+                                      confidence, evidence, decided_by, decided_at, expected_impact, cost)
+    values ('corporate_performance_director', 'index_slowdown', 'auto_done', 'low',
+      format('%s fell %s points (%s to %s) on %s', r.index_name, round(r.prev - r.score, 2), r.prev, r.score, r.measured_on),
+      case when v_moved is null
+           then 'No named dimension fell: the drop is in the weighting. Compare the dimension set of the two measurements.'
+           else 'Investigated from the index''s own dimensions: ' || v_moved || '. The measure behind the biggest mover is where the cause is.' end,
+      jsonb_build_object('index', r.index_name, 'from', r.prev, 'to', r.score, 'fell_by', round(r.prev - r.score, 2),
+                         'measured_on', r.measured_on, 'dimensions_down', coalesce(v_moved_json, '{}'::jsonb)),
+      'company_index', r.index_name, 1.0,
+      jsonb_build_object('basis', 'company_index rows for ' || r.index_name || ' on ' || r.measured_on || ' and the measurement before it'),
+      'index_slowdown_watch', now(),
+      'A fall that is attributed to its dimension on the day it happens is a fall someone can act on; one found a week later is a trend.',
+      'No spend: arithmetic over stored dimensions.');
     get diagnostics v_ins = row_count;
     n := n + v_ins;
   end loop;
@@ -33196,7 +33818,7 @@ begin
   insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
   values ('index_slowdown_watch', now(), now(), 'ok', jsonb_build_object('investigated', n),
     case when n = 0 then 'No index lost more than a point in the last 7 days without something already picking it up.'
-         else n||' index fall(s) over a point raised for investigation, with the dimensions that moved.' end);
+         else n||' index fall(s) over a point investigated, with the dimensions that moved.' end);
 
   return jsonb_build_object('investigated', n);
 end $function$
@@ -41625,6 +42247,156 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_knowledge_exam_retrieval()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a record; r jsonb; n_agents int := 0; n_asked int := 0; n_correct int := 0; n_filled int := 0;
+begin
+  for a in select agent_key from public.org_agents where active order by agent_key loop
+    r := public.fn_knowledge_exam_sit(a.agent_key, 5);
+    n_agents := n_agents + 1;
+    n_asked := n_asked + coalesce((r->>'asked')::int, 0);
+    n_correct := n_correct + coalesce((r->>'correct')::int, 0);
+    n_filled := n_filled + coalesce((r->>'filled')::int, 0);
+  end loop;
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('knowledge_exam', now(), now(), 'ok',
+          jsonb_build_object('agents', n_agents, 'asked', n_asked, 'correct', n_correct, 'filled', n_filled, 'grader', 'retrieval'),
+          'Retrieval exam: ' || n_agents || ' employee(s) sat ' || n_asked || ' question(s), ' || n_correct
+            || ' answered from their own knowledge, ' || n_filled || ' verified gap(s) written into it. No model.');
+  return jsonb_build_object('agents', n_agents, 'asked', n_asked, 'correct', n_correct, 'filled', n_filled);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_exam_sit(p_agent text, p_questions integer DEFAULT 5)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  q record;
+  v_dept text; v_bank int; v_gen int := 0;
+  v_best_id bigint; v_best_topic text; v_best_tsv tsvector; v_q tsquery;
+  v_ref_lex text[]; v_hit int; v_cov numeric; v_verdict text; v_fill_left int := 3;
+  v_kid bigint; v_rec_id text; v_rec_title text; v_rec_content text;
+  n_asked int := 0; n_correct int := 0; n_filled int := 0;
+begin
+  -- scalars, not a record: a record that is never assigned raises on its first field reference
+  select department into v_dept from public.org_agents where agent_key = p_agent and active;
+  if not found then
+    return jsonb_build_object('agent', p_agent, 'ok', false, 'error', 'not an active employee');
+  end if;
+
+  -- 1. the bank: top up from verified operating knowledge when fewer than 10 questions exist
+  select count(*) into v_bank from public.knowledge_exam_questions where agent_key = p_agent;
+  if v_bank < 10 then
+    insert into public.knowledge_exam_questions (agent_key, question, reference_answer, topic, difficulty, times_asked)
+    select p_agent,
+           'What does the company''s operating knowledge say about: ' || k.title || '?',
+           left(k.content, 700), 'ops:' || k.record_id, 'core', 0
+      from (
+        select record_id, title, content,
+               row_number() over (partition by (dept_key is null) order by md5(record_id || p_agent)) rn,
+               (dept_key is null) companywide
+          from public.ops_knowledge
+         where runtime_eligible
+           and validation_status in ('reviewed', 'source_verified', 'validated', 'author_verified')
+           and coalesce(btrim(title), '') <> '' and length(coalesce(content, '')) >= 80
+           and (dept_key = v_dept or dept_key is null)
+           and not exists (select 1 from public.knowledge_exam_questions x
+                            where x.agent_key = p_agent and x.topic = 'ops:' || ops_knowledge.record_id)
+      ) k
+     where (not k.companywide and k.rn <= 3) or (k.companywide and k.rn <= 2)
+     order by k.companywide, k.rn;
+    get diagnostics v_gen = row_count;
+  end if;
+
+  -- 2. what the employee actually holds
+  create temporary table if not exists _exam_corpus (id bigint, agent_key text, topic text, tsv tsvector) on commit drop;
+  delete from _exam_corpus;
+  insert into _exam_corpus
+  select id, agent_key, topic, to_tsvector('english', coalesce(topic, '') || ' ' || left(content, 6000))
+    from public.agent_knowledge
+   where agent_key in (p_agent, '_global') and coalesce(validation_status, '') <> 'quarantined';
+
+  -- 3. the sitting: the least-recently-asked questions first
+  for q in
+    select id, question, reference_answer, topic
+      from public.knowledge_exam_questions
+     where agent_key = p_agent
+     order by last_asked asc nulls first, times_asked asc, id
+     limit greatest(p_questions, 1)
+  loop
+    select array_agg(distinct w.lexeme) into v_ref_lex
+      from unnest(to_tsvector('english', coalesce(q.reference_answer, ''))) w
+     where length(w.lexeme) >= 4;
+
+    -- The retrieval query is the question's own significant lexemes, ANY of them (websearch's
+    -- AND over every word of "What does the company's operating knowledge say about: X?" matched
+    -- almost nothing); the generated questions' boilerplate prefix is stripped so the subject
+    -- terms decide the rank. 'simple' because the lexemes are already stemmed.
+    select to_tsquery('simple', string_agg('''' || replace(w.lexeme, '''', '''''') || '''', ' | ')) into v_q
+      from unnest(to_tsvector('english',
+             regexp_replace(coalesce(q.question, ''), '^What does the company''s operating knowledge say about: ', ''))) w
+     where length(w.lexeme) >= 4;
+    v_best_id := null; v_best_topic := null; v_best_tsv := null;
+    if v_q is not null then
+      select c.id, c.topic, c.tsv into v_best_id, v_best_topic, v_best_tsv
+        from _exam_corpus c
+       where c.tsv @@ v_q
+       order by ts_rank(c.tsv, v_q) desc, c.id
+       limit 1;
+    end if;
+
+    if v_best_id is null or v_ref_lex is null or cardinality(v_ref_lex) = 0 then
+      v_verdict := 'not_covered'; v_cov := 0;
+    else
+      select count(*) into v_hit from unnest(v_ref_lex) l where v_best_tsv @@ plainto_tsquery('simple', l);
+      v_cov := round(v_hit::numeric / cardinality(v_ref_lex), 2);
+      v_verdict := case when v_cov >= 0.6 then 'correct' when v_cov >= 0.3 then 'partial' else 'wrong' end;
+    end if;
+
+    -- 4. learning: a verified ops record the employee could not answer from is written into what it holds
+    v_kid := null;
+    if v_verdict in ('not_covered', 'wrong') and q.topic like 'ops:%' and v_fill_left > 0 then
+      v_rec_id := null; v_rec_title := null; v_rec_content := null;
+      select record_id, title, content into v_rec_id, v_rec_title, v_rec_content from public.ops_knowledge
+       where record_id = substring(q.topic from 5) and runtime_eligible
+         and validation_status in ('reviewed', 'source_verified', 'validated', 'author_verified');
+      if v_rec_id is not null
+         and not exists (select 1 from public.agent_knowledge k where k.agent_key = p_agent and k.source_ref = 'ops_knowledge:' || v_rec_id) then
+        insert into public.agent_knowledge (agent_key, topic, content, priority, layer, source_ref, owner_agent, confidence, validation_status)
+        values (p_agent, 'exam:' || q.id || ' ' || left(v_rec_title, 160), left(v_rec_content, 4000), 50, 'experience',
+                'ops_knowledge:' || v_rec_id, p_agent, 0.85, 'author_verified')
+        returning id into v_kid;
+        v_fill_left := v_fill_left - 1; n_filled := n_filled + 1;
+      end if;
+    end if;
+
+    insert into public.knowledge_exam_results
+      (agent_key, question_id, examinee_answer, verdict, grader_answer, grader_confidence, converged, gap_fact, filled, knowledge_id)
+    values (p_agent, q.id,
+            case when v_best_id is null then 'NOT_COVERED' else 'retrieved from agent_knowledge #' || v_best_id || ' (' || left(coalesce(v_best_topic, ''), 120) || ')' end,
+            v_verdict,
+            'retrieval grader, reference: ' || left(coalesce(q.reference_answer, ''), 700),
+            v_cov, true,
+            case when v_verdict <> 'correct' then left(coalesce(q.reference_answer, ''), 700) end,
+            v_kid is not null, v_kid);
+
+    update public.knowledge_exam_questions set times_asked = coalesce(times_asked, 0) + 1, last_asked = now() where id = q.id;
+    n_asked := n_asked + 1;
+    if v_verdict = 'correct' then n_correct := n_correct + 1; end if;
+  end loop;
+
+  return jsonb_build_object('agent', p_agent, 'ok', true, 'asked', n_asked, 'correct', n_correct,
+                            'filled', n_filled, 'generated', v_gen);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_knowledge_exam_summary()
  RETURNS jsonb
  LANGUAGE sql
@@ -41866,6 +42638,18 @@ begin
   delete from knowledge_ingestion_undo where run_id = p_run;
   return jsonb_build_object('run_id', p_run, 'deleted', v_deleted, 'restored', v_restored);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_staleness_tag(p_review_due date, p_validation_status text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select case
+    when coalesce(p_validation_status,'') = 'stale' or (p_review_due is not null and p_review_due < current_date)
+      then '[STALE - review was due '||coalesce(p_review_due::text,'(undated)')||'; verify before relying on it] '
+    else '' end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kpi_review()
@@ -43309,39 +44093,80 @@ CREATE OR REPLACE FUNCTION public.fn_model_benchmark()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare
+  v_written int := 0;
+  v_models  int := 0;
 begin
-  return query
-  with s as (
-    select o.task_class, o.model_used,
+  create temp table _bench on commit drop as
+  with calls as (
+    select o.task_class, o.model_used, o.tier, o.ok, o.latency_ms, o.cost_aed
+      from public.ai_cost_log o
+     where o.occurred_at > now() - interval '90 days'
+       and o.task_class is not null
+       and o.model_used is not null and o.model_used <> 'none'
+       and not coalesce(o.cached, false)
+  ), s as (
+    select c.task_class, c.model_used,
+           max(c.tier) as tier,
            count(*) as runs,
-           round(avg(case when o.ok then 1.0 else 0.0 end), 4) as success_rate,
-           round((avg(o.cost_aed) / 3.6725)::numeric, 6) as avg_cost_usd
-    from ai_cost_log o
-    where o.occurred_at > now() - interval '30 days'
-      and o.task_class is not null
-      and o.model_used is not null
-    group by 1, 2
+           round(avg(case when c.ok then 1.0 else 0.0 end), 4) as success_rate,
+           round((avg(c.cost_aed) / 3.6725)::numeric, 6) as avg_cost_usd,
+           percentile_cont(0.5) within group (order by c.latency_ms) filter (where c.ok and c.latency_ms is not null) as p50_latency_ms
+      from calls c
+     group by c.task_class, c.model_used
     having count(*) >= 20   -- never judge a model on a handful of runs
+  ), first_attempt as (
+    select a.task_class, a.model_route,
+           round(avg(case when a.ok then 1.0 else 0.0 end), 4) as first_ok_rate,
+           count(*) as requests
+      from public.llm_attempt a
+     where a.created_at > now() - interval '90 days' and a.attempt_no = 1 and a.task_class is not null
+     group by a.task_class, a.model_route
   )
-  select s.task_class, s.model_used, s.runs, s.success_rate, s.avg_cost_usd,
+  select s.task_class, s.model_used, s.tier, s.runs, s.success_rate, s.avg_cost_usd,
+         round(s.p50_latency_ms)::int as p50_latency_ms,
+         f.first_ok_rate, f.requests as first_requests,
          case
            when s.success_rate >= 0.95 then 'GOOD - safe to keep or promote for this class'
            when s.success_rate >= 0.85 then 'ACCEPTABLE - watch'
            else 'POOR - this class needs a stronger tier'
-         end
-  from s order by s.task_class, s.success_rate desc;
+         end as verdict
+    from s
+    left join first_attempt f on f.task_class = s.task_class and f.model_route = s.model_used;
+
+  -- one verdict per pair per day: today's rows are replaced, never duplicated
+  delete from public.model_outcome m
+   where m.fn = 'fn_model_benchmark' and m.occurred_at::date = current_date;
+
+  insert into public.model_outcome (occurred_at, fn, task_class, model_used, tier, ok, parse_ok, latency_ms, cost_usd, note)
+  select now(), 'fn_model_benchmark', b.task_class, b.model_used, b.tier,
+         b.success_rate >= 0.85,
+         coalesce(b.first_ok_rate >= 0.85, b.success_rate >= 0.85),
+         b.p50_latency_ms, b.avg_cost_usd,
+         format('%s | %s run(s) over 90d: success %s%%, first-attempt success %s (%s request(s)), p50 latency %s ms, mean cost %s USD/call',
+                b.verdict, b.runs, round(100 * b.success_rate, 1),
+                coalesce(round(100 * b.first_ok_rate, 1)::text || '%', 'n/a'), coalesce(b.first_requests, 0),
+                coalesce(b.p50_latency_ms::text, 'n/a'), b.avg_cost_usd)
+    from _bench b;
+  get diagnostics v_written = row_count;
+  select count(distinct b.model_used) into v_models from _bench b;
 
   -- Feed the score back onto the registry so routing can see it. This is the only writer of
-  -- model_registry.quality_score, which is why that column was null on all six models.
-  update model_registry r set quality_score = q.sr, updated_at = now()
-  from (
-    select o.model_used, round(avg(case when o.ok then 1.0 else 0.0 end),4) sr
-    from ai_cost_log o
-    where o.occurred_at > now() - interval '30 days'
-      and o.task_class is not null and o.model_used is not null
-    group by 1 having count(*) >= 20
-  ) q
-  where r.model_id = q.model_used;
+  -- model_registry.quality_score.
+  update public.model_registry r set quality_score = q.sr, updated_at = now()
+    from (select b.model_used, round(avg(b.success_rate), 4) sr from _bench b group by b.model_used) q
+   where r.model_id = q.model_used;
+
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('model_benchmark', now(), now(), 'ok',
+          jsonb_build_object('rows', v_written, 'models', v_models),
+          'Model benchmark: ' || v_written || ' (task class, model) verdict(s) over ' || v_models
+          || ' model(s) written to model_outcome from 90 days of routed calls — quality, latency and '
+          || 'cost on the same rows, no new model call.');
+
+  return query
+    select b.task_class, b.model_used, b.runs, b.success_rate, b.avg_cost_usd, b.verdict
+      from _bench b order by b.task_class, b.success_rate desc;
 end $function$
 
 
@@ -43526,6 +44351,25 @@ begin
         then 'the category has fewer comparable quotes than this policy requires'
         else 'the house policy does not push on this band' end) end);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_norm_emirate(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_text is null or btrim(p_text) = '' then 'unknown'
+    when p_text ~* '(abu ?dhabi|al ain|\mauh\M)' then 'Abu Dhabi'
+    when p_text ~* '(dubai|jebel ali|al quoz|al qusais|deira|\mdxb\M)' then 'Dubai'
+    when p_text ~* '(sharjah|\mshj\M)' then 'Sharjah'
+    when p_text ~* '(ajman|\majm\M)' then 'Ajman'
+    when p_text ~* '(ras al[ -]?khaimah|\mrak\M)' then 'Ras Al Khaimah'
+    when p_text ~* '(fujairah|\mfuj\M)' then 'Fujairah'
+    when p_text ~* '(umm al[ -]?quwain|\muaq\M)' then 'Umm Al Quwain'
+    else 'unknown' end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_norm_roles(p_text text)
@@ -44071,7 +44915,8 @@ CREATE OR REPLACE FUNCTION public.fn_opportunity_scan()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; n int := 0;
+-- by_det counts each detection against its detector, so the run says WHICH question produced what.
+declare r record; n int := 0; by_det jsonb := '{}'::jsonb;
 begin
   -- underserved categories that already hold a viable pool: ready demand, no action
   for r in select * from v_supply_gap where status='READY - not yet invited' order by sendable desc limit 10 loop
@@ -44079,9 +44924,31 @@ begin
     select 'underserved_category','Untapped pool: '||r.name,
       r.name||' holds '||r.sendable||' sendable suppliers and zero invitations sent. The pool is already sufficient for the 10-approved target.',
       jsonb_build_object('slug',r.slug,'sendable',r.sendable,'approved',r.approved),
-      least(100, r.sendable/5.0), 'low', 0.8, 'intel_director'
-    where not exists (select 1 from opportunity o where o.title='Untapped pool: '||r.name and o.status='open');
-    if found then n := n+1; end if;
+      least(100, r.sendable/5.0), 'low', 0.8, 'intel_director/untapped_pool'
+    where not exists (select 1 from opportunity o where o.title='Untapped pool: '||r.name
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('untapped_pool', coalesce((by_det->>'untapped_pool')::int,0)+1); end if;
+  end loop;
+
+  -- COVERAGE GAP — the company's own standard is ten approved suppliers per category (860 = 10 x 86).
+  -- A category below it with sendable suppliers already acquired is a gap the pool can close without
+  -- buying a single new lead. Ranked by the size of the pool that is waiting.
+  for r in select g.slug, g.name, g.sendable, g.invited, g.approved, g.gap_to_target
+             from v_supply_gap g
+            where coalesce(g.approved,0) < 10 and coalesce(g.sendable,0) > 0
+              and g.status <> 'READY - not yet invited'
+            order by g.sendable desc, g.approved asc limit 10 loop
+    insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
+    select 'underserved_category','Coverage gap: '||r.name,
+      r.name||' has '||r.approved||' approved supplier(s) against the standard of ten, with '||r.invited
+      ||' invited and '||r.sendable||' sendable suppliers already in the pool. The gap of '
+      ||coalesce(r.gap_to_target, 10 - r.approved)||' can be closed from the pool the company already holds.',
+      jsonb_build_object('slug',r.slug,'approved',r.approved,'invited',r.invited,'sendable',r.sendable,
+                         'gap_to_target',coalesce(r.gap_to_target, 10 - r.approved),'target_approved',10),
+      least(100, coalesce(r.gap_to_target, 10 - r.approved) * 10.0), 'medium', 0.8, 'intel_director/coverage_gap'
+    where not exists (select 1 from opportunity o where o.title='Coverage gap: '||r.name
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('coverage_gap', coalesce((by_det->>'coverage_gap')::int,0)+1); end if;
   end loop;
 
   -- categories where knowledge exists but no supply: capability ahead of market
@@ -44089,9 +44956,91 @@ begin
     insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
     select 'unmet_demand','Whitespace: '||r.name,
       'A fully briefed category expert exists for '||r.name||' with zero suppliers anywhere in the pool. Either a genuine market gap worth owning, or a category to retire.',
-      jsonb_build_object('slug',r.slug,'sendable',0), 40,'high',0.5,'market_analyst'
-    where not exists (select 1 from opportunity o where o.title='Whitespace: '||r.name and o.status='open');
-    if found then n := n+1; end if;
+      jsonb_build_object('slug',r.slug,'sendable',0), 40,'high',0.5,'market_analyst/whitespace'
+    where not exists (select 1 from opportunity o where o.title='Whitespace: '||r.name
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('whitespace', coalesce((by_det->>'whitespace')::int,0)+1); end if;
+  end loop;
+
+  -- UNANSWERED RFQ — demand the supply base did not answer. Real inquiries only: the fixture brief
+  -- source and the @example.invalid customer convention are both excluded, so a rehearsal never
+  -- reads as lost demand. 0 today; this fires on the first real RFQ that waits 48 hours.
+  for r in select i.id, i.rfq_no, i.category, i.created_at,
+                  round(extract(epoch from (now() - i.created_at))/3600) hours,
+                  g.name cat_name, coalesce(g.sendable,0) sendable, coalesce(g.invited,0) invited
+             from inquiries i
+             left join v_supply_gap g on g.slug = i.category
+             left join customers c on c.id = i.customer_id
+            where i.created_at < now() - interval '48 hours'
+              and i.completed_at is null and i.hired_supplier_id is null
+              and coalesce(i.status,'') not in ('closed','cancelled','archived','expired','revealed')
+              and coalesce(i.brief_source,'') <> 'qd_demo_fixture'
+              and coalesce(c.email,'') not ilike '%@example.invalid'
+              and not exists (select 1 from quotes q where q.inquiry_id = i.id)
+            order by i.created_at limit 10 loop
+    insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
+    select 'unmet_demand',
+      'Unanswered RFQ: '||coalesce('#'||r.rfq_no::text, left(r.id::text,8))||' ('||coalesce(r.cat_name, r.category, 'uncategorised')||')',
+      'RFQ '||coalesce('#'||r.rfq_no::text, left(r.id::text,8))||' in '||coalesce(r.cat_name, r.category, 'an uncategorised trade')
+      ||' has waited '||r.hours||' hour(s) with no quote. '||r.sendable||' sendable supplier(s) sit in that pool and '
+      ||r.invited||' were invited: the demand is real and the supply base did not answer it.',
+      jsonb_build_object('inquiry_id',r.id,'rfq_no',r.rfq_no,'category',r.category,'hours_waiting',r.hours,
+                         'sendable',r.sendable,'invited',r.invited),
+      least(100, 50 + r.hours/24.0*10), 'medium', 0.9, 'procurement/unanswered_rfq'
+    where not exists (select 1 from opportunity o
+                       where o.title='Unanswered RFQ: '||coalesce('#'||r.rfq_no::text, left(r.id::text,8))||' ('||coalesce(r.cat_name, r.category, 'uncategorised')||')'
+                         and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('unanswered_rfq', coalesce((by_det->>'unanswered_rfq')::int,0)+1); end if;
+  end loop;
+
+  -- LICENCE EXPIRY — an approved supplier whose trade licence lapses within 60 days stops being
+  -- sendable the day it does (CHAIN-02 suspends on expiry). Re-verifying before that day keeps the
+  -- supplier and the category coverage it provides. 0 today: one approved supplier, licence to 2027.
+  for r in select l.id, l.company_name, l.license_expiry, coalesce(l.sector,'') sector,
+                  (l.license_expiry - current_date) days_left
+             from leads l
+            where l.approval_status = 'approved' and l.license_expiry is not null
+              and l.license_expiry <= current_date + 60
+              and coalesce(l.email,'') not ilike '%@example.invalid'
+              and coalesce(l.company_name,'') not ilike 'ZZ DEMO%'
+            order by l.license_expiry limit 20 loop
+    insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
+    select 'supplier_retention','Licence expiring: '||coalesce(r.company_name, 'lead '||r.id::text),
+      coalesce(r.company_name, 'Lead '||r.id::text)||' is approved and its trade licence '
+      ||case when r.days_left < 0 then 'expired '||abs(r.days_left)||' day(s) ago' else 'expires in '||r.days_left||' day(s) ('||r.license_expiry||')' end
+      ||'. Re-verify the licence now so the supplier stays sendable and the category keeps its coverage.',
+      jsonb_build_object('lead_id',r.id,'license_expiry',r.license_expiry,'days_left',r.days_left,'sector',r.sector),
+      least(100, greatest(40, 100 - r.days_left)), 'low', 0.95, 'trust_and_safety/licence_expiry'
+    where not exists (select 1 from opportunity o where o.title='Licence expiring: '||coalesce(r.company_name, 'lead '||r.id::text)
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('licence_expiry', coalesce((by_det->>'licence_expiry')::int,0)+1); end if;
+  end loop;
+
+  -- KPI GAP — an active KPI measured in the last 14 days and below its target. Grouped per metric,
+  -- because "Customer issues resolved within SLA" missed by five roles is one gap, not five. Metrics
+  -- whose name says lower-is-better are excluded rather than mis-scored; every KPI on file today is
+  -- higher-is-better (percent, counts, AED).
+  for r in select k.metric, coalesce(k.unit,'') unit, max(k.target_value) target, max(k.actual_value) actual,
+                  count(*) roles, string_agg(distinct k.agent_key, ', ' order by k.agent_key) agents,
+                  round(100.0 * (max(k.target_value) - max(k.actual_value)) / nullif(max(k.target_value),0), 1) shortfall_pct
+             from employee_kpi k
+            where k.active and k.measured_at > now() - interval '14 days'
+              and k.actual_value is not null and k.target_value is not null and k.target_value > 0
+              and k.actual_value < k.target_value
+              and k.metric !~* '(time|hours|days|cost|error|fail|latency|churn|backlog|spend)'
+            group by k.metric, coalesce(k.unit,'')
+            order by shortfall_pct desc nulls last limit 10 loop
+    insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
+    select 'kpi_gap','KPI gap: '||r.metric,
+      r.metric||' is at '||r.actual||' '||r.unit||' against a target of '||r.target||' '||r.unit
+      ||' ('||coalesce(r.shortfall_pct::text,'?')||'% short), held by '||r.roles||' role(s): '||r.agents
+      ||'. Closing this gap is the measured improvement the company is not yet getting.',
+      jsonb_build_object('metric',r.metric,'unit',r.unit,'target',r.target,'actual',r.actual,
+                         'shortfall_pct',r.shortfall_pct,'roles',r.roles,'agents',r.agents),
+      least(100, coalesce(r.shortfall_pct, 0)), 'medium', 0.9, 'cpo/kpi_gap'
+    where not exists (select 1 from opportunity o where o.title='KPI gap: '||r.metric
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('kpi_gap', coalesce((by_det->>'kpi_gap')::int,0)+1); end if;
   end loop;
 
   -- cost opportunity
@@ -44099,17 +45048,17 @@ begin
     insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
     select 'cost_saving','Over-specified AI calls',
       (select count(*) filter (where could_be_cheaper)||' of '||count(*)||' calls in the last 30 days could have been served by a cheaper model.' from ai_cost_log where occurred_at>now()-interval '30 days'),
-      '{}'::jsonb, 60,'low',0.9,'optimisation_eng'
-    where not exists (select 1 from opportunity where title='Over-specified AI calls' and status='open');
-    if found then n := n+1; end if;
+      '{}'::jsonb, 60,'low',0.9,'optimisation_eng/model_tiering'
+    where not exists (select 1 from opportunity where title='Over-specified AI calls'
+                        and (status in ('open','pursuing') or created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('model_tiering', coalesce((by_det->>'model_tiering')::int,0)+1); end if;
   end if;
 
-  -- ── THE THREE QUESTIONS THE SCAN NEVER ASKED ─────────────────────────────────────────────────
-  -- The demand-driven one counts REAL inquiries. marketing_category_demand.inquiries_90d includes
-  -- qd_demo_fixture rows, so the view's count must not carry a founder-facing opportunity on its own.
+  -- ── THE DEMAND-DRIVEN QUESTIONS ──────────────────────────────────────────────────────────────
+  -- These count REAL inquiries. marketing_category_demand.inquiries_90d includes qd_demo_fixture
+  -- rows, so it is never read for a founder-facing opportunity; the real count is taken here.
 
-  -- GROWING INDUSTRIES — asked as demand against supply, which is what the data supports. Below ten
-  -- suppliers is the company's own standard: 860 approved = 10 in each of 86 categories.
+  -- GROWING INDUSTRIES, as level: demand against supply, below the company's ten-per-category standard.
   for r in select m.category, i.real_inq inq, coalesce(m.suppliers,0) sup
              from marketing_category_demand m
              cross join lateral (
@@ -44125,50 +45074,65 @@ begin
       ||' supplier(s) on the platform, below the standard of ten per category. Demand in this sector '
       ||'is running ahead of the supply able to answer it.',
       jsonb_build_object('category',r.category,'inquiries_90d',r.inq,'suppliers',r.sup,'target_suppliers',10),
-      least(100, r.inq*10.0), 'medium', 0.7, 'market_analyst'
-    where not exists (select 1 from opportunity o
-                       where o.title='Sector under-supplied: '||r.category and o.status='open');
-    if found then n := n+1; end if;
+      least(100, r.inq*10.0), 'medium', 0.7, 'market_analyst/sector_demand'
+    where not exists (select 1 from opportunity o where o.title='Sector under-supplied: '||r.category
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('sector_demand', coalesce((by_det->>'sector_demand')::int,0)+1); end if;
   end loop;
 
-  -- SEARCH KEYWORDS WITH NOWHERE TO LAND. Rewritten 14 Aug 2026: this used to require at least one
-  -- real inquiry in the category, on a platform with zero inquiries, so it could not fire. The
-  -- question does not need demand history — a tracked keyword pattern pointing at a category that
-  -- has no landing page is a gap you can measure today. `pages` and `seo_categories` are BOTH
-  -- checked because they are two different vocabularies and neither alone covers the catalog: pages
-  -- holds site chrome under slugs like 'home' and 'portal', seo_categories holds 24 consumer trades
-  -- ('electrical') that do not match the catalog's supplier slugs ('electrical-suppliers').
-  -- The real 90-day inquiry count is carried in the evidence rather than used as a gate, so the
-  -- opportunity states the demand it actually has instead of implying one it does not.
-  for r in select c.slug, c.name,
-                  (select count(*) from category_keyword k
-                    where k.slug = c.slug and not coalesce(k.negative,false)) kw,
-                  (select count(*) from inquiries q
-                    where coalesce(nullif(q.category,''),'other') = c.slug
-                      and q.created_at >= now() - interval '90 days'
-                      and coalesce(q.brief_source,'') <> 'qd_demo_fixture') inq
-             from catalog_supplier_categories c
-            where not exists (select 1 from pages p where p.slug = c.slug)
-              and not exists (select 1 from seo_categories s where s.slug = c.slug)
-            order by 3 desc, c.slug limit 5 loop
-    continue when r.kw = 0;
+  -- GROWING INDUSTRIES, as growth: real inquiries per category in the last 30 days against the 30
+  -- before. A category needs at least two in the window and more than the prior window to be called
+  -- growing; nothing here extrapolates.
+  for r in select x.category, x.now_30, x.prev_30
+             from (select coalesce(nullif(q.category,''),'other') category,
+                          count(*) filter (where q.created_at >= now() - interval '30 days') now_30,
+                          count(*) filter (where q.created_at >= now() - interval '60 days'
+                                             and q.created_at <  now() - interval '30 days') prev_30
+                     from inquiries q
+                     left join customers c on c.id = q.customer_id
+                    where q.created_at >= now() - interval '60 days'
+                      and coalesce(q.brief_source,'') <> 'qd_demo_fixture'
+                      and coalesce(c.email,'') not ilike '%@example.invalid'
+                    group by 1) x
+            where x.now_30 >= 2 and x.now_30 > x.prev_30
+            order by (x.now_30 - x.prev_30) desc, x.now_30 desc limit 5 loop
     insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
-    select 'search_demand','Keyword demand with no page: '||r.name,
-      r.kw||' tracked search keyword pattern(s) point at '||r.name||' and there is no landing page '
-      ||'for it — neither a published page nor an SEO category entry. Real inquiries in this '
-      ||'category over 90 days: '||r.inq||'. Whether that search volume is RISING is not measured '
-      ||'anywhere on this platform, so this is a coverage gap, not a trend claim.',
-      jsonb_build_object('category',r.slug,'keyword_patterns',r.kw,'inquiries_90d',r.inq,
-                         'has_page',false,'has_seo_category',false,'trend_measured',false),
-      least(100, r.kw*2.0), 'low', 0.7, 'market_analyst'
-    where not exists (select 1 from opportunity o
-                       where o.title='Keyword demand with no page: '||r.name and o.status='open');
-    if found then n := n+1; end if;
+    select 'sector_growth','Growing industry: '||r.category,
+      'The '||r.category||' industry raised '||r.now_30||' real inquir(y/ies) in the last 30 days against '
+      ||r.prev_30||' in the 30 days before. Demand in this sector is growing on the platform''s own numbers.',
+      jsonb_build_object('category',r.category,'inquiries_30d',r.now_30,'inquiries_prior_30d',r.prev_30),
+      least(100, 30 + (r.now_30 - r.prev_30) * 10.0), 'medium', 0.8, 'market_analyst/sector_growth'
+    where not exists (select 1 from opportunity o where o.title='Growing industry: '||r.category
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('sector_growth', coalesce((by_det->>'sector_growth')::int,0)+1); end if;
+  end loop;
+
+  -- RISING KEYWORDS — search demand that lands on no page. has_seo_page is recorded per category and
+  -- category_keyword holds the patterns that point at it.
+  for r in select m.category, i.real_inq inq,
+                  (select count(*) from category_keyword k where k.slug = m.category and not coalesce(k.negative,false)) kw
+             from marketing_category_demand m
+             cross join lateral (
+               select count(*) real_inq from inquiries q
+                where coalesce(nullif(q.category,''),'other') = m.category
+                  and q.created_at >= now() - interval '90 days'
+                  and coalesce(q.brief_source,'') <> 'qd_demo_fixture') i
+            where not coalesce(m.has_seo_page,false) and i.real_inq >= 1
+            order by i.real_inq desc limit 5 loop
+    insert into opportunity (kind,title,detail,evidence,value_score,effort,confidence,detected_by)
+    select 'search_demand','Keyword demand with no page: '||r.category,
+      case when r.kw > 0 then r.kw||' tracked keyword pattern(s) point at '||r.category else 'Search queries for '||r.category end
+      ||', which drew '||r.inq||' inquir(y/ies) in 90 days and has no SEO page. The query demand is '
+      ||'real and lands nowhere.',
+      jsonb_build_object('category',r.category,'inquiries_90d',r.inq,'keyword_patterns',r.kw,'has_seo_page',false),
+      least(100, r.inq*8.0), 'low', 0.7, 'market_analyst/search_demand'
+    where not exists (select 1 from opportunity o where o.title='Keyword demand with no page: '||r.category
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('search_demand', coalesce((by_det->>'search_demand')::int,0)+1); end if;
   end loop;
 
   -- WEAK COMPETITORS — 27 tracked rivals, every one carrying a written weakness. A low or medium
   -- threat with a stated weakness is the shape of an opening; a high threat is a problem, not one.
-  -- Untouched: this one rests on real competitor records, not on inquiries.
   for r in select c.name, coalesce(c.kind,'unclassified') kind, c.weakness, c.threat_level
              from competitor c
             where coalesce(btrim(c.weakness),'') <> ''
@@ -44179,16 +45143,17 @@ begin
       r.name||' ('||r.kind||', threat '||r.threat_level||') has a recorded weakness: '
       ||left(r.weakness, 240),
       jsonb_build_object('competitor',r.name,'threat_level',r.threat_level,'kind',r.kind),
-      case lower(r.threat_level) when 'medium' then 55 else 35 end, 'medium', 0.6, 'intel_director'
-    where not exists (select 1 from opportunity o
-                       where o.title='Weak competitor: '||r.name and o.status='open');
-    if found then n := n+1; end if;
+      case lower(r.threat_level) when 'medium' then 55 else 35 end, 'medium', 0.6, 'intel_director/weak_competitor'
+    where not exists (select 1 from opportunity o where o.title='Weak competitor: '||r.name
+                        and (o.status in ('open','pursuing') or o.created_at > now() - interval '90 days'));
+    if found then n := n+1; by_det := by_det || jsonb_build_object('weak_competitor', coalesce((by_det->>'weak_competitor')::int,0)+1); end if;
   end loop;
 
   insert into agent_runs (agent,started_at,finished_at,status,counts,note)
-  values ('opportunity_scan',now(),now(),'ok',jsonb_build_object('found',n),
-    'Opportunity scan: '||n||' new opportunity(ies) detected without being asked.');
-  return jsonb_build_object('found',n);
+  values ('opportunity_scan',now(),now(),'ok',jsonb_build_object('found',n,'by_detector',by_det),
+    'Opportunity scan: '||n||' new opportunity(ies) detected without being asked'
+    ||case when n > 0 then ' — '||(select string_agg(k||' '||v, ', ' order by k) from jsonb_each_text(by_det) e(k,v)) else '' end||'.');
+  return jsonb_build_object('found',n,'by_detector',by_det);
 end $function$
 
 
@@ -55038,10 +56003,17 @@ begin
   check_name := 'every_active_cron_that_reaches_a_watched_relation_is_registered'; ok := (v_n = 0);
   detail := format('%s unregistered: %s', v_n, v_txt); return next;
 
-  -- (4) outcome_evaluate_daily is inactive, and business automation is not being reactivated here
-  select count(*) into v_n from cron.job where jobname = 'outcome_evaluate_daily' and active;
-  check_name := 'outcome_evaluate_daily_inactive'; ok := (v_n = 0);
-  detail := format('%s active row(s)', v_n); return next;
+  -- (4) 4 SEP 2026: outcome_evaluate_daily used to be required INACTIVE ("business automation is not
+  -- being reactivated here") — a stand-down condition from 16 Aug 2026. The founder lifted the
+  -- stand-down on 2 Sep and the evaluator is back on its clock (it graded 25 overdue outcomes on
+  -- 3 Sep). A running evaluator is not a threat to a committed scenario as long as it is REGISTERED
+  -- for this door like every other cron that reaches a watched relation (it writes org_tasks,
+  -- agent_runs and emits company_event); that is what is required now, and it is the same rule as (3).
+  select count(*) into v_n from cron.job j
+   where j.jobname = 'outcome_evaluate_daily' and j.active
+     and not exists (select 1 from public.phase_d_committed_scenario_cron c where c.jobid = j.jobid);
+  check_name := 'outcome_evaluate_daily_registered_for_the_door'; ok := (v_n = 0);
+  detail := format('%s active unregistered row(s)', v_n); return next;
 
   -- (5) the estate has no fixture residue before we start
   select count(*) into v_n from public.fn_phase_d_fixture_residue();
@@ -70970,25 +71942,24 @@ AS $function$
     select max(computed_at) as computed_at, count(*) as n from public.agent_reputation
   )
   select 'scorer_status',
-         'PAUSED_BY_FOUNDER_STANDDOWN or NOT_MEASURED_DURING_HOLD while a hold is open',
+         'PAUSED_BY_FOUNDER_STANDDOWN while a hold is open; MEASURING otherwise',
          case when (select id from hold) is not null
               then 'PAUSED_BY_FOUNDER_STANDDOWN since ' || (select stood_down_at::text from hold)
               else 'MEASURING -- no open stand-down' end,
          true
   union all
   select 'snapshot_disposition',
-         'STALE_DUE_TO_FOUNDER_STANDDOWN while the hold is open',
+         'STALE_DUE_TO_FOUNDER_STANDDOWN while the hold is open; scored inside 14 days otherwise',
          case when (select id from hold) is not null
                    and (select computed_at from snap) < (select stood_down_at from hold)
               then 'STALE_DUE_TO_FOUNDER_STANDDOWN: ' || (select n from snap)::text
                    || ' employee(s) last scored ' || (select computed_at::text from snap)
-                   || ', ' || round(extract(epoch from (now() - (select computed_at from snap)))/86400.0, 1)::text
-                   || ' days ago and ' || round(extract(epoch from ((select stood_down_at from hold) - (select computed_at from snap)))/86400.0, 1)::text
-                   || ' days before the stand-down began'
-              else 'CURRENT: last scored ' || coalesce((select computed_at::text from snap), '(never)') end,
-         true
+              else 'last scored ' || coalesce((select computed_at::text from snap), '(never)')
+                   || ' over ' || (select n from snap)::text || ' employee(s)' end,
+         (select id from hold) is not null
+           or coalesce((select computed_at from snap) > now() - interval '14 days', false)
   union all
-  -- NOT informational. If the routine can still move authority while the hold is open, the policy
+  -- NOT informational. If the routine can still move authority while a hold is open, the policy
   -- is prose and not a mechanism, and this row is how that is caught.
   select 'stale_snapshot_may_not_move_authority', '0 authority changes are possible while held',
          case when (select id from hold) is null then 'no hold is open; the guard is not engaged'
@@ -70999,13 +71970,18 @@ AS $function$
                 (select p.prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                   where n.nspname = 'public' and p.proname = 'fn_reputation_recompute')) > 0
   union all
-  select 'reputation_weekly_is_inactive', 'false',
-         coalesce((select active::text from cron.job where jobname = 'reputation_weekly'), '(no such job)'),
-         coalesce((select not active from cron.job where jobname = 'reputation_weekly'), true)
+  -- The cron is the mechanism: it must be OFF while a hold is open and ON when none is.
+  select 'reputation_weekly_matches_hold_state',
+         case when (select id from hold) is not null then 'inactive while a hold is open' else 'active while no hold is open' end,
+         coalesce((select 'active=' || active::text from cron.job where jobname = 'reputation_weekly'), '(no such job)'),
+         coalesce((select case when (select id from hold) is not null then not active else active end
+                     from cron.job where jobname = 'reputation_weekly'), false)
   union all
-  select 'outcome_evaluate_daily_is_inactive', 'false',
-         coalesce((select active::text from cron.job where jobname = 'outcome_evaluate_daily'), '(no such job)'),
-         coalesce((select not active from cron.job where jobname = 'outcome_evaluate_daily'), true);
+  select 'outcome_evaluate_daily_matches_hold_state',
+         case when (select id from hold) is not null then 'inactive while a hold is open' else 'any state while no hold is open' end,
+         coalesce((select 'active=' || active::text from cron.job where jobname = 'outcome_evaluate_daily'), '(no such job)'),
+         coalesce((select case when (select id from hold) is not null then not active else true end
+                     from cron.job where jobname = 'outcome_evaluate_daily'), true);
 $function$
 
 
@@ -71015,192 +71991,153 @@ CREATE OR REPLACE FUNCTION public.fn_reputation_recompute()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; n int := 0; v_score numeric; v_tier text;
-  v_corr numeric; v_rel numeric; v_cost numeric; v_learn numeric; v_collab numeric; v_decq numeric;
-  v_gated int := 0; v_restored int := 0; v_unmeasured int := 0;
-  v_hold record; v_window_opens timestamptz;
+declare
+  r record; n int := 0; v_score numeric; v_tier text;
+  v_gated int := 0; v_restored int := 0; v_unmeasured int := 0; v_provisional int := 0;
+  v_hold record;
+  k_prior constant numeric := 5;    -- weight of the neutral prior, in observations
+  k_mid   constant numeric := 50;   -- the prior itself
+  k_floor constant numeric := 10;   -- observations needed before a tier other than standard is assigned
+  -- per-dimension (hits, n)
+  c_hit numeric; c_n numeric;  q_hit numeric; q_n numeric;  l_hit numeric; l_n numeric;
+  e_hit numeric; e_n numeric;  b_hit numeric; b_n numeric;  y_hit numeric; y_n numeric;
+  v_corr numeric; v_decq numeric; v_learn numeric; v_cost numeric; v_collab numeric; v_rel numeric;
+  v_total numeric; v_dims int; v_provisional_row boolean;
+  post constant text := 'posterior';
 begin
-  -- ---- THE FOUNDER STAND-DOWN, 27 AUG 2026 -----------------------------------------------------
-  -- ABSENCE OF ACTIVITY DURING A HOLD HE IMPOSED IS NOT UNDERPERFORMANCE.
-  --
-  -- Every dimension below reads a window ending at now(): outcome_record verdicts, agent_runs over
-  -- 30 days, ai_cost_log over 30 days, review_chain decisions. The founder stood the workforce down
-  -- on 2026-08-16 06:10:19.732174+00 ("no one should have a single task now until we fix the
-  -- workflow and chain of command") and every work-creating cron job has been paused since. Running
-  -- this routine against that window does not measure employees; it measures the hold. It would
-  -- read four employees down to probation and, twenty lines further down, write
-  -- employee_authority.max_tier = 'gated' for each of them -- a real loss of authority caused by the
-  -- clock moving, not by anything anyone did.
-  --
-  -- So the scorer PAUSES rather than scoring. It does not return ok:true, it does not touch
-  -- agent_reputation, and it does not touch employee_authority. The last valid snapshot
-  -- (2026-08-12 13:45:16.723325+00, 93 employees) stays exactly where it is and stays readable;
-  -- fn_reputation_hold_state() is what says out loud that it is stale and why.
-  select s.id, s.stood_down_at, s.resumed_at into v_hold
-    from public.company_stand_down s
-   where s.resumed_at is null
+  -- A hold the founder actually holds open still pauses scoring; authority must not move under it.
+  select s.id, s.stood_down_at into v_hold
+    from public.company_stand_down s where s.resumed_at is null
    order by s.stood_down_at desc limit 1;
   if v_hold.id is not null then
-    return jsonb_build_object(
-      'ok', false,
-      'status', 'PAUSED_BY_FOUNDER_STANDDOWN',
+    return jsonb_build_object('ok', false, 'status', 'PAUSED_BY_FOUNDER_STANDDOWN',
       'scored', 0, 'gated', 0, 'restored', 0, 'unmeasured', 0,
-      'stand_down_id', v_hold.id,
-      'observation_window_frozen_at', v_hold.stood_down_at,
-      'last_valid_snapshot_at', (select max(computed_at) from public.agent_reputation),
-      'note', 'The observation window is frozen at the stand-down. No employee is scored, promoted '
-           || 'or demoted while the founder''s hold is open, because every dimension this routine '
-           || 'reads is an activity window and the activity was stopped by instruction. This is not '
-           || 'a PASS and it is not a performance regression.');
+      'stand_down_id', v_hold.id, 'since', v_hold.stood_down_at,
+      'note', 'No employee is scored, promoted or demoted while a stand-down is open.');
   end if;
 
-  -- ---- A COMPLETE NEW OBSERVATION WINDOW AFTER THE HOLD LIFTS -----------------------------------
-  -- Resuming is not enough. The dimensions read 30 days back, so a recompute on the day the hold
-  -- lifts would still be reading the held period and would still penalise it retroactively. The
-  -- first score after a resume is taken only once a full 30-day window has elapsed ENTIRELY after
-  -- the resume.
-  select max(s.resumed_at) + interval '30 days' into v_window_opens
-    from public.company_stand_down s where s.resumed_at is not null;
-  if v_window_opens is not null and now() < v_window_opens then
-    return jsonb_build_object(
-      'ok', false,
-      'status', 'NOT_MEASURED_DURING_HOLD',
-      'scored', 0, 'gated', 0, 'restored', 0, 'unmeasured', 0,
-      'first_valid_recompute_at', v_window_opens,
-      'note', 'The hold has lifted but the 30-day windows this routine reads still overlap it. '
-           || 'Scoring now would carry the held period into the score. The first recompute after a '
-           || 'resume waits for a complete new observation window.');
-  end if;
-  for r in select agent_key from org_agents where active loop
-    -- correctness: graded improvements that moved the metric the right way
-    select coalesce(round(100.0*count(*) filter (where verdict='improved')
-             /nullif(count(*) filter (where verdict in ('improved','no_change','worse')),0),1), null)
-      into v_corr from outcome_record where actor = r.agent_key;
-    -- reliability: runs that did not error.
-    -- NOTE (10 Aug 2026): for EMPLOYEES this is the wrong table - agent_runs is the cron log and
-    -- only nine of its 111 agent values are org_agents keys. Left alone deliberately: every value
-    -- present is >= 93, so it only ever raises a score. Do not "fix" it into something that starts
-    -- lowering scores without first deciding what employee reliability means.
-    select coalesce(round(100.0*count(*) filter (where status<>'error')/nullif(count(*),0),1), null)
-      into v_rel from agent_runs where agent = r.agent_key and started_at > now()-interval '30 days';
-    -- cost efficiency: share of calls a cheaper model could NOT have served
-    select coalesce(round(100.0*count(*) filter (where not coalesce(could_be_cheaper,false))/nullif(count(*),0),1), null)
-      into v_cost from ai_cost_log where agent_key = r.agent_key and occurred_at > now()-interval '30 days';
+  for r in select a.agent_key from public.org_agents a order by a.agent_key loop
+    -- correctness: graded outcomes of its actions + review verdicts on work it authored
+    select count(*) filter (where verdict = 'improved'),
+           count(*) filter (where verdict in ('improved','no_change','worse'))
+      into c_hit, c_n from public.outcome_record where actor = r.agent_key;
+    select c_hit + count(*) filter (where decision = 'approve'),
+           c_n + count(*)
+      into c_hit, c_n from public.review_chain
+     where author_agent = r.agent_key and decision in ('approve','reject','request_revision');
 
-    -- learning speed: the share of the employee's GRADED training attempts that it PASSED. This was
-    -- hardcoded NULL on 10 Aug because nothing had graded training then; agent_training_attempt now
-    -- carries graded results (passed set by the grader), and a missed KPI opens remediation that
-    -- assigns fresh practice (fn_kpi_review), so training genuinely feeds this axis now. NULL — never
-    -- 0 — when the employee has no graded attempt, because no training is not slow learning. It reads
-    -- only real graded rows; nothing here is fabricated.
-    select round(100.0 * count(*) filter (where passed)
-                 / nullif(count(*) filter (where passed is not null), 0), 1)
-      into v_learn
-      from public.agent_training_attempt
+    -- decision quality: decisions a human could review (confidence + source + reason)
+    select count(*) filter (where l.confidence is not null
+                              and l.sources is not null and l.sources::text not in ('null','[]','{}','""')
+                              and l.reasons is not null and l.reasons::text not in ('null','[]','{}','""')),
+           count(*)
+      into q_hit, q_n from public.decision_log l where l.actor = r.agent_key;
+
+    -- learning speed: graded training attempts it passed
+    select count(*) filter (where passed), count(*)
+      into l_hit, l_n from public.agent_training_attempt
      where agent_key = r.agent_key and passed is not null;
 
-    -- DECISION QUALITY (27 Aug 2026, spec #3 s32). The sixth named axis, which had no column until
-    -- this migration. Correctness above grades the OUTCOME of a decision from outcome_record; this
-    -- grades the decision AS TAKEN: the share of the employee's decisions in the window that a human
-    -- could actually review, meaning one that states a confidence, names at least one source and
-    -- gives at least one reason. A decision with none of the three may still turn out well and
-    -- nobody can tell why. NULL when the employee decided nothing in the window, never 0, because
-    -- deciding nothing is not deciding badly.
-    select coalesce(round(100.0*count(*) filter (
-             where l.confidence is not null
-               and l.sources is not null and l.sources::text not in ('null','[]','{}','""')
-               and l.reasons  is not null and l.reasons::text  not in ('null','[]','{}','""'))
-             /nullif(count(*),0),1), null)
-      into v_decq from decision_log l
-     where l.actor = r.agent_key and l.created_at > now()-interval '30 days';
+    -- cost efficiency: calls a cheaper model could NOT have served
+    select count(*) filter (where not coalesce(could_be_cheaper, false)), count(*)
+      into e_hit, e_n from public.ai_cost_log where agent_key = r.agent_key;
 
-    -- collaboration: reviews it took part in that reached approval, over DECIDED VERDICTS ONLY.
-    -- ORDER IS LOAD-BEARING: this must be read BEFORE the block below, which uses v_collab both in
-    -- the all-null test and in the weighted score. Computing it after would score every employee on
-    -- the PREVIOUS employee's collaboration, and the first employee on a null.
-    select coalesce(round(100.0*count(*) filter (where decision='approve')/nullif(count(*),0),1), null)
-      into v_collab from review_chain
-     where (author_agent = r.agent_key or reviewer_agent = r.agent_key)
-       and decision in ('approve','reject','request_revision');
+    -- collaboration: reviews it gave as reviewer that carry a reason
+    select count(*) filter (where nullif(btrim(coalesce(reason,'')), '') is not null), count(*)
+      into b_hit, b_n from public.review_chain
+     where reviewer_agent = r.agent_key and decision in ('approve','reject','request_revision','hold');
 
-    -- ABSENCE OF EVIDENCE IS NOT A SCORE OF 50 (12 Aug 2026). See the header: coalesce(...,50) put
-    -- 75 employees who have never executed anything at 51.0, one point above probation and
-    -- indistinguishable from a real 50. An employee with no reading on any dimension is now
-    -- 'unmeasured' with score NULL, because a score is a measurement and we have not made one.
-    -- decision_quality counts toward "has this employee any reading at all", because it is a
-    -- reading; it does NOT count toward the weighted score. See the next comment.
-    if v_corr is null and v_rel is null and v_cost is null and v_learn is null and v_collab is null
-       and v_decq is null then
-      v_score := null;
-      v_tier  := 'unmeasured';
-      v_unmeasured := v_unmeasured + 1;
+    -- reliability: assigned tasks that reached done (escalated counts against; cancelled excluded)
+    -- + runs under its own key that did not error
+    select count(*) filter (where status = 'done'), count(*)
+      into y_hit, y_n from public.org_tasks
+     where assigned_agent = r.agent_key and status in ('done','escalated');
+    select y_hit + count(*) filter (where status <> 'error'), y_n + count(*)
+      into y_hit, y_n from public.agent_runs where agent = r.agent_key;
+
+    v_corr  := round((k_mid*k_prior + 100.0*c_hit) / (k_prior + c_n), 1);
+    v_decq  := round((k_mid*k_prior + 100.0*q_hit) / (k_prior + q_n), 1);
+    v_learn := round((k_mid*k_prior + 100.0*l_hit) / (k_prior + l_n), 1);
+    v_cost  := round((k_mid*k_prior + 100.0*e_hit) / (k_prior + e_n), 1);
+    v_collab:= round((k_mid*k_prior + 100.0*b_hit) / (k_prior + b_n), 1);
+    v_rel   := round((k_mid*k_prior + 100.0*y_hit) / (k_prior + y_n), 1);
+    v_total := c_n + q_n + l_n + e_n + b_n + y_n;
+    v_dims  := (c_n > 0)::int + (q_n > 0)::int + (l_n > 0)::int + (e_n > 0)::int + (b_n > 0)::int + (y_n > 0)::int;
+    v_provisional_row := false;
+
+    if v_total = 0 then
+      v_score := null; v_tier := 'unmeasured'; v_unmeasured := v_unmeasured + 1;
     else
-      -- DECISION QUALITY IS NOT WEIGHTED HERE, DELIBERATELY. Measured on production before this
-      -- change shipped, almost every employee scores near zero on it, and the reason is that the
-      -- action gate records a confidence on a small fraction of the rows it writes -- a property of
-      -- the gate, not of the employee. Giving it any weight would demote people for the gate's
-      -- recording habit on the first run after the hold lifts, which is exactly the failure the
-      -- reliability note above warns against. The axis is measured, stored and readable; adding it
-      -- to the weights is a management decision to take once confidence is recorded on more than a
-      -- fraction of decisions.
-      v_score := round((coalesce(v_corr,50)*0.30 + coalesce(v_rel,50)*0.30 + coalesce(v_cost,50)*0.15
-                      + coalesce(v_learn,50)*0.15 + coalesce(v_collab,50)*0.10), 1);
-      v_tier := case when v_score >= 85 then 'senior_trusted'
-                     when v_score >= 70 then 'trusted'
-                     when v_score >= 50 then 'standard' else 'probation' end;
+      v_score := round(v_corr*0.30 + v_rel*0.30 + v_cost*0.15 + v_learn*0.15 + v_collab*0.10, 1);
+      if v_total < k_floor or v_dims < 2 then
+        v_tier := 'standard'; v_provisional_row := true; v_provisional := v_provisional + 1;
+      else
+        v_tier := case when v_score >= 85 then 'senior_trusted'
+                       when v_score >= 70 then 'trusted'
+                       when v_score >= 50 then 'standard' else 'probation' end;
+      end if;
     end if;
 
-    insert into agent_reputation (agent_key,correctness,reliability,cost_efficiency,learning_speed,collaboration,decision_quality,score,tier,computed_at)
-    values (r.agent_key,v_corr,v_rel,v_cost,v_learn,v_collab,v_decq,v_score,v_tier,now())
-    on conflict (agent_key) do update set correctness=excluded.correctness, reliability=excluded.reliability,
-      cost_efficiency=excluded.cost_efficiency, learning_speed=excluded.learning_speed,
-      collaboration=excluded.collaboration, decision_quality=excluded.decision_quality,
-      score=excluded.score, tier=excluded.tier, computed_at=now();
+    insert into public.agent_reputation
+      (agent_key, correctness, reliability, cost_efficiency, learning_speed, collaboration,
+       decision_quality, score, tier, computed_at, evidence)
+    values (r.agent_key, v_corr, v_rel, v_cost, v_learn, v_collab, v_decq, v_score, v_tier, now(),
+            jsonb_build_object('method', post, 'prior', k_mid, 'prior_weight', k_prior,
+              'tier_floor', k_floor, 'provisional', v_provisional_row, 'dimensions_with_evidence', v_dims,
+              'correctness', c_n, 'decision_quality', q_n, 'learning_speed', l_n,
+              'cost_efficiency', e_n, 'collaboration', b_n, 'reliability', y_n, 'total', v_total))
+    on conflict (agent_key) do update set
+      correctness = excluded.correctness, reliability = excluded.reliability,
+      cost_efficiency = excluded.cost_efficiency, learning_speed = excluded.learning_speed,
+      collaboration = excluded.collaboration, decision_quality = excluded.decision_quality,
+      score = excluded.score, tier = excluded.tier, computed_at = now(), evidence = excluded.evidence;
     n := n + 1;
   end loop;
 
   -- probation is a real consequence: any agent below the floor loses autonomous authority.
-  -- 'unmeasured' deliberately does NOT trigger this - see the header. No authority is revoked by
-  -- introducing the tier.
   with demoted as (
-    update employee_authority a set max_tier='gated'
-      from agent_reputation p
-     where p.agent_key=a.agent_key and p.tier='probation' and a.max_tier='autonomous'
+    update public.employee_authority a set max_tier = 'gated'
+      from public.agent_reputation p
+     where p.agent_key = a.agent_key and p.tier = 'probation' and a.max_tier = 'autonomous'
     returning a.agent_key, a.action_class)
-  insert into autonomy_control_audit (object, op, direction, old_value, new_value, reason)
-  select 'employee_authority:'||agent_key||'/'||action_class, 'reputation_demote', 'tighten',
+  insert into public.autonomy_control_audit (object, op, direction, old_value, new_value, reason)
+  select 'employee_authority:' || agent_key || '/' || action_class, 'reputation_demote', 'tighten',
          'autonomous', 'gated', 'reputation tier fell to probation'
     from demoted;
   get diagnostics v_gated = row_count;
 
-  -- ...and recovery is a real consequence too. NARROWED 12 Aug 2026: this read `tier <> 'probation'`,
-  -- which an employee that has never executed anything satisfied - so "never worked" was being
-  -- treated as "recovered" and handed back autonomous authority. Recovery now requires a tier that
-  -- was actually earned from a reading.
+  -- ...and recovery is a real consequence too: a grant this routine demoted comes back when the
+  -- tier is no longer probation, and an advisory-safe grant comes back on any earned tier.
   with restored as (
-    update employee_authority a set max_tier='autonomous'
-      from agent_reputation p
-     where p.agent_key=a.agent_key
-       and a.max_tier='gated'
+    update public.employee_authority a set max_tier = 'autonomous'
+      from public.agent_reputation p
+     where p.agent_key = a.agent_key
+       and a.max_tier = 'gated'
        and p.tier in ('standard','trusted','senior_trusted')
-       and a.note = 'Advisory-safe action, may run autonomously'
+       and (a.note = 'Advisory-safe action, may run autonomously'
+            or exists (select 1 from public.autonomy_control_audit u
+                        where u.op = 'reputation_demote'
+                          and u.object = 'employee_authority:' || a.agent_key || '/' || a.action_class
+                          and not exists (select 1 from public.autonomy_control_audit v
+                                           where v.op = 'reputation_restore' and v.object = u.object and v.at > u.at)))
     returning a.agent_key, a.action_class)
-  insert into autonomy_control_audit (object, op, direction, old_value, new_value, reason)
-  select 'employee_authority:'||agent_key||'/'||action_class, 'reputation_restore', 'loosen',
+  insert into public.autonomy_control_audit (object, op, direction, old_value, new_value, reason)
+  select 'employee_authority:' || agent_key || '/' || action_class, 'reputation_restore', 'loosen',
          'gated', 'autonomous',
-         'reputation recovered above probation and the grant note records the action as advisory-safe'
+         'reputation tier is no longer probation (a tier below standard needs 10 observations on two dimensions); a demotion this routine made is lifted'
     from restored;
   get diagnostics v_restored = row_count;
 
-  insert into agent_runs (agent,started_at,finished_at,status,counts,note)
-  values ('reputation',now(),now(),'ok',
-    jsonb_build_object('scored',n,'gated',v_gated,'restored',v_restored,'unmeasured',v_unmeasured),
-    'Reputation recomputed for '||n||' employee(s), of which '||v_unmeasured||' have no reading on '
-    ||'any dimension and are recorded as unmeasured with a NULL score rather than a default 50. '
-    ||'Probation demotes autonomous authority to gated ('||v_gated||' this run); recovery restores '
-    ||'advisory-safe grants ('||v_restored||' this run) and no longer counts unmeasured as recovered. '
-    ||'Decision quality is measured and stored on every employee and is not weighted into score.');
-  return jsonb_build_object('scored',n,'gated',v_gated,'restored',v_restored,'unmeasured',v_unmeasured);
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('reputation', now(), now(), 'ok',
+    jsonb_build_object('scored', n, 'gated', v_gated, 'restored', v_restored, 'unmeasured', v_unmeasured, 'provisional', v_provisional),
+    'Reputation recomputed for ' || n || ' employee(s) on six dimensions from recorded facts '
+    || '(posterior mean, prior 50 with weight 5; evidence counts stored per dimension). '
+    || v_unmeasured || ' have no evidence on any dimension and carry a NULL score; ' || v_provisional
+    || ' are provisional standard with fewer than 10 observations or evidence on one dimension only. '
+    || 'Probation demoted ' || v_gated || ' autonomous grant(s) to gated; recovery restored ' || v_restored || '.');
+  return jsonb_build_object('ok', true, 'scored', n, 'gated', v_gated, 'restored', v_restored,
+                            'unmeasured', v_unmeasured, 'provisional', v_provisional);
 end
 $function$
 
@@ -74315,8 +75252,30 @@ CREATE OR REPLACE FUNCTION public.fn_sop_update()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; n_new int := 0; v_slug text;
+declare r record; n_new int := 0; v_slug text; n_reg int := 0; n_ghost int := 0;
 begin
+  -- 1. the registry follows the scheduler: undocumented active jobs are documented
+  insert into public.cron_registry (jobname, human_name, category, purpose)
+  select j.jobname,
+         initcap(replace(j.jobname, '_', ' ')),
+         coalesce(c.department_id, 'operations'),
+         'Scheduled ' || j.schedule || ' (UTC): runs `' || btrim(coalesce(w.original_command, j.command))
+           || '`' || coalesce('; accountable role ' || c.accountable_role_id, '')
+           || '. Documented automatically by fn_sop_update on ' || to_char(now(), 'YYYY-MM-DD')
+           || ' because the job was active and undocumented.'
+    from cron.job j
+    left join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+    left join public.phase_c_component c on c.component_id = w.component_id
+   where j.active
+     and not exists (select 1 from public.cron_registry g where g.jobname = j.jobname);
+  get diagnostics n_reg = row_count;
+
+  -- ...and documentation for jobs that no longer exist is removed
+  delete from public.cron_registry g
+   where not exists (select 1 from cron.job j where j.jobname = g.jobname);
+  get diagnostics n_ghost = row_count;
+
+  -- 2. graded lessons become runbooks, as before
   for r in
     select m.id, m.headline, m.detail, m.outcome,
            coalesce(m.os_key,
@@ -74341,9 +75300,12 @@ begin
   end loop;
 
   insert into agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('sop_update', now(), now(), 'ok', jsonb_build_object('runbooks_written', n_new),
-    'SOP update: ' || n_new || ' graded lesson(s) written into the runbook library so the company cannot repeat them by accident.');
-  return jsonb_build_object('written', n_new);
+  values ('sop_update', now(), now(), 'ok',
+    jsonb_build_object('runbooks_written', n_new, 'jobs_documented', n_reg, 'ghost_entries_removed', n_ghost),
+    'SOP update: registry re-derived from the scheduler (' || n_reg || ' active job(s) newly documented, '
+    || n_ghost || ' entr(ies) for vanished jobs removed); ' || n_new
+    || ' graded lesson(s) written into the runbook library so the company cannot repeat them by accident.');
+  return jsonb_build_object('written', n_new, 'jobs_documented', n_reg, 'ghost_entries_removed', n_ghost);
 end
 $function$
 
@@ -75372,6 +76334,158 @@ AS $function$
   select 'quote_price', 'number',
          'The amount on your open quotation. It can be changed while the customer has not paid to reveal you, the quotation is not committed, and the request is still open.';
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_discovery_promote(p_limit integer DEFAULT 300, p_classify integer DEFAULT 500)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_run bigint; v_cand int := 0; v_ins int := 0; v_dup int := 0; v_cat int := 0;
+  v_scanned int := 0; v_scanned_matched int := 0; v_staged_left int := 0;
+  v_n int; v_id bigint; v_txt text; r record;
+begin
+  insert into scrape_runs (run_id, dataset_id, actor, sector, emirate, label, status, requested)
+  values ('staged-' || to_char(now() at time zone 'UTC', 'YYYYMMDD-HH24MISS'), 'yello_staging',
+          'yello_staging:promote', 'mixed', 'UAE', 'staged directory promotion ' || current_date, 'RUNNING', p_limit)
+  returning id into v_run;
+
+  -- 4. duplicates first, so the pick below never considers them again. An existing lead with the
+  --    same email, the same company name or the same phone is the same supplier.
+  --    Measured 3 Sep 2026 before the first run: every one of the 11,152 staged rows with an email
+  --    was already a lead by that email (the June directory import), and 135 of the 1,971 without
+  --    one were already leads by name or phone. The staged source's remaining discovery is the
+  --    ~1,840 email-less rows: real UAE suppliers, promoted with phone/website only, not sendable
+  --    until an email is found for them.
+  update yello_staging s
+     set stage = 'duplicate',
+         note  = 'a lead already carries this supplier (email, name or phone) — fn_supplier_discovery_promote ' || current_date
+   where s.stage not in ('promoted', 'duplicate')
+     and ((s.email is not null and s.email <> ''
+           and exists (select 1 from leads l where l.email is not null and l.email <> '' and lower(l.email) = lower(s.email)))
+       or exists (select 1 from leads l where lower(l.company_name) = lower(s.name))
+       or (s.phone is not null and exists (select 1 from leads l where l.phone_e164 = s.phone or l.phone = s.phone)));
+  get diagnostics v_dup = row_count;
+
+  -- 2. the pick. The source category is scored against the catalogue once per distinct value (64),
+  --    not once per row (13,123); the category's sendable pool decides the order, and a row that
+  --    carries an email goes before one that does not.
+  drop table if exists tmp_src;
+  create temp table tmp_src on commit drop as
+  select d.src_category, b.slug, coalesce(g.sendable, 0) as sendable
+    from (select distinct src_category from yello_staging where src_category is not null) d
+    left join lateral (select c.slug from public.fn_category_classify(replace(d.src_category, '-', ' ')) c
+                        order by c.score desc, c.slug limit 1) b on true
+    left join v_supply_gap g on g.slug = b.slug;
+
+  drop table if exists tmp_pick;
+  create temp table tmp_pick on commit drop as
+  select s.company_id, s.name,
+         case when s.email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$' then lower(s.email) end as email,
+         s.phone, s.website, s.city, s.sector, s.src_category, s.categories, s.created_at, t.slug as src_slug
+    from (select distinct on (coalesce(nullif(lower(s.email), ''), 'id:' || s.company_id)) s.*
+            from yello_staging s
+           where s.stage not in ('promoted', 'duplicate') and nullif(btrim(s.name), '') is not null
+           order by coalesce(nullif(lower(s.email), ''), 'id:' || s.company_id), s.created_at) s
+    left join tmp_src t on t.src_category = s.src_category
+   order by (s.email is null or s.email = ''), coalesce(t.sendable, 0) asc, s.created_at
+   limit greatest(coalesce(p_limit, 300), 0);
+  select count(*) into v_cand from tmp_pick;
+
+  -- 3. the leads, one at a time (at most p_limit), each classified as it lands. A row-by-row loop
+  --    is chosen over a set insert because the staged row has to be marked with the lead it became
+  --    and an email-less row has no key to join back on.
+  for r in select * from tmp_pick loop
+    v_txt := r.name || ' ' || coalesce(array_to_string(r.categories, ' '), '') || ' '
+             || coalesce(r.sector, '') || ' ' || replace(coalesce(r.src_category, ''), '-', ' ');
+    v_id := null;
+    insert into leads (company_name, email, email_domain, phone, phone_e164, website, domain, city, emirate,
+                       sector, categories, source, enrich_source, scraped_at, notes, invite_trades, created_at)
+    values (r.name, r.email, split_part(r.email, '@', 2), r.phone,
+            case when r.phone ~ '^\+[0-9]{8,15}$' then r.phone end,
+            r.website,
+            nullif(regexp_replace(lower(coalesce(r.website, '')), '^https?://(www\.)?([^/]+).*$', '\2'), ''),
+            r.city, nullif(public.fn_norm_emirate(r.city), 'unknown'),
+            r.sector, nullif(array_to_string(r.categories, ', '), ''),
+            'yello_staging', 'directory', r.created_at::date,
+            'promoted from yello_staging ' || r.company_id || ' (' || coalesce(r.src_category, '?') || ') by fn_supplier_discovery_promote on ' || current_date,
+            public.fn_norm_trades(v_txt), now())
+    on conflict do nothing
+    returning id into v_id;
+    if v_id is null then
+      update yello_staging set stage = 'duplicate',
+             note = 'a lead already carries this supplier (unique key) — fn_supplier_discovery_promote ' || current_date
+       where company_id = r.company_id;
+      v_dup := v_dup + 1;
+      continue;
+    end if;
+    v_ins := v_ins + 1;
+    insert into lead_category (lead_id, slug, score, is_primary, method, evidence)
+    select v_id, c.slug, c.score, row_number() over (order by c.score desc, c.slug) = 1, 'keyword_v1', left(c.evidence, 400)
+      from public.fn_category_classify(v_txt) c
+    on conflict do nothing;
+    get diagnostics v_n = row_count;
+    -- The directory's own category is evidence too. Measured on the first 300: the lexicon placed 5
+    -- of them from name + sector alone, so when it places none the directory heading decides.
+    if v_n = 0 and r.src_slug is not null then
+      insert into lead_category (lead_id, slug, score, is_primary, method, evidence)
+      values (v_id, r.src_slug, 3, true, 'keyword_v1', 'directory category: ' || r.src_category)
+      on conflict do nothing;
+      get diagnostics v_n = row_count;
+    end if;
+    v_cat := v_cat + v_n;
+    insert into lead_category_scan (lead_id, matched) values (v_id, v_n) on conflict do nothing;
+    update yello_staging set stage = 'promoted',
+           note = 'promoted to leads #' || v_id || ' by fn_supplier_discovery_promote on ' || current_date
+     where company_id = r.company_id;
+  end loop;
+
+  -- 5. leads the lexicon has never been run over, approved suppliers first.
+  drop table if exists tmp_scan;
+  create temp table tmp_scan on commit drop as
+  select l.id, l.company_name || ' ' || coalesce(l.categories, '') || ' ' || coalesce(l.sector, '') || ' '
+         || coalesce(l.services, '') || ' ' || coalesce(l.products, '') || ' ' || coalesce(l.description, '') as txt
+    from leads l
+   where (l.approval_status = 'approved' or (l.email is not null and l.email <> '' and coalesce(l.banned, false) = false))
+     and not exists (select 1 from lead_category c where c.lead_id = l.id)
+     and not exists (select 1 from lead_category_scan x where x.lead_id = l.id)
+   -- coalesce, not a bare comparison: 20,464 of 20,465 leads have a NULL approval_status, and NULL
+   -- sorts FIRST under DESC, which put the one approved supplier behind all of them (measured).
+   order by coalesce(l.approval_status = 'approved', false) desc, l.id
+   limit greatest(coalesce(p_classify, 500), 0);
+  select count(*) into v_scanned from tmp_scan;
+
+  insert into lead_category (lead_id, slug, score, is_primary, method, evidence)
+  select z.id, z.slug, z.score, z.rn = 1, 'keyword_v1', left(z.evidence, 400)
+    from (select t.id, c.slug, c.score, c.evidence,
+                 row_number() over (partition by t.id order by c.score desc, c.slug) rn
+            from tmp_scan t cross join lateral public.fn_category_classify(t.txt) c) z
+  on conflict do nothing;
+  insert into lead_category_scan (lead_id, matched)
+  select t.id, (select count(*) from lead_category c where c.lead_id = t.id) from tmp_scan t
+  on conflict do nothing;
+  select count(*) into v_scanned_matched from tmp_scan t where exists (select 1 from lead_category c where c.lead_id = t.id);
+
+  select count(*) into v_staged_left from yello_staging where stage not in ('promoted', 'duplicate');
+
+  update scrape_runs set status = 'COLLECTED', fetched = v_cand, inserted = v_ins, collected_at = now() where id = v_run;
+
+  insert into agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('supplier_discovery', now(), now(), 'ok',
+          jsonb_build_object('scrape_run_id', v_run, 'candidates', v_cand, 'promoted', v_ins, 'categorised', v_cat,
+                             'duplicates_marked', v_dup, 'existing_scanned', v_scanned,
+                             'existing_matched', v_scanned_matched, 'staged_left', v_staged_left),
+          'Supplier discovery: ' || v_ins || ' staged directory row(s) promoted to leads (' || v_cat
+          || ' category assignment(s)), ' || v_dup || ' marked duplicate, ' || v_scanned
+          || ' existing lead(s) classified (' || v_scanned_matched || ' matched); '
+          || v_staged_left || ' staged row(s) still to promote.');
+
+  return jsonb_build_object('scrape_run_id', v_run, 'candidates', v_cand, 'promoted', v_ins, 'categorised', v_cat,
+                            'duplicates_marked', v_dup, 'existing_scanned', v_scanned,
+                            'existing_matched', v_scanned_matched, 'staged_left', v_staged_left);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_document_impact(p_lead_id bigint)
@@ -77477,60 +78591,134 @@ CREATE OR REPLACE FUNCTION public.fn_supply_gap_scan()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; n_scrape int:=0; n_invite int:=0; n_source int:=0; v_uncat int; v_met int; v_total int;
+declare
+  v_target int; v_total int; v_met int; v_no_supply int; v_matchable int; v_uncat int;
+  v_gaps jsonb; v_actions int := 0;
+  v_inq int; v_matched int; v_quoted int; v_nomatch int; v_fill numeric;
+  s timestamptz := now() - interval '30 days';
 begin
-  select count(*) into v_total from v_supply_gap;
-  select count(*) into v_met   from v_supply_gap where status='TARGET MET';
+  v_target := coalesce((select nullif(value,'')::int from app_secrets where key = 'invite_target_per_category'), 10);
 
-  -- 1. Categories that cannot reach the target from the existing pool
-  for r in select * from v_supply_gap where status in ('POOL TOO THIN - scrape more','NO POOL - must source from scratch') order by sendable asc limit 25
-  loop
-    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
-    select 'procurement',
-           'Supply gap: '||r.slug,
-           r.name||' has '||r.sendable||' sendable lead(s) but needs about '||r.sendable_needed_at_5pct
-           ||' to reach 10 approved suppliers at a 5% conversion assumption (shortfall '||r.sendable_shortfall||'). '
-           ||'Source more UAE suppliers in this category before inviting - inviting a thin pool burns it without reaching the target.',
-           'proposed','advisory', false, 'knowledge_acquire'
-    where not exists (select 1 from org_tasks t where t.title='Supply gap: '||r.slug and t.status<>'done');
-    if found then if r.sendable=0 then n_source:=n_source+1; else n_scrape:=n_scrape+1; end if; end if;
-  end loop;
+  -- SUPPLY SIDE. Every catalogue category, its matchable suppliers and its recruitable pool.
+  -- Fixtures (ZZ DEMO / @example.invalid, the rehearsal convention) are not supply: a committed demo
+  -- scenario must not read as a category covered.
+  drop table if exists tmp_cov;
+  create temp table tmp_cov on commit drop as
+  with real_leads as (
+    select l.* from leads l
+     where coalesce(l.company_name, '') not ilike 'ZZ DEMO%' and coalesce(l.email, '') not ilike '%@example.invalid')
+  select c.slug, c.name, c.num,
+         count(distinct lc.lead_id) filter (where l.approval_status = 'approved') as approved,
+         count(distinct lc.lead_id) filter (where l.approval_status = 'approved'
+                                              and coalesce(l.banned,false) = false
+                                              and coalesce(l.matching_blocked,false) = false) as matchable,
+         count(distinct lc.lead_id) filter (where l.email is not null and l.email <> ''
+                                              and coalesce(l.banned,false) = false) as sendable,
+         count(distinct lc.lead_id) filter (where l.invite_status is not null) as invited,
+         count(distinct lc.lead_id) filter (where l.invited_at > now() - interval '30 days') as invited_30d,
+         count(distinct lc.lead_id) filter (where l.source = 'yello_staging'
+                                              and l.created_at > now() - interval '1 day') as discovered_24h,
+         coalesce((select jsonb_object_agg(z.em, z.n) from (
+             select public.fn_norm_emirate(l2.emirate) em, count(distinct l2.id) n
+               from lead_category lc2 join real_leads l2 on l2.id = lc2.lead_id
+              where lc2.slug = c.slug and l2.approval_status = 'approved'
+                and coalesce(l2.banned,false) = false and coalesce(l2.matching_blocked,false) = false
+              group by 1) z), '{}'::jsonb) as matchable_by_emirate,
+         coalesce((select jsonb_object_agg(z.em, z.n) from (
+             select public.fn_norm_emirate(l2.emirate) em, count(distinct l2.id) n
+               from lead_category lc2 join real_leads l2 on l2.id = lc2.lead_id
+              where lc2.slug = c.slug and l2.email is not null and l2.email <> ''
+                and coalesce(l2.banned,false) = false
+              group by 1) z), '{}'::jsonb) as pool_by_emirate
+    from catalog_supplier_categories c
+    left join lead_category lc on lc.slug = c.slug
+    left join real_leads l on l.id = lc.lead_id
+   group by c.slug, c.name, c.num;
 
-  -- 2. Categories with enough pool and no invites sent yet
-  for r in select * from v_supply_gap where status='READY - not yet invited' order by sendable desc limit 25
-  loop
-    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
-    select 'procurement','Start invites: '||r.slug,
-           r.name||' has '||r.sendable||' sendable leads and no invitations sent. Pool is sufficient for the 10-approved target. Queue it into the invite ramp.',
-           'proposed','advisory', false, 'invite'
-    where not exists (select 1 from org_tasks t where t.title='Start invites: '||r.slug and t.status<>'done');
-    if found then n_invite:=n_invite+1; end if;
-  end loop;
-
-  -- 3. Free supply: uncategorised leads are unusable until classified
+  select count(*), count(*) filter (where matchable >= v_target), count(*) filter (where matchable = 0)
+    into v_total, v_met, v_no_supply from tmp_cov;
+  select count(*) into v_matchable from leads
+   where approval_status = 'approved' and coalesce(banned,false) = false and coalesce(matching_blocked,false) = false
+     and coalesce(company_name, '') not ilike 'ZZ DEMO%' and coalesce(email, '') not ilike '%@example.invalid';
   select count(*) into v_uncat from leads l
-   where not exists (select 1 from lead_category lc where lc.lead_id=l.id)
-     and l.email is not null and l.email<>'' and coalesce(l.banned,false)=false;
+   where l.email is not null and l.email <> '' and coalesce(l.banned,false) = false
+     and coalesce(l.company_name, '') not ilike 'ZZ DEMO%' and l.email not ilike '%@example.invalid'
+     and not exists (select 1 from lead_category lc where lc.lead_id = l.id);
 
-  if v_uncat > 500 then
-    insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
-    select 'knowledge','Classify '||v_uncat||' uncategorised leads',
-           v_uncat||' sendable leads carry no category, so they cannot be targeted and count toward no category''s supply. '
-           ||'Classifying them is free supply - it costs no acquisition spend and will partly fill the thin categories. '
-           ||'Run the category classifier over the unmapped set.',
-           'proposed','advisory', false, 'route_category'
-    where not exists (select 1 from org_tasks where title like 'Classify % uncategorised leads' and status<>'done');
-  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'slug', t.slug, 'name', t.name, 'num', t.num,
+           'matchable', t.matchable, 'approved', t.approved, 'target', v_target,
+           'gap', v_target - t.matchable,
+           'sendable', t.sendable, 'invited', t.invited, 'invited_30d', t.invited_30d,
+           'discovered_24h', t.discovered_24h,
+           'matchable_by_emirate', t.matchable_by_emirate, 'pool_by_emirate', t.pool_by_emirate,
+           'status', case when t.matchable = 0 and t.sendable = 0 then 'NO POOL - discovery must source it'
+                          when t.matchable = 0 then 'NO SUPPLY - pool exists, nobody approved'
+                          when t.sendable = 0 then 'POOL EXHAUSTED - below target with nothing left to invite'
+                          else 'BELOW TARGET' end)
+         order by t.matchable asc, t.sendable asc, t.num), '[]'::jsonb)
+    into v_gaps
+    from tmp_cov t where t.matchable < v_target;
+
+  -- DEMAND SIDE, kept from fn_supply_health so the snapshot still answers "did requests get quotes".
+  select count(*) into v_inq from inquiries where created_at >= s;
+  select count(*) into v_matched from inquiries i where i.created_at >= s
+     and exists (select 1 from inquiry_matches m where m.inquiry_id = i.id);
+  select count(*) into v_quoted from inquiries i where i.created_at >= s
+     and exists (select 1 from quotes q where q.inquiry_id = i.id);
+  v_nomatch := v_inq - v_matched;
+  v_fill := case when v_inq > 0 then round(v_quoted::numeric / v_inq, 3) else null end;
+
+  insert into supply_health_snapshots (period_end, metrics)
+  values (current_date, jsonb_build_object(
+    'measured_by', 'fn_supply_gap_scan',
+    'categories', v_total, 'target_per_category', v_target, 'target_met', v_met,
+    'no_supply', v_no_supply, 'matchable_suppliers', v_matchable,
+    'unclassified_sendable_leads', v_uncat,
+    'coverage_gaps', v_gaps,
+    'inquiries_30d', v_inq, 'matched', v_matched, 'quoted', v_quoted,
+    'inquiries_no_match_30d', v_nomatch, 'fill_rate', v_fill));
+
+  -- THE GAP ACTION. One per category per week, recorded as done by the seat that owns coverage: the
+  -- work it names (discovery into the category, the invite plan drawing on its pool) is done by the
+  -- crons either side of this one, and this row is the record, not a request.
+  insert into agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id,
+                             confidence, evidence, decided_by, decided_at, expected_impact, cost)
+  select 'supplier_coverage', 'coverage_gap', 'auto_done', 'low',
+         'Coverage gap: ' || (g->>'name') || ' — ' || (g->>'matchable') || ' of ' || v_target || ' matchable supplier(s)',
+         case when (g->>'sendable')::int = 0
+              then 'No sendable lead in this category: discovery (fn_supplier_discovery_promote, daily) promotes staged directory rows into it first; nothing can be invited until it does.'
+              else 'The invite plan draws from this category''s ' || (g->>'sendable') || ' sendable lead(s); '
+                   || (g->>'invited') || ' already invited. Real invitations stay held until the founder''s go (app_secrets.invite_enabled).' end,
+         g || jsonb_build_object('acted', jsonb_build_object(
+                'discovered_24h', (g->>'discovered_24h')::int,
+                'pool_sendable', (g->>'sendable')::int,
+                'invited_30d', (g->>'invited_30d')::int,
+                'invite_gate', coalesce((select value from app_secrets where key = 'invite_enabled'), 'false'))),
+         'catalog_supplier_categories', g->>'slug',
+         1.0, jsonb_build_object('basis', 'lead_category x leads counted by fn_supply_gap_scan on ' || current_date,
+                                 'snapshot_period_end', current_date),
+         'supply_gap_scan', now(),
+         'Every category that reaches ' || v_target || ' matchable suppliers can answer an RFQ with a top-3 report; below that the RFQ is refused or thin.',
+         'No spend: discovery reads the staged directory rows already paid for; invitations are email.'
+    from jsonb_array_elements(v_gaps) g
+   where not exists (select 1 from agent_actions a
+                      where a.kind = 'coverage_gap' and a.target_table = 'catalog_supplier_categories'
+                        and a.target_id = g->>'slug' and a.created_at > now() - interval '7 days');
+  get diagnostics v_actions = row_count;
 
   insert into agent_runs (agent, started_at, finished_at, status, counts, note)
   values ('supply_gap_scan', now(), now(), 'ok',
-          jsonb_build_object('categories',v_total,'target_met',v_met,'scrape_tasks',n_scrape,
-                             'source_tasks',n_source,'invite_tasks',n_invite,'uncategorised',v_uncat),
-          'Supply gap scan: '||v_met||' of '||v_total||' categories at 10 approved. '
-          ||n_scrape||' need more scraping, '||n_source||' have no pool at all, '||n_invite
-          ||' ready to invite, '||v_uncat||' leads unclassified.');
+          jsonb_build_object('categories', v_total, 'target_met', v_met, 'no_supply', v_no_supply,
+                             'matchable_suppliers', v_matchable, 'gaps', jsonb_array_length(v_gaps),
+                             'gap_actions_opened', v_actions, 'unclassified', v_uncat),
+          'Supply gap scan: ' || v_met || ' of ' || v_total || ' categories at ' || v_target || ' matchable suppliers; '
+          || v_no_supply || ' with none at all; ' || v_matchable || ' matchable supplier(s) in total; '
+          || v_actions || ' gap action(s) opened this run.');
 
-  return jsonb_build_object('categories',v_total,'target_met',v_met,'scrape',n_scrape,'source',n_source,'invite',n_invite,'uncategorised',v_uncat);
+  return jsonb_build_object('categories', v_total, 'target_met', v_met, 'no_supply', v_no_supply,
+                            'matchable_suppliers', v_matchable, 'gaps', jsonb_array_length(v_gaps),
+                            'gap_actions_opened', v_actions, 'unclassified', v_uncat);
 end $function$
 
 
@@ -77591,6 +78779,7 @@ CREATE OR REPLACE FUNCTION public.fn_task_approve(p_dry_run boolean DEFAULT fals
 AS $function$
 declare
   r            record;
+  v_auth       jsonb;
   v_granted    text;
   v_ceiling    text;
   v_tier       text;
@@ -77599,6 +78788,8 @@ declare
   v_reason     text;
   v_decision   text;
   v_authreason text;
+  v_rep_key    text;
+  v_rep_tier   text;
   v_promoted   int := 0;
   v_held       int := 0;
   v_sample     jsonb := '[]'::jsonb;
@@ -77608,34 +78799,47 @@ declare
 begin
   for r in
     select id, dept_key, action_class, tier, coalesce(needs_founder,false) needs_founder,
-           coalesce(decided_by,'(unattributed)') decided_by, title
+           coalesce(decided_by,'(unattributed)') decided_by, title, assigned_agent
       from org_tasks
      where status = 'proposed'
      order by id
   loop
-    v_authreason := coalesce(fn_dept_authority(r.dept_key, r.action_class)->>'reason', 'no reason given');
-    v_granted    := coalesce(nullif(fn_dept_authority(r.dept_key, r.action_class)->>'tier',''), 'gated');
+    v_auth       := fn_dept_authority(r.dept_key, r.action_class);
+    v_authreason := coalesce(v_auth->>'reason', 'no reason given');
+    v_granted    := coalesce(nullif(v_auth->>'tier',''), 'gated');
     if v_granted not in ('advisory','gated','supervised','autonomous') then v_granted := 'gated'; end if;
+
+    -- WHO WILL DO IT, AND HOW HAS THEIR WORK BEEN GRADED. The assignee when one exists, else the
+    -- proposer; an employee on reputation probation does not get its task waved through.
+    v_rep_key := coalesce(r.assigned_agent, nullif(r.decided_by, '(unattributed)'));
+    select p.tier into v_rep_tier from public.agent_reputation p where p.agent_key = v_rep_key;
 
     v_ceiling := case when r.action_class = any(c_ceiling) then 'autonomous' else 'gated' end;
     v_tier    := case when fn_authority_rank(v_granted) > fn_authority_rank(v_ceiling)
                       then v_ceiling else v_granted end;
     v_final   := case when r.needs_founder and fn_authority_rank(v_tier) > fn_authority_rank('gated')
                       then 'gated' else v_tier end;
+    if v_rep_tier = 'probation' and v_final <> 'gated' then v_final := 'gated'; end if;
 
-    -- Name the ACTUAL cause. Three different things produce a hold and they need different fixes:
+    -- Name the ACTUAL cause. Four different things produce a hold and they need different fixes:
     -- a hard gate is permanent, a missing org_authority row is a configuration gap someone should
-    -- close, and a ceiling clamp is a deliberate refusal to widen autonomy from a file.
+    -- close, a ceiling clamp is a deliberate refusal to widen autonomy from a file, and a probation
+    -- tier is the employee's own record.
     if v_final <> 'gated' then
       v_decision := 'approve';
       v_reason := 'Approved by the authority model: ' || r.dept_key || '/' || r.action_class
-        || ' resolves to tier "' || v_final || '" (' || v_authreason || '). '
+        || ' resolves to tier "' || v_final || '" (' || v_authreason || '); '
+        || coalesce(v_rep_key, 'nobody') || ' holds reputation tier '
+        || coalesce(v_rep_tier, 'unmeasured') || '. '
         || 'No founder gate applies — decision_policy.founder_review_gates covers refunds outside '
         || 'policy, money moves above the limit, published marketing, legal action, strategy '
         || 'changes, partnerships and executive security incidents only.';
     else
       v_decision := 'hold';
-      if v_granted = 'gated' then
+      if v_rep_tier = 'probation' then
+        v_why := coalesce(v_rep_key, 'the proposer') || ' is on reputation probation, and a task '
+              || 'of theirs is reviewed before it runs';
+      elsif v_granted = 'gated' then
         v_why := 'the authority model itself grants no more than "gated" — ' || v_authreason;
       elsif fn_authority_rank(v_granted) > fn_authority_rank(v_ceiling) then
         v_why := 'org_authority grants "' || v_granted || '" but "' || r.action_class
@@ -77645,7 +78849,7 @@ begin
         v_why := 'the task was written with needs_founder=true by ' || r.decided_by
               || ', and needs_founder can only tighten';
       end if;
-      v_reason := 'Held for the founder: ' || r.dept_key || '/' || r.action_class || ' — ' || v_why || '.';
+      v_reason := 'Held for review: ' || r.dept_key || '/' || r.action_class || ' — ' || v_why || '.';
     end if;
 
     if not p_dry_run then
@@ -77675,7 +78879,8 @@ begin
     if jsonb_array_length(v_sample) < 12 then
       v_sample := v_sample || jsonb_build_array(jsonb_build_object(
         'task', r.id, 'dept', r.dept_key, 'class', r.action_class,
-        'granted', v_granted, 'final', v_final, 'decision', v_decision));
+        'granted', v_granted, 'final', v_final, 'decision', v_decision,
+        'reputation', jsonb_build_object('agent', v_rep_key, 'tier', v_rep_tier)));
     end if;
   end loop;
 
@@ -86449,6 +87654,7 @@ ALTER TABLE public.knowledge_ingestion_undo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_module_standard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_category ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_category_scan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_subcategory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_trade_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
@@ -86797,7 +88003,7 @@ CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SEL
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 
 -- ===== CRON JOBS =====
-select cron.schedule('supplier_invites_daily','0 9 * * *',$CRON$ select enqueue_supplier_invites(); $CRON$);
+select cron.schedule('supplier_invites_daily','0 9 * * *',$CRON$select public.fn_kernel_cron_exec(2);$CRON$);
 select cron.schedule('sms_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron_exec(3);$CRON$);
 select cron.schedule('auto_deploy','*/2 * * * *',$CRON$select public.run_auto_deploy()$CRON$);
 select cron.schedule('no_quote_nudges','17 * * * *',$CRON$select public.run_no_quote_nudges()$CRON$);
@@ -86828,13 +88034,7 @@ select cron.schedule('social_stage_hourly','17 * * * *',$CRON$
     body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_cron_content'))
   );
 $CRON$);
-select cron.schedule('qa_suite_daily','37 3 * * *',$CRON$
-  select net.http_post(
-    url  := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/qa_suite',
-    headers := jsonb_build_object('Content-Type','application/json'),
-    body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_cron_monitoring'))
-  );
-$CRON$);
+select cron.schedule('qa_suite_daily','37 3 * * *',$CRON$select public.fn_kernel_cron_exec(28);$CRON$);
 select cron.schedule('gen_category_knowledge_daily','17 3 * * *',$CRON$
   select net.http_post(
     url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/gen_category_knowledge',
@@ -86874,13 +88074,7 @@ select cron.schedule('embed_suppliers_daily','50 2 * * *',$CRON$
     body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_marketplace'),'scope','all'),
     timeout_milliseconds:=55000)
 $CRON$);
-select cron.schedule('money_tests_daily','30 3 * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/money_tests',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
-    body := jsonb_build_object('__secret', (select value from app_secrets where key='cred_cron_finance'))
-  );
-  $CRON$);
+select cron.schedule('money_tests_daily','30 3 * * *',$CRON$select public.fn_kernel_cron_exec(42);$CRON$);
 select cron.schedule('reveal-nudges','0 * * * *',$CRON$select qd_reveal_nudges();$CRON$);
 select cron.schedule('response-recompute','30 2 * * *',$CRON$select qd_recompute_response();$CRON$);
 select cron.schedule('assets_ingest_6h','15 */6 * * *',$CRON$
@@ -86921,13 +88115,7 @@ begin
 end $inner$;
 $CRON$);
 select cron.schedule('eval_weekly','0 5 * * 1',$CRON$select public.fn_eval_run();$CRON$);
-select cron.schedule('dr_drill_monthly','50 3 1 * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/dr_drill',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
-    body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_backup')),
-    timeout_milliseconds := 120000);
-$CRON$);
+select cron.schedule('dr_drill_monthly','50 3 1 * *',$CRON$select public.fn_kernel_cron_exec(55);$CRON$);
 select cron.schedule('exception_alerts_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(56);$CRON$);
 select cron.schedule('board_report_weekly','0 7 * * 1',$CRON$select public.fn_kernel_cron_exec(57);$CRON$);
 select cron.schedule('archive_completed_daily','20 4 * * *',$CRON$
@@ -86943,7 +88131,7 @@ begin
   end loop;
 end $inner$;
 $CRON$);
-select cron.schedule('doc_expiry_daily','20 5 * * *',$CRON$select public.fn_doc_expiry_scan();$CRON$);
+select cron.schedule('doc_expiry_daily','20 5 * * *',$CRON$select public.fn_kernel_cron_exec(59);$CRON$);
 select cron.schedule('monthly_report','0 7 1 * *',$CRON$select public.fn_kernel_cron_exec(60);$CRON$);
 select cron.schedule('quarterly_report','0 8 1 1,4,7,10 *',$CRON$select public.fn_quarterly_report();$CRON$);
 select cron.schedule('gl_sync_nightly','0 2 * * *',$CRON$select public.fn_gl_sync_business();$CRON$);
@@ -86977,10 +88165,7 @@ select cron.schedule('capability_backfill_daily','40 2 * * *',$CRON$select net.h
   url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/enrich_capability',
   headers:=jsonb_build_object('Content-Type','application/json'),
   body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_marketplace'),'limit',20));$CRON$);
-select cron.schedule('match_eval_weekly','0 5 * * 1',$CRON$select net.http_post(
-  url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/match_eval',
-  headers:=jsonb_build_object('Content-Type','application/json'),
-  body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_marketplace')));$CRON$);
+select cron.schedule('match_eval_weekly','0 5 * * 1',$CRON$select public.fn_kernel_cron_exec(87);$CRON$);
 select cron.schedule('dropbox_backup_scan','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(88);$CRON$);
 select cron.schedule('collections_legal_daily','15 6 * * *',$CRON$
   select net.http_post(
@@ -87111,20 +88296,20 @@ select cron.schedule('goal_period_refresh_daily','45 2 * * *',$CRON$select publi
 select cron.schedule('budget_rollup_daily','50 2 * * *',$CRON$select public.fn_budget_rollup();$CRON$);
 select cron.schedule('exec_meeting_weekly','0 5 * * 1',$CRON$select public.fn_kernel_cron_exec(152);$CRON$);
 select cron.schedule('ceo_questions_weekly','30 5 * * 1',$CRON$select public.fn_ceo_questions();$CRON$);
-select cron.schedule('knowledge_decay_daily','10 3 * * *',$CRON$select public.fn_knowledge_decay();$CRON$);
+select cron.schedule('knowledge_decay_daily','10 3 * * *',$CRON$select public.fn_kernel_cron_exec(154);$CRON$);
 select cron.schedule('supply_gap_scan_daily','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(155);$CRON$);
 select cron.schedule('os_review_weekly','45 4 * * 1',$CRON$select public.fn_kernel_cron_exec(156);$CRON$);
 select cron.schedule('os_improve_weekly','15 6 * * 1',$CRON$select public.fn_os_improve();$CRON$);
-select cron.schedule('sop_update_weekly','30 6 * * 1',$CRON$select public.fn_sop_update();$CRON$);
+select cron.schedule('sop_update_weekly','30 6 * * 1',$CRON$select public.fn_kernel_cron_exec(158);$CRON$);
 select cron.schedule('company_reflect_nightly','30 21 * * *',$CRON$select public.fn_kernel_cron_exec(160);$CRON$);
-select cron.schedule('reputation_weekly','0 7 * * 1',$CRON$select public.fn_reputation_recompute();$CRON$);
+select cron.schedule('reputation_weekly','0 7 * * 1',$CRON$select public.fn_kernel_cron_exec(161);$CRON$);
 select cron.schedule('company_indices_daily','40 3 * * *',$CRON$select public.fn_kernel_cron_exec(162);$CRON$);
 select cron.schedule('opportunity_scan_daily','50 3 * * *',$CRON$select public.fn_kernel_cron_exec(165);$CRON$);
-select cron.schedule('reallocate_monthly','0 8 1 * *',$CRON$select public.fn_reallocate();$CRON$);
+select cron.schedule('reallocate_monthly','0 8 1 * *',$CRON$select public.fn_kernel_cron_exec(166);$CRON$);
 select cron.schedule('company_snapshot_daily','55 23 * * *',$CRON$select public.fn_kernel_cron_exec(170);$CRON$);
 select cron.schedule('edge_health_scan_15min','3,18,33,48 * * * *',$CRON$select public.fn_kernel_cron_exec(171);$CRON$);
 select cron.schedule('ai_spend_guard_hourly','40 * * * *',$CRON$select public.fn_kernel_cron_exec(172);$CRON$);
-select cron.schedule('model_benchmark_daily','25 4 * * *',$CRON$ select fn_model_benchmark() $CRON$);
+select cron.schedule('model_benchmark_daily','25 4 * * *',$CRON$select public.fn_kernel_cron_exec(173);$CRON$);
 select cron.schedule('model_autoswitch_daily','35 4 * * *',$CRON$ select fn_model_autoswitch() $CRON$);
 select cron.schedule('cost_snapshot_balance_daily','0 5 * * *',$CRON$
   select net.http_post(
@@ -87243,6 +88428,10 @@ select cron.schedule('dept_ops_heartbeat_hourly','23 * * * *',$CRON$select publi
 select cron.schedule('supplier_suspension_proposed_daily','30 2 * * *',$CRON$select public.fn_kernel_cron_exec(313);$CRON$);
 select cron.schedule('kb_embed_ops_knowledge','* * * * *',$CRON$select public.fn_kernel_cron_exec(315);$CRON$);
 select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(316);$CRON$);
+select cron.schedule('agent_daily_thought','15 4 * * *',$CRON$select public.fn_kernel_cron_exec(319);$CRON$);
+select cron.schedule('knowledge_exam_retrieval_daily','23 3 * * *',$CRON$select public.fn_kernel_cron_exec(320);$CRON$);
+select cron.schedule('resilience_drill_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(321);$CRON$);
+select cron.schedule('supplier_discovery_daily','50 2 * * *',$CRON$select public.fn_kernel_cron_exec(322);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
