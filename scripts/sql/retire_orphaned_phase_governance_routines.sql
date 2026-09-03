@@ -61,3 +61,15 @@ begin
 end $ctl$;
 
 commit;
+
+-- COMPONENT RETIREMENT (added after the first apply). Three of the twelve had phase_c_component rows
+-- that outlived their routine; the exposure board then read a null derivation against a recorded
+-- external_entry. Mark them with the estate's retirement vocabulary (inactive / INTENTIONALLY_RETIRED)
+-- and take the one that was in the frozen exposure scope out of it — a dropped routine has no object
+-- to derive exposure from. Mirrored line-for-line in docs/phase-c/PHASE_C_RUNTIME_COMPONENT_CROSSWALK.csv.
+begin;
+update public.phase_c_component set activation_state='inactive', classification='INTENTIONALLY_RETIRED', external_entry='no', gap='routine dropped 3 Sep 2026; no object remains', repair_or_keep_action='retired', evidence='retire_orphaned_phase_governance_routines.sql 2026-09-03: orphan of the Phase A freeze the founder lifted 2 Sep 2026 (trigger already dropped); measured 0 callers/cron/trigger/view/RLS/repo refs before removal; function dropped' where component_id='dbfn:fn_phase_a_freeze_guard()';
+update public.phase_c_component set activation_state='inactive', classification='INTENTIONALLY_RETIRED', external_entry='no', gap='routine dropped 3 Sep 2026; no object remains', repair_or_keep_action='retired', evidence='retire_orphaned_phase_governance_routines.sql 2026-09-03: orphan of the Phase B freeze the founder lifted 2 Sep 2026 (trigger already dropped); measured 0 callers/cron/trigger/view/RLS/repo refs before removal; function dropped' where component_id='dbfn:fn_phase_b_freeze_guard()';
+update public.phase_c_component set activation_state='inactive', classification='INTENTIONALLY_RETIRED', external_entry='no', gap='routine dropped 3 Sep 2026; no object remains', repair_or_keep_action='retired', evidence='retire_orphaned_phase_governance_routines.sql 2026-09-03: freeze-era transition rule with 0 callers that was anon-EXECUTABLE over PostgREST (K11 2026-08-16 measured has_function_privilege(anon)=t); dropping it closed that unauthenticated public entry; removed from phase_c_component_exposure_scope because a dropped routine has no object to derive exposure from' where component_id='dbfn:fn_phase_b_step_transition_allowed(p_from text, p_to text)';
+delete from public.phase_c_component_exposure_scope where component_id='dbfn:fn_phase_b_step_transition_allowed(p_from text, p_to text)';
+commit;
