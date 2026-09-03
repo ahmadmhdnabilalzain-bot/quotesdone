@@ -1885,3 +1885,4 @@ scripts/sql/ops_knowledge_semantic_retrieval.sql
 scripts/sql/deterministic_decision_engine.sql
 scripts/sql/lift_deterministic_loop_throttle.sql
 scripts/sql/fix_rfq_handling_trigger_event.sql
+scripts/sql/enable_self_management_crons.sql
