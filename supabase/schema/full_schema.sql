@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T21:42:47.274Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T22:25:17.806Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -40374,6 +40374,7 @@ traced as (
               then exists (select 1 from public.phase_c_system_execution se
                   where se.component_id = runs.component_id
                     and se.trigger_source like 'cron.job/' || runs.jobid::text || '%'
+                    and se.started_at >= runs.start_time - interval '5 seconds'  -- 4 SEP 2026: a trace OF this run starts within the same five seconds; the lower bound lets the (component_id, started_at) index answer in a tight range instead of scanning every execution of a one-minute job
                     and se.started_at <= runs.end_time + interval '5 seconds'
                     and coalesce(se.finished_at, se.started_at) >= runs.start_time - interval '5 seconds')
               else false end as has_trace
