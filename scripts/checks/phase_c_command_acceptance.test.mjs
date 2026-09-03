@@ -43,7 +43,11 @@ const ALIAS = {
   corporate_performance_director: 'corporate_performance_director',
   rfq_success_specialist: 'rfq_success',
 };
-const live = t => ALIAS[t] || t;
+// 3 SEP 2026 (PACR-004): a role parked by a re-carve resolves to the seat that inherited its work,
+// read from the alias registry the runtime itself resolves through (org_role_alias, kind
+// merged_role) so this file never carries a second copy of the org.
+const MERGED = Object.fromEntries((await sql(`select alias, role_id from public.org_role_alias where kind = 'merged_role'`)).map(r => [r.alias, r.role_id]));
+const live = t => { const a = ALIAS[t] || t; return MERGED[a] || a; };
 
 // ---- the frozen Phase B ownership these cases are judged against ------------------------------
 // Loaded once, from the frozen registry, so the assertions below compare the runtime to the
