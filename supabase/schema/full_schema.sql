@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T06:39:14.956Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T06:44:55.171Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -23366,7 +23366,22 @@ begin
     'os_health',        (select jsonb_object_agg(os_key,health) from os_review where period=to_char(now(),'IYYY-"W"IW')),
     'indices',          (select jsonb_object_agg(index_name,score) from company_index where measured_on=current_date),
     'autonomy_enabled', (select value from app_secrets where key='agent_autonomy_enabled'),
-    'invite_enabled',   (select value from app_secrets where key='invite_enabled'));
+    'invite_enabled', (select value from app_secrets where key='invite_enabled'),
+      -- THE PULSE (3 Sep 2026): the signals the founder's one screen lacked, from the instruments that
+      -- already measure them. Liveness (a cron that never fires), what is dead-lettered, what failed in
+      -- the last day, what is parked behind the paid-model hold, what paged him, and the ad money.
+      'crons_stale',        (select coalesce(jsonb_agg(jobname order by jobname), '[]'::jsonb) from public.v_cron_stale),
+      'dead_letters_open',  (select count(*) from public.dead_letter where resolved_at is null),
+      'failed_runs_24h',    (select count(*) from public.agent_runs where status = 'error' and started_at > now() - interval '24 hours'),
+      'runs_skipped_24h',   (select count(*) from public.agent_runs where status = 'skipped' and started_at > now() - interval '24 hours'),
+      'actions_held',       (select count(*) from public.action_execution where status = 'held'),
+      'founder_alerts_24h', (select count(*) from public.founder_alerts where channel in ('email','whatsapp') and created_at > now() - interval '24 hours'),
+      'ad_spend', jsonb_build_object(
+        'active_campaigns', (select count(*) from public.ad_campaign_state where not is_demo and status = 'ACTIVE'),
+        'active_daily_aed', (select coalesce(sum(daily_budget_aed), 0) from public.ad_campaign_state where not is_demo and status = 'ACTIVE'),
+        'daily_ceiling_aed', public.fn_ad_spend_daily_ceiling(),
+        'decisions_pending', (select count(*) from public.ad_decision where executed_at is null),
+        'meta_token_present', exists (select 1 from app_secrets where key = 'meta_access_token' and coalesce(value, '') <> '')));
 
   insert into company_snapshot (snapshot_on, state) values (current_date, s)
   on conflict (snapshot_on) do update set state=excluded.state, created_at=now();
