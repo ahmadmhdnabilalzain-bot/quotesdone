@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T20:03:45.021Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T20:07:04.032Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1420,7 +1420,9 @@ CREATE TABLE IF NOT EXISTS public.continuity_plan (
   recovery text NOT NULL,
   rto_minutes integer,
   owner_agent text,
-  last_tested date
+  last_tested date,
+  probe_sql text,
+  last_result text
 );
 
 CREATE TABLE IF NOT EXISTS public.control_mode_action (
@@ -1491,7 +1493,8 @@ CREATE TABLE IF NOT EXISTS public.critical_capability (
   test_kind text,
   test_ref text,
   last_verdict text,
-  last_checked timestamp with time zone
+  last_checked timestamp with time zone,
+  probe_sql text
 );
 
 CREATE TABLE IF NOT EXISTS public.crm_activities (
@@ -17640,6 +17643,126 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -18188,126 +18311,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -26439,6 +26442,134 @@ begin
 
   select count(*) into n from agent_actions where agent='document_controller' and status in ('pending','needs_review');
   return jsonb_build_object('ran_at',now(),'doc_health',v_health,'kpis',to_jsonb(k),'open_tasks',n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dr_drill()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c record; v boolean; v_verdict text;
+  v_started timestamptz := clock_timestamp();
+  n_cap_ok int := 0; n_cap_fail int := 0; n_svc_ok int := 0; n_svc_fail int := 0; n_crit_fail int := 0;
+  v_fail text := ''; v_verify jsonb; v_restore_ok boolean; v_restore_note text := 'restore drill fresh';
+  v_url text; v_status text;
+begin
+  -- 1. the ledger: suites and scenarios as their last real run recorded them
+  v_verify := public.fn_capability_verify();
+
+  -- 2. capability probes, each in a subtransaction that is always rolled back
+  for c in select capability_key, probe_sql from public.critical_capability
+            where probe_sql is not null order by capability_key loop
+    v := null;
+    begin
+      execute c.probe_sql into v;
+      raise exception using errcode = 'P0001', message = '__probe_rollback__';
+    exception when others then
+      if sqlerrm = '__probe_rollback__' then
+        v_verdict := case when coalesce(v, false) then 'probe_ok' else 'probe_failed: returned false' end;
+      else
+        v_verdict := 'probe_failed: ' || left(sqlerrm, 200);
+      end if;
+    end;
+    update public.critical_capability
+       set last_verdict = v_verdict, last_checked = now()
+     where capability_key = c.capability_key;
+    if v_verdict = 'probe_ok' then n_cap_ok := n_cap_ok + 1;
+    else n_cap_fail := n_cap_fail + 1; v_fail := v_fail || c.capability_key || ': ' || v_verdict || '. ';
+    end if;
+  end loop;
+
+  -- 3. continuity probes: the detection or fallback each service documents, measured
+  for c in select service, criticality, probe_sql from public.continuity_plan
+            where probe_sql is not null order by service loop
+    v := null;
+    begin
+      execute c.probe_sql into v;
+      raise exception using errcode = 'P0001', message = '__probe_rollback__';
+    exception when others then
+      if sqlerrm = '__probe_rollback__' then
+        v_verdict := case when coalesce(v, false) then 'pass' else 'fail: probe returned false' end;
+      else
+        v_verdict := 'fail: ' || left(sqlerrm, 200);
+      end if;
+    end;
+    update public.continuity_plan
+       set last_tested = current_date, last_result = v_verdict
+     where service = c.service;
+    if v_verdict = 'pass' then n_svc_ok := n_svc_ok + 1;
+    else
+      n_svc_fail := n_svc_fail + 1;
+      if c.criticality in ('critical','high') then n_crit_fail := n_crit_fail + 1; end if;
+      v_fail := v_fail || c.service || ' (' || c.criticality || '): ' || v_verdict || '. ';
+    end if;
+  end loop;
+
+  -- 4. the continuity capability's verdict IS the continuity drill's result
+  update public.critical_capability
+     set last_verdict = case when n_crit_fail = 0 then 'probe_ok'
+                             else 'probe_failed: ' || n_crit_fail || ' critical/high service(s) failed their continuity probe' end,
+         last_checked = now()
+   where capability_key = 'continuity';
+
+  -- 5. a stale restore drill is re-run, not reported. Same call as dr_drill_monthly (job 55).
+  select exists (select 1 from public.agent_runs
+                  where agent = 'dr_drill' and status = 'ok'
+                    and coalesce((counts->>'tables_checked')::int, 0) > 0
+                    and started_at > now() - interval '45 days')
+    into v_restore_ok;
+  if not v_restore_ok then
+    begin
+      select 'https://' || value || '.supabase.co/functions/v1/dr_drill' into v_url
+        from public.app_secrets where key = 'project_ref';
+      perform net.http_post(
+        url := v_url,
+        headers := jsonb_build_object('Content-Type','application/json',
+                     'Authorization','Bearer '||(select value from public.app_secrets where key='anon_key')),
+        body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_cron_backup')),
+        timeout_milliseconds := 120000);
+      v_restore_note := 'no successful restore drill in 45 days: dr_drill triggered';
+    exception when others then
+      v_restore_note := 'no successful restore drill in 45 days and dr_drill could not be triggered: ' || left(sqlerrm, 160);
+      n_crit_fail := n_crit_fail + 1;
+      v_fail := v_fail || v_restore_note || '. ';
+    end;
+  end if;
+
+  -- 6. a failed probe is a ticket for IT, once per failure per day — the record of what the drill
+  --    found, for the employee who owns the fix.
+  if v_fail <> '' and not exists (
+       select 1 from public.agent_actions
+        where kind = 'resilience_probe_failed' and status in ('pending','needs_review')
+          and created_at > now() - interval '20 hours') then
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, detail)
+    values ('it', 'resilience_probe_failed', 'pending', 'medium',
+            'Resilience drill: ' || (n_cap_fail + n_svc_fail) || ' probe(s) failed',
+            'Read the probe_sql on each failing critical_capability / continuity_plan row and restore the mechanism it tests. ' || left(v_fail, 800),
+            'critical_capability',
+            jsonb_build_object('capabilities_failed', n_cap_fail, 'services_failed', n_svc_fail,
+                               'critical_or_high_failed', n_crit_fail, 'detail', left(v_fail, 2000)));
+  end if;
+
+  v_status := case when n_cap_fail + n_crit_fail > 0 then 'error' else 'ok' end;
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values ('resilience_drill', v_started, clock_timestamp(), v_status,
+          jsonb_build_object('capabilities_probed', n_cap_ok + n_cap_fail, 'capabilities_ok', n_cap_ok,
+                             'capabilities_failed', n_cap_fail, 'services_tested', n_svc_ok + n_svc_fail,
+                             'services_ok', n_svc_ok, 'services_failed', n_svc_fail,
+                             'critical_or_high_failed', n_crit_fail, 'ledger', v_verify,
+                             'restore_drill_fresh', v_restore_ok),
+          'Resilience drill: ' || n_cap_ok || ' of ' || (n_cap_ok + n_cap_fail) || ' capability probe(s) passed, '
+          || n_svc_ok || ' of ' || (n_svc_ok + n_svc_fail) || ' continuity service(s) passed their probe; '
+          || v_restore_note || case when v_fail <> '' then '. FAILED: ' || left(v_fail, 700) else '.' end);
+
+  return jsonb_build_object('status', v_status, 'capabilities_ok', n_cap_ok, 'capabilities_failed', n_cap_fail,
+                            'services_ok', n_svc_ok, 'services_failed', n_svc_fail,
+                            'critical_or_high_failed', n_crit_fail, 'restore_drill_fresh', v_restore_ok,
+                            'restore_note', v_restore_note, 'failures', nullif(v_fail, ''));
 end $function$
 
 
@@ -71684,15 +71815,16 @@ CREATE OR REPLACE FUNCTION public.fn_reputation_recompute()
 AS $function$
 declare
   r record; n int := 0; v_score numeric; v_tier text;
-  v_gated int := 0; v_restored int := 0; v_unmeasured int := 0;
+  v_gated int := 0; v_restored int := 0; v_unmeasured int := 0; v_provisional int := 0;
   v_hold record;
   k_prior constant numeric := 5;    -- weight of the neutral prior, in observations
   k_mid   constant numeric := 50;   -- the prior itself
+  k_floor constant numeric := 10;   -- observations needed before a tier other than standard is assigned
   -- per-dimension (hits, n)
   c_hit numeric; c_n numeric;  q_hit numeric; q_n numeric;  l_hit numeric; l_n numeric;
   e_hit numeric; e_n numeric;  b_hit numeric; b_n numeric;  y_hit numeric; y_n numeric;
   v_corr numeric; v_decq numeric; v_learn numeric; v_cost numeric; v_collab numeric; v_rel numeric;
-  v_total numeric;
+  v_total numeric; v_dims int; v_provisional_row boolean;
   post constant text := 'posterior';
 begin
   -- A hold the founder actually holds open still pauses scoring; authority must not move under it.
@@ -71752,14 +71884,20 @@ begin
     v_collab:= round((k_mid*k_prior + 100.0*b_hit) / (k_prior + b_n), 1);
     v_rel   := round((k_mid*k_prior + 100.0*y_hit) / (k_prior + y_n), 1);
     v_total := c_n + q_n + l_n + e_n + b_n + y_n;
+    v_dims  := (c_n > 0)::int + (q_n > 0)::int + (l_n > 0)::int + (e_n > 0)::int + (b_n > 0)::int + (y_n > 0)::int;
+    v_provisional_row := false;
 
     if v_total = 0 then
       v_score := null; v_tier := 'unmeasured'; v_unmeasured := v_unmeasured + 1;
     else
       v_score := round(v_corr*0.30 + v_rel*0.30 + v_cost*0.15 + v_learn*0.15 + v_collab*0.10, 1);
-      v_tier := case when v_score >= 85 then 'senior_trusted'
-                     when v_score >= 70 then 'trusted'
-                     when v_score >= 50 then 'standard' else 'probation' end;
+      if v_total < k_floor or v_dims < 2 then
+        v_tier := 'standard'; v_provisional_row := true; v_provisional := v_provisional + 1;
+      else
+        v_tier := case when v_score >= 85 then 'senior_trusted'
+                       when v_score >= 70 then 'trusted'
+                       when v_score >= 50 then 'standard' else 'probation' end;
+      end if;
     end if;
 
     insert into public.agent_reputation
@@ -71767,6 +71905,7 @@ begin
        decision_quality, score, tier, computed_at, evidence)
     values (r.agent_key, v_corr, v_rel, v_cost, v_learn, v_collab, v_decq, v_score, v_tier, now(),
             jsonb_build_object('method', post, 'prior', k_mid, 'prior_weight', k_prior,
+              'tier_floor', k_floor, 'provisional', v_provisional_row, 'dimensions_with_evidence', v_dims,
               'correctness', c_n, 'decision_quality', q_n, 'learning_speed', l_n,
               'cost_efficiency', e_n, 'collaboration', b_n, 'reliability', y_n, 'total', v_total))
     on conflict (agent_key) do update set
@@ -71789,30 +71928,38 @@ begin
     from demoted;
   get diagnostics v_gated = row_count;
 
-  -- ...and recovery is a real consequence too, only for a tier earned from a reading.
+  -- ...and recovery is a real consequence too: a grant this routine demoted comes back when the
+  -- tier is no longer probation, and an advisory-safe grant comes back on any earned tier.
   with restored as (
     update public.employee_authority a set max_tier = 'autonomous'
       from public.agent_reputation p
-     where p.agent_key = a.agent_key and a.max_tier = 'gated'
+     where p.agent_key = a.agent_key
+       and a.max_tier = 'gated'
        and p.tier in ('standard','trusted','senior_trusted')
-       and a.note = 'Advisory-safe action, may run autonomously'
+       and (a.note = 'Advisory-safe action, may run autonomously'
+            or exists (select 1 from public.autonomy_control_audit u
+                        where u.op = 'reputation_demote'
+                          and u.object = 'employee_authority:' || a.agent_key || '/' || a.action_class
+                          and not exists (select 1 from public.autonomy_control_audit v
+                                           where v.op = 'reputation_restore' and v.object = u.object and v.at > u.at)))
     returning a.agent_key, a.action_class)
   insert into public.autonomy_control_audit (object, op, direction, old_value, new_value, reason)
   select 'employee_authority:' || agent_key || '/' || action_class, 'reputation_restore', 'loosen',
          'gated', 'autonomous',
-         'reputation recovered above probation and the grant note records the action as advisory-safe'
+         'reputation tier is no longer probation (a tier below standard needs 10 observations on two dimensions); a demotion this routine made is lifted'
     from restored;
   get diagnostics v_restored = row_count;
 
   insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
   values ('reputation', now(), now(), 'ok',
-    jsonb_build_object('scored', n, 'gated', v_gated, 'restored', v_restored, 'unmeasured', v_unmeasured),
+    jsonb_build_object('scored', n, 'gated', v_gated, 'restored', v_restored, 'unmeasured', v_unmeasured, 'provisional', v_provisional),
     'Reputation recomputed for ' || n || ' employee(s) on six dimensions from recorded facts '
     || '(posterior mean, prior 50 with weight 5; evidence counts stored per dimension). '
-    || v_unmeasured || ' have no evidence on any dimension and carry a NULL score. '
+    || v_unmeasured || ' have no evidence on any dimension and carry a NULL score; ' || v_provisional
+    || ' are provisional standard with fewer than 10 observations or evidence on one dimension only. '
     || 'Probation demoted ' || v_gated || ' autonomous grant(s) to gated; recovery restored ' || v_restored || '.');
   return jsonb_build_object('ok', true, 'scored', n, 'gated', v_gated, 'restored', v_restored,
-                            'unmeasured', v_unmeasured);
+                            'unmeasured', v_unmeasured, 'provisional', v_provisional);
 end
 $function$
 
@@ -87482,13 +87629,7 @@ select cron.schedule('social_stage_hourly','17 * * * *',$CRON$
     body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_cron_content'))
   );
 $CRON$);
-select cron.schedule('qa_suite_daily','37 3 * * *',$CRON$
-  select net.http_post(
-    url  := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/qa_suite',
-    headers := jsonb_build_object('Content-Type','application/json'),
-    body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_cron_monitoring'))
-  );
-$CRON$);
+select cron.schedule('qa_suite_daily','37 3 * * *',$CRON$select public.fn_kernel_cron_exec(28);$CRON$);
 select cron.schedule('gen_category_knowledge_daily','17 3 * * *',$CRON$
   select net.http_post(
     url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/gen_category_knowledge',
@@ -87528,13 +87669,7 @@ select cron.schedule('embed_suppliers_daily','50 2 * * *',$CRON$
     body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_marketplace'),'scope','all'),
     timeout_milliseconds:=55000)
 $CRON$);
-select cron.schedule('money_tests_daily','30 3 * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/money_tests',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
-    body := jsonb_build_object('__secret', (select value from app_secrets where key='cred_cron_finance'))
-  );
-  $CRON$);
+select cron.schedule('money_tests_daily','30 3 * * *',$CRON$select public.fn_kernel_cron_exec(42);$CRON$);
 select cron.schedule('reveal-nudges','0 * * * *',$CRON$select qd_reveal_nudges();$CRON$);
 select cron.schedule('response-recompute','30 2 * * *',$CRON$select qd_recompute_response();$CRON$);
 select cron.schedule('assets_ingest_6h','15 */6 * * *',$CRON$
@@ -87575,13 +87710,7 @@ begin
 end $inner$;
 $CRON$);
 select cron.schedule('eval_weekly','0 5 * * 1',$CRON$select public.fn_eval_run();$CRON$);
-select cron.schedule('dr_drill_monthly','50 3 1 * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/dr_drill',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
-    body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_backup')),
-    timeout_milliseconds := 120000);
-$CRON$);
+select cron.schedule('dr_drill_monthly','50 3 1 * *',$CRON$select public.fn_kernel_cron_exec(55);$CRON$);
 select cron.schedule('exception_alerts_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(56);$CRON$);
 select cron.schedule('board_report_weekly','0 7 * * 1',$CRON$select public.fn_kernel_cron_exec(57);$CRON$);
 select cron.schedule('archive_completed_daily','20 4 * * *',$CRON$
@@ -87631,10 +87760,7 @@ select cron.schedule('capability_backfill_daily','40 2 * * *',$CRON$select net.h
   url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/enrich_capability',
   headers:=jsonb_build_object('Content-Type','application/json'),
   body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_marketplace'),'limit',20));$CRON$);
-select cron.schedule('match_eval_weekly','0 5 * * 1',$CRON$select net.http_post(
-  url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/match_eval',
-  headers:=jsonb_build_object('Content-Type','application/json'),
-  body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_marketplace')));$CRON$);
+select cron.schedule('match_eval_weekly','0 5 * * 1',$CRON$select public.fn_kernel_cron_exec(87);$CRON$);
 select cron.schedule('dropbox_backup_scan','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(88);$CRON$);
 select cron.schedule('collections_legal_daily','15 6 * * *',$CRON$
   select net.http_post(
@@ -87773,7 +87899,7 @@ select cron.schedule('sop_update_weekly','30 6 * * 1',$CRON$select public.fn_ker
 select cron.schedule('company_reflect_nightly','30 21 * * *',$CRON$select public.fn_kernel_cron_exec(160);$CRON$);
 select cron.schedule('reputation_weekly','0 7 * * 1',$CRON$select public.fn_kernel_cron_exec(161);$CRON$);
 select cron.schedule('company_indices_daily','40 3 * * *',$CRON$select public.fn_kernel_cron_exec(162);$CRON$);
-select cron.schedule('opportunity_scan_daily','50 3 * * *',$CRON$select public.fn_kernel_cron_exec(165);$CRON$);
+select cron.schedule('opportunity_scan_daily','7 20 * * *',$CRON$select public.fn_kernel_cron_exec(165);$CRON$);
 select cron.schedule('reallocate_monthly','0 8 1 * *',$CRON$select public.fn_kernel_cron_exec(166);$CRON$);
 select cron.schedule('company_snapshot_daily','55 23 * * *',$CRON$select public.fn_kernel_cron_exec(170);$CRON$);
 select cron.schedule('edge_health_scan_15min','3,18,33,48 * * * *',$CRON$select public.fn_kernel_cron_exec(171);$CRON$);
@@ -87899,6 +88025,7 @@ select cron.schedule('kb_embed_ops_knowledge','* * * * *',$CRON$select public.fn
 select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(316);$CRON$);
 select cron.schedule('agent_daily_thought','15 4 * * *',$CRON$select public.fn_kernel_cron_exec(319);$CRON$);
 select cron.schedule('knowledge_exam_retrieval_daily','23 3 * * *',$CRON$select public.fn_kernel_cron_exec(320);$CRON$);
+select cron.schedule('resilience_drill_daily','9 20 * * *',$CRON$select public.fn_kernel_cron_exec(321);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
