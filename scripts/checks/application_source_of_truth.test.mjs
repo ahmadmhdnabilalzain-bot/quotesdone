@@ -178,12 +178,63 @@ if (ledgerPresent) {
                       from public.kernel_routine_ownership`);
 }
 
+// THE MANIFEST'S LAST WORD CAN BE A DROP (3 Sep 2026). A routine defined by an earlier manifest file
+// and dropped by a later one (scripts/sql/retire_orphaned_phase_governance_routines.sql retired twelve
+// governance routines that way, each measured unused and recorded in scripts/sql/DROPPED.txt) is
+// EXPECTED to be absent from production. Counting it as "in repository, missing from production" made
+// a deliberate, recorded retirement look like drift, and the only ways to clear it were to excise the
+// definition from the historical file — rewriting the record of what was applied — or to bring the
+// routine back. Neither is right. The apply order decides: the last manifest file that speaks about a
+// routine wins, and if that word is DROP the routine belongs on the retired side of the ledger — and a
+// retired routine still on production is the drift, reported as its own line.
+const DROP_RE = /^\s*drop\s+function\s+(?:if\s+exists\s+)?(?:([a-z_][\w]*)\s*\.\s*)?([a-z_][\w]*)\s*\(/gim;
+const manifestDrops = new Map();               // key -> last {file, pos} that drops it
+manifestFiles.forEach((f, pos) => {
+  if (!existsSync(f)) return;
+  const src = readFileSync(f, 'utf8');
+  let m;
+  while ((m = DROP_RE.exec(src)) !== null) {
+    const key = (m[1] || 'public') + '.' + m[2];
+    manifestDrops.set(key, { file: f, pos });
+  }
+});
+// TWO KEYS, NOT ONE. scripts/sql/phase_c_ROLLBACK.sql sits in the apply order and drops 33 routines
+// that are alive and meant to be — it is a rollback recipe, not an applied change — and a drop by bare
+// name cannot tell one overload from another. So a drop in the apply order is only a RETIREMENT when
+// scripts/sql/DROPPED.txt, the ledger of routines measured absent on purpose, names the routine too.
+// A drop that the ledger does not confirm is reported as a count, never a finding.
+const droppedLedger = new Set();
+try {
+  for (const raw of readFileSync('scripts/sql/DROPPED.txt', 'utf8').split('\n')) {
+    const l = raw.trim();
+    if (!l || l.startsWith('#')) continue;
+    const name = l.split('::')[0].trim().replace(/\(.*$/, '');
+    if (name) droppedLedger.add(name.includes('.') ? name : 'public.' + name);
+  }
+} catch { /* no ledger: nothing is retired, every drop is just a count */ }
+const droppedLaterButUnconfirmed = [];
+const retiredByManifest = (key) => {
+  const drop = manifestDrops.get(key);
+  const defs = manifestDefs.get(key) || [];
+  const later = !!drop && defs.length > 0 && drop.pos > defs[defs.length - 1].pos;
+  if (later && !droppedLedger.has(key)) { if (!droppedLaterButUnconfirmed.includes(key)) droppedLaterButUnconfirmed.push(key); return false; }
+  return later;
+};
+
 // ================================================================ 1. IN REPO, NOT ON PRODUCTION
 const repoOnly = [];
+const retiredAbsent = [];                       // dropped after their last definition, and absent: correct
+const retiredStillLive = [];                    // dropped after their last definition, and STILL live: drift
 for (const [key, list] of manifestDefs) {
+  if (retiredByManifest(key)) {
+    if (liveByKey.has(key)) retiredStillLive.push({ key, file: manifestDrops.get(key).file });
+    else retiredAbsent.push({ key, file: manifestDrops.get(key).file });
+    continue;
+  }
   if (!liveByKey.has(key)) repoOnly.push({ key, file: list[list.length - 1].file });
 }
 repoOnly.sort((a, b) => a.key.localeCompare(b.key));
+retiredStillLive.sort((a, b) => a.key.localeCompare(b.key));
 
 // ================================================================ 2. ON PRODUCTION, NOT IN REPO
 // Scoped to the application estate. An extension's or the platform's code being absent from this
@@ -205,6 +256,7 @@ const conflicts = [];
 for (const [key, list] of manifestDefs) {
   const files = [...new Set(list.map(d => d.file))];
   if (files.length < 2) continue;
+  if (retiredByManifest(key)) continue;          // retired on purpose: absence is the expected state, not a conflict
   multiFile.push(key);
   const canonical = list[list.length - 1];
   const bodies = liveByKey.get(key) || [];
@@ -320,6 +372,11 @@ console.log('THE GATE — QUOTESDONE_APPLICATION SCOPE. Any non-zero fails.');
 console.log(line('1. in repository, missing from production', repoOnly.length, manifestDefs.size,
   'denominator: routines any manifest file defines'));
 for (const r of repoOnly) console.log(`        ${r.key}   canonical ${r.file}`);
+console.log(line('1b. retired by the manifest (dropped after their last definition), still on production', retiredStillLive.length, manifestDefs.size,
+  'the apply order says DROP; production still has it'));
+for (const r of retiredStillLive) console.log(`        ${r.key}   dropped by ${r.file}`);
+console.log(`      retired by the manifest and absent, as the apply order says: ${retiredAbsent.length} (not a finding)`);
+console.log(`      dropped by a later manifest file but NOT confirmed by scripts/sql/DROPPED.txt, so not treated as retired: ${droppedLaterButUnconfirmed.length} (a count, not a finding; phase_c_ROLLBACK.sql is a rollback recipe in the apply order)`);
 
 console.log(line('2. on production, missing from repository', liveOnly.length, appLive.length,
   'denominator: the live application estate'));
@@ -479,7 +536,7 @@ console.log(line('7. this file disagreeing with the canonical engine', engineDis
   manifestDefs.size, 'denominator: routines any manifest file defines. The engine owns this subject.'));
 for (const s of engineDisagreements.slice(0, 25)) console.log(`        ${s}`);
 
-const fail = repoOnly.length + liveOnly.length + conflicts.length + driftedKeys.length
+const fail = repoOnly.length + retiredStillLive.length + liveOnly.length + conflicts.length + driftedKeys.length
            + uncommitted.length + ledgerBad.length + engineDisagreements.length;
 console.log('\n---------------------------------------------------------------- SUMMARY');
 console.log(line('1. in repository, missing from production', repoOnly.length, manifestDefs.size));
