@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T20:27:43.590Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T20:49:57.814Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -88003,7 +88003,7 @@ CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SEL
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 
 -- ===== CRON JOBS =====
-select cron.schedule('supplier_invites_daily','27 20 * * *',$CRON$select public.fn_kernel_cron_exec(2);$CRON$);
+select cron.schedule('supplier_invites_daily','0 9 * * *',$CRON$select public.fn_kernel_cron_exec(2);$CRON$);
 select cron.schedule('sms_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron_exec(3);$CRON$);
 select cron.schedule('auto_deploy','*/2 * * * *',$CRON$select public.run_auto_deploy()$CRON$);
 select cron.schedule('no_quote_nudges','17 * * * *',$CRON$select public.run_no_quote_nudges()$CRON$);
@@ -88131,7 +88131,7 @@ begin
   end loop;
 end $inner$;
 $CRON$);
-select cron.schedule('doc_expiry_daily','27 20 * * *',$CRON$select public.fn_kernel_cron_exec(59);$CRON$);
+select cron.schedule('doc_expiry_daily','20 5 * * *',$CRON$select public.fn_kernel_cron_exec(59);$CRON$);
 select cron.schedule('monthly_report','0 7 1 * *',$CRON$select public.fn_kernel_cron_exec(60);$CRON$);
 select cron.schedule('quarterly_report','0 8 1 1,4,7,10 *',$CRON$select public.fn_quarterly_report();$CRON$);
 select cron.schedule('gl_sync_nightly','0 2 * * *',$CRON$select public.fn_gl_sync_business();$CRON$);
@@ -88297,7 +88297,7 @@ select cron.schedule('budget_rollup_daily','50 2 * * *',$CRON$select public.fn_b
 select cron.schedule('exec_meeting_weekly','0 5 * * 1',$CRON$select public.fn_kernel_cron_exec(152);$CRON$);
 select cron.schedule('ceo_questions_weekly','30 5 * * 1',$CRON$select public.fn_ceo_questions();$CRON$);
 select cron.schedule('knowledge_decay_daily','10 3 * * *',$CRON$select public.fn_kernel_cron_exec(154);$CRON$);
-select cron.schedule('supply_gap_scan_daily','27 20 * * *',$CRON$select public.fn_kernel_cron_exec(155);$CRON$);
+select cron.schedule('supply_gap_scan_daily','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(155);$CRON$);
 select cron.schedule('os_review_weekly','45 4 * * 1',$CRON$select public.fn_kernel_cron_exec(156);$CRON$);
 select cron.schedule('os_improve_weekly','15 6 * * 1',$CRON$select public.fn_os_improve();$CRON$);
 select cron.schedule('sop_update_weekly','30 6 * * 1',$CRON$select public.fn_kernel_cron_exec(158);$CRON$);
@@ -88431,7 +88431,7 @@ select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_k
 select cron.schedule('agent_daily_thought','15 4 * * *',$CRON$select public.fn_kernel_cron_exec(319);$CRON$);
 select cron.schedule('knowledge_exam_retrieval_daily','23 3 * * *',$CRON$select public.fn_kernel_cron_exec(320);$CRON$);
 select cron.schedule('resilience_drill_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(321);$CRON$);
-select cron.schedule('supplier_discovery_daily','26 20 * * *',$CRON$select public.fn_kernel_cron_exec(322);$CRON$);
+select cron.schedule('supplier_discovery_daily','50 2 * * *',$CRON$select public.fn_kernel_cron_exec(322);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
