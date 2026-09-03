@@ -28,6 +28,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -149,25 +150,50 @@ Deno.serve(async (req: Request) => {
       + 'WHAT WAS ASKED OF YOU: ' + rec + '\n'
       + 'DETAIL: ' + JSON.stringify(row.detail ?? {}).slice(0, 1500);
 
-    // SET TWICE, THE DOCUMENTED SHAPE: this per-call third argument overrides makeLlm's `max`, so
-    // raising only the constructor above would have changed nothing. Both are now above the policy.
-    const out = await llm(sys, user, 8000);
-    const deliverable = (out ?? '').trim();
+    // DETERMINISTIC-FIRST (founder doctrine: internal work is ~95% code + knowledge, no model). Settle
+    // the item by APPLYING the nearest company playbook/rule to it BY MEANING — no model call. Only an
+    // item with no confident match falls through to the model, and that path is skipped while the
+    // founder holds inference (the item stays pending for the ~5% model path, live at launch).
+    let deliverable = '';
+    let outcome = '';
+    let workedBy = 'deterministic';
+    try {
+      // deno-lint-ignore no-explicit-any
+      const emb = await (new (globalThis as any).Supabase.ai.Session('gte-small'))
+        .run((title + ' — ' + rec).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+      const { data: det } = await admin.rpc('fn_apply_playbook',
+        { p_agent_key: agentKey, p_query_embedding: '[' + emb.join(',') + ']', p_min_similarity: 0.42, p_k: 5 });
+      // deno-lint-ignore no-explicit-any
+      const d = det as any;
+      if (d && d.matched === true && typeof d.determination === 'string' && d.determination.length >= MIN_CHARS) {
+        deliverable = String(d.determination);
+        outcome = String(d.outcome || deliverable.slice(-200)).trim();
+      }
+    } catch (_e) { /* deterministic path optional; fall through to the model */ }
+
+    // Only reach for the model when no company knowledge covered the item AND the model is available
+    // (the ~5% path; skipped while the founder holds it — the item then stays pending, not errored).
+    if (!deliverable) {
+      const infGate = await paidProviderGate(admin, SONNET_FIRST[0]);
+      if (infGate.allowed) {
+        workedBy = 'model';
+        const out = await llm(sys, user, 8000);
+        deliverable = (out ?? '').trim();
+        // The LAST OUTCOME line, not the first (a mid-document use of the word can fool a first-match).
+        const outMatches = [...deliverable.matchAll(/^\s*(?:\*\*)?OUTCOME:?(?:\*\*)?\s*(.+)$/gm)];
+        outcome = (outMatches.length ? outMatches[outMatches.length - 1][1] : deliverable.slice(-200)).trim();
+      }
+    }
 
     if (!deliverable || deliverable.length < MIN_CHARS || NOT_WORK.test(deliverable)) {
       // Left PENDING on purpose. An unresolved item gets looked at; a false success never does.
-      return J({ ok: false, worked: 0, action_id: row.id, chars: deliverable.length,
-                 reason: !deliverable ? 'the model returned nothing'
-                        : NOT_WORK.test(deliverable) ? 'the reply is an apology, not a deliverable'
-                        : 'deliverable shorter than ' + MIN_CHARS + ' characters' });
+      return J({ ok: true, worked: 0, action_id: row.id, chars: deliverable.length,
+                 reason: workedBy === 'deterministic'
+                   ? 'no company playbook or rule confidently covers this item; awaiting a specialist, a source, or the ~5% model path'
+                   : (!deliverable ? 'the model returned nothing'
+                      : NOT_WORK.test(deliverable) ? 'the reply is an apology, not a deliverable'
+                      : 'deliverable shorter than ' + MIN_CHARS + ' characters') });
     }
-
-    // The LAST OUTCOME line, not the first. Measured on the first real deliverable (item 1723,
-    // legal, 3,508 chars): the model used the word mid-document inside a schema block and the
-    // first-match regex stored that instead of the closing sentence, so the human-skimmable field
-    // was a fragment of code.
-    const outMatches = [...deliverable.matchAll(/^\s*(?:\*\*)?OUTCOME:?(?:\*\*)?\s*(.+)$/gm)];
-    const outcome = (outMatches.length ? outMatches[outMatches.length - 1][1] : deliverable.slice(-200)).trim();
     const detail = { ...(row.detail as Record<string, unknown> ?? {}),
       deliverable: deliverable.slice(0, 20000),
       outcome: outcome.slice(0, 400),
