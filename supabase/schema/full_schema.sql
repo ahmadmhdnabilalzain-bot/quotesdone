@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T05:51:15.221Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T06:25:24.418Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -85363,26 +85363,52 @@ CREATE OR REPLACE FUNCTION public.trg_reveal_receipt()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare cemail text; comp text; inq record;
+declare
+  cemail  text;
+  semail  text;
+  comp    text;
+  inq     record;
 begin
-  if NEW.revealed_at is not null and (TG_OP='INSERT' or OLD.revealed_at is null) then
-  -- K20 cutover. The reveal payment is the declared start of W16. Placed INSIDE the branch that tests revealed_at, so it fires once when the reveal actually happens and not on every update to the transaction.
-  perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_reveal_receipt_a', jsonb_build_object(
-    'source_ref',  NEW.id::text,
-    'raw_payload', jsonb_build_object('provider_event_id', coalesce(nullif(NEW.payment_ref,''), NEW.id::text), 'transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)));
+  if NEW.revealed_at is not null and (TG_OP = 'INSERT' or OLD.revealed_at is null) then
+    -- K20 cutover. The reveal payment is the declared start of W16. Placed INSIDE the branch that
+    -- tests revealed_at, so it fires once when the reveal actually happens and not on every update.
+    perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_reveal_receipt_a', jsonb_build_object(
+      'source_ref', NEW.id::text,
+      'raw_payload', jsonb_build_object(
+        'provider_event_id', coalesce(nullif(NEW.payment_ref, ''), NEW.id::text),
+        'transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text,
+        'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)));
+
     select email into cemail from public.customers where id = NEW.customer_id;
-    select company_name into comp from public.leads where id = NEW.supplier_id;
+    select company_name, email into comp, semail from public.leads where id = NEW.supplier_id;
     select summary, category into inq from public.inquiries where id = NEW.inquiry_id;
+
+    -- 1. customer email (unchanged wording)
     if cemail is not null then
-      insert into public.notifications(type,to_email,to_role,inquiry_id,subject,body,status)
-      values('reveal_receipt', cemail, 'customer', NEW.inquiry_id,
-        'Reveal confirmed — '||coalesce(comp,'supplier'),
-        'You have unlocked '||coalesce(comp,'the supplier')||'''s contact details'||coalesce(' for: '||left(inq.summary,80),'')||'. You can now message them directly in the app. If they do not respond within 72 hours, open the request and Report an issue to request a refund of your reveal fee.',
-        'queued');
+      insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, status)
+      values ('reveal_receipt', cemail, 'customer', NEW.inquiry_id, NEW.quote_id,
+              'Reveal confirmed — ' || coalesce(comp, 'supplier'),
+              'You have unlocked ' || coalesce(comp, 'the supplier') || '''s contact details'
+                || coalesce(' for: ' || left(inq.summary, 80), '')
+                || '. You can now message them directly in the app. If they do not respond within 72 hours, open the request and Report an issue to request a refund of your reveal fee.',
+              'queued');
     end if;
+
+    -- 2. supplier email (moved here from stripe_webhook; same wording)
+    if semail is not null and semail like '%@%' then
+      insert into public.notifications (type, to_email, to_role, lead_id, inquiry_id, quote_id, subject, body, status)
+      values ('quote_accepted', semail, 'supplier', NEW.supplier_id, NEW.inquiry_id, NEW.quote_id,
+              'A customer revealed your quote on QuotesDone',
+              'A customer paid to reveal your contact for: ' || coalesce(inq.summary, '')
+                || '. Please respond promptly — if you do not respond within 3 working days the customer may be refunded.',
+              'queued');
+    end if;
+
+    -- 3 and 4: the WhatsApp to each opted-in party is queued by trg_wa_fanout from the two email rows above.
   end if;
   return NEW;
-end $function$
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_reveal_window()
@@ -87256,6 +87282,7 @@ select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_k
 --   cred_fn_workflow_dispatch
 --   cred_ops_phone_diag
 --   cred_ops_wa_replay
+--   cred_ops_wa_template_setup
 --   customer_terms_label
 --   customer_terms_version
 --   daily_send_cap
@@ -87326,6 +87353,7 @@ select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_k
 --   stripe_secret_key
 --   stripe_setup_token
 --   stripe_webhook_secret
+--   stripe_webhook_secret_test
 --   subscription_honour_12m
 --   supplier_emails_enabled
 --   supplier_exception_days

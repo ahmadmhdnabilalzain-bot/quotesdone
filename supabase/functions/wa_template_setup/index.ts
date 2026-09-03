@@ -20,7 +20,25 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
-const KEY = 'supplier_doc_expiry';
+// 3 SEP 2026: one function, several templates. The key is chosen per call (body.key) from this
+// catalogue; the default stays the document-expiry notice this function was written for. Every body
+// opens AND closes with literal text (the Meta rule in the header), and {{1}} / {{2}} are the same two
+// variables send_whatsapp's varsFor() supplies: a short summary and a link.
+const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sample1_ar: string; url: string }> = {
+  supplier_doc_expiry: {
+    en: 'QuotesDone reminder: {{1}}. Please renew it to keep receiving customer requests. You can update it here: {{2}} Thank you.',
+    ar: 'تذكير من QuotesDone: {{1}}. يُرجى تجديدها للاستمرار في استقبال طلبات العملاء. حدّثها هنا: {{2}} شكرًا لك.',
+    sample1_en: 'your trade licence expires on 2026-08-01', sample1_ar: 'تنتهي رخصتك التجارية في 2026-08-01',
+    url: 'https://quotesdone.com/portal',
+  },
+  // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
+  supplier_quote_accepted: {
+    en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 3 working days. Open your portal here: {{2}} Thank you.',
+    ar: 'QuotesDone: قام عميل بالدفع للاطلاع على عرض سعرك لـ {{1}}. يُرجى الرد خلال 3 أيام عمل. افتح بوابتك هنا: {{2}} شكرًا لك.',
+    sample1_en: 'supply and install aluminium windows for a villa in Dubai', sample1_ar: 'توريد وتركيب نوافذ ألمنيوم لفيلا في دبي',
+    url: 'https://quotesdone.com/portal',
+  },
+};
 
 Deno.serve(async (req) => {
   try {
@@ -36,6 +54,8 @@ Deno.serve(async (req) => {
     if (!ks || !kk) return J({ error: 'twilio_not_configured' }, 503);
     const auth = 'Basic ' + btoa(ks + ':' + kk);
     const action = String(body.action || 'status');
+    const KEY = String(body.key || 'supplier_doc_expiry');
+    if (!CATALOGUE[KEY]) return J({ ok: false, error: 'unknown_key', known: Object.keys(CATALOGUE) }, 400);
 
     // Delivery inspection. Used to confirm where a message actually ended up - an API-level
     // success only means Twilio accepted it, not that anyone received it.
@@ -60,17 +80,15 @@ Deno.serve(async (req) => {
     if (action === 'create') {
       const lang = String(body.language || 'en');
       const isAr = lang === 'ar';
-      // {{1}} = what is expiring, including the date.  {{2}} = where to fix it.
-      const text = isAr
-        ? 'تذكير من QuotesDone: {{1}}. يُرجى تجديدها للاستمرار في استقبال طلبات العملاء. حدّثها هنا: {{2}} شكرًا لك.'
-        : 'QuotesDone reminder: {{1}}. Please renew it to keep receiving customer requests. You can update it here: {{2}} Thank you.';
-      const sample1 = isAr ? 'تنتهي رخصتك التجارية في 2026-08-01' : 'your trade licence expires on 2026-08-01';
+      const cat = CATALOGUE[KEY];
+      const text = isAr ? cat.ar : cat.en;
+      const sample1 = isAr ? cat.sample1_ar : cat.sample1_en;
       const stamp = Date.now().toString(36);
 
       const createRes = await fetch('https://content.twilio.com/v1/Content', {
         method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ friendly_name: 'quotesdone_' + KEY + '_' + lang + '_' + stamp, language: lang,
-          variables: { '1': sample1, '2': 'https://quotesdone.com/portal' },
+          variables: { '1': sample1, '2': cat.url },
           types: { 'twilio/text': { body: text } } }) });
       const created = await createRes.json().catch(() => ({}));
       if (!createRes.ok) return J({ step: 'create', ok: false, http: createRes.status, error: created?.message || created }, 502);

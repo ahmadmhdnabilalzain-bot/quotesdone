@@ -105,6 +105,11 @@ await withRun(async (run) => {
   const cmp = await call('quote_compare', null, { __secret: execCred, inquiry_id: inq.id }, 120000);
   ok('quote_compare shortlists deterministically (model held)', cmp.status === 200 && cmp.json?.ok === true, `HTTP ${cmp.status} engine=${cmp.json?.analysis?.engine || cmp.json?.engine || '?'}`);
 
+  // Both parties registered a WhatsApp number and opted in — the founder's contract is conditional on
+  // consent, and the fixtures state it explicitly rather than inheriting a default.
+  await write(`update public.customers set phone = '+971505551111', wa_optin = true where id=${q(cust.customerId)};
+               update public.leads set whatsapp = '+971505550000', wa_optin = true where id=${leadId};`);
+
   // ---------------- MONEY: real checkout session (expired at once) -> signed completion event ----------------
   const pc = (await read(`select standard_reveal_rate rate, standard_reveal_cap cap from public.pricing_config where id=1`))[0];
   const fee = Math.min(Math.round(amounts[0] * Number(pc.rate) * 100) / 100, Number(pc.cap));
@@ -139,8 +144,13 @@ await withRun(async (run) => {
   const st = (await read(`select (select status from public.quotes where id=${q(quotes[0].id)}) qs, (select status from public.inquiries where id=${q(inq.id)}) is`))[0];
   ok('the signed completion event records the paid reveal', wh.status === 200 && tx?.fee_status === 'paid' && Number(tx?.reveal_fee) === fee && tx?.payment_ref === payRef, `HTTP ${wh.status} ${whText.slice(0, 60)} | tx=${JSON.stringify(tx)}`);
   ok('quote and inquiry are marked revealed', st?.qs === 'revealed' && st?.is === 'revealed', `quote=${st?.qs} inquiry=${st?.is}`);
-  const notes = await read(`select type, to_role, status from public.notifications where quote_id=${q(quotes[0].id)} or (inquiry_id=${q(inq.id)} and created_at > now() - interval '5 minutes') order by created_at`);
-  ok('the supplier is notified of the reveal', notes.some((n) => n.to_role === 'supplier' && n.type === 'quote_accepted'), `notifications: ${notes.map((n) => n.type + '/' + n.to_role + '/' + n.status).join(', ') || 'none'}`);
+  // THE FOUNDER'S CONTRACT (19 Aug 2026): email to BOTH parties AND WhatsApp to BOTH, on the numbers
+  // each registered with. Both fixtures registered a number and opted in (above, before the reveal).
+  const notes = await read(`select type, to_role, coalesce(channel, 'email') channel, status from public.notifications where quote_id=${q(quotes[0].id)} order by created_at`);
+  const has = (type, role, channel) => notes.some((n) => n.type === type && n.to_role === role && n.channel === channel);
+  ok('the customer is emailed and messaged on WhatsApp', has('reveal_receipt', 'customer', 'email') && has('reveal_receipt', 'customer', 'whatsapp'), `customer: ${notes.filter((n) => n.to_role === 'customer').map((n) => n.channel).join('+') || 'none'}`);
+  ok('the supplier is emailed and messaged on WhatsApp', has('quote_accepted', 'supplier', 'email') && has('quote_accepted', 'supplier', 'whatsapp'), `supplier: ${notes.filter((n) => n.to_role === 'supplier').map((n) => n.channel).join('+') || 'none'}`);
+  ok('exactly four reveal messages, two per party', notes.length === 4, `notifications: ${notes.map((n) => n.type + '/' + n.to_role + '/' + n.channel).join(', ') || 'none'}`);
 
   // ---------------- CONTACT: the customer reads the revealed supplier ----------------
   const rv = await call('customer_api', cust.jwt, { action: 'reveal', quote_id: quotes[0].id });

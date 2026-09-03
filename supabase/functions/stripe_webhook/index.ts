@@ -160,9 +160,12 @@ Deno.serve(async (req) => {
               await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
               const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
               if (e2) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - transaction insert failed: ' + e2.message + ' | payment_ref: ' + payRef); return new Response('insert failed: ' + e2.message, { status: 500 }); }
-              let notified = false;
-              try { const { data: sup } = await admin.from('leads').select('email').eq('id', q.supplier_id).maybeSingle(); if (sup?.email && /@/.test(sup.email)) { await admin.from('notifications').insert([{ type: 'quote_accepted', to_email: sup.email, to_role: 'supplier', lead_id: q.supplier_id, inquiry_id: q.inquiry_id, quote_id: qid, subject: 'A customer revealed your quote on QuotesDone', body: 'A customer paid to reveal your contact for: ' + ((inq?.summary) || '') + '. Please respond promptly — if you do not respond within 3 working days the customer may be refunded.' }]); notified = true; } } catch (_e) { /* */ }
-              await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount, supplier_notified: notified }, notified ? '' : 'transaction recorded but supplier email not sent');
+              // 3 SEP 2026: the supplier's email used to be queued HERE, which meant a reveal recorded by
+              // any other path told the supplier nothing. All four reveal messages (email + WhatsApp to
+              // both parties) are queued by trg_reveal_receipt on transactions.revealed_at — the one
+              // door every reveal goes through (scripts/sql/reveal_notifies_both_parties_on_both_channels.sql).
+              const { count: queued } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('quote_id', qid).in('type', ['reveal_receipt', 'quote_accepted']);
+              await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount, reveal_messages_queued: queued || 0 }, (queued || 0) >= 2 ? '' : 'transaction recorded but fewer than 2 reveal messages were queued by trg_reveal_receipt (' + String(queued || 0) + ')');
             } else {
               // Money taken at Stripe but the quote row is gone - previously silent.
               await logRun('error', { quote_id: qid, amount_total: s.amount_total }, 'PAID BUT NOT RECORDED - quote_id not found in quotes: ' + qid);
