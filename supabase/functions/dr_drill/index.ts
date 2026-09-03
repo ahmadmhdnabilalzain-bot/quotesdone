@@ -137,11 +137,21 @@ Deno.serve(async (req)=>{
     // TRUNCATE is NOT the fix. The predicate is load-bearing — see the comment above: anything
     // another chain is mid-way through must survive, and the 180-second guard is a check-then-act
     // that a table-wide wipe would race. Bounded passes keep the predicate and keep every statement
-    // small enough to finish. 40 x 5,000 clears 200,000 rows; the loop stops early the moment a
-    // pass comes back empty, which is the normal case.
+    // small enough to finish. The loop stops early the moment a pass comes back empty, which is
+    // the normal case.
+    //
+    // THE BUDGET WAS THE SIZE OF ONE DRILL (3 Sep 2026). 40 x 5,000 = 200,000 rows, and the
+    // backup of 3 Sep holds 201 pages of kb_chunks plus 21 of leads — the staging table a single
+    // drill leaves behind is already ~230,000 rows, so the NEXT drill would have stopped at 40
+    // passes, found rows "still remain", and reported its own verdict untrustworthy every month
+    // from here. And PostgREST caps a select at max-rows (1,000) regardless of .limit(5000), so a
+    // pass clears 1,000 rows: measured 3 Sep 2026, "cleared 200000 row(s) in 200 passes and 34047
+    // still remain". 1,200 passes clears 1.2M rows at 1,000 a pass; the loop still stops at the
+    // first empty pass.
     let wiped = 0, wipePasses = 0; let wipeErr: { message?: string } | null = null;
     const cutoff = new Date(Date.now()-180e3).toISOString();
-    for (; wipePasses < 40; wipePasses++) {
+    const WIPE_PASSES = 1200;
+    for (; wipePasses < WIPE_PASSES; wipePasses++) {
       const { data: stale, error: selErr } = await sb.from('dr_restore').select('id').lt('drill_at', cutoff).limit(5000);
       if (selErr) { wipeErr = selErr; break; }
       if (!stale || !stale.length) break;
@@ -151,9 +161,9 @@ Deno.serve(async (req)=>{
     }
     // Still not empty after the pass budget is the same untrustworthy state as a timeout, and is
     // reported as such rather than being carried silently into the row counts.
-    if (!wipeErr && wipePasses >= 40) {
+    if (!wipeErr && wipePasses >= WIPE_PASSES) {
       const { count: left } = await sb.from('dr_restore').select('*', { count:'exact', head:true }).lt('drill_at', cutoff);
-      if (left) wipeErr = { message: 'cleared '+wiped+' row(s) in 40 passes and '+left+' still remain' };
+      if (left) wipeErr = { message: 'cleared '+wiped+' row(s) in '+WIPE_PASSES+' passes and '+left+' still remain' };
     }
     if(wipeErr) failNotes.push('Could not clear the dr_restore staging table before the drill, so restored-row counts are compared against leftover rows from a previous run and the drill result cannot be trusted: '+String(wipeErr.message||wipeErr)+'. ');
     queue = TABLES.map(([t,key])=>({ t, key, page:0, rows:0, restored:0, key_ok:null, npages:-1 }));
@@ -204,9 +214,15 @@ Deno.serve(async (req)=>{
       if(rcErr) failNotes.push('Could not count restored rows for '+slot.t+', so its restore could not be verified: '+String(rcErr.message||rcErr)+'. ');
       row.restored_rows = restored||0;
       row.key_ok = slot.key_ok === null ? true : slot.key_ok;
-      const { count:live, error:lcErr } = await sb.from(slot.t).select('*',{count:'exact',head:true});
-      if(lcErr) failNotes.push('Could not count live rows in '+slot.t+', so backup-vs-live drift for that table was not checked: '+String(lcErr.message||lcErr)+'. ');
-      row.live_rows = live||0;
+      // THE LIVE COUNT IS DRIFT INFORMATION, NOT THE RESTORE VERDICT (3 Sep 2026). An exact count
+      // of kb_chunks — 2.69M rows — hit the statement timeout, the error object stringified as
+      // "[object Object]", and a drill that had restored all 11 tables with 0 failures logged
+      // 'error' and "Backups for the failing tables cannot be relied on for recovery" over a
+      // number it never needed. The planner's estimate is what the drift figure is for; a count
+      // that still fails is recorded on the row as unknown and asserts nothing.
+      const { count:live, error:lcErr } = await sb.from(slot.t).select('*',{count:'estimated',head:true});
+      if(lcErr){ row.live_rows = null; row.live_count_error = String(lcErr.message || lcErr.code || JSON.stringify(lcErr)).slice(0,160); }
+      else row.live_rows = live||0;
       // PAGE COUNT AGAINST THE MANIFEST. `backup` records how many pages it wrote per table; if the
       // bucket holds fewer, rows were lost between writing and reading and the smaller row count
       // would otherwise look like a smaller table.
