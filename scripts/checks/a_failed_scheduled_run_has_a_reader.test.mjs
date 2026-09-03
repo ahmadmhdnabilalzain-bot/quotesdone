@@ -225,6 +225,15 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'deliverable, so refusing it is not a failure. FIXED: send_outbox now refuses reserved test '
        + 'domains as a clean skip before any provider call (supabase/functions/send_outbox), which also '
        + 'guarantees production never emails a fixture address. The 2 rows remain until they age out.' },
+  // 3 SEP 2026 07:50Z — a refusal by policy logged as an error. cos_execute found org_tasks#526010
+  // owned by customer_experience while the only executor for its class belongs to assurance, refused
+  // the cross-department execution and routed the task to the advisory path: the correct outcome,
+  // recorded with status='error'. FIXED the same hour (cos_execute logs it as skipped, the signal
+  // executor_department_mismatch kept in counts). The one row remains until it ages out; a second
+  // error row from this agent still fails this check.
+  { agent: 'cos_execute', errors: 1,
+    why: 'executor_department_mismatch refusal (org_tasks#526010, customer_experience vs assurance) routed '
+       + 'to the advisory path and logged as error; fixed to skipped. Not a failed run.' },
   { agent: 'quote_compare', errors: 1,
     why: 'one operator probe presented cred_db_internal, which is not scoped to quote_compare; the '
        + 'guard fail-closed with 401 and logged it (2026-09-03 03:35Z) — the same shape as the kb_embed '
