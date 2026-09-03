@@ -72,6 +72,8 @@ returns jsonb
 language plpgsql security definer set search_path = public, extensions
 as $fn$
 declare
+  v_stale record;
+  v_stale_n int := 0;
   v_rehearsal int := 0;
   v_since    timestamptz;
   v_fail     record;
@@ -169,6 +171,22 @@ begin
       'failures again the moment a model answers.' || E'\n';
   end if;
 
+  -- THE DEAD-GUARD BLIND SPOT (3 Sep 2026). A job that never fires produces no failure. v_cron_stale
+  -- lists active jobs with no run of any status inside twice their schedule, measured from activation
+  -- (scripts/sql/v_cron_stale_the_dead_guard_blind_spot.sql). Same ledger, same once-per-24h rule.
+  for v_stale in select jobname, schedule, why from public.v_cron_stale order by jobname loop
+    v_stale_n := v_stale_n + 1;
+    insert into public.alert_signature (watcher, signature) values ('failed_runs', 'cron_stale:' || v_stale.jobname)
+    on conflict (watcher, signature) do update set last_seen_at = now(), seen_count = alert_signature.seen_count + 1;
+    if exists (select 1 from public.alert_signature s where s.watcher = 'failed_runs'
+                 and s.signature = 'cron_stale:' || v_stale.jobname and s.last_alerted_at > now() - interval '24 hours') then
+      continue;
+    end if;
+    v_detail := v_detail || 'cron ' || v_stale.jobname || ' has NOT FIRED: ' || v_stale.why || E'\n';
+    v_alerts := v_alerts + 1;
+    update public.alert_signature set last_alerted_at = now() where watcher = 'failed_runs' and signature = 'cron_stale:' || v_stale.jobname;
+  end loop;
+
   if v_rehearsal > 0 then
     v_detail := v_detail || E'\n' || v_rehearsal || ' further run(s) failed inside a declared sandbox rehearsal window and were not paged.' || E'\n';
   end if;
@@ -205,6 +223,7 @@ begin
     'runs_failed', v_real,
     'runs_held_by_ai_hold', v_held,
     'runs_in_declared_rehearsal', v_rehearsal,
+    'crons_stale', v_stale_n,
     'new_conditions_alerted', v_alerts,
     'alerted', v_alerts > 0);
 end;

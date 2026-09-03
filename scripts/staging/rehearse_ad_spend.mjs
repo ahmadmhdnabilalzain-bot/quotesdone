@@ -32,6 +32,9 @@ const execute = async () => {
   return { status: r.status, json: await r.json().catch(() => null) };
 };
 
+// Declare the rehearsal window (3 Sep 2026): the functions exercised here log into agent_runs like
+// real calls, and fn_watch_failed_runs pages the founder on failures OUTSIDE a declared window only.
+await write(`insert into public.rehearsal_window (run_tag, opened_by) values (${q('qd_run:' + tag)}, 'rehearse_ad_spend')`);
 try {
   // The policy the rehearsal runs under is the live default row; read it rather than assume it.
   const pol = (await read('select * from public.ad_spend_policy where policy_key=\'default\''))[0];
@@ -124,6 +127,8 @@ try {
     delete from public.meta_insights where campaign_id like ${q(tag + '%')};`);
   const left = (await read(`select (select count(*) from public.ad_decision where campaign_id like ${q(tag + '%')}) + (select count(*) from public.ad_campaign_state where campaign_id like ${q(tag + '%')}) + (select count(*) from public.meta_insights where campaign_id like ${q(tag + '%')}) as n`))[0].n;
   ok('teardown left nothing behind', Number(left) === 0, `rows left=${left}`);
+  // close the window; the row itself stays as the record that a rehearsal ran
+  await write(`update public.rehearsal_window set ended_at = now() where run_tag = ${q('qd_run:' + tag)} and ended_at is null`);
 }
 const passed = checks.filter(Boolean).length;
 console.log(`\n${passed}/${checks.length} checks passed`);

@@ -1897,3 +1897,4 @@ scripts/sql/ads_autopilot_schedule.sql
 scripts/sql/declare_ads_autopilot_cron_component.sql
 scripts/sql/pacr_003_retire_spent_deferral_product_ux_designer_no_kpi.sql
 scripts/sql/held_executors_are_parked_not_dead_lettered.sql
+scripts/sql/v_cron_stale_the_dead_guard_blind_spot.sql

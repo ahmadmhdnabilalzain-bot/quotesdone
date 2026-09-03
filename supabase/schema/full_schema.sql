@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T05:45:18.775Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T05:51:15.221Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -12160,6 +12160,63 @@ CREATE OR REPLACE VIEW public.v_cron_failing AS  SELECT j.jobname,
   WHERE (d.start_time > (now() - '7 days'::interval))
   GROUP BY j.jobname, j.schedule, j.active
  HAVING (count(*) FILTER (WHERE (d.status <> 'succeeded'::text)) > 0);
+
+CREATE OR REPLACE VIEW public.v_cron_stale AS  WITH j AS (
+         SELECT job.jobid,
+            job.jobname,
+            job.schedule,
+            split_part(job.schedule, ' '::text, 1) AS m,
+            split_part(job.schedule, ' '::text, 2) AS h,
+            split_part(job.schedule, ' '::text, 5) AS dow
+           FROM cron.job
+          WHERE job.active
+        ), iv AS (
+         SELECT j.jobid,
+            j.jobname,
+            j.schedule,
+            j.m,
+            j.h,
+            j.dow,
+                CASE
+                    WHEN ((j.m ~~ '*/%'::text) AND (j.m ~ '^\*/[0-9]+$'::text)) THEN (((substr(j.m, 3))::integer)::double precision * '00:01:00'::interval)
+                    WHEN ((j.m ~ '^[0-9]+$'::text) AND (j.h = '*'::text)) THEN '01:00:00'::interval
+                    WHEN ((j.h ~~ '*/%'::text) AND (j.h ~ '^\*/[0-9]+$'::text)) THEN (((substr(j.h, 3))::integer)::double precision * '01:00:00'::interval)
+                    WHEN (j.dow ~ '^[0-6]$'::text) THEN '7 days'::interval
+                    ELSE '1 day'::interval
+                END AS every
+           FROM j
+        ), runs AS (
+         SELECT job_run_details.jobid,
+            max(job_run_details.start_time) AS last_any,
+            min(job_run_details.start_time) AS first_any
+           FROM cron.job_run_details
+          GROUP BY job_run_details.jobid
+        ), act AS (
+         SELECT iv.jobid,
+            iv.jobname,
+            iv.schedule,
+            iv.m,
+            iv.h,
+            iv.dow,
+            iv.every,
+            runs.last_any,
+            COALESCE(w.wrapped_at, runs.first_any) AS activated_at
+           FROM ((iv
+             LEFT JOIN runs ON ((runs.jobid = iv.jobid)))
+             LEFT JOIN phase_c_system_execution_wrapper w ON ((w.jobid = iv.jobid)))
+        )
+ SELECT jobid,
+    jobname,
+    schedule,
+    every,
+    activated_at,
+    last_any,
+        CASE
+            WHEN (activated_at IS NULL) THEN 'active with no wrapper and no run ever recorded'::text
+            ELSE format('no run of any status since %s; schedule %s means one was due every %s'::text, COALESCE((last_any)::text, 'never'::text), schedule, every)
+        END AS why
+   FROM act
+  WHERE (((activated_at IS NULL) OR (activated_at < (now() - ((2)::double precision * every)))) AND ((last_any IS NULL) OR (last_any < (now() - ((2)::double precision * every)))));
 
 CREATE OR REPLACE VIEW public.v_customer_ltv AS  SELECT id AS customer_id,
     full_name,
@@ -79492,6 +79549,8 @@ CREATE OR REPLACE FUNCTION public.fn_watch_failed_runs()
  SET search_path TO 'public', 'extensions'
 AS $function$
 declare
+  v_stale record;
+  v_stale_n int := 0;
   v_rehearsal int := 0;
   v_since    timestamptz;
   v_fail     record;
@@ -79589,6 +79648,22 @@ begin
       'failures again the moment a model answers.' || E'\n';
   end if;
 
+  -- THE DEAD-GUARD BLIND SPOT (3 Sep 2026). A job that never fires produces no failure. v_cron_stale
+  -- lists active jobs with no run of any status inside twice their schedule, measured from activation
+  -- (scripts/sql/v_cron_stale_the_dead_guard_blind_spot.sql). Same ledger, same once-per-24h rule.
+  for v_stale in select jobname, schedule, why from public.v_cron_stale order by jobname loop
+    v_stale_n := v_stale_n + 1;
+    insert into public.alert_signature (watcher, signature) values ('failed_runs', 'cron_stale:' || v_stale.jobname)
+    on conflict (watcher, signature) do update set last_seen_at = now(), seen_count = alert_signature.seen_count + 1;
+    if exists (select 1 from public.alert_signature s where s.watcher = 'failed_runs'
+                 and s.signature = 'cron_stale:' || v_stale.jobname and s.last_alerted_at > now() - interval '24 hours') then
+      continue;
+    end if;
+    v_detail := v_detail || 'cron ' || v_stale.jobname || ' has NOT FIRED: ' || v_stale.why || E'\n';
+    v_alerts := v_alerts + 1;
+    update public.alert_signature set last_alerted_at = now() where watcher = 'failed_runs' and signature = 'cron_stale:' || v_stale.jobname;
+  end loop;
+
   if v_rehearsal > 0 then
     v_detail := v_detail || E'\n' || v_rehearsal || ' further run(s) failed inside a declared sandbox rehearsal window and were not paged.' || E'\n';
   end if;
@@ -79625,6 +79700,7 @@ begin
     'runs_failed', v_real,
     'runs_held_by_ai_hold', v_held,
     'runs_in_declared_rehearsal', v_rehearsal,
+    'crons_stale', v_stale_n,
     'new_conditions_alerted', v_alerts,
     'alerted', v_alerts > 0);
 end;
