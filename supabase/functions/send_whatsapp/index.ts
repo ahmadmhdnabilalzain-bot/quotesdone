@@ -191,6 +191,12 @@ Deno.serve(async (req) => {
         unmapped++; unmappedTypes.add(String(n.type||'(blank)'));
         await admin.from('notifications').update({ status:'skipped' }).eq('id', n.id); skipped++; continue;
       }
+      // 3 SEP 2026: a template that Meta has not approved YET is not a failed message. Twilio rejects
+      // the send while approval is pending; marking the row 'failed' dropped it for good (only
+      // 'queued' rows are drained). Such rows stay queued and deliver the moment the template lands —
+      // the same discipline as the mapped-but-unregistered branch above.
+      const pendingTemplate = !res.ok && /approv|not (yet )?approved|template.*(pending|invalid|not found)|63016|63042/i.test(String(res.error || ''));
+      if (pendingTemplate) { skipped++; requeued++; lastErr = 'template awaiting approval: ' + String(res.error || '').slice(0, 160); continue; }
       await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }
