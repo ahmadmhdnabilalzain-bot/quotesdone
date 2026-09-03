@@ -113,8 +113,12 @@ const api = async (path, attempt = 0) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${ref}${path}`, { headers: H });
   if (r.ok) return r.json();
   const body = (await r.text()).slice(0, 200);
-  if ((r.status === 429 || r.status >= 500) && attempt < 5) {
-    await new Promise((s) => setTimeout(s, 1200 * 2 ** attempt));   // 1.2s, 2.4s, 4.8s, 9.6s, 19.2s
+  // 3 SEP 2026: seven attempts, not five. A 135-function deploy on main verified 134 and lost
+  // supplier_portal to a 429 after five retries (~37s of backoff, inside the API's ~60s throttle
+  // window) — twice in one hour, and production carried the code both times (parity OK). Two more
+  // attempts take the wait past the window: +38s, +77s.
+  if ((r.status === 429 || r.status >= 500) && attempt < 7) {
+    await new Promise((s) => setTimeout(s, 1200 * 2 ** attempt));   // 1.2s, 2.4s, 4.8s, 9.6s, 19.2s, 38.4s, 76.8s
     return api(path, attempt + 1);
   }
   throw new Error(`${r.status} ${body}`);
@@ -176,7 +180,7 @@ let pass = 0;
 // already hit. A small gap keeps the whole run under it instead: 120ms x 130 adds ~16s to a job
 // that already takes minutes, and the backoff stays as the safety net for a genuinely busy API.
 // Skipped entirely for small deploys, which never came near the limit.
-const PACE_MS = slugs.length > 20 ? 120 : 0;
+const PACE_MS = slugs.length > 100 ? 250 : slugs.length > 20 ? 120 : 0;   // 250ms x 135 adds ~34s; the tail of a full redeploy is where the limit bit
 for (const f of slugs) {
   if (PACE_MS) await new Promise((s) => setTimeout(s, PACE_MS));
   try {

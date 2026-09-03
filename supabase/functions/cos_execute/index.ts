@@ -397,7 +397,10 @@ Deno.serve(async (req) => {
         const foreign: any = execAnyDept.get(t.action_class);
         if (foreign) {
           try {
-            await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'error',
+            // 3 SEP 2026: a refusal by policy that ROUTES the task to the advisory path is an outcome,
+            // not a failed run. Logged as 'error' it paged the founder the first time a re-enabled
+            // measurement cron filed a task under a department whose executor lives elsewhere.
+            await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'skipped',
               counts: { signal: 'executor_department_mismatch', task_id: t.id, dept: t.dept_key,
                         action_class: t.action_class, executor: foreign.target, executor_dept: foreign.department },
               note: ('org_tasks#' + t.id + ' is owned by ' + t.dept_key + ' but the only executor for '
