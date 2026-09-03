@@ -573,13 +573,39 @@ export default async function ({ req, one, ui }) {
     ['review date', 'review'],
     ['supporting evidence', 'evidence|proof|support'],
   ];
+  // THE kb_chunks HALF OF THE EVIDENCE TIMED OUT, EVERY RUN (3 Sep 2026). kb_chunks is 2.69M rows
+  // and 6.9 GB; FIELD_COVERED evaluates to_jsonb(r)->>column on every row for every matching
+  // column, which is a serialisation of the whole table per field. The verdict is over
+  // agent_knowledge (2k rows) and was never the problem; the evidence string carried the timeout
+  // and reported ERROR for a requirement that had a verdict. Same regexes, one column at a time:
+  // for each named field, the columns of kb_chunks whose NAME matches are listed from the
+  // catalogue, and each is asked ONE question under an 8-second cap — is there a row where it is
+  // null? A null found refutes the universal; a scan that completes without one proves it; a scan
+  // the cap stops is reported as unmeasured, by field, rather than as a verdict.
+  const kbRows = Number(await one(`select count(*) from public.kb_chunks`)) || 0;
+  const kbCols = String(await one(`select coalesce(string_agg(k.column_name, ','), '') from information_schema.columns k
+      where k.table_schema='public' and k.table_name='kb_chunks'`) || '').split(',').filter(safeToken);
+  const kbState = [];
+  for (const [lbl, rx] of KFIELDS) {
+    const cols = kbCols.filter(c => new RegExp(rx.replace(/\\y/g, '\\b'), 'i').test(c));
+    if (!cols.length) { kbState.push(`${lbl}: no column`); continue; }
+    let verdict = 'null found';
+    for (const c of cols) {
+      try {
+        const hasNull = String(await one(`set local statement_timeout = '8000';
+          select exists (select 1 from public.kb_chunks where "${c}" is null)`)) === 'true';
+        if (!hasNull) { verdict = `covered by ${c}`; break; }
+      } catch { verdict = `unmeasured (${c} scan exceeded 8s)`; }
+    }
+    kbState.push(`${lbl}: ${verdict}`);
+  }
+  const kbCovered = kbState.filter(s => / covered by /.test(s)).length;
   await req(S, 's27-knowledge-seven-fields', 'Every piece of knowledge carries all seven metadata fields',
     `select coalesce(${FIELD_COVERED('agent_knowledge', KFIELDS)} = ${KFIELDS.length}, false)`,
     `select ${FIELD_COVERED('agent_knowledge', KFIELDS)}||' of ${KFIELDS.length} metadata field(s) present on EVERY one of '
        ||(select count(*) from public.agent_knowledge)||' agent_knowledge row(s); missing or partial: '
-       ||${FIELD_UNCOVERED('agent_knowledge', KFIELDS)}||'; on kb_chunks ('
-       ||(select count(*) from public.kb_chunks)||' rows) that is '
-       ||${FIELD_COVERED('kb_chunks', KFIELDS)}||' of ${KFIELDS.length}'`);
+       ||${FIELD_UNCOVERED('agent_knowledge', KFIELDS)}
+       ||${rq(`; on kb_chunks (${kbRows} rows, probed per column under an 8s cap) that is ${kbCovered} of ${KFIELDS.length}: ${kbState.join('; ')}`)}`);
 
   // "An employee is warned BEFORE relying on stale knowledge." The warning has to be attached to
   // what the employee receives, so the second leg reads fn_agent_context's actual output rather than
@@ -1090,12 +1116,25 @@ export default async function ({ req, one, ui }) {
   // "It can pause automation when thresholds are exceeded." A guard that only writes a warning row
   // pauses nothing, so the body must be able to stop something — a scheduler change, an autonomy
   // flag, or a halt verdict — and the pause must be auditable and visible.
-  const PAUSER = `(select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-      where n.nspname='public' and p.prokind in ('f','p')
-        and pg_get_functiondef(p.oid) ~* '\\y(cron\\.alter_job|cron\\.unschedule|autonomy_enabled|automation_paused|halt)\\y'
-        and exists (select 1 from ${CRON_J} join cron.job_run_details d on d.jobid=j.jobid
-                     where j.active and ${EFF_CMD} ~* ('\\y'||p.proname||'\\y') and d.status='succeeded'
-                       and d.end_time > now() - interval '2 days' and ${NO_TRACED_FAILURE(2)}))`;
+  // THIS EXPRESSION TIMED OUT ON THE MANAGEMENT API SEVEN TIMES RUNNING (3 Sep 2026) and the
+  // requirement had no verdict at all. Its shape was a correlated EXISTS per candidate routine over
+  // cron.job_run_details (236k rows, indexed on runid only) joined to every job, with a regex built
+  // from the routine name on the join side — twelve full scans of the run log plus the trace table,
+  // one per routine that mentions a pause primitive. The fact it measures is small: which routines
+  // that CAN stop automation ran successfully on a live schedule in the last two days. So the live
+  // set is computed once — one pass over the run log for the jobs that succeeded in the window, one
+  // over the trace table for the components that failed — and the routine names are matched against
+  // that set. Same predicate, same window, same wrapper-resolved command; 2.9 s measured.
+  const PAUSER = `(with ran as (select d.jobid from cron.job_run_details d
+                    where d.status='succeeded' and d.end_time > now() - interval '2 days' group by d.jobid),
+      failed as (select x.component_id from public.phase_c_system_execution x
+                  where x.result='failed' and x.finished_at > now() - interval '2 days' group by x.component_id),
+      live as (select ${EFF_CMD} cmd from ${CRON_J} join ran on ran.jobid = j.jobid
+                where j.active and not exists (select 1 from failed f where f.component_id = 'cron:'||j.jobname)),
+      pausers as (select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                   where n.nspname='public' and p.prokind in ('f','p')
+                     and pg_get_functiondef(p.oid) ~* '\\y(cron\\.alter_job|cron\\.unschedule|autonomy_enabled|automation_paused|halt)\\y')
+      select count(distinct p.proname) from pausers p join live l on l.cmd ~* ('\\y'||p.proname||'\\y'))`;
   await req(S, 's39-governance-can-pause', 'Governance can pause automation, audibly and visibly',
     `select coalesce(${PAUSER} > 0
        and (select count(*) from public.autonomy_control_audit) > 0
