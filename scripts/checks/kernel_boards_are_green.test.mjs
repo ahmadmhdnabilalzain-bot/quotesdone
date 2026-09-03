@@ -93,7 +93,10 @@ async function allBoards() {
   const out = [];
   for (const b of boards) {
     try {
-      for (const r of await q(`select check_name, expected, actual, ok from public.${b}()`)) out.push({ board: b, ...r });
+      // The management API's default statement timeout is 2 minutes; a board is granted 4 in its
+      // own request (the API honours `set local` inside the request's transaction). A board that
+      // needs more than that is a board to fix, and it still reads as BOARD_RAISED below.
+      for (const r of await q(`set local statement_timeout = '240s'; select check_name, expected, actual, ok from public.${b}()`)) out.push({ board: b, ...r });
     } catch (e) {
       out.push({ board: b, check_name: 'BOARD_RAISED', expected: 'rows', actual: String(e.message).slice(0, 200), ok: false });
     }
