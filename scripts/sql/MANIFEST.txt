@@ -1895,4 +1895,4 @@ scripts/sql/parent_delete_guard_matches_how_producers_key_the_subject.sql
 scripts/sql/ad_spend_autopilot.sql
 scripts/sql/ads_autopilot_schedule.sql
 scripts/sql/declare_ads_autopilot_cron_component.sql
-scripts/sql/retire_spent_deferral_product_ux_designer_no_kpi.sql
+scripts/sql/pacr_003_retire_spent_deferral_product_ux_designer_no_kpi.sql
