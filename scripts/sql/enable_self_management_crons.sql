@@ -27,7 +27,9 @@ select public.fn_kernel_wrap_and_enable_cron(140, 'corporate_performance_directo
 select public.fn_kernel_wrap_and_enable_cron(139, 'corporate_performance_director', 'exec');        -- self_review
 select public.fn_kernel_wrap_and_enable_cron(184, 'corporate_performance_director', 'exec');       -- improvement_plan
 select public.fn_kernel_wrap_and_enable_cron(204, 'agent_workforce_capability_director', 'people_ops'); -- learning_loop_sweep
-select public.fn_kernel_wrap_and_enable_cron(143, 'corporate_performance_director', 'exec');       -- outcome_evaluate
+-- NOT enabled: 143 outcome_evaluate_daily is deliberately held OFF by the fn_reputation_hold_state
+-- kernel board (reputation machinery is held; the board is green only while this cron's pg-cron job
+-- is inactive). Its component role already matches the crosswalk, so nothing to wrap here.
 select public.fn_kernel_wrap_and_enable_cron(205, 'corporate_performance_director', 'exec');       -- improvement_handover
 select public.fn_kernel_wrap_and_enable_cron(285, 'ceo', 'exec');                                  -- objective_review
 select public.fn_kernel_wrap_and_enable_cron(156, 'corporate_performance_director', 'exec');        -- os_review
@@ -42,7 +44,7 @@ update public.phase_c_component c
     (250,'corporate_performance_director','exec'), (249,'ceo','exec'),
     (194,'ceo','exec'),                            (140,'corporate_performance_director','exec'),
     (139,'corporate_performance_director','exec'), (184,'corporate_performance_director','exec'),
-    (204,'agent_workforce_capability_director','people_ops'), (143,'corporate_performance_director','exec'),
+    (204,'agent_workforce_capability_director','people_ops'),
     (205,'corporate_performance_director','exec'), (285,'ceo','exec'),
     (156,'corporate_performance_director','exec'), (282,'corporate_performance_director','exec'),
     (84,'ceo','exec'),                             (243,'chief_operating_officer','people_ops')
@@ -57,7 +59,7 @@ begin
   select count(*) into v_bad
     from public.phase_c_system_execution_wrapper w
     join public.phase_c_component c on c.component_id = w.component_id
-   where w.jobid in (250,249,194,140,139,184,204,143,205,285,156,282,84,243)
+   where w.jobid in (250,249,194,140,139,184,204,205,285,156,282,84,243)
      and not exists (select 1 from public.org_role r where r.role_id = c.accountable_role_id);
   if v_bad > 0 then
     raise exception '% self-management cron component(s) still carry an unresolvable accountable role', v_bad;
