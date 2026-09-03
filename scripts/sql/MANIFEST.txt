@@ -1926,3 +1926,4 @@ $f
 scripts/sql/every_live_entry_point_is_a_component.sql
 scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
 scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
+scripts/sql/outcome_evaluator_is_registered_for_the_scenario_door.sql
