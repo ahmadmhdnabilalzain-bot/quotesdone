@@ -89,7 +89,9 @@ begin
   select count(*) into v_crons   from cron.job where active;
   select count(distinct table_name) into v_anon from information_schema.role_table_grants where table_schema='public' and grantee='anon';
   v_content :=
-    'LIVE SECURITY POSTURE of the QuotesDone Supabase project (htdblwldjkcgjvmqkbeh), recomputed every run — nothing static. As of '
+    -- the project ref is read, never written down: an export that names its own project can never be
+    -- byte-identical from either source (scripts/checks/export_from_either_source_is_identical.mjs)
+    'LIVE SECURITY POSTURE of the QuotesDone Supabase project (' || coalesce((select value from public.app_secrets where key = 'project_ref'), 'project_ref unset') || '), recomputed every run — nothing static. As of '
       || to_char(now(),'YYYY-MM-DD HH24:MI') || ' UTC:' || E'\n'
     || '- public tables: ' || v_total || '; RLS enabled: ' || v_rls || '; WITHOUT RLS: ' || (v_total - v_rls)
       || ' (a table reachable through PostgREST without RLS is an access-control gap to justify or close).' || E'\n'
