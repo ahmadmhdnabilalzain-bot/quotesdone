@@ -1926,3 +1926,11 @@ $f
 scripts/sql/every_live_entry_point_is_a_component.sql
 scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
 scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
+scripts/sql/fn_company_reflect_night.sql
+scripts/sql/fn_company_reflect_catches_up_missed_nights.sql
+scripts/sql/fn_knowledge_staleness_tag.sql
+scripts/sql/fn_agent_context_warns_before_stale_knowledge.sql
+scripts/sql/the_founders_resume_closes_the_open_hold.sql
+scripts/sql/fn_agent_actions_fill_alternatives_without_a_decision_log.sql
+scripts/sql/fn_agent_daily_thought.sql
+scripts/sql/fn_knowledge_exam_retrieval.sql
