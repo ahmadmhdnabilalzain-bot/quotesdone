@@ -56,17 +56,10 @@ jobs:
   # alone. The production comparison lives in the secure job with the token, is asked for with
   # --require-live, and returns NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL — never PASS, never
   # SKIPPED — if the secret is ever unavailable.
-  crosswalk-static:
-    name: every declared component is in the committed crosswalk (no credential needed)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Committed declarations agree with the committed crosswalk
-        run: node scripts/checks/phase_c_component_crosswalk.test.mjs --static
-
+  # 3 SEP 2026 — THE CROSSWALK MIRROR IS RETIRED (docs/agents/RETIRED_MIRROR_GATES.md). The
+  # component registry lived three times — SQL literals, a committed CSV, the live table — and the
+  # copies were right only on the day they were emitted. The properties the mirror defended are
+  # asserted against production itself by phase_c_components_are_owned, in the token-holding job.
   parity:
     name: the database is running what this repository says
     runs-on: ubuntu-latest
@@ -76,10 +69,10 @@ jobs:
         with:
           node-version: '22'
       # No npm install: every check here uses fetch and node:fs only.
-      - name: The committed crosswalk is what production actually holds
+      - name: Every runtime component is owned, and every live entry point is a component
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: node scripts/checks/phase_c_component_crosswalk.test.mjs --require-live
+        run: node --test scripts/checks/phase_c_components_are_owned.test.mjs
       - name: One canonical file per routine, and it is what is deployed
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -199,8 +192,9 @@ jobs:
                    every_discharge_claim_reaches_its_table \
                    application_source_of_truth \
                    anon_cannot_execute_security_definer \
-                   a_failed_scheduled_run_has_a_reader \
-                   pccr_approval_matches_committed_tables; do
+                   a_failed_scheduled_run_has_a_reader; do
+            # pccr_approval_matches_committed_tables retired 3 Sep 2026 with the freeze-amendment
+            # ritual the founder removed on 2 Sep (docs/agents/RETIRED_MIRROR_GATES.md).
             echo "::group::$t"
             # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at pccr_approval_matches_
             # committed_tables and the log carried NOT ONE LINE of that check's output -- in a step

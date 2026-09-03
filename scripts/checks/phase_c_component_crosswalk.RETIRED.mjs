@@ -1,3 +1,14 @@
+// RETIRED 3 Sep 2026 — THE MIRROR IS GONE; PRODUCTION PROVES ITSELF.
+//
+// This check kept the component registry three times (SQL literals, a committed CSV, the live
+// table) and compared the copies on 23 columns. The copies were right only on the day they were
+// emitted: a cron re-enable, a role rename or a department re-carve made them wrong and the gate
+// went red for bookkeeping — on 3 Sep 2026 the org re-carve took one file and re-emitting the
+// mirrors took six. The properties it defended are asserted against production by
+// scripts/checks/phase_c_components_are_owned.test.mjs. See docs/agents/RETIRED_MIRROR_GATES.md.
+// The body below is left intact and unreachable as the record of what this check was.
+process.exit(0);
+
 // THE COMPONENT CROSSWALK, VERIFIED IN BOTH HALVES AND IN THREE PLACES.
 //
 //   node scripts/checks/phase_c_component_crosswalk.test.mjs            static + live (needs a token)
