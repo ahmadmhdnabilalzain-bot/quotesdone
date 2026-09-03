@@ -44,7 +44,19 @@ Deno.serve(async (req) => {
     const G0 = 'https://graph.facebook.com/' + (ver || 'v21.0');
     const { data: pending, error: qErr } = await admin.from('ad_decision').select('id,campaign_id,action,amount_aed,rule_key').is('executed_at', null).order('id', { ascending: true }).limit(Math.max(1, Math.min(200, Number(body.limit) || 50)));
     if (qErr) { await admin.from('agent_runs').insert({ agent: 'meta_ads', started_at: started0, finished_at: new Date().toISOString(), status: 'error', note: ('execute_decisions could not read ad_decision: ' + qErr.message).slice(0, 300) }); return J({ ok: false, error: qErr.message }, 200); }
-    const rows = (pending || []) as Array<{ id: number; campaign_id: string; action: string; amount_aed: number | null; rule_key: string }>;
+    let rows = (pending || []) as Array<{ id: number; campaign_id: string; action: string; amount_aed: number | null; rule_key: string }>;
+    // SANDBOX EXECUTION IS FOR DEMO CAMPAIGNS ONLY (3 Sep 2026). With the founder's real ad account
+    // connected and one real PAUSED campaign mirrored, a token-less tick would have "executed" an
+    // activate decision in sandbox mode and recorded the real campaign as ACTIVE while Meta still had
+    // it paused — a belief with no basis. Without a token, decisions on real campaigns stay pending
+    // and are reported; only is_demo campaigns are executed in sandbox mode.
+    let deferredReal = 0;
+    if (!live && rows.length) {
+      const { data: demo } = await admin.from('ad_campaign_state').select('campaign_id').eq('is_demo', true).in('campaign_id', [...new Set(rows.map((r) => r.campaign_id))]);
+      const demoIds = new Set((demo || []).map((r: { campaign_id: string }) => r.campaign_id));
+      deferredReal = rows.filter((r) => !demoIds.has(r.campaign_id)).length;
+      rows = rows.filter((r) => demoIds.has(r.campaign_id));
+    }
     let executed = 0, failed = 0; const failures: string[] = [];
     for (const d of rows) {
       let resp: Record<string, unknown> = { simulated: true, account: acct0 || null }; let ok = true;
@@ -64,14 +76,15 @@ Deno.serve(async (req) => {
       }
       if (ok) executed++; else { failed++; failures.push(String(d.id) + ' ' + d.rule_key + '/' + d.action + ' on ' + d.campaign_id + ': ' + JSON.stringify(resp).slice(0, 140)); }
     }
-    if (rows.length) await admin.from('agent_runs').insert({
-      agent: 'meta_ads', started_at: started0, finished_at: new Date().toISOString(), status: failed ? 'error' : 'ok',
-      counts: { decisions: rows.length, executed, failed, mode: live ? 'live' : 'sandbox' },
+    if (rows.length || deferredReal) await admin.from('agent_runs').insert({
+      agent: 'meta_ads', started_at: started0, finished_at: new Date().toISOString(), status: failed ? 'error' : (rows.length ? 'ok' : 'skipped'),
+      counts: { decisions: rows.length, executed, failed, deferred_real: deferredReal, mode: live ? 'live' : 'sandbox' },
       note: failed
         ? ('Meta refused ' + failed + ' of ' + rows.length + ' ad decision(s); they stay unexecuted and their campaigns are not re-judged until they clear: ' + failures.join(' | ')).slice(0, 500)
-        : (executed + ' ad decision(s) executed ' + (live ? 'on Meta' : 'in sandbox mode (no meta_access_token): the ledger and ad_campaign_state were updated exactly as a live call would')),
+        : (executed + ' ad decision(s) executed ' + (live ? 'on Meta' : 'in sandbox mode (no meta_access_token) on demo campaigns')
+           + (deferredReal ? ('; ' + deferredReal + ' decision(s) on REAL campaign(s) stay pending until meta_access_token exists — nothing is executed for real in sandbox mode') : '')),
     });
-    return J({ ok: failed === 0, mode: live ? 'live' : 'sandbox', decisions: rows.length, executed, failed, failures });
+    return J({ ok: failed === 0, mode: live ? 'live' : 'sandbox', decisions: rows.length, executed, failed, deferred_real: deferredReal, failures });
   }
 
   if (!token || !acctRaw) return J({ ok: false, error: 'meta_not_configured', need: ['meta_access_token', 'meta_ad_account_id'] }, 200);
