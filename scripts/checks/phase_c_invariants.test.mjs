@@ -127,6 +127,8 @@ const cost = (await sql(`select
   -- nothing look like a zero that measures cost
   (select coalesce(sum(cost_aed),0)::text from public.ai_cost_log
      where occurred_at > timestamptz '2026-08-15 09:00:00+00') cost_since_phase_c,
+  -- 4 SEP 2026: a ledger row is not a paid call. A HELD call (founder_hold) writes a row with
+  -- model_used = 'none', cost 0 and no provider round trip; paid means a provider was reached.
   (select count(*) from public.ai_cost_log
      where occurred_at > timestamptz '2026-08-15 09:00:00+00'
        and (coalesce(cost_aed, 0) > 0 or coalesce(prompt_tokens, 0) > 0 or coalesce(model_used, 'none') <> 'none')) calls_since_phase_c,
