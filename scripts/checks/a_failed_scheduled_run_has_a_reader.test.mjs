@@ -204,6 +204,32 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'the review now logs status=ok with red/amber/green in counts, like its sibling reviews — a review '
        + 'that found reds succeeded — so fn_self_review no longer reads it as a recurring failure either. The '
        + '2 historical rows remain until they age out; a NEW error row (the fix not holding) still fails this check.' },
+  // 3 SEP 2026 — SANDBOX REHEARSAL FALLOUT, each root-caused. The revenue-loop rehearsal
+  // (rehearse_revenue_loop.mjs, demo_factory selftest) stood up demo suppliers and customers on
+  // production and tore them down; three functions logged the run as an error on the way:
+  { agent: 'enrich_capability', errors: 53,
+    why: '52 + 1. Every demo supplier confirm called enrich_capability, whose capability-summary needs the '
+       + 'paid model, held open-circuit -> llm_no_summary, logged as error 52 times. The held model is '
+       + 'the configured state, not a failure, and the claim in its note that an un-enriched supplier '
+       + '"cannot be matched to any RFQ" is false — fn_match_capability matched 4 of 4 such suppliers '
+       + 'on their confirmed capabilities in the same rehearsal. FIXED: enrich_capability now asks the '
+       + 'paid gate and records a held model as skipped (supabase/functions/enrich_capability). The 52 '
+       + 'historical rows remain until they age out. The 53rd (2026-09-03 ~05:00Z, stage auth) is one operator '
+       + 'probe of the fix that presented cred_fn_enrich_capability — that is the OUTBOUND credential of that function, '
+       + 'scoped to ai_gateway only — and was correctly refused out_of_scope; the proof was re-run with the '
+       + 'fn.cos_execute credential, which is scoped to call it. A NEW error row still fails this check.' },
+  { agent: 'send_outbox', errors: 2,
+    why: 'the demo fixtures address suppliers and customers at RFC-2606 reserved domains '
+       + '(@example.com / @example.invalid); Resend rejects those with 422 "Invalid to field", and the '
+       + 'outbox logged the rejection as an error and retried. A reserved test domain is never '
+       + 'deliverable, so refusing it is not a failure. FIXED: send_outbox now refuses reserved test '
+       + 'domains as a clean skip before any provider call (supabase/functions/send_outbox), which also '
+       + 'guarantees production never emails a fixture address. The 2 rows remain until they age out.' },
+  { agent: 'quote_compare', errors: 1,
+    why: 'one operator probe presented cred_db_internal, which is not scoped to quote_compare; the '
+       + 'guard fail-closed with 401 and logged it (2026-09-03 03:35Z) — the same shape as the kb_embed '
+       + 'diagnostics above. The rehearsal was corrected to present the fn.cos_execute credential, which '
+       + 'is scoped to it. Not a defect; a second row still fails this check.' },
   { agent: 'agent_context_missing', errors: 2,
     why: 'fn_agent_context_capped returned no context on two on-demand turns (cto, and one other), so '
        + 'agent_brain refused to answer from memory and logged the miss rather than reasoning blind — '
