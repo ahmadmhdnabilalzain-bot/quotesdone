@@ -1035,6 +1035,9 @@ export async function teardown(run) {
   //    names the table it failed on instead of collapsing into one opaque constraint error.
   const counts = {};
   const steps = [
+    // trg_event_transaction emits payment.received keyed on the transaction id (as TEXT), so it must go
+    // before the transaction row it names — the same ordering rule as the quote/inquiry/lead log rows.
+    ['company_event (transaction)', `delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
@@ -1057,6 +1060,7 @@ export async function teardown(run) {
     // dispatches into an empty corpus, so it never generates the row it fails to clean up.
     ['agent_actions', `delete from public.agent_actions where (target_table='leads' and target_id in ${LEAD_T}) or (target_table='inquiries' and target_id in ${INQ_T}) or (target_table='quotes' and target_id in ${QUO_T})`],
     ['doc_versions', `delete from public.doc_versions where entity_type='quote' and entity_id in ${QUO_T}`],
+    ['doc_versions (rfq)', `delete from public.doc_versions where entity_type='rfq' and entity_id in ${INQ_T}`],
     // quote_items keys off quote_id as TEXT, so like its neighbours above it must go BEFORE the
     // quotes row it names. It was never swept at all: measured 6 Aug 2026, staging held 109 rows
     // across 109 distinct quote_ids against 0 surviving quotes — every one an orphan, the oldest
@@ -1085,6 +1089,7 @@ export async function teardown(run) {
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.com'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${CUST}`],
+    ['company_event (customer)', `delete from public.company_event where entity_type='customer' and entity_id in (select id::text from public.customers where id in ${CUST})`],
     ['customers', `delete from public.customers where id in ${CUST}`],
     ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.com'`],
     ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.com'`],
