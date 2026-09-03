@@ -692,7 +692,15 @@ end $pc$;`;
       continue;
     }
   }
-  const s = msg.indexOf('{', msg.indexOf('PC '));
+  // A RAISE THAT IS NOT THE PAYLOAD IS REPORTED AS WHAT IT SAID (4 Sep 2026). indexOf('PC ') is -1
+  // when the door raised anything else, indexOf('{', -1) then found the first brace of the
+  // management API's own error body — {"message":"..."} — and the line read
+  // `accepted=undefined trace=undefined effect=undefined` with the door's actual refusal thrown
+  // away. Two CI runs failed exactly that way while the parity job's Phase D builders were driving
+  // committed scenarios against the same database, and nobody could read why from the log.
+  const at = msg.indexOf('PC ');
+  if (at < 0) { line(false, door, 'the door raised instead of returning its payload: ' + msg.replace(/\s+/g, ' ').slice(0, 300)); continue; }
+  const s = msg.indexOf('{', at);
   let depth = 0, end = -1, inStr = false, esc = false;
   for (let i = s; i >= 0 && i < msg.length; i++) {
     const ch = msg[i];
