@@ -9,6 +9,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const GW = BASE + '/ai_gateway';
@@ -106,7 +107,19 @@ Deno.serve(async (req) => {
       const mapOut = parseJson((await mapper(mapSys, 'Domain: ' + label + '. List the deep sub-topics.')) || '');
       topics = Array.isArray(mapOut) ? mapOut.map((x: any) => String(x).trim()).filter(Boolean) : [];
     }
-    if (!topics.length) { await logRun('error', { agent }, 'topic map generation returned nothing for ' + agent); return J({ ok: false, agent, error: 'no_topic_map' }); }
+    if (!topics.length) {
+      // A held provider is the usual reason the map is empty: kb_deepen does external, web-grounded
+      // research — one of the ~5% legitimately-model paths, deliberately held (paidProviderGate) until
+      // launch. That is a clean skip, not an employee error that trips the errored-agent ceiling.
+      // Distinguish it from a genuine empty map (a real prompt/data problem) by asking the gate.
+      const gate = await paidProviderGate(admin, SONNET_FIRST[0]);
+      if (!gate.allowed) {
+        await logRun('skipped', { agent }, 'kb_deepen skipped for ' + agent + ': inference is held (' + gate.rule + '), so no web-grounded topic map could be generated. Not a failure — this external ~5% research path resumes when the model does.');
+        return J({ ok: true, agent, skipped: true, reason: 'inference_held' });
+      }
+      await logRun('error', { agent }, 'topic map generation returned nothing for ' + agent);
+      return J({ ok: false, agent, error: 'no_topic_map' });
+    }
 
     // pick the next uncovered topics and RESEARCH a grounded brief for each
     const todo = topics.filter((t) => !already.has(slugify(t))).slice(0, perRun);
