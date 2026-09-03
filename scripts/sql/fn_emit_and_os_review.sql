@@ -182,7 +182,12 @@ begin
   end loop;
 
   insert into agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('os_review', now(), now(), case when v_red>0 then 'error' else 'ok' end,
+  -- A review that FOUND red KPIs succeeded: the reds are its findings, carried in counts (red/amber/
+  -- green) exactly as kpi_review / objective_review / promotion_review carry theirs. Logging them as
+  -- status='error' made the failed-run reader count a working review as a failure every week, and
+  -- fn_self_review — which reads agent_runs errors to find RECURRING failures — would have read the
+  -- review itself as a repeatedly-failing agent. Fixed 3 Sep 2026.
+  values ('os_review', now(), now(), 'ok',
           jsonb_build_object('reviewed',v_total,'red',v_red,'amber',v_amber,'green',v_total-v_red-v_amber,'emitted',v_emitted),
           'Operating system review, week '||v_period||': '||(v_total-v_red-v_amber)||' green, '||v_amber||' amber, '||v_red||' red.');
 

@@ -200,7 +200,10 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'produces contains red KPIs (2026-W36: 0 green, 10 amber, 2 red). The review SUCCEEDED — the '
        + 'reds are its findings, not a run failure — but it records the reds as an error row. A pre-'
        + 'existing reporting choice, surfaced now that the review cron is active; the reds are the real '
-       + 'company state the CEO/CPO loop is chasing. A new count still fails this check.' },
+       + 'company state the CEO/CPO loop is chasing. FIXED 3 Sep 2026 (fn_os_review_logs_findings_as_findings.sql): '
+       + 'the review now logs status=ok with red/amber/green in counts, like its sibling reviews — a review '
+       + 'that found reds succeeded — so fn_self_review no longer reads it as a recurring failure either. The '
+       + '2 historical rows remain until they age out; a NEW error row (the fix not holding) still fails this check.' },
   { agent: 'agent_context_missing', errors: 2,
     why: 'fn_agent_context_capped returned no context on two on-demand turns (cto, and one other), so '
        + 'agent_brain refused to answer from memory and logged the miss rather than reasoning blind — '
