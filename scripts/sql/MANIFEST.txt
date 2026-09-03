@@ -1738,9 +1738,7 @@ scripts/sql/phase_c_two_boards_written_when_the_door_had_never_opened.sql
 
 [OK] Command outcome recorded
 scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql
 scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql
 scripts/sql/spec3_the_ownership_ledger_still_named_the_superseded_file.sql
@@ -1757,38 +1755,22 @@ scripts/sql/launch_step1_ownership_ledger_follows_the_manifest.sql
 scripts/sql/launch_step1_kpi_assignment.sql
 scripts/sql/launch_step1_ceo_priorities_reach_their_officer.sql
 scripts/sql/only_refunds_reach_the_founder.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/only_refunds_ownership_ledger.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/pacr_002_the_real_company_reporting_shape.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/the_missed_kpi_opens_remediation.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/the_missed_kpi_ownership_ledger.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/a_task_is_born_owned_and_tied_to_its_target.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/dual_approval_for_spend_and_contract.sql
 scripts/sql/spend_contract_dispatch_needs_two.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/spend_contract_dispatch_ownership_ledger.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/incidents_get_an_owner_a_task_and_a_watchdog.sql
 scripts/sql/the_board_sees_runway_cash_and_burn.sql
 scripts/sql/customer_experience_and_assurance_get_their_own_os.sql
@@ -1922,10 +1904,8 @@ $f
 ;
 node
 scripts/apply_sql.mjs
-$f
 scripts/sql/every_live_entry_point_is_a_component.sql
 scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
 scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
 scripts/sql/fn_exec_meeting_every_active_os_speaks.sql
-scripts/sql/kernel_ledger_follows_the_manifest_exec_meeting.sql
 scripts/sql/kernel_ledger_follows_the_manifest_exec_meeting.sql
