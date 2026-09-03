@@ -27,6 +27,53 @@ Deno.serve(async (req) => {
   const __auth = await requireInternal(admin, body?.__secret, 'meta_ads');
   if (!__auth.ok) return J({ error: 'forbidden' }, 403);
   const [token, acctRaw, ver] = await Promise.all([sec('meta_access_token'), sec('meta_ad_account_id'), sec('meta_api_version')]);
+
+  // 3 SEP 2026 — execute_decisions: the AD SPEND AUTOPILOT's hands (scripts/sql/ad_spend_autopilot.sql).
+  // fn_ads_manage() writes every activate / pause / set_daily_budget as an ad_decision row, behind a
+  // BEFORE INSERT ceiling guard; this action carries out the unexecuted rows, oldest first. With
+  // meta_access_token + meta_ad_account_id it posts to Graph (status on the campaign, daily_budget on
+  // the ad set, in fils) and records the response; WITHOUT them it executes in SANDBOX mode — the
+  // decision is stamped executed with {simulated:true} and the manager's picture of Meta is updated
+  // exactly as a live call would update it — so the whole loop is provable before the token exists.
+  // The token is the only switch. A refused live call leaves the decision unexecuted (the manager
+  // skips that campaign until it clears) and is logged as an error for the failed-run reader.
+  if (String(body.action || '') === 'execute_decisions') {
+    const started0 = new Date().toISOString();
+    const live = !!(token && acctRaw);
+    const acct0 = live ? 'act_' + String(acctRaw).replace(/^act_/, '') : '';
+    const G0 = 'https://graph.facebook.com/' + (ver || 'v21.0');
+    const { data: pending, error: qErr } = await admin.from('ad_decision').select('id,campaign_id,action,amount_aed,rule_key').is('executed_at', null).order('id', { ascending: true }).limit(Math.max(1, Math.min(200, Number(body.limit) || 50)));
+    if (qErr) { await admin.from('agent_runs').insert({ agent: 'meta_ads', started_at: started0, finished_at: new Date().toISOString(), status: 'error', note: ('execute_decisions could not read ad_decision: ' + qErr.message).slice(0, 300) }); return J({ ok: false, error: qErr.message }, 200); }
+    const rows = (pending || []) as Array<{ id: number; campaign_id: string; action: string; amount_aed: number | null; rule_key: string }>;
+    let executed = 0, failed = 0; const failures: string[] = [];
+    for (const d of rows) {
+      let resp: Record<string, unknown> = { simulated: true, account: acct0 || null }; let ok = true;
+      if (live) {
+        const { data: st } = await admin.from('ad_campaign_state').select('adset_id').eq('campaign_id', d.campaign_id).maybeSingle();
+        const path = d.action === 'set_daily_budget' ? '/' + String(st?.adset_id || d.campaign_id) : '/' + d.campaign_id;
+        const params: Record<string, string> = d.action === 'set_daily_budget'
+          ? { daily_budget: String(Math.round(Number(d.amount_aed) * 100)) }
+          : { status: d.action === 'activate' ? 'ACTIVE' : 'PAUSED' };
+        const form = new URLSearchParams({ ...params, access_token: String(token) });
+        const r = await fetch(G0 + path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form });
+        const j = await r.json().catch(() => ({})); ok = r.ok; resp = { status: r.status, path, body: j };
+      }
+      if (ok) {
+        const { error } = await admin.rpc('fn_ad_decision_mark_executed', { p_id: d.id, p_mode: live ? 'live' : 'sandbox', p_response: resp });
+        if (error) { ok = false; resp = { rpc_error: error.message }; }
+      }
+      if (ok) executed++; else { failed++; failures.push(String(d.id) + ' ' + d.rule_key + '/' + d.action + ' on ' + d.campaign_id + ': ' + JSON.stringify(resp).slice(0, 140)); }
+    }
+    if (rows.length) await admin.from('agent_runs').insert({
+      agent: 'meta_ads', started_at: started0, finished_at: new Date().toISOString(), status: failed ? 'error' : 'ok',
+      counts: { decisions: rows.length, executed, failed, mode: live ? 'live' : 'sandbox' },
+      note: failed
+        ? ('Meta refused ' + failed + ' of ' + rows.length + ' ad decision(s); they stay unexecuted and their campaigns are not re-judged until they clear: ' + failures.join(' | ')).slice(0, 500)
+        : (executed + ' ad decision(s) executed ' + (live ? 'on Meta' : 'in sandbox mode (no meta_access_token): the ledger and ad_campaign_state were updated exactly as a live call would')),
+    });
+    return J({ ok: failed === 0, mode: live ? 'live' : 'sandbox', decisions: rows.length, executed, failed, failures });
+  }
+
   if (!token || !acctRaw) return J({ ok: false, error: 'meta_not_configured', need: ['meta_access_token', 'meta_ad_account_id'] }, 200);
   const acct = 'act_' + String(acctRaw).replace(/^act_/, '');
   const V = ver || 'v21.0';

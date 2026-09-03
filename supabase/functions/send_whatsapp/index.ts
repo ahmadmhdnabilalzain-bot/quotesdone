@@ -49,6 +49,11 @@ function tmplKey(type:string):string|null{
   if(['new_inquiry','inquiry_matched','supplier_new_inquiry'].includes(t)) return 'supplier_new_inquiry';
   if(['new_quote','quote_received','quote_submitted','quote_ready','quote_available'].includes(t)) return 'customer_new_quote';
   if(['reveal_receipt','reveal','supplier_revealed','supplier_unlocked','reveal_unlocked'].includes(t)) return 'customer_supplier_unlocked';
+  // 3 SEP 2026: the supplier's side of the reveal. trg_reveal_receipt queues a WhatsApp to the supplier
+  // (type quote_accepted) when they registered a number and opted in — the founder's 19 Aug contract:
+  // both parties, both channels. Template registered by wa_template_setup under this key; until its
+  // SID lands the row stays queued (see the mapped-but-unregistered branch below), never dropped.
+  if(['quote_accepted','supplier_quote_accepted','customer_selected_you'].includes(t)) return 'supplier_quote_accepted';
   // Document compliance: final notice before suspension, and the suspension itself. Both are
   // transactional notices about the supplier's own account, which is why the Twilio template is
   // registered under the UTILITY category rather than MARKETING.
@@ -58,7 +63,7 @@ function tmplKey(type:string):string|null{
 function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim(); x=x.replace(/^(QuotesDone[:\-\s]*)/i,''); return x.slice(0,90)||'your request'; }
 function varsFor(key:string, summary:string){
   const url = key==='supplier_new_inquiry' ? SUP_URL
-            : key==='supplier_doc_expiry' ? PORTAL_URL
+            : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted') ? PORTAL_URL
             : APP_URL;
   return {'1':summary,'2':url};
 }
@@ -186,6 +191,12 @@ Deno.serve(async (req) => {
         unmapped++; unmappedTypes.add(String(n.type||'(blank)'));
         await admin.from('notifications').update({ status:'skipped' }).eq('id', n.id); skipped++; continue;
       }
+      // 3 SEP 2026: a template that Meta has not approved YET is not a failed message. Twilio rejects
+      // the send while approval is pending; marking the row 'failed' dropped it for good (only
+      // 'queued' rows are drained). Such rows stay queued and deliver the moment the template lands —
+      // the same discipline as the mapped-but-unregistered branch above.
+      const pendingTemplate = !res.ok && /approv|not (yet )?approved|template.*(pending|invalid|not found)|63016|63042/i.test(String(res.error || ''));
+      if (pendingTemplate) { skipped++; requeued++; lastErr = 'template awaiting approval: ' + String(res.error || '').slice(0, 160); continue; }
       await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }

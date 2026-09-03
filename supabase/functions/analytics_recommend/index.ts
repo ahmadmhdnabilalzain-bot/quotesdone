@@ -7,6 +7,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -47,6 +48,16 @@ Deno.serve(async (req) => {
       '\n\nCONVERSION FUNNEL (30d):\n' + JSON.stringify(funnel || {}) +
       '\n\nCOMPANY SNAPSHOT:\n' + JSON.stringify(company || {}) +
       '\n\nWrite the data-grounded recommendation now.';
+    // 3 SEP 2026: ask the paid gate BEFORE calling. A held model is the founder's configured state,
+    // not a fault: this used to fall through to a 502 analytics_llm_unavailable, which the action
+    // collector retried to max_attempts and dead-lettered twelve times a night, and the resilience
+    // watcher then paged him about his own hold. 200 {held:true} parks the action (status 'held')
+    // until fn_action_release_held() re-queues it the day a model answers.
+    const gate = await paidProviderGate(admin, SONNET_FIRST[0]);
+    if (!gate.allowed) {
+      await admin.from('agent_runs').insert({ agent: 'analytics_recommend', started_at: new Date().toISOString(), finished_at: new Date().toISOString(), status: 'skipped', counts: { model_held: 1 }, note: 'Paid model held (' + String(gate.rule || 'circuit_open') + '); the analytics recommendation for "' + title.slice(0, 80) + '" is parked, not failed. Nothing was recommended and nothing was written.' });
+      return J({ ok: false, held: true, reason: 'inference_held', rule: gate.rule || null }, 200);
+    }
     const rec = (await llm(sys, user, 900) || '').trim();
     if (!rec || rec.length < 40) return J({ error: 'analytics_llm_unavailable' }, 502);
 

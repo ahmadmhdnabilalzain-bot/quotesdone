@@ -149,6 +149,23 @@ async function dispatch(deptName: string, brainKey: string, objective: string, t
     'Do the work now, to the fullest extent of your authority and knowledge. Produce the ACTUAL deliverable ' +
     '(the real draft / analysis / recommendation / plan / checklist / findings), not a description of what you would do. ' +
     'Be concrete and specific to QuotesDone and the UAE market. End with a one-line "RESULT:" summarising what you produced.';
+
+  // DETERMINISTIC-FIRST (founder doctrine: internal work is ~95% code + knowledge, no model). Produce
+  // the deliverable by APPLYING the nearest company playbook/rule to the task BY MEANING — no model
+  // call. Only a task with no confident match falls through to the specialist model path below.
+  try {
+    // deno-lint-ignore no-explicit-any
+    const emb = await (new (globalThis as any).Supabase.ai.Session('gte-small'))
+      .run(((t.title || '') + ' — ' + (t.detail || '')).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+    const { data: det } = await admin.rpc('fn_apply_playbook',
+      { p_agent_key: brainKey || deptName, p_query_embedding: '[' + emb.join(',') + ']', p_min_similarity: 0.42, p_k: 5 });
+    // deno-lint-ignore no-explicit-any
+    const d = det as any;
+    if (d && d.matched === true && typeof d.determination === 'string' && d.determination.length > 60) {
+      return String(d.determination) + '\nRESULT: ' + String(d.outcome || d.title || 'applied the company playbook').slice(0, 280);
+    }
+  } catch (_e) { /* deterministic path optional; fall through to the specialist model */ }
+
   if (brainKey && (await validBrains()).has(brainKey)) {
     try {
       // 29 Jul 2026: was 50000, which was 5s TIGHTER than ai_gateway's own 55s budget - so this

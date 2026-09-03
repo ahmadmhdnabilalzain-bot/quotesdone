@@ -5,6 +5,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+import { paidProviderGate } from '../_shared/paid_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const _llm = makeLlm(SONNET_FIRST, { max: 700, temperature: 0 });
 const T0 = Date.now();
@@ -60,11 +61,23 @@ Deno.serve(async (req) => {
     const __auth = await requireInternal(admin, body?.__secret, 'enrich_capability');
     if (!__auth.ok) { await logRun('error', { stage:'auth', rejected:1 }, 'Rejected a call with a wrong or missing __secret; no supplier capability profiles were written, so suppliers awaiting enrichment stay without a capability_summary and the matching adjudicator cannot judge them for any RFQ'); return J({ error:'forbidden' }, 403); }
 
+    // 3 SEP 2026: the capability summary is one of the ~5% legitimately-model paths, and the paid
+    // provider is held open-circuit. A held model is the configured state, not a failure — this
+    // used to fall through to enrichOne(), get llm_no_summary, and log status='error' for every
+    // supplier confirm (52 rows in one rehearsal). Ask the gate first and record the hold as
+    // skipped. Matching does NOT depend on the summary: fn_match_capability matched 4 of 4
+    // un-enriched suppliers on their confirmed capabilities; the summary only sharpens the
+    // adjudicator, so the supplier is deferred, not unmatchable.
+    const gate = await paidProviderGate(admin, SONNET_FIRST[0]);
+    if (!gate.allowed) {
+      await logRun('skipped', { stage: 'held', lead_id: body.lead_id ? Number(body.lead_id) : null, model_held: 1 }, 'Paid model held (circuit open); capability_summary deferred for ' + (body.lead_id ? ('supplier ' + String(body.lead_id)) : 'the batch') + '. Matching still runs on confirmed capabilities; the summary only sharpens the adjudicator.');
+      return J({ ok: false, skipped: true, reason: 'model_held', id: body.lead_id ? Number(body.lead_id) : null });
+    }
     if (body.lead_id) {
       const { data: lead, error: leadErr } = await admin.from('leads').select(COLS).eq('id', Number(body.lead_id)).maybeSingle();
       if (!lead) { await logRun('error', { stage:'single', lead_id: Number(body.lead_id), found: 0 }, 'Lead '+String(body.lead_id)+' could not be loaded for enrichment'+(leadErr ? (': '+String(leadErr.message)) : ' (not found)')+'; this supplier keeps no capability_summary and cannot be matched to any RFQ'); return J({ error:'lead_not_found' }, 404); }
       const r = await enrichOne(lead);
-      await logRun(r.ok ? 'ok' : 'error', { stage:'single', lead_id: r.id, enriched: r.ok ? 1 : 0, low_confidence: r.low === true, reason: r.reason, llm_key_missing: LLM_STATE.keyMissing, llm_failures: LLM_STATE.failures }, r.ok ? ('Supplier '+r.id+' enriched'+(r.low ? ' with low_confidence (thin profile, so the adjudicator may under-match this supplier)' : '')) : ('Supplier '+r.id+' was NOT enriched ('+String(r.reason)+(LLM_STATE.failures.length ? ('; llm: '+LLM_STATE.failures.join(' | ')) : '')+'); it is left without a capability_summary and cannot be matched to any RFQ'));
+      await logRun(r.ok ? 'ok' : 'error', { stage:'single', lead_id: r.id, enriched: r.ok ? 1 : 0, low_confidence: r.low === true, reason: r.reason, llm_key_missing: LLM_STATE.keyMissing, llm_failures: LLM_STATE.failures }, r.ok ? ('Supplier '+r.id+' enriched'+(r.low ? ' with low_confidence (thin profile, so the adjudicator may under-match this supplier)' : '')) : ('Supplier '+r.id+' was NOT enriched ('+String(r.reason)+(LLM_STATE.failures.length ? ('; llm: '+LLM_STATE.failures.join(' | ')) : '')+'); it is left without a capability_summary — matching still runs on its confirmed capabilities, the summary only sharpens the adjudicator'));
       // Pre-existing, surfaced by deno check while migrating this gate (3 Aug 2026): this read
       // `{ ok: true, ...r }`, and r carries its own `ok`. The spread wins, so the literal `true`
       // was already dead - a request that failed to enrich returned ok:false despite the code

@@ -136,6 +136,12 @@ Deno.serve(async (req) => {
       // row untouched at 'queued' so its own sender can drain it.
       if (n.channel === 'sms' || n.channel === 'whatsapp') { skipped++; continue; }
       if (!n.to_email) { await admin.from('notifications').update({ status: 'skipped' }).eq('id', n.id); continue; }
+      // 3 SEP 2026: RFC 2606 reserved domains (example.com/net/org, .test, .example, .invalid,
+      // localhost) are never deliverable — Resend answers 422 "Invalid to field" and this loop used
+      // to log it as a failed run and retry. The demo fixtures address every ZZ DEMO party there on
+      // purpose; refusing before any provider call is the clean skip, and it guarantees production
+      // never emails a fixture address.
+      if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
       if (supSet.has(n.to_email)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
       const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;
       if (ageH > staleH) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
@@ -166,6 +172,7 @@ Deno.serve(async (req) => {
     return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 });
+const RESERVED_TEST_DOMAIN = /@(?:[a-z0-9_-]+[.])*(?:example[.](?:com|net|org)|test|example|invalid|localhost)$/i;
 function isDocRequest(type: string) { return /licen[cs]e|renew|expir|doc[_-]?request|document[_-]?request|upload[_-]?doc/i.test(String(type || '')); }
 async function unsubTok(email: string, secret: string) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);

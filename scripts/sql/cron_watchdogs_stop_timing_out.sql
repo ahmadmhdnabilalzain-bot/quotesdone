@@ -85,6 +85,13 @@ begin
       left join cron_job_seen s on s.jobid = j.jobid
      where j.active
   loop
+    -- ACTIVATION IS THE FLOOR (3 Sep 2026). A job re-enabled today with a last success from before
+    -- the 16 Aug stand-down is not silent — its clock starts when it was put back on (the kernel
+    -- wrapper's wrapped_at). This watch paged the founder about 15 such jobs in one day.
+    if exists (select 1 from public.phase_c_system_execution_wrapper w
+                where w.jobid = r.jobid and w.wrapped_at > now() - (r.thresh_h||' hours')::interval) then
+      continue;
+    end if;
     -- Never-run: only when there is NO history AND we have never recorded a success.
     if r.history_rows = 0 and r.stored_ok is null then
       if r.first_seen is not null and r.first_seen < now() - (r.thresh_h||' hours')::interval then
@@ -112,9 +119,12 @@ begin
     end if;
 
     if r.last_ok is null or r.last_ok < now() - (r.thresh_h||' hours')::interval then
+      -- ONCE PER SILENCE EPISODE (3 Sep 2026): the episode is (job, last_success). It is paged the
+      -- first time it is seen and never again until the job succeeds again — the 24-hour dedupe
+      -- this replaced re-paged every silent job every day.
       if not exists (select 1 from founder_alerts where event='cron_silent'
-                      and detail like '%"'||r.jobname||'"%'
-                      and created_at > now() - interval '24 hours') then
+                      and detail like '%"job": "'||r.jobname||'"%'
+                      and detail like '%"last_success": "'||coalesce(r.last_ok::text,'no success on record')||'"%') then
         insert into founder_alerts(level,event,detail,channel)
         values ('high','cron_silent', jsonb_build_object(
           'job',r.jobname,'last_success',coalesce(r.last_ok::text,'no success on record'),

@@ -47,7 +47,9 @@ Deno.serve(async (req) => {
 
     // 1) campaigns filtered to the QuotesDone name
     const cf = encodeURIComponent(JSON.stringify([{ field: 'name', operator: 'CONTAIN', value: filter }]));
-    const curl = `https://graph.facebook.com/${GV}/${act}/campaigns?fields=id,name,effective_status,objective&filtering=${cf}&limit=200&access_token=${encodeURIComponent(token)}`;
+    // 3 SEP 2026: adsets.limit(1){id,daily_budget} rides along so the AD SPEND AUTOPILOT's picture
+    // of Meta (public.ad_campaign_state) is mirrored from the account, not assumed.
+    const curl = `https://graph.facebook.com/${GV}/${act}/campaigns?fields=id,name,effective_status,objective,adsets.limit(1)%7Bid,daily_budget%7D&filtering=${cf}&limit=200&access_token=${encodeURIComponent(token)}`;
     const cr = await fetch(curl); const cj = await cr.json();
     if (cj?.error) { await logRun('error', { upserts: 0, campaigns: 0 }, 'Meta Graph campaigns call FAILED (' + String(cj.error?.message || '') + '): no ad spend or lead data synced this run, meta_insights is stale and marketing reporting understates spend'); return J({ ok: false, error: 'graph_campaigns', detail: cj.error?.message }); }
     const camps = Array.isArray(cj?.data) ? cj.data.filter((c: any)=> String(c.name||'').toLowerCase().includes(filter.toLowerCase())) : [];
@@ -70,7 +72,28 @@ Deno.serve(async (req) => {
         if (!error) upserts++;
       }
       seen.push(String(c.name));
+      // AUTOPILOT MIRROR (3 Sep 2026): what is actually live on Meta, into the manager's state table.
+      // Campaign status from effective_status; the daily budget lives on the ad set, in fils.
+      const adset = Array.isArray(c?.adsets?.data) && c.adsets.data.length ? c.adsets.data[0] : null;
+      const mirror: Record<string, unknown> = {
+        campaign_id: String(c.id), campaign_name: c.name, status: String(c.effective_status) === 'ACTIVE' ? 'ACTIVE' : 'PAUSED',
+        adset_id: adset?.id ? String(adset.id) : null, is_demo: false, updated_at: new Date().toISOString(),
+      };
+      if (adset?.daily_budget != null) mirror.daily_budget_aed = Number(adset.daily_budget) / 100;
+      const { error: mErr } = await admin.from('ad_campaign_state').upsert(mirror, { onConflict: 'campaign_id' });
+      if (mErr) { UPSERT_FAILS++; LAST_ERR = 'ad_campaign_state mirror failed for campaign ' + String(c.id) + ': ' + String(mErr.message || ''); }
     }
+    // MONTH SPEND for the autopilot's pacing arm: account-level spend this month -> ad_spend_policy.
+    try {
+      const murl = `https://graph.facebook.com/${GV}/${act}/insights?fields=spend&date_preset=this_month&access_token=${encodeURIComponent(token)}`;
+      const mr = await fetch(murl); const mj = await mr.json();
+      const mrow = Array.isArray(mj?.data) && mj.data.length ? mj.data[0] : null;
+      if (mrow && mrow.spend != null) {
+        const ym = new Date().toISOString().slice(0, 7);
+        const { error: pErr } = await admin.from('ad_spend_policy').update({ month_spent_aed: Number(mrow.spend) || 0, month_label: ym, updated_at: new Date().toISOString() }).eq('policy_key', 'default');
+        if (pErr) { UPSERT_FAILS++; LAST_ERR = 'ad_spend_policy month spend update failed: ' + String(pErr.message || ''); }
+      } else if (mj?.error) { INSIGHT_ERRORS++; LAST_ERR = 'account this_month insights call failed: ' + String(mj.error?.message || ''); }
+    } catch (e) { LAST_ERR = 'account this_month insights threw: ' + String((e as Error)?.message || e); }
     const expected = camps.length * 2;
     let note: string;
     if (camps.length === 0) { note = 'Meta returned NO campaigns matching the "' + filter + '" name filter: nothing synced, so meta_insights has no fresh ad spend/lead data and marketing dashboards will show stale or zero figures'; }

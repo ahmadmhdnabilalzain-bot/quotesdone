@@ -321,7 +321,24 @@ Deno.serve(async (req) => {
     // is indistinguishable from a supply coverage gap, per the log line immediately below.
     // Truncation is now named rather than reported as unparseable output.
     for(let at=0; at<2 && !ai; at++){ try{ aiAttempts++; const r=await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway',{ method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: inbound, fn: 'route_inquiry', sys: SYS, input: user, temperature:0.1 }) }); const jd=await r.json(); if(!r.ok) aiLastErr = 'http ' + r.status + ' ' + clip(jd?.error?.message || '', 120); if(jd?.truncated === true || jd?.finish_reason === 'length'){ aiLastErr = 'model output TRUNCATED at the task-class ceiling - raise rfq_routing.max_tokens, this is not a model failure'; continue; } const c=jd?.content; if(c){ const p=parseJson(c); if(p && Object.keys(p).length){ ai=p; break; } else if (r.ok) aiLastErr = 'unparseable model output'; } else if (r.ok) aiLastErr = 'empty model response'; }catch(_e){ aiLastErr = clip((_e as Error)?.message || _e, 140); } }
-    if (!ai) { await logRun('error', { fits: 0, evaluated: pool.length, zero_fits_genuine: 0, ai_attempts: aiAttempts, ai_ok: 0, retrieval, ...diag }, 'RFQ produced no supplier fits because the adjudicator call failed after ' + aiAttempts + ' attempts (' + clip(aiLastErr || 'unknown', 120) + '), not because no supplier exists — ' + pool.length + ' viable candidates were never judged. Downstream this is indistinguishable from a supply coverage gap and the customer\'s RFQ silently goes nowhere.'); return J({ error:'ai_exception', detail:'no model returned parseable output' }, 502); }
+    if (!ai) {
+      // ADJUDICATOR UNAVAILABLE — held model (paidProviderGate) or failed after retries. Do NOT drop
+      // the RFQ. The deterministic retrieval (free gte-small vector + keyword + taxonomy pre-filter)
+      // already narrowed the whole supplier base to this job's trade/category; serve its top-scored
+      // candidates as a DEGRADED shortlist so the RFQ still reaches suppliers — exactly as
+      // quote_compare serves a deterministic comparison when the model is held. The full expert
+      // adjudication returns the moment the model does (nothing here is cached). Recorded as 'ok' +
+      // degraded, NOT 'error': while the founder holds paid inference this is the CONFIGURED state,
+      // not a failure, and an error here would trip the errored-agent ceiling on a working system.
+      const degradedFits = (pool as any[])
+        .map((c:any)=>({ id: Number(c.id), company_name: c.company_name, score: capScores[Number(c.id)]?.score ?? null }))
+        .sort((a:any,b:any)=> (Number(b.score)||0) - (Number(a.score)||0))
+        .slice(0, 8)
+        .map((c:any)=>({ ...c, reason: 'Matched by retrieval (vector + keyword + taxonomy pre-filter). Expert adjudication was unavailable, so this shortlist is served without it rather than holding up the RFQ.' }));
+      await logRun('ok', { fits: degradedFits.length, evaluated: pool.length, degraded: 1, ai_attempts: aiAttempts, ai_ok: 0, retrieval, ...diag },
+        'Adjudicator unavailable after ' + aiAttempts + ' attempt(s) (' + clip(aiLastErr || 'unknown', 120) + '); served the DETERMINISTIC retrieval shortlist instead of dropping the RFQ: ' + degradedFits.length + ' of ' + pool.length + ' retrieved candidates, ranked by retrieval score. Labelled degraded, not cached — full adjudication returns when the model does.');
+      return J({ ok:true, job_type:null, primary_trade:null, fits: degradedFits, evaluated: pool.length, retrieval, degraded:true });
+    }
 
     const byId = new Map(pool.map((c:any)=>[Number(c.id), c]));
     const matches = Array.isArray(ai.matches) ? ai.matches : [];

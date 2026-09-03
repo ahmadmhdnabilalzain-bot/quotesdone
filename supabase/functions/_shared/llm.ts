@@ -291,8 +291,14 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
       if (!j) return EMPTY('no_body', r.status);
 
       // A deterministic refusal or a budget halt is a legitimate "no", and it is NOT an error.
-      // used_llm:false with no content means policy answered instead of a model.
-      if (j.used_llm === false && !j.content) return EMPTY(null, r.status, false);
+      // used_llm:false with no content means policy answered instead of a model. But WHICH "no" it is
+      // matters to the sole caller (agent_brain, the only makeLlmRich user): a held provider
+      // (paidProviderGate) fails closed HERE, with outcome 'circuit_open' and used_llm:false — the
+      // exact shape that flattened to a null error, so agent_brain logged a deliberately-held model as
+      // an employee error and tripped the errored-agent gate. Carry the gateway's own outcome/error
+      // through so the caller can tell a hold apart from a genuine empty and record it as 'skipped'.
+      if (j.used_llm === false && !j.content)
+        return EMPTY(j?.outcome ? String(j.outcome) : (j?.error ? String(j.error).slice(0, 140) : null), r.status, false);
 
       // The envelope the gateway has always returned and this module used to throw away.
       const calls: ToolCall[] = Array.isArray(j.tool_calls) ? j.tool_calls : [];
@@ -306,7 +312,17 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
         truncated: j.truncated === true || fr === 'length',
         used_llm: j.used_llm !== false,
         http_status: r.status,
-        error: !r.ok ? ('gateway_http_' + r.status) : null,
+        // Preserve the gateway's own outcome/error text, not just the HTTP code. A held provider
+        // (paidProviderGate) fails closed as 503 with outcome 'circuit_open' / 'every model route ...
+        // is open-circuit'; flattening that to 'gateway_http_503' hid the ONE fact a caller needs to
+        // tell a deliberate hold from a real breakage — so callers logged a held model as an error
+        // and tripped the errored-agent gate. Appending is backward-compatible: the string still
+        // starts with 'gateway_http_<status>'.
+        error: !r.ok
+          ? ('gateway_http_' + r.status
+             + (j?.outcome ? ':' + String(j.outcome) : '')
+             + (j?.error ? ':' + String(j.error).slice(0, 140) : ''))
+          : null,
       };
     } catch (e) {
       // An abort here is OUR client timeout, not the model declining. Naming it matters: a prior

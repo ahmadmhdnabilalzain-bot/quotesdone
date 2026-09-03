@@ -30,18 +30,29 @@ Deno.serve(async (req) => {
     const detail = String(body.detail||'').slice(0,1000);
     const level = String(body.level||'info').toLowerCase();
     const force = body.force === true;
-    await admin.from('founder_alerts').insert({ level, event, detail, channel:'pending' });
+    // 3 SEP 2026: the caller's dedupe_key is STORED with the alert. Until today it was matched against
+    // the SUBJECT of sent notifications, where a key like 'failed_runs:2026-09-03' never appears, so
+    // passing a dedupe_key silently disabled deduplication — the failed-runs watcher paged the founder
+    // twice in one day (04:16 and 05:18) with the very key that was meant to hold it to once a day.
+    const dedupeKey = body.dedupe_key ? String(body.dedupe_key).slice(0, 200) : null;
+    await admin.from('founder_alerts').insert({ level, event, detail, channel:'pending', dedupe_key: dedupeKey });
     const shouldNotify = force || ACTIONABLE.has(level);
     if (!shouldNotify) {
       await admin.from('founder_alerts').update({ channel: 'logged' }).eq('event', event).order('created_at',{ascending:false}).limit(1);
       return J({ ok:true, notified:false, logged:true, reason:'non-actionable level suppressed (no email sent)' });
     }
     // De-dupe: if the same event was emailed in the last 6h, skip a repeat email (still logged above).
-    if (body.dedupe_key || event) {
-      const key = String(body.dedupe_key || event);
+    // With a dedupe_key: at most one delivery per key per 24h, matched on the STORED key (the caller
+    // decides the window by what it puts in the key, e.g. failed_runs:<day>). Without one: the same
+    // event text delivered in the last 6h holds a repeat.
+    if (dedupeKey) {
+      const since = new Date(Date.now() - 24*3600e3).toISOString();
+      const { count } = await admin.from('founder_alerts').select('id', { count:'exact', head:true }).eq('dedupe_key', dedupeKey).in('channel', ['email','whatsapp']).gte('created_at', since);
+      if ((count||0) > 0) { await admin.from('founder_alerts').update({ channel:'deduped' }).eq('event',event).order('created_at',{ascending:false}).limit(1); return J({ ok:true, notified:false, deduped:true, on:'dedupe_key' }); }
+    } else if (event) {
       const since = new Date(Date.now() - 6*3600e3).toISOString();
-      const { count } = await admin.from('notifications').select('id', { count:'exact', head:true }).eq('type','founder_alert').ilike('subject', '%'+key.slice(0,60)+'%').gte('created_at', since).eq('status','sent');
-      if ((count||0) > 0) { await admin.from('founder_alerts').update({ channel:'deduped' }).eq('event',event).order('created_at',{ascending:false}).limit(1); return J({ ok:true, notified:false, deduped:true }); }
+      const { count } = await admin.from('notifications').select('id', { count:'exact', head:true }).eq('type','founder_alert').ilike('subject', '%'+event.slice(0,60)+'%').gte('created_at', since).eq('status','sent');
+      if ((count||0) > 0) { await admin.from('founder_alerts').update({ channel:'deduped' }).eq('event',event).order('created_at',{ascending:false}).limit(1); return J({ ok:true, notified:false, deduped:true, on:'event' }); }
     }
     const msg = `[${level.toUpperCase()}] ${event}${detail? '\n\n'+detail : ''}`;
     let wa=false, email=false;

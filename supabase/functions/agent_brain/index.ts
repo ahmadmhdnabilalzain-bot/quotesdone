@@ -506,6 +506,15 @@ Deno.serve(async (req)=>{
     // been three seconds from this cliff for some time with nothing saying so. Same silent failure
     // exec_agents was fixed for in session 2. Recorded truthfully below.
     const llmFailed = !llmOut;
+    // A DELIBERATELY-HELD MODEL IS NOT AN EMPLOYEE FAILURE. paidProviderGate (kernel K12) holds every
+    // paid route by the founder's order; ai_gateway then fails CLOSED with outcome 'circuit_open' /
+    // 'every model route ... is open-circuit'. Internal work is ~95% deterministic by design, and when
+    // a caller (cos_execute, workflow_dispatch) reaches the model as its ~5% fallback while the model
+    // is held, the empty return is the CONFIGURED state, not this agent erroring. Recording it as
+    // 'error' would trip the errored-agent ceiling on a system that is working exactly as intended, so
+    // it is logged as 'skipped' (the paid step was skipped) with an honest note. A genuine model
+    // breakage — any other error, or none — still records as 'error' and is not hidden by this.
+    const modelHeld = llmFailed && /open-circuit|circuit_open/i.test(String(loop.llmError || ''));
     // A TRUNCATED OR FAIL-CLOSED ANSWER IS NOT AN ANSWER. Certification recorded 135 truncations,
     // every one of them on the tier used for consequential work: the JSON never closes, the
     // structured tail is lost, and the reply arrives looking ordinary with its ending missing.
@@ -608,7 +617,7 @@ Deno.serve(async (req)=>{
     // employee that ran; without this row nothing downstream — performance, trend, workload —
     // can say anything about them. Keyed by agent_key so it joins to org_agents.
     try{
-      await admin.from('agent_runs').insert({ agent:key, status:(llmFailed||incomplete)?'error':'ok',
+      await admin.from('agent_runs').insert({ agent:key, status: modelHeld ? 'skipped' : ((llmFailed||incomplete)?'error':'ok'),
         started_at:new Date(runStartedAt).toISOString(), finished_at:new Date().toISOString(),
         counts:{ prompt_chars:sysStable.length+sysVolatile.length,
                  stable_chars:sysStable.length, volatile_chars:sysVolatile.length,
@@ -617,7 +626,11 @@ Deno.serve(async (req)=>{
                  incomplete:incomplete, truncated:loop.truncated,
                  tools_requested:loop.requested.length, tools_executed:loop.executed.length,
                  tool_steps:loop.steps, correlation_id:correlationId },
-        note:(llmFailed
+        note:(modelHeld
+          ? 'Inference is held (paidProviderGate / kernel K12, founder order): no in-scope deterministic '
+            +'match applied and the paid model is deliberately unavailable, so this employee did not '
+            +'answer. This is the configured state, not a failure. Ask: '
+          : llmFailed
           ? 'The model returned nothing, so this employee did not answer. Prompt was '
             +(sysStable.length+sysVolatile.length)+' characters ('+sysStable.length+' cacheable). Ask: '
           : incomplete
