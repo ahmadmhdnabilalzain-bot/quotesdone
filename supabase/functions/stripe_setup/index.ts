@@ -14,23 +14,17 @@
 //   action 'webhook_sync'   makes the endpoint match, additively
 // A missing event is now a thing you can ASK about, in the same place you can fix it.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { HANDLED_STRIPE_EVENTS } from '../_shared/stripe_events.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, content-type, apikey', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
 const J=(o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{'Content-Type':'application/json',...CORS}});
 async function sec(k:string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string)||''; }
 async function put(k:string,v:string){ await admin.from('app_secrets').upsert({ key:k, value:v }, { onConflict:'key' }); }
 
-// THE CONTRACT. Every event stripe_webhook actually handles. Keep this in step with that file:
-// checkout.session.completed at :70, the four refund events at :184-185. If you add a branch there
-// without adding it here, webhook_status will not catch its absence — that is the only way this can
-// drift now, and it is a much smaller surface than a dashboard.
-const REQUIRED_EVENTS = [
-  'checkout.session.completed',
-  'charge.refunded',
-  'refund.created',
-  'refund.updated',
-  'refund.failed',
-];
+// THE CONTRACT. Every event stripe_webhook actually handles. Until 3 Sep 2026 this was a hand-kept
+// mirror of that file's branches; now the handler branches on the same arrays this list is built
+// from (_shared/stripe_events.ts), so a branch cannot exist without its subscription.
+const REQUIRED_EVENTS: string[] = [...HANDLED_STRIPE_EVENTS];
 const WEBHOOK_URL_SUFFIX = '/functions/v1/stripe_webhook';
 
 async function stripe(path:string, sk:string, body?:URLSearchParams){

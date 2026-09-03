@@ -788,10 +788,16 @@ Deno.serve(async (req) => {
       return J({ ok: true, proposal: jd.proposal, original_file_path, original_file_name });
     }
     if (action === 'submit_quote') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,accepted_terms_at,registration_status,approval_status').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first' }, 400);
       if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first' }, 400);
-      if (sup.approval_status !== 'approved') return J({ error: 'Your registration is pending verification. You can submit quotes once an admin approves your account (within 3 working days).' }, 403);
+      // 3 SEP 2026 (MASTER_PLAN #11): there is no admin queue and never was - approval is the automatic
+      // licence gate on save. Say what actually blocked it and what unblocks it, instead of promising a
+      // human decision "within 3 working days" that nobody would ever make.
+      if (sup.approval_status !== 'approved') {
+        const why = String(sup.licence_gate_reason || sup.rejection_reason || '').trim();
+        return J({ error: 'Your registration is not verified yet' + (why ? ': ' + why : '') + '. Upload a clear, in-date trade licence from your Profile tab - it is re-checked automatically the moment it is saved, with no admin step.', reason: why || null }, 403);
+      }
       // AUDIT 4.2. This gate used to read the stored registration_status, which setRegistration()
       // set to 'due' on every supplier past the (off-by-one) free count regardless of the date -
       // blocking suppliers from quoting a year before the fee is contractually charged. It now
