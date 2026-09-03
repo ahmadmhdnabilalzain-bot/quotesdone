@@ -21,16 +21,16 @@
 
 -- Wrap + enable (first apply on a clean DB sets the correct role directly).
 select public.fn_kernel_wrap_and_enable_cron(250, 'corporate_performance_director', 'exec');       -- employee_kpi_measure
-select public.fn_kernel_wrap_and_enable_cron(249, 'corporate_performance_director', 'exec');       -- dept_objective_measure
+select public.fn_kernel_wrap_and_enable_cron(249, 'ceo', 'exec');                                   -- dept_objective_measure
 select public.fn_kernel_wrap_and_enable_cron(194, 'ceo', 'exec');                                  -- os_objective_measure
 select public.fn_kernel_wrap_and_enable_cron(140, 'corporate_performance_director', 'exec');       -- kpi_review
-select public.fn_kernel_wrap_and_enable_cron(139, 'quality_and_release_director', 'assurance');    -- self_review
+select public.fn_kernel_wrap_and_enable_cron(139, 'corporate_performance_director', 'exec');        -- self_review
 select public.fn_kernel_wrap_and_enable_cron(184, 'corporate_performance_director', 'exec');       -- improvement_plan
-select public.fn_kernel_wrap_and_enable_cron(204, 'corporate_performance_director', 'exec');       -- learning_loop_sweep
+select public.fn_kernel_wrap_and_enable_cron(204, 'agent_workforce_capability_director', 'people_ops'); -- learning_loop_sweep
 select public.fn_kernel_wrap_and_enable_cron(143, 'corporate_performance_director', 'exec');       -- outcome_evaluate
 select public.fn_kernel_wrap_and_enable_cron(205, 'corporate_performance_director', 'exec');       -- improvement_handover
 select public.fn_kernel_wrap_and_enable_cron(285, 'ceo', 'exec');                                  -- objective_review
-select public.fn_kernel_wrap_and_enable_cron(156, 'ceo', 'exec');                                  -- os_review
+select public.fn_kernel_wrap_and_enable_cron(156, 'corporate_performance_director', 'exec');        -- os_review
 select public.fn_kernel_wrap_and_enable_cron(282, 'corporate_performance_director', 'exec');       -- promotion_review
 select public.fn_kernel_wrap_and_enable_cron(84,  'ceo', 'exec');                                  -- strategy_ai
 select public.fn_kernel_wrap_and_enable_cron(243, 'chief_operating_officer', 'people_ops');        -- agent_action_work_sweep_hourly
@@ -39,12 +39,12 @@ select public.fn_kernel_wrap_and_enable_cron(243, 'chief_operating_officer', 'pe
 update public.phase_c_component c
    set accountable_role_id = m.role, department_id = m.dept, activation_state = 'active'
   from (values
-    (250,'corporate_performance_director','exec'), (249,'corporate_performance_director','exec'),
+    (250,'corporate_performance_director','exec'), (249,'ceo','exec'),
     (194,'ceo','exec'),                            (140,'corporate_performance_director','exec'),
-    (139,'quality_and_release_director','assurance'),(184,'corporate_performance_director','exec'),
-    (204,'corporate_performance_director','exec'), (143,'corporate_performance_director','exec'),
+    (139,'corporate_performance_director','exec'), (184,'corporate_performance_director','exec'),
+    (204,'agent_workforce_capability_director','people_ops'), (143,'corporate_performance_director','exec'),
     (205,'corporate_performance_director','exec'), (285,'ceo','exec'),
-    (156,'ceo','exec'),                            (282,'corporate_performance_director','exec'),
+    (156,'corporate_performance_director','exec'), (282,'corporate_performance_director','exec'),
     (84,'ceo','exec'),                             (243,'chief_operating_officer','people_ops')
   ) as m(jobid, role, dept)
   join public.phase_c_system_execution_wrapper w on w.jobid = m.jobid
