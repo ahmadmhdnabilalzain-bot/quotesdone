@@ -481,6 +481,23 @@ Deno.serve(async (req) => {
     // Every route on the ladder is open-circuit: fail CLOSED and say so, rather than retrying into
     // a wall and reporting it as a model failure.
     if (!ladder.length && fullLadder.length) {
+      // A HELD ROUTE IS STILL A ROUTING DECISION, AND THE ROUTER MUST SAY SO (3 Sep 2026). The
+      // policy chose a model for this task class and the kernel gate refused every route on the
+      // ladder; nothing was called and nothing was spent. Before this line, that decision left no
+      // row at all: with the founder's hold open, ai_cost_log recorded zero routed requests for
+      // nineteen days while callers reached this branch dozens of times a week, so the router
+      // read as dead when it was refusing exactly as instructed. Logged the way the deterministic
+      // refusal above is logged — model 'none', zero tokens, the rationale in words — so spend,
+      // failure and confidence instruments see a policy answer, not a call, and the routing
+      // rationale names the model it would have used and the rule that held it.
+      await rpcSafe('fn_llm_log', {
+        p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+        p_task_class: route.task_class ?? null, p_model: 'none',
+        p_because: route.why + ' | HELD: routed to ' + model + ' by policy, no provider call was made — '
+                   + skipped.map(s => s.route + ' (' + s.reason + ')').join('; '),
+        p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+        p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+      });
       return J({ ok: false, used_llm: false, outcome: 'circuit_open',
         error: 'every model route for this task class is open-circuit',
         routes: skipped, task_class: route.task_class, cost_usd: 0 }, 503);

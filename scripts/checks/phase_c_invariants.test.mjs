@@ -115,7 +115,14 @@ const cost = (await sql(`select
   (select count(*) from public.llm_route_health) routes,
   (select count(*) from public.llm_route_health where open_until > now()) held,
   (select min(open_until)::text from public.llm_route_health where open_until > now()) held_until,
-  (select max(occurred_at)::text from public.ai_cost_log) last_ai_call,
+  -- A ROW IN THE COST LEDGER IS NOT A PAID CALL (3 Sep 2026). ai_gateway records a routing decision
+  -- whose every route the kernel gate held — model_used 'none', zero tokens, cost 0, the holding
+  -- rule in the rationale — and the deterministic-refusal branch has always written the same shape.
+  -- Counting those as paid inference turned the router doing exactly what the hold demands into a
+  -- red invariant. "Paid" means a provider was reached: a model other than 'none', tokens, or cost.
+  -- fn_phase_c_invariants carries the same predicate.
+  (select max(occurred_at)::text from public.ai_cost_log
+     where coalesce(cost_aed, 0) > 0 or coalesce(prompt_tokens, 0) > 0 or coalesce(model_used, 'none') <> 'none') last_ai_call,
   -- the column is cost_aed, not cost_usd; naming it wrong would have made a zero that measures
   -- nothing look like a zero that measures cost
   (select coalesce(sum(cost_aed),0)::text from public.ai_cost_log
@@ -124,11 +131,14 @@ const cost = (await sql(`select
   -- model_used = 'none', cost 0 and no provider round trip; paid means a provider was reached.
   (select count(*) from public.ai_cost_log
      where occurred_at > timestamptz '2026-08-15 09:00:00+00'
-       and (coalesce(cost_aed, 0) > 0 or coalesce(prompt_tokens, 0) > 0 or coalesce(model_used, 'none') <> 'none')) calls_since_phase_c`))[0];
+       and (coalesce(cost_aed, 0) > 0 or coalesce(prompt_tokens, 0) > 0 or coalesce(model_used, 'none') <> 'none')) calls_since_phase_c,
+  (select count(*) from public.ai_cost_log
+     where occurred_at > timestamptz '2026-08-15 09:00:00+00'
+       and coalesce(model_used, 'none') = 'none' and coalesce(prompt_tokens, 0) = 0) held_or_deterministic_since_phase_c`))[0];
 check(Number(cost.routes) === Number(cost.held), 'every provider route is held open-circuit',
       `${cost.held}/${cost.routes} held until ${cost.held_until}`);
 check(Number(cost.calls_since_phase_c) === 0, 'zero paid inference calls since Phase C began',
-      `last call in the estate: ${cost.last_ai_call}`);
+      `last paid call in the estate: ${cost.last_ai_call}; ${cost.held_or_deterministic_since_phase_c} routing decision(s) answered without a provider (held or deterministic) since Phase C began`);
 check(Number(cost.cost_since_phase_c) === 0,
       'paid inference cost since Phase C began is AED 0.00 (= USD 0.00)');
 
