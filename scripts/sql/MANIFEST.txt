@@ -1912,3 +1912,8 @@ scripts/sql/staff_org_recarve_bindings_2026_09_03.sql
 scripts/sql/phase_b_invariants_read_the_approved_role_count.sql
 scripts/sql/staff_org_recarve_settlement_2026_09_03.sql
 scripts/sql/staff_org_recarve_settlement_b_2026_09_03.sql
+scripts/sql/fn_secops_watch_reads_admin_emails.sql
+scripts/sql/refund_roles_are_policy_not_literals.sql
+scripts/sql/retire_the_legacy_credential_and_the_parallel_task_executor.sql
+scripts/sql/staff_org_recarve_settlement_c_2026_09_03.sql
+scripts/sql/deploy_completed_has_subscribers.sql
