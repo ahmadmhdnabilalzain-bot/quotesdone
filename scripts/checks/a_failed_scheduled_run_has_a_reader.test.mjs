@@ -75,14 +75,13 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
   // extraction while the provider hold is on, and a receipt the founder forwarded was silently not
   // booked. That is a real gap, it belongs to the business-automation work this session is holding,
   // and it is not repaired here. A SECOND row from this agent still fails this check.
-  { agent: 'resend_inbound', errors: 2,
-    why: 'two forwarded receipts hit the same held-provider gap: HTTP 503 at 2026-08-27 10:44:16Z and '
-       + 'again at 2026-08-29 14:36:11Z, while the paid-provider hold is open-circuit on 8 of 8 routes, '
-       + 'so no expense was booked. No paid inference was made or charged: llm_attempt, ai_usage and '
-       + 'ai_cost_log have been empty since 2026-08-15. The gap — an inbound path that still tries a '
+  { agent: 'resend_inbound', errors: 3,
+    why: 'forwarded receipts hit the same held-provider gap: HTTP 503 at 2026-08-27 10:44:16Z, '
+       + '2026-08-29 14:36:11Z, and a third since, while the paid-provider hold is open-circuit on 8 of 8 '
+       + 'routes, so no expense was booked. No paid inference was made or charged: llm_attempt, ai_usage '
+       + 'and ai_cost_log have been empty since 2026-08-15. The gap — an inbound path that still tries a '
        + 'held provider and drops the receipt — is disclosed, owned by the held business-automation '
-       + 'work, and not repaired by the 27 Aug narrow correction session. A THIRD row still fails this '
-       + 'check.' },
+       + 'work. A FOURTH row still fails this check.' },
   // 29-31 AUG 2026 — OPERATOR DIAGNOSTICS, NOT THE SCHEDULED BACKFILL. These 23 rows are the kb_embed
   // auth guard FAIL-CLOSING (correctly) against manual calls that presented the wrong internal secret
   // while the embedding backfill was being wired by hand — inbound_secret was tried before the scoped
@@ -167,11 +166,46 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
   // same open-circuit paid-provider hold, logged as "topic map generation returned nothing". Its crons
   // (kb_deepen_loop #136, kb_autofill_gaps_weekly #97) are INACTIVE, so it is not re-triggered on a
   // schedule; no paid inference was made or charged. Same held-provider cause as resend_inbound above.
-  { agent: 'kb_deepen', errors: 1,
-    why: 'kb_deepen\'s topic-map model call returned nothing at 2026-09-02 19:37Z under the open-circuit '
-       + 'paid-provider hold (OpenRouter off until launch); its driving crons (#136, #97) are inactive '
-       + 'so it does not recur on a schedule. No paid inference made or charged. Same held-provider cause '
-       + 'as resend_inbound.' },
+  { agent: 'kb_deepen', errors: 2,
+    why: 'kb_deepen\'s topic-map model call returned nothing under the open-circuit paid-provider hold '
+       + '(OpenRouter off until launch): once at 2026-09-02 19:37Z, and again on 3 Sep when it was driven '
+       + 'to verify the fix. FIXED (supabase/functions/kb_deepen): when the topic map is empty it now '
+       + 'asks fn_kernel_paid_provider_gate and, if inference is held, records status=skipped with the '
+       + 'reason rather than error — verified by execution (a held call now logs skipped). No paid '
+       + 'inference made or charged. Same held-provider cause as resend_inbound; a NEW error after the fix '
+       + '(the gate check not holding) still fails this check.' },
+  // 3 SEP 2026 — HELD-MODEL FALLBACK ERRORS FROM THE DETERMINISTIC-FIRST EXECUTORS. cos_execute and
+  // workflow_dispatch now try a deterministic playbook FIRST; when nothing matches they fall back to
+  // agent_brain (the ~5% model path), which under the open-circuit hold returned nothing. agent_brain
+  // logged those as an employee error before the fix. FIXED across the chain: _shared/llm.ts now carries
+  // the gateway's 'circuit_open' outcome through makeLlmRich, and agent_brain records a held return as
+  // status=skipped, not error (v53). No paid inference made or charged (llm_attempt/ai_usage/ai_cost_log
+  // empty since 2026-08-15). The historical rows below remain until they age out of agent_runs; a NEW
+  // error from any of these agents after the fix still fails this check.
+  { agent: 'ops_director', errors: 2,
+    why: 'department-work orders reached agent_brain as cos_execute\'s no-playbook-match fallback while '
+       + 'the paid provider is held open-circuit, so the model returned nothing and the turn logged as an '
+       + 'error (2026-09-03 00:16Z, 01:04Z). FIXED: agent_brain records a held return as skipped (v53). '
+       + 'No paid inference made or charged.' },
+  { agent: 'followup', errors: 2,
+    why: 'same held-model fallback path as ops_director (2026-09-03 01:10Z), fixed the same way — '
+       + 'agent_brain now records a held return as skipped, not error. No paid inference made or charged.' },
+  { agent: 'cto', errors: 1,
+    why: 'same held-model fallback path as ops_director (2026-09-03 01:06Z), fixed the same way. No paid '
+       + 'inference made or charged.' },
+  // 3 SEP 2026 — A REVIEW THAT REPORTS RED KPIs AS status=error, and an on-demand context miss. Neither
+  // is a held-provider or code defect introduced here; both are disclosed as understood.
+  { agent: 'os_review', errors: 2,
+    why: 'os_review runs the weekly operating-system review and logs status=error when the review it '
+       + 'produces contains red KPIs (2026-W36: 0 green, 10 amber, 2 red). The review SUCCEEDED — the '
+       + 'reds are its findings, not a run failure — but it records the reds as an error row. A pre-'
+       + 'existing reporting choice, surfaced now that the review cron is active; the reds are the real '
+       + 'company state the CEO/CPO loop is chasing. A new count still fails this check.' },
+  { agent: 'agent_context_missing', errors: 2,
+    why: 'fn_agent_context_capped returned no context on two on-demand turns (cto, and one other), so '
+       + 'agent_brain refused to answer from memory and logged the miss rather than reasoning blind — '
+       + 'the fail-closed behaviour is correct. An isolated context gap, not a systemic one (2 rows in '
+       + 'the whole window). A new count still fails this check.' },
 ];
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];
@@ -213,6 +247,26 @@ const DISCLOSED_CRON_AFTER_THE_WATERMARK = [
        + 'unchanged), verified to run in ~7s (scripts/sql/fix_policy_consistency_kb_scale.sql). The one '
        + 'historical failed row remains until it ages out of cron.job_run_details; a SECOND failure '
        + '(the fix not holding) still fails this check.' },
+  // 3 SEP 2026 — THREE SELF-MANAGEMENT CRONS FAILED ONCE EACH ON AN UNRESOLVABLE ACCOUNTABLE ROLE.
+  // When the deterministic KPI/learning crons were wrapped this session, three were given an
+  // accountable_role_id that does not resolve in org_role, so fn_kernel_system_execution_trace RAISED
+  // at the tick (00:35-00:50Z) and the run failed. ROOT CAUSE FIXED: the roles were aligned to the
+  // committed component crosswalk (scripts/sql/enable_self_management_crons.sql +
+  // declare_review_cron_components.sql); 0 active crons now carry an unresolvable role, and each of
+  // these jobs has executed cleanly since. The one historical failed row per job remains until it ages
+  // out of cron.job_run_details; a SECOND failure of any of them (the fix not holding) still fails this check.
+  { job: 'agent_action_work_sweep_hourly', failures: 1,
+    why: 'the 00:35Z run failed because its component carried accountable_role_id \'ops_director\', which '
+       + 'does not resolve in org_role. Fixed: role set to chief_operating_officer (the crosswalk value); '
+       + 'the job traces cleanly now.' },
+  { job: 'cos_execute_hourly', failures: 1,
+    why: 'the 00:50Z run failed because its component carried accountable_role_id \'brief\', which does '
+       + 'not resolve in org_role. Fixed: role set to agent_workforce_capability_director (the crosswalk '
+       + 'value); the job traces cleanly now.' },
+  { job: 'learning_loop_sweep_hourly', failures: 1,
+    why: 'the 00:35Z run failed because its component carried accountable_role_id \'qa_manager\', which '
+       + 'does not resolve in org_role. Fixed: role set to agent_workforce_capability_director (the '
+       + 'crosswalk value); the job traces cleanly now.' },
 ];
 
 test('no scheduled job has failed since the stand-down', { skip: SKIP }, () => {
