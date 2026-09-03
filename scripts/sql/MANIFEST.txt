@@ -1905,3 +1905,4 @@ scripts/sql/company_snapshot_carries_the_pulse.sql
 scripts/sql/kernel_ledger_follows_the_manifest_3_sep_c.sql
 scripts/sql/v_legacy_secret_users_last_7_days.sql
 scripts/sql/reenable_exec_meeting_and_reflect.sql
+scripts/sql/unattended_needs_low_risk_reversible_or_authority.sql
