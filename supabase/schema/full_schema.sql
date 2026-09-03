@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T22:25:17.806Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T23:02:33.457Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -48342,6 +48342,10 @@ begin
       'note','Outcome grading opens corrective work and pauses with the founder hold; it resumes when the hold lifts.');
   end if;
 
+  -- 4 SEP 2026: a second call in the same transaction (a probe that first sees the routine pause, then
+  -- clears the stand-down and calls again) found this table already there and raised 42P07. The
+  -- table belongs to this call; drop what an earlier call in the transaction left.
+  drop table if exists _due_group;
   create temporary table _due_group on commit drop as
   select o.id,
          count(*)      over w as claimants,

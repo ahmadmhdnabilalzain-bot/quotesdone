@@ -1946,3 +1946,4 @@ scripts/sql/the_trace_board_looks_up_only_the_runs_it_judges.sql
 scripts/sql/licence_reconciliation_is_reachable_again.sql
 scripts/sql/kernel_ledger_follows_the_manifest_4_sep.sql
 scripts/sql/the_trace_boards_overlap_join_has_a_lower_bound.sql
+scripts/sql/fn_outcome_evaluate_can_run_twice_in_one_transaction.sql
