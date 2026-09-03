@@ -104,7 +104,7 @@ eq('handoff to an unknown department is refused', h2.ok, 'false');
 eq('  -> reason', h2.reason, 'unknown receiving department');
 // accountable owner not a member of the originating department
 const h3 = await probe(`do $p$ declare r jsonb; begin
-  r := fn_handoff_open(jsonb_build_object(${HB}) || jsonb_build_object('accountable_owner','ap_specialist'));
+  r := fn_handoff_open(jsonb_build_object(${HB}) || jsonb_build_object('accountable_owner','bookkeeper'));
   raise exception 'MARK|ok=%|reason=%',(r->>'ok'),(r->>'reason'); end $p$;`);
 eq('handoff whose owner is not in the from-dept is refused', h3.ok, 'false');
 eq('  -> reason', h3.reason, 'accountable owner does not belong to the originating department');
@@ -321,7 +321,7 @@ const iw = await probe(`do $p$ declare v_id bigint; v_owner text; v_task bigint;
   raise exception 'MARK|owner=%|task_dept=%|task_ac=%|ack=%|status=%|reesc=%|fa_delta=%',
     v_owner, v_dept, v_ac, (v_ack is not null)::text, v_st, (e->>'reescalated'), (v_fa1-v_fa0); end $p$;`);
 eq('a new incident is owned by the security incident-response role', iw.owner, 'security');
-eq('  -> opens ONE linked task in the owner’s department', iw.task_dept, 'assurance');
+eq('  -> opens ONE linked task in the owner’s department', iw.task_dept, 'product_eng');
 eq('  -> tagged as incident work', iw.task_ac, 'incident');
 eq('starting the task acknowledges the incident', iw.ack, 'true');
 eq('completing the task resolves the incident', iw.status, 'resolved');
@@ -354,12 +354,14 @@ eq('a report_type=finance board report is written each week', sv.finance_report,
 console.log('\n== OS COVERAGE — every active department maps to an operating system ==');
 // ============================================================================================
 // customer_experience and assurance were buried inside the marketplace and operations OS; now each of
+// (3 Sep 2026: assurance merged into Platform & Reliability and Supply got its own OS, so the pair
+// asserted here is customer_experience + supply)
 // the ten departments maps to its own operating system, so the weekly review surfaces all of them.
 const oc = await q(`select 'active_departments_without_an_operating_system' k,
   (select count(*)::text from org_departments d where d.active
      and not exists(select 1 from os_department od where od.dept_key=d.dept_key)) v, '0' e
   union all select 'both_new_operating_systems_present',
-  (select (count(*)=2)::text from operating_system where os_key in ('customer_experience','assurance') and active), 'true'`);
+  (select (count(*)=2)::text from operating_system where os_key in ('customer_experience','supply') and active), 'true'`);
 for (const r of oc) eq(r.k, r.v, r.e);
 
 // ============================================================================================

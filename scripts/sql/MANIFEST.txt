@@ -1907,3 +1907,8 @@ scripts/sql/v_legacy_secret_users_last_7_days.sql
 scripts/sql/reenable_exec_meeting_and_reflect.sql
 scripts/sql/unattended_needs_low_risk_reversible_or_authority.sql
 scripts/sql/reenable_measurement_crons.sql
+scripts/sql/staff_org_recarve_2026_09_03.sql
+scripts/sql/staff_org_recarve_bindings_2026_09_03.sql
+scripts/sql/phase_b_invariants_read_the_approved_role_count.sql
+scripts/sql/staff_org_recarve_settlement_2026_09_03.sql
+scripts/sql/staff_org_recarve_settlement_b_2026_09_03.sql

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T07:28:12.715Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T16:32:51.051Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -50314,7 +50314,11 @@ role_use as (
 ),
 coverage(check_name, expected, actual) as (
   values
-    ('coverage.canonical_roles_total', '90',
+    ('coverage.canonical_roles_total',
+      -- 3 SEP 2026 (PACR-004): the approved size of the canonical org is the Phase A baseline's
+      -- count, not a literal typed into the check that guards it. 90 was true from 15 Aug to 3 Sep;
+      -- the STAFF_ORG re-carve seated 56 and the baseline records it.
+      (select b.counts->>'canonical_roles' from public.org_phase_baseline b where b.phase = 'A'),
       (select count(*)::text from public.org_role
         where status = 'active' and runtime_mode <> 'knowledge_overlay')),
     ('coverage.roles_unrepresented', '0',
@@ -87324,6 +87328,7 @@ select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_k
 --   cred_fn_wa_docs
 --   cred_fn_wa_pdf
 --   cred_fn_workflow_dispatch
+--   cred_ops_doc_render
 --   cred_ops_phone_diag
 --   cred_ops_wa_replay
 --   cred_ops_wa_template_setup
