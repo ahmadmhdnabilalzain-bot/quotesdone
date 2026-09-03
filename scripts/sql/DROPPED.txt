@@ -21,3 +21,18 @@ run_licence_reminders :: absent from production, measured 17 Aug 2026 :: no chan
 trg_containment_block_customer_registration :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
 trg_containment_block_sensitive_upload :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
 trg_containment_block_supplier_registration :: absent from production, measured 17 Aug 2026 :: no change file in this repository records the drop, so the reason is not recorded here
+# 3 Sep 2026 — retire_orphaned_phase_governance_routines.sql (12 routines). Measured dead (0 callers, cron, trigger,
+# view, RLS, repo execution refs, board discovery, door registry, binding rows); the four freeze guards
+# are orphans of the founder's 2 Sep freeze removal. Canonical files kept as history.
+fn_phase_a_freeze_guard :: orphan of the lifted Phase A freeze; its trigger was dropped 2 Sep 2026
+fn_phase_b_freeze_guard :: orphan of the lifted Phase B freeze; its trigger was dropped 2 Sep 2026
+fn_phase_b_step_transition_allowed :: freeze-era transition rule, no caller since the freeze lift
+fn_phase_c_freeze_amendment_approver_guard :: freeze-amendment guard function with no trigger and no caller
+fn_phase_c_trace_coverage :: superseded by fn_kernel_trace_integrity boards; 0 callers
+fn_phase_d_actual_caller_measure :: one-off measurement, never wired
+fn_phase_d_application_connection_measure :: one-off measurement, never wired
+fn_phase_d_external_residue :: never wired; 0 callers
+fn_phase_d_handoff_cancel :: never wired as a door (not in kernel_write_authority); 0 callers
+fn_phase_d_handoff_reject :: never wired as a door (not in kernel_write_authority); 0 callers
+fn_phase_d_disposition_state :: not discovered as a board by fn_kernel_all_boards(); 0 callers
+fn_phase_d_reference_fold_state :: not discovered as a board by fn_kernel_all_boards(); 0 callers
