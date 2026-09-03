@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T06:44:55.171Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T06:47:14.904Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -13417,7 +13417,7 @@ CREATE OR REPLACE VIEW public.v_legacy_secret_users AS  SELECT function_name,
     min(at) AS first_seen,
     max(at) AS last_seen
    FROM internal_credential_audit
-  WHERE (reason = 'legacy_secret_used'::text)
+  WHERE ((reason = 'legacy_secret_used'::text) AND (at > (now() - '7 days'::interval)))
   GROUP BY function_name
   ORDER BY (count(*)) DESC;
 
@@ -72675,12 +72675,23 @@ begin
                    and e.last_seen is not null
                    and e.last_seen < now() - (e.max_silence_hours || ' hours')::interval);
 
+  -- ONCE PER SILENCE EPISODE, ONE EMAIL PER RUN (3 Sep 2026). This loop paged the founder once per
+  -- silent employee per DAY — 21 "Employee has stopped working" emails in the 24 hours measured on
+  -- 3 Sep, 59 all-time — for runners whose schedules were switched off by his own 16 Aug stand-down
+  -- and re-enabled on 2-3 Sep. A silence is one fact, not a daily one: an episode is (runner,
+  -- last_seen); it is paged the first time it is seen and never again until the runner has run
+  -- (a new last_seen is a new episode). And the employees newly silent in one pass go into ONE
+  -- email, never one email each. Nothing is hidden: every silent runner is still in
+  -- agent_expectations.silent and in the company snapshot.
+  declare v_new text := ''; v_new_n int := 0;
+  begin
   for r in select agent, kind, last_seen, max_silence_hours, median_gap_hours
              from agent_expectations where silent and not on_demand order by agent
   loop
     if not exists (select 1 from founder_alerts
-                    where event='runner_silent' and detail like '%"'||r.agent||'"%'
-                      and created_at > now() - interval '24 hours') then
+                    where event='runner_silent'
+                      and detail like '%"runner": "'||r.agent||'"%'
+                      and detail like '%"last_run": "'||coalesce(r.last_seen::text,'')||'"%') then
       insert into founder_alerts(level, event, detail, channel)
       values (case when r.kind='employee' then 'high' else 'warn' end, 'runner_silent',
         jsonb_build_object('runner', r.agent, 'kind', r.kind,
@@ -72688,19 +72699,24 @@ begin
           'silent_hours', round(extract(epoch from (now()-r.last_seen))/3600),
           'own_median_gap_hours', r.median_gap_hours,
           'expected_within_hours', r.max_silence_hours)::text, 'email');
-      if v_email is not null and r.kind = 'employee' then
-        insert into notifications(type,to_email,subject,body,status)
-        values ('agent_silence', v_email,
-          'Employee has stopped working: '||r.agent,
-          'The runner "'||r.agent||'" last did anything at '||coalesce(r.last_seen::text,'unknown')||
-          '. Its own observed cadence over the last 30 days is one run every '||
-          coalesce(r.median_gap_hours::text,'?')||' hours, so it is now well past due. Its scheduled '||
-          'job may still be succeeding — this watch looks at what the runner DID, not at whether its '||
-          'schedule fired.','pending');
+      if r.kind = 'employee' then
+        v_new_n := v_new_n + 1;
+        v_new := v_new || '- ' || r.agent || ': last did anything at ' || coalesce(r.last_seen::text,'unknown')
+              || ' (own cadence one run every ' || coalesce(r.median_gap_hours::text,'?') || ' hours)' || E'\n';
       end if;
       n_alert := n_alert + 1;
     end if;
   end loop;
+  if v_email is not null and v_new_n > 0 then
+    insert into notifications(type,to_email,subject,body,status)
+    values ('agent_silence', v_email,
+      v_new_n || ' employee(s) have stopped working',
+      'These runners went past their own observed cadence for the first time since they last ran:' || E'\n' || v_new ||
+      E'\n' || 'Each is reported once per silence; it will be reported again only after it runs and stops again. ' ||
+      'A scheduled job may still be succeeding — this watch looks at what the runner DID, not at whether its schedule fired.',
+      'pending');
+  end if;
+  end;
 
   update agent_runs set finished_at=clock_timestamp(), status='ok',
       counts=jsonb_build_object('runners', (select count(*) from agent_expectations),

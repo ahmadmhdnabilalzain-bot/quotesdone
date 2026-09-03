@@ -1903,3 +1903,4 @@ scripts/sql/reveal_notifies_both_parties_on_both_channels.sql
 scripts/sql/kernel_ledger_follows_the_manifest_3_sep_b.sql
 scripts/sql/company_snapshot_carries_the_pulse.sql
 scripts/sql/kernel_ledger_follows_the_manifest_3_sep_c.sql
+scripts/sql/v_legacy_secret_users_last_7_days.sql
