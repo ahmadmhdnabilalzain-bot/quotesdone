@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T06:58:22.408Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T07:28:12.715Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -45973,7 +45973,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_os_health()
  RETURNS jsonb
  LANGUAGE plpgsql
- SECURITY DEFINER
+ STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
 DECLARE res jsonb;
@@ -45996,10 +45996,27 @@ BEGIN
     'health_check_fails_24h', (SELECT count(*) FROM public.health_checks WHERE ok=false AND created_at > now()-interval '24 hours'),
     'ai_health_fails', coalesce((SELECT value FROM public.app_secrets WHERE key='ai_health_fails'),'0'),
     'payments_7d_count', (SELECT count(*) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),
-    'payments_7d_revenue_aed', coalesce((SELECT round(sum(reveal_fee)::numeric,2) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),0)
+    'payments_7d_revenue_aed', coalesce((SELECT round(sum(reveal_fee)::numeric,2) FROM public.transactions WHERE revealed_at > now()-interval '7 days'),0),
+    -- CAN A REQUEST REACH ANYONE? Each number is counted at the gate it actually has to pass, so
+    -- the drop between them says WHERE the reach is lost rather than only that it is small.
+    'supplier_reach', jsonb_build_object(
+      'leads', (SELECT count(*) FROM public.leads),
+      'with_capability', (SELECT count(*) FROM public.supplier_capabilities WHERE coalesce(cardinality(trades),0) > 0),
+      'confirmed', (SELECT count(*) FROM public.supplier_capabilities WHERE confirmed_at IS NOT NULL),
+      -- the real ceiling: confirmed AND the lead itself still admissible to matching
+      'matchable_now', (
+        SELECT count(*) FROM public.supplier_capabilities sc
+        JOIN public.leads l ON l.id = sc.supplier_id
+        WHERE sc.confirmed_at IS NOT NULL
+          AND coalesce(cardinality(sc.trades),0) > 0
+          AND public.fn_is_matchable(l.verified, l.banned, l.matching_blocked,
+                                     l.approval_status, l.permanently_closed, l.chat_strikes)),
+      'meaning', 'matchable_now is the most suppliers the structured matcher can shortlist for any request. fn_match_capability requires a supplier to have CONFIRMED their own scope; that gate is deliberate. When this is far below with_capability the shortage is confirmations, not suppliers.'
+    )
   ) INTO res;
   RETURN res;
-END $function$
+END
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_health_brief()
@@ -86852,7 +86869,7 @@ select cron.schedule('blog_weekly_mon','30 6 * * 1',$CRON$
     body:=jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_content'),'publish',true)
   );
 $CRON$);
-select cron.schedule('graph_rebuild_daily','5 4 * * *',$CRON$select public.fn_graph_rebuild(); select public.fn_graph_supplier_market();$CRON$);
+select cron.schedule('graph_rebuild_daily','5 4 * * *',$CRON$select public.fn_kernel_cron_exec(47);$CRON$);
 select cron.schedule('fraud_scan_daily','40 3 * * *',$CRON$select fn_fraud_scan()$CRON$);
 select cron.schedule('exec-agents-weekly','0 6 * * 1',$CRON$
   select net.http_post(
@@ -86927,7 +86944,7 @@ select cron.schedule('document_controller_daily','25 4 * * *',$CRON$select publi
 select cron.schedule('dropbox_sync_daily','40 2 * * *',$CRON$select public.fn_kernel_cron_exec(81);$CRON$);
 select cron.schedule('reporting_ai_daily','20 4 * * *',$CRON$select public.fn_reporting_ai();$CRON$);
 select cron.schedule('strategy_ai_daily','25 5 * * *',$CRON$select public.fn_kernel_cron_exec(84);$CRON$);
-select cron.schedule('scan_new_supplier_categories','20 3 * * *',$CRON$select public.fn_scan_new_supplier_categories();$CRON$);
+select cron.schedule('scan_new_supplier_categories','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(85);$CRON$);
 select cron.schedule('capability_backfill_daily','40 2 * * *',$CRON$select net.http_post(
   url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/enrich_capability',
   headers:=jsonb_build_object('Content-Type','application/json'),
@@ -87062,21 +87079,21 @@ select cron.schedule('evolution_scan_weekly','0 6 * * 1',$CRON$select public.fn_
 select cron.schedule('outcome_evaluate_daily','30 3 * * *',$CRON$select public.fn_kernel_cron_exec(143);$CRON$);
 select cron.schedule('day_conductor_daily','0 2 * * *',$CRON$select public.fn_day_conductor();$CRON$);
 select cron.schedule('audit_prune_weekly','15 2 * * 0',$CRON$select public.fn_audit_prune();$CRON$);
-select cron.schedule('goal_period_refresh_daily','45 2 * * *',$CRON$select public.fn_goal_period_refresh();$CRON$);
+select cron.schedule('goal_period_refresh_daily','45 2 * * *',$CRON$select public.fn_kernel_cron_exec(146);$CRON$);
 select cron.schedule('budget_rollup_daily','50 2 * * *',$CRON$select public.fn_budget_rollup();$CRON$);
 select cron.schedule('exec_meeting_weekly','0 5 * * 1',$CRON$select public.fn_kernel_cron_exec(152);$CRON$);
 select cron.schedule('ceo_questions_weekly','30 5 * * 1',$CRON$select public.fn_ceo_questions();$CRON$);
 select cron.schedule('knowledge_decay_daily','10 3 * * *',$CRON$select public.fn_knowledge_decay();$CRON$);
-select cron.schedule('supply_gap_scan_daily','20 3 * * *',$CRON$select public.fn_supply_gap_scan();$CRON$);
+select cron.schedule('supply_gap_scan_daily','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(155);$CRON$);
 select cron.schedule('os_review_weekly','45 4 * * 1',$CRON$select public.fn_kernel_cron_exec(156);$CRON$);
 select cron.schedule('os_improve_weekly','15 6 * * 1',$CRON$select public.fn_os_improve();$CRON$);
 select cron.schedule('sop_update_weekly','30 6 * * 1',$CRON$select public.fn_sop_update();$CRON$);
 select cron.schedule('company_reflect_nightly','30 21 * * *',$CRON$select public.fn_kernel_cron_exec(160);$CRON$);
 select cron.schedule('reputation_weekly','0 7 * * 1',$CRON$select public.fn_reputation_recompute();$CRON$);
-select cron.schedule('company_indices_daily','40 3 * * *',$CRON$select public.fn_company_indices();$CRON$);
-select cron.schedule('opportunity_scan_daily','50 3 * * *',$CRON$select public.fn_opportunity_scan();$CRON$);
+select cron.schedule('company_indices_daily','40 3 * * *',$CRON$select public.fn_kernel_cron_exec(162);$CRON$);
+select cron.schedule('opportunity_scan_daily','50 3 * * *',$CRON$select public.fn_kernel_cron_exec(165);$CRON$);
 select cron.schedule('reallocate_monthly','0 8 1 * *',$CRON$select public.fn_reallocate();$CRON$);
-select cron.schedule('company_snapshot_daily','55 23 * * *',$CRON$select public.fn_company_snapshot();$CRON$);
+select cron.schedule('company_snapshot_daily','55 23 * * *',$CRON$select public.fn_kernel_cron_exec(170);$CRON$);
 select cron.schedule('edge_health_scan_15min','3,18,33,48 * * * *',$CRON$select public.fn_kernel_cron_exec(171);$CRON$);
 select cron.schedule('ai_spend_guard_hourly','40 * * * *',$CRON$select public.fn_kernel_cron_exec(172);$CRON$);
 select cron.schedule('model_benchmark_daily','25 4 * * *',$CRON$ select fn_model_benchmark() $CRON$);
@@ -87090,7 +87107,7 @@ select cron.schedule('cost_snapshot_balance_daily','0 5 * * *',$CRON$
       'email', false),
     timeout_milliseconds:=120000)
   $CRON$);
-select cron.schedule('lead_lifecycle_refresh_daily','25 1 * * *',$CRON$select public.fn_refresh_lead_lifecycle();$CRON$);
+select cron.schedule('lead_lifecycle_refresh_daily','25 1 * * *',$CRON$select public.fn_kernel_cron_exec(176);$CRON$);
 select cron.schedule('seo_gen_weekly','40 22 * * 0',$CRON$
   select net.http_post(
     url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/seo_gen',
@@ -87100,7 +87117,7 @@ select cron.schedule('seo_gen_weekly','40 22 * * 0',$CRON$
 $CRON$);
 select cron.schedule('supplier_exception_sweep_daily','20 6 * * *',$CRON$select public.fn_supplier_exception_sweep()$CRON$);
 select cron.schedule('control_mode_sweep_5min','*/5 * * * *',$CRON$select public.fn_kernel_cron_exec(179);$CRON$);
-select cron.schedule('supplier_registration_state_resync_daily','5 0 * * *',$CRON$select public.fn_resync_supplier_registration_state();$CRON$);
+select cron.schedule('supplier_registration_state_resync_daily','5 0 * * *',$CRON$select public.fn_kernel_cron_exec(180);$CRON$);
 select cron.schedule('dead_letter_drain_held','17 3 * * *',$CRON$select public.fn_kernel_cron_exec(182);$CRON$);
 select cron.schedule('task_approve_hourly','40 * * * *',$CRON$select public.fn_kernel_cron_exec(183);$CRON$);
 select cron.schedule('improvement_plan_daily','20 2 * * *',$CRON$select public.fn_kernel_cron_exec(184);$CRON$);
@@ -87123,14 +87140,14 @@ select cron.schedule('approval_trace_audit_weekly','10 6 * * 1',$CRON$select pub
 select cron.schedule('decision_conflict_scan_weekly','20 6 * * 1',$CRON$select public.fn_kernel_cron_exec(214);$CRON$);
 select cron.schedule('regulation_watch_weekly','40 6 * * 1',$CRON$select public.fn_kernel_cron_exec(215);$CRON$);
 select cron.schedule('action_queue_sweep_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(217);$CRON$);
-select cron.schedule('bi_snapshot_6h','35 */6 * * *',$CRON$select public.fn_bi_snapshot();$CRON$);
+select cron.schedule('bi_snapshot_6h','35 */6 * * *',$CRON$select public.fn_kernel_cron_exec(218);$CRON$);
 select cron.schedule('capability_verify_daily','15 2 * * *',$CRON$select public.fn_capability_verify();$CRON$);
-select cron.schedule('index_slowdown_watch_daily','15 4 * * *',$CRON$select public.fn_index_slowdown_watch();$CRON$);
+select cron.schedule('index_slowdown_watch_daily','15 4 * * *',$CRON$select public.fn_kernel_cron_exec(221);$CRON$);
 select cron.schedule('kb_route_tests_hourly','5 * * * *',$CRON$select public.fn_kb_route_test_run(400);$CRON$);
 select cron.schedule('ops_scenarios_hourly','25 * * * *',$CRON$select public.fn_ops_scenarios_sweep();$CRON$);
-select cron.schedule('kb_corpus_integrity_daily','40 3 * * *',$CRON$select public.fn_kb_corpus_integrity();$CRON$);
-select cron.schedule('model_catalog_drift_daily','50 3 * * *',$CRON$select public.fn_model_catalog_drift();$CRON$);
-select cron.schedule('tool_readiness_daily','55 3 * * *',$CRON$select public.fn_tool_readiness();$CRON$);
+select cron.schedule('kb_corpus_integrity_daily','40 3 * * *',$CRON$select public.fn_kernel_cron_exec(225);$CRON$);
+select cron.schedule('model_catalog_drift_daily','50 3 * * *',$CRON$select public.fn_kernel_cron_exec(226);$CRON$);
+select cron.schedule('tool_readiness_daily','55 3 * * *',$CRON$select public.fn_kernel_cron_exec(227);$CRON$);
 select cron.schedule('action_invoke_dispatch_5min','2,7,12,17,22,27,32,37,42,47,52,57 * * * *',$CRON$select public.fn_kernel_cron_exec(230);$CRON$);
 select cron.schedule('action_invoke_collect_5min','4,9,14,19,24,29,34,39,44,49,54,59 * * * *',$CRON$select public.fn_kernel_cron_exec(231);$CRON$);
 select cron.schedule('org_task_execute_sweep_hourly','45 * * * *',$CRON$select public.fn_org_task_execute_sweep(5);$CRON$);
@@ -87166,7 +87183,7 @@ select cron.schedule('capability_enrich_retry_6h','45 */6 * * *',$CRON$select pu
 select cron.schedule('action_invoke_rpc_5min','0,5,10,15,20,25,30,35,40,45,50,55 * * * *',$CRON$select public.fn_kernel_cron_exec(266);$CRON$);
 select cron.schedule('founder_habits_daily','20 4 * * *',$CRON$select public.fn_founder_habits_learn();$CRON$);
 select cron.schedule('scenario_rehearsal_weekly','10 3 * * 0',$CRON$select public.fn_scenario_rehearse_all();$CRON$);
-select cron.schedule('agent_context_head_refresh','40 */6 * * *',$CRON$select public.fn_agent_context_head_refresh();$CRON$);
+select cron.schedule('agent_context_head_refresh','40 */6 * * *',$CRON$select public.fn_kernel_cron_exec(269);$CRON$);
 select cron.schedule('kb_embed_priority_kinds','* * * * *',$CRON$
   select net.http_post(
     url := 'https://' || (select value from app_secrets where key = 'project_ref')
@@ -87177,9 +87194,9 @@ select cron.schedule('kb_embed_priority_kinds','* * * * *',$CRON$
                                'source_kinds', jsonb_build_array('company_faq','trade','regulation','material')))
   from generate_series(1, 6);
 $CRON$);
-select cron.schedule('v3_knowledge_freshness_daily','25 1 * * *',$CRON$select public.fn_knowledge_freshness_sweep();$CRON$);
-select cron.schedule('v3_role_readiness_daily','30 1 * * *',$CRON$select public.fn_role_readiness_recompute();$CRON$);
-select cron.schedule('v3_category_readiness_daily','35 1 * * *',$CRON$select public.fn_category_readiness_recompute();$CRON$);
+select cron.schedule('v3_knowledge_freshness_daily','25 1 * * *',$CRON$select public.fn_kernel_cron_exec(272);$CRON$);
+select cron.schedule('v3_role_readiness_daily','30 1 * * *',$CRON$select public.fn_kernel_cron_exec(273);$CRON$);
+select cron.schedule('v3_category_readiness_daily','35 1 * * *',$CRON$select public.fn_kernel_cron_exec(274);$CRON$);
 select cron.schedule('v3_context_retrieval_prune_daily','40 1 * * *',$CRON$select public.fn_context_retrieval_prune();$CRON$);
 select cron.schedule('phase_c_outbox_deliver_1min','* * * * *',$CRON$select public.fn_kernel_outbox_deliver(25, 'cron:phase_c_outbox_deliver_1min');$CRON$);
 select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(279);$CRON$);
