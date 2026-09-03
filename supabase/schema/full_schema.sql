@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-03T16:58:19.475Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-03T19:14:31.875Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -39700,7 +39700,14 @@ with epoch as (
 runs as (   -- every firing of a wrapped state-changing cron job, split by the epoch
   select r.runid, r.jobid, w.component_id, r.start_time,
          coalesce(r.end_time, now()) as end_time,
-         (r.start_time >= (select started_at from epoch)) as is_new
+         -- 3 SEP 2026: a trace is required from the moment the DOOR exists. A run is NEW when it
+        -- started after the epoch AND after this job was wrapped (phase_c_system_execution_wrapper.
+        -- wrapped_at): a firing that happened before the job ran through fn_kernel_cron_exec had no
+        -- door to trace through and is history, not a missing trace. Without this, wrapping a job
+        -- that had run for weeks (kb_embed_ops_knowledge, 25,669 outbox ticks) reported every
+        -- historical firing as a new untraced execution. After the wrap every firing must trace,
+        -- which is exactly what this check still refuses to let slip.
+        (r.start_time >= greatest((select started_at from epoch), w.wrapped_at)) as is_new
     from cron.job_run_details r
     join public.phase_c_system_execution_wrapper w on w.jobid = r.jobid
 ),
@@ -87219,7 +87226,7 @@ select cron.schedule('v3_knowledge_freshness_daily','25 1 * * *',$CRON$select pu
 select cron.schedule('v3_role_readiness_daily','30 1 * * *',$CRON$select public.fn_kernel_cron_exec(273);$CRON$);
 select cron.schedule('v3_category_readiness_daily','35 1 * * *',$CRON$select public.fn_kernel_cron_exec(274);$CRON$);
 select cron.schedule('v3_context_retrieval_prune_daily','40 1 * * *',$CRON$select public.fn_context_retrieval_prune();$CRON$);
-select cron.schedule('phase_c_outbox_deliver_1min','* * * * *',$CRON$select public.fn_kernel_outbox_deliver(25, 'cron:phase_c_outbox_deliver_1min');$CRON$);
+select cron.schedule('phase_c_outbox_deliver_1min','* * * * *',$CRON$select public.fn_kernel_cron_exec(278);$CRON$);
 select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(279);$CRON$);
 select cron.schedule('department_conflict_scan_weekly','0 6 * * 1',$CRON$select public.fn_emit_department_conflict();$CRON$);
 select cron.schedule('remediation_escalate_consume_daily','15 5 * * *',$CRON$select public.fn_kernel_cron_exec(281);$CRON$);
@@ -87229,20 +87236,12 @@ select cron.schedule('org_task_sla_watch_daily','0 6 * * *',$CRON$select public.
 select cron.schedule('handoff_watchdog_6h','0 */6 * * *',$CRON$select public.fn_kernel_cron_exec(289);$CRON$);
 select cron.schedule('employee_kpi_assign_daily','40 4 * * *',$CRON$select public.fn_kernel_cron_exec(290);$CRON$);
 select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$CRON$select public.fn_action_queue_consequential_sweep(5);$CRON$);
-select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_company_self_knowledge_sync();$CRON$);
-select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_it_security_live_posture();$CRON$);
+select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(292);$CRON$);
+select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select public.fn_kernel_cron_exec(303);$CRON$);
 select cron.schedule('action_head_drive_5min','3,8,13,18,23,28,33,38,43,48,53,58 * * * *',$CRON$select public.fn_action_head_drive(20);$CRON$);
 select cron.schedule('dept_ops_heartbeat_hourly','23 * * * *',$CRON$select public.fn_dept_ops_heartbeat();$CRON$);
 select cron.schedule('supplier_suspension_proposed_daily','30 2 * * *',$CRON$select public.fn_kernel_cron_exec(313);$CRON$);
-select cron.schedule('kb_embed_ops_knowledge','* * * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/kb_embed',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_knowledge'),
-                               'target', 'ops_knowledge',
-                               'limit', 8))
-  from generate_series(1, 6);
-$CRON$);
+select cron.schedule('kb_embed_ops_knowledge','* * * * *',$CRON$select public.fn_kernel_cron_exec(315);$CRON$);
 select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(316);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====

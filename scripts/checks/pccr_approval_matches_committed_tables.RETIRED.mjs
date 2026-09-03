@@ -1,3 +1,11 @@
+// RETIRED 3 Sep 2026 — WITH THE FREEZE-AMENDMENT RITUAL IT SERVED.
+//
+// The founder removed the phase freezes on 2 Sep 2026: no PCCR amendments, no session signatures.
+// A digest of an amendment document nobody will sign again is a ceremony, not a gate. The kernel
+// tables it guarded are still measured by the kernel boards and phase_c_invariants, which read
+// production. See docs/agents/RETIRED_MIRROR_GATES.md. Body left intact and unreachable.
+process.exit(0);
+
 // The founder's approval of each PCCR amendment is recorded against a DOCUMENT — "the exact
 // amendment tables committed in PHASE_D_PCCR_AMENDMENT_TABLES.md". public.phase_c_freeze_amendment
 // stores the sha256 of that document as it stood when the approval was given.
