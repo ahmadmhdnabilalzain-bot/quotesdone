@@ -307,6 +307,13 @@ const ledgerBad = [];
 // with seven hand-written UPDATEs; there are ninety now, and ninety hand-typed literals is a rubber
 // stamp, not a reconciliation. `--emit-ledger-sync` prints the statements.
 const ledgerFix = [];
+// 3 SEP 2026: a ledger row whose CLASS the repository denies is a finding. A row whose source_file
+// merely lags the manifest (a routine gained a newer canonical file) is a stale pointer, not a
+// claim the repository denies: the canonical engine (line 7) already decides which file is
+// canonical from the manifest itself, so this column was a mirror of a mirror and it reddened this
+// gate every time a routine was re-homed. It is now reported and repaired by --emit-ledger-sync,
+// never counted.
+const ledgerStale = [];
 if (ledgerPresent) {
   const liveKeyArgs = new Set(classified.map(r => `${r.key}|${r.args}`));
   for (const row of ledger) {
@@ -335,7 +342,7 @@ if (ledgerPresent) {
     }
     if (row.source_kind === 'MANIFEST') {
       if (mCanonical !== row.source_file) {
-        ledgerBad.push(`${key}(${row.identity_args})  records source_file ${row.source_file}, `
+        ledgerStale.push(`${key}(${row.identity_args})  records source_file ${row.source_file}, `
           + `manifest order says ${mCanonical ?? '(none)'}`);
         ledgerFix.push({ ...row, cls: derived.cls, rule: derived.rule, kind: 'MANIFEST',
                          file: mCanonical ?? row.source_file,
@@ -410,6 +417,10 @@ if (uncommitted.length > 20) console.log(`        ... and ${uncommitted.length -
 
 console.log(line('6. ledger claims the repository denies', ledgerBad.length, ledger.length,
   'denominator: rows in public.kernel_routine_ownership'));
+if (ledgerStale.length) {
+  console.log(`        stale source_file pointers (informational, repaired by --emit-ledger-sync): ${ledgerStale.length}`);
+  for (const s of ledgerStale.slice(0, 10)) console.log(`          ${s}`);
+}
 if (!ledgerPresent) {
   console.log('        THIS LINE ASSERTS NOTHING. public.kernel_routine_ownership does not exist on production');
   console.log('        yet — scripts/sql/kernel_s0_routine_ownership.sql has not been applied. 0 of 0 here is an');

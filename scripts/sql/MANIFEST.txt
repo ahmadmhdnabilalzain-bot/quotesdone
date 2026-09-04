@@ -1738,9 +1738,7 @@ scripts/sql/phase_c_two_boards_written_when_the_door_had_never_opened.sql
 
 [OK] Command outcome recorded
 scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql
 scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql
 scripts/sql/spec3_the_ownership_ledger_still_named_the_superseded_file.sql
@@ -1757,38 +1755,22 @@ scripts/sql/launch_step1_ownership_ledger_follows_the_manifest.sql
 scripts/sql/launch_step1_kpi_assignment.sql
 scripts/sql/launch_step1_ceo_priorities_reach_their_officer.sql
 scripts/sql/only_refunds_reach_the_founder.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/only_refunds_ownership_ledger.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/pacr_002_the_real_company_reporting_shape.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/the_missed_kpi_opens_remediation.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/the_missed_kpi_ownership_ledger.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/a_task_is_born_owned_and_tied_to_its_target.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/dual_approval_for_spend_and_contract.sql
 scripts/sql/spend_contract_dispatch_needs_two.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/spend_contract_dispatch_ownership_ledger.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/incidents_get_an_owner_a_task_and_a_watchdog.sql
 scripts/sql/the_board_sees_runway_cash_and_burn.sql
 scripts/sql/customer_experience_and_assurance_get_their_own_os.sql
@@ -1922,6 +1904,47 @@ $f
 ;
 node
 scripts/apply_sql.mjs
-$f
---apply
---ddl
+scripts/sql/every_live_entry_point_is_a_component.sql
+scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
+scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
+scripts/sql/fn_exec_meeting_every_active_os_speaks.sql
+scripts/sql/kernel_ledger_follows_the_manifest_exec_meeting.sql
+scripts/sql/fn_company_reflect_night.sql
+scripts/sql/fn_company_reflect_catches_up_missed_nights.sql
+scripts/sql/fn_knowledge_staleness_tag.sql
+scripts/sql/fn_agent_context_warns_before_stale_knowledge.sql
+scripts/sql/the_founders_resume_closes_the_open_hold.sql
+scripts/sql/fn_agent_actions_fill_alternatives_without_a_decision_log.sql
+scripts/sql/fn_agent_daily_thought.sql
+scripts/sql/fn_knowledge_exam_retrieval.sql
+scripts/sql/the_map_gets_its_funnel_spine.sql
+scripts/sql/fn_opportunity_scan_deterministic_detectors.sql
+scripts/sql/the_resilience_drill_probes_every_capability.sql
+scripts/sql/register_the_resilience_drill_cron_phase_d.sql
+
+# --- supply engine 2026-09-03 ---
+scripts/sql/supply_engine_gap_scan_reports_real_gaps.sql
+scripts/sql/supply_engine_discovery_promotes_staged_rows.sql
+scripts/sql/supply_engine_doc_expiry_scan_acts.sql
+scripts/sql/supply_engine_invite_plan_is_real_and_held.sql
+scripts/sql/supply_engine_marketplace_eight_inputs_and_fall_investigated.sql
+scripts/sql/supply_engine_crons_run_through_the_kernel.sql
+scripts/sql/register_the_supply_engine_crons_phase_d.sql
+scripts/sql/supply_engine_routines_are_owned_by_their_canonical_files.sql
+scripts/sql/the_trace_board_needed_an_index_before_it_needed_a_bigger_timeout.sql
+scripts/sql/stand_down_rows_closed_after_the_2_sep_resume.sql
+scripts/sql/reputation_six_dimensions_from_recorded_facts.sql
+scripts/sql/authority_consults_reputation_in_all_five_routines.sql
+scripts/sql/ad_budget_moves_are_reallocations.sql
+scripts/sql/model_benchmark_records_outcomes_from_history.sql
+scripts/sql/the_manual_regenerates_from_the_cron_registry.sql
+scripts/sql/reputation_tiers_need_ten_observations.sql
+scripts/sql/register_routing_reputation_crons_phase_d.sql
+scripts/sql/outcome_evaluator_is_registered_for_the_scenario_door.sql
+scripts/sql/paid_inference_means_a_provider_was_reached.sql
+scripts/sql/the_trace_board_looks_up_only_the_runs_it_judges.sql
+scripts/sql/licence_reconciliation_is_reachable_again.sql
+scripts/sql/kernel_ledger_follows_the_manifest_4_sep.sql
+scripts/sql/the_trace_boards_overlap_join_has_a_lower_bound.sql
+scripts/sql/fn_outcome_evaluate_can_run_twice_in_one_transaction.sql
+scripts/sql/fn_dr_restore_clear_one_bounded_delete_per_pass.sql

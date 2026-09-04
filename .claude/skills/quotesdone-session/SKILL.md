@@ -155,8 +155,9 @@ back out of the database and matched against the file, not when a POST returned 
 node scripts/apply_sql.mjs <file.sql>                        # DRY RUN — guards only, no write
 node scripts/apply_sql.mjs <file.sql> --apply --ddl          # apply, then read the definition back
 node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <slugs>
-node scripts/checks/sql_files_match_live.test.mjs            # repo scripts/sql ↔ live prosrc
+node scripts/checks/canonical_routines.test.mjs              # one canonical file per routine, deployed
 node scripts/checks/export_from_either_source_is_identical.mjs
+node --test scripts/checks/phase_c_components_are_owned.test.mjs   # every runtime component owned (reads production)
 ```
 
 - `--promote` is still accepted as an alias for `--apply`; it means the same thing now.
@@ -229,8 +230,14 @@ Before the one line — or before an honest hand-over:
    `node scripts/checks/application_source_of_truth.test.mjs` → every line 0, exit 0
    *(these replaced `sql_files_match_live.test.mjs`, retired 17 Aug 2026 — it resolved a routine by
    git commit time and certified the wrong body; the apply order decides now. A retired routine is
-   recorded in `scripts/sql/DROPPED.txt` AND dropped by a later manifest file; a moved canonical
-   file needs the ownership ledger reconciled: `--emit-ledger-sync` prints the statements)*
+   recorded in `scripts/sql/DROPPED.txt` AND dropped by a later manifest file. Since 3 Sep 2026 a
+   moved canonical file is only a stale pointer in the ownership ledger — informational, repaired
+   with `--emit-ledger-sync` when convenient, never a red gate)*
+   **Retired 3 Sep 2026 (docs/agents/RETIRED_MIRROR_GATES.md):** the committed component crosswalk
+   CSV and its SQL declaration literals, byte-equality of the Phase D deliverable CSVs, the PCCR
+   approval digest, and the Phase A/B baseline-digest recompute. Production proves itself:
+   `phase_c_components_are_owned`, the kernel boards, the connectivity register and the Phase D
+   drives read the database directly. Do NOT re-emit a CSV to make a gate green.
 6. `node scripts/checks/export_from_either_source_is_identical.mjs --write` after the LAST apply →
    byte-identical, 0 project refs embedded
 7. `node scripts/verify_deploy_parity.mjs --ref=htdblwldjkcgjvmqkbeh --all` → every edge function carries the repo's code

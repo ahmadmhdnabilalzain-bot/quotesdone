@@ -137,17 +137,24 @@ Deno.serve(async (req)=>{
     // TRUNCATE is NOT the fix. The predicate is load-bearing — see the comment above: anything
     // another chain is mid-way through must survive, and the 180-second guard is a check-then-act
     // that a table-wide wipe would race. Bounded passes keep the predicate and keep every statement
-    // small enough to finish. 40 x 5,000 clears 200,000 rows; the loop stops early the moment a
-    // pass comes back empty, which is the normal case.
+    // small enough to finish. The loop stops early the moment a pass comes back empty, which is
+    // the normal case.
+    //
+    // THIS CLEAR IS FOR LEFTOVERS, NOT FOR THE PREVIOUS DRILL (3 Sep 2026). A completed drill
+    // deletes its own rows at the end (see the run_id cleanup after logRun), so what this loop
+    // meets is normally nothing — the residue of a CRASHED chain. A residue larger than the pass
+    // budget is reported below as 'still remain' rather than carried into the counts.
+    // SERVER-SIDE SINCE 4 SEP 2026. Each pass is ONE bounded DELETE in fn_dr_restore_clear (up to
+    // 20,000 rows chosen by ctid, 1.4s measured against the 8s budget) that keeps the drill_at
+    // predicate. 40 passes now reach 800,000 rows — more than three crashed chains — where the
+    // PostgREST select/delete pairs reached 40,000 and reported "still remain" on a normal residue.
     let wiped = 0, wipePasses = 0; let wipeErr: { message?: string } | null = null;
     const cutoff = new Date(Date.now()-180e3).toISOString();
     for (; wipePasses < 40; wipePasses++) {
-      const { data: stale, error: selErr } = await sb.from('dr_restore').select('id').lt('drill_at', cutoff).limit(5000);
-      if (selErr) { wipeErr = selErr; break; }
-      if (!stale || !stale.length) break;
-      const { error: delErr } = await sb.from('dr_restore').delete().in('id', stale.map((r: { id: number }) => r.id));
-      if (delErr) { wipeErr = delErr; break; }
-      wiped += stale.length;
+      const { data: n, error: clrErr } = await sb.rpc('fn_dr_restore_clear', { p_before: cutoff });
+      if (clrErr) { wipeErr = clrErr; break; }
+      if (!n) break;
+      wiped += Number(n);
     }
     // Still not empty after the pass budget is the same untrustworthy state as a timeout, and is
     // reported as such rather than being carried silently into the row counts.
@@ -204,9 +211,15 @@ Deno.serve(async (req)=>{
       if(rcErr) failNotes.push('Could not count restored rows for '+slot.t+', so its restore could not be verified: '+String(rcErr.message||rcErr)+'. ');
       row.restored_rows = restored||0;
       row.key_ok = slot.key_ok === null ? true : slot.key_ok;
-      const { count:live, error:lcErr } = await sb.from(slot.t).select('*',{count:'exact',head:true});
-      if(lcErr) failNotes.push('Could not count live rows in '+slot.t+', so backup-vs-live drift for that table was not checked: '+String(lcErr.message||lcErr)+'. ');
-      row.live_rows = live||0;
+      // THE LIVE COUNT IS DRIFT INFORMATION, NOT THE RESTORE VERDICT (3 Sep 2026). An exact count
+      // of kb_chunks — 2.69M rows — hit the statement timeout, the error object stringified as
+      // "[object Object]", and a drill that had restored all 11 tables with 0 failures logged
+      // 'error' and "Backups for the failing tables cannot be relied on for recovery" over a
+      // number it never needed. The planner's estimate is what the drift figure is for; a count
+      // that still fails is recorded on the row as unknown and asserts nothing.
+      const { count:live, error:lcErr } = await sb.from(slot.t).select('*',{count:'estimated',head:true});
+      if(lcErr){ row.live_rows = null; row.live_count_error = String(lcErr.message || lcErr.code || JSON.stringify(lcErr)).slice(0,160); }
+      else row.live_rows = live||0;
       // PAGE COUNT AGAINST THE MANIFEST. `backup` records how many pages it wrote per table; if the
       // bucket holds fewer, rows were lost between writing and reading and the smaller row count
       // would otherwise look like a smaller table.
@@ -245,11 +258,19 @@ Deno.serve(async (req)=>{
     // invocation has no budget left to wait. A crash mid-chain leaves no agent_runs row, which is
     // what fn_backup_watch already alerts on.
     const s = await sec('cred_cron_backup');
-    fetch(SUPABASE_URL + '/functions/v1/dr_drill', {
+    // THE HAND-OFF WAS DROPPED ONCE IN TEN (3 Sep 2026). A bare fire-and-forget fetch is not owed
+    // any lifetime past the Response: the worker can be torn down before the outgoing POST is
+    // flushed. Measured: hop 9 returned 200 at 20:32:16, no hop 10 ever arrived, 228,002 rows sat
+    // restored and the chain ended with no agent_runs row — a silent non-verdict on the only
+    // assertion that backups restore. EdgeRuntime.waitUntil keeps the worker alive until the
+    // hand-off has been sent; the fallback is the old shape where the runtime lacks it.
+    const handoff = fetch(SUPABASE_URL + '/functions/v1/dr_drill', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ __secret:s, __day:day, __run:runId, __queue:queue, __report:report, __notes:failNotes,
                              __mpages:manifestPages, __started:started, __hop:hop+1 }),
-    }).catch(()=>{});
+    }).then((r)=>{ if(!r.ok) console.error('dr_drill hand-off to hop '+(hop+1)+' returned HTTP '+r.status); }).catch((e)=>console.error('dr_drill hand-off to hop '+(hop+1)+' failed: '+String(e).slice(0,160)));
+    const rt = (globalThis as any).EdgeRuntime;
+    if(rt && typeof rt.waitUntil === 'function') rt.waitUntil(handoff);
     return j({ ok:true, day, hop, done:report.length, remaining:queue.length, resume:{ table:queue[0].t, page:queue[0].page } });
   }
 
@@ -262,5 +283,24 @@ Deno.serve(async (req)=>{
     tables: report.map((r:any)=>({ t:r.table, backup:r.backup_rows??null, restored:r.restored_rows??null, live:r.live_rows??null, pages:r.pages??null, expected:r.pages_expected??null, s:r.status })) };
   if(ok) await logRun('ok', counts, '', started);
   else await logRun('error', counts, (failNotes.join('') || 'Disaster-recovery drill finished with mismatches, so one or more backups are not proven restorable. ')+'Backups for the failing tables cannot be relied on for recovery.', started);
+  // THE DRILL CLEANS UP AFTER ITSELF, BEFORE IT ANSWERS (3 Sep 2026, redone 4 Sep). One drill
+  // leaves ~234,000 rows in dr_restore (201 pages of kb_chunks alone), so every drill was going to
+  // find the last drill's rows, run out of pre-clear passes and call its own verdict untrustworthy.
+  // The 3 Sep version deleted its own rows AFTER the response in a fire-and-forget handed to
+  // EdgeRuntime.waitUntil; on 4 Sep the table still held all 234,047 rows of the 20:52Z run — it
+  // never ran. The verdict is written first (logRun above), then THIS run's rows go through the
+  // same bounded server-side DELETE as the pre-clear, synchronously: 60 x 20,000, ~1.4s a pass,
+  // 12 passes for a normal drill. An exhausted budget is logged; the next pre-clear reports what
+  // it finds rather than counting it.
+  {
+    let n = 0, passes = 0;
+    for (; passes < 60; passes++) {
+      const { data: gone, error: ce } = await sb.rpc('fn_dr_restore_clear', { p_run_id: runId });
+      if (ce) { console.error('dr_drill cleanup of run '+runId+' failed after '+n+' row(s): '+String(ce.message||ce.code||JSON.stringify(ce)).slice(0,160)); break; }
+      if (!gone) break;
+      n += Number(gone);
+    }
+    if (passes >= 60) console.error('dr_drill cleanup of run '+runId+' exhausted 60 passes after '+n+' row(s); the next drill reports the leftovers');
+  }
   return j({ ok, day, tables:report, total_restored, hops:hop+1, note:'Restored into public.dr_restore (staging); live tables untouched.' });
 });

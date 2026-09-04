@@ -30,18 +30,30 @@ const clear = (() => {
   return SRC.slice(at, at + 1600);
 })();
 
+// 4 SEP 2026: the pass moved server-side. PostgREST capped every select at 1,000 rows, so 40 passes
+// reached 40,000 while one drill leaves ~234,000 rows; fn_dr_restore_clear deletes up to 20,000 rows
+// chosen by ctid in ONE statement (1.4s measured against the 8s budget) and the loop here stays.
+const CLEAR_SQL = readFileSync('scripts/sql/fn_dr_restore_clear_one_bounded_delete_per_pass.sql', 'utf8');
+
 test('the staging clear is bounded, so no single statement can time out', () => {
-  assert.match(clear, /\.limit\(5000\)/,
-    'the clear selects an unbounded set — one statement over a six-figure dr_restore is what timed '
-    + 'out on 12 Aug and made the drill count three runs as one');
+  assert.match(clear, /sb\.rpc\('fn_dr_restore_clear', \{ p_before: cutoff \}\)/,
+    'the pre-clear no longer runs through fn_dr_restore_clear with the age cutoff');
+  assert.match(CLEAR_SQL, /limit greatest\(1, least\(coalesce\(p_limit, 20000\), 50000\)\)/,
+    'fn_dr_restore_clear no longer bounds one pass — one statement over a six-figure dr_restore is '
+    + 'what timed out on 12 Aug and made the drill count three runs as one');
   assert.match(clear, /for \(; wipePasses < 40; wipePasses\+\+\)/,
     'the clear is not a bounded loop; an unbounded one turns a stuck table into a hanging drill');
 });
 
 test('the age predicate survives — a concurrent chain is not wiped', () => {
+  assert.match(CLEAR_SQL, /r\.drill_at < p_before/,
+    'fn_dr_restore_clear no longer filters on drill_at, so it can delete rows a concurrently running '
+    + 'drill chain is still writing');
+  assert.match(CLEAR_SQL, /p_before is null and p_run_id is null[\s\S]*raise exception/,
+    'fn_dr_restore_clear must refuse a call with neither an age cutoff nor a run id — that is the '
+    + 'table-wide wipe the 180-second guard cannot survive');
   assert.match(clear, /\.lt\('drill_at', cutoff\)/,
-    'the clear no longer filters on drill_at, so it can delete rows a concurrently running drill '
-    + 'chain is still writing');
+    'the leftover count after the pass budget no longer filters on drill_at');
   // Executable truncates only — the comment above the clear says the word, on purpose, to explain
   // why it is not used. Asserting on the bare word would fail on its own explanation.
   const code = SRC.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');

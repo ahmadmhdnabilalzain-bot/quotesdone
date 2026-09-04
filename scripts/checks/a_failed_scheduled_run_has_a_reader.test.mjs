@@ -239,11 +239,26 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'guard fail-closed with 401 and logged it (2026-09-03 03:35Z) — the same shape as the kb_embed '
        + 'diagnostics above. The rehearsal was corrected to present the fn.cos_execute credential, which '
        + 'is scoped to it. Not a defect; a second row still fails this check.' },
-  { agent: 'agent_context_missing', errors: 2,
-    why: 'fn_agent_context_capped returned no context on two on-demand turns (cto, and one other), so '
-       + 'agent_brain refused to answer from memory and logged the miss rather than reasoning blind — '
-       + 'the fail-closed behaviour is correct. An isolated context gap, not a systemic one (2 rows in '
-       + 'the whole window). A new count still fails this check.' },
+  { agent: 'agent_context_missing', errors: 3,
+    why: 'fn_agent_context_capped returned no context on three on-demand turns — cto twice on 3 Sep '
+       + '01:06Z/01:50Z and cfo once at 20:54Z during a rehearsal — each time because the statement '
+       + 'hit the 8s timeout while five parallel agents and the executive-UI scorer were loading the '
+       + 'database; the routine takes 0.7s idle (measured 4 Sep). agent_brain refused to answer from '
+       + 'memory and logged the miss rather than reasoning blind — the fail-closed behaviour is '
+       + 'correct, and the load was the session, not the company. A new count still fails this check.' },
+  { agent: 'dr_drill', errors: 2,
+    why: 'Two hand-driven drills on 3 Sep (20:06Z and 20:13Z) ran the PREVIOUS dr_drill code, 40 '
+       + 'minutes before the committed version was redeployed: the first could not count live rows in '
+       + 'kb_chunks (2.6M rows; an exact count through PostgREST hit the 8s timeout, and the old code '
+       + 'printed the error as [object Object]), the second met the first\'s 234,047 leftover rows '
+       + 'and reported "cleared 200000 row(s) in 200 passes and 34047 still remain". Both are the '
+       + 'drill saying its own verdict cannot be trusted, which is the correct fail-closed output; '
+       + 'the backups were not at fault (the 20:52Z drill on the new code passed 11/11). ROOT CAUSE '
+       + 'FIXED 4 Sep: the staging clear is one bounded server-side DELETE per pass '
+       + '(fn_dr_restore_clear, 20,000 rows in 1.4s), the pre-clear now reaches 800,000 rows, and the '
+       + 'drill deletes its own rows before it answers instead of in a fire-and-forget that never ran '
+       + '(the 20:52Z run\'s 234,047 rows were all still there on 4 Sep). A new count still fails '
+       + 'this check.' },
 ];
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];

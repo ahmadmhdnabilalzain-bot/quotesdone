@@ -94,6 +94,17 @@ try {
   ok('state: loser PAUSED, winner budget raised, paused now ACTIVE with started_at', st[C.L]?.status === 'PAUSED' && Number(st[C.W]?.daily_budget_aed) === expW && st[C.P]?.status === 'ACTIVE' && !!st[C.P]?.started_at, `L=${st[C.L]?.status} W=${st[C.W]?.daily_budget_aed} P=${st[C.P]?.status}`);
   const led = (await read(`select count(*)::int n, count(executed_at)::int done, count(*) filter (where execution_mode='sandbox')::int sb from public.ad_decision where run_tag=${q(tag)}`))[0];
   ok('ledger: every decision executed, stamped sandbox', led.n === 3 && led.done === 3 && led.sb === 3, JSON.stringify(led));
+  // 4b. THE REALLOCATION LEDGER (3 Sep 2026). A daily budget that moves between channels is a
+  // reallocation of marketing budget, and the spec's ledger for reallocations must carry it with
+  // the policy cited: loser 50 -> 0, winner 50 -> scaled, paused 0 -> 30, written by
+  // fn_ad_decision_mark_executed at execution, never at decision.
+  const al = await read(`select subject, from_value, to_value, policy from public.allocation_change
+    where resource = 'marketing_budget_channels' and subject like ${q(tag + '%')} order by subject`);
+  const alBy = Object.fromEntries(al.map((a) => [a.subject, a]));
+  ok('reallocation ledger: 3 marketing budget moves, each citing ad_spend_policy',
+    al.length === 3 && al.every((a) => /ad_spend_policy/.test(a.policy) && Number(a.from_value) !== Number(a.to_value))
+      && Number(alBy[C.L]?.to_value) === 0 && Number(alBy[C.W]?.to_value) === expW && Number(alBy[C.P]?.from_value) === 0,
+    JSON.stringify(al.map((a) => [a.subject.slice(tag.length + 1), Number(a.from_value), Number(a.to_value)])));
 
   // 5. SECOND TICK: only the winner moves again (next step), nothing is re-decided.
   const dec2 = await read(`select campaign_id, action, amount_aed, rule_key from public.fn_ads_manage(true, ${q(tag)})`);
@@ -124,8 +135,9 @@ try {
   await write(`
     delete from public.ad_decision where run_tag = ${q(tag)} or campaign_id like ${q(tag + '%')};
     delete from public.ad_campaign_state where is_demo and campaign_id like ${q(tag + '%')};
-    delete from public.meta_insights where campaign_id like ${q(tag + '%')};`);
-  const left = (await read(`select (select count(*) from public.ad_decision where campaign_id like ${q(tag + '%')}) + (select count(*) from public.ad_campaign_state where campaign_id like ${q(tag + '%')}) + (select count(*) from public.meta_insights where campaign_id like ${q(tag + '%')}) as n`))[0].n;
+    delete from public.meta_insights where campaign_id like ${q(tag + '%')};
+    delete from public.allocation_change where resource = 'marketing_budget_channels' and subject like ${q(tag + '%')};`);
+  const left = (await read(`select (select count(*) from public.ad_decision where campaign_id like ${q(tag + '%')}) + (select count(*) from public.ad_campaign_state where campaign_id like ${q(tag + '%')}) + (select count(*) from public.meta_insights where campaign_id like ${q(tag + '%')}) + (select count(*) from public.allocation_change where subject like ${q(tag + '%')}) as n`))[0].n;
   ok('teardown left nothing behind', Number(left) === 0, `rows left=${left}`);
   // close the window; the row itself stays as the record that a rehearsal ran
   await write(`update public.rehearsal_window set ended_at = now() where run_tag = ${q('qd_run:' + tag)} and ended_at is null`);

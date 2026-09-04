@@ -477,7 +477,11 @@ eq('  -> exactly one, deduplicated', dt.task, '1');
 // ============================================================================================
 console.log('\n== PROMOTION — the org can promote, not only punish (and respects the hold) ==');
 // ============================================================================================
+// 4 SEP 2026: the probe OPENS its own stand-down (rolled back with the rest) instead of assuming
+// one is open on production — the founder lifted the stand-down on 2 Sep, and a probe that read
+// production's state proved nothing about the mechanism once that state changed.
 const pr = await probe(`do $p$ declare v_paused text; v_agent text; v_res jsonb; v_sen text; v_wide int; begin
+  insert into company_stand_down(stood_down_at, actor, reason) values (now(), 'zz-probe', 'ZZ probe: promotion review must pause under a stand-down');
   select fn_promotion_review()->>'status' into v_paused;
   delete from company_stand_down;
   select agent_key into v_agent from org_agents where active and seniority is not null order by agent_key limit 1;
@@ -542,9 +546,18 @@ eq('the author may not approve their own work', au.self_approval_refused, 'REFUS
 // ============================================================================================
 console.log('\n== OUTCOME GRADING — resumes on the cron, self-pauses on the hold ==');
 // ============================================================================================
+// 4 SEP 2026: as above — the probe opens its own stand-down, then clears every stand-down row and
+// calls again. The second call in one transaction is what found fn_outcome_evaluate's unguarded
+// temp table (fn_outcome_evaluate_can_run_twice_in_one_transaction.sql).
 const og = await probe(`do $p$ declare v_paused text; v_res jsonb; v_graded int; begin
+  insert into company_stand_down(stood_down_at, actor, reason) values (now(), 'zz-probe', 'ZZ probe: outcome grading must pause under a stand-down');
   select fn_outcome_evaluate()->>'status' into v_paused;
   delete from company_stand_down;
+  -- The backlog the second call must grade is the probe's own: a due, pending outcome with no
+  -- measurable KPI is graded 'unmeasurable' and counted. Reading production's backlog instead was
+  -- a second production-state assumption (the daily cron had already graded it).
+  insert into outcome_record(actor, dept_key, subject_type, subject_id, decision, rationale, expected_direction, due_at, verdict)
+  values ('zz-probe', 'supply', 'probe', 'zz-probe', 'ZZ probe decision', 'ZZ probe: a due outcome the evaluator must grade once the hold lifts', 'up', now() - interval '1 second', 'pending');
   v_res := fn_outcome_evaluate();
   v_graded := coalesce((v_res->>'improved')::int,0)+coalesce((v_res->>'worse')::int,0)+coalesce((v_res->>'no_change')::int,0)+coalesce((v_res->>'unmeasurable')::int,0);
   raise exception 'MARK|paused=%|grades_when_cleared=%', v_paused, (v_graded>0)::text; end $p$;`);

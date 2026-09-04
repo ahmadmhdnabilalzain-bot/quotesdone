@@ -143,6 +143,13 @@ if (!files.length) console.log(`  !! no section modules in ${DIR}`);
 
 let shortfall = 0, undeclared = 0;
 for (const f of files) {
+  // --only=<id> USED TO PAY FOR EVERY MODULE'S SETUP (3 Sep 2026). req() returned early for the
+  // checks that did not match, but each module still executed its own preamble — the callable
+  // screen list, the ~300 KB SURFACE payload, the source-tree scans — before it could ask. Measured
+  // under a throttled management API that was ~50 minutes for one requirement. A module can only
+  // register an id it names in its source, so a module whose text does not contain the --only
+  // string is skipped whole. The full run (no --only) is unchanged.
+  if (ONLY && !readFileSync(join(DIR, f), 'utf8').includes(ONLY)) continue;
   console.log(`\n--- ${f.replace(/\.mjs$/, '')} ---`);
   const before = rows.length;
   const mod = await import(pathToFileURL(join(DIR, f)).href);

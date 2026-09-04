@@ -93,17 +93,34 @@ export default async function ({ req, one, Q, B, srcText }) {
   // Inheritance is measured where it lands: in the text an employee is actually handed. Not "does
   // fn_agent_context mention the table" — a mention is not a prompt — and not one probe agent
   // either: EVERY active employee is asked, and an attribute counts only if it reaches all of them.
-  const CTX = `ag as (select a.agent_key, public.fn_agent_context(a.agent_key, 22000) ctx
-                 from public.org_agents a where a.active)`;
+  //
+  // ONE EMPLOYEE PER STATEMENT (3 Sep 2026). This used to assemble every active employee's context
+  // in ONE statement — fn_agent_context is 0.5-1.3 s and ~257 KB per employee, so 71 employees was
+  // over a minute and ~18 MB inside a single management-API call, which timed out on every run and
+  // left the requirement with ERROR instead of a verdict. Measured one employee at a time the fact
+  // was "11 of 11 attributes reach all 71". Same eleven patterns, same `~*`, same 22000-character
+  // context: the loop asks each employee's context which attributes it carries and only the matched
+  // labels cross the wire. An employee whose context cannot be read counts as inheriting nothing.
+  const agents = String(await one(`select coalesce(string_agg(a.agent_key, ',' order by a.agent_key), '')
+      from public.org_agents a where a.active`) || '').split(',').filter(Boolean);
+  const attrNames = [...ATTRS.matchAll(/\('([^']+)','/g)].map(m => m[1]);
+  const reach = new Map(attrNames.map(a => [a, 0]));
+  let unreadable = 0;
+  for (const key of agents) {
+    let hit = '';
+    try {
+      hit = String(await one(`with ${ATTRS}, ctx as (select public.fn_agent_context('${key.replace(/'/g, "''")}', 22000) c)
+        select coalesce(string_agg(attr.a, '|'), '') from attr, ctx where ctx.c ~* attr.rx`) || '');
+    } catch { unreadable++; }
+    for (const a of hit.split('|').filter(Boolean)) reach.set(a, (reach.get(a) || 0) + 1);
+  }
+  const inherited = attrNames.filter(a => agents.length > 0 && reach.get(a) === agents.length);
+  const notAll = attrNames.filter(a => reach.get(a) !== agents.length).map(a => `${a} (${reach.get(a)} agents)`);
+  const evLit = (s) => `'` + String(s).replace(/'/g, `''`) + `'`;
   await req(S, 'genome-inherited-by-every-employee', 'Every AI employee inherits the genome',
-    `with ${CTX}, ${ATTRS}
-     select coalesce((select count(*) from ag) > 0
-       and (select count(*) from attr where not exists (select 1 from ag where ag.ctx !~* attr.rx)) = 11, false)`,
-    `with ${CTX}, ${ATTRS}
-     select (select count(*) from attr where not exists (select 1 from ag where ag.ctx !~* attr.rx))
-       ||' of 11 attributes reach the prompt of all '||(select count(*) from ag)||' active employees; not inherited by every employee: '
-       ||coalesce((select string_agg(attr.a||' ('||(select count(*) from ag where ag.ctx ~* attr.rx)||' agents)', ', ')
-                   from attr where exists (select 1 from ag where ag.ctx !~* attr.rx)),'none')`);
+    `select ${agents.length > 0 && inherited.length === 11}`,
+    `select ${evLit(`${inherited.length} of 11 attributes reach the prompt of all ${agents.length} active employees (measured one employee at a time`
+      + (unreadable ? `, ${unreadable} context(s) unreadable` : '') + `); not inherited by every employee: ${notAll.length ? notAll.join(', ') : 'none'}`)}`);
 
   // ── LAYER 10: COMPANY CONSCIOUSNESS ────────────────────────────────────────────────────────────
   // The nine questions, per NIGHT. A single reflection row carrying nine keys is not "every night",
