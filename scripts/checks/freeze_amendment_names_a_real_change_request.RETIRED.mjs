@@ -1,3 +1,9 @@
+// RETIRED 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6 step 4). NOT RUN BY ANYTHING.
+// Renamed from freeze_amendment_names_a_real_change_request.test.mjs so neither npm test nor the CI kernel gate discovers it.
+// Why: asserted that every phase_c_freeze_amendment row names a PCCR document in the tree; the founder removed the freeze-amendment ritual on 2 Sep 2026, so there is no amendment to paper.
+// The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
+// verbatim below as the record of what was measured while it ran.
+
 // Every phase_c_freeze_amendment row must name a Phase C change request THAT EXISTS IN THE TREE.
 //
 // E13 made `change_request_ref` NOT NULL and made `fn_phase_c_freeze_drift()` refuse to excuse a

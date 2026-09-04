@@ -1,3 +1,9 @@
+// RETIRED 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6 step 4). NOT RUN BY ANYTHING.
+// Renamed from phase_c_invariants.test.mjs so neither npm test nor the CI kernel gate discovers it.
+// Why: a wrapper over the fn_phase_c_invariants board, which kernel_boards_are_green already reads by signature; its other lines (errata resolved, bindings name deployed routines, routes held, zero paid inference) are rows of that same board. Duplicate reader, not a lost property.
+// The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
+// verbatim below as the record of what was measured while it ran.
+
 // Phase C invariants, run against the one project.
 //
 //   node scripts/checks/phase_c_invariants.test.mjs
@@ -33,18 +39,16 @@ const check = (ok, what, detail = '') => {
   if (!ok) fail++;
 };
 
-// ---------------------------------------------------------------- 1. the frozen phases
-// 3 SEP 2026: the Phase A/B baseline-DIGEST comparison is retired (docs/agents/RETIRED_MIRROR_GATES.md).
-// The founder removed the phase freezes on 2 Sep; a digest of the org's shape kept in
-// org_phase_baseline is a copy of production, and every legitimate change (a department re-carve,
-// a role parked) required the copy to be recomputed in the same transaction just to keep this line
-// green. The PROPERTIES those digests stood for are still asserted, by routines that read production:
-// fn_phase_a_organization_violations, fn_org_role_violations (org_reorg_behaviour), fn_phase_b_invariants
-// (kernel boards) and the Phase C invariants below. Drift is printed here as information only.
-for (const [fn, label] of [['fn_phase_a_baseline_drift', 'Phase A'], ['fn_phase_b_baseline_drift', 'Phase B']]) {
-  const rows = await sql(`select * from public.${fn}()`);
-  if (rows.length) console.log(`note  ${label} baseline digest lags production on ${rows.length} subject(s) (informational since 3 Sep 2026): ${rows.map(r => r.subject).join(', ')}`);
-}
+// ---------------------------------------------------------------- 1. the organisation's properties
+// 3 SEP 2026: the Phase A/B baseline-DIGEST comparison was retired as a gate (docs/agents/RETIRED_MIRROR_GATES.md)
+// and printed as information. 4 SEP 2026 (Phase E): fn_phase_a_baseline_drift / fn_phase_b_baseline_drift
+// were DROPPED (scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql) — the founder removed the
+// phase freezes on 2 Sep, and a digest of the org's shape kept in org_phase_baseline is a copy of
+// production. The PROPERTIES those digests stood for are asserted by routines that read production:
+// fn_phase_a_organization_violations (below, and inside fn_phase_c_invariants / fn_phase_b_invariants),
+// fn_org_role_violations (org_reorg_behaviour) and the Phase C invariants.
+const violations = await sql(`select * from public.fn_phase_a_organization_violations()`);
+check(violations.length === 0, 'the organisation has no structural violation', violations.map(r => JSON.stringify(r)).join('; '));
 const errata = await sql(`select * from public.fn_phase_b_effective_errata() where not resolved`);
 check(errata.length === 0, 'every effective Phase B erratum is resolved');
 

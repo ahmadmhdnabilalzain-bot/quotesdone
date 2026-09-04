@@ -1,3 +1,9 @@
+// RETIRED 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6 step 4). NOT RUN BY ANYTHING.
+// Renamed from phase_c_founder_chain.test.mjs so neither npm test nor the CI kernel gate discovers it.
+// Why: an acceptance DRIVE of the whole founder-command chain (submit, route, task, progress, complete) in one aborted transaction against production; not a property. The chain's doors are proven by kernel_positive_controls and the cancel path by cancellation_reaches_the_kernel.
+// The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
+// verbatim below as the record of what was measured while it ran.
+
 // The founder's whole chain, executed once, end to end.
 //
 //   node scripts/checks/phase_c_founder_chain.test.mjs

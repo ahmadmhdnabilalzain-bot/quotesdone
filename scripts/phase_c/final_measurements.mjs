@@ -26,8 +26,8 @@ m.frozen = await one(`select
   (select count(*) from public.phase_b_event) events,
   (select count(*) from public.phase_b_gate) gates,
   (select count(*) from public.phase_b_business_rule) rules,
-  (select count(*) from public.fn_phase_a_baseline_drift()) phase_a_drift,
-  (select count(*) from public.fn_phase_b_baseline_drift()) phase_b_drift,
+  -- 4 Sep 2026: fn_phase_a/b_baseline_drift were dropped with the phase freezes (Phase E); the
+  -- organisation's validity is the property, measured by fn_phase_a_organization_violations below.
   (select count(*) from public.fn_phase_b_effective_errata() where not resolved) unresolved_errata,
   (select count(*) from public.fn_phase_a_organization_violations()) phase_a_violations`);
 
