@@ -1948,3 +1948,6 @@ scripts/sql/kernel_ledger_follows_the_manifest_4_sep.sql
 scripts/sql/the_trace_boards_overlap_join_has_a_lower_bound.sql
 scripts/sql/fn_outcome_evaluate_can_run_twice_in_one_transaction.sql
 scripts/sql/fn_dr_restore_clear_one_bounded_delete_per_pass.sql
+scripts/sql/red_view_alerter.sql
+scripts/sql/reenable_agents_crons.sql
+scripts/sql/fn_edge_health_scan_probe_failure_is_not_silence.sql

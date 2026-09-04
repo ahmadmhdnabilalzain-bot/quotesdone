@@ -22,9 +22,14 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 function unsafeUrl(u: string): string | null {
   let p: URL; try { p = new URL(u); } catch { return 'invalid_url'; }
   if (p.protocol !== 'http:' && p.protocol !== 'https:') return 'scheme_not_http';
-  const h = p.hostname.toLowerCase().replace(/^[|]$/g, '');
+  // 4 SEP 2026: both regexes below had lost their backslashes (a heredoc ate them): the bracket strip
+  // was /^[|]$/ and the IPv4 match was /^(d+).(d+).(d+).(d+)$/, which matches the literal letter d —
+  // so 127.0.0.1, 10.x, 169.254.169.254 were never 'private_address' and the guard could not fire on
+  // any numeric address. A guard that cannot fire is the shape this estate keeps finding; proved by
+  // scripts/checks/reg_fetch_refuses_private_addresses.mjs before and after.
+  const h = p.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal') || h === '0.0.0.0') return 'internal_host';
-  const m = h.match(/^(d+).(d+).(d+).(d+)$/);
+  const m = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (m) {
     const a = Number(m[1]), b = Number(m[2]);
     if (a === 10 || a === 127 || a === 0 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
