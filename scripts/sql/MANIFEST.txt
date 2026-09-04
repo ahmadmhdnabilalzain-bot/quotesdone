@@ -1607,3 +1607,7 @@ scripts/apply_sql.mjs
 $f
 --apply
 --ddl
+scripts/sql/strategic_review_playbooks_2026_09_04.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
