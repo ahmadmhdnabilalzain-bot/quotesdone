@@ -161,11 +161,12 @@ const a2 = await probe(`do $p$ declare v_id uuid; s1 jsonb; s2 jsonb; ap record;
   s1 := fn_action_invoke_dispatch(50); select response->>'invoker' into inv1 from action_execution where id=v_id;
   select * into ap from action_approval where action_execution_id=v_id;
   begin perform fn_action_head_approve(v_id,'approved','x','cfo'); wrong:='NOT_REFUSED'; exception when others then wrong:='REFUSED'; end;
-  perform fn_action_head_approve(v_id,'approved','x','procurement');
+  -- supplier_verify is a SUPPLY mechanism since 4 Sep 2026 (STAFF_ORG seat-at-plan-size): its head is bd.
+  perform fn_action_head_approve(v_id,'approved','x','bd');
   s2 := fn_action_invoke_dispatch(50); select response->>'invoker' into inv2 from action_execution where id=v_id;
   raise exception 'MARK|parked=%|approver=%|wrong=%|dispatched=%', inv1, ap.accountable_approver, wrong, inv2; end $p$;`);
 eq('a consequential action parks for the accountable head', a2.parked, 'awaiting_head_approval');
-eq('  -> entitled approver (marketplace/medium)', a2.approver, 'procurement');
+eq('  -> entitled approver (supply/medium)', a2.approver, 'bd');
 eq('  -> a non-entitled approver is refused', a2.wrong, 'REFUSED');
 eq('  -> the entitled head approves and it dispatches onward', a2.dispatched, 'dispatched');
 // an irreversible action with no compensation cannot be dispatched at all

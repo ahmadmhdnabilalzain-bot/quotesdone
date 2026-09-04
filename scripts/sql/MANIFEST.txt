@@ -1954,3 +1954,6 @@ scripts/sql/connectivity_register_subscription_without_producer.sql
 scripts/sql/dead_workflow_triggers_get_their_real_emitters.sql
 scripts/sql/bus_noise_retired_phantom_subscriptions_cut_priority_reorder.sql
 scripts/sql/refund_and_suspension_events_reach_an_agent.sql
+scripts/sql/fn_agent_binding_rule.sql
+scripts/sql/staff_org_seat_at_plan_size_2026_09_04.sql
+scripts/sql/staff_org_seat_settlement_2026_09_04.sql

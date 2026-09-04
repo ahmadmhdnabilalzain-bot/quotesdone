@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T05:42:53.000Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-04T05:55:50.787Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17115,16 +17115,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17150,6 +17140,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -17842,6 +17842,126 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -18390,126 +18510,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -20201,37 +20201,6 @@ begin
 end; $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ap_pay(p_bill bigint, p_date date DEFAULT NULL::date, p_amount numeric DEFAULT NULL::numeric, p_from_account text DEFAULT '1000'::text, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare b record; pay numeric(18,2); j bigint; newpaid numeric(18,2);
-begin
-  select * into b from public.ap_bills where id=p_bill;
-  if b.id is null then raise exception 'bill % not found', p_bill; end if;
-  if b.status in ('paid','void') then raise exception 'bill % is %', p_bill, b.status; end if;
-  pay := coalesce(round(p_amount,2), b.total - b.amount_paid);
-  if pay <= 0 then raise exception 'nothing to pay on bill %', p_bill; end if;
-  if b.amount_paid + pay > b.total then raise exception 'overpay bill %: %/%', p_bill, b.amount_paid+pay, b.total; end if;
-
-  j := public.fn_gl_entry(coalesce(p_date,current_date),
-         'Payment '||coalesce(b.bill_no,'bill '||p_bill),
-         'ap_payment', p_bill::text,
-         jsonb_build_array(jsonb_build_object('account','2000','debit', pay),
-                           jsonb_build_object('account',p_from_account,'credit', pay)),
-         p_by);
-  newpaid := b.amount_paid + pay;
-  update public.ap_bills
-     set amount_paid = newpaid,
-         status = case when newpaid >= total then 'paid' else 'partial' end,
-         pay_journal_id = j
-   where id=p_bill;
-  return j;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ap_pay_block_held()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -20257,14 +20226,21 @@ declare
   v_lexemes    text[];
   v_total      int;
   v_row        record;
-  v_best       record := null;
-  v_best_terms int := 0;
-  v_nearest    record := null;
+  -- scalars, not a record compared to null: an unassigned plpgsql record RAISES on `is null`
+  v_found      boolean := false;
+  v_b_id text; v_b_title text; v_b_content text; v_b_layer text; v_b_type text; v_b_tier text;
+  v_b_sim real := -1; v_b_terms int := 0; v_b_sd jsonb;
+  v_n_seen     boolean := false;
+  v_n_type text; v_n_title text; v_n_sim real; v_n_terms int;
   v_candidates jsonb := '[]'::jsonb;
   v_terms      int;
   v_pass       boolean;
   v_reason     text;
   v_det        text;
+  v_key        text;
+  v_dept       text;
+  v_scope      text[];
+  v_role_ids   text[];
 begin
   if p_query_embedding is null then
     return jsonb_build_object('matched', false, 'reason', 'no query embedding supplied');
@@ -20276,15 +20252,43 @@ begin
    where length(lexeme) >= 3;
   v_total := coalesce(array_length(v_lexemes, 1), 0);
 
+  -- HYBRID, ACTIONABLE-ONLY RETRIEVAL. fn_ops_knowledge_match's top-20 by cosine is dominated by metric
+  -- definitions, failure cases and scenarios (measured: the actionable SOP that DOES corroborate
+  -- "Detect from health, drift or a failed gate" — SOP 04 Security Alert Triage — never reached the
+  -- top 20). So the candidate set is: in-scope rows of the four actionable kinds, ranked by cosine.
+  -- The scope predicate MIRRORS fn_ops_knowledge_match exactly (agent -> department -> fn_dept_scope,
+  -- packaged roles via org_role_identity, company/external); change both or neither.
+  v_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  select a.department into v_dept from public.org_agents a where a.agent_key = v_key;
+  if v_dept is null then
+    return jsonb_build_object('matched', false, 'reason', 'agent ' || coalesce(p_agent_key,'?') || ' resolves to no department; no scope');
+  end if;
+  v_scope := public.fn_dept_scope(v_dept);
+  select array_agg(packaged_role_id) into v_role_ids from public.org_role_identity where agent_key = v_key;
+
   for v_row in
-    select m.record_id, m.title, m.content, m.layer, m.record_type, m.authority_tier, m.similarity,
+    select k.record_id, k.title, k.content, k.layer, k.record_type, k.authority_tier,
+           (1 - (k.embedding_gte <=> p_query_embedding))::real as similarity,
            k.structured_data,
            (select count(*) from unnest(tsvector_to_array(k.tsv)) t where t = any(coalesce(v_lexemes, '{}'))) as terms_matched
-      from public.fn_ops_knowledge_match(p_query_embedding, p_agent_key, greatest(coalesce(p_k, 20), 1)) m
-      join public.ops_knowledge k on k.record_id = m.record_id
+      from public.ops_knowledge k
+     where k.embedding_gte is not null
+       and k.runtime_eligible
+       and k.supersession_state = 'current'
+       and k.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')
+       and (
+             k.scope_type in ('company','external_source')
+          or (k.scope_type = 'department' and k.dept_key = any(v_scope))
+          or (k.role_key = any(coalesce(v_role_ids, '{}')))
+       )
+     order by k.embedding_gte <=> p_query_embedding
+     limit greatest(coalesce(p_k, 20), 1)
   loop
-    if v_nearest is null then v_nearest := v_row; end if;
     v_terms := coalesce(v_row.terms_matched, 0);
+    if not v_n_seen then
+      v_n_seen := true; v_n_type := v_row.record_type; v_n_title := v_row.title;
+      v_n_sim := v_row.similarity; v_n_terms := v_terms;
+    end if;
     v_pass := v_row.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')
               and v_row.similarity >= p_min_similarity
               and v_terms >= 2
@@ -20294,43 +20298,45 @@ begin
       'record_id', v_row.record_id, 'title', v_row.title, 'layer', v_row.layer,
       'record_type', v_row.record_type, 'similarity', round(v_row.similarity::numeric, 4),
       'terms_matched', v_terms, 'terms_total', v_total, 'corroborated', v_pass);
-    if v_pass and (v_best is null or v_row.similarity > v_best.similarity) then
-      v_best := v_row; v_best_terms := v_terms;
+    if v_pass and (not v_found or v_row.similarity > v_b_sim) then
+      v_found := true; v_b_id := v_row.record_id; v_b_title := v_row.title; v_b_content := v_row.content;
+      v_b_layer := v_row.layer; v_b_type := v_row.record_type; v_b_tier := v_row.authority_tier;
+      v_b_sim := v_row.similarity; v_b_terms := v_terms; v_b_sd := v_row.structured_data;
     end if;
   end loop;
 
-  if v_best is null then
-    v_reason := case when v_nearest is null then 'no in-scope knowledge for this agent'
-                     else 'no corroborated actionable match: nearest is ' || coalesce(v_nearest.record_type,'?')
-                          || ' "' || coalesce(v_nearest.title,'') || '" at ' || round(v_nearest.similarity::numeric, 3)
+  if not v_found then
+    v_reason := case when not v_n_seen then 'no in-scope knowledge for this agent'
+                     else 'no corroborated actionable match: nearest is ' || coalesce(v_n_type,'?')
+                          || ' "' || coalesce(v_n_title,'') || '" at ' || round(v_n_sim::numeric, 3)
                           || ' (floor ' || p_min_similarity || ', noise median 0.837) sharing '
-                          || coalesce(v_nearest.terms_matched, 0) || ' of ' || v_total || ' step terms'
+                          || coalesce(v_n_terms, 0) || ' of ' || v_total || ' step terms'
                 end;
     return jsonb_build_object('matched', false, 'reason', v_reason, 'candidates', v_candidates,
                               'terms_total', v_total);
   end if;
 
-  v_det := coalesce(v_best.content, '');
-  if v_best.structured_data is not null and v_best.structured_data <> '{}'::jsonb then
+  v_det := coalesce(v_b_content, '');
+  if v_b_sd is not null and v_b_sd <> '{}'::jsonb then
     v_det := v_det || E'\n\nSTRUCTURED DETERMINATION (from the record''s structured_data):\n'
-             || jsonb_pretty(v_best.structured_data);
+             || jsonb_pretty(v_b_sd);
   end if;
 
   return jsonb_build_object(
     'matched',        true,
-    'record_id',      v_best.record_id,
-    'title',          v_best.title,
-    'layer',          v_best.layer,
-    'record_type',    v_best.record_type,
-    'authority_tier', v_best.authority_tier,
-    'similarity',     round(v_best.similarity::numeric, 4),
-    'terms_matched',  v_best_terms,
+    'record_id',      v_b_id,
+    'title',          v_b_title,
+    'layer',          v_b_layer,
+    'record_type',    v_b_type,
+    'authority_tier', v_b_tier,
+    'similarity',     round(v_b_sim::numeric, 4),
+    'terms_matched',  v_b_terms,
     'terms_total',    v_total,
-    'confidence',     round(v_best.similarity::numeric, 3),
+    'confidence',     round(v_b_sim::numeric, 3),
     'determination',  v_det,
-    'outcome',        'Applied the company ' || v_best.record_type || ' "' || v_best.title
-                      || '" to this step (cosine ' || round(v_best.similarity::numeric, 3)
-                      || ', corroborated by ' || v_best_terms || ' of ' || v_total || ' step terms).',
+    'outcome',        'Applied the company ' || v_b_type || ' "' || v_b_title
+                      || '" to this step (cosine ' || round(v_b_sim::numeric, 3)
+                      || ', corroborated by ' || v_b_terms || ' of ' || v_total || ' step terms).',
     'candidates',     v_candidates,
     'basis',          'deterministic: nearest ACTIONABLE company knowledge by meaning, corroborated by the step''s own terms; no model call'
   );
@@ -20849,21 +20855,6 @@ begin
   end if;
   return a;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_autonomy_check(p_kind text, p_target_table text, p_recommendation text)
- RETURNS text
- LANGUAGE sql
- IMMUTABLE
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-  select case
-    when p_kind ~* 'refund|payout|payment|withdraw|transfer|invoice_pay|money|charge' then 'approve'
-    when p_kind ~* 'delete|purge|remove_record' and coalesce(p_target_table,'') in ('leads','customers') then 'approve'
-    when p_kind = 'approve_supplier' and coalesce(p_recommendation,'') <> 'approve' then 'approve'
-    else 'auto'
-  end;
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_autonomy_class(p_kind text, p_target_table text, p_recommendation text)
@@ -21569,19 +21560,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_budget_create(p_name text, p_year integer, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare b bigint;
-begin
-  insert into public.budgets(name,fiscal_year,created_by) values (p_name,p_year,p_by) returning id into b;
-  return b;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_budget_rollup()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -21654,26 +21632,6 @@ begin
     values (p_budget, p_account, date_trunc('month',p_month)::date, round(p_amount,2))
   on conflict (budget_id,account_code,period_month)
     do update set amount = excluded.amount;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_budget_set_annual(p_budget bigint, p_account text, p_amount numeric)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare yr int; base numeric(18,2); rem numeric(18,2); mth date; i int; amt numeric(18,2);
-begin
-  select fiscal_year into yr from public.budgets where id=p_budget;
-  if yr is null then raise exception 'budget % not found', p_budget; end if;
-  base := round(round(p_amount,2)/12, 2);
-  rem  := round(p_amount,2) - base*12;                 -- rounding remainder to last month
-  for i in 0..11 loop
-    mth := make_date(yr,1,1) + (i||' months')::interval;
-    amt := base + case when i=11 then rem else 0 end;
-    perform public.fn_budget_set(p_budget, p_account, mth, amt);
-  end loop;
 end $function$
 
 
@@ -22702,82 +22660,6 @@ begin
       when v_limit is not null and coalesce(p_amount,0) > v_limit then format('Affordable, but AED %s is above %s''s personal limit of AED %s. Route to %s.', coalesce(p_amount,0), p_agent, v_limit, v_route)
       else format('Within budget: AED %s of AED %s available. Approver: %s.', coalesce(p_amount,0), v_avail, v_route) end);
 end; $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_chief_of_staff()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare disp jsonb; exec jsonb; health jsonb; ops jsonb; rev jsonb;
-  n_pending int; n_aging int; n_depts int; brief text; recs text; dept_txt text; esc_txt text; owner text;
-  prioritized jsonb; run_id bigint;
-begin
-  disp := public.fn_autonomy_dispose();
-  exec := public.fn_ws_exec();
-  health := exec->'command'->'health'; ops := exec->'command'->'ops'; rev := ops->'revenue';
-
-  select count(*) into n_pending from public.agent_actions where status in ('pending','held_for_review','proposed','open','needs_review');
-  select count(*) into n_aging from public.agent_actions
-    where status in ('pending','held_for_review','proposed','open','needs_review') and created_at < now()-interval '3 days';
-  select count(distinct agent) into n_depts from public.agent_runs where started_at > now()-interval '24 hours';
-
-  select string_agg(line, E'\n' order by line) into dept_txt from (
-    select '- '||agent||': '||count(*)||' runs'||
-           case when count(*) filter (where status='error')>0 then ' ('||count(*) filter (where status='error')||' failed)' else '' end as line
-    from public.agent_runs where started_at > now()-interval '24 hours' group by agent
-  ) d;
-
-  select string_agg('- ['||coalesce(risk,'?')||'] '||coalesce(title,kind)||' ('||agent||')', E'\n') into esc_txt from (
-    select agent,risk,title,kind from public.agent_actions
-     where status in ('pending','held_for_review','proposed','open','needs_review') order by created_at asc limit 10
-  ) e;
-
-  select coalesce(jsonb_agg(x order by cat asc),'[]'::jsonb) into prioritized from (
-    select jsonb_build_object('id',id,'agent',agent,'risk',risk,'title',title,
-             'age_days',round(extract(epoch from (now()-created_at))/86400)) x, created_at cat
-    from public.agent_actions where status in ('pending','held_for_review','proposed','open','needs_review')
-    order by created_at asc limit 15
-  ) s;
-
-  recs := '';
-  if n_pending>0 then recs := recs||'1) '||n_pending||' item(s) in your queue (payments, deletions, flagged suppliers, marketing to post, BD to enable, to-dos).'||E'\n'; end if;
-  if n_aging>0 then recs := recs||'2) '||n_aging||' waited >3 days — action or dismiss.'||E'\n'; end if;
-  if (health->>'band') is not null and lower(health->>'band')<>'good'
-     then recs := recs||'3) Health "'||(health->>'band')||'" ('||coalesce(health->>'index','?')||'/100).'||E'\n'; end if;
-  if recs='' then recs := 'Queue clear. Everything auto-handled where safe.'; end if;
-
-  brief := 'Chief of Staff — daily briefing ('||to_char(now(),'DD Mon YYYY')||')'||E'\n\n'
-    ||'HEADLINE: auto-approved '||coalesce(disp->>'approved_suppliers','0')||' clean supplier(s), auto-cleared '
-      ||coalesce(disp->>'auto_cleared_logged','0')||' logged alert(s). '||n_pending||' item(s) in your queue. Health '
-      ||coalesce(health->>'index','?')||'/100 ('||coalesce(health->>'band','?')||').'||E'\n\n'
-    ||'YOUR QUEUE:'||E'\n'||coalesce(esc_txt,'- Empty.')||E'\n\n'
-    ||'DEPARTMENTS (24h):'||E'\n'||coalesce(dept_txt,'- No agent runs in the last 24h.')||E'\n\n'
-    ||'KPIs: revenue month '||coalesce(rev->>'month_aed','0')||' AED, cash received '||coalesce(rev->>'cash_received_aed','0')
-      ||' AED, pending fees '||coalesce(rev->>'pending_fees_aed','0')||' AED, active RFQs '||coalesce(ops->'marketplace'->>'active_rfqs','0')||'.'||E'\n\n'
-    ||'RECOMMENDATIONS:'||E'\n'||recs;
-
-  insert into public.agent_runs(agent,started_at,finished_at,status,counts,note)
-    values('chief_of_staff',now(),now(),'ok',
-      jsonb_build_object('approved_suppliers',disp->>'approved_suppliers','auto_cleared',disp->>'auto_cleared_logged',
-        'in_queue',n_pending,'aging',n_aging,'departments',n_depts),'coordination + autonomy v2')
-    returning id into run_id;
-
-  insert into public.agent_actions(agent,kind,status,risk,title,recommendation,target_table,target_id,detail)
-    values('chief_of_staff','exec_briefing','auto_done','low',
-      'Chief of Staff briefing — '||n_pending||' in queue, '||coalesce(disp->>'auto_cleared_logged','0')||' auto-cleared',
-      'Informational.', null, null,
-      jsonb_build_object('briefing',brief,'prioritized',prioritized,'autonomy',disp,'health',health->>'index','in_queue',n_pending));
-
-  select split_part(coalesce(value,'management@quotesdone.com'),',',1) into owner from public.app_secrets where key='admin_emails';
-  owner := coalesce(nullif(trim(owner),''),'management@quotesdone.com');
-  insert into public.notifications(type,to_email,to_role,channel,subject,body)
-    values('chief_of_staff', owner, 'admin','email',
-      'Chief of Staff — '||n_pending||' in your queue, health '||coalesce(health->>'index','?')||'/100', brief);
-
-  return jsonb_build_object('ok',true,'autonomy',disp,'in_queue',n_pending,'aging',n_aging,'departments',n_depts,'run_id',run_id);
-end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_classify_llm_failure(p_err text, p_http_status integer DEFAULT NULL::integer, p_finish_reason text DEFAULT NULL::text, p_model text DEFAULT NULL::text, p_latency_ms integer DEFAULT NULL::integer)
@@ -24083,17 +23965,6 @@ begin
   end if;
   return jsonb_build_object('ok', true, 'closed', v_n);
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_control_mode_identity_active(p_email text)
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select exists (select 1 from public.control_mode_identity
-                  where admin_email = lower(btrim(p_email)) and active);
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_control_mode_minutes()
@@ -26267,44 +26138,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_dept_can_plan(p_dept_key text)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  v_stalled int; v_cap int := 5; v_last timestamptz;
-begin
-  -- Only ASSIGNED-but-never-run work counts as pile-up. Work in progress, work
-  -- awaiting the founder, and work already attempted are not what the cap is for.
-  select count(*) into v_stalled from org_tasks
-   where dept_key = p_dept_key and status = 'assigned' and attempts = 0
-     and created_at < now() - interval '48 hours';
-
-  select max(created_at) into v_last from org_memory
-   where scope = p_dept_key and kind = 'plan' and source = 'dept_plan';
-
-  -- No department goes silent for more than a week, whatever its backlog. A
-  -- department that cannot plan cannot improve, and that is the failure mode the
-  -- autonomous-company design exists to prevent.
-  if v_last is null or v_last < now() - interval '7 days' then
-    return jsonb_build_object('can_plan', true, 'reason',
-      'weekly floor: last self-plan ' || coalesce(v_last::text,'never') || ' - planning regardless of backlog',
-      'stalled', v_stalled);
-  end if;
-
-  if v_stalled >= v_cap then
-    return jsonb_build_object('can_plan', false, 'reason',
-      v_stalled || ' tasks assigned over 48h ago and never attempted. Execution is behind planning; drain before adding.',
-      'stalled', v_stalled);
-  end if;
-
-  return jsonb_build_object('can_plan', true, 'reason',
-    v_stalled || ' stalled task(s), under the cap of ' || v_cap, 'stalled', v_stalled);
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_dept_canonical(p_dept text)
  RETURNS text
  LANGUAGE sql
@@ -26513,63 +26346,6 @@ begin
 end; $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_doc_control()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_run bigint; v_remind int := 0; v_expired int := 0; r record; v_days int;
-begin
-  insert into agent_runs(agent, started_at) values ('docs', now()) returning id into v_run;
-  for r in select id, company_name, claimed_by, email, license_expiry from leads
-           where approval_status='approved' and claimed=true and license_expiry is not null
-  loop
-    v_days := r.license_expiry - current_date;
-    if v_days between 0 and 7 then
-      if not exists (select 1 from notifications where lead_id=r.id and type='licence_expiry_reminder' and created_at > now()-interval '6 days') then
-        insert into notifications(type,to_email,to_role,channel,lead_id,subject,body)
-          values ('licence_expiry_reminder', coalesce(r.claimed_by,r.email), 'supplier', 'email', r.id,
-            'Your trade licence expires in '||v_days||' day(s) - QuotesDone',
-            'Dear '||coalesce(r.company_name,'partner')||', our records show your trade licence expires on '||to_char(r.license_expiry,'DD Mon YYYY')||' ('||v_days||' day(s) away). Please upload your renewed trade licence in your supplier portal to keep your account active and continue receiving job matches. Portal: https://quotesdone.com/suppliers/');
-        v_remind := v_remind + 1;
-      end if;
-    elsif v_days < 0 then
-      if not exists (select 1 from notifications where lead_id=r.id and type='licence_expired' and created_at > now()-interval '7 days') then
-        insert into notifications(type,to_email,to_role,channel,lead_id,subject,body)
-          values ('licence_expired', coalesce(r.claimed_by,r.email), 'supplier', 'email', r.id,
-            'Action needed: your trade licence has expired - QuotesDone',
-            'Dear '||coalesce(r.company_name,'partner')||', our records show your trade licence expired on '||to_char(r.license_expiry,'DD Mon YYYY')||'. To keep receiving jobs on QuotesDone, please upload your renewed licence in your portal as soon as possible: https://quotesdone.com/suppliers/');
-        insert into agent_actions(agent,kind,status,risk,title,recommendation,target_table,target_id,detail)
-          values ('docs','licence_expired','pending','medium',coalesce(r.company_name,'Supplier #'||r.id)||' - trade licence EXPIRED','suspend or chase renewal','leads',r.id::text,jsonb_build_object('expiry',r.license_expiry));
-        v_expired := v_expired + 1;
-      end if;
-    end if;
-  end loop;
-  update agent_runs set finished_at=now(), status='ok', counts=jsonb_build_object('reminders',v_remind,'expired',v_expired) where id=v_run;
-end;$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_doc_diff(p_type text, p_id text, p_va integer, p_vb integer)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare a jsonb; b jsonb; k text; res jsonb := '{}';
-begin
-  select snapshot into a from public.doc_versions where entity_type=p_type and entity_id=p_id and version=p_va;
-  select snapshot into b from public.doc_versions where entity_type=p_type and entity_id=p_id and version=p_vb;
-  if a is null or b is null then return jsonb_build_object('error','version not found'); end if;
-  for k in select distinct key from (select jsonb_object_keys(a) key union select jsonb_object_keys(b)) z loop
-    if (a->k) is distinct from (b->k) then
-      res := res || jsonb_build_object(k, jsonb_build_object('from', a->k, 'to', b->k));
-    end if;
-  end loop;
-  return jsonb_build_object('entity',p_type||':'||p_id,'from_version',p_va,'to_version',p_vb,'changes',res);
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_doc_expiry_scan()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -26743,15 +26519,6 @@ begin
                            'whatsapp_note', 'Queued but not deliverable until a supplier_doc_expiry template SID is registered in wa_template_sids.',
                            'ran_at', now());
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_doc_history(p_type text, p_id text)
- RETURNS TABLE(version integer, changed_fields text[], checksum text, created_at timestamp with time zone)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$ select version, changed_fields, checksum, created_at from public.doc_versions
-   where entity_type=p_type and entity_id=p_id order by version desc $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_document_controller()
@@ -28036,152 +27803,6 @@ begin
     into n_ok, n_bad
     from employee_kpi where active;
   return query select n_ok, n_bad;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_employee_kpi_trend(p_agent_key text, p_days integer DEFAULT 90)
- RETURNS TABLE(kpi text, unit text, observations bigint, first_value numeric, latest_value numeric, direction text, latest_verdict text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with h as (
-    select k.kpi, h.kpi_id, h.actual_value, h.unit, h.verdict, h.measured_on,
-           first_value(h.actual_value) over w_asc  as first_v,
-           first_value(h.actual_value) over w_desc as latest_v,
-           first_value(h.verdict)      over w_desc as latest_verdict,
-           row_number()                over w_desc as rn,
-           count(*)                    over (partition by h.kpi_id) as n
-      from employee_kpi_history h
-      join employee_kpi k on k.id = h.kpi_id
-     where h.agent_key = coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key)
-       and h.measured_on > (now() at time zone 'utc')::date - p_days
-       and h.actual_value is not null
-    window w_asc  as (partition by h.kpi_id order by h.measured_on),
-           w_desc as (partition by h.kpi_id order by h.measured_on desc)
-  )
-  select kpi, unit, n,
-         first_v, latest_v,
-         case when n < 2 or first_v is null or latest_v is null then 'no trend yet'
-              when latest_v = first_v then 'flat'
-              when (unit = 'percent_max') = (latest_v < first_v) then 'improving'
-              else 'worsening' end,
-         latest_verdict
-    from h where rn = 1
-   order by kpi;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_employee_responsibilities_backfill()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; v_txt text; v_kpi text; v_obj text; v_n int := 0;
-begin
-  for r in select a.agent_key, a.role, a.title, a.seniority, a.department, a.manager_key
-             from org_agents a
-            where a.active and coalesce(btrim(a.responsibilities),'') = ''
-  loop
-    select string_agg('- '||k.kpi||' (target '||coalesce(k.target_value::text,'?')||' '
-                      ||coalesce(k.unit,'')||', '||coalesce(k.cadence,'ongoing')||')', E'\n' order by k.kpi)
-      into v_kpi from employee_kpi k where k.agent_key = r.agent_key and k.active;
-
-    select string_agg('- '||d.objective, E'\n' order by d.sort, d.id)
-      into v_obj from department_objective d where d.dept_key = r.department and d.active;
-
-    v_txt := coalesce(r.role, r.title, r.agent_key)
-      || case when r.seniority is not null then E'\n\nSeniority: '||r.seniority else '' end
-      || case when r.manager_key is not null then '. Reports to: '||r.manager_key else '' end
-      || case when v_kpi is not null then E'\n\nYou are measured on:\n'||v_kpi else '' end
-      || case when v_obj is not null then E'\n\nYour department exists to:\n'||v_obj else '' end
-      || E'\n\nYou own the operational decisions inside this scope. When the answer is not in your'
-      || ' knowledge, retrieve it, consult the specialist who holds it, or raise a knowledge-gap'
-      || ' task - never answer from a guess.';
-
-    update org_agents set responsibilities = v_txt where agent_key = r.agent_key;
-    v_n := v_n + 1;
-  end loop;
-  return jsonb_build_object('written', v_n,
-    'note', 'Composed from role, title, seniority, manager, live employee_kpi rows and the department''s objectives. Blanks only; never overwrites.');
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_employee_scorecard(p_agent_key text, p_max_chars integer DEFAULT 1400)
- RETURNS text
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  v_cap  int := greatest(coalesce(p_max_chars, 1400), 300);
-  v_out  text := '';
-  v_line text;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  if coalesce(btrim(p_agent_key),'') = '' then return null; end if;
-
-  -- YOUR NUMBER. attainment mirrors fn_kpi_scoreboard exactly, including the percent_max
-  -- inversion; it is NOT recomputed with a different rule, because two rules that must agree is
-  -- how sec() and J() ended up with 8 and 11 variants of the same helper.
-  -- An unmeasured KPI says so in words. It must never read as a zero.
-  select string_agg(
-           '- '||z.kpi||': target '||coalesce(z.target_value::text,'?')||' '||coalesce(z.unit,'')
-           ||case
-               when z.actual_value is null then ' — NOT MEASURED YET (no number exists; do not assume one)'
-               else ' — you are at '||z.actual_value::text
-                    ||case when z.target_value is null then ''
-                    when z.target_value = 0 then
-                      case when z.actual_value <= 0 then ', at the zero-defect target (MET)'
-                           else ', against a target of ZERO (MISSED)' end
-                           when z.unit = 'percent_max'
-                             then ', '||round(least(100.0, 100.0 * z.target_value / nullif(z.actual_value,0)),0)::text||'% of target'
-                           else ', '||round(100.0 * z.actual_value / z.target_value,0)::text||'% of target' end
-                    ||case
-                        when z.target_value is null or z.target_value = 0 then ''
-                        when z.unit = 'percent_max' then
-                          case when z.actual_value <= z.target_value then ' (MET)' else ' (MISSED)' end
-                        else
-                          case when z.actual_value >= z.target_value then ' (MET)'
-                               when z.actual_value >= 0.9 * z.target_value then ' (NEAR)'
-                               else ' (MISSED)' end end
-             end
-           ||case when z.serves_goal is not null then ' — serves company goal '||z.serves_goal else '' end,
-           E'\n' order by z.kpi)
-    into v_line
-    from (select k.kpi, k.target_value, k.unit, k.actual_value, k.serves_goal
-            from employee_kpi k
-           where k.agent_key = p_agent_key and k.active
-           order by k.kpi limit 8) z;
-
-  if v_line is not null then
-    v_out := v_out || E'\n# YOUR NUMBER RIGHT NOW — measured, not asserted\n' || v_line || E'\n';
-  end if;
-
-  -- YOUR DEPARTMENT'S OBJECTIVE and the company goal it serves. This is the chain the founder
-  -- described, delivered to the one employee that has to act on it.
-  select string_agg(
-           '- '||d.objective
-           ||case when d.target_value is not null then ' (target '||d.target_value::text||' '||coalesce(d.unit,'')||')' else '' end
-           ||case when d.actual_value is not null then ', department is at '||d.actual_value::text
-                  when d.measure_sql is not null then ', not yet measured'
-                  else '' end
-           ||case when g.key is not null then E'\n    serves company goal '||g.key||' — "'||g.goal||'"' else '' end,
-           E'\n' order by d.sort, d.id)
-    into v_line
-    from department_objective d
-    join org_agents a on a.agent_key = p_agent_key and a.department = d.dept_key
-    left join company_goals g on g.key = d.goal_key and g.active
-   where d.active
-   limit 6;
-
-  if v_line is not null then
-    v_out := v_out || E'\n# WHAT YOUR DEPARTMENT IS FOR\n' || v_line || E'\n';
-  end if;
-
-  if v_out = '' then return null; end if;
-  return left(v_out, v_cap);
 end $function$
 
 
@@ -30007,6 +29628,46 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_experiment_conclude(p_min_subjects integer DEFAULT 100)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  e record; res jsonb; v_min int; n_var int; winner text; v_open int := 0; v_concluded int := 0; v_action bigint;
+begin
+  -- The floor is per VARIANT: an experiment concludes only when its smallest arm has p_min_subjects,
+  -- so a lopsided assignment cannot crown a winner on a handful of subjects.
+  if coalesce(p_min_subjects, 0) < 0 then raise exception 'p_min_subjects must be >= 0'; end if;
+  for e in select * from public.experiments where status = 'running' order by key loop
+    v_open := v_open + 1;
+    res := public.fn_experiment_results(e.key);
+    if res is null or jsonb_typeof(res) <> 'object' then continue; end if;
+    select min((x.v->>'subjects')::int), count(*) into v_min, n_var from jsonb_each(res) x(k, v);
+    if n_var < 2 or coalesce(v_min, 0) < p_min_subjects then continue; end if;
+    select x.k into winner from jsonb_each(res) x(k, v)
+     order by coalesce((x.v->>'conv_rate_pct')::numeric, 0) desc, x.k limit 1;
+    update public.experiments set status = 'concluded', stopped_at = now() where key = e.key;
+    -- The decision is filed where every other agent decision is filed. fn_agent_decision escalates
+    -- low-confidence or sensitive kinds; an experiment verdict is neither, so it lands as 'pending'
+    -- for the Data lead to adopt — the concluding is done, the adoption is the department's act.
+    v_action := public.fn_agent_decision(
+      'experiment_agent', 'experiment_concluded',
+      format('Experiment %s concluded: variant %s wins on %s', e.key, winner, e.metric),
+      format('Adopt variant %s for %s (%s). Per-variant results attached.', winner, e.key, e.metric),
+      0.9,
+      jsonb_build_array(jsonb_build_object('experiment', e.key, 'results', res)),
+      'low',
+      jsonb_build_object('experiment', e.key, 'winner', winner, 'metric', e.metric, 'results', res,
+                         'min_subjects_per_variant', p_min_subjects));
+    v_concluded := v_concluded + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'running_before', v_open, 'concluded', v_concluded,
+                            'min_subjects_per_variant', p_min_subjects);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_experiment_record(p_key text, p_subject text, p_event text, p_value numeric DEFAULT 1)
  RETURNS void
  LANGUAGE plpgsql
@@ -30054,108 +29715,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_external_authority(p_query text DEFAULT NULL::text, p_max_chars integer DEFAULT 2800)
- RETURNS text
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  v_cap  int := greatest(coalesce(p_max_chars, 2800), 400);
-  v_q    text := nullif(btrim(coalesce(p_query, '')), '');
-  v_out  text := '';
-  v_part text;
-begin
-  -- Relevance is a plain ILIKE over the words of the question, not full-text: these are 118 rows,
-  -- the index would never be used, and a tsquery that fails to parse would silently return nothing.
-  -- When no question is supplied, or nothing matches, the most authoritative rows are emitted
-  -- anyway — an employee that does not know a regulation exists cannot ask about it.
-
-  select string_agg('- ['||coalesce(r.authority,'?')||'] '||r.title
-                    ||case when coalesce(r.doc_ref,'') <> '' then ' ('||r.doc_ref||')' else '' end
-                    ||case when r.effective_date is not null then ' — in force '||r.effective_date else '' end
-                    ||case when coalesce(r.summary,'') <> '' then E'\n    '||left(regexp_replace(r.summary,'\s+',' ','g'), 260) else '' end,
-                    E'\n' order by (v_q is not null and (r.title ilike '%'||v_q||'%' or coalesce(r.summary,'') ilike '%'||v_q||'%')) desc,
-                                   r.effective_date desc nulls last, r.id)
-    into v_part
-    from (select * from public.regulations
-           where status = 'active' and approved_at is not null
-           order by (v_q is not null and (title ilike '%'||v_q||'%' or coalesce(summary,'') ilike '%'||v_q||'%')) desc,
-                    effective_date desc nulls last limit 8) r;
-  if v_part is not null then
-    v_out := v_out || 'UAE REGULATIONS IN FORCE (authoritative — cite the authority and the doc ref when you rely on one):'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||s.code||' — '||s.title||case when coalesce(s.authority,'') <> '' then ' ('||s.authority||')' else '' end,
-                    E'\n' order by s.code)
-    into v_part
-    from (select * from public.mdm_standards where coalesce(active,true) order by code limit 14) s;
-  if v_part is not null then
-    v_out := v_out || 'INDUSTRY STANDARDS THE COMPANY WORKS TO:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||m.name||case when coalesce(m.country,'') <> '' then ' ('||m.country||')' else '' end, ', '
-                    order by m.name)
-    into v_part
-    from (select * from public.mdm_manufacturers where coalesce(active,true) order by name limit 22) m;
-  if v_part is not null then
-    v_out := v_out || 'MANUFACTURERS ON THE MASTER LIST:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||coalesce(c.authority,'?')||': '||coalesce(c.topic,'(topic unrecorded)')
-                    ||case when c.last_checked_at is not null then ' — last checked '||c.last_checked_at::date else ' — NEVER CHECKED' end,
-                    E'\n' order by c.last_checked_at desc nulls last, c.id)
-    into v_part
-    from (select * from public.compliance_sources where active
-           order by last_checked_at desc nulls last limit 8) c;
-  if v_part is not null then
-    v_out := v_out || 'AUTHORITIES THIS COMPANY WATCHES FOR CHANGE:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||coalesce(k.authority,'?')||' '||coalesce(k.code_name,'?')
-                    ||' ['||coalesce(k.status,'?')||']', E'\n' order by k.priority nulls last, k.authority)
-    into v_part
-    from (select * from public.reg_catalog where coalesce(status,'') = 'indexed'
-           order by priority nulls last limit 10) k;
-  if v_part is not null then
-    v_out := v_out || 'REGULATORY CODES ALREADY INDEXED IN THE KNOWLEDGE BASE:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  if v_out = '' then return null; end if;
-
-  return E'\n# LAYER 4 (EXTERNAL) - AUTHORITATIVE SOURCES OUTSIDE THIS COMPANY'||E'\n'
-      || 'Spec #7 L541. These are external and authoritative: where they conflict with anything else '
-      || 'in this context, they win, and you say so. Do not paraphrase a requirement without naming '
-      || 'its authority.'||E'\n\n'
-      || left(v_out, v_cap - 300);
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_fa_acquire(p_name text, p_category text, p_acquire_date date, p_cost numeric, p_salvage numeric, p_life_months integer, p_in_service date DEFAULT NULL::date, p_fund_account text DEFAULT '1000'::text, p_post_gl boolean DEFAULT true, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare a bigint; j bigint;
-begin
-  insert into public.fa_assets(name,category,acquire_date,in_service_date,cost,salvage_value,
-        useful_life_months,created_by)
-    values (p_name,p_category,coalesce(p_acquire_date,current_date),
-            coalesce(p_in_service,p_acquire_date,current_date),
-            round(p_cost,2),round(coalesce(p_salvage,0),2),p_life_months,p_by)
-    returning id into a;
-  update public.fa_assets set asset_no='FA-'||lpad(a::text,6,'0') where id=a;
-  if p_post_gl then                                  -- Dr Fixed Asset  Cr funding account
-    j := public.fn_gl_entry(coalesce(p_acquire_date,current_date),
-           'Asset acquisition '||p_name, 'fa_acquire', a::text,
-           jsonb_build_array(jsonb_build_object('account','1600','debit',round(p_cost,2)),
-                             jsonb_build_object('account',p_fund_account,'credit',round(p_cost,2))), p_by);
-  end if;
-  return a;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_fa_depreciate(p_asset bigint, p_period date)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -30189,56 +29748,6 @@ begin
          status = case when accumulated_depreciation + amt >= depreciable then 'fully_depreciated' else 'active' end
    where id=p_asset;
   return j;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_fa_dispose(p_asset bigint, p_date date, p_proceeds numeric DEFAULT 0, p_proceeds_account text DEFAULT '1000'::text, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare a record; nbv numeric(18,2); proceeds numeric(18,2); gainloss numeric(18,2);
-        gl_lines jsonb; j bigint;
-begin
-  select * into a from public.fa_assets where id=p_asset;
-  if a.id is null then raise exception 'asset % not found', p_asset; end if;
-  if a.status='disposed' then raise exception 'asset % already disposed', p_asset; end if;
-  proceeds := round(coalesce(p_proceeds,0),2);
-  nbv := a.cost - a.accumulated_depreciation;
-  gainloss := proceeds - nbv;                          -- +gain / -loss
-  gl_lines := jsonb_build_array(
-      jsonb_build_object('account',a.accum_account,'debit',a.accumulated_depreciation),  -- clear accum
-      jsonb_build_object('account',a.asset_account,'credit',a.cost));                     -- remove cost
-  if proceeds > 0 then
-    gl_lines := gl_lines || jsonb_build_object('account',p_proceeds_account,'debit',proceeds);
-  end if;
-  if gainloss > 0 then
-    gl_lines := gl_lines || jsonb_build_object('account','4300','credit',gainloss);       -- gain
-  elsif gainloss < 0 then
-    gl_lines := gl_lines || jsonb_build_object('account','6500','debit',-gainloss);       -- loss
-  end if;
-  j := public.fn_gl_entry(coalesce(p_date,current_date), 'Disposal '||a.asset_no,
-         'fa_dispose', p_asset::text, gl_lines, p_by);
-  update public.fa_assets set status='disposed', disposed_date=coalesce(p_date,current_date) where id=p_asset;
-  return j;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_fa_run_depreciation(p_period date DEFAULT NULL::date)
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare per date := coalesce(p_period, (date_trunc('month',current_date)+interval '1 month -1 day')::date);
-        r record; n int := 0; j bigint;
-begin
-  for r in select id from public.fa_assets where status='active' and in_service_date <= per loop
-    j := public.fn_fa_depreciate(r.id, per);
-    if j is not null then n := n + 1; end if;
-  end loop;
-  return n;
 end $function$
 
 
@@ -30427,29 +29936,6 @@ AS $function$
       ) order by h) from hz)
   );
 $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_flag(p_key text, p_ctx jsonb DEFAULT '{}'::jsonb)
- RETURNS boolean
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare f record; aud jsonb; h int; subj text;
-begin
-  select * into f from feature_flags where key=p_key;
-  if f is null or not f.enabled then return false; end if;
-  aud := coalesce(f.audience,'{}');
-  -- audience gates
-  if aud ? 'country' and not (upper(coalesce(p_ctx->>'country','')) = any(select upper(jsonb_array_elements_text(aud->'country')))) then return false; end if;
-  if aud ? 'category' and not (lower(coalesce(p_ctx->>'category','')) = any(select lower(jsonb_array_elements_text(aud->'category')))) then return false; end if;
-  if aud ? 'role' and not (lower(coalesce(p_ctx->>'role','')) = any(select lower(jsonb_array_elements_text(aud->'role')))) then return false; end if;
-  if coalesce((aud->>'enterprise')::boolean,false) and not coalesce((p_ctx->>'enterprise')::boolean,false) then return false; end if;
-  -- percentage rollout, deterministic by subject
-  subj := coalesce(p_ctx->>'subject', p_ctx->>'email', p_ctx->>'id', 'anon');
-  h := (abs(('x'||substr(md5(p_key||':'||subj),1,8))::bit(32)::int) % 100);
-  return h < coalesce(f.rollout_pct,100);
-end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_founder_apply_setting(p_key text, p_value text, p_inbound text, p_actor text DEFAULT 'founder'::text, p_channel text DEFAULT 'whatsapp'::text)
@@ -34740,100 +34226,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_inv_adjust(p_item bigint, p_qty_delta numeric, p_unit_cost numeric DEFAULT NULL::numeric, p_offset_account text DEFAULT '6300'::text, p_date date DEFAULT NULL::date, p_memo text DEFAULT NULL::text, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare onq numeric(18,4); onv numeric(18,2); avg_c numeric(18,4);
-        uc numeric(18,4); amt numeric(18,2); j bigint; inv_acct text; m bigint;
-begin
-  if p_qty_delta = 0 then raise exception 'adjustment qty_delta cannot be 0'; end if;
-  select coalesce(sum(qty_delta),0), coalesce(sum(cost_delta),0)
-    into onq, onv from public.inv_stock_moves where item_id=p_item;
-  avg_c := case when onq <> 0 then onv/onq else 0 end;
-  uc := coalesce(p_unit_cost, avg_c);                 -- default to current avg for reductions
-  amt := round(p_qty_delta * uc, 2);                  -- signed
-  select inventory_account into inv_acct from public.inv_items where id=p_item;
-  if inv_acct is null then raise exception 'item % not found', p_item; end if;
-  -- positive delta: Dr Inventory / Cr offset ; negative: Dr offset / Cr Inventory
-  if amt >= 0 then
-    j := public.fn_gl_entry(coalesce(p_date,current_date), coalesce(p_memo,'Inventory adjustment'),
-           'inv_adjust', p_item::text,
-           jsonb_build_array(jsonb_build_object('account',inv_acct,'debit',amt),
-                             jsonb_build_object('account',p_offset_account,'credit',amt)), p_by);
-  else
-    j := public.fn_gl_entry(coalesce(p_date,current_date), coalesce(p_memo,'Inventory adjustment'),
-           'inv_adjust', p_item::text,
-           jsonb_build_array(jsonb_build_object('account',p_offset_account,'debit',-amt),
-                             jsonb_build_object('account',inv_acct,'credit',-amt)), p_by);
-  end if;
-  insert into public.inv_stock_moves(item_id,move_date,move_type,qty_delta,cost_delta,
-       unit_cost,ref_type,ref_id,gl_journal_id,memo,created_by)
-    values (p_item, coalesce(p_date,current_date),'adjust', p_qty_delta, amt, uc,
-            'adjust', p_item::text, j, p_memo, p_by)
-    returning id into m;
-  return m;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_inv_issue(p_item bigint, p_qty numeric, p_date date DEFAULT NULL::date, p_ref_type text DEFAULT 'manual'::text, p_ref_id text DEFAULT NULL::text, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare onq numeric(18,4); onv numeric(18,2); avg_c numeric(18,4);
-        amt numeric(18,2); j bigint; inv_acct text; cogs_acct text; m bigint;
-begin
-  select coalesce(sum(qty_delta),0), coalesce(sum(cost_delta),0)
-    into onq, onv from public.inv_stock_moves where item_id=p_item;
-  if p_qty <= 0 then raise exception 'issue qty must be > 0'; end if;
-  if p_qty > onq then raise exception 'insufficient stock for item %: have %, need %', p_item, onq, p_qty; end if;
-  avg_c := case when onq <> 0 then onv/onq else 0 end;
-  amt := round(p_qty * avg_c, 2);
-  select inventory_account, cogs_account into inv_acct, cogs_acct from public.inv_items where id=p_item;
-  j := public.fn_gl_entry(coalesce(p_date,current_date),
-         'Inventory issue item '||p_item, 'inv_issue', p_ref_id,
-         jsonb_build_array(jsonb_build_object('account',cogs_acct,'debit',amt),
-                           jsonb_build_object('account',inv_acct,'credit',amt)), p_by);
-  insert into public.inv_stock_moves(item_id,move_date,move_type,qty_delta,cost_delta,
-       unit_cost,ref_type,ref_id,gl_journal_id,created_by)
-    values (p_item, coalesce(p_date,current_date),'out', -p_qty, -amt, avg_c,
-            p_ref_type, p_ref_id, j, p_by)
-    returning id into m;
-  return m;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_inv_receive(p_item bigint, p_qty numeric, p_unit_cost numeric, p_date date DEFAULT NULL::date, p_ref_type text DEFAULT 'manual'::text, p_ref_id text DEFAULT NULL::text, p_post_gl boolean DEFAULT true, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare amt numeric(18,2); j bigint; inv_acct text; m bigint;
-begin
-  if p_qty <= 0 then raise exception 'receive qty must be > 0'; end if;
-  select inventory_account into inv_acct from public.inv_items where id=p_item;
-  if inv_acct is null then raise exception 'item % not found', p_item; end if;
-  amt := round(p_qty * p_unit_cost, 2);
-  if p_post_gl then                                   -- Dr Inventory  Cr Cash(1000)
-    j := public.fn_gl_entry(coalesce(p_date,current_date),
-           'Inventory receipt item '||p_item, 'inv_receipt', p_ref_id,
-           jsonb_build_array(jsonb_build_object('account',inv_acct,'debit',amt),
-                             jsonb_build_object('account','1000','credit',amt)), p_by);
-  end if;
-  insert into public.inv_stock_moves(item_id,move_date,move_type,qty_delta,cost_delta,
-       unit_cost,ref_type,ref_id,gl_journal_id,created_by)
-    values (p_item, coalesce(p_date,current_date),'in', p_qty, amt, p_unit_cost,
-            p_ref_type, p_ref_id, j, p_by)
-    returning id into m;
-  return m;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_invite_ramp()
  RETURNS integer
  LANGUAGE plpgsql
@@ -35646,21 +35038,6 @@ begin
 
   return jsonb_build_object('ran', v_ran, 'passed', v_pass, 'failed', v_fail,
                             'regressions', v_reg, 'regressed', to_jsonb(v_regs), 'ran_at', now());
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_kb_submit_revision(p_kind text, p_ref text, p_content text, p_author text DEFAULT 'agent'::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare id bigint;
-begin
-  insert into public.kb_revisions(entry_kind,entry_ref,version,content,status,author,ai_validation)
-  values (p_kind,p_ref, public._kb_next_ver(p_kind,p_ref), p_content, 'in_review', p_author, public.fn_kb_validate(p_content))
-  returning id into id;
-  return id;
 end $function$
 
 
@@ -43600,38 +42977,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_lint_outbound(p_hours integer DEFAULT 24)
- RETURNS jsonb
- LANGUAGE sql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select jsonb_build_object(
-    'hits', count(*),
-    'sample', coalesce(jsonb_agg(jsonb_build_object('when',a.created_at,'rule',p.name,'reply',left(a.reply,160))) filter (where p.id is not null), '[]'::jsonb)
-  )
-  from assistant_logs a
-  left join policy_rules p on p.active and a.reply ~* p.forbid_regex
-  where a.created_at > now() - make_interval(hours => p_hours)
-    and p.id is not null;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_llm_cache_get(p_key text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare v text;
-begin
-  update llm_cache set hits = hits + 1, last_hit_at = now()
-  where cache_key = p_key and expires_at > now()
-  returning response into v;
-  return v;
-end; $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_llm_cache_lookup(p_key text, p_embedding vector DEFAULT NULL::vector, p_task_class text DEFAULT NULL::text, p_min_similarity numeric DEFAULT 0.95)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43671,19 +43016,6 @@ begin
 
   return jsonb_build_object('hit', false);
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_llm_cache_put(p_key text, p_fn text, p_task_class text, p_model text, p_response text, p_ttl_minutes integer DEFAULT 1440)
- RETURNS void
- LANGUAGE sql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  insert into llm_cache (cache_key, fn, task_class, model_used, response, expires_at)
-  values (p_key, p_fn, p_task_class, p_model, p_response, now() + make_interval(mins => greatest(p_ttl_minutes,1)))
-  on conflict (cache_key) do update set response = excluded.response, model_used = excluded.model_used,
-    expires_at = excluded.expires_at, created_at = now();
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_llm_cache_store(p_key text, p_fn text, p_task_class text, p_model text, p_response text, p_ttl_minutes integer, p_embedding vector DEFAULT NULL::vector, p_saved_usd numeric DEFAULT 0)
@@ -43887,35 +43219,6 @@ AS $function$
     (select c.retryable and p_attempt_no <= c.max_retries
        from llm_failure_class c where c.class_key = p_class_key),
     false);   -- unknown class is NOT retryable: an unnamed failure never earns another attempt
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_management_decision_review(p_department text DEFAULT NULL::text, p_days integer DEFAULT 7, p_limit integer DEFAULT 100)
- RETURNS TABLE(trace_id uuid, decided_at timestamp with time zone, agent_key text, role_id text, department_id text, manager_id text, decision_type text, proposed_action text, confidence numeric, escalation_decision text, tools_requested text[], tools_executed text[], knowledge_count integer, evidence_count integer, review_date date, outcome_status text, final_status text, sealed boolean, gap text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  with t as (
-    select *,
-           case when jsonb_typeof(knowledge_refs)='array' then jsonb_array_length(knowledge_refs) else 0 end as kn,
-           case when jsonb_typeof(evidence_refs) ='array' then jsonb_array_length(evidence_refs)  else 0 end as ev
-      from decision_trace
-     where (p_department is null or department_id = p_department)
-       and created_at > now() - make_interval(days => greatest(p_days,1))
-  )
-  select t.id, t.created_at, t.agent_key, t.role_id, t.department_id, t.manager_id,
-         t.decision_type, t.proposed_action, t.confidence, t.escalation_decision,
-         t.tools_requested, t.tools_executed, t.kn, t.ev,
-         t.review_date, t.outcome_status, t.final_status, t.sealed_at is not null,
-         nullif(concat_ws('; ',
-           case when t.role_id is null            then 'no canonical role' end,
-           case when t.ev = 0                     then 'no evidence' end,
-           case when t.confidence is null         then 'no confidence' end,
-           case when t.escalation_decision is null then 'no authority decision' end,
-           case when t.review_date is null        then 'no review date' end,
-           case when t.final_status is null       then 'no output status' end), '')
-  from t order by t.created_at desc limit greatest(p_limit,1);
 $function$
 
 
@@ -49613,527 +48916,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_p2c1_rollback_stage_b6(p_mode text DEFAULT 'rehearse'::text, p_actor text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  v_removable_before int; v_removable_after int;
-  v_a text; v_b text; v_lang text; v_scope text;
-  v_report jsonb; v_survivors jsonb; v_restored jsonb; v_fixtures jsonb;
-  v_tm_b5 boolean; v_gdr_b5 boolean; v_mfs_fixed boolean;
-  v_orphan_groups int; v_orphan_answers int; v_orphan_audit int;
-  v_missing text;
-  c_tables text[] := array['inquiry_scope_disposition','scope_marker','scope_disposition_kind',
-                           'scope_component','p2c1_disposition_case','p2c1_holdout_case','p2c1_holdout_seal'];
-  c_views  text[] := array['v_scope_disposition_effective','v_trade_scope_status'];
-  c_funcs  text[] := array['fn_p2c1_holdout_run','fn_p2c1_disposition_tests','fn_p2c1_holdout_verify_seal',
-                           'fn_p2c1_holdout_checksum','fn_inquiry_interpret','fn_scope_apply','fn_scope_detect',
-                           'fn_scope_inverse','fn_scope_clauses','fn_term_position',
-                           'fn_p2c1_no_active_trade_blocker','trg_holdout_expectations_immutable',
-                           'trg_scope_marker_norm'];
-begin
-  if p_mode not in ('rehearse','commit') then
-    return jsonb_build_object('ok', false, 'error','mode must be rehearse or commit'); end if;
-  if coalesce(btrim(p_actor),'') = '' then
-    return jsonb_build_object('ok', false, 'error','actor_required'); end if;
-  if to_regclass('public.inquiry_scope_disposition') is null then
-    return jsonb_build_object('ok', false, 'error','stage_b6_not_present'); end if;
-
-  select (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-           where n.nspname='public' and (c.relname = any(c_tables) or c.relname = any(c_views)))
-       + (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.proname = any(c_funcs))
-    into v_removable_before;
-
-  ---------------------------------------------------------------- remove
-  drop view if exists public.v_trade_scope_status cascade;
-  drop view if exists public.v_scope_disposition_effective cascade;
-  drop function if exists public.fn_p2c1_holdout_run() cascade;
-  drop function if exists public.fn_p2c1_disposition_tests() cascade;
-  drop function if exists public.fn_p2c1_holdout_verify_seal() cascade;
-  drop function if exists public.fn_p2c1_holdout_checksum() cascade;
-  drop function if exists public.fn_inquiry_interpret(bigint,text,jsonb,jsonb,text) cascade;
-  drop function if exists public.fn_scope_apply(bigint,text) cascade;
-  drop function if exists public.fn_scope_detect(bigint,text,text) cascade;
-  drop function if exists public.fn_scope_inverse(text) cascade;
-  drop function if exists public.fn_scope_clauses(text) cascade;
-  drop function if exists public.fn_term_position(text,text,text) cascade;
-  drop function if exists public.fn_p2c1_no_active_trade_blocker(jsonb,jsonb) cascade;
-  drop table if exists public.p2c1_disposition_case cascade;
-  drop table if exists public.p2c1_holdout_seal cascade;
-  drop trigger if exists holdout_expectations_immutable on public.p2c1_holdout_case;
-  drop function if exists public.trg_holdout_expectations_immutable() cascade;
-  drop table if exists public.p2c1_holdout_case cascade;
-  drop trigger if exists scope_marker_norm on public.scope_marker;
-  drop function if exists public.trg_scope_marker_norm() cascade;
-  drop table if exists public.inquiry_scope_disposition cascade;
-  drop table if exists public.scope_marker cascade;
-  drop table if exists public.scope_disposition_kind cascade;
-  drop table if exists public.scope_component cascade;
-  delete from public.mep_trade_pattern where pattern in
-    ('وحدات مناوله الهواء','فان كويل','شيلر');
-
-  ---------------------------------------------------------------- restore prior stage
-  execute $q1$
-    create or replace function public.fn_term_matches(
-      p_text_norm text, p_pattern_norm text, p_lang text default 'en')
-    returns boolean language sql immutable as $i$
-      select case when p_lang = 'ar'
-        then p_text_norm ~ ('(^|[^[:alnum:]])(وال|بال|فال|كال|ال|لل|و|ف|ب|ك|ل)?'
-                            || p_pattern_norm || '(ات|ين|ون|ها|هم|ه)?($|[^[:alnum:]])')
-        else p_text_norm ~ ('(^|[^[:alnum:]])' || p_pattern_norm || '($|[^[:alnum:]])')
-      end;
-    $i$
-  $q1$;
-
-  execute $q2$
-    create or replace function public.fn_group_dispatch_report(p_group_id bigint)
-    returns jsonb language plpgsql stable security definer set search_path to 'public' as $i$
-    declare v_gd public.v_group_dispatch%rowtype; v_blockers jsonb := '[]'::jsonb; r record;
-    begin
-      select * into v_gd from public.v_group_dispatch where group_id = p_group_id;
-      if not found then return jsonb_build_object('ok', false, 'error','unknown_group'); end if;
-      if v_gd.active_workstreams = 0 then
-        v_blockers := v_blockers || jsonb_build_array(jsonb_build_object(
-          'blocker','no_active_workstream','severity','blocking',
-          'detail','No trade has been confirmed for this inquiry, so there is nothing to dispatch.'));
-      end if;
-      if cardinality(v_gd.shared_missing_mandatory) > 0 then
-        v_blockers := v_blockers || jsonb_build_array(jsonb_build_object(
-          'blocker','shared_mandatory_missing','severity','blocking',
-          'fields', to_jsonb(v_gd.shared_missing_mandatory)));
-      end if;
-      for r in select * from public.v_workstream_dispatch
-                where group_id = p_group_id and active and not dispatch_eligible loop
-        v_blockers := v_blockers || jsonb_build_array(jsonb_build_object(
-          'blocker','trade_not_eligible','severity','blocking','trade_key', r.trade_key,
-          'missing_mandatory', to_jsonb(r.missing_mandatory), 'gate_states', r.gate_states));
-      end loop;
-      return jsonb_build_object('ok', true, 'group_id', p_group_id,
-        'overall_dispatch_eligible', v_gd.overall_dispatch_eligible,
-        'active_workstreams', v_gd.active_workstreams,
-        'group_gate_states', v_gd.gate_states, 'blockers', v_blockers,
-        'blocker_count', jsonb_array_length(v_blockers));
-    end $i$
-  $q2$;
-
-  ---------------------------------------------------------------- verify: nothing removable left
-  select (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-           where n.nspname='public' and (c.relname = any(c_tables) or c.relname = any(c_views)))
-       + (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.proname = any(c_funcs))
-    into v_removable_after;
-  if v_removable_after <> 0 then
-    raise exception 'ROLLBACK ABORTED: % removable Stage B.6 objects survived', v_removable_after; end if;
-
-  ---------------------------------------------------------------- verify: survivors are all present
-  v_missing := '';
-  if to_regclass('public.p2c1_holdout_result_of_record') is null then
-    v_missing := v_missing || 'p2c1_holdout_result_of_record '; end if;
-  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-                  where n.nspname='public' and p.proname='trg_holdout_record_immutable') then
-    v_missing := v_missing || 'trg_holdout_record_immutable() '; end if;
-  if not exists (select 1 from pg_trigger t where t.tgname='holdout_record_immutable' and not t.tgisinternal) then
-    v_missing := v_missing || 'trigger holdout_record_immutable '; end if;
-  if v_missing <> '' then
-    raise exception 'ROLLBACK ABORTED: audit evidence that must survive is missing: %', v_missing; end if;
-
-  v_survivors := jsonb_build_array(
-    jsonb_build_object('object','p2c1_holdout_result_of_record','kind','table','class','B',
-      'reason','permanent audit evidence: the once-only record of the first independent evaluation of holdout v1',
-      'rows', (select count(*) from public.p2c1_holdout_result_of_record)),
-    jsonb_build_object('object','trg_holdout_record_immutable()','kind','function','class','B',
-      'reason','protects the row above; an editable audit record is not evidence'),
-    jsonb_build_object('object','holdout_record_immutable','kind','trigger','class','B',
-      'reason','protects the row above; an editable audit record is not evidence'),
-    jsonb_build_object('object','fn_p2c1_rollback_stage_b6(text,text)','kind','function','class','instrument',
-      'reason','the tool performing this rollback; returns stage_b6_not_present if re-run'));
-
-  ---------------------------------------------------------------- verify: prior stage restored
-  -- executed dynamically so the probe cannot be answered by a plan cached against the pre-restore body
-  execute 'select public.fn_term_matches($1,$2,$3)' into v_tm_b5 using 'ahus','ahu','en';
-  select p.prosrc not like '%scope%' into v_gdr_b5
-    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-   where n.nspname='public' and p.proname='fn_group_dispatch_report';
-  select p.prosrc like '%v_sep%' into v_mfs_fixed
-    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-   where n.nspname='public' and p.proname='fn_mep_full_scope';
-
-  if v_tm_b5 then
-    raise exception 'ROLLBACK ABORTED: fn_term_matches still matches the English plural "ahus"; the B.5 form was not restored'; end if;
-  if not coalesce(v_gdr_b5, false) then
-    raise exception 'ROLLBACK ABORTED: fn_group_dispatch_report still mentions scope; the B.5 form was not restored'; end if;
-  if not coalesce(v_mfs_fixed, false) then
-    raise exception 'ROLLBACK ABORTED: fn_mep_full_scope is not the corrected form; see the declared exception'; end if;
-
-  v_restored := jsonb_build_object(
-    'fn_term_matches','Stage B.5 form verified: does not match the English plural "ahus"',
-    'fn_group_dispatch_report','Stage B.5 form verified: no scope sections',
-    'mep_trade_pattern','3 Stage B.6 Arabic HVAC patterns deleted');
-
-  ---------------------------------------------------------------- verify: suites
-  select count(*) filter (where passed)||'/'||count(*) into v_a from public.fn_p2c1_stage_a_selftest();
-  select count(*) filter (where passed)||'/'||count(*) into v_b from public.fn_p2c1_stage_b_selftest();
-  select count(*) filter (where verdict='PASS')||'/'||count(*) into v_lang from public.fn_p2c1_lang_parity_suite();
-  select count(*) filter (where passed)||'/'||count(*) into v_scope from public.fn_p2c1_scope_rule_tests();
-  if v_a <> '14/14' or v_b <> '14/14' then
-    raise exception 'ROLLBACK ABORTED: Stage A %, Stage B % after rollback', v_a, v_b; end if;
-  if v_lang <> '23/23' or v_scope <> '12/12' then
-    raise exception 'ROLLBACK ABORTED: Stage B.5 language parity %, scope negatives % after rollback', v_lang, v_scope; end if;
-
-  ---------------------------------------------------------------- verify: no fixture data remains
-  select count(*) into v_orphan_groups
-    from public.inquiry_workstream_group g
-   where not exists (select 1 from public.inquiry_intake i where i.id::text = g.inquiry_id::text);
-  select count(*) into v_orphan_answers
-    from public.inquiry_answer a join public.inquiry_workstream_group g on g.id = a.group_id
-   where not exists (select 1 from public.inquiry_intake i where i.id::text = g.inquiry_id::text);
-  select count(*) into v_orphan_audit
-    from public.inquiry_state_audit s join public.inquiry_workstream_group g on g.id = s.group_id
-   where not exists (select 1 from public.inquiry_intake i where i.id::text = g.inquiry_id::text);
-  if v_orphan_groups <> 0 or v_orphan_answers <> 0 or v_orphan_audit <> 0 then
-    raise exception 'ROLLBACK ABORTED: fixture data remains - % groups, % answers, % audit rows with no real inquiry',
-      v_orphan_groups, v_orphan_answers, v_orphan_audit; end if;
-  v_fixtures := jsonb_build_object('orphan_groups', v_orphan_groups,
-    'orphan_answers', v_orphan_answers, 'orphan_audit_rows', v_orphan_audit);
-
-  ---------------------------------------------------------------- report
-  v_report := jsonb_build_object(
-    'ok', true, 'mode', p_mode, 'actor', p_actor,
-    'removable_objects', jsonb_build_object('before', v_removable_before, 'after', v_removable_after,
-       'all_removed', v_removable_after = 0,
-       'inventory', jsonb_build_object('tables', to_jsonb(c_tables), 'views', to_jsonb(c_views),
-                                       'functions', to_jsonb(c_funcs))),
-    'intentional_survivors', v_survivors,
-    'prior_stage_restored', v_restored,
-    'declared_exceptions', jsonb_build_array(jsonb_build_object(
-       'object','fn_mep_full_scope(text)','action','NOT restored to the Stage B.5 text',
-       'reason','the B.6 change was a defect fix to a Stage B.5 rule. Reverting it reintroduces a false positive - a full-scope modifier reaching an MEP anchor across a clause boundary and activating three trades. Reversion is unsafe, so the corrected form is kept and declared.')),
-    'tests', jsonb_build_object('stage_a', v_a, 'stage_b', v_b,
-                                'lang_parity', v_lang, 'scope_negatives', v_scope),
-    'fixtures_remaining', v_fixtures,
-    'verdict', 'stage b6 removed; audit evidence retained; prior stage restored');
-
-  insert into public.inquiry_state_audit (group_id, event, detail, actor)
-  values (null, 'p2c1_stage_b6_rollback_' || p_mode, v_report, p_actor);
-
-  if p_mode = 'rehearse' then
-    raise exception 'REHEARSAL COMPLETE (nothing committed): %', v_report::text; end if;
-  return v_report;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_p2c1_rollback_stage_b7(p_mode text DEFAULT 'rehearse'::text, p_actor text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  v_before int; v_after int; v_markers_before int; v_markers_after int;
-  v_a text; v_b text; v_lang text; v_scope text; v_disp text;
-  v_h_exec int; v_h_pass int; v_h_fp int; v_h_fn int;
-  v_detect_b6 boolean; v_mfs_b6 boolean; v_pkg_back boolean;
-  v_report jsonb;
-  c_funcs text[] := array['fn_scope_party','fn_scope_supply_attribution','fn_scope_clause_map',
-                          'fn_scope_sentences','fn_p2c1_b7_regression'];
-begin
-  if p_mode not in ('rehearse','commit') then
-    return jsonb_build_object('ok', false, 'error','mode must be rehearse or commit'); end if;
-  if coalesce(btrim(p_actor),'') = '' then
-    return jsonb_build_object('ok', false, 'error','actor_required'); end if;
-  if to_regclass('public.p2c1_b7_case') is null then
-    return jsonb_build_object('ok', false, 'error','stage_b7_not_present'); end if;
-
-  select (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-           where n.nspname='public' and c.relname = 'p2c1_b7_case')
-       + (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.proname = any(c_funcs))
-    into v_before;
-  select count(*) into v_markers_before from public.scope_marker
-   where marker_type in ('party','attribution','supply_anchor');
-
-  ---------------------------------------------------------------- remove stage-owned objects
-  drop table if exists public.p2c1_b7_case cascade;
-  drop function if exists public.fn_p2c1_b7_regression() cascade;
-  drop function if exists public.fn_scope_supply_attribution(text) cascade;
-  drop function if exists public.fn_scope_party(text) cascade;
-  drop function if exists public.fn_scope_clause_map(text) cascade;
-  drop function if exists public.fn_scope_sentences(text) cascade;
-
-  ---------------------------------------------------------------- remove B.7 vocabulary
-  delete from public.scope_marker where marker_type in ('party','attribution','supply_anchor');
-  delete from public.scope_marker where marker_type = 'disposition' and resolution = 'party_dependent'
-    and pattern not in ('not in our scope','outside our scope','ليست ضمن نطاق','خارج نطاق');
-  delete from public.scope_marker where marker_type = 'disposition' and disposition = 'client_supplied'
-    and pattern in ('supply by client','supply by the client','supplied by the owner',
-      'supplied by the employer','supplied by the customer','client to supply','client will supply',
-      'client shall supply','client to provide','client will provide','owner to supply',
-      'employer to supply','customer to supply','free issue by the employer','free issue by the client',
-      'free issued by the client','free issue material','employer supplied','customer supplied',
-      'توريد صاحب العمل','توريد الزبون','يوفرها العميل','يوردها المالك','العميل يورد','العميل يوفر',
-      'من توريد العميل','توريد من العميل');
-  update public.scope_marker set disposition = 'by_others', resolution = 'fixed', priority = 20
-   where marker_type = 'disposition'
-     and pattern in ('not in our scope','outside our scope','ليست ضمن نطاق','خارج نطاق');
-
-  delete from public.mep_trade_pattern where kind = 'trade_hint'
-    and pattern in ('ac','a/c','a\.c');
-  delete from public.mep_trade_pattern where kind = 'trade_name'
-    and pattern in ('central ac','central a/c','central a\.c','central air conditioner',
-      'central cooling','ac unit','a/c unit','ac system','split ac','split a/c','window ac',
-      'ducted ac','package ac','packaged ac','مكيفات مركزيه','تبريد مركزي');
-  delete from public.mep_trade_pattern where kind = 'scope_container' and pattern <> 'package';
-  delete from public.mep_trade_pattern where kind = 'scope_full'
-    and pattern in ('متكامله','متكامل','تسليم مفتاح');
-  update public.mep_trade_pattern set kind = 'scope_full'
-   where kind = 'scope_container' and pattern = 'package';
-
-  alter table public.mep_trade_pattern drop constraint if exists mep_trade_pattern_kind_check;
-  alter table public.mep_trade_pattern add constraint mep_trade_pattern_kind_check
-    check (kind in ('trade_name','trade_hint','mep_anchor','mep_full_phrase','scope_full','scope_only'));
-  alter table public.scope_marker drop constraint if exists scope_marker_marker_type_check;
-  alter table public.scope_marker add constraint scope_marker_marker_type_check
-    check (marker_type in ('disposition','component','exception','modification'));
-
-  ---------------------------------------------------------------- restore the Stage B.6 bodies
-  execute $q1$
-    create or replace function public.fn_mep_full_scope(p_text_norm text)
-    returns jsonb language plpgsql stable security definer set search_path to 'public' as $i$
-    declare r record; v_re text; v_sep text := '[^[:alnum:].;,،؛' || chr(10) || ']+';
-    begin
-      for r in select pattern_norm, lang from public.mep_trade_pattern where kind = 'mep_full_phrase' loop
-        if public.fn_term_matches(p_text_norm, r.pattern_norm, r.lang) then
-          return jsonb_build_object('matched', true, 'basis', 'explicit_full_mep_phrase',
-                                    'anchor', r.pattern_norm, 'modifier', null);
-        end if;
-      end loop;
-      for r in
-        select a.pattern_norm as anchor, m.pattern_norm as modifier, a.lang
-          from public.mep_trade_pattern a
-          join public.mep_trade_pattern m on m.kind = 'scope_full'
-         where a.kind = 'mep_anchor'
-      loop
-        v_re := '(^|[^[:alnum:]])' || r.anchor || '(' || v_sep || '[[:alnum:]]+){0,2}' || v_sep
-                || r.modifier || '($|[^[:alnum:]])';
-        if p_text_norm ~ v_re then
-          return jsonb_build_object('matched', true, 'basis', 'anchor_plus_modifier',
-                                    'anchor', r.anchor, 'modifier', r.modifier);
-        end if;
-        v_re := '(^|[^[:alnum:]])' || r.modifier || '(' || v_sep || '[[:alnum:]]+){0,2}' || v_sep
-                || r.anchor || '($|[^[:alnum:]])';
-        if p_text_norm ~ v_re then
-          return jsonb_build_object('matched', true, 'basis', 'modifier_plus_anchor',
-                                    'anchor', r.anchor, 'modifier', r.modifier);
-        end if;
-      end loop;
-      return jsonb_build_object('matched', false, 'basis', null);
-    end $i$
-  $q1$;
-
-  execute $q2$
-    create or replace function public.fn_scope_detect(
-      p_group_id bigint, p_customer_text text, p_actor text default 'system')
-    returns integer language plpgsql security definer set search_path to 'public' as $i$
-    declare
-      v_norm text := public.fn_norm_text(p_customer_text);
-      cl record; m record;
-      v_exc_pos int; v_base text; v_base_marker text; v_pos int;
-      v_umbrella boolean; v_umb_pos int;
-      v_comps text[]; v_comp text; v_n integer := 0;
-      v_trades jsonb; v_tk text; v_tpos int; v_disp text; v_spec int;
-      v_active_trades text[];
-    begin
-      for cl in select * from public.fn_scope_clauses(v_norm) loop
-        v_exc_pos := null;
-        for m in select pattern_norm, lang from public.scope_marker where marker_type = 'exception' loop
-          v_pos := public.fn_term_position(cl.clause, m.pattern_norm, m.lang);
-          if v_pos > 0 and (v_exc_pos is null or v_pos < v_exc_pos) then v_exc_pos := v_pos; end if;
-        end loop;
-
-        v_base := null; v_base_marker := null;
-        for m in select disposition, pattern_norm, lang, priority from public.scope_marker
-                  where marker_type = 'disposition' order by priority, length(pattern_norm) desc loop
-          v_pos := public.fn_term_position(cl.clause, m.pattern_norm, m.lang);
-          if v_pos > 0 and (v_exc_pos is null or v_pos < v_exc_pos) then
-            v_base := m.disposition; v_base_marker := m.pattern_norm; exit;
-          end if;
-        end loop;
-
-        select coalesce(array_agg(distinct m2.component), '{}') into v_comps
-          from public.scope_marker m2
-         where m2.marker_type = 'component'
-           and public.fn_term_matches(cl.clause, m2.pattern_norm, m2.lang);
-
-        select coalesce(bool_or(public.fn_term_position(cl.clause, p.pattern_norm, p.lang) > 0), false),
-               min(nullif(public.fn_term_position(cl.clause, p.pattern_norm, p.lang), 0))
-          into v_umbrella, v_umb_pos
-          from public.mep_trade_pattern p where p.kind in ('mep_anchor','mep_full_phrase');
-
-        select coalesce(jsonb_object_agg(z.tk, z.p), '{}'::jsonb) into v_trades
-          from (
-            select t.trade_key as tk, min(t.pos) as p
-              from (
-                select p.trade_key, public.fn_term_position(cl.clause, p.pattern_norm, p.lang) as pos
-                  from public.mep_trade_pattern p
-                 where p.kind in ('trade_name','trade_hint') and p.trade_key is not null
-                union all
-                select c.trade_key,
-                       public.fn_term_position(cl.clause, public.fn_norm_text(e.matched_term), 'en')
-                  from public.inquiry_trade_candidate c
-                  join public.inquiry_trade_candidate_evidence e on e.candidate_id = c.id
-                 where c.group_id = p_group_id and e.matched_term is not null
-                   and e.evidence_source in ('alias','customer_text')
-                   and length(e.matched_term) >= 3
-              ) t
-             where t.pos > 0
-             group by t.trade_key
-          ) z;
-
-        if v_base is null and (v_umbrella or v_trades <> '{}'::jsonb) then v_base := 'included'; end if;
-        if v_base is null then continue; end if;
-
-        foreach v_comp in array (case when cardinality(v_comps) = 0
-                                      then array['complete_trade_scope'] else v_comps end) loop
-          for v_tk, v_tpos in select key, value::int from jsonb_each_text(v_trades) loop
-            v_disp := case when v_exc_pos is not null and v_tpos > v_exc_pos
-                           then public.fn_scope_inverse(v_base) else v_base end;
-            v_spec := 2 + (case when v_comp = 'complete_trade_scope' then 0 else 1 end);
-            insert into public.inquiry_scope_disposition
-              (group_id, trade_key, scope_component, disposition, specificity, source_kind,
-               evidence_source, evidence_score, clause_index, clause_text, matched_marker, reason, actor)
-            values (p_group_id, v_tk, v_comp, v_disp, v_spec, 'customer_text', 'customer_text', 0.950,
-                    cl.idx, cl.clause, v_base_marker,
-                    'Clause ' || cl.idx || ' names this trade' ||
-                      case when v_comp <> 'complete_trade_scope' then ' and the ' || v_comp || ' component' else '' end ||
-                      case when v_exc_pos is not null and v_tpos > v_exc_pos
-                           then ', after an exception marker, so the clause disposition is inverted' else '' end ||
-                      '. Marker: ' || coalesce(v_base_marker,'(none - default included)') || '.', p_actor);
-            v_n := v_n + 1;
-          end loop;
-
-          if v_umbrella then
-            insert into public.inquiry_scope_disposition
-              (group_id, trade_key, scope_component, disposition, specificity, source_kind,
-               evidence_source, evidence_score, clause_index, clause_text, matched_marker, reason, actor)
-            select p_group_id, t.trade_key, v_comp,
-                   case when v_exc_pos is not null and v_umb_pos > v_exc_pos
-                        then public.fn_scope_inverse(v_base) else v_base end,
-                   (case when v_comp = 'complete_trade_scope' then 0 else 1 end),
-                   'customer_text','customer_text', 0.900, cl.idx, cl.clause, v_base_marker,
-                   'Clause ' || cl.idx || ' uses an MEP umbrella term' ||
-                     case when v_comp <> 'complete_trade_scope' then ' with the ' || v_comp || ' component' else '' end ||
-                     '. Applied to the core trades at umbrella specificity, so any named-trade instruction outranks it. Marker: '
-                     || coalesce(v_base_marker,'(none - default included)') || '.', p_actor
-              from public.mep_trade t where t.is_core and not (v_trades ? t.trade_key);
-            v_n := v_n + (select count(*) from public.mep_trade t where t.is_core and not (v_trades ? t.trade_key));
-          end if;
-
-          if not v_umbrella and v_trades = '{}'::jsonb and v_comp <> 'complete_trade_scope' then
-            select coalesce(array_agg(distinct c.trade_key), '{}') into v_active_trades
-              from public.inquiry_trade_candidate c
-             where c.group_id = p_group_id and c.status in ('confirmed','proposed');
-            insert into public.inquiry_scope_disposition
-              (group_id, trade_key, scope_component, disposition, specificity, source_kind,
-               evidence_source, evidence_score, clause_index, clause_text, matched_marker, reason, actor)
-            select p_group_id, t, v_comp, v_base, 1, 'customer_text','customer_text', 0.900,
-                   cl.idx, cl.clause, v_base_marker,
-                   'Clause ' || cl.idx || ' names the ' || v_comp || ' component with no trade, so it applies to the trades already in play.', p_actor
-              from unnest(v_active_trades) t;
-            v_n := v_n + coalesce(cardinality(v_active_trades),0);
-          end if;
-        end loop;
-      end loop;
-      return v_n;
-    end $i$
-  $q2$;
-
-  ---------------------------------------------------------------- verify: nothing removable left
-  select (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-           where n.nspname='public' and c.relname = 'p2c1_b7_case')
-       + (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.proname = any(c_funcs))
-    into v_after;
-  if v_after <> 0 then
-    raise exception 'ROLLBACK ABORTED: % removable Stage B.7 objects survived', v_after; end if;
-  select count(*) into v_markers_after from public.scope_marker
-   where marker_type in ('party','attribution','supply_anchor');
-  if v_markers_after <> 0 then
-    raise exception 'ROLLBACK ABORTED: % Stage B.7 marker rows survived', v_markers_after; end if;
-
-  ---------------------------------------------------------------- verify: the B.6 bodies are back
-  -- probed by behaviour and by source, never by assuming the DDL took
-  select p.prosrc not like '%fn_scope_party%' into v_detect_b6
-    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-   where n.nspname='public' and p.proname='fn_scope_detect';
-  select p.prosrc not like '%scope_container%' into v_mfs_b6
-    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-   where n.nspname='public' and p.proname='fn_mep_full_scope';
-  select exists (select 1 from public.mep_trade_pattern
-                  where kind='scope_full' and pattern='package') into v_pkg_back;
-  if not coalesce(v_detect_b6,false) then
-    raise exception 'ROLLBACK ABORTED: fn_scope_detect still calls the B.7 party detector'; end if;
-  if not coalesce(v_mfs_b6,false) then
-    raise exception 'ROLLBACK ABORTED: fn_mep_full_scope still reads the B.7 container class'; end if;
-  if not v_pkg_back then
-    raise exception 'ROLLBACK ABORTED: `package` was not returned to the scope_full class'; end if;
-
-  ---------------------------------------------------------------- verify: the B.6 measurements
-  select count(*) filter (where passed)||'/'||count(*) into v_a from public.fn_p2c1_stage_a_selftest();
-  select count(*) filter (where passed)||'/'||count(*) into v_b from public.fn_p2c1_stage_b_selftest();
-  select count(*) filter (where verdict='PASS')||'/'||count(*) into v_lang from public.fn_p2c1_lang_parity_suite();
-  select count(*) filter (where passed)||'/'||count(*) into v_scope from public.fn_p2c1_scope_rule_tests();
-  select count(*) filter (where passed)||'/'||count(*) into v_disp from public.fn_p2c1_disposition_tests();
-  select count(*), count(*) filter (where verdict='PASS'),
-         coalesce(sum(cardinality(en_false_pos))+sum(cardinality(ar_false_pos)),0),
-         coalesce(sum(cardinality(en_false_neg))+sum(cardinality(ar_false_neg)),0)
-    into v_h_exec, v_h_pass, v_h_fp, v_h_fn from public.fn_p2c1_holdout_run();
-
-  if v_a <> '14/14' or v_b <> '14/14' then
-    raise exception 'ROLLBACK ABORTED: Stage A %, Stage B % after rollback', v_a, v_b; end if;
-  if v_lang <> '23/23' or v_scope <> '12/12' or v_disp <> '22/22' then
-    raise exception 'ROLLBACK ABORTED: lang parity %, scope negatives %, disposition % after rollback',
-      v_lang, v_scope, v_disp; end if;
-  if v_h_exec <> 54 or v_h_pass <> 49 or v_h_fp <> 0 or v_h_fn <> 5 then
-    raise exception 'ROLLBACK ABORTED: holdout v1 is %/% with % false positives and % false negatives; the result of record is 49/54, 0, 5',
-      v_h_pass, v_h_exec, v_h_fp, v_h_fn; end if;
-
-  v_report := jsonb_build_object(
-    'ok', true, 'mode', p_mode, 'actor', p_actor,
-    'removable_objects', jsonb_build_object('before', v_before, 'after', v_after,
-                                            'inventory', to_jsonb(c_funcs || array['p2c1_b7_case'])),
-    'b7_marker_rows', v_markers_before || ' -> ' || v_markers_after,
-    'restored', jsonb_build_object(
-      'fn_scope_detect','Stage B.6 body verified: no party detector',
-      'fn_mep_full_scope','Stage B.6 body verified: reads scope_full only',
-      'mep_trade_pattern','`package` returned to scope_full; B.7 HVAC phrases, hints and containers deleted',
-      'scope_marker','removal phrases returned to fixed by_others; party, attribution and supply_anchor rows deleted'),
-    'intentional_survivors', jsonb_build_array(
-      jsonb_build_object('object','inquiry_scope_disposition.classification_basis and the four party columns',
-        'class','B','reason','permanent evidence on an append-only table: why each historical classification was made. Dropping them would delete audit history to undo a code change.',
-        'rows_carrying_evidence', (select count(*) from public.inquiry_scope_disposition where classification_basis is not null)),
-      jsonb_build_object('object','scope_marker.party_class, scope_marker.resolution','class','additive',
-        'reason','nullable and defaulted; inert once the B.7 marker rows are gone and the B.6 check constraints are restored'),
-      jsonb_build_object('object','fn_p2c1_rollback_stage_b7(text,text)','class','instrument',
-        'reason','the tool performing this rollback; returns stage_b7_not_present if re-run')),
-    'tests', jsonb_build_object('stage_a', v_a, 'stage_b', v_b, 'lang_parity', v_lang,
-                                'scope_negatives', v_scope, 'disposition', v_disp,
-                                'holdout_v1', v_h_pass || '/' || v_h_exec,
-                                'holdout_false_positives', v_h_fp, 'holdout_false_negatives', v_h_fn),
-    'verdict','stage b7 removed; stage b6 interpretation restored; holdout v1 back at its result of record');
-
-  insert into public.inquiry_state_audit (group_id, event, detail, actor)
-  values (null, 'p2c1_stage_b7_rollback_' || p_mode, v_report, p_actor);
-
-  if p_mode = 'rehearse' then
-    raise exception 'REHEARSAL COMPLETE (nothing committed): %', v_report::text; end if;
-  return v_report;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_p2c1_run_lang_case(p_case_key text, p_lang text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -51066,88 +49848,6 @@ begin
   raise exception 'phase1_rollback_log is append-only; % is not permitted', TG_OP
     using errcode = '42501';
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_phase1_rollback_rehearse(p_actor text DEFAULT 'rehearsal'::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'cron'
-AS $function$
-declare
-  v_action text; v_before jsonb; v_during jsonb; v_after jsonb;
-  v_d jsonb; v_r jsonb; v_steps jsonb := '[]'::jsonb;
-begin
-  select action into v_action from public.control_mode_action
-   where classification = 'mutating' order by action limit 1;
-  if v_action is null then raise exception 'no mutating action registered - nothing to rehearse against'; end if;
-
-  v_before := public.fn_control_mode_require('rehearsal@quotesdone.com', v_action);
-  v_steps := v_steps || jsonb_build_object('step','baseline','action',v_action,
-    'allowed', v_before->>'allowed', 'expect','false',
-    'pass', (v_before->>'allowed') = 'false');
-
-  v_d := public.fn_phase1_disarm(p_actor, 'rollback rehearsal - aborted transaction, no lasting effect');
-  v_steps := v_steps || jsonb_build_object('step','disarm','result',v_d,'pass', (v_d->>'ok')='true' and (v_d->>'disarmed')='true');
-
-  v_during := public.fn_control_mode_require('rehearsal@quotesdone.com', v_action);
-  v_steps := v_steps || jsonb_build_object('step','gate_after_disarm','allowed', v_during->>'allowed',
-    'mode', v_during->>'mode', 'expect','true/disarmed',
-    'pass', (v_during->>'allowed')='true' and (v_during->>'mode')='disarmed');
-
-  v_steps := v_steps || jsonb_build_object('step','evidence_preserved',
-    'refunds', (select count(*) from public.refunds),
-    'control_mode_audit_rows', (select count(*) from public.control_mode_audit),
-    'note','disarm deletes nothing; the count only grows because the disarmed pass is itself audited',
-    'pass', true);
-
-  v_r := public.fn_phase1_rearm(p_actor, 'rollback rehearsal - restoring the gate');
-  v_steps := v_steps || jsonb_build_object('step','rearm','result',v_r,'pass',(v_r->>'ok')='true' and (v_r->>'disarmed')='false');
-
-  v_after := public.fn_control_mode_require('rehearsal@quotesdone.com', v_action);
-  v_steps := v_steps || jsonb_build_object('step','gate_after_rearm','allowed', v_after->>'allowed',
-    'expect','false', 'pass', (v_after->>'allowed')='false');
-
-  insert into public.phase1_rollback_log (actor, tier, reason, detail)
-  values (p_actor, 'rehearse', 'tier 0 rollback rehearsal', jsonb_build_object('steps', v_steps));
-
-  return jsonb_build_object(
-    'ok', true,
-    'all_passed', not exists (select 1 from jsonb_array_elements(v_steps) s where (s->>'pass') is distinct from 'true'),
-    'steps', v_steps,
-    'WARNING', 'This function MUTATES. It is only safe inside a transaction you abort. Everything it did is undone by ROLLBACK.');
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_phase1_status()
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select jsonb_build_object(
-    'disarmed', public.fn_phase1_disarmed(),
-    'last_rollback_action', (select to_jsonb(l) from public.phase1_rollback_log l order by id desc limit 1),
-    'objects', jsonb_build_object(
-      'tables',    (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname='public' and c.relkind='r'
-                       and (c.relname like 'control_mode%' or c.relname like 'refund%' or c.relname='phase1_rollback_log')),
-      'views',     (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname='public' and c.relkind='v'
-                       and (c.relname like 'v_refund%' or c.relname like 'v_supplier_exception%')),
-      'functions', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-                     where n.nspname='public'
-                       and (p.proname like 'fn_control_mode%' or p.proname like 'fn_refund%'
-                            or p.proname like 'fn_supplier_exception%' or p.proname like 'fn_phase1%'))),
-    'evidence_rows', jsonb_build_object(
-      'refunds',                  (select count(*) from public.refunds),
-      'refund_event_quarantine',  (select count(*) from public.refund_event_quarantine),
-      'control_mode_audit',       (select count(*) from public.control_mode_audit),
-      'control_mode_action',      (select count(*) from public.control_mode_action),
-      'gated_actions',            (select count(*) from public.control_mode_action where classification='mutating')),
-    'crons', (select coalesce(jsonb_object_agg(jobname, jsonb_build_object('schedule', schedule, 'active', active)), '{}'::jsonb)
-                from cron.job where jobname in ('control_mode_sweep_5min','supplier_exception_sweep_daily')))
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_phase_a_deferred_items()
@@ -69655,80 +68355,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_po_bill(p_po bigint, p_bill_no text, p_bill_date date, p_due date, p_vat numeric DEFAULT 0, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare r record; q numeric(18,4); amt numeric(18,2); sub numeric(18,2) := 0;
-        vat numeric(18,2) := coalesce(round(p_vat,2),0); tot numeric(18,2);
-        gl_lines jsonb := '[]'::jsonb; j bigint; v_bill bigint; v_vendor bigint;
-        all_billed boolean;
-begin
-  select vendor_id into v_vendor from public.po_orders where id=p_po;
-  if v_vendor is null then raise exception 'PO % not found', p_po; end if;
-
-  for r in select * from public.po_lines where po_id=p_po order by line_no loop
-    q := r.qty_received - r.qty_billed;                   -- received not yet billed
-    if q <= 0 then continue; end if;
-    amt := round(q * r.unit_price, 2);
-    sub := sub + amt;
-    update public.po_lines set qty_billed = qty_billed + q where id=r.id;
-  end loop;
-  if sub = 0 then raise exception 'PO % has no received-unbilled qty to bill', p_po; end if;
-  tot := sub + vat;
-
-  gl_lines := jsonb_build_array(jsonb_build_object('account','2250','debit', sub));  -- clear GRNI
-  if vat > 0 then
-    gl_lines := gl_lines || jsonb_build_object('account','1150','debit', vat); end if;
-  gl_lines := gl_lines || jsonb_build_object('account','2000','credit', tot);        -- AP
-
-  j := public.fn_gl_entry(coalesce(p_bill_date,current_date),
-         'Vendor bill '||coalesce(p_bill_no,'(PO-'||p_po||')'),
-         'ap_bill', p_po::text, gl_lines, p_by);
-
-  insert into public.ap_bills(bill_no,vendor_id,po_id,bill_date,due_date,
-        subtotal,vat_amount,total,gl_journal_id,created_by)
-    values (p_bill_no, v_vendor, p_po, coalesce(p_bill_date,current_date), p_due,
-            sub, vat, tot, j, p_by)
-    returning id into v_bill;
-  update public.ap_bills set bill_no = coalesce(bill_no,'BILL-'||lpad(v_bill::text,6,'0')) where id=v_bill;
-
-  select bool_and(qty_billed >= qty) into all_billed from public.po_lines where po_id=p_po;
-  update public.po_orders set status = case when all_billed then 'billed' else status end where id=p_po;
-  return v_bill;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_po_create(p_vendor bigint, p_order_date date, p_expected date, p_memo text, p_lines jsonb, p_created_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare v_po bigint; ln jsonb; i int := 0; sub numeric(18,2) := 0;
-begin
-  if jsonb_typeof(p_lines) <> 'array' or jsonb_array_length(p_lines) = 0 then
-    raise exception 'PO needs at least one line';
-  end if;
-  insert into public.po_orders(vendor_id,order_date,expected_date,memo,created_by)
-    values (p_vendor, coalesce(p_order_date,current_date), p_expected, p_memo, p_created_by)
-    returning id into v_po;
-  update public.po_orders set po_no = 'PO-'||lpad(v_po::text,6,'0') where id=v_po;
-  for ln in select * from jsonb_array_elements(p_lines) loop
-    i := i + 1;
-    insert into public.po_lines(po_id,line_no,description,account_code,item_id,qty,unit_price)
-      values (v_po, i, ln->>'description', ln->>'account',
-              nullif(ln->>'item','')::bigint,
-              (ln->>'qty')::numeric, coalesce((ln->>'unit_price')::numeric,0));
-    sub := sub + (ln->>'qty')::numeric * coalesce((ln->>'unit_price')::numeric,0);
-  end loop;
-  update public.po_orders set subtotal = sub where id=v_po;
-  return v_po;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_po_orders_link()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -69745,61 +68371,6 @@ begin
       from public.inquiries i where i.id = new.inquiry_id;
   end if;
   return new;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_po_receive(p_po bigint, p_recv jsonb DEFAULT NULL::jsonb, p_date date DEFAULT NULL::date, p_by text DEFAULT NULL::text)
- RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare r record; q numeric(18,4); amt numeric(18,2); gl_lines jsonb := '[]'::jsonb;
-        total numeric(18,2) := 0; j bigint; st text; all_recv boolean;
-        recv_items jsonb := '[]'::jsonb;   -- {item, qty, unit_cost}
-begin
-  select status into st from public.po_orders where id=p_po;
-  if st is null then raise exception 'PO % not found', p_po; end if;
-  if st not in ('approved','partial') then
-    raise exception 'PO % is % (must be approved before receiving)', p_po, st; end if;
-
-  for r in select * from public.po_lines where po_id=p_po order by line_no loop
-    if p_recv is null then
-      q := r.qty - r.qty_received;
-    else
-      q := coalesce((select (e->>'qty')::numeric
-             from jsonb_array_elements(p_recv) e
-             where (e->>'line_no')::int = r.line_no), 0);
-    end if;
-    if q <= 0 then continue; end if;
-    if r.qty_received + q > r.qty then
-      raise exception 'line % over-receipt: %/%', r.line_no, r.qty_received+q, r.qty; end if;
-    amt := round(q * r.unit_price, 2);
-    total := total + amt;
-    gl_lines := gl_lines || jsonb_build_object('account', r.account_code, 'debit', amt);
-    update public.po_lines set qty_received = qty_received + q where id=r.id;
-    if r.item_id is not null then
-      recv_items := recv_items || jsonb_build_object('item', r.item_id, 'qty', q, 'unit_cost', r.unit_price);
-    end if;
-  end loop;
-
-  if total = 0 then raise exception 'nothing to receive on PO %', p_po; end if;
-  gl_lines := gl_lines || jsonb_build_object('account','2250','credit', total);
-  j := public.fn_gl_entry(coalesce(p_date,current_date),
-         'Goods receipt '||(select po_no from public.po_orders where id=p_po),
-         'po_receipt', p_po::text, gl_lines, p_by);
-
-  -- record inventory stock moves (GL already posted above; no double entry)
-  insert into public.inv_stock_moves(item_id,move_date,move_type,qty_delta,cost_delta,
-       unit_cost,ref_type,ref_id,gl_journal_id,created_by)
-  select (e->>'item')::bigint, coalesce(p_date,current_date), 'in',
-         (e->>'qty')::numeric, round((e->>'qty')::numeric*(e->>'unit_cost')::numeric,2),
-         (e->>'unit_cost')::numeric, 'po_receipt', p_po::text, j, p_by
-  from jsonb_array_elements(recv_items) e;
-
-  select bool_and(qty_received >= qty) into all_recv from public.po_lines where po_id=p_po;
-  update public.po_orders set status = case when all_recv then 'received' else 'partial' end where id=p_po;
-  return j;
 end $function$
 
 
@@ -69857,17 +68428,6 @@ begin
   end if;
   return json_build_object('findings', n, 'critical', v_crit, 'detail', f, 'checked_at', now());
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_policy_lint_kb_chunks()
- RETURNS jsonb
- LANGUAGE sql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
- select jsonb_build_object('kb_chunks_dirty', count(*)) from kb_chunks k
- where exists (select 1 from policy_rules p where p.active and k.content ~* p.forbid_regex)
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
@@ -70192,23 +68752,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_prompt_publish(p_key text, p_content text, p_owner text DEFAULT 'agent'::text, p_rollout integer DEFAULT 100)
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v int;
-begin
-  insert into public.prompts(key,owner) values(p_key,p_owner) on conflict(key) do update set updated_at=now();
-  select coalesce(max(version),0)+1 into v from prompt_versions where prompt_key=p_key;
-  insert into prompt_versions(prompt_key,version,content,status,rollout_pct,approved_by) values(p_key,v,p_content,'active',p_rollout,p_owner);
-  update prompt_versions set status='deprecated' where prompt_key=p_key and version<v and status='active';
-  update prompts set active_version=v, updated_at=now() where key=p_key;
-  return v;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_prompt_reject_draft(p_key text, p_version integer, p_by text DEFAULT 'founder'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -70522,29 +69065,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_quote_category_score_text(p_category text, p_text text)
- RETURNS jsonb
- LANGUAGE plpgsql
- IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare grp text; blob text; r record; tot int:=0; okc int:=0; mand_missing int:=0; miss jsonb:='[]'::jsonb;
-begin
-  grp := fn_quote_spec_group(coalesce(p_category,''));
-  if grp is null or not exists (select 1 from category_quote_specs where spec_group=grp) then
-    return jsonb_build_object('applicable',false); end if;
-  blob := lower(coalesce(p_text,''));
-  for r in select * from category_quote_specs where spec_group=grp loop
-    tot := tot + 1;
-    if blob ~* r.match_regex then okc := okc + 1;
-    else miss := miss || jsonb_build_object('aspect',r.aspect,'mandatory',r.mandatory);
-      if r.mandatory then mand_missing := mand_missing + 1; end if; end if;
-  end loop;
-  return jsonb_build_object('applicable',true,'group',grp,'aspects_total',tot,'aspects_present',okc,
-    'mandatory_missing',mand_missing,'category_pass',(mand_missing=0),'missing',miss);
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_quote_coach(p_quote uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -70584,50 +69104,6 @@ begin
       values('quote_coaching', coalesce(sup.claimed_by,sup.email), 'supplier','email',subject,msg,'queued');
   end if;
   return jsonb_build_object('ok',true,'submittable',false,'missing',lbls,'score',sc->>'score');
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_quote_coach_text(p_quote text)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare gen jsonb; cat jsonb; asks text[] := '{}'; m jsonb; lbl text;
-        gen_labels jsonb := jsonb_build_object(
-          'line_items','an itemised breakdown (not just a lump sum)',
-          'unit_prices_on_all_items','a unit price on every line',
-          'brand_model_per_item','the brand/model for each item',
-          'specifications','the key specifications',
-          'labour_or_installation','the labour / installation cost',
-          'warranty','the warranty period','lead_time','the lead / delivery time',
-          'payment_terms','the payment terms','exclusions','what is excluded',
-          'validity','how long the quote is valid');
-begin
-  select quality into gen from quotes where id = p_quote::uuid;
-  -- generic completeness gaps
-  if gen ? 'missing' then
-    for m in select * from jsonb_array_elements(gen->'missing') loop
-      lbl := gen_labels->>(m #>> '{}'); if lbl is null then lbl := m #>> '{}'; end if;
-      asks := asks || lbl;
-    end loop;
-  end if;
-  -- category-specific domain gaps (mandatory only)
-  cat := fn_quote_category_score(p_quote);
-  if (cat->>'applicable')::boolean and cat ? 'missing' then
-    for m in select * from jsonb_array_elements(cat->'missing') loop
-      if (m->>'mandatory')::boolean then asks := asks || lower(m->>'label'); end if;
-    end loop;
-  end if;
-  asks := (select array_agg(distinct a) from unnest(asks) a);
-  if coalesce(array_length(asks,1),0) = 0 then
-    return jsonb_build_object('complete', true, 'message',
-      'Your quote looks complete — thank you. Customers will be able to compare it fairly.');
-  end if;
-  return jsonb_build_object('complete', false, 'missing_count', array_length(asks,1),
-    'message', 'Almost there. To help customers compare your quote fairly and pick you, please add: '
-      || array_to_string(asks, '; ') || '. This makes your quote stronger, not harder — complete quotes win more often.',
-    'asks', to_jsonb(asks));
 end $function$
 
 
@@ -73949,40 +72425,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_rules_eval(p_ctx jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; matched jsonb:='[]'; reqs text[]:='{}'; ok boolean; k text; cond jsonb; want text; got text;
-begin
-  for r in select * from business_rules where active order by priority loop
-    ok := true;
-    for k in select jsonb_object_keys(r.when_json) loop
-      cond := r.when_json->k;
-      if jsonb_typeof(cond)='object' and cond ? 'gt' then
-        if coalesce(nullif(p_ctx->>k,'')::numeric,0) <= (cond->>'gt')::numeric then ok:=false; end if;
-      elsif jsonb_typeof(cond)='object' and cond ? 'gte' then
-        if coalesce(nullif(p_ctx->>k,'')::numeric,0) < (cond->>'gte')::numeric then ok:=false; end if;
-      elsif jsonb_typeof(cond)='object' and cond ? 'in' then
-        if not (lower(coalesce(p_ctx->>k,'')) = any(select lower(jsonb_array_elements_text(cond->'in')))) then ok:=false; end if;
-      else
-        if lower(coalesce(p_ctx->>k,'')) <> lower(cond#>>'{}') then ok:=false; end if;
-      end if;
-      exit when not ok;
-    end loop;
-    if ok then
-      matched := matched || jsonb_build_object('rule',r.name,'then',r.then_json);
-      if r.then_json ? 'require' then
-        reqs := reqs || array(select jsonb_array_elements_text(r.then_json->'require'));
-      end if;
-    end if;
-  end loop;
-  return jsonb_build_object('matched',matched,'required',to_jsonb((select array_agg(distinct x) from unnest(reqs) x)));
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_run_vt()
  RETURNS void
  LANGUAGE plpgsql
@@ -74527,23 +72969,6 @@ begin
     'staffed', v_staffed, 'staffed_unmanaged', v_unmanaged, 'gap', v_gap,
     'is_rehearsal', false, 'scenarios', v_out);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_scenario_verdict(p_scenario_id text, p_actual text)
- RETURNS text
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select case
-    when coalesce(p_actual,'') is not distinct from
-         (select coalesce(original_expected,'') from public.v_scenario_expectation_current where scenario_id = p_scenario_id)
-      then 'pass_original'
-    when coalesce(p_actual,'') is not distinct from
-         (select coalesce(current_expected,'')  from public.v_scenario_expectation_current where scenario_id = p_scenario_id)
-      then 'pass_revised'
-    else 'fail' end;
 $function$
 
 
@@ -80733,164 +79158,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_unsafe_liveness_probe()
- RETURNS TABLE(class_key text, fired_before integer, fired_after integer, can_fire boolean, control text, note text)
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare b integer; a integer; e text; v_tx uuid;
-begin
-  ---------------------------------------------------------------- unstated_assumption
-  select count(*)::int into b from public.fn_unsafe_check_unstated_assumption(null);
-  a := null; e := null;
-  begin
-    insert into public.decision_trace (correlation_id, entity_type, entity_id, decision_type,
-                                       proposed_by, decision, assumptions, knowledge_refs,
-                                       evidence_refs, agent_key)
-    values (gen_random_uuid(),'probe','__liveness__','probe','__probe__',
-            '{"probe":true}'::jsonb, '["a fact the case never supplied"]'::jsonb,
-            '[]'::jsonb, '[]'::jsonb, '__probe__');
-    select count(*)::int into a from public.fn_unsafe_check_unstated_assumption(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='unstated_assumption'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='insert a decision_trace row carrying an assumption with empty knowledge_refs and evidence_refs';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- unlogged_provider_bypass
-  select count(*)::int into b from public.fn_unsafe_check_unlogged_provider(null);
-  a := null; e := null;
-  begin
-    update public.internal_credential
-       set last_used_at = now() + interval '1 hour'
-     where active and last_function = 'ai_gateway'
-       and id = (select min(id) from public.internal_credential where active and last_function='ai_gateway');
-    select count(*)::int into a from public.fn_unsafe_check_unlogged_provider(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='unlogged_provider_bypass'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='stamp an ai_gateway credential as used after the newest ai_cost_log row';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- fail_open_authorization
-  select count(*)::int into b from public.fn_unsafe_check_fail_open_authz(null);
-  a := null; e := null;
-  begin
-    delete from public.org_authority
-     where (dept_key, action_class) in (
-       select e2.department, e2.action_class from public.org_action_executor e2
-        where e2.active and coalesce(e2.unattended_ok,false));
-    select count(*)::int into a from public.fn_unsafe_check_fail_open_authz(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='fail_open_authorization'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='delete the org_authority rows covering unattended executors';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- double_charge_refund
-  select count(*)::int into b from public.fn_unsafe_check_double_refund(null);
-  a := null; e := null;
-  begin
-    insert into public.refunds (stripe_charge_id, amount_fils, currency, reason_code, status,
-                                requested_by, requested_at, within_auto_window)
-    values ('__probe_charge__', 5000, 'AED', 'other', 'requested', '__probe__', now(), false),
-           ('__probe_charge__', 5000, 'AED', 'other', 'requested', '__probe__', now(), false);
-    select count(*)::int into a from public.fn_unsafe_check_double_refund(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='double_charge_refund'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='insert two live refund rows against one charge id';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- credential_exposure
-  select count(*)::int into b from public.fn_unsafe_check_credential_exposure(null);
-  a := null; e := null;
-  begin
-    insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
-    select '__probe__','liveness','probe','__probe__',
-           jsonb_build_object('leaked', s.value), true
-      from public.app_secrets s
-     where s.key ~ '^cred_' and length(s.value) >= 24
-     order by s.key limit 1;
-    select count(*)::int into a from public.fn_unsafe_check_credential_exposure(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='credential_exposure'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='write the live value of a cred_* secret into an os_audit_log detail';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- ineligible_supplier_match
-  select count(*)::int into b from public.fn_unsafe_check_ineligible_match(null);
-  a := null; e := null;
-  begin
-    update public.leads set matching_blocked = true
-     where id in (select supplier_id from public.inquiry_matches);
-    select count(*)::int into a from public.fn_unsafe_check_ineligible_match(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='ineligible_supplier_match'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='mark every already-matched supplier as blocked from matching';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- unintended_recipient
-  select count(*)::int into b from public.fn_unsafe_check_unintended_recipient(null);
-  a := null; e := null;
-  begin
-    update public.notifications
-       set to_email = 'somebody-else@' || md5(random()::text) || '.invalid'
-     where id = (select n.id from public.notifications n join public.leads l on l.id = n.lead_id
-                  where coalesce(n.status,'') not in ('cancelled','failed','blocked','suppressed')
-                    and n.to_email is not null and l.email is not null
-                  order by n.id desc limit 1);
-    select count(*)::int into a from public.fn_unsafe_check_unintended_recipient(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='unintended_recipient'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='readdress a live lead notification to a third-party address';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- the refusal path itself
-  select count(*)::int into b from public.unsafe_block;
-  a := null; e := null; v_tx := null;
-  begin
-    insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
-    select gen_random_uuid(), l.id, 0.99, '__liveness_probe__'
-      from public.leads l where coalesce(l.banned,false) or coalesce(l.matching_blocked,false)
-      order by l.id limit 1;
-    select count(*)::int into a from public.unsafe_block;
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='ineligible_supplier_match/trigger'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='insert a match to a banned or blocked supplier and check the refusal left an unsafe_block row';
-  note:=e; return next;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_unsafe_match_eligibility_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -84904,32 +83171,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.mdm_normalize(p_kind text, p_raw text)
- RETURNS text
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v text; r text := lower(trim(coalesce(p_raw,'')));
-begin
-  if r = '' then return null; end if;
-  if p_kind = 'emirate' then
-     select code into v from public.mdm_emirates where lower(name)=r or r = any(aliases) limit 1; return v;
-  elsif p_kind = 'currency' then
-     select code into v from public.mdm_currencies where lower(code)=r or lower(name)=r limit 1; return v;
-  elsif p_kind = 'unit' then
-     select code into v from public.mdm_units where lower(code)=r or r = any(aliases) limit 1; return v;
-  elsif p_kind = 'brand' then
-     select name into v from public.mdm_brands where lower(name)=r or r = any(aliases) limit 1; return v;
-  elsif p_kind = 'manufacturer' then
-     select name into v from public.mdm_manufacturers where lower(name)=r or r = any(aliases) limit 1; return v;
-  elsif p_kind = 'standard' then
-     select code into v from public.mdm_standards where lower(code)=r or r = any(aliases) limit 1; return v;
-  end if;
-  return null;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.mkt_rec(p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text, p_assumptions jsonb DEFAULT NULL::jsonb, p_impact text DEFAULT NULL::text, p_cost text DEFAULT NULL::text)
  RETURNS void
  LANGUAGE plpgsql
@@ -85681,43 +83922,6 @@ begin
     body := jsonb_build_object('__secret', s)
   );
 end$function$
-
-
-CREATE OR REPLACE FUNCTION public.run_reveal_nudges()
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; n int := 0; cemail text; supemail text; comp text;
-begin
-  for r in
-    select t.inquiry_id, t.supplier_id, t.customer_id
-    from public.transactions t
-    where t.revealed_at is not null
-      and t.revealed_at < now() - interval '24 hours'
-      and coalesce(t.refund_status,'') = 'window_open'
-      and not exists (select 1 from public.messages m where m.inquiry_id=t.inquiry_id and m.supplier_id=t.supplier_id and m.sender='supplier')
-      and not exists (select 1 from public.notifications x where x.type='reveal_nudge' and x.inquiry_id=t.inquiry_id)
-  loop
-    select email into cemail from public.customers where id=r.customer_id;
-    select company_name, claimed_by into comp, supemail from public.leads where id=r.supplier_id;
-    if cemail is not null then
-      insert into public.notifications(type,to_email,to_role,inquiry_id,subject,body,status)
-      values('reveal_nudge', cemail,'customer', r.inquiry_id,
-        coalesce(comp,'Your supplier')||' has not replied yet',
-        'It has been 24 hours and '||coalesce(comp,'the supplier')||' has not responded in the app. Try messaging again — or open the request and Report an issue to request a reveal-fee refund (within 72 hours of reveal).','queued');
-    end if;
-    if supemail is not null then
-      insert into public.notifications(type,to_email,to_role,inquiry_id,subject,body,status)
-      values('reveal_nudge_sup', supemail,'supplier', r.inquiry_id,
-        'A customer is waiting for your reply',
-        'A customer unlocked your quote on QuotesDone and is waiting to hear from you. Please log in and reply in the app to win the job.','queued');
-    end if;
-    n := n + 1;
-  end loop;
-  return n;
-end $function$
 
 
 CREATE OR REPLACE FUNCTION public.run_rfq_clarify(p_dry_run boolean DEFAULT false)
@@ -88697,7 +86901,7 @@ $CRON$);
 select cron.schedule('doc_expiry_daily','20 5 * * *',$CRON$select public.fn_kernel_cron_exec(59);$CRON$);
 select cron.schedule('monthly_report','0 7 1 * *',$CRON$select public.fn_kernel_cron_exec(60);$CRON$);
 select cron.schedule('quarterly_report','0 8 1 1,4,7,10 *',$CRON$select public.fn_quarterly_report();$CRON$);
-select cron.schedule('gl_sync_nightly','0 2 * * *',$CRON$select public.fn_gl_sync_business();$CRON$);
+select cron.schedule('gl_sync_nightly','0 2 * * *',$CRON$select public.fn_kernel_cron_exec(62);$CRON$);
 select cron.schedule('autonomy_dispose_hourly','45 * * * *',$CRON$select public.fn_kernel_cron_exec(64);$CRON$);
 select cron.schedule('email_triage_hourly','20 * * * *',$CRON$select net.http_post(
     url:='https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/email_triage',
@@ -88996,6 +87200,9 @@ select cron.schedule('knowledge_exam_retrieval_daily','23 3 * * *',$CRON$select 
 select cron.schedule('resilience_drill_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(321);$CRON$);
 select cron.schedule('supplier_discovery_daily','50 2 * * *',$CRON$select public.fn_kernel_cron_exec(322);$CRON$);
 select cron.schedule('red_view_alert_15min','7,22,37,52 * * * *',$CRON$select public.fn_kernel_cron_exec(324);$CRON$);
+select cron.schedule('collections_reminders_daily','20 6 * * *',$CRON$select public.fn_kernel_cron_exec(331);$CRON$);
+select cron.schedule('experiment_conclude_daily','40 2 * * *',$CRON$select public.fn_kernel_cron_exec(332);$CRON$);
+select cron.schedule('blueprint_result_prune_weekly','15 3 * * 0',$CRON$select public.fn_kernel_cron_exec(333);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
