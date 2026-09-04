@@ -50,6 +50,50 @@ Deno.serve(async (req) => {
 
     const action = String(b?.action || '');
 
+    // 4 SEP 2026 — THE incident_fix EXECUTOR, CALLED BY A WORKFLOW STEP. fn_action_invoke_dispatch posts
+    // the step's request (workflow_run_id, step_no, actor, input) with no `action`, and this function
+    // answered 400 unknown_action, which the collector filed as a failed step and the run as failed.
+    // What the ops director's step "Assign an owner and open the incident" means, deterministically:
+    // one register row per workflow run, owned by the step's actor; the engineer's later incident_fix
+    // step ("Fix and verify the metric recovers") resolves that same row. Opened DIRECTLY, not through
+    // fn_os_incident_open: that routine pages the founder over alert_founder, which is the human
+    // "get help" button's job — an automated workflow opening its own incident record must not page him
+    // (the health.degraded event that started the run is already the signal). Nothing here is a model.
+    if (viaInternal && !action && b?.workflow_run_id) {
+      const runId = String(b.workflow_run_id);
+      const stepNo = Number(b.step_no) || 0;
+      const actor = String(b.actor || 'ops_director');
+      const stepText = String(b?.input?.step || 'incident step');
+      const { data: existing } = await admin.from('os_incidents').select('id,status,detail')
+        .contains('detail', { workflow_run_id: runId }).order('id', { ascending: false }).limit(1);
+      const cur = (existing || [])[0] as { id: number; status: string } | undefined;
+      if (!cur) {
+        const { data: run } = await admin.from('workflow_run').select('context,workflow_key').eq('id', runId).maybeSingle();
+        const ctx = (run?.context ?? {}) as Record<string, unknown>;
+        const title = ('Incident: ' + String(ctx.title || ctx.metric || ctx.check || ctx.reason || ctx.event_type
+          || (run?.workflow_key ? run.workflow_key + ' run ' + runId.slice(0, 8) : 'workflow ' + runId.slice(0, 8)))).slice(0, 200);
+        const { data: ins, error: insErr } = await admin.from('os_incidents').insert({
+          title, kind: 'workflow', severity: String(ctx.severity || 'medium'), status: 'open',
+          detail: { workflow_run_id: runId, step_no: stepNo, step: stepText, actor, trigger: ctx, opened_by_executor: 'incident_fix' },
+          opened_by: email, owner: actor,
+        }).select('id').single();
+        if (insErr) return J({ ok: false, error: insErr.message }, 500);
+        await admin.from('os_audit_log').insert({ actor: email, action: 'incident_open', entity: 'incident', entity_id: String(ins.id),
+          detail: { title, workflow_run_id: runId, step_no: stepNo, owner: actor, paged: false }, ok: true });
+        return J({ ok: true, opened: ins.id, owner: actor, used_llm: false,
+          note: 'Opened OS incident #' + ins.id + ' for workflow run ' + runId.slice(0, 8) + ', owner ' + actor + '. Not paged: the triggering event is the signal.' });
+      }
+      if (cur.status !== 'resolved') {
+        const { data: res, error: resErr } = await admin.rpc('fn_os_incident_resolve', {
+          p_id: cur.id, p_resolution: 'step ' + stepNo + ' "' + stepText + '" completed by ' + actor + ' in the incident_response workflow (run ' + runId + ')', p_actor: email });
+        if (resErr) return J({ ok: false, error: resErr.message }, 500);
+        return J({ ok: true, resolved: cur.id, used_llm: false, result: res,
+          note: 'Resolved OS incident #' + cur.id + ' at step ' + stepNo + ' (' + stepText + ').' });
+      }
+      return J({ ok: true, incident: cur.id, already_resolved: true, used_llm: false,
+        note: 'OS incident #' + cur.id + ' for this run is already resolved; nothing to do at step ' + stepNo + '.' });
+    }
+
     if (action === 'runbooks') {
       const { data, error } = await admin.rpc('fn_os_runbooks');
       if (error) return J({ error: error.message }, 500);

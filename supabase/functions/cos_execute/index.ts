@@ -138,7 +138,9 @@ async function assignee(deptKey: string, actionClass: string, fallback: string):
 const DELIVERED_CLASSES = /recommend|review|analy|forecast|report|research|draft|knowledge|plan|strategy|audit|assess/i;
 
 // Ask the owning department's specialist to produce the ACTUAL deliverable for this task.
-async function dispatch(deptName: string, brainKey: string, objective: string, t: any): Promise<string> {
+// Returns the deliverable AND whether the paid model produced it: the org_task result carries used_llm so
+// the employee_task run that mirrors this task (fn_workflow_run_follow_task) can say how it was worked.
+async function dispatch(deptName: string, brainKey: string, objective: string, t: any): Promise<{ text: string; usedLlm: boolean }> {
   const instruction =
     'DEPARTMENT WORK ORDER from the Chief of Staff.\n' +
     'Company objective: ' + objective + '\n' +
@@ -157,12 +159,17 @@ async function dispatch(deptName: string, brainKey: string, objective: string, t
     // deno-lint-ignore no-explicit-any
     const emb = await (new (globalThis as any).Supabase.ai.Session('gte-small'))
       .run(((t.title || '') + ' — ' + (t.detail || '')).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+    // Cosine alone cannot tell a determination from noise (random in-scope pairs: median 0.837, measured
+    // 4 Sep 2026), so fn_apply_playbook also demands keyword corroboration from the task's own text and an
+    // ACTIONABLE record kind. See scripts/sql/apply_playbook_needs_corroboration.sql.
     const { data: det } = await admin.rpc('fn_apply_playbook',
-      { p_agent_key: brainKey || deptName, p_query_embedding: '[' + emb.join(',') + ']', p_min_similarity: 0.42, p_k: 5 });
+      { p_agent_key: brainKey || deptName, p_query_embedding: '[' + emb.join(',') + ']',
+        p_query_text: String(t.title || '') + ' ' + String(t.detail || '').slice(0, 800),
+        p_min_similarity: 0.85, p_k: 20 });
     // deno-lint-ignore no-explicit-any
     const d = det as any;
     if (d && d.matched === true && typeof d.determination === 'string' && d.determination.length > 60) {
-      return String(d.determination) + '\nRESULT: ' + String(d.outcome || d.title || 'applied the company playbook').slice(0, 280);
+      return { text: String(d.determination) + '\nRESULT: ' + String(d.outcome || d.title || 'applied the company playbook').slice(0, 280), usedLlm: false };
     }
   } catch (_e) { /* deterministic path optional; fall through to the specialist model */ }
 
@@ -175,14 +182,16 @@ async function dispatch(deptName: string, brainKey: string, objective: string, t
       const r = await fetch(FN + '/agent_brain', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __secret: await sec('cred_fn_cos_execute'), agent: brainKey, message: instruction }), signal: AbortSignal.timeout(75000) });
       const j = await r.json().catch(() => ({} as any));
-      if (j?.reply && String(j.reply).length > 40) return String(j.reply);
+      // agent_brain answers the held model with a courteous apology, not with model output: that is
+      // NOT_WORK, and it is not a model call either.
+      if (j?.reply && String(j.reply).length > 40) return { text: String(j.reply), usedLlm: j?.used_llm !== false && !NOT_WORK.test(String(j.reply).slice(0, 400)) };
     } catch (_e) { /* fall through to generic */ }
   }
   // Generic department-head fallback (analytics, procurement, or brain unreachable).
   // 8000 is above model_policy.agent_reasoning on purpose — see the ceiling note on `llm` above.
   // This is "let the task class decide", expressed through a signature that will not accept undefined.
   const out = await llm('You are the head of the ' + deptName + ' department at QuotesDone, a UAE B2B anonymous quotation marketplace. You are a seasoned professional. Produce concrete, practical deliverables. Never invent numbers.', instruction, 8000);
-  return out || '';
+  return { text: out || '', usedLlm: !!out };
 }
 function resultLine(deliverable: string): string {
   const m = deliverable.match(/RESULT:\s*(.+)\s*$/i);
@@ -422,7 +431,7 @@ Deno.serve(async (req) => {
         if (newStatus === 'done') done++; else if (newStatus === 'escalated') escalated++; else working++;
         const review_pending = newStatus === 'done' && t.tier === 'supervised';
         await admin.from('org_tasks').update({ status: newStatus, decided_by: 'cos', updated_at: nowIso(),
-          result: { mode: 'executed', executor: ex.target, executed: execResult, summary: oneLine, review_pending, at: nowIso() } }).eq('id', t.id);
+          result: { mode: 'executed', executor: ex.target, executed: execResult, summary: oneLine, review_pending, used_llm: execResult?.used_llm === true, at: nowIso() } }).eq('id', t.id);
         try { await admin.from('org_memory').insert({ scope: t.dept_key, kind: 'action', content: (t.title + ' — ' + oneLine).slice(0, 500), source: 'cos' }); } catch (_e) {}
         if (newStatus === 'escalated') {
           try { await admin.from('agent_actions').insert({ agent: t.dept_key, kind: 'objective_step', status: 'pending', risk: 'low',
@@ -436,7 +445,9 @@ Deno.serve(async (req) => {
 
       const { data: obj } = await admin.from('org_objectives').select('objective').eq('id', t.objective_id).maybeSingle();
       const worker = await assignee(t.dept_key, t.action_class, dept.brain_agent || dept.lead_agent);
-      const deliverable = (await dispatch(dept.name, worker, obj?.objective || '', t)).trim();
+      const disp = await dispatch(dept.name, worker, obj?.objective || '', t);
+      const deliverable = disp.text.trim();
+      const usedLlm = disp.usedLlm;
       const oneLine = resultLine(deliverable);
       const delivered = DELIVERED_CLASSES.test(t.action_class || '') || t.tier === 'advisory';
       const mode = delivered ? 'delivered' : 'prepared'; // 'prepared' → dept's autonomous machinery executes the side effect
@@ -461,7 +472,7 @@ Deno.serve(async (req) => {
       if (hasWork) {
         await admin.from('org_tasks').update({
           updated_at: nowIso(),
-          result: { deliverable: deliverable.slice(0, 20000), summary: oneLine, mode, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso() },
+          result: { deliverable: deliverable.slice(0, 20000), summary: oneLine, mode, used_llm: usedLlm, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso() },
         }).eq('id', t.id);
         try {
           const { data, error } = await admin.rpc('fn_task_review', { p_task_id: t.id });
@@ -499,7 +510,7 @@ Deno.serve(async (req) => {
       const review_pending = newStatus === 'done' && t.tier === 'supervised';
       await admin.from('org_tasks').update({
         status: newStatus, decided_by: 'cos', updated_at: nowIso(),
-        result: { deliverable: deliverable.slice(0, 20000), summary: oneLine, mode, review_pending, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso(),
+        result: { deliverable: deliverable.slice(0, 20000), summary: oneLine, mode, review_pending, used_llm: usedLlm, brain: dept.brain_agent || dept.lead_agent || 'dept_head', at: nowIso(),
                   review: review ? { outcome: review.outcome, reviewer: review.reviewer, delegated_from: review.delegated_from,
                                      violations: review.violations, dissents: review.dissents, rules_applied: review.rules_applied,
                                      blocked: review.blocked } : { outcome: 'unavailable' },
