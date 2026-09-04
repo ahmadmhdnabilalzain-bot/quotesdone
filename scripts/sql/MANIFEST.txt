@@ -1615,3 +1615,11 @@ scripts/apply_sql.mjs
 $f
 --apply
 --ddl
+scripts/sql/the_route_tests_run_again.sql
+$f
+;
+node
+scripts/apply_sql.mjs
+$f
+--apply
+--ddl
