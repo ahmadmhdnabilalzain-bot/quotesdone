@@ -110,14 +110,13 @@ jobs:
         run: node scripts/checks/org_connectivity_scenarios.test.mjs
 
   # ============================================================================================
-  # THE PHASE C GATE, RUN FOR REAL ON EVERY PULL REQUEST.
+  # THE KERNEL AND HANDLER GATE, RUN FOR REAL ON EVERY PULL REQUEST.
   #
   # 17 AUG 2026 — WHY THIS JOB EXISTS. Seven Phase C checks answer "no management token" with
   #   console.log('SKIP …'); process.exit(0)
   # and the `checks` workflow, which runs `npm test`, has no `env:` block at all. So on every pull
-  # request the entire Phase C kernel gate printed SKIP and went green without asking production a
-  # single question. The independent acceptance re-ran all seven WITH the credential and they pass —
-  # but "they pass when a human remembers to run them locally" is not a gate.
+  # request the entire kernel gate printed SKIP and went green without asking production a single
+  # question. "They pass when a human remembers to run them locally" is not a gate.
   #
   # They run HERE rather than inside `npm test` because this workflow already holds the credential,
   # and because they run one after another: the same acceptance measured ten false failures from
@@ -127,47 +126,40 @@ jobs:
   # the finding that six of the seven kernel boards were read by no test and no CI job. It is
   # discovered by `npm test`, which the `checks` workflow runs — and `checks` carries no `env:`
   # block, so with no SUPABASE_ACCESS_TOKEN the whole file answers `t.skip('no management token')`
-  # and CI went green having asked production nothing. Exactly the defect it was written to fix,
-  # reproduced by the fix. It is in the list below now, where the credential is.
+  # and CI went green having asked production nothing. It is in the list below now, where the
+  # credential is.
   #
   # ANY NEW CHECK THAT NEEDS PRODUCTION BELONGS IN THIS LIST. A check that needs the credential and
   # is not named here does not run in CI; it runs when somebody remembers, which is not a gate.
   #
-  # 20 AUG 2026 — TWO ADDED, AND A NOTE ON HOW THE SKIP DETECTOR SEES THEM.
-  #   anon_cannot_execute_security_definer  E4 turned it from a ratchet at 56 into a floor of zero
-  #                                         with the authenticated set pinned by name. A plain
-  #                                         CREATE re-grants EXECUTE to PUBLIC, so the regression is
-  #                                         one DROP-and-recreate away and nothing else would notice.
-  #   a_failed_scheduled_run_has_a_reader   watch_failed_runs_hourly (jobid 137) went off with the
-  #                                         stand-down and none of the 23 active jobs replaced it.
-  #                                         This reads the same two tables on demand. It starts no
-  #                                         job and sends nothing.
-  # Both use node:test, which prints a skip as `﹣ name # SKIPPED: reason` — a shape the grep below
-  # does NOT match. Each therefore prints NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL itself when the
-  # token is absent, so a silent skip inside the one job that holds the credential still fails.
+  # 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6): THE ACCEPTANCE DRIVES ARE RETIRED, THE PROPERTIES
+  # STAY, AND THE TWO JOBS ARE ONE. docs/agents/RETIRED_PHASE_DRIVES.md names every check that left
+  # and why. What runs here is what production must be TRUE about — a guard refuses, a door opens, a
+  # board is green, an owner exists, a failed run has a reader — plus the two living-handler checks
+  # the plan keeps by name (phase_d_dispatch_reaches_executed, phase_d_object_record_has_a_contract)
+  # and the read-only input-contract controls beside them. The Phase D job that used to follow this
+  # one through `needs: phase-c` is gone with the deliverable builders that drove production to
+  # reproduce a committed CSV; the three Phase D keepers run at the END of this same serial list.
   #
-  # Every one of these probes ends in `raise exception`, so nothing is left on production.
+  # WHY THE LIST IS STILL SERIAL. kernel_positive_controls and phase_d_dispatch_reaches_executed both
+  # open a committed Phase D scenario against the one production database, in aborted transactions,
+  # and fn_phase_d_committed_scenario_open refuses a second concurrent OPEN by design. One list, one
+  # after another, is what keeps that door's refusal from reading as a red build. (The parity job
+  # above runs in parallel with this one: nothing in it opens a scenario.) The `--test-concurrency=1`
+  # in scripts/checks/run.mjs is a different thing — the management API's 429 budget — and stays.
+  #
+  # Every one of these probes either only reads, or ends in `raise exception`, so nothing is left on
+  # production.
   # ============================================================================================
-  phase-c:
-    name: the Phase C kernel gate, against production
+  kernel-gate:
+    name: the kernel and handler gate, against production
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          # FULL HISTORY, because one check in this job needs it to do its job.
-          # pccr_approval_matches_committed_tables verifies the digest each freeze amendment was
-          # approved against. Amendment 51 names PHASE_C_CHANGE_REQUEST_PCCR-006.md at the digest it
-          # carried WHEN HE APPROVED IT; the execution record was appended afterwards, so the
-          # working tree hashes differently and the approved version lives at an earlier commit.
-          # The default fetch-depth of 1 cannot see that commit, so the check would report "no
-          # commit has ever held that path at that digest" -- which is a statement about the clone,
-          # not about the estate, and is exactly the class of false finding this repository keeps
-          # being bitten by.
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: The Phase C checks that CI could not see
+      - name: The production checks CI could not see
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           NO_PAID_AI: 'true'
@@ -177,11 +169,7 @@ jobs:
           # Deliberately no `set -e`: the exit code of each check is read into $code and acted on
           # below. With `set -e` the shell would leave before $? could be captured, and a failing
           # check would end the job without ever printing which one it was.
-          for t in phase_c_founder_chain \
-                   phase_c_command_acceptance \
-                   phase_c_command_center_entry_point \
-                   phase_c_invariants \
-                   kernel_invariants \
+          for t in kernel_invariants \
                    kernel_positive_controls \
                    phase_c_guards_reject_injected_defects \
                    kernel_write_guard_both_directions \
@@ -192,105 +180,20 @@ jobs:
                    every_discharge_claim_reaches_its_table \
                    application_source_of_truth \
                    anon_cannot_execute_security_definer \
-                   a_failed_scheduled_run_has_a_reader; do
-            # pccr_approval_matches_committed_tables retired 3 Sep 2026 with the freeze-amendment
-            # ritual the founder removed on 2 Sep (docs/agents/RETIRED_MIRROR_GATES.md).
+                   a_failed_scheduled_run_has_a_reader \
+                   phase_d_dispatch_reaches_executed \
+                   phase_d_input_schemas_are_typed_and_closed \
+                   phase_d_object_record_has_a_contract; do
             echo "::group::$t"
-            # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at pccr_approval_matches_
-            # committed_tables and the log carried NOT ONE LINE of that check's output -- in a step
-            # that had run for eight minutes. Every earlier group had its output; only the group the
-            # step died in was empty, and the same thing happened in the Phase D job at ITS last
-            # check. Whatever swallows it, capturing into $(...) and echoing afterwards means the
-            # output only reaches the log if the shell survives to print it. tee writes it as it
-            # happens and keeps a copy for the SKIP test below, and PIPESTATUS keeps the check's
-            # exit code rather than tee's. A failing check that cannot be diagnosed from its own
-            # output is most of the cost of a red build.
+            # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at its last check and the log
+            # carried NOT ONE LINE of that check's output -- in a step that had run for eight minutes.
+            # tee writes it as it happens and keeps a copy for the SKIP test below, and PIPESTATUS
+            # keeps the check's exit code rather than tee's.
             node "scripts/checks/$t.test.mjs" 2>&1 | tee "/tmp/check-$t.log"; code=${PIPESTATUS[0]}
             out=$(cat "/tmp/check-$t.log")
             echo "::endgroup::"
             # A SKIP here is a failure, not a pass: this job exists because the credential is present.
-            if echo "$out" | grep -qE '^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL'; then
-              echo "::error::$t skipped for want of a credential in the one job that has one."
-              exit 1
-            fi
-            [ "$code" = "0" ] || { echo "::error::$t exited $code"; exit "$code"; }
-          done
-
-  # ============================================================================================
-  # THE PHASE D GATE, RUN FOR REAL ON EVERY PULL REQUEST.
-  #
-  # 20 AUG 2026 — WHY THIS JOB EXISTS. The independent acceptance recorded, as finding 19, that CI
-  # asserted nothing about the two deliverables that have to DRIVE production to reproduce:
-  # build_workflow_implementation_result.mjs and build_injected_defect_result.mjs. They are gated
-  # behind PHASE_D_DRIVE=1 for a good reason — `npm test` is run casually and dozens of aborted
-  # drives against the one production project is not a reasonable default — but "gated" had become
-  # "never run by anything", which is the same shape as the Phase C finding directly above: a check
-  # that runs when somebody remembers is not a gate. The gate stays; CI is the thing that opens it.
-  #
-  # The three Phase D controls added the same day run here too, because all three need the
-  # credential and every one of them exists to catch a regression nothing else would see:
-  #   phase_d_dispatch_reaches_executed      Phase D's whole deliverable is handlers the estate
-  #                                          EXECUTES. Until E12 and E14 none ever had, and the
-  #                                          board that counts committed effects reads 257 whether
-  #                                          the capability is broken or merely unexercised. This
-  #                                          drives the kernel path and asserts EXECUTED with a
-  #                                          matching effect ledger row, so the two cannot be
-  #                                          confused again.
-  #   phase_d_input_schemas_are_typed_and_closed
-  #                                          holds the two payloads the acceptance validated TRUE
-  #                                          against an open, untyped input contract, as negative
-  #                                          controls, plus a positive one so a contract that
-  #                                          refuses everything cannot score full marks.
-  #   phase_d_object_record_has_a_contract   drives the E18 trigger in both directions: four writes
-  #                                          it must refuse and two it must accept.
-  #   freeze_amendment_names_a_real_change_request
-  #                                          a frozen Phase C contract may not stand amended under a
-  #                                          change request that is not in the tree.
-  #
-  # Every probe in this job runs inside a transaction that ends in `raise exception`, asserts
-  # fn_phase_d_fixture_residue() is 0, and asserts ai_cost_log and the active cron count did not
-  # move. They run one after another, never in parallel: the same acceptance measured ten false
-  # failures from `429 ThrottlerException` when management-API checks ran concurrently.
-  # ============================================================================================
-  phase-d:
-    name: the Phase D handler gate, against production
-    runs-on: ubuntu-latest
-    # SERIALISE THE TWO PRODUCTION GATES. phase-c (kernel_positive_controls) and phase-d (the injected-
-    # defect + workflow-implementation deliverable builders) both DRIVE Phase D scenarios/injections
-    # against the ONE production database. Run in parallel they contend for the same rows (a scenario/
-    # test-context open refused, transactionid lock waits) and a builder errors out — which is exactly
-    # what turning the live loop on surfaced. `needs: phase-c` makes them run one after the other, so
-    # only one gate ever drives the harness at a time. Costs wall-clock; buys a deterministic gate.
-    needs: phase-c
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: The Phase D controls, and the two deliverables that drive to reproduce
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          PHASE_D_DRIVE: '1'
-          NO_PAID_AI: 'true'
-          OPENROUTER_DISABLED: 'true'
-          AI_PROVIDER_MODE: 'mock'
-        run: |
-          # No `set -e`, for the same reason as the Phase C job above: the exit code of each check
-          # is read into $code and acted on, and `set -e` would end the job before $? was captured.
-          for t in phase_d_dispatch_reaches_executed \
-                   phase_d_input_schemas_are_typed_and_closed \
-                   phase_d_object_record_has_a_contract \
-                   freeze_amendment_names_a_real_change_request \
-                   phase_d_documents_do_not_contradict_each_other \
-                   phase_d_deliverables_match_production; do
-            echo "::group::$t"
-            # STREAMED, NOT CAPTURED -- see the note on the identical loop in the Phase C job above.
-            # This job lost the whole of phase_d_deliverables_match_production's output the same way
-            # on the same run.
-            node --test "scripts/checks/$t.test.mjs" 2>&1 | tee "/tmp/check-$t.log"; code=${PIPESTATUS[0]}
-            out=$(cat "/tmp/check-$t.log")
-            echo "::endgroup::"
-            # A SKIP here is a failure, not a pass: this job exists because the credential is present.
+            # node:test prints a skip as `﹣ name # SKIPPED: reason`, hence the last alternative.
             if echo "$out" | grep -qE '^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL|# SKIPPED'; then
               echo "::error::$t skipped for want of a credential in the one job that has one."
               exit 1

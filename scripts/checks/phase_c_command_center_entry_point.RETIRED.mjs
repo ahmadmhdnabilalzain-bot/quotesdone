@@ -1,3 +1,9 @@
+// RETIRED 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6 step 4). NOT RUN BY ANYTHING.
+// Renamed from phase_c_command_center_entry_point.test.mjs so neither npm test nor the CI kernel gate discovers it.
+// Why: an HTTP DRIVE through os_api that COMMITS a founder command and then deletes its rows; the only check here that left committed rows, and the shape that contended with the live loop.
+// The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
+// verbatim below as the record of what was measured while it ran.
+
 // Gate C4 (entry point) — prove the Founder Command Center is reachable through the surface the
 // founder actually uses, not only through a SQL session.
 //

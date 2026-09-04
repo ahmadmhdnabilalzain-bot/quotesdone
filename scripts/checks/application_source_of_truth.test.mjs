@@ -1,23 +1,30 @@
-// THE APPLICATION SOURCE-OF-TRUTH GATE.
+// THE ROUTINE OWNERSHIP LEDGER GATE (was: the application source-of-truth gate).
 //
-// WHY THIS EXISTS AND WHY IT IS NOT canonical_routines.test.mjs.
-//   canonical_routines.test.mjs measures the WHOLE live catalogue against the manifest and gets a
-//   true number nobody can act on: 483 live routines no manifest file defines. The received
-//   reading of that number was "most of it is Supabase- and extension-managed code". MEASURED,
-//   THAT IS FALSE — the check already excludes extension-owned routines by pg_depend, and every
-//   remaining routine in `public` on this project is owned by `postgres`. The 483 is application
-//   code, all of it, and lumping it with the managed estate made a real problem look like noise.
+// 4 SEP 2026 (PHASE E, MASTER_PLAN §6 step 5): the estate had FOUR checks over "is production running
+// the repository's routines" — this file, canonical_routine_manifest.mjs, canonical_routines.test.mjs
+// and export_from_either_source_is_identical.mjs. There is ONE now for routines:
 //
-//   So this check separates the two estates MECHANICALLY, by the rules kernel_s0 encodes, and then
-//   gates ONLY the estate QuotesDone actually owns as source: QUOTESDONE_APPLICATION.
+//   scripts/checks/canonical_routine_manifest.mjs   — THE routine source-of-truth engine: one canonical
+//                                                     file per routine by explicit sequence, drift both
+//                                                     ways, conflicts, manifest gaps, uncommitted DDL.
+//                                                     Runs in the parity job on every pull request.
+//   scripts/checks/canonical_routines.test.mjs       — the npm-test wrapper that proves the engine can
+//                                                     refuse (a forced counterexample); no parser of its own.
+//   scripts/checks/export_from_either_source_is_identical.mjs — the SCHEMA mirror and the edge-function
+//                                                     parity, which are not routine checks.
+//   THIS FILE                                        — the two subjects the engine does not own, COUNTED:
+//                                                     1b. a routine the apply order retired (a later
+//                                                         manifest file drops it, DROPPED.txt confirms it)
+//                                                         that is still on production;
+//                                                     6.  a public.kernel_routine_ownership row whose
+//                                                         class or source the repository denies
+//                                                         (repaired with --emit-ledger-sync).
+//                                                     Lines 1-5 are printed as information, because the
+//                                                     engine gates them; nothing measured here was lost.
 //
-// THE ONE RULE THAT DECIDES CANON: position in scripts/sql/MANIFEST.txt. The LAST manifest file
-// that defines a routine is its ONE current source file. Git commit time is never consulted.
-// A commit-time tie is exactly what let the phase_c_39 correction sit in the repository and not on
-// production for a day while every instrument read 0 drift.
-//
-// EVERY LINE CARRIES ITS DENOMINATOR. A bare count cannot tell a clean estate from an empty one,
-// and this repository has been burned by pct(got, 0) = 100 before.
+// THE ESTATE SPLIT below is the derivation kernel_s0_routine_ownership.sql encodes, re-run here on
+// purpose: a gate that asks the database to classify itself cannot catch the database being wrong.
+// EVERY LINE CARRIES ITS DENOMINATOR. A bare count cannot tell a clean estate from an empty one.
 //
 // READ-ONLY. Every statement it sends is a SELECT.
 //
@@ -496,75 +503,35 @@ function parseCsvRow(row) {
   }
 }
 
-const engineDisagreements = [];
-{
-  // D6. `--emit` REWROTE A COMMITTED ARTEFACT AS A SIDE EFFECT OF `npm test`. It rewrote
-  // docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv microseconds before the loop below
-  // reads it, so the comparison was the engine against itself, and every `npm test` left a dirty
-  // tree. This spawn needs only the exit status and the `countable findings N` line.
-  //
-  // Dropping the flag alone would FREEZE the CSV, because this was its only call site anywhere in
-  // the repository — CI runs the engine without it (.github/workflows/project-parity.yml). So
-  // `npm run regen:canonical-manifest` now exists and is the deliberate way to rewrite it.
-  const r = spawnSync(process.execPath, ['scripts/checks/canonical_routine_manifest.mjs', '--all'],
-    { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  const engineFindings = Number((r.stdout || '').match(/countable findings\s+(\d+)/)?.[1] ?? -1);
-  if (r.status !== 0 || engineFindings !== 0) {
-    engineDisagreements.push(`the canonical engine exits ${r.status} with ${engineFindings} finding(s) — `
-      + `it owns this subject, so its answer stands and this file cannot report the estate clean`);
-  }
-  const csv = 'docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv';
-  if (existsSync(csv)) {
-    for (const row of readFileSync(csv, 'utf8').split('\n').slice(1)) {
-      // D6. ANY MULTI-ARGUMENT SIGNATURE CONTAINS A COMMA, so the emitter quotes the field and a
-      // split on ',' truncated it at the first argument — `"public.fn_phase_d_rule_check(text`.
-      // The key then had no ')' to slice at, `manifestDefs.get()` missed, and the `continue` two
-      // lines down swallowed it. Measured: 403 of 1195 data rows, 33.7%, were silently skipped,
-      // including every multi-argument Phase D routine — fn_phase_d_rule_check(text,jsonb),
-      // fn_phase_d_schema_validate(text,jsonb), fn_phase_d_rule_applies(text,text),
-      // fn_phase_d_gate_applies, fn_phase_d_gate_evaluate, fn_phase_d_handoff_packet_valid,
-      // fn_phase_d_fixture_value, fn_phase_d_fixture_for_column, fn_phase_d_fixture_context.
-      // A disagreement check blind to a third of the estate reports agreement it never tested.
-      const cells = parseCsvRow(row);
-      const sig = cells[0];
-      const file = cells[1];
-      if (!sig || !file) continue;
-      const paren = sig.indexOf('(');
-      if (paren < 0) continue;
-      const key = sig.slice(0, paren);                            // engine keys by signature, this file by name
-      const list = manifestDefs.get(key);
-      if (!list || !list.length) continue;                        // engine sees tiers this file does not; not a disagreement
-      const mine = list[list.length - 1].file;
-      if (mine !== file && list.length === 1) {
-        engineDisagreements.push(`${sig}: the engine resolves ${file}, this file resolves ${mine}`);
-      }
-    }
-  } else {
-    engineDisagreements.push(`${csv} was not produced by the engine, so the two could not be compared`);
-  }
-}
-console.log(line('7. this file disagreeing with the canonical engine', engineDisagreements.length,
-  manifestDefs.size, 'denominator: routines any manifest file defines. The engine owns this subject.'));
-for (const s of engineDisagreements.slice(0, 25)) console.log(`        ${s}`);
+// 4 SEP 2026 (PHASE E): line 7 — re-running the canonical engine from inside this file — is gone.
+// The engine runs in the parity job of the same workflow; spawning it again here doubled a
+// two-minute production read and counted its findings a second time. On the subject they share
+// the engine's answer is the one that counts, and it is read where the engine runs.
 
-const fail = repoOnly.length + retiredStillLive.length + liveOnly.length + conflicts.length + driftedKeys.length
-           + uncommitted.length + ledgerBad.length + engineDisagreements.length;
+// 4 SEP 2026 (PHASE E, MASTER_PLAN §6 step 5): ONE ROUTINE CHECK. Lines 1-5 above are the same
+// measurements scripts/checks/canonical_routine_manifest.mjs makes, and that engine runs in the
+// parity job of the same workflow on every pull request. Two gates counting one drift twice
+// doubled the red and doubled the management-API load; this file now COUNTS only the two subjects
+// the engine does not own — a routine the apply order retired that is still on production (1b),
+// and an ownership-ledger row the repository denies (6) — and prints the rest as information.
+const informational = repoOnly.length + liveOnly.length + conflicts.length + driftedKeys.length + uncommitted.length;
+const fail = retiredStillLive.length + ledgerBad.length;
 console.log('\n---------------------------------------------------------------- SUMMARY');
-console.log(line('1. in repository, missing from production', repoOnly.length, manifestDefs.size));
-console.log(line('2. on production, missing from repository', liveOnly.length, appLive.length));
-console.log(line('3. conflicting current definitions', conflicts.length, multiFile.length));
-console.log(line('4. drifted application routines', driftedKeys.length, comparable));
-console.log(line('5. uncommitted application DDL', uncommitted.length, liveDdl.length));
+console.log(line('1. in repository, missing from production', repoOnly.length, manifestDefs.size) + '   (information: the canonical engine gates this)');
+console.log(line('1b. retired by the manifest, still on production', retiredStillLive.length, manifestDefs.size));
+console.log(line('2. on production, missing from repository', liveOnly.length, appLive.length) + '   (information: the canonical engine gates this)');
+console.log(line('3. conflicting current definitions', conflicts.length, multiFile.length) + '   (information: the canonical engine gates this)');
+console.log(line('4. drifted application routines', driftedKeys.length, comparable) + '   (information: the canonical engine gates this)');
+console.log(line('5. uncommitted application DDL', uncommitted.length, liveDdl.length) + '   (information: the canonical engine gates this)');
 console.log(line('6. ledger claims the repository denies', ledgerBad.length, ledger.length));
-console.log(line('7. disagreeing with the canonical engine', engineDisagreements.length, manifestDefs.size));
 console.log(`  ${'-'.repeat(60)}`);
-console.log(`  countable findings                             ${pad(fail)}          -> exit ${fail ? 1 : 0}`);
+console.log(`  countable findings (1b + 6)                    ${pad(fail)}          -> exit ${fail ? 1 : 0}`);
+if (informational) console.log(`  routine findings the canonical engine owns    ${pad(informational)}          (run node scripts/checks/canonical_routine_manifest.mjs --all)`);
 
 if (fail) {
-  console.error('\nFAIL. Each line above is a place where the repository and production disagree about what '
-    + 'the QuotesDone application IS. Fix by making the canonical file and production agree — never by '
+  console.error('\nFAIL. A routine the apply order retired is still deployed, or the ownership ledger claims a '
+    + 'class the repository denies. Fix by making the ledger and production agree with the manifest — never by '
     + 'moving a routine into the managed exclusion, which is the one repair this gate exists to refuse.');
   process.exit(1);
 }
-console.log('\nPASS. For every routine QuotesDone owns as source, exactly one file is canonical, production '
-  + 'runs it, and the ownership ledger agrees with the repository.');
+console.log('\nPASS. Every routine the apply order retired is absent, and the ownership ledger agrees with the repository.');

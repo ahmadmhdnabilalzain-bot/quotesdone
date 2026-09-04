@@ -667,14 +667,18 @@ ${body}
 end $pc$;`;
   let msg = '';
   try { await sql(probe); msg = 'NO_RAISE'; } catch (e) { msg = String(e.message); }
-  // CONCURRENCY, NOT A BROKEN DOOR. The Phase C kernel gate and the Phase D handler gate run in
-  // parallel in the same workflow run, and both drive the committed-scenario harness against the one
-  // production database. fn_phase_d_committed_scenario_open refuses a SECOND concurrent OPEN by
-  // design — guard `no_other_scenario_open` plus a unique partial index, both there on purpose — so
-  // when the other job holds a scenario open for a moment, this door's open() raises and the run
-  // read it as a failure. It is not: the door is working, it is contended. (Proved: this file passes
-  // this door in isolation every local run, and the flake predates any one commit — two runs failed
-  // here minutes before 33638105358 passed on the same tree.) So retry THROUGH the brief overlap.
+  // CONCURRENCY, NOT A BROKEN DOOR. fn_phase_d_committed_scenario_open refuses a SECOND concurrent
+  // OPEN by design — guard `no_other_scenario_open` plus a unique partial index, both there on
+  // purpose — so when another driver holds a scenario open for a moment, this door's open() raises
+  // and the run read it as a failure. It is not: the door is working, it is contended. (Proved: this
+  // file passes this door in isolation every local run, and the flake predates any one commit — two
+  // runs failed here minutes before 33638105358 passed on the same tree.)
+  // 4 SEP 2026 (Phase E): the second CI job that used to drive this door in parallel (the Phase D
+  // deliverable builders) is retired and every remaining driver runs in ONE serial job — so the
+  // in-run contention is gone. The retry stays for the cause that remains: the workflow's
+  // concurrency group is per pull request, so two PRs' runs (or a PR and a main push) can drive this
+  // door at the same minute. Measured 4 Sep: no routine or cron opens a scenario; only checks do.
+  // So retry THROUGH the brief overlap.
   // The match is deliberately narrow — only guard (1) or the unique-index conflict, never guards (2)
   // or (3), which are real defects and must stay red — so this cannot hide a broken door.
   const isScenarioContention = (m) =>

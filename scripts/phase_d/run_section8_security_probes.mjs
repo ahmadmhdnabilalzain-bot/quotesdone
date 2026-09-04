@@ -469,8 +469,9 @@ try {
     // named here and a 404 is reported separately from a denial instead of being counted as one.
     const RPCS = [
       ['fn_phase_d_run_injected_defects', {}],
-      ['fn_phase_a_baseline_drift', {}],
-      ['fn_phase_b_baseline_drift', {}],
+      // 4 Sep 2026: fn_phase_a/b_baseline_drift were dropped with the phase freezes (Phase E). The
+      // organisation-validity routine that replaced them in every caller is probed in their place.
+      ['fn_phase_a_organization_violations', {}],
       ['fn_kernel_all_boards', {}],
       ['fn_phase_d_object_write', { p_input: {} }],
       // D43. The read side was missing from this list entirely, which is why probe 6 reported a clean

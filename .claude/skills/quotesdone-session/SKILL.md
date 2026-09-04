@@ -227,7 +227,9 @@ Before the one line — or before an honest hand-over:
 3. Pack scorecard — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
 4. `fn_os_portals_gates()`
 5. `node scripts/checks/canonical_routines.test.mjs` → 0 gaps, 0 drift both ways, and
-   `node scripts/checks/application_source_of_truth.test.mjs` → every line 0, exit 0
+   `node scripts/checks/application_source_of_truth.test.mjs` → lines 1b and 6 (retired-still-deployed,
+   ownership ledger) 0, exit 0 *(since 4 Sep 2026 its lines 1–5 are information: `canonical_routine_manifest.mjs`
+   is the ONE routine drift gate — docs/agents/RETIRED_PHASE_DRIVES.md step 5)*
    *(these replaced `sql_files_match_live.test.mjs`, retired 17 Aug 2026 — it resolved a routine by
    git commit time and certified the wrong body; the apply order decides now. A retired routine is
    recorded in `scripts/sql/DROPPED.txt` AND dropped by a later manifest file. Since 3 Sep 2026 a
@@ -242,8 +244,9 @@ Before the one line — or before an honest hand-over:
    byte-identical, 0 project refs embedded
 7. `node scripts/verify_deploy_parity.mjs --ref=htdblwldjkcgjvmqkbeh --all` → every edge function carries the repo's code
 
-8. *(retired 2 Sep 2026 — the founder removed the phase freezes totally; `fn_phase_a_baseline_drift`
-   still exists and must still return 0 rows after any PACR, but there is no freeze to hold)*
+8. *(retired 2 Sep 2026 — the founder removed the phase freezes totally. 4 Sep 2026: `fn_phase_a_baseline_drift`
+   and `fn_phase_b_baseline_drift` were DROPPED (Phase E, `scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql`);
+   the organisation's validity is asserted by `fn_phase_a_organization_violations()` = 0 inside the boards)*
 9. *(retired with 8)*
 
 **PHASE B IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-b-founder-approved-2026-08-15`,

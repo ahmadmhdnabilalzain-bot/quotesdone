@@ -437,8 +437,10 @@ eq('  -> a kernel workflow run starts from it', gr.run_started, 'true');
 eq('  -> its steps are accountable to corporate performance', gr.owner, 'corporate_performance_director');
 const grr = await q(`select 'goal_retirement_wiring_gap_open' k,
   (select count(*)::text from phase_b_phase_c_wiring_gap where gap ilike '%goal%retir%') v, '0' e
-  union all select 'phase_a_and_b_baselines_undrifted',
-  ((select count(*) from fn_phase_a_baseline_drift()) + (select count(*) from fn_phase_b_baseline_drift()) = 0)::text, 'true'`);
+  union all select 'organization_has_no_structural_violation',
+  ((select count(*) from fn_phase_a_organization_violations()) = 0)::text, 'true'`);
+// (4 Sep 2026: the frozen Phase A/B baseline-drift routines were dropped with the phase freezes —
+// scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql; the property they stood for is asserted above.)
 for (const r of grr) eq(r.k, r.v, r.e);
 
 // ============================================================================================

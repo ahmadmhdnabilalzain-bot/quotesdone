@@ -36,3 +36,91 @@ fn_phase_d_handoff_cancel :: never wired as a door (not in kernel_write_authorit
 fn_phase_d_handoff_reject :: never wired as a door (not in kernel_write_authority); 0 callers
 fn_phase_d_disposition_state :: not discovered as a board by fn_kernel_all_boards(); 0 callers
 fn_phase_d_reference_fold_state :: not discovered as a board by fn_kernel_all_boards(); 0 callers
+fn_phase_a_baseline_drift :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql :: frozen Phase A digest board; the phase freezes were removed 2 Sep 2026; its three routine callers were retargeted to fn_phase_a_organization_violations() before the drop
+fn_phase_b_baseline_drift :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql :: frozen Phase B digest board; same reason; its only routine caller (fn_phase_c_invariants) was retargeted before the drop
+fn_phase_a_baseline_drift :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql :: frozen Phase A digest board; the phase freezes were removed 2 Sep 2026; its three routine callers were retargeted to fn_phase_a_organization_violations() before the drop
+fn_phase_b_baseline_drift :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql :: frozen Phase B digest board; same reason; its only routine caller (fn_phase_c_invariants) was retargeted before the drop
+fn_ap_pay :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: AP sub-ledger; ap_bills 0 rows; expenses reach the company through the expenses mailbox and the invoice_approval workflow
+fn_po_bill :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: PO sub-ledger; po_orders 0 rows; the company raises no purchase orders
+fn_po_create :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: PO sub-ledger; po_orders 0 rows
+fn_po_receive :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: PO sub-ledger; po_orders 0 rows
+fn_inv_adjust :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: inventory sub-ledger; inv_items / inv_stock_moves 0 rows; a marketplace holds no stock
+fn_inv_issue :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: inventory sub-ledger; 0 rows
+fn_inv_receive :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: inventory sub-ledger; 0 rows
+fn_fa_acquire :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fixed-asset sub-ledger; fa_assets 0 rows
+fn_fa_dispose :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fixed-asset sub-ledger; fa_assets 0 rows
+fn_fa_run_depreciation :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fixed-asset sub-ledger; fa_assets 0 rows (fn_fa_depreciate loses its only caller with it)
+fn_budget_create :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fiscal-year GL budget; budgets 0 rows; the live budget mechanism is department_budget / fn_budget_available
+fn_budget_set_annual :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fiscal-year GL budget; budgets 0 rows (fn_budget_set loses its only caller with it)
+fn_autonomy_check :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: V3-era autonomy classifier superseded by org_authority / fn_autonomy_control_guard
+fn_chief_of_staff :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: V3-era chief-of-staff routine superseded by the Founder Command Center and secretary_act
+fn_control_mode_identity_active :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: reader over control_mode_identity nothing calls; the OS door is fn_os_open_access
+fn_dept_can_plan :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: planning-cap reader nothing calls; dept_plan carries its own cap
+fn_doc_control :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: licence-expiry reminder loop duplicating the running agents.security licence_expiring job
+fn_doc_diff :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: reader over doc_versions with no surface
+fn_doc_history :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: reader over doc_versions with no surface
+fn_employee_kpi_trend :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: KPI reader with no consumer; fn_employee_kpi_measure is the live KPI path
+fn_employee_responsibilities_backfill :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: one-off backfill over org_agents (seating is owned elsewhere)
+fn_employee_scorecard :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: prompt-context builder no context assembler calls
+fn_external_authority :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: prompt-context reader no context assembler calls
+fn_flag :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: feature-flag evaluator; feature_flags 4 rows nothing reads through it
+fn_kb_submit_revision :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: kb_revisions writer nothing calls; the table (10,826 rows) is written by another path
+fn_lint_outbound :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: policy lint reader with no consumer
+fn_policy_lint_kb_chunks :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: policy lint reader with no consumer
+fn_llm_cache_get :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: LLM cache nothing reads; ai_gateway carries its own caching
+fn_llm_cache_put :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: LLM cache nothing writes
+fn_management_decision_review :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: decision_trace reader with no consumer (a test comment mentions it; nothing calls it)
+fn_p2c1_rollback_stage_b6 :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: operator rollback for a finished stage; recovery is git
+fn_p2c1_rollback_stage_b7 :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: operator rollback for a finished stage; recovery is git
+fn_phase1_rollback_rehearse :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: mutating rehearsal of the Phase 1 tier-0 rollback; nothing runs it
+fn_phase1_status :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: Phase 1 status reader with no surface
+fn_prompt_publish :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: prompt registry publisher; prompts 3 rows, published by SQL
+fn_quote_category_score_text :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: text-shaped quote scorer; fn_quote_score_json (called by quote_compare) and fn_quote_structured_score are the live scorers
+fn_quote_coach_text :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: text-shaped quote coach with no caller
+fn_rules_eval :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: business_rules evaluator (4 rows); the live rule substrate is ops_knowledge decision_rule
+fn_scenario_verdict :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: Phase D scenario-verdict helper no builder or check calls
+fn_unsafe_liveness_probe :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: mutating probe (writes refunds, leads, org_authority …) nothing runs; an unrun mutating probe is a liability
+mdm_normalize :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: MDM normaliser nothing calls
+run_reveal_nudges :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: duplicate of qd_reveal_nudges (the reveal-nudges cron names the latter)
+fn_ap_pay :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: AP sub-ledger; ap_bills 0 rows; expenses reach the company through the expenses mailbox and the invoice_approval workflow
+fn_po_bill :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: PO sub-ledger; po_orders 0 rows; the company raises no purchase orders
+fn_po_create :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: PO sub-ledger; po_orders 0 rows
+fn_po_receive :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: PO sub-ledger; po_orders 0 rows
+fn_inv_adjust :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: inventory sub-ledger; inv_items / inv_stock_moves 0 rows; a marketplace holds no stock
+fn_inv_issue :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: inventory sub-ledger; 0 rows
+fn_inv_receive :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: inventory sub-ledger; 0 rows
+fn_fa_acquire :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fixed-asset sub-ledger; fa_assets 0 rows
+fn_fa_dispose :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fixed-asset sub-ledger; fa_assets 0 rows
+fn_fa_run_depreciation :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fixed-asset sub-ledger; fa_assets 0 rows (fn_fa_depreciate loses its only caller with it)
+fn_budget_create :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fiscal-year GL budget; budgets 0 rows; the live budget mechanism is department_budget / fn_budget_available
+fn_budget_set_annual :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: fiscal-year GL budget; budgets 0 rows (fn_budget_set loses its only caller with it)
+fn_autonomy_check :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: V3-era autonomy classifier superseded by org_authority / fn_autonomy_control_guard
+fn_chief_of_staff :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: V3-era chief-of-staff routine superseded by the Founder Command Center and secretary_act
+fn_control_mode_identity_active :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: reader over control_mode_identity nothing calls; the OS door is fn_os_open_access
+fn_dept_can_plan :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: planning-cap reader nothing calls; dept_plan carries its own cap
+fn_doc_control :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: licence-expiry reminder loop duplicating the running agents.security licence_expiring job
+fn_doc_diff :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: reader over doc_versions with no surface
+fn_doc_history :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: reader over doc_versions with no surface
+fn_employee_kpi_trend :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: KPI reader with no consumer; fn_employee_kpi_measure is the live KPI path
+fn_employee_responsibilities_backfill :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: one-off backfill over org_agents (seating is owned elsewhere)
+fn_employee_scorecard :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: prompt-context builder no context assembler calls
+fn_external_authority :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: prompt-context reader no context assembler calls
+fn_flag :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: feature-flag evaluator; feature_flags 4 rows nothing reads through it
+fn_kb_submit_revision :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: kb_revisions writer nothing calls; the table (10,826 rows) is written by another path
+fn_lint_outbound :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: policy lint reader with no consumer
+fn_policy_lint_kb_chunks :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: policy lint reader with no consumer
+fn_llm_cache_get :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: LLM cache nothing reads; ai_gateway carries its own caching
+fn_llm_cache_put :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: LLM cache nothing writes
+fn_management_decision_review :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: decision_trace reader with no consumer (a test comment mentions it; nothing calls it)
+fn_p2c1_rollback_stage_b6 :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: operator rollback for a finished stage; recovery is git
+fn_p2c1_rollback_stage_b7 :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: operator rollback for a finished stage; recovery is git
+fn_phase1_rollback_rehearse :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: mutating rehearsal of the Phase 1 tier-0 rollback; nothing runs it
+fn_phase1_status :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: Phase 1 status reader with no surface
+fn_prompt_publish :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: prompt registry publisher; prompts 3 rows, published by SQL
+fn_quote_category_score_text :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: text-shaped quote scorer; fn_quote_score_json (called by quote_compare) and fn_quote_structured_score are the live scorers
+fn_quote_coach_text :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: text-shaped quote coach with no caller
+fn_rules_eval :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: business_rules evaluator (4 rows); the live rule substrate is ops_knowledge decision_rule
+fn_scenario_verdict :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: Phase D scenario-verdict helper no builder or check calls
+fn_unsafe_liveness_probe :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: mutating probe (writes refunds, leads, org_authority …) nothing runs; an unrun mutating probe is a liability
+mdm_normalize :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: MDM normaliser nothing calls
+run_reveal_nudges :: dropped 4 Sep 2026 by scripts/sql/phase_e_retire_the_no_caller_functions.sql :: duplicate of qd_reveal_nudges (the reveal-nudges cron names the latter)

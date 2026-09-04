@@ -1,3 +1,9 @@
+// RETIRED 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6 step 4). NOT RUN BY ANYTHING.
+// Renamed from phase_c_command_acceptance.test.mjs so neither npm test nor the CI kernel gate discovers it.
+// Why: an acceptance DRIVE of every row of PHASE_C_COMMAND_ROUTING_ACCEPTANCE_CASES.csv against production; a reproduction of a Phase C deliverable, not a property.
+// The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
+// verbatim below as the record of what was measured while it ran.
+
 // Gate C4 — run every row of PHASE_C_COMMAND_ROUTING_ACCEPTANCE_CASES.csv against the live
 // Founder Command Center, with zero paid inference and zero persistent rows.
 //
