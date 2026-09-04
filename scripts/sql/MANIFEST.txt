@@ -1591,3 +1591,9 @@ scripts/sql/red_view_alerter.sql
 scripts/sql/reenable_agents_crons.sql
 scripts/sql/fn_edge_health_scan_probe_failure_is_not_silence.sql
 scripts/sql/ad_spend_needs_the_founders_cap_and_go.sql
+scripts/sql/workflow_loop_turns_model_off.sql
+scripts/sql/apply_playbook_needs_corroboration.sql
+scripts/sql/workflow_backlog_drain_2026_09_04.sql
+scripts/sql/fn_task_review_ownership_is_not_a_self_review.sql
+scripts/sql/knowledge_fill_executor_reconciles_recent_chunks_only.sql
+"scripts/sql/knowledge_fill_executor_reconciles_recent_chunks_only.sql" ; tail -2 scripts/sql/MANIFEST.txt; node "C:/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/cd432ea4-4602-4dcf-a262-875622bbb1d9/scratchpad/qa1_a610.mjs" "select public.fn_kernel_cron_exec(266) rpc_tick"  
