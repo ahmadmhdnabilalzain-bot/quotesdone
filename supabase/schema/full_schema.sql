@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T06:01:23.556Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-04T06:09:43.359Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -80139,7 +80139,13 @@ begin
                exists (select 1 from public.org_action_executor e
                         where e.action_class = sr.action_class and e.active
                           and public.fn_executor_needs_model(e.target))
-            or (exists (select 1 from public.action_execution x where x.workflow_step_run_id = sr.id)
+            -- stranded: parked held/stalled, or cancelled on a REFUSAL or a missing decision record.
+            -- (A never-dispatched cancel is the sweep's to re-queue, not the dispatcher's.)
+            or (exists (select 1 from public.action_execution x
+                         where x.workflow_step_run_id = sr.id
+                           and (x.status in ('held','stalled')
+                                or (x.status = 'cancelled'
+                                    and (x.response->>'invoker' = 'refused' or (x.request ? 'decision_record_id')))))
                 and not exists (select 1 from public.action_execution x
                                  where x.workflow_step_run_id = sr.id
                                    and x.status in ('queued','running','succeeded')))))
@@ -80430,6 +80436,37 @@ begin
         || case when v_held then jsonb_build_object('used_llm', false, 'used_llm_basis', 'paid provider held (kernel K12) at settle time') else '{}'::jsonb end,
       case when s.status = 'succeeded' then 'done' else 'failed' end);
     v_settled := v_settled + 1;
+  end loop;
+
+  -- 1b. RE-QUEUE the executions the old fn_execution_sweep cancelled before the invoker ever ran them
+  --     (observed=cancelled, never dispatched, no decision record, not superseded). A deterministic
+  --     executor such as uptime_check or ai_health is simply run, late; a model-backed one stays for the
+  --     dispatcher while the model is held. The idempotency key is the same row, so this is an UPDATE.
+  for s in
+    select x.id xid, r.id sid
+      from public.action_execution x
+      join public.workflow_step_run r on r.id = x.workflow_step_run_id
+      join public.org_action_executor e on e.action_class = r.action_class and e.active
+     where x.status = 'cancelled'
+       and r.status = 'ready' and r.finished_at is null
+       and x.response->>'invoker' is null
+       and x.response->>'observed' = 'cancelled'
+       and not (x.request ? 'decision_record_id')
+       and not (x.response ? 'superseded_by')
+       and e.kind in ('edge','rpc') and e.risk_tier = 'low' and e.advisory_safe and e.reversible
+       and not e.notifies_human and coalesce(e.required_authority,'') <> 'founder'
+       and not (v_held and public.fn_executor_needs_model(e.target))
+     order by r.id
+     limit greatest(coalesce(p_limit, 5), 1)
+  loop
+    update public.action_execution
+       set status = 'queued', finished_at = null,
+           response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+             'requeued_at', now(),
+             'requeue_reason', 'cancelled by fn_execution_sweep before the invoker ran it (no decision record was ever expected); re-queued 4 Sep 2026')
+     where id = s.xid;
+    update public.workflow_step_run set status = 'running' where id = s.sid and status = 'ready';
+    v_q := v_q + 1;
   end loop;
 
   -- 2. QUEUE the ready steps a registered, low-risk, reversible edge executor can run WITHOUT

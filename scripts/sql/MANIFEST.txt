@@ -1587,3 +1587,6 @@ scripts/sql/staff_org_seat_settlement_2026_09_04.sql
 scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql
 scripts/sql/phase_e_wire_the_ledger_collections_and_experiments.sql
 scripts/sql/phase_e_retire_the_no_caller_functions.sql
+scripts/sql/red_view_alerter.sql
+scripts/sql/reenable_agents_crons.sql
+scripts/sql/fn_edge_health_scan_probe_failure_is_not_silence.sql
