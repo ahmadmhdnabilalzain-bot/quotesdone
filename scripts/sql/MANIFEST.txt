@@ -1607,3 +1607,11 @@ scripts/apply_sql.mjs
 $f
 --apply
 --ddl
+scripts/sql/a_gated_task_is_not_a_founder_task.sql
+$f
+;
+node
+scripts/apply_sql.mjs
+$f
+--apply
+--ddl
