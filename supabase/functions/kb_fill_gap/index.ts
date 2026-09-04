@@ -16,8 +16,13 @@ async function genOnce(key: string, label: string, category: string): Promise<an
   const prompt = `You are QuotesDone's trade knowledge curator for the UAE B2B services market. Produce authoritative, factual reference knowledge for the service category "${label}" (slug: ${category}).\nReturn STRICT JSON ONLY (no markdown, no prose): {\"sections\":[{\"title\":\"...\",\"content\":\"...\"}]} with 4-6 sections covering: (1) Scope & typical deliverables, (2) UAE regulations/standards & required approvals — name the authority (SIRA, Dubai Municipality, Civil Defence, DEWA, ADDC, ESMA, TDRA, etc.), (3) Key materials/brands/equipment, (4) Pricing drivers & typical cost ranges in AED, (5) Common quality red flags & how to vet suppliers, (6) Typical project timeline. Be specific to the UAE.`;
   const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'kb_fill_gap', sys: '', input: prompt, temperature: 0.2 }) });
   const jd = await r.json().catch(() => ({} as any));
+  // 4 SEP 2026: a held paid provider answers used_llm:false with no content and outcome circuit_open.
+  // That is the founder's hold, not a generation failure; say so instead of an empty section list.
+  if (jd && jd.used_llm === false && !jd.content) { lastHold = String(jd.outcome || jd.error || 'held').slice(0, 140); return []; }
+  lastHold = null;
   return parseSections(jd?.content || '');
 }
+let lastHold: string | null = null;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return J({ ok: true });
@@ -73,6 +78,7 @@ Deno.serve(async (req) => {
 
     let sections = await genOnce(key, label, category);
     if (!sections.length) sections = await genOnce(key, label, category); // one retry
+    if (!sections.length && lastHold) return J({ ok: false, held: true, error: 'provider_held', outcome: lastHold, note: 'the paid provider is held by the founder; no knowledge was generated and none was charged' }, 200);
     if (!sections.length) return J({ error: 'generation_failed' }, 502);
 
     const rows = sections.slice(0, 8).filter((s: any) => s && (s.content || s.title)).map((s: any) => ({ source_kind: 'generated', category, title: String(s.title || 'Knowledge'), content: String(s.content || ''), citation: `QuotesDone trade knowledge: ${category} / ${String(s.title || '')}`, effective_date: new Date().toISOString().slice(0, 10) }));

@@ -42,17 +42,23 @@ async function isSuppressed(email: string): Promise<boolean> {
   } catch (_e) { return false; }
 }
 
-async function anonProbe(anon: string, table: string): Promise<{ leaked: boolean; detail: string }> {
+// 4 SEP 2026: three answers, not two. A probe that could not verify (404, unexpected status, a thrown
+// fetch) used to come back as leaked:true — the same value as a real leak — while the summary below
+// looked for strings ("probe error:", "status ") that no branch produced, so its "counted as PASSING"
+// note could never fire and the run's notes named a leak that was not measured. Error and empty must
+// not share a value with success OR with failure: 'ok' / 'leak' / 'inconclusive', each scored on its own.
+type ProbeVerdict = "ok" | "leak" | "inconclusive";
+async function anonProbe(anon: string, table: string): Promise<{ verdict: ProbeVerdict; detail: string }> {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/${table}?select=*&limit=1`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` } });
     const body = await r.json().catch(() => null);
-    if (r.status === 401 || (body && body.code === "42501")) return { leaked: false, detail: "permission denied (good)" };
-    if (Array.isArray(body) && body.length === 0) return { leaked: false, detail: "RLS empty (good)" };
-    if (Array.isArray(body) && body.length > 0) return { leaked: true, detail: `LEAK: ${body.length} row(s) readable by anon` };
-    if (r.status === 404) return { leaked: true, detail: `INCONCLUSIVE: table not found (404) - the probe list names a table that does not exist, so it has never actually been checked` };
-    return { leaked: true, detail: `INCONCLUSIVE: unexpected status ${r.status} - failing closed, because a probe that cannot verify safety must not report safety` };
+    if (r.status === 401 || (body && body.code === "42501")) return { verdict: "ok", detail: "permission denied (good)" };
+    if (Array.isArray(body) && body.length === 0) return { verdict: "ok", detail: "RLS empty (good)" };
+    if (Array.isArray(body) && body.length > 0) return { verdict: "leak", detail: `LEAK: ${body.length} row(s) readable by anon` };
+    if (r.status === 404) return { verdict: "inconclusive", detail: `INCONCLUSIVE: table not found (404) - the probe list names a table that does not exist, so it has never actually been checked` };
+    return { verdict: "inconclusive", detail: `INCONCLUSIVE: unexpected status ${r.status} - not verified, and not verified is not safe` };
   } catch (e) {
-    return { leaked: true, detail: "INCONCLUSIVE: probe error, failing closed: " + String(e) };
+    return { verdict: "inconclusive", detail: "INCONCLUSIVE: probe error, not verified: " + String(e) };
   }
 }
 
@@ -77,13 +83,14 @@ Deno.serve(async (req) => {
     const anon = await secret("anon_key");
     if (!anon) { await logRun("error", { stage: "config" }, "anon_key is missing from app_secrets, so qa_suite cannot probe RLS at all: a table left publicly readable (customers, leads, app_secrets, quotes) would never be detected"); return json({ error: "anon_key not configured" }, 500); }
 
-    const results: Array<{ check: string; ok: boolean; detail: string }> = [];
+    const results: Array<{ check: string; ok: boolean; detail: string; verdict?: ProbeVerdict }> = [];
 
     // 1) RLS / anonymity regression: sensitive tables must NOT be readable by the public key
     const sensitive = ["customers", "app_secrets", "leads", "transactions", "quotes", "inquiries", "messages", "agent_knowledge", "email_suppressions", "social_posts", "qa_results", "customer_phone_otps", "inbound_messages"];
     for (const t of sensitive) {
       const p = await anonProbe(anon, t);
-      results.push({ check: `anon_cannot_read:${t}`, ok: !p.leaked, detail: p.detail });
+      // only a verified refusal passes; a leak fails; an unverified probe fails too, but is reported as unverified
+      results.push({ check: `anon_cannot_read:${t}`, ok: p.verdict === "ok", detail: p.detail, verdict: p.verdict });
     }
 
     // 2) Positive control: public category data SHOULD be reachable (proves anon key is valid, not just failing)
@@ -119,12 +126,12 @@ Deno.serve(async (req) => {
       } else { alertNote = "resend_api_key is missing, so no failure alert email was sent and nobody was notified of these failing checks"; }
     }
 
-    const leaks = failed.filter((r) => r.check.startsWith("anon_cannot_read:")).map((r) => r.check.split(":")[1]);
-    const inconclusive = results.filter((r) => r.detail.startsWith("probe error:") || r.detail.startsWith("status ")).map((r) => r.check);
+    const leaks = results.filter((r) => r.verdict === "leak").map((r) => r.check.split(":")[1]);
+    const inconclusive = results.filter((r) => r.verdict === "inconclusive").map((r) => r.check.split(":")[1]);
     const notes: string[] = [];
     if (leaks.length) notes.push("PUBLIC DATA LEAK: table(s) " + leaks.join(",") + " are readable with the anon key, exposing customer and supplier records to anyone on the internet");
     if (failed.length) notes.push(failed.length + " of " + results.length + " checks failed: " + failed.map((r) => r.check).join(","));
-    if (inconclusive.length) notes.push(inconclusive.length + " probe(s) were inconclusive and were counted as PASSING (" + inconclusive.join(",") + "); a real RLS leak on those tables would be scored as a pass and stay hidden");
+    if (inconclusive.length) notes.push(inconclusive.length + " probe(s) were INCONCLUSIVE and are counted as failed, not as leaks and not as passing (" + inconclusive.join(",") + "); those tables were NOT verified this run");
     if (smokeNote) notes.push(smokeNote);
     if (!qaRes.ok) notes.push("qa_results insert failed (HTTP " + String(qaRes.status) + "): this QA run was not persisted, leaving a silent gap in the QA history");
     if (alertNote) notes.push(alertNote);

@@ -161,8 +161,13 @@ eq('  -> handoff_contract status', p2.status_close, 'closed');
 console.log('\n== REQ 3 — APPROVAL SEQUENCE (consequential -> AI head -> onward; refunds -> founder only) ==');
 // ============================================================================================
 const p3 = await probe('APPROVAL', `do $p$
-  declare v_id uuid; s1 jsonb; s2 jsonb; ap record; inv1 text; inv2 text; st2 text; v_wrong text;
+  declare v_id uuid; s1 jsonb; s2 jsonb; ap record; inv1 text; inv2 text; st2 text; v_wrong text; v_dept text; v_head text;
   begin
+    -- 4 SEP 2026: the entitled head is READ from production, not typed. supplier_verify moved from
+    -- Marketplace Ops to Supply in the STAFF_ORG seating, and a probe that approved as the old head
+    -- was refused by the guard (42501, correctly) before it could raise its measurements.
+    select department into v_dept from org_action_executor where action_class = 'supplier_verify' and active;
+    v_head := fn_action_resolve_approver(v_dept, 'medium')->>'approver';
     insert into action_execution (correlation_id, action_class, executor, idempotency_key, risk_tier, reversible, request, status)
     values (gen_random_uuid(),'supplier_verify','supplier_verify','probe-'||gen_random_uuid()::text,'medium',true,
             jsonb_build_object('probe',true,'actor','cfo'),'queued')
@@ -174,14 +179,17 @@ const p3 = await probe('APPROVAL', `do $p$
       perform fn_action_head_approve(v_id,'approved','probe wrong approver','cfo');
       v_wrong := 'NOT_REFUSED';
     exception when others then v_wrong := 'REFUSED'; end;
-    perform fn_action_head_approve(v_id,'approved','probe entitled head','procurement');
+    perform fn_action_head_approve(v_id,'approved','probe entitled head',v_head);
     s2 := fn_action_invoke_dispatch(50);
     select response->>'invoker', status into inv2, st2 from action_execution where id=v_id;
-    raise exception 'APPROVAL|parked=%|approver=%|decision=%|wrong=%|dispatched=%|status2=%',
-      inv1, ap.accountable_approver, ap.approval_decision, v_wrong, inv2, st2;
+    raise exception 'APPROVAL|parked=%|approver=%|head=%|dept=%|head_active_in_dept=%|decision=%|wrong=%|dispatched=%|status2=%',
+      inv1, ap.accountable_approver, v_head, v_dept,
+      (select exists (select 1 from org_agents a where a.agent_key = v_head and a.active and a.department = v_dept))::text,
+      ap.approval_decision, v_wrong, inv2, st2;
   end $p$;`);
 eq('consequential action routes to the accountable AI head', p3.parked, 'awaiting_head_approval');
-eq('  -> entitled approver (marketplace/medium)', p3.approver, 'procurement');
+eq('  -> entitled approver is the head production resolves for ' + p3.dept + '/medium', p3.approver, p3.head);
+eq('  -> and that head is an active employee of that department', p3.head_active_in_dept, 'true');
 eq('  -> approval request recorded', p3.decision, 'requested');
 eq('a non-entitled approver is refused', p3.wrong, 'REFUSED');
 eq('after the entitled head approves, it flows onward and dispatches', p3.dispatched, 'dispatched');

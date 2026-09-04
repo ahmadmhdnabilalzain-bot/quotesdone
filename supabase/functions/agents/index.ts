@@ -296,7 +296,11 @@ async function itHealth(){
     expected_impact: 'Fixing these restores ' + agents.length + ' scheduled routine(s) to service. Every one of them is something the company does on its own — left failing, that work silently stops happening and no other alert says so.',
     cost: 'No spend. Engineering attention, and the diagnosis is usually reading one note in agent_runs.',
     detail: { agents } }); counts.alerts++; }
-  if (counts.down > 0) { const owner = String(await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim(); await admin.from('notifications').insert({ type: 'it_alert', to_email: owner, to_role: 'admin', channel: 'email', subject: '⚠ QuotesDone IT alert: ' + counts.down + ' page(s) down', body: 'The IT monitor found ' + counts.down + ' page(s) returning errors. Open the IT agent in admin for details.' }); }
+  // 4 SEP 2026: this job used to email admin_emails directly on a page down — hourly, undeduplicated,
+  // never resolved, and a second founder channel beside alert_founder. The health_checks rows it writes
+  // above are now a red-view source: fn_red_view_alert (cron red_view_alert_15min) pages the founder
+  // once per outage episode at level high (WhatsApp + email) and resolves the episode when the page is
+  // back. The incident row queued above is the record of what this agent found.
   return counts;
 }
 

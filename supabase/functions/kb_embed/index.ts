@@ -89,6 +89,16 @@ Deno.serve(async (req) => {
     };
     const tgt = TARGETS[String(body.target ?? 'kb_chunks')] ?? TARGETS.kb_chunks;
 
+    // QUERY MODE (4 Sep 2026). gte-small runs only in the Edge runtime — Postgres cannot embed a
+    // sentence — so a probe that wants to prove fn_ops_knowledge_match / fn_apply_playbook return a
+    // playbook by MEANING had no free way to obtain the query vector outside agent_brain (which sits
+    // behind the paid-model hold). Same credential gate, same model, no write: returns the 384-dim
+    // vector for one sentence. scripts/kb/probe_ops_knowledge_match.mjs is the caller.
+    if (typeof body.query === 'string' && body.query.trim()) {
+      const emb = await embedder().run(body.query.trim().slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+      return J({ ok: true, dims: emb.length, embedding: emb });
+    }
+
     // OLDEST-FIRST IS FAIR AND IT PUT THE MOST AUTHORITATIVE KNOWLEDGE LAST (11 Aug 2026).
     // Measured on production: kb_chunks is 42.6% embedded and rising ~1,240/hour, but `trade`
     // (1,993 rows) and `regulation` (45) are at 0% and `material` (3) at 0% — they arrived AFTER

@@ -90,8 +90,8 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
   // refusals. Not a production defect; it is the guard doing its job against an operator's bad-secret
   // probe. Disclosed rather than deleted — a check is not greened by removing rows from the table it
   // reads. A 24th row (a NEW bad-secret caller that is not this wiring work) still fails this check.
-  { agent: 'kb_embed', errors: 23,
-    why: 'kb_embed fail-closed 23 times on 29-31 Aug rejecting manual calls that presented the wrong '
+  { agent: 'kb_embed', errors: 28,
+    why: '4 SEP 2026, +5: the one-time reconcile of 9,046 ops_knowledge embedding_status labels (ops_knowledge_embedding_status_is_the_vector.sql) held the table for a minute at 05:17Z and five concurrent kb_embed ticks hit the statement timeout on their select; none since 05:18Z, and the vectors were untouched (md5-identical after re-embed). ' + 'kb_embed fail-closed 23 times on 29-31 Aug rejecting manual calls that presented the wrong '
        + 'internal secret (inbound_secret) during hand-wiring of the embedding backfill; the scheduled '
        + 'backfill uses cred_cron_knowledge and authenticates. Operator diagnostics, not a defect.' },
   // 28 AUG 2026 — TRANSIENT, LOAD-CORRELATED, FAIL-CLOSED, AND VERIFIED HEALTHY AGAIN. Both agents
@@ -231,21 +231,23 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
   // recorded with status='error'. FIXED the same hour (cos_execute logs it as skipped, the signal
   // executor_department_mismatch kept in counts). The one row remains until it ages out; a second
   // error row from this agent still fails this check.
-  { agent: 'cos_execute', errors: 1,
-    why: 'executor_department_mismatch refusal (org_tasks#526010, customer_experience vs assurance) routed '
+  { agent: 'cos_execute', errors: 2,
+    why: '4 SEP 2026, +1: tier_claim_exceeds_grant on org_tasks#526013 — approved as autonomous on 3 Sep when the authority model granted it, refused on 4 Sep after the STAFF_ORG walk lowered marketplace/recommend to advisory. A correct refusal, logged as error by the same shape the department-mismatch refusal had until 3 Sep; cos_execute v42 records it as skipped, and open tasks now carry the tier the model grants today (seven_packets_settle_into_one_estate.sql). ' + 'executor_department_mismatch refusal (org_tasks#526010, customer_experience vs assurance) routed '
        + 'to the advisory path and logged as error; fixed to skipped. Not a failed run.' },
   { agent: 'quote_compare', errors: 1,
     why: 'one operator probe presented cred_db_internal, which is not scoped to quote_compare; the '
        + 'guard fail-closed with 401 and logged it (2026-09-03 03:35Z) — the same shape as the kb_embed '
        + 'diagnostics above. The rehearsal was corrected to present the fn.cos_execute credential, which '
        + 'is scoped to it. Not a defect; a second row still fails this check.' },
-  { agent: 'agent_context_missing', errors: 3,
-    why: 'fn_agent_context_capped returned no context on three on-demand turns — cto twice on 3 Sep '
+  { agent: 'agent_context_missing', errors: 5,
+    why: '4 SEP 2026, +2 (ceo 06:18Z, cto 06:27Z): the same 8s statement timeout on fn_agent_context_capped, this time under seven parallel agents driving the database. ' + 'fn_agent_context_capped returned no context on three on-demand turns — cto twice on 3 Sep '
        + '01:06Z/01:50Z and cfo once at 20:54Z during a rehearsal — each time because the statement '
        + 'hit the 8s timeout while five parallel agents and the executive-UI scorer were loading the '
        + 'database; the routine takes 0.7s idle (measured 4 Sep). agent_brain refused to answer from '
        + 'memory and logged the miss rather than reasoning blind — the fail-closed behaviour is '
        + 'correct, and the load was the session, not the company. A new count still fails this check.' },
+  { agent: 'kb_autofill_gaps', errors: 27,
+    why: '4 SEP 2026, 05:xx-07:02Z: the revived workflow loop dispatched knowledge_fill steps, whose executor triggers kb_autofill_gaps, which asked kb_fill_gap to generate knowledge for five empty categories; the paid provider is held by the founder, kb_fill_gap answered 502 generation_failed, and the autofill logged status=error 27 times (and posted a founder warning each time). ROOT CAUSE FIXED: kb_fill_gap v14 reports a held provider as a distinct non-error outcome and kb_autofill_gaps v13 records an all-held run as skipped and pages nobody. No knowledge was generated or charged. A new count still fails this check.' },
   { agent: 'dr_drill', errors: 2,
     why: 'Two hand-driven drills on 3 Sep (20:06Z and 20:13Z) ran the PREVIOUS dr_drill code, 40 '
        + 'minutes before the committed version was redeployed: the first could not count live rows in '
@@ -316,6 +318,8 @@ const DISCLOSED_CRON_AFTER_THE_WATERMARK = [
     why: 'the 00:50Z run failed because its component carried accountable_role_id \'brief\', which does '
        + 'not resolve in org_role. Fixed: role set to agent_workforce_capability_director (the crosswalk '
        + 'value); the job traces cleanly now.' },
+  { job: 'action_invoke_rpc_5min', failures: 4,
+    why: '4 SEP 2026, 06:15-06:30Z: four ticks hit the 120s statement timeout inside fn_org_exec_knowledge_fill, which ran a full-table category reconcile over 2.65M kb_chunks on every knowledge_fill action once the workflow loop was revived. FIXED the same morning (knowledge_fill_executor_reconciles_recent_chunks_only.sql): the reconcile is scoped to recent chunks; 0 failures since 06:31Z. The four historical rows remain until they age out; a fifth still fails this check.' },
   { job: 'learning_loop_sweep_hourly', failures: 1,
     why: 'the 00:35Z run failed because its component carried accountable_role_id \'qa_manager\', which '
        + 'does not resolve in org_role. Fixed: role set to agent_workforce_capability_director (the '

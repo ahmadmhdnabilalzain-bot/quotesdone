@@ -582,7 +582,11 @@ const before = await (async () => (await sql(`select
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
   (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components,
-  (select coalesce(max(message_id),0) from public.founder_command_message) max_msg_id`))[0])();
+  (select coalesce(max(message_id),0) from public.founder_command_message) max_msg_id,
+  (select coalesce(max(task_id),0) from public.phase_c_task) max_task_id,
+  (select coalesce(max(run_id),0) from public.phase_c_workflow_run) max_run_id,
+  (select coalesce(max(outbox_id),0) from public.phase_c_event_outbox) max_outbox_id,
+  (select coalesce(max(trace_id),0) from public.phase_c_trace) max_trace_id`))[0])();
 
 for (const [name, body, expect] of CASES) {
   // The injection runs, then the transaction is aborted by a RAISE either way.  If the guard
@@ -706,7 +710,11 @@ const countsNow = async () => (await sql(`select
   (select count(*) from public.phase_c_handoff_run) handoffs,
   (select count(*) from public.founder_release_approval) release_appr,
   (select count(*) from public.phase_c_component where component_id like 'probe:%') probe_components,
-  (select coalesce(max(message_id),0) from public.founder_command_message) max_msg_id`))[0];
+  (select coalesce(max(message_id),0) from public.founder_command_message) max_msg_id,
+  (select coalesce(max(task_id),0) from public.phase_c_task) max_task_id,
+  (select coalesce(max(run_id),0) from public.phase_c_workflow_run) max_run_id,
+  (select coalesce(max(outbox_id),0) from public.phase_c_event_outbox) max_outbox_id,
+  (select coalesce(max(trace_id),0) from public.phase_c_trace) max_trace_id`))[0];
 
 const after = await countsNow();
 
@@ -751,9 +759,69 @@ for (const a of probeArrivals) {
 // from outside; every other column is compared untouched.
 const CONCURRENT = { cmds: outsideArrivals.length, msgs: outsideArrivals.length, traces: outsideArrivals.length };
 
+// THE COMPANY RUNS WHILE THIS CHECK RUNS — 4 SEP 2026. The workflow loop was revived that morning:
+// every few minutes the dispatcher and the kernel crons open a phase_c_workflow_run, its tasks, its
+// outbox rows and their traces for real work. This run went red on tasks 166 -> 167, runs 132 -> 133,
+// outbox 147 -> 148 and traces 1041 -> 1045 while all 56 driveable injections were refused; the local
+// run a minute earlier passed because nothing happened to fire in its window. Same lesson, same
+// remedy as the founder's command above: ATTRIBUTION, NOT TOLERANCE. Every task, run, outbox row or
+// trace this file could leave is tied to the probe — an idempotency key or dedupe value from this
+// file's own literals, or a command whose message text is in this file. A new row that carries none
+// of those arrived from the running company: it is named, counted out of its column, and reported.
+// A new row that DOES carry the probe's identity is a hard failure, exactly as before.
+const probeCmdIds = (await sql(`select c.command_id, left(m.raw_text, 160) as raw_text from public.founder_command c
+    join public.founder_command_message m on m.message_id = c.message_id
+   where m.message_id > ${Number(before.max_msg_id) || 0}`))
+  .filter((r) => SELF.includes(String(r.raw_text).trim()))   // the probe's commands, not the founder's
+  .map((r) => Number(r.command_id));
+const inProbe = (txt) => txt != null && String(txt).trim() !== '' && SELF.includes(String(txt).trim());
+const cmdIn = (id) => id != null && probeCmdIds.includes(Number(id));
+const newTasks = await sql(`select task_id, command_id, run_id, idempotency_key, left(objective,160) objective, accountable_role_id
+    from public.phase_c_task where task_id > ${Number(before.max_task_id) || 0} order by task_id`);
+const newRuns = await sql(`select run_id, workflow_id, command_id, dedupe_key, accountable_role_id
+    from public.phase_c_workflow_run where run_id > ${Number(before.max_run_id) || 0} order by run_id`);
+const newOutbox = await sql(`select outbox_id, event_id, command_id, workflow_run_id, task_id, dedupe_value
+    from public.phase_c_event_outbox where outbox_id > ${Number(before.max_outbox_id) || 0} order by outbox_id`);
+const newTraces = await sql(`select trace_id, trace_policy_id, command_id, run_id, task_id, component_id
+    from public.phase_c_trace where trace_id > ${Number(before.max_trace_id) || 0}
+     and trace_policy_id <> 'TRACE-SYSTEM-EXECUTION' order by trace_id`);
+const probeTaskIds = new Set(), probeRunIds = new Set();
+const split = (rows, isProbe, label, fmt) => {
+  const mine = rows.filter(isProbe), theirs = rows.filter((r) => !isProbe(r));
+  for (const r of mine) { console.error(`FAIL: ${label} ${fmt(r)} carries this file's identity and survived — an injection was not rolled back`); fail++; }
+  if (theirs.length) {
+    console.log(`${theirs.length} ${label}(s) arrived from the running company while this check ran, excluded by attribution:`);
+    for (const r of theirs.slice(0, 12)) console.log('  ' + fmt(r));
+    if (theirs.length > 12) console.log(`  ... and ${theirs.length - 12} more`);
+  }
+  return theirs.length;
+};
+const outsideRuns = split(newRuns,
+  (r) => cmdIn(r.command_id) || String(r.dedupe_key || '').startsWith('probe'),
+  'workflow run', (r) => `run ${r.run_id} ${r.workflow_id} (${r.accountable_role_id})`);
+for (const r of newRuns) if (cmdIn(r.command_id) || String(r.dedupe_key || '').startsWith('probe')) probeRunIds.add(Number(r.run_id));
+const outsideTasks = split(newTasks,
+  (r) => cmdIn(r.command_id) || probeRunIds.has(Number(r.run_id)) || String(r.idempotency_key || '').startsWith('probe') || inProbe(r.objective),
+  'task', (r) => `task ${r.task_id} ${r.accountable_role_id}: ${String(r.objective || '').slice(0, 70)}`);
+for (const r of newTasks) if (cmdIn(r.command_id) || probeRunIds.has(Number(r.run_id)) || String(r.idempotency_key || '').startsWith('probe') || inProbe(r.objective)) probeTaskIds.add(Number(r.task_id));
+const outsideOutbox = split(newOutbox,
+  (r) => cmdIn(r.command_id) || probeRunIds.has(Number(r.workflow_run_id)) || probeTaskIds.has(Number(r.task_id)) || inProbe(r.dedupe_value),
+  'outbox row', (r) => `outbox ${r.outbox_id} ${r.event_id}`);
+const outsideTraces = split(newTraces,
+  (r) => cmdIn(r.command_id) || probeRunIds.has(Number(r.run_id)) || probeTaskIds.has(Number(r.task_id)),
+  'trace', (r) => `trace ${r.trace_id} ${r.trace_policy_id} ${r.component_id || ''}`);
+// The founder's own commands were already counted into cmds/msgs/traces above; a trace that belongs
+// to one of those commands is in outsideTraces too, so it is not counted twice.
+CONCURRENT.runs = outsideRuns;
+CONCURRENT.tasks = outsideTasks;
+CONCURRENT.outbox = outsideOutbox;
+// A founder command from outside writes its TRACE-FOUNDER-COMMAND trace with that command id, which is
+// not a probe command, so it is already inside outsideTraces; nothing is counted twice.
+CONCURRENT.traces = outsideTraces;
+
 console.log('\nrow counts before/after every aborted injection:');
 for (const [k, v] of Object.entries(after)) {
-  if (k === 'max_msg_id') continue;
+  if (k === 'max_msg_id' || k === 'max_task_id' || k === 'max_run_id' || k === 'max_outbox_id' || k === 'max_trace_id') continue;
   const b = Number(before[k]) + (CONCURRENT[k] || 0), a = Number(v);
   const note = CONCURRENT[k] ? ` (+${CONCURRENT[k]} attributed to a command from outside this check)` : '';
   if (a !== b) { console.error(`FAIL: ${k} moved ${Number(before[k])} -> ${a}${note}; an injection was not rolled back`); fail++; }

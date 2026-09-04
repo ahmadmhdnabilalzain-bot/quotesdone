@@ -189,25 +189,47 @@ Deno.serve(async (req: Request) => {
       let outcome = '';
       let selfConfidence: number | null = null;
       let workedBy = 'deterministic';
+      // What the applier said when it did NOT match — carried into the release reason so the step
+      // records "best match 0.31 below the floor", never a bare "no playbook".
+      let noMatchWhy = '';
+      // deno-lint-ignore no-explicit-any
+      let playbook: any = null;
       try {
+        // The step, its process and what triggered the run — the trigger context is what makes
+        // "Detect from health, drift or a failed gate" retrieve the health playbook, not a generic one.
+        const need = (wfName + ' — ' + stepText + ' — ' + JSON.stringify(s.context ?? {})).slice(0, 1200);
         // deno-lint-ignore no-explicit-any
         const emb = await (new (globalThis as any).Supabase.ai.Session('gte-small'))
-          .run((wfName + ' — ' + stepText).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
-        const { data: det } = await admin.rpc('fn_apply_playbook',
-          { p_agent_key: employee, p_query_embedding: '[' + emb.join(',') + ']', p_min_similarity: 0.42, p_k: 5 });
+          .run(need, { mean_pool: true, normalize: true }) as number[];
+        // Cosine alone cannot tell a determination from noise (random in-scope pairs: median 0.837,
+        // p90 0.872 — measured 4 Sep 2026), so fn_apply_playbook also demands keyword corroboration
+        // from the step's own text and an ACTIONABLE record kind. See apply_playbook_needs_corroboration.sql.
+        const { data: det, error: detErr } = await admin.rpc('fn_apply_playbook',
+          { p_agent_key: employee, p_query_embedding: '[' + emb.join(',') + ']',
+            // Corroboration counts the STEP's own words (process + step), not the trigger JSON — a
+            // context blob adds dozens of lexemes and made "8 of 28 terms" fail a step whose own text
+            // was fully covered. The embedding above still carries the context for meaning.
+            p_query_text: wfName + ' ' + stepText,
+            p_min_similarity: 0.85, p_k: 20 });
         // deno-lint-ignore no-explicit-any
         const d = det as any;
-        if (d && d.matched === true && typeof d.determination === 'string' && d.determination.length >= MIN_CHARS) {
+        if (detErr) noMatchWhy = 'fn_apply_playbook error: ' + String(detErr.message);
+        else if (d && d.matched === true && typeof d.determination === 'string' && d.determination.length >= MIN_CHARS) {
           deliverable = String(d.determination);
           outcome = String(d.outcome || deliverable.slice(-200)).trim();
           selfConfidence = typeof d.confidence === 'number' ? d.confidence : null;
+          playbook = d;
+        } else if (d && d.matched === true) {
+          noMatchWhy = 'matched "' + String(d.title ?? '') + '" but its content is ' + String(d.determination ?? '').length + ' chars, under the ' + MIN_CHARS + ' floor';
+        } else {
+          noMatchWhy = String(d?.reason ?? 'no match');
         }
-      } catch (_e) { /* deterministic path optional; fall through to the model */ }
+      } catch (e) { noMatchWhy = 'deterministic path failed: ' + String((e as Error)?.message ?? e); }
 
       // Only reach for the model when the deterministic engine found no company knowledge for the step,
       // AND the model is available (the ~5% path; skipped while the founder holds it — the step is then
-      // released cleanly rather than erroring).
-      if (!deliverable && !modelHeld) {
+      // released cleanly rather than erroring). A step the claim flagged deterministic_only never does.
+      if (!deliverable && !modelHeld && s.deterministic_only !== true) {
         workedBy = 'model';
         const out = await llmAs(employee)(sys, user, 8000);
         const raw = (out ?? '').trim();
@@ -223,33 +245,72 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!deliverable || deliverable.length < MIN_CHARS || NOT_WORK.test(deliverable)) {
+        // The release reason is the step's readable state: distinct from success, and it says WHY
+        // (the applier's own words — "best match 0.31 is below the apply floor 0.42"). After three
+        // such attempts fn_workflow_step_release parks the step as awaiting_model.
         const reason = workedBy === 'deterministic'
-          ? 'no company playbook or rule confidently covers this step; needs a specialist, a source, or the ~5% model path'
+          ? 'no company playbook or rule confidently covers this step (' + noMatchWhy.slice(0, 300)
+            + '); it waits for a specialist, a source, or the ~5% model path'
+            + (modelHeld ? ' (held)' : '')
           : (!deliverable ? 'the model returned nothing'
              : NOT_WORK.test(deliverable) ? 'the reply is an apology, not a deliverable'
              : 'deliverable shorter than ' + MIN_CHARS + ' characters');
         // Back to 'ready', never left 'running'. A false success is worse than an unworked step
         // because an unworked step is still counted by fn_workflow_actor_coverage.
-        await admin.rpc('fn_workflow_step_release', { p_step_run_id: stepRunId, p_reason: reason });
-        refused.push({ step_run_id: stepRunId, employee, reason, chars: deliverable.length });
+        const { data: rel } = await admin.rpc('fn_workflow_step_release', { p_step_run_id: stepRunId, p_reason: reason });
+        refused.push({ step_run_id: stepRunId, employee, reason, chars: deliverable.length, release: rel ?? null });
         continue;
       }
 
-      const { data: adv, error: doneErr } = await admin.rpc('fn_workflow_step_done', {
-        p_run: String(s.run_id),
-        p_step_no: Number(s.step_no),
-        p_output: {
-          mode: 'advisory',
-          employee,
-          self_confidence: selfConfidence,
-          addressed_as: s.addressed_as ?? null,
-          deliverable: deliverable.slice(0, 20000),
-          outcome: outcome.slice(0, 400),
-          worked_by: 'workflow_dispatch',
-          brain_chars: brain.length,
-        },
-        p_status: 'done',
-      });
+      const output = {
+        mode: 'advisory',
+        employee,
+        self_confidence: selfConfidence,
+        addressed_as: s.addressed_as ?? null,
+        deliverable: deliverable.slice(0, 20000),
+        outcome: outcome.slice(0, 400),
+        worked_by: 'workflow_dispatch',
+        brain_chars: brain.length,
+        used_llm: workedBy === 'model',
+        stranded_reason: s.stranded_reason ?? null,
+      };
+
+      // deno-lint-ignore no-explicit-any
+      let adv: any = null;
+      let doneErr: { message: string } | null = null;
+      if (workedBy === 'deterministic') {
+        // A deterministic determination closes ONLY through fn_workflow_step_deterministic_done: it
+        // re-checks the substance (playbook id, similarity floor, length), seals the decision_trace,
+        // queues the review row, supersedes the parked executor attempt, then advances. Anything short
+        // of {ok:true} releases the step with the routine's own reason — never a step marked done on
+        // a determination the database refused to record.
+        const { data: det, error: detErr } = await admin.rpc('fn_workflow_step_deterministic_done', {
+          p_step_run_id: stepRunId,
+          p_output: {
+            ...output,
+            playbook_record_id: playbook?.record_id ?? null,
+            playbook_title: playbook?.title ?? null,
+            playbook_layer: playbook?.layer ?? null,
+            playbook_record_type: playbook?.record_type ?? null,
+            similarity: playbook?.similarity ?? null,
+            // the corroboration key: a close without it predates the calibrated applier
+            terms_matched: playbook?.terms_matched ?? null,
+            terms_total: playbook?.terms_total ?? null,
+            candidates: playbook?.candidates ?? [],
+            basis: playbook?.basis ?? null,
+          },
+        });
+        // deno-lint-ignore no-explicit-any
+        const dd = det as any;
+        if (detErr) doneErr = { message: 'fn_workflow_step_deterministic_done: ' + detErr.message };
+        else if (!dd || dd.ok !== true) doneErr = { message: 'deterministic close refused: ' + String(dd?.reason ?? 'no ok') };
+        else adv = dd;
+      } else {
+        const r = await admin.rpc('fn_workflow_step_done', {
+          p_run: String(s.run_id), p_step_no: Number(s.step_no), p_output: output, p_status: 'done',
+        });
+        adv = r.data; doneErr = r.error ? { message: r.error.message } : null;
+      }
       if (doneErr) {
         await admin.rpc('fn_workflow_step_release', { p_step_run_id: stepRunId, p_reason: doneErr.message });
         refused.push({ step_run_id: stepRunId, employee, reason: doneErr.message });
@@ -257,7 +318,8 @@ Deno.serve(async (req: Request) => {
       }
 
       worked.push({ step_run_id: stepRunId, run_id: s.run_id, step_no: s.step_no, employee,
-                    workflow: wfName, chars: deliverable.length, advanced: adv,
+                    workflow: wfName, chars: deliverable.length, advanced: adv, worked_by: workedBy,
+                    playbook: playbook ? { record_id: playbook.record_id, title: playbook.title, similarity: playbook.similarity } : null,
                     outcome: outcome.slice(0, 200) });
     }
 

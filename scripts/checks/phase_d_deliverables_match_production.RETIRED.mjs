@@ -1,3 +1,9 @@
+// RETIRED 4 SEP 2026 — PHASE E (MASTER_PLAN §5.1 / §6 step 4). NOT RUN BY ANYTHING.
+// Renamed from phase_d_deliverables_match_production.test.mjs so neither npm test nor the CI kernel gate discovers it.
+// Why: re-ran the Phase D deliverable builders (which DRIVE production inside aborted transactions) into a temp directory and diffed against the committed CSVs — a mirror, and the check that contended with the kernel gate and forced needs: serialisation.
+// The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
+// verbatim below as the record of what was measured while it ran.
+
 // A COMMITTED DELIVERABLE IS A CLAIM ABOUT PRODUCTION. NOTHING WAS CHECKING IT.
 //
 //   node --test scripts/checks/phase_d_deliverables_match_production.test.mjs

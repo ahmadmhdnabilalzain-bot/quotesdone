@@ -161,11 +161,12 @@ const a2 = await probe(`do $p$ declare v_id uuid; s1 jsonb; s2 jsonb; ap record;
   s1 := fn_action_invoke_dispatch(50); select response->>'invoker' into inv1 from action_execution where id=v_id;
   select * into ap from action_approval where action_execution_id=v_id;
   begin perform fn_action_head_approve(v_id,'approved','x','cfo'); wrong:='NOT_REFUSED'; exception when others then wrong:='REFUSED'; end;
-  perform fn_action_head_approve(v_id,'approved','x','procurement');
+  -- supplier_verify is a SUPPLY mechanism since 4 Sep 2026 (STAFF_ORG seat-at-plan-size): its head is bd.
+  perform fn_action_head_approve(v_id,'approved','x','bd');
   s2 := fn_action_invoke_dispatch(50); select response->>'invoker' into inv2 from action_execution where id=v_id;
   raise exception 'MARK|parked=%|approver=%|wrong=%|dispatched=%', inv1, ap.accountable_approver, wrong, inv2; end $p$;`);
 eq('a consequential action parks for the accountable head', a2.parked, 'awaiting_head_approval');
-eq('  -> entitled approver (marketplace/medium)', a2.approver, 'procurement');
+eq('  -> entitled approver (supply/medium)', a2.approver, 'bd');
 eq('  -> a non-entitled approver is refused', a2.wrong, 'REFUSED');
 eq('  -> the entitled head approves and it dispatches onward', a2.dispatched, 'dispatched');
 // an irreversible action with no compensation cannot be dispatched at all
@@ -436,8 +437,10 @@ eq('  -> a kernel workflow run starts from it', gr.run_started, 'true');
 eq('  -> its steps are accountable to corporate performance', gr.owner, 'corporate_performance_director');
 const grr = await q(`select 'goal_retirement_wiring_gap_open' k,
   (select count(*)::text from phase_b_phase_c_wiring_gap where gap ilike '%goal%retir%') v, '0' e
-  union all select 'phase_a_and_b_baselines_undrifted',
-  ((select count(*) from fn_phase_a_baseline_drift()) + (select count(*) from fn_phase_b_baseline_drift()) = 0)::text, 'true'`);
+  union all select 'organization_has_no_structural_violation',
+  ((select count(*) from fn_phase_a_organization_violations()) = 0)::text, 'true'`);
+// (4 Sep 2026: the frozen Phase A/B baseline-drift routines were dropped with the phase freezes —
+// scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql; the property they stood for is asserted above.)
 for (const r of grr) eq(r.k, r.v, r.e);
 
 // ============================================================================================
