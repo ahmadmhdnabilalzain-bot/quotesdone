@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T05:23:18.402Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-04T05:42:53.000Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (610) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (611) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -4598,7 +4598,8 @@ CREATE TABLE IF NOT EXISTS public.org_tasks (
   attempts integer DEFAULT 0 NOT NULL,
   last_run_at timestamp with time zone,
   root_cause text,
-  assigned_agent text
+  assigned_agent text,
+  priority smallint DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.org_workflow_ownership (
@@ -7051,6 +7052,20 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   stale_reason text
 );
 
+CREATE TABLE IF NOT EXISTS public.red_episode (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  source text NOT NULL,
+  check_key text NOT NULL,
+  detail text,
+  opened_at timestamp with time zone NOT NULL,
+  observed_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  alerted_at timestamp with time zone,
+  alert_dedupe_key text,
+  paged_by text,
+  resolved_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.refund_event_quarantine (
   id bigint DEFAULT nextval('refund_event_quarantine_id_seq'::regclass) NOT NULL,
   stripe_refund_id text,
@@ -8584,6 +8599,7 @@ ALTER TABLE public.quote_requirements ADD CONSTRAINT quote_requirements_pkey PRI
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.quote_reviews ADD CONSTRAINT quote_reviews_pkey PRIMARY KEY (id);
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_pkey PRIMARY KEY (id);
+ALTER TABLE public.red_episode ADD CONSTRAINT red_episode_pkey PRIMARY KEY (id);
 ALTER TABLE public.refund_event_quarantine ADD CONSTRAINT refund_event_quarantine_pkey PRIMARY KEY (id);
 ALTER TABLE public.refund_status_transition ADD CONSTRAINT refund_status_transition_pkey PRIMARY KEY (from_status, to_status);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_pkey PRIMARY KEY (id);
@@ -9956,6 +9972,8 @@ CREATE INDEX projects_customer ON public.projects USING btree (customer_id);
 CREATE INDEX q_inq_sup_idx ON public.questions USING btree (inquiry_id, supplier_id);
 CREATE INDEX q_sup_idx ON public.questions USING btree (supplier_id, answered_at);
 CREATE INDEX quotes_stale_idx ON public.quotes USING btree (inquiry_id) WHERE (stale_at IS NOT NULL);
+CREATE UNIQUE INDEX red_episode_one_open_per_key ON public.red_episode USING btree (check_key) WHERE (resolved_at IS NULL);
+CREATE INDEX red_episode_open ON public.red_episode USING btree (resolved_at) WHERE (resolved_at IS NULL);
 CREATE INDEX refund_event_quarantine_open_idx ON public.refund_event_quarantine USING btree (resolved_at, created_at);
 CREATE INDEX refunds_customer_idx ON public.refunds USING btree (customer_id);
 CREATE INDEX refunds_inquiry_idx ON public.refunds USING btree (inquiry_id);
@@ -17097,6 +17115,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17122,16 +17150,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -17251,6 +17269,20 @@ begin
   from public.ad_campaign_state where is_demo = p_demo and status = 'ACTIVE'
     and campaign_id not in (select campaign_id from public.ad_decision where executed_at is null);
   if v_active > v_ceiling then
+    -- 4 Sep 2026: this is the "Meta optimizer over cap" moment MASTER_PLAN §4.4 names as the
+    -- producer of budget.exceeded (budget_cycle's trigger). The pacing below is the remedy; the
+    -- event is the record Finance consumes (cfo, brief). Once per scope per day.
+    if not exists (select 1 from public.company_event e
+                    where e.event_type = 'budget.exceeded' and e.entity_type = 'ad_spend'
+                      and e.entity_id = case when p_demo then 'demo' else 'meta' end
+                      and e.occurred_at > now() - interval '24 hours') then
+      perform public.fn_emit('budget.exceeded', 'ad_spend', case when p_demo then 'demo' else 'meta' end,
+        'ads_autopilot',
+        jsonb_build_object('requested_aed', v_active, 'available_aed', v_ceiling,
+          'purpose', 'daily Meta ad spend across the active campaign set',
+          'reason', format('active daily total %s AED exceeds the effective ceiling %s AED; pacing down', v_active, v_ceiling),
+          'run_tag', p_run_tag, 'is_demo', p_demo));
+    end if;
     v_factor := v_ceiling / v_active;
     for c in
       select s.*, m.cpl from public.ad_campaign_state s
@@ -17295,9 +17327,8 @@ begin
               jsonb_build_object('active_total', v_active, 'ceiling', v_ceiling, 'cpl', c.cpl), p_run_tag)
       returning * into d;
       return next d;
-      v_active := v_active - least(c.daily_budget_aed, greatest(p.min_daily_per_campaign_aed, floor(c.daily_budget_aed * coalesce(v_factor, 1))));
+      v_active := v_active - c.daily_budget_aed;
     end loop;
-    return;  -- a pacing tick judges nothing else; the next tick sees the paced set
   end if;
 
   -- 2. JUDGE every active campaign that has no decision waiting.
@@ -17388,8 +17419,7 @@ begin
     end loop;
   end if;
   return;
-end;
-$function$
+end;$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_action_resolve_addressee()
@@ -17751,123 +17781,64 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
+CREATE OR REPLACE FUNCTION public.fn_agent_binding_rule()
+ RETURNS TABLE(agent_key text, department text, has_event boolean, has_executor boolean, has_playbook boolean, passes boolean, event_types text, executor_evidence text)
+ LANGUAGE sql
+ STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
+  with a as (
+    select ag.agent_key, ag.department,
+           (select r.role_id from public.org_role r
+             where r.runtime_agent_key = ag.agent_key and r.status = 'active'
+             order by r.role_id limit 1) role_id
+      from public.org_agents ag
+     where ag.active
+  ),
+  ev as (
+    select s.agent_key, string_agg(s.event_type, ', ' order by s.event_type) types
+      from public.event_subscription s where s.active group by s.agent_key
+  ),
+  steps as (
+    select coalesce(public.fn_org_agent_resolve(s.actor_role),
+                    public.fn_org_role_agent(public.fn_org_role_resolve(s.actor_role))) agent_key,
+           string_agg(distinct s.workflow_key || '#' || s.step_no || ':' || s.action_class, ', ') ev
+      from public.workflow_step s
+      join public.workflow w on w.workflow_key = s.workflow_key and w.active
+      join public.org_action_executor x on x.action_class = s.action_class and x.active
+     where s.actor_role is not null and s.actor_role not in ('owner', 'Director')
+     group by 1
+  ),
+  comps as (
+    select c.accountable_role_id role_id,
+           string_agg(c.component_id, ', ' order by c.component_id) ev
+      from public.phase_c_component c
+     where c.activation_state in ('active', 'deployed')
+       and c.component_type in ('cron_job', 'edge_function', 'database_trigger', 'runtime_workflow_definition')
+     group by 1
+  ),
+  pb as (
+    select i.agent_key
+      from public.org_role_identity i
+     where exists (select 1 from public.ops_knowledge k
+                    where k.runtime_eligible and k.scope_type in ('role', 'agent')
+                      and k.scope_key = i.packaged_role_id)
+     group by i.agent_key
+  )
+  select a.agent_key, a.department,
+         ev.agent_key is not null                                   as has_event,
+         (steps.agent_key is not null or comps.role_id is not null) as has_executor,
+         pb.agent_key is not null                                   as has_playbook,
+         (ev.agent_key is not null and (steps.agent_key is not null or comps.role_id is not null)
+          and pb.agent_key is not null)                             as passes,
+         ev.types                                                   as event_types,
+         concat_ws(' | ', steps.ev, comps.ev)                       as executor_evidence
+    from a
+    left join ev    on ev.agent_key = a.agent_key
+    left join steps on steps.agent_key = a.agent_key
+    left join comps on comps.role_id = a.role_id
+    left join pb    on pb.agent_key = a.agent_key
+   order by a.department, a.agent_key;
 $function$
 
 
@@ -18419,6 +18390,126 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -20156,62 +20247,92 @@ begin
 end; $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_min_similarity real DEFAULT 0.35, p_k integer DEFAULT 5)
+CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_query_text text, p_min_similarity real DEFAULT 0.85, p_k integer DEFAULT 20)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
+  v_lexemes    text[];
+  v_total      int;
   v_row        record;
-  v_top        record := null;
+  v_best       record := null;
+  v_best_terms int := 0;
+  v_nearest    record := null;
   v_candidates jsonb := '[]'::jsonb;
-  v_outcome    text;
+  v_terms      int;
+  v_pass       boolean;
+  v_reason     text;
+  v_det        text;
 begin
   if p_query_embedding is null then
     return jsonb_build_object('matched', false, 'reason', 'no query embedding supplied');
   end if;
 
-  -- Nearest in-scope company knowledge, by meaning (fn_ops_knowledge_match already scopes to exactly
-  -- what this agent may see: company + department-through-merge + its packaged roles).
+  -- The step's own vocabulary, normalised the same way ops_knowledge.tsv is (english stemming).
+  select array_agg(distinct lexeme) into v_lexemes
+    from unnest(to_tsvector('english', coalesce(p_query_text, '')))
+   where length(lexeme) >= 3;
+  v_total := coalesce(array_length(v_lexemes, 1), 0);
+
   for v_row in
-    select * from public.fn_ops_knowledge_match(p_query_embedding, p_agent_key, greatest(coalesce(p_k,5), 1))
+    select m.record_id, m.title, m.content, m.layer, m.record_type, m.authority_tier, m.similarity,
+           k.structured_data,
+           (select count(*) from unnest(tsvector_to_array(k.tsv)) t where t = any(coalesce(v_lexemes, '{}'))) as terms_matched
+      from public.fn_ops_knowledge_match(p_query_embedding, p_agent_key, greatest(coalesce(p_k, 20), 1)) m
+      join public.ops_knowledge k on k.record_id = m.record_id
   loop
-    if v_top is null then v_top := v_row; end if;
+    if v_nearest is null then v_nearest := v_row; end if;
+    v_terms := coalesce(v_row.terms_matched, 0);
+    v_pass := v_row.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')
+              and v_row.similarity >= p_min_similarity
+              and v_terms >= 2
+              and v_total > 0 and v_terms::numeric / v_total >= 0.30
+              and length(coalesce(v_row.content, '')) >= 300;
     v_candidates := v_candidates || jsonb_build_object(
       'record_id', v_row.record_id, 'title', v_row.title, 'layer', v_row.layer,
-      'record_type', v_row.record_type, 'similarity', round(v_row.similarity::numeric, 4));
+      'record_type', v_row.record_type, 'similarity', round(v_row.similarity::numeric, 4),
+      'terms_matched', v_terms, 'terms_total', v_total, 'corroborated', v_pass);
+    if v_pass and (v_best is null or v_row.similarity > v_best.similarity) then
+      v_best := v_row; v_best_terms := v_terms;
+    end if;
   end loop;
 
-  -- No confident match: do NOT invent a determination. Report the gap so the executor escalates.
-  if v_top is null or v_top.similarity < p_min_similarity then
-    return jsonb_build_object(
-      'matched', false,
-      'reason', case when v_top is null then 'no in-scope knowledge for this agent'
-                     else 'best match ' || round(v_top.similarity::numeric, 3)
-                          || ' is below the apply floor ' || p_min_similarity end,
-      'candidates', v_candidates);
+  if v_best is null then
+    v_reason := case when v_nearest is null then 'no in-scope knowledge for this agent'
+                     else 'no corroborated actionable match: nearest is ' || coalesce(v_nearest.record_type,'?')
+                          || ' "' || coalesce(v_nearest.title,'') || '" at ' || round(v_nearest.similarity::numeric, 3)
+                          || ' (floor ' || p_min_similarity || ', noise median 0.837) sharing '
+                          || coalesce(v_nearest.terms_matched, 0) || ' of ' || v_total || ' step terms'
+                end;
+    return jsonb_build_object('matched', false, 'reason', v_reason, 'candidates', v_candidates,
+                              'terms_total', v_total);
   end if;
 
-  -- APPLY the top playbook/rule as this step's determination — deterministic, no model.
-  v_outcome := 'Applied the company '
-             || coalesce(nullif(v_top.record_type, ''), 'playbook')
-             || ' "' || v_top.title || '" to this step (match '
-             || round(v_top.similarity::numeric, 3) || ').';
+  v_det := coalesce(v_best.content, '');
+  if v_best.structured_data is not null and v_best.structured_data <> '{}'::jsonb then
+    v_det := v_det || E'\n\nSTRUCTURED DETERMINATION (from the record''s structured_data):\n'
+             || jsonb_pretty(v_best.structured_data);
+  end if;
 
   return jsonb_build_object(
-    'matched',       true,
-    'record_id',     v_top.record_id,
-    'title',         v_top.title,
-    'layer',         v_top.layer,
-    'record_type',   v_top.record_type,
-    'authority_tier',v_top.authority_tier,
-    'similarity',    round(v_top.similarity::numeric, 4),
-    'confidence',    round(v_top.similarity::numeric, 3),
-    'determination', v_top.content,
-    'outcome',       v_outcome,
-    'candidates',    v_candidates,
-    'basis',         'deterministic: nearest company knowledge by meaning, no model call'
+    'matched',        true,
+    'record_id',      v_best.record_id,
+    'title',          v_best.title,
+    'layer',          v_best.layer,
+    'record_type',    v_best.record_type,
+    'authority_tier', v_best.authority_tier,
+    'similarity',     round(v_best.similarity::numeric, 4),
+    'terms_matched',  v_best_terms,
+    'terms_total',    v_total,
+    'confidence',     round(v_best.similarity::numeric, 3),
+    'determination',  v_det,
+    'outcome',        'Applied the company ' || v_best.record_type || ' "' || v_best.title
+                      || '" to this step (cosine ' || round(v_best.similarity::numeric, 3)
+                      || ', corroborated by ' || v_best_terms || ' of ' || v_total || ' step terms).',
+    'candidates',     v_candidates,
+    'basis',          'deterministic: nearest ACTIONABLE company knowledge by meaning, corroborated by the step''s own terms; no model call'
   );
 end
 $function$
@@ -22796,6 +22917,27 @@ CREATE OR REPLACE FUNCTION public.fn_company_connectivity_register()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+  with external_intake(event_type) as (values
+       ('inquiry.created'),    -- marketplace edge (supplier_portal / customer intake)
+       ('rfq.created'),        -- marketplace edge function
+       ('quote.received'),     -- marketplace edge function
+       ('lead.qualified'),     -- inbound sales-lead intake (no internal producer until a sales surface exists)
+       ('contract.submitted'), -- third-party contract intake (arrives from counterparties)
+       ('deploy.completed')    -- CI / deploy hook (scripts/deploy_functions.mjs)
+  ),
+  -- Every event type some database code can emit: a literal in a routine body, or a literal
+  -- argument on a trigger (fn_emit_event reads the type from tg_argv, so the body never names it).
+  producer(event_type) as (
+    select distinct e.event_type
+      from (select distinct ce.event_type from public.company_event ce
+            union select es.event_type from public.event_subscription es
+            union select w.trigger_event from public.workflow w where w.trigger_event is not null) e
+     where exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                    where n.nspname = 'public' and p.prosrc like '%''' || e.event_type || '''%')
+        or exists (select 1 from pg_trigger t
+                    where not t.tgisinternal
+                      and pg_get_triggerdef(t.oid) like '%''' || e.event_type || '''%')
+  )
   -- A · a live workflow step with a side-effect action_class and no active executor. Nothing can
   -- perform the step; the workflow stalls at it. (Mirror of v_workflow_side_effects_without_executor.)
   select 'step_without_executor',
@@ -22825,6 +22967,9 @@ AS $function$
   -- The dispatcher (fn_event_dispatch) delivers only through event_subscription, so such an event
   -- reaches no one. Excluded: 'task.assigned' — task assignment is delivered by the direct
   -- fn_org_task_assign path (the org_task row IS the delivery); a bus subscriber would double-create.
+  -- Excluded since 4 Sep 2026: a RETIRED type — history in company_event, no producer left in the
+  -- catalogue, not an external-intake type — because nothing can emit it again. Re-add an emitter
+  -- and the row returns.
   select distinct 'event_emitted_no_subscriber',
          ce.event_type,
          'emitted into company_event, no active event_subscription — the dispatcher delivers it nowhere'
@@ -22832,6 +22977,8 @@ AS $function$
    where ce.event_type <> 'task.assigned'
      and not exists (select 1 from public.event_subscription es
                       where es.active and es.event_type = ce.event_type)
+     and (exists (select 1 from producer p where p.event_type = ce.event_type)
+          or exists (select 1 from external_intake x where x.event_type = ce.event_type))
 
   union all
   -- D · an active subscription pointing at an agent that is missing or inactive. The dispatcher joins
@@ -22864,27 +23011,33 @@ AS $function$
   -- F · an active workflow whose trigger_event has NO producer, so it can never auto-start. The live
   -- loop starts a workflow only when a company_event.event_type equals a workflow.trigger_event (via
   -- fn_workflow_start_due), so a trigger nothing emits is a workflow that never runs. "Has a producer"
-  -- = some db function body contains the event literal (an emitter) OR the event has already occurred
-  -- in company_event. Excluded: the declared EXTERNAL-INTAKE events, which arrive from real inbound
-  -- traffic (edge functions, sales/contract intake, the CI deploy hook), not an internal db producer —
-  -- they are wired at the edge layer and fire when that traffic is real, not a structural gap.
+  -- = some db function body or trigger argument contains the event literal (an emitter) OR the event
+  -- has already occurred in company_event. Excluded: the declared EXTERNAL-INTAKE events, which arrive
+  -- from real inbound traffic (edge functions, sales/contract intake, the CI deploy hook), not an
+  -- internal db producer — they are wired at the edge layer and fire when that traffic is real.
   select 'workflow_trigger_has_no_producer',
          w.workflow_key,
-         'trigger_event ' || w.trigger_event || ' is emitted by no db function, has never occurred, and '
+         'trigger_event ' || w.trigger_event || ' is emitted by no db function or trigger, has never occurred, and '
            || 'is not a declared external-intake event — the workflow can never auto-start'
     from public.workflow w
    where w.active and w.trigger_event is not null
      and not exists (select 1 from public.company_event ce where ce.event_type = w.trigger_event)
-     and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                      where n.nspname = 'public' and p.prosrc like '%''' || w.trigger_event || '''%')
-     and w.trigger_event not in (
-       'inquiry.created',    -- marketplace edge (supplier_portal / customer intake)
-       'rfq.created',        -- marketplace edge function
-       'quote.received',     -- marketplace edge function
-       'lead.qualified',     -- inbound sales-lead intake (no internal producer until a sales surface exists)
-       'contract.submitted', -- third-party contract intake (arrives from counterparties)
-       'deploy.completed'    -- CI / deploy hook
-     )
+     and not exists (select 1 from producer p where p.event_type = w.trigger_event)
+     and not exists (select 1 from external_intake x where x.event_type = w.trigger_event)
+
+  union all
+  -- G · an active subscription to an event type NOTHING can emit: no routine body names it, no
+  -- trigger argument names it, it has never occurred, and it is not a declared external-intake event.
+  -- The dispatcher would wait for it forever (MASTER_PLAN §5.1 "phantom subscriptions").
+  select distinct 'subscription_without_producer',
+         es.event_type || ' -> ' || es.agent_key,
+         'active subscription; no db function or trigger emits this event type, it has never occurred, '
+           || 'and it is not a declared external-intake event'
+    from public.event_subscription es
+   where es.active
+     and not exists (select 1 from public.company_event ce where ce.event_type = es.event_type)
+     and not exists (select 1 from producer p where p.event_type = es.event_type)
+     and not exists (select 1 from external_intake x where x.event_type = es.event_type)
 $function$
 
 
@@ -26933,6 +27086,8 @@ declare
   v_note       text;
   v_open       boolean;
   v_title      text;
+  v_kind       text;
+  v_severity   text;
   v_platform   jsonb;
 begin
   select coalesce(jsonb_agg(x), '[]'::jsonb) into v_platform
@@ -26969,9 +27124,18 @@ begin
     values (r.fn_key, v_beat, v_silent, v_verdict, v_note);
 
     if v_verdict <> 'ALIVE' then
-      v_title := 'Silent failure: ' || r.fn_key || ' has produced no effect for ' ||
-                 coalesce(v_silent::text || ' minutes', 'an unknown period') ||
-                 ' (threshold ' || r.max_silence_minutes || ')';
+      -- 4 SEP 2026: a probe that could not run is reported as a broken probe, never as the capability's
+      -- silence. Distinct kind, distinct title, its own severity; the same fn_key-keyed resolve clears it.
+      if v_verdict = 'PROBE FAILED' then
+        v_kind := 'probe_failed'; v_severity := 'low';
+        v_title := 'Probe broken: the heartbeat_sql for ' || r.fn_key || ' could not run — ' ||
+                   coalesce(v_note, 'no detail') || ' (the capability was NOT measured)';
+      else
+        v_kind := 'silent_failure'; v_severity := r.severity;
+        v_title := 'Silent failure: ' || r.fn_key || ' has produced no effect for ' ||
+                   coalesce(v_silent::text || ' minutes', 'an unknown period') ||
+                   ' (threshold ' || r.max_silence_minutes || ')';
+      end if;
 
       if not exists (
         select 1 from os_incidents
@@ -26979,7 +27143,7 @@ begin
       ) then
         insert into os_incidents (title, kind, severity, status, detail, opened_by)
         values (
-          left(v_title, 300), 'silent_failure', r.severity, 'open',
+          left(v_title, 300), v_kind, v_severity, 'open',
           jsonb_build_object(
             'fn_key', r.fn_key,
             'cron_jobname', r.cron_jobname,
@@ -26989,6 +27153,7 @@ begin
             'silent_minutes', v_silent,
             'threshold_minutes', r.max_silence_minutes,
             'probe_note', v_note,
+            'heartbeat_sql', case when v_kind = 'probe_failed' then r.heartbeat_sql end,
             'platform_errors_30m', v_platform,
             'detected_by', 'fn_edge_health_scan'),
           'edge_health_watchdog');
@@ -26996,17 +27161,24 @@ begin
 
         insert into org_tasks (dept_key, title, detail, status, tier, action_class, needs_founder)
         values (
-          coalesce(r.dept_key, 'technology'),
+          coalesce(r.dept_key, 'product_eng'),  -- 4 Sep 2026: 'technology' is not an org_departments row (FK 23503); Platform & Reliability is
           left(v_title, 300),
-          r.purpose || E'\n\nWhat breaks while this stays down: ' || r.blast_radius ||
-          E'\n\nLast observed effect: ' || coalesce(v_beat::text, 'never') ||
-          E'\nCron job: ' || coalesce(r.cron_jobname, 'unknown') ||
-          E'\nSeverity: ' || r.severity ||
-          E'\nPlatform error codes in the last 30 minutes: ' || v_platform::text ||
-          E'\n\nNote: this was detected by watching the capability''s EFFECT, not its logs. ' ||
-          'A function killed by the platform (546 WORKER_RESOURCE_LIMIT, OOM, timeout) never ' ||
-          'reaches its own error handler, so agent_runs will look clean. Check ' ||
-          'net._http_response and the edge function logs directly.',
+          case when v_kind = 'probe_failed' then
+            'The watchdog''s own probe for ' || r.fn_key || ' failed to run, so whether the capability is alive is UNKNOWN. ' ||
+            E'\n\nStatement that failed: ' || coalesce(r.heartbeat_sql, '(none)') ||
+            E'\nError: ' || coalesce(v_note, '') ||
+            E'\n\nFix the edge_expectation row (heartbeat_sql) or the relation it reads; do not treat this as an outage of the capability itself.'
+          else
+            r.purpose || E'\n\nWhat breaks while this stays down: ' || r.blast_radius ||
+            E'\n\nLast observed effect: ' || coalesce(v_beat::text, 'never') ||
+            E'\nCron job: ' || coalesce(r.cron_jobname, 'unknown') ||
+            E'\nSeverity: ' || r.severity ||
+            E'\nPlatform error codes in the last 30 minutes: ' || v_platform::text ||
+            E'\n\nNote: this was detected by watching the capability''s EFFECT, not its logs. ' ||
+            'A function killed by the platform (546 WORKER_RESOURCE_LIMIT, OOM, timeout) never ' ||
+            'reaches its own error handler, so agent_runs will look clean. Check ' ||
+            'net._http_response and the edge function logs directly.'
+          end,
           'proposed', 'supervised', 'investigate',
           -- IT owns technical failures: a dark capability is the technology department's to
           -- investigate and auto-heal, never the founder's to triage. Only refunds reach the founder
@@ -27024,7 +27196,7 @@ begin
              result = coalesce(result,'{}'::jsonb) || jsonb_build_object('auto_closed','capability recovered','last_beat_at', v_beat)
        where status in ('proposed','assigned','in_progress')
          and action_class = 'investigate'
-         and title like 'Silent failure: ' || r.fn_key || ' %';
+         and (title like 'Silent failure: ' || r.fn_key || ' %' or title like 'Probe broken: the heartbeat_sql for ' || r.fn_key || ' %');
     end if;
 
     fn_key := r.fn_key; verdict := v_verdict; silent_minutes := v_silent; opened_incident := v_open;
@@ -27251,6 +27423,25 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_emit_campaign_published_from_content()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from public.company_event e
+              where e.event_type = 'campaign.published' and e.entity_type = 'content_draft'
+                and e.entity_id = new.id::text) then
+    return new;
+  end if;
+  perform public.fn_emit('campaign.published', 'content_draft', new.id::text,
+    coalesce(nullif(new.source, ''), 'marketing'),
+    jsonb_build_object('content_draft_id', new.id, 'channel', new.channel, 'category', new.category,
+      'title', left(coalesce(new.title, ''), 200), 'posted_at', coalesce(new.reviewed_at, now())));
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_emit_churn_signal()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -27309,6 +27500,25 @@ begin
   perform public.fn_emit('customer.complaint', 'feedback', new.id::text, coalesce(new.source,'customer'),
     jsonb_build_object('subject_type', new.subject_type, 'subject_id', new.subject_id,
                        'rating', new.rating, 'source', new.source, 'comment', left(coalesce(new.comment,''),500)));
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_customer_complaint_from_review()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from public.company_event e
+              where e.event_type = 'customer.complaint' and e.entity_type = 'review'
+                and e.entity_id = new.id::text) then
+    return new;
+  end if;
+  perform public.fn_emit('customer.complaint', 'review', new.id::text, 'customer',
+    jsonb_build_object('subject_type', 'supplier', 'subject_id', new.supplier_id::text,
+      'rating', new.rating, 'source', 'review', 'comment', left(coalesce(new.comment, ''), 500),
+      'inquiry_id', new.inquiry_id, 'transaction_id', new.transaction_id, 'customer_id', new.customer_id));
   return new;
 end $function$
 
@@ -27418,6 +27628,21 @@ begin
 end; $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_emit_invoice_received_from_expense()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_emit('invoice.received', 'expense_entry', new.id::text,
+    coalesce(nullif(new.source, ''), 'expenses_inbox'),
+    jsonb_build_object('vendor', new.vendor, 'amount', new.amount, 'currency', new.currency,
+      'charged_on', new.charged_on, 'category', new.category, 'note', left(coalesce(new.note, ''), 300),
+      'doc_path', new.doc_path, 'source', new.source));
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_emit_metric_alerts()
  RETURNS integer
  LANGUAGE plpgsql
@@ -27491,12 +27716,43 @@ begin
   -- Only a genuine NEW customer request: status 'requested' and no Stripe refund id (an externally
   -- issued refund is a recorded fact, not a request, and must not enter the approval workflow).
   if new.status = 'requested' and new.stripe_refund_id is null then
+    -- 4 Sep 2026: the customer's own request (transactions.refund_status → 'requested') already
+    -- put this case on the bus; the claim continues that case rather than opening a second run.
+    if new.transaction_id is not null and exists (select 1 from public.company_event e
+         where e.event_type = 'refund.requested' and e.entity_type = 'transaction'
+           and e.entity_id = new.transaction_id::text) then
+      return new;
+    end if;
     perform public.fn_emit('refund.requested', 'refund', new.id::text,
       coalesce(new.requested_by, 'system'),
       jsonb_build_object('refund_id', new.id, 'inquiry_id', new.inquiry_id,
         'customer_id', new.customer_id, 'supplier_lead_id', new.supplier_lead_id,
         'amount_fils', new.amount_fils, 'reason_code', new.reason_code));
   end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_emit_refund_requested_from_transaction()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from public.refunds r where r.transaction_id = new.id) then
+    return new;   -- the refunds row already carried this request onto the bus
+  end if;
+  if exists (select 1 from public.company_event e
+              where e.event_type = 'refund.requested' and e.entity_type = 'transaction'
+                and e.entity_id = new.id::text) then
+    return new;
+  end if;
+  perform public.fn_emit('refund.requested', 'transaction', new.id::text, 'customer',
+    jsonb_build_object('transaction_id', new.id, 'inquiry_id', new.inquiry_id,
+      'customer_id', new.customer_id, 'supplier_lead_id', new.supplier_id, 'quote_id', new.quote_id,
+      'amount_fils', round(coalesce(new.reveal_fee, 0) * 100)::bigint,
+      'reason_code', coalesce(new.refund_reason, 'supplier_unresponsive'),
+      'refund_deadline', new.refund_deadline, 'source', 'customer_api request_refund'));
   return new;
 end $function$
 
@@ -29637,12 +29893,13 @@ begin
   with seen as (
     select a.id,
            case
-             when d.id is null                                        then 'cancelled'
-             when d.status = 'executed'                               then 'succeeded'
-             when d.gate_verdict = 'refused'
-               or d.status not in ('approved','executed')             then 'cancelled'
+             when a.response->>'invoker' = 'refused'                       then 'cancelled'
+             when (a.request ? 'decision_record_id') and d.id is null      then 'cancelled'
+             when d.id is not null and d.status = 'executed'               then 'succeeded'
+             when d.id is not null and (d.gate_verdict = 'refused'
+               or d.status not in ('approved','executed'))                 then 'cancelled'
              when a.created_at < now() - make_interval(mins => greatest(coalesce(p_stall_minutes,60), 1))
-                                                                      then 'stalled'
+                                                                            then 'stalled'
              else a.status
            end as new_status,
            d.id as dr_id, d.status as dr_status, d.gate_verdict as dr_verdict
@@ -29680,6 +29937,19 @@ begin
   return jsonb_build_object('executions_settled', v_exec, 'traces_updated', v_trace,
                             'queue', coalesce(v_queue, '{}'::jsonb), 'swept_at', now());
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_executor_needs_model(p_target text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (
+    select 1 from public.fn_task_class c
+     where c.fn = p_target and c.active
+       and c.task_class not in ('health_ping', 'json_extraction'));
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_experience_promote()
@@ -46239,12 +46509,16 @@ begin
   -- ONE TASK AT A TIME, TO THE CURRENTLY-LEAST-LOADED ELIGIBLE COLLEAGUE. Assigning inside the
   -- transaction makes each pick see the assignments already made in this sweep, so the load spreads
   -- breadth-first across the department and a single sweep fills it.
+  --
+  -- 4 Sep 2026: priority first. fn_priority_backlog_reorder raises it on the open tasks of a
+  -- cross-OS episode that concluded with a high/medium assessed severity (priority.updated), so a
+  -- re-prioritisation changes who gets served next instead of only minting a task about it.
   for r in
     select t.id, t.dept_key, t.action_class
       from public.org_tasks t
      where t.assigned_agent is null
        and t.status in ('assigned','in_progress')
-     order by t.created_at, t.id
+     order by t.priority desc, t.created_at, t.id
      limit greatest(coalesce(p_limit, 200), 1)
   loop
     v_considered := v_considered + 1;
@@ -50876,85 +51150,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_phase_a_baseline_drift()
- RETURNS TABLE(subject text, approved text, live text)
- LANGUAGE plpgsql
- STABLE
-AS $function$
-declare b public.org_phase_baseline%rowtype; v text;
-begin
-  select * into b from public.org_phase_baseline where phase = 'A';
-  if not found then
-    subject := 'baseline'; approved := 'a recorded Phase A baseline'; live := 'MISSING'; return next; return;
-  end if;
-
-  -- the counts, which are what a reader checks first
-  v := (select count(*)::text from public.org_departments where active);
-  if v is distinct from (b.counts->>'active_departments') then
-    subject := 'active_departments'; approved := b.counts->>'active_departments'; live := v; return next; end if;
-
-  v := (select count(*)::text from public.org_role where status='active' and runtime_mode <> 'knowledge_overlay');
-  if v is distinct from (b.counts->>'canonical_roles') then
-    subject := 'canonical_roles'; approved := b.counts->>'canonical_roles'; live := v; return next; end if;
-
-  v := (select count(*)::text from public.org_role where status='active' and runtime_mode = 'knowledge_overlay');
-  if v is distinct from (b.counts->>'category_overlays') then
-    subject := 'category_overlays'; approved := b.counts->>'category_overlays'; live := v; return next; end if;
-
-  v := (select count(*)::text from public.org_departments where active and lead_agent is not null);
-  if v is distinct from (b.counts->>'department_heads') then
-    subject := 'department_heads'; approved := b.counts->>'department_heads'; live := v; return next; end if;
-
-  v := (select count(*)::text from public.org_workflow_ownership);
-  if v is distinct from (b.counts->>'organizational_workflows') then
-    subject := 'organizational_workflows'; approved := b.counts->>'organizational_workflows'; live := v; return next; end if;
-
-  -- the invariant that must never come back non-zero
-  v := (select count(*)::text from public.fn_phase_a_organization_violations());
-  if v <> '0' then
-    subject := 'phase_a_violations'; approved := '0'; live := v; return next; end if;
-
-  -- the registry digests, each recomputed exactly as scripts/phase_a/freeze.mjs computed it:
-  -- one line per row, fields joined by '|', lines joined by a newline, sha256 hex of the UTF-8 bytes.
-  v := (select encode(sha256(convert_to(coalesce(string_agg(x, chr(10) order by x), ''), 'UTF8')), 'hex')
-          from (select d.dept_key||'|'||d.name||'|'||coalesce(d.lead_agent,'') x
-                  from public.org_departments d where d.active) s);
-  if v is distinct from (b.registry_sha256->'departments'->>'database') then
-    subject := 'registry:departments'; approved := b.registry_sha256->'departments'->>'database'; live := v; return next; end if;
-
-  v := (select encode(sha256(convert_to(coalesce(string_agg(x, chr(10) order by sortkey), ''), 'UTF8')), 'hex')
-          from (select r.role_id sortkey,
-                       r.role_id||'|'||coalesce(r.manager_role_id,'founder')||'|'||r.primary_department_id x
-                  from public.org_role r
-                 where r.status='active' and r.runtime_mode <> 'knowledge_overlay') s);
-  if v is distinct from (b.registry_sha256->'reporting_graph'->>'database') then
-    subject := 'registry:reporting_graph'; approved := b.registry_sha256->'reporting_graph'->>'database'; live := v; return next; end if;
-
-  v := (select encode(sha256(convert_to(coalesce(string_agg(x, chr(10) order by sortkey), ''), 'UTF8')), 'hex')
-          from (select r.role_id sortkey, r.role_id||'|'||r.display_name||'|'||r.primary_department_id x
-                  from public.org_role r
-                 where r.status='active' and r.runtime_mode = 'knowledge_overlay') s);
-  if v is distinct from (b.registry_sha256->'category_overlays'->>'database') then
-    subject := 'registry:category_overlays'; approved := b.registry_sha256->'category_overlays'->>'database'; live := v; return next; end if;
-
-  v := (select encode(sha256(convert_to(coalesce(string_agg(x, chr(10) order by sortkey), ''), 'UTF8')), 'hex')
-          from (select o.workflow_id sortkey,
-                       o.workflow_id||'|'||o.workflow_name||'|'||o.accountable_role_id||'|'
-                       ||array_to_string(o.contributors, ';')||'|'||coalesce(o.independent_reviewer,'') x
-                  from public.org_workflow_ownership o) s);
-  if v is distinct from (b.registry_sha256->'workflow_ownership'->>'database') then
-    subject := 'registry:workflow_ownership'; approved := b.registry_sha256->'workflow_ownership'->>'database'; live := v; return next; end if;
-
-  v := (select encode(sha256(convert_to(coalesce(string_agg(x, chr(10) order by sortkey), ''), 'UTF8')), 'hex')
-          from (select f.decision_key sortkey, f.decision_key||'|'||f.description x
-                  from public.founder_reserved_decision f) s);
-  if v is distinct from (b.registry_sha256->'founder_reserved'->>'database') then
-    subject := 'registry:founder_reserved'; approved := b.registry_sha256->'founder_reserved'->>'database'; live := v; return next; end if;
-
-  return;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_phase_a_deferred_items()
  RETURNS TABLE(status text, rule text, role_id text, detail text)
  LANGUAGE sql
@@ -51107,71 +51302,6 @@ AS $function$
    where r.status='active' and r.runtime_mode='knowledge_overlay'
      and coalesce(r.necessity_reason,'') not ilike '%cannot decide%';
 $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_phase_b_baseline_drift()
- RETURNS TABLE(subject text, approved text, live text)
- LANGUAGE plpgsql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare b public.org_phase_baseline%rowtype; v text; r record;
-begin
-  select * into b from public.org_phase_baseline where phase = 'B';
-  if not found then
-    subject := 'baseline'; approved := 'a recorded Phase B baseline'; live := 'MISSING';
-    return next; return;
-  end if;
-
-  -- the counts a reader checks first
-  for r in select * from (values
-      ('workflows',   (select count(*)::text from public.phase_b_workflow)),
-      ('steps',       (select count(*)::text from public.phase_b_workflow_step)),
-      ('handoffs',    (select count(*)::text from public.phase_b_handoff)),
-      ('cross_department_handoffs',
-                      (select count(*)::text from public.phase_b_handoff where handoff_type='cross_department')),
-      ('business_objects', (select count(*)::text from public.phase_b_business_object)),
-      ('business_rules',   (select count(*)::text from public.phase_b_business_rule)),
-      ('gates',            (select count(*)::text from public.phase_b_gate)),
-      ('exceptions',       (select count(*)::text from public.phase_b_exception)),
-      ('sla_policies',     (select count(*)::text from public.phase_b_sla_policy)),
-      ('events',           (select count(*)::text from public.phase_b_event)),
-      ('workflow_states',      (select count(*)::text from public.phase_b_workflow_state)),
-      ('workflow_transitions', (select count(*)::text from public.phase_b_workflow_transition)),
-      ('step_states',          (select count(*)::text from public.phase_b_step_state)),
-      ('step_transitions',     (select count(*)::text from public.phase_b_step_transition)),
-      ('founder_boundaries',   (select count(*)::text from public.phase_b_founder_boundary)),
-      ('crosswalk_classifications', (select count(*)::text from public.phase_b_crosswalk))
-    ) t(k, v)
-  loop
-    if r.v is distinct from (b.counts->>r.k) then
-      subject := 'count:'||r.k; approved := b.counts->>r.k; live := r.v; return next;
-    end if;
-  end loop;
-
-  -- the frozen structure, one digest per subject the founder named
-  for r in select * from public.fn_phase_b_structure_digest() loop
-    if r.sha256 is distinct from (b.registry_sha256->'structure'->r.subject->>'database') then
-      subject := 'structure:'||r.subject;
-      approved := coalesce(b.registry_sha256->'structure'->r.subject->>'database', 'NOT RECORDED');
-      live := r.sha256; return next;
-    end if;
-  end loop;
-
-  -- the three founder-stated erratum conditions must still hold
-  v := (select count(*)::text from public.fn_phase_b_effective_errata() where not resolved);
-  if v <> '0' then
-    subject := 'effective_errata_unresolved'; approved := '0'; live := v; return next;
-  end if;
-
-  -- and Phase A must still be frozen underneath it
-  v := (select count(*)::text from public.fn_phase_a_baseline_drift());
-  if v <> '0' then
-    subject := 'phase_a_baseline_drift'; approved := '0'; live := v; return next;
-  end if;
-
-  return;
-end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_phase_b_change_request_append_only()
@@ -51358,25 +51488,10 @@ CREATE OR REPLACE FUNCTION public.fn_phase_b_invariants()
 AS $function$
 with
 -- ---------------------------------------------------------------- declared counts
-counts(check_name, expected, actual) as (
-  values
-    ('count.workflows',            (select (b.counts->>'workflows')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow)),
-    ('count.steps',                (select (b.counts->>'steps')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_workflow_step)),
-    ('count.handoffs',             (select (b.counts->>'handoffs')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_handoff)),
-    ('count.business_objects',     (select (b.counts->>'business_objects')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_business_object)),
-    ('count.business_rules',       (select (b.counts->>'business_rules')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_business_rule)),
-    ('count.exceptions',           (select (b.counts->>'exceptions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_exception)),
-    ('count.sla_policies',         (select (b.counts->>'sla_policies')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_sla_policy)),
-    ('count.gates',                (select (b.counts->>'gates')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_gate)),
-    ('count.events',               (select (b.counts->>'events')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_event)),
-    ('count.workflow_states',      (select (b.counts->>'workflow_states')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow_state)),
-    ('count.workflow_transitions', (select (b.counts->>'workflow_transitions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow_transition)),
-    ('count.step_states',          (select (b.counts->>'step_states')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_step_state)),
-    ('count.step_transitions',     (select (b.counts->>'step_transitions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_step_transition)),
-    ('count.founder_boundaries',   (select (b.counts->>'founder_boundaries')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_founder_boundary)),
-    ('count.cross_department_handoffs', (select (b.counts->>'cross_department_handoffs')::text from public.org_phase_baseline b where b.phase = 'B'),
-      (select count(*)::text from public.phase_b_handoff where handoff_type = 'cross_department'))
-),
+-- 4 SEP 2026 (Phase E): the fifteen count.* rows that compared each phase_b_* table to the frozen
+-- org_phase_baseline row are gone with the phase freezes the founder removed on 2 Sep. A count that
+-- must equal a copy is a mirror, not a property; the properties (ownership, coverage, graph,
+-- handoffs, authority, integrity) are the blocks below and are unchanged.
 -- ------------------------------------------------------------ identity and ownership
 owners(check_name, expected, actual) as (
   values
@@ -51612,7 +51727,6 @@ integrity(check_name, expected, actual) as (
 -- ------------------------------------------------------------------- phase boundaries
 boundaries(check_name, expected, actual) as (
   values
-    ('phase_a.baseline_drift_rows', '0', (select count(*)::text from public.fn_phase_a_baseline_drift())),
     ('phase_a.organization_violations', '0',
       (select count(*)::text from public.fn_phase_a_organization_violations())),
     ('phase_b.crosswalk_rows_measured', 'gt0',
@@ -51633,7 +51747,7 @@ boundaries(check_name, expected, actual) as (
 select c.check_name, c.expected, c.actual,
        case when c.expected = 'gt0' then c.actual = 'gt0' else c.actual = c.expected end
 from (
-  select * from counts union all select * from owners union all select * from coverage
+  select * from owners union all select * from coverage
   union all select * from graph union all select * from handoffs union all select * from authority
   union all select * from integrity union all select * from boundaries
 ) c
@@ -53447,32 +53561,20 @@ begin
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.proname like 'fn_phase_c%' or p.proname like 'fn_founder_command%';
 
-  -- ---------------------------------------------------------------- frozen baseline
-  check_name := 'phase_a_drift'; expected := '0';
-  actual := (select count(*)::text from public.fn_phase_a_baseline_drift());
-  ok := actual = expected; return next;
-
-  check_name := 'phase_b_drift'; expected := '0';
-  actual := (select count(*)::text from public.fn_phase_b_baseline_drift());
+  -- ---------------------------------------------------------------- organisation properties
+  -- 4 SEP 2026 (Phase E): the five rows that stood here compared production to org_phase_baseline —
+  -- fn_phase_a_baseline_drift(), fn_phase_b_baseline_drift() and three frozen counts. The founder
+  -- removed every phase freeze on 2 Sep, so a board that reddens when the organisation legitimately
+  -- changes protected nothing and reddened for bookkeeping. What those rows DEFENDED is a property,
+  -- asserted here directly: the organisation has no structural violation (every active department
+  -- has a head, every canonical role resolves, no cycle in the reporting graph — see
+  -- fn_phase_a_organization_violations), and every effective Phase B erratum is resolved.
+  check_name := 'organization_structural_violations'; expected := '0';
+  actual := (select count(*)::text from public.fn_phase_a_organization_violations());
   ok := actual = expected; return next;
 
   check_name := 'phase_b_unresolved_errata'; expected := '0';
   actual := (select count(*)::text from public.fn_phase_b_effective_errata() where not resolved);
-  ok := actual = expected; return next;
-
-  check_name := 'active_departments';
-  expected := (select counts->>'active_departments' from public.org_phase_baseline where phase='A');
-  actual := (select count(*)::text from public.org_departments where active);
-  ok := actual = expected; return next;
-
-  check_name := 'canonical_roles';
-  expected := (select counts->>'canonical_roles' from public.org_phase_baseline where phase='A');
-  actual := (select count(*)::text from public.org_role where status='active' and runtime_mode <> 'knowledge_overlay');
-  ok := actual = expected; return next;
-
-  check_name := 'category_overlays';
-  expected := (select counts->>'category_overlays' from public.org_phase_baseline where phase='A');
-  actual := (select count(*)::text from public.org_role where status='active' and runtime_mode = 'knowledge_overlay');
   ok := actual = expected; return next;
 
   -- ---------------------------------------------------------------- binding coverage
@@ -60774,11 +60876,14 @@ begin
     end if;
 
   if p_gate_id = 'GATE-001' then
-    select count(*) into v_n from public.fn_phase_a_baseline_drift();
-    v_ok := (v_n = 0) and exists (select 1 from public.org_phase_baseline where phase = 'A');
-    reason := format('GATE-001: Phase A drift %s row(s); baseline row %s', v_n,
-                     case when exists (select 1 from public.org_phase_baseline where phase='A')
-                          then 'present' else 'ABSENT' end);
+    -- 4 SEP 2026 (Phase E). This gate read fn_phase_a_baseline_drift(): "the organisation still
+    -- matches the frozen Phase A digest". The founder removed the phase freezes on 2 Sep, so a
+    -- hard gate with workflow_scope ALL that refused every step the moment a department was
+    -- re-carved was a freeze by another name. The property the gate is FOR — the organisation the
+    -- step runs in is structurally valid — is measured directly.
+    select count(*) into v_n from public.fn_phase_a_organization_violations();
+    v_ok := (v_n = 0);
+    reason := format('GATE-001: the organisation has %s structural violation(s) (fn_phase_a_organization_violations)', v_n);
 
   elsif p_gate_id = 'GATE-002' then
     v_ok := public.fn_phase_c_actor_may_own(p_evidence->>'actor_role_id');
@@ -69794,6 +69899,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_priority_backlog_reorder()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_rank smallint; v_n int;
+begin
+  v_rank := case new.payload->>'max_severity' when 'high' then 2 when 'medium' then 1 else 0 end;
+  if v_rank = 0 or new.correlation_id is null then return new; end if;
+  update public.org_tasks t
+     set priority = greatest(t.priority, v_rank), updated_at = now()
+   where t.status not in ('done','closed','cancelled')
+     and t.priority < v_rank
+     and t.id in (select d.task_id from public.event_delivery d
+                    join public.company_event e on e.id = d.event_id
+                   where e.correlation_id = new.correlation_id and d.task_id is not null);
+  get diagnostics v_n = row_count;
+  if v_n > 0 then
+    insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+    values ('priority_backlog_reorder', now(), now(), 'ok',
+            jsonb_build_object('event_id', new.id, 'correlation_id', new.correlation_id, 'rank', v_rank, 'tasks_moved', v_n),
+            'priority.updated (' || coalesce(new.payload->>'max_severity','?') || ') moved ' || v_n
+            || ' open task(s) of the episode ahead of the created_at queue.');
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_procurement_analysis(p_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -71127,6 +71260,178 @@ begin
           coalesce(p_attempt,1), p_latency_ms)
   returning id into v_id;
   return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_red_view_alert(p_boards boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_now        timestamptz := clock_timestamp();
+  v_t0         timestamptz := clock_timestamp();
+  v_red        int;
+  v_opened     int := 0;
+  v_resolved   int := 0;
+  v_pending    int := 0;
+  v_shown      int;
+  v_open_total int;
+  v_level      text;
+  v_high       boolean;
+  v_detail     text;
+  v_keys       text;
+  v_dedupe     text;
+  v_url        text;
+  v_secret     text;
+  v_req        bigint;
+  v_suppressed int := 0;
+begin
+  create temp table if not exists red_now (source text, check_key text, detail text, opened_at timestamptz) on commit drop;
+  delete from red_now;
+
+  -- 1. kernel boards
+  if p_boards then
+    insert into red_now
+    select 'board', 'board:' || b.board || ':' || b.check_name,
+           left('expected ' || coalesce(b.expected,'') || ' | actual ' || coalesce(b.actual,''), 300), v_now
+      from public.fn_kernel_all_boards() b
+     where not b.ok;
+  end if;
+
+  -- 2. crons: latest run failed (pg_cron's own record) ...
+  insert into red_now
+  select 'cron', 'cron:' || j.jobname, left(coalesce(d.return_message,''), 300), d.start_time
+    from cron.job j
+    join (select distinct on (jobid) jobid, status, start_time, return_message
+            from cron.job_run_details
+           where start_time > v_now - interval '8 days'
+           order by jobid, start_time desc, runid desc) d on d.jobid = j.jobid
+   where j.active and d.status = 'failed';
+  -- ... or latest kernel trace failed (the wrapper records the failure and returns normally)
+  insert into red_now
+  select 'cron', 'cron:' || j.jobname, left(coalesce(e.failure,''), 300), e.finished_at
+    from cron.job j
+    join public.phase_c_system_execution_wrapper w on w.jobid = j.jobid
+    join (select distinct on (component_id) component_id, result, failure, finished_at
+            from public.phase_c_system_execution
+           where finished_at > v_now - interval '8 days'
+           order by component_id, finished_at desc, trace_id desc) e on e.component_id = w.component_id
+   where j.active and e.result = 'failed';
+
+  -- 3. health checks: the latest row per target is failing
+  insert into red_now
+  select 'health', 'health:' || h.check_kind || ':' || h.target,
+         left(coalesce(h.detail,'') || case when h.status_code is not null then ' (http ' || h.status_code || ')' else '' end, 300),
+         h.created_at
+    from (select distinct on (check_kind, target) *
+            from public.health_checks
+           where created_at > v_now - interval '24 hours'
+           order by check_kind, target, created_at desc, id desc) h
+   where h.ok = false;
+
+  -- 4. connectivity register
+  insert into red_now
+  select 'connectivity', 'connectivity:' || r.gap_class || ':' || left(r.subject, 120), left(r.detail, 300), v_now
+    from public.fn_company_connectivity_register() r;
+
+  -- 5. department health board
+  insert into red_now
+  select 'department', 'department:' || v.dept_key,
+         left(v.department || ' score ' || v.score::text || ' — ' || v.basis, 300), v_now
+    from public.v_department_health v
+    join public.org_departments d on d.dept_key = v.dept_key and d.active
+   where v.status = 'at risk';
+
+  -- 6. what the failed-runs watcher already paged (kept in the register, never paged twice)
+  insert into red_now
+  select 'watcher', 'watcher:' || left(s.signature, 150), left(s.signature, 300), s.first_seen_at
+    from public.alert_signature s
+   where s.watcher = 'failed_runs' and s.last_alerted_at is not null
+     and s.last_seen_at > v_now - interval '24 hours';
+
+  select count(distinct check_key) into v_red from red_now;
+
+  -- open what is new
+  insert into public.red_episode (source, check_key, detail, opened_at, observed_at, last_seen_at, alerted_at, paged_by)
+  select r.source, r.check_key, r.detail, r.opened_at, v_now, v_now,
+         case when r.source = 'watcher' then v_now end,
+         case when r.source = 'watcher' then 'failed_runs' end
+    from (select distinct on (check_key) * from red_now order by check_key, opened_at) r
+   where not exists (select 1 from public.red_episode e where e.check_key = r.check_key and e.resolved_at is null);
+  get diagnostics v_opened = row_count;
+
+  -- keep what is still red current
+  update public.red_episode e
+     set last_seen_at = v_now, detail = r.detail
+    from (select distinct on (check_key) * from red_now order by check_key, opened_at) r
+   where r.check_key = e.check_key and e.resolved_at is null;
+
+  -- resolve what is green again (board episodes only on a pass that read the boards)
+  update public.red_episode e
+     set resolved_at = v_now
+   where e.resolved_at is null
+     and (p_boards or e.source <> 'board')
+     and not exists (select 1 from red_now r where r.check_key = e.check_key);
+  get diagnostics v_resolved = row_count;
+
+  -- page the founder once for everything open and not yet alerted
+  select count(*) into v_pending from public.red_episode where resolved_at is null and alerted_at is null;
+  if v_pending > 0 then
+    if public.fn_rehearsal_window_covers(v_now) then
+      v_suppressed := v_pending;      -- a declared rehearsal: posted by the first pass after it closes
+    else
+      select count(*) into v_open_total from public.red_episode where resolved_at is null;
+      -- the EPISODE ids are in the hash, not just the keys: the same key going red a second time is a
+      -- new episode and must not be held by alert_founder's 24 h dedupe on the previous message's key
+      -- (the probe caught exactly that before this line carried the id)
+      select string_agg(check_key || '#' || id, ',' order by check_key, id),
+             bool_or(source = 'health')
+        into v_keys, v_high
+        from public.red_episode where resolved_at is null and alerted_at is null;
+      -- a page down is 'high' (alert_founder sends WhatsApp for high); everything else is 'error' (email)
+      v_level  := case when v_high then 'high' else 'error' end;
+      v_dedupe := 'red_view:' || md5(v_keys);
+      select string_agg(left(check_key, 70) || ' — ' || left(coalesce(detail,''), 90), E'\n' order by opened_at), count(*)
+        into v_detail, v_shown
+        from (select check_key, detail, opened_at from public.red_episode
+               where resolved_at is null and alerted_at is null
+               order by opened_at limit 12) x;
+      v_detail := v_pending || ' signal(s) went red and had not been alerted; ' || v_open_total
+               || ' red in total right now.' || E'\n\n' || v_detail
+               || case when v_pending > v_shown then E'\n… and ' || (v_pending - v_shown) || ' more (public.red_episode)' else '' end;
+
+      select 'https://' || value || '.supabase.co/functions/v1/alert_founder' into v_url
+        from public.app_secrets where key = 'project_ref';
+      select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+      if v_url is null or v_secret is null then
+        raise exception 'fn_red_view_alert: % red episode(s) are waiting but % is missing from app_secrets',
+          v_pending, case when v_url is null then 'project_ref' else 'cred_db_internal' end;
+      end if;
+      select net.http_post(
+        url     := v_url,
+        headers := '{"Content-Type":"application/json"}'::jsonb,
+        body    := jsonb_build_object(
+          '__secret',   v_secret,
+          'event',      'Red view: ' || v_pending || ' new red signal(s)',
+          'detail',     left(v_detail, 1000),
+          'level',      v_level,
+          'dedupe_key', v_dedupe),
+        timeout_milliseconds := 20000) into v_req;
+      update public.red_episode
+         set alerted_at = clock_timestamp(), alert_dedupe_key = v_dedupe, paged_by = 'red_view'
+       where resolved_at is null and alerted_at is null;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'red_now', v_red, 'opened', v_opened, 'resolved', v_resolved,
+    'paged', case when v_suppressed = 0 then v_pending else 0 end,
+    'pending_in_rehearsal', v_suppressed,
+    'level', v_level, 'dedupe_key', v_dedupe, 'request_id', v_req,
+    'boards_read', p_boards,
+    'elapsed_ms', round(extract(epoch from (clock_timestamp() - v_t0)) * 1000));
 end $function$
 
 
@@ -73007,9 +73312,11 @@ begin
   values (p_subject_type, p_subject_id, p_dept_key, p_author, v_cos, 'published',
           'approve', 'Published after full approval chain', 1.0);
 
-  insert into company_event (event_type, entity_type, entity_id, actor, payload)
-  values ('content.published', p_subject_type, p_subject_id, p_author,
-          jsonb_build_object('dept', p_dept_key));
+  -- 4 Sep 2026: the content.published emit that stood here is retired. It fired on every approved
+  -- review of any subject (org_tasks, posts, documents) — 360 events, 1,003 deliveries, 163 tasks
+  -- minted and 87 still open for two subscribers who wanted campaign.published. The 'published'
+  -- review_chain row above is the log; the real publish path emits campaign.published from
+  -- content_drafts.status = 'posted' (fn_emit_campaign_published_from_content).
 
   return jsonb_build_object('subject_id', p_subject_id, 'outcome', 'published',
                             'stopped_at', 'published', 'violations', v_violations,
@@ -81342,10 +81649,14 @@ CREATE OR REPLACE FUNCTION public.fn_workflow_run_follow_task()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_run uuid;
+declare v_run uuid; v_run_status text;
 begin
   if new.status is not distinct from old.status then return new; end if;
-  if new.status not in ('done','failed','escalated') then return new; end if;
+  if new.status not in ('done','failed','escalated','cancelled') then return new; end if;
+
+  v_run_status := case when new.status = 'done' then 'done'
+                       when new.status = 'cancelled' then 'cancelled'
+                       else 'failed' end;
 
   for v_run in
     select r.id from public.workflow_run r
@@ -81358,20 +81669,25 @@ begin
            output = coalesce(output, '{}'::jsonb) || jsonb_build_object(
              'closed_by', 'owning_org_task', 'org_task_id', new.id,
              'org_task_status', new.status,
-             'note', 'the owning task was performed and reviewed as one act; this step was never '
-                     || 'separately observed, so it is skipped rather than claimed as done')
+             'used_llm', case when (new.result->>'used_llm') in ('true','false') then (new.result->>'used_llm')::boolean else null end,
+             'note', case when new.status = 'cancelled'
+                          then 'the owning task was cancelled; this step was never separately observed, so it is skipped rather than claimed as done'
+                          else 'the owning task was performed and reviewed as one act; this step was never '
+                            || 'separately observed, so it is skipped rather than claimed as done' end)
      where workflow_run_id = v_run and finished_at is null;
 
     update public.workflow_run
-       set status      = case when new.status = 'done' then 'done' else 'failed' end,
+       set status      = v_run_status,
            finished_at = now(),
            updated_at  = now(),
            context     = coalesce(context,'{}'::jsonb)
                          || jsonb_build_object('closed_by','owning_org_task',
-                                               'org_task_status', new.status),
+                                               'org_task_status', new.status,
+                                               'used_llm', case when (new.result->>'used_llm') in ('true','false') then (new.result->>'used_llm')::boolean else null end),
            error       = case when new.status = 'done' then null
                               else jsonb_build_object('owning_org_task', new.id,
-                                                      'org_task_status', new.status) end
+                                                      'org_task_status', new.status,
+                                                      'reason', case when new.status = 'cancelled' then 'the owning org_task was cancelled' else 'the owning org_task ended ' || new.status end) end
      where id = v_run;
   end loop;
   return new;
@@ -81479,8 +81795,10 @@ CREATE OR REPLACE FUNCTION public.fn_workflow_step_claim(p_limit integer DEFAULT
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_out jsonb; v_today int; v_cap int; v_demand_ready int;
+declare v_out jsonb; v_today int; v_cap int; v_demand_ready int; v_held boolean;
 begin
+  v_held := coalesce((public.fn_kernel_paid_provider_gate('anthropic/claude-sonnet-5')->>'allowed')::boolean, false) = false;
+
   update public.workflow_step_run sr
      set status = 'ready'
    where sr.status = 'running'
@@ -81494,16 +81812,15 @@ begin
     from public.decision_policy where key = 'workflow_reflection_steps_per_day';
   v_cap := coalesce(v_cap, 6);
 
-  -- NON-DEMAND ONLY. A supplier registration step worked this morning must not make the company
-  -- refuse an inquiry step this afternoon.
+  -- NON-DEMAND ONLY, and MODEL WORK ONLY: the ceiling exists to bound paid reasoning. A deterministic
+  -- determination costs nothing and is not counted against it.
   select count(*) into v_today
     from public.workflow_step_run sr
    where sr.output->>'worked_by' = 'workflow_dispatch'
+     and coalesce(sr.output->>'used_llm', 'true') <> 'false'
      and sr.finished_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'
      and not public.fn_task_is_demand(sr.action_class);
 
-  -- Is there revenue-path work waiting that the ceiling must not block? Same predicates as the pick,
-  -- so this cannot claim the ceiling is irrelevant for a step the pick would reject anyway.
   select count(*) into v_demand_ready
     from public.workflow_step_run sr
     join public.workflow_run r on r.id = sr.workflow_run_id
@@ -81521,7 +81838,7 @@ begin
               and not e.notifies_human
               and coalesce(e.required_authority,'') <> 'founder');
 
-  if v_today >= v_cap and v_demand_ready = 0 then
+  if not v_held and v_today >= v_cap and v_demand_ready = 0 then
     return jsonb_build_object('capped', true, 'worked_today', v_today, 'cap', v_cap,
              'demand_ready', 0,
              'note', 'the daily reflection ceiling is spent and no revenue-path step is waiting; see '
@@ -81537,27 +81854,40 @@ begin
        and r.status = 'running'
        and r.workflow_key <> 'employee_task'
        and coalesce(sr.input->>'gate','') <> 'founder'
-       -- THE SPLIT. A revenue-path step is always claimable; a reflection step only while the
-       -- day's ceiling holds.
-       and (public.fn_task_is_demand(sr.action_class) or v_today < v_cap)
+       and (public.fn_task_is_demand(sr.action_class) or v_today < v_cap or v_held)
        and public.fn_workflow_actor_resolve(sr.workflow_run_id, sr.actor) is not null
-       and not exists (
+       -- parked awaiting the model: not claimed again until the hold lifts
+       and not (v_held and coalesce(sr.error->>'disposition','') = 'awaiting_model')
+       and (
+         -- (a) no safe executor owns it: the dispatcher's row, as before
+         not exists (
              select 1 from public.org_action_executor e
               where e.action_class = sr.action_class and e.active and e.kind = 'edge'
                 and e.risk_tier = 'low' and e.advisory_safe and e.reversible
                 and not e.notifies_human
                 and coalesce(e.required_authority,'') <> 'founder')
+         -- (b) the model is held and the safe executor cannot finish it: it runs on the model, or it
+         --     already left only terminal (held/cancelled/stalled) executions behind
+         or (v_held and (
+               exists (select 1 from public.org_action_executor e
+                        where e.action_class = sr.action_class and e.active
+                          and public.fn_executor_needs_model(e.target))
+            or (exists (select 1 from public.action_execution x where x.workflow_step_run_id = sr.id)
+                and not exists (select 1 from public.action_execution x
+                                 where x.workflow_step_run_id = sr.id
+                                   and x.status in ('queued','running','succeeded')))))
+       )
      order by sr.id
-     -- the reflection remainder PLUS whatever revenue-path work is waiting, so demand is not
-     -- rationed by a counter that no longer counts it. See the overshoot note in the header.
-     limit greatest(least(coalesce(p_limit, 5), greatest(v_cap - v_today, 0) + v_demand_ready), 1)
+     limit greatest(least(coalesce(p_limit, 5),
+                          case when v_held then coalesce(p_limit, 5)
+                               else greatest(v_cap - v_today, 0) + v_demand_ready end), 1)
      for update of sr skip locked
   ), claimed as (
     update public.workflow_step_run sr
        set status = 'running', started_at = now()
       from pick
      where sr.id = pick.id
-    returning sr.id, sr.workflow_run_id, sr.step_no, sr.actor, sr.action_class, sr.input
+    returning sr.id, sr.workflow_run_id, sr.step_no, sr.actor, sr.action_class, sr.input, sr.attempts, sr.error
   )
   select coalesce(jsonb_agg(jsonb_build_object(
            'step_run_id',  c.id,
@@ -81571,9 +81901,22 @@ begin
            'workflow_key', r.workflow_key,
            'workflow',     w.name,
            'context',      r.context,
-           -- WHAT THIS RUN HAS ALREADY CONCLUDED. See the header: without this the process does not
-           -- accumulate. Skipped steps are excluded on purpose - their note says the work was never
-           -- separately observed, and passing that on as a finding would be a fabrication.
+           'attempts',     coalesce(c.attempts, 0),
+           'model_held',   v_held,
+           'deterministic_only', v_held,
+           'stranded_reason', case
+              when exists (select 1 from public.org_action_executor e
+                            where e.action_class = c.action_class and e.active and e.kind = 'edge'
+                              and e.risk_tier = 'low' and e.advisory_safe and e.reversible
+                              and not e.notifies_human)
+               then coalesce((select 'executor ' || coalesce(x.executor, e2.target) || ' left status=' || x.status
+                                     || coalesce(' (' || (x.response->>'reason') || ')', '')
+                                from public.action_execution x
+                                join public.org_action_executor e2 on e2.action_class = c.action_class and e2.active
+                               where x.workflow_step_run_id = c.id
+                               order by x.created_at desc limit 1),
+                             'executor runs on the held paid model; not queued')
+              else null end,
            'prior_steps', (select coalesce(jsonb_agg(jsonb_build_object(
                                     'step_no', p.step_no,
                                     'step',    p.input->>'step',
@@ -81595,6 +81938,127 @@ begin
     left join public.workflow w on w.workflow_key = r.workflow_key;
 
   return v_out;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_workflow_step_deterministic_done(p_step_run_id bigint, p_output jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  sr           record;
+  v_sim        numeric;
+  v_floor      numeric := 0.42;
+  v_deliv      text;
+  v_employee   text;
+  v_dept       text;
+  v_trace      uuid;
+  v_review     bigint;
+  v_superseded int := 0;
+  v_res        text;
+  v_out        jsonb;
+begin
+  select s.id, s.workflow_run_id, s.step_no, s.actor, s.action_class, s.input, s.attempts,
+         r.workflow_key, r.context, r.correlation_id, r.trigger_event_id
+    into sr
+    from public.workflow_step_run s
+    join public.workflow_run r on r.id = s.workflow_run_id
+   where s.id = p_step_run_id and s.status = 'running' and s.finished_at is null;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'step is not held running by a dispatcher');
+  end if;
+
+  v_deliv    := coalesce(p_output->>'deliverable', '');
+  v_sim      := nullif(p_output->>'similarity', '')::numeric;
+  v_employee := coalesce(nullif(p_output->>'employee',''), sr.actor);
+
+  -- FALSE-SUCCESS GUARDS. Nothing below runs unless the determination has substance.
+  if coalesce(p_output->>'playbook_record_id','') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'no playbook_record_id: a determination must cite the company knowledge it applied');
+  end if;
+  if v_sim is null or v_sim < v_floor then
+    return jsonb_build_object('ok', false, 'reason', 'similarity ' || coalesce(v_sim::text,'null') || ' is below the apply floor ' || v_floor);
+  end if;
+  if length(v_deliv) < 300 then
+    return jsonb_build_object('ok', false, 'reason', 'deliverable shorter than 300 characters is not a determination');
+  end if;
+  if not exists (select 1 from public.ops_knowledge k where k.record_id = p_output->>'playbook_record_id' and k.runtime_eligible) then
+    return jsonb_build_object('ok', false, 'reason', 'playbook ' || (p_output->>'playbook_record_id') || ' is not a runtime-eligible ops_knowledge record');
+  end if;
+
+  select o.department into v_dept from public.org_agents o where o.agent_key = v_employee;
+
+  -- The sealed record of what was decided, on what, by which rule, with what confidence.
+  insert into public.decision_trace(
+      correlation_id, causation_event_id, entity_type, entity_id, decision_type,
+      proposed_by, decided_by, policy_keys, knowledge_refs, evidence_refs, alternatives,
+      assumptions, risk, confidence, authority_result,
+      decision, outcome_status, agent_key, department_id, task_class,
+      knowledge_versions, source_freshness, tools_requested, tools_executed, tool_result_refs,
+      uncertainty, escalation_decision, proposed_action, expected_outcome,
+      model, provider, input_tokens, output_tokens, estimated_cost_aed, final_status, sealed_at)
+  values (
+      coalesce(sr.correlation_id, gen_random_uuid()), sr.trigger_event_id,
+      'workflow_step_run', sr.id::text, 'deterministic_playbook_application',
+      v_employee, 'fn_apply_playbook', array['deterministic_first']::text[],
+      jsonb_build_array(jsonb_build_object('record_id', p_output->>'playbook_record_id',
+                                           'title', p_output->>'playbook_title',
+                                           'similarity', v_sim)),
+      jsonb_build_array(jsonb_build_object('workflow_run_id', sr.workflow_run_id, 'workflow_key', sr.workflow_key,
+                                           'step_no', sr.step_no, 'step', sr.input->>'step',
+                                           'trigger_context', sr.context)),
+      coalesce(p_output->'candidates', '[]'::jsonb),
+      jsonb_build_array('the nearest company playbook by cosine similarity is the applicable one for this step'),
+      jsonb_build_object('level', 'low', 'note', 'advisory determination; moves no money, sends nothing, approves nobody'),
+      v_sim,
+      jsonb_build_object('mode', 'advisory', 'gate', coalesce(sr.input->>'gate', 'none'), 'paid_provider', 'held'),
+      jsonb_build_object('determination', left(v_deliv, 8000), 'outcome', p_output->>'outcome',
+                         'basis', 'nearest company knowledge by meaning; no model call'),
+      'pending', v_employee, v_dept, 'workflow_step',
+      '{}'::jsonb, jsonb_build_object('ops_knowledge', 'live at decision time'), '{}'::text[], '{}'::text[], '[]'::jsonb,
+      'low-confidence deterministic disposition: the nearest playbook was applied, not reasoned over; queued for review',
+      'review_queued', 'mark the workflow step done with a deterministic disposition',
+      'the run advances to its deterministic tail steps; a reviewer can overturn the determination',
+      'none', 'deterministic', 0, 0, 0, 'auto_done', now())
+  returning id into v_trace;
+
+  -- Never a silent pass: the determination is queued for review, with everything needed to overturn it.
+  insert into public.review_queue(kind, dept_key, title, summary, payload, status)
+  values ('deterministic_step', v_dept,
+          left('Deterministic determination: ' || sr.workflow_key || ' step ' || sr.step_no || ' — ' || coalesce(sr.input->>'step',''), 240),
+          left(coalesce(p_output->>'outcome',''), 600),
+          jsonb_build_object('workflow_run_id', sr.workflow_run_id, 'step_run_id', sr.id, 'step_no', sr.step_no,
+                             'employee', v_employee, 'playbook_record_id', p_output->>'playbook_record_id',
+                             'playbook_title', p_output->>'playbook_title', 'similarity', v_sim,
+                             'decision_trace_id', v_trace, 'disposition', 'deterministic_low_confidence'),
+          'pending')
+  returning id into v_review;
+
+  -- The executor's parked/stranded attempt is superseded: fn_action_release_held must not re-run it at
+  -- launch over a step that is already closed.
+  update public.action_execution
+     set status = 'cancelled', finished_at = coalesce(finished_at, now()),
+         response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+           'superseded_at', now(), 'superseded_by', 'deterministic determination',
+           'decision_trace_id', v_trace, 'prior_status', status)
+   where workflow_step_run_id = sr.id and status in ('held','stalled');
+  get diagnostics v_superseded = row_count;
+
+  v_out := coalesce(p_output, '{}'::jsonb) || jsonb_build_object(
+             'used_llm', false,
+             'disposition', 'deterministic_low_confidence',
+             'decision_trace_id', v_trace,
+             'review_queue_id', v_review,
+             'review_status', 'pending',
+             'superseded_executions', v_superseded);
+
+  v_res := public.fn_workflow_step_done(sr.workflow_run_id, sr.step_no, v_out, 'done');
+
+  return jsonb_build_object('ok', true, 'advanced', v_res, 'decision_trace_id', v_trace,
+                            'review_queue_id', v_review, 'superseded_executions', v_superseded);
 end
 $function$
 
@@ -81643,15 +82107,28 @@ CREATE OR REPLACE FUNCTION public.fn_workflow_step_release(p_step_run_id bigint,
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_attempts int; v_disp text;
 begin
-  update public.workflow_step_run
-     set status   = 'ready',
-         attempts = coalesce(attempts,0) + 1,
-         error    = jsonb_build_object('released_at', now(), 'reason', left(coalesce(p_reason,''), 500),
-                                       'released_by', 'workflow_dispatch')
+  select coalesce(attempts,0) + 1 into v_attempts from public.workflow_step_run
    where id = p_step_run_id and status = 'running' and finished_at is null;
   if not found then return 'not held'; end if;
-  return 'released';
+
+  v_disp := case when v_attempts >= 3 and coalesce(p_reason,'') ~* '^no company playbook'
+                 then 'awaiting_model' else 'retry' end;
+
+  update public.workflow_step_run
+     set status   = 'ready',
+         attempts = v_attempts,
+         error    = jsonb_build_object('released_at', now(), 'reason', left(coalesce(p_reason,''), 500),
+                                       'released_by', 'workflow_dispatch',
+                                       'attempts', v_attempts,
+                                       'disposition', v_disp,
+                                       'note', case when v_disp = 'awaiting_model'
+                                                    then 'parked: no company playbook covered this step in ' || v_attempts
+                                                      || ' deterministic attempts; it waits for the ~5% model path (held) and is not retried until the hold lifts'
+                                                    else null end)
+   where id = p_step_run_id and status = 'running' and finished_at is null;
+  return case when v_disp = 'awaiting_model' then 'parked awaiting model' else 'released' end;
 end
 $function$
 
@@ -81664,11 +82141,13 @@ CREATE OR REPLACE FUNCTION public.fn_workflow_step_sweep(p_limit integer DEFAULT
 AS $function$
 declare s record; v_settled int := 0; v_q int := 0; v_key text; v_res text; v_out jsonb; v_parked int; v_noclass int;
         v_cap int; v_reflection_today int; v_throttled int; v_true_stall int; v_status text; v_note text;
-        v_ineligible int; v_why text;
+        v_ineligible int; v_why text; v_held boolean;
 begin
+  v_held := coalesce((public.fn_kernel_paid_provider_gate('anthropic/claude-sonnet-5')->>'allowed')::boolean, false) = false;
+
   -- 1. SETTLE what the invoker has already finished.
   for s in
-    select x.status, x.response, r.id sid, r.workflow_run_id, r.step_no
+    select x.status, x.response, x.executor, r.id sid, r.workflow_run_id, r.step_no
       from public.action_execution x
       join public.workflow_step_run r on r.id = x.workflow_step_run_id
      where x.workflow_step_run_id is not null
@@ -81679,13 +82158,15 @@ begin
   loop
     v_res := public.fn_workflow_step_done(
       s.workflow_run_id, s.step_no,
-      coalesce(s.response, '{}'::jsonb),
+      coalesce(s.response, '{}'::jsonb)
+        || jsonb_build_object('worked_by', 'executor:' || coalesce(s.executor, '?'))
+        || case when v_held then jsonb_build_object('used_llm', false, 'used_llm_basis', 'paid provider held (kernel K12) at settle time') else '{}'::jsonb end,
       case when s.status = 'succeeded' then 'done' else 'failed' end);
     v_settled := v_settled + 1;
   end loop;
 
   -- 2. QUEUE the ready steps a registered, low-risk, reversible edge executor can run WITHOUT
-  --    delivering a message to a person. See the note above: that last clause is why this exists.
+  --    delivering a message to a person — and, while the model is held, without needing the model.
   for s in
     select r.id, r.workflow_run_id, r.step_no, r.actor, r.action_class, r.input,
            e.target, e.risk_tier, e.reversible
@@ -81696,6 +82177,7 @@ begin
        and e.risk_tier = 'low' and e.advisory_safe and e.reversible
        and not e.notifies_human
        and coalesce(e.required_authority,'') <> 'founder'
+       and not (v_held and public.fn_executor_needs_model(e.target))
        and not exists (select 1 from public.action_execution x
                         where x.idempotency_key = 'workflow_step:' || r.id)
      order by r.id
@@ -81720,47 +82202,6 @@ begin
     v_q := v_q + 1;
   end loop;
 
-  -- IT KNEW ALL OF THIS AND TOLD NOBODY (12 Aug 2026). This function already computed
-  -- ready_runnable, ready_held_notifies_human and never_finished, and returned them to
-  -- `select public.fn_workflow_step_sweep(5);` in cron - which discards the value. So it has run
-  -- every ten minutes computing an accurate diagnosis of a stalled engine and writing it nowhere.
-  --
-  -- Measured on production the day this line was added: 2,655 workflow_step_run rows, 195 ready and
-  -- unfinished, and ZERO of the 195 executable - 132 carry no action_class at all and the other 63
-  -- match no eligible executor. Every one of the 195 in-flight workflow runs is parked on a step
-  -- nothing can pick up, which is why the whole table holds 5 'done' against 195 'running'.
-  --
-  -- The row below does not fix that. It makes it VISIBLE, which is the precondition: silence and
-  -- health looked identical from outside this function.
-  -- IT CALLED A WORKING THROTTLE A STALLED ENGINE (12 Aug 2026). The verdict below used to be
-  --     case when v_parked > 0 and v_q = 0 and v_settled = 0 then 'error' else 'ok' end
-  -- which reads "something is ready and this tick moved nothing, therefore the engine is stuck".
-  -- That was true when it was written. It stopped being true the moment the reflection ceiling
-  -- shipped: once the day's non-demand allowance is spent, moving nothing is the CORRECT behaviour
-  -- and it stays correct until midnight UTC.
-  --
-  -- Measured on production today: 108 ready steps. 67 carry no action_class. The other 41 -
-  -- health_report 21, knowledge_fill 19, coordinate 1 - pass every predicate in
-  -- fn_workflow_step_claim: parent running, not employee_task, not founder-gated, actor resolves,
-  -- and no safe executor owns them. They are unclaimed for exactly one reason:
-  -- fn_task_is_demand() is false for all three, 24 reflection steps have already run today, and the
-  -- cap is 6. The gate the founder asked for on 11 Aug is doing its job.
-  --
-  -- The old message asserted the opposite - "the rest match no eligible executor" - and raised
-  -- status='error' on it every ten minutes, 144 times a day. it_health reads those rows, and I
-  -- found its incident in decision_log verbatim: "10 agent run(s) failed in last 24h review failing
-  -- jobs: workflow_step_sweep", risk medium, routed to the CTO. A whole escalation chain standing
-  -- on a misread of a deliberate throttle.
-  --
-  -- So the verdict now separates three populations that were being added together:
-  --   * throttled  - explained by the ceiling, a named policy with a number. Not an error.
-  --   * unclassed  - steps no executor can EVER pick up. A real defect, but a standing backlog
-  --                  rather than a ten-minute incident, so it is counted, named in the note, and
-  --                  carried by one deduplicated org_task instead of 144 error rows a day.
-  --   * true stall - ready, classified, and NOT explained by either. That is the only thing left
-  --                  that nobody has accounted for, and it is the only thing that still raises.
-  -- Nothing is hidden: every count stays in the payload and in the note. Only the severity changed,
-  -- and it changed to match what the numbers actually say.
   select count(*), count(*) filter (where action_class is null)
     into v_parked, v_noclass
     from public.workflow_step_run where status = 'ready' and finished_at is null;
@@ -81775,7 +82216,6 @@ begin
      and x.created_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'
      and not public.fn_task_is_demand(x.action_class);
 
-  -- Classified, unfinished, ready, and held back only because the day's reflection budget is gone.
   select count(*) into v_throttled
     from public.workflow_step_run sr
     join public.workflow_run r on r.id = sr.workflow_run_id
@@ -81787,23 +82227,6 @@ begin
      and not public.fn_task_is_demand(sr.action_class)
      and v_reflection_today >= v_cap;
 
-  -- "UNEXPLAINED" WAS A SUBTRACTION, AND THE EXPLANATION WAS ONE JOIN AWAY (13 Aug 2026).
-  --
-  -- v_true_stall was parked - noclass - throttled: whatever is left after the two known reasons,
-  -- declared a stall and raised every ten minutes. Measured on production, ALL 56 of those steps
-  -- were three action_classes, and every one is refused by a deliberate rule this same function
-  -- already knows how to read - it uses exactly this join for ready_runnable two lines below:
-  --
-  --   coordinate      25 ready   risk_tier=medium, advisory_safe=false  -> the dispatcher takes
-  --                                                                        only low-risk advisory-safe
-  --   health_report   18 ready   notifies_human=true                    -> the gate added 13 Aug so
-  --                                                                        an executor cannot email him
-  --   knowledge_fill  13 ready   kind=rpc, not edge                     -> the dispatcher invokes edge
-  --
-  -- A count reached by subtracting the reasons you thought of is a count of the reasons you did
-  -- not, and calling that a stall pages a human 144 times a day about a policy working correctly.
-  -- The reasons are now named, and only a step that is ready, classified, and ineligible for NO
-  -- stated reason still raises - which is the thing nobody has accounted for.
   select count(*), string_agg(distinct why, '; ') into v_ineligible, v_why from (
     select sr.id,
            case when e.action_class is null then 'no executor is mapped to ' || sr.action_class
@@ -81813,13 +82236,13 @@ begin
                 when not e.advisory_safe then sr.action_class || ' is not advisory_safe'
                 when not e.reversible then sr.action_class || ' is not reversible'
                 when e.notifies_human then sr.action_class || ' notifies a human'
+                when v_held and public.fn_executor_needs_model(e.target) then
+                     sr.action_class || ' runs on the paid model, which is held; the dispatcher works it deterministically'
                 when exists(select 1 from public.action_execution x where x.workflow_step_run_id = sr.id)
                      and not exists(select 1 from public.action_execution x
                                      where x.workflow_step_run_id = sr.id
                                        and x.status in ('queued','running','succeeded')) then
-                     sr.action_class || ' has only a terminal (cancelled/failed) action_execution and the '
-                       || 'sweep will not re-queue over it, so the step is stranded ready; it needs re-opening '
-                       || 'or awaits a gate/decision that never resolved'
+                     sr.action_class || ' has only a terminal (cancelled/failed/held) action_execution; while the model is held the dispatcher works it deterministically'
            end as why
       from public.workflow_step_run sr
       left join public.org_action_executor e on e.action_class = sr.action_class
@@ -81829,7 +82252,7 @@ begin
   v_true_stall := greatest(v_parked - v_noclass - v_throttled - v_ineligible, 0);
 
   v_out := jsonb_build_object(
-    'settled', v_settled, 'queued', v_q, 'ran_at', now(),
+    'settled', v_settled, 'queued', v_q, 'ran_at', now(), 'model_held', v_held,
     'parked', v_parked, 'parked_without_action_class', v_noclass,
     'parked_throttled_by_reflection_ceiling', v_throttled,
     'reflection_worked_today', v_reflection_today, 'reflection_cap', v_cap,
@@ -81861,8 +82284,6 @@ begin
   insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
   values ('workflow_step_sweep', v_status, v_out, v_note, now(), now());
 
-  -- The unclassified backlog is a real defect and must not become invisible again just because it
-  -- stopped shouting. One task, deduplicated on title, carries it.
   if v_noclass > 0 then
     begin
       insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
@@ -81881,10 +82302,9 @@ begin
     exception when others then null; end;
   end if;
 
-  -- Steps stranded by a terminal (cancelled/failed) action_execution the sweep cannot re-queue over.
-  -- A real backlog (a re-open or the review-decision loop must clear it), carried by one dedup task
-  -- so it is owned rather than paged 144x/day as an unexplained stall.
-  if (select count(*) from public.workflow_step_run sr
+  -- Stranded steps are the dispatcher's while the model is held (fn_workflow_step_claim). The dedup
+  -- backlog task is raised only when the hold is NOT in force, i.e. when nothing else will take them.
+  if not v_held and (select count(*) from public.workflow_step_run sr
                where sr.status='ready' and sr.finished_at is null and sr.action_class is not null
                  and exists(select 1 from public.action_execution x where x.workflow_step_run_id=sr.id)
                  and not exists(select 1 from public.action_execution x
@@ -81898,9 +82318,8 @@ begin
                  and not exists(select 1 from public.action_execution x
                                  where x.workflow_step_run_id=sr.id and x.status in ('queued','running','succeeded')))
              || ' workflow step(s) are ready but each has only a terminal (cancelled/failed) '
-             || 'action_execution, so the sweep will not re-queue over it. They were cancelled by '
-             || 'fn_execution_sweep with no gate decision. Re-open them for a fresh attempt or drive '
-             || 'the review-decision loop they await; a cancelled action must also settle its step.',
+             || 'action_execution, so the sweep will not re-queue over it. Re-open them for a fresh '
+             || 'attempt or drive the review-decision loop they await; a cancelled action must also settle its step.',
              'proposed', 'gated', false, 'incident_fix'
       where not exists (select 1 from public.org_tasks
                          where title = 'Re-open workflow steps stranded by a cancelled action'
@@ -84775,9 +85194,14 @@ begin
     'Inquiry: '||coalesce(NEW.inquiry_id::text,'')||' · Transaction: '||NEW.id::text||' · Reveal fee: AED '||coalesce(NEW.reveal_fee::text,'0')||chr(10)||chr(10)||
     'Action: reach out to the supplier. If they do not respond to you and the customer within 3 working days, issue the refund and record the 3% non-response charge against the supplier. Check supplier@quotesdone.com for the customer''s CC''d complaint email as proof.');
   -- K20 cutover. A refund complaint raised against a revealed supplier is the declared start of W17. Placed at the final return so the owner notification is sent whether or not the kernel accepts the request.
-  perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_notify_refund', jsonb_build_object(
-    'source_ref',  NEW.id::text,
-    'raw_payload', jsonb_build_object('transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)));
+  -- 4 Sep 2026: W17's case object is the refunds row, which by design does not exist at the
+  -- request stage (the claim window has not opened), and the kernel re-raises a missing parent.
+  -- The kernel is asked only once the case object exists; the request stage travels on the bus.
+  if exists (select 1 from public.refunds r where r.transaction_id = NEW.id) then
+    perform public.fn_kernel_source_emit('dbtrigger:public.transactions:trg_notify_refund', jsonb_build_object(
+      'source_ref',  NEW.id::text,
+      'raw_payload', jsonb_build_object('transaction_id', NEW.id::text, 'inquiry_id', NEW.inquiry_id::text, 'supplier_id', NEW.supplier_id::text, 'reveal_fee', NEW.reveal_fee)));
+  end if;
   return NEW;
 end $function$
 
@@ -87120,93 +87544,96 @@ end $function$
 
 -- ===== TRIGGERS =====
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
-CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.ad_decision FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
-CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
-CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
-CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
-CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER z90_agent_action_decision_trace AFTER UPDATE OF decided_at ON public.agent_actions FOR EACH ROW WHEN (((old.decided_at IS NULL) AND (new.decided_at IS NOT NULL))) EXECUTE FUNCTION fn_agent_action_trace();
+CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
 CREATE TRIGGER z90_agent_action_decision_trace_ins AFTER INSERT ON public.agent_actions FOR EACH ROW WHEN ((new.decided_at IS NOT NULL)) EXECUTE FUNCTION fn_agent_action_trace_ins();
+CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
+CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
 CREATE TRIGGER zzz_action_gate BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_action_gate();
+CREATE TRIGGER z90_agent_action_decision_trace AFTER UPDATE OF decided_at ON public.agent_actions FOR EACH ROW WHEN (((old.decided_at IS NULL) AND (new.decided_at IS NOT NULL))) EXECUTE FUNCTION fn_agent_action_trace();
+CREATE TRIGGER trg_page_high_agent_action AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_page_high_agent_action();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
-CREATE TRIGGER a00_agent_knowledge_metadata BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_agent_knowledge_metadata();
+CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
+CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
+CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER kb_version AFTER INSERT OR UPDATE OF content ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_kb_version();
-CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
+CREATE TRIGGER a00_agent_knowledge_metadata BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_agent_knowledge_metadata();
+CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
+CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
+CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
-CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.ap_bills FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.app_secrets FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
 CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER trg_protect_gate_secrets_del BEFORE DELETE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
 CREATE TRIGGER trg_protect_gate_secrets_upd BEFORE INSERT OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_gate_secrets();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.app_secrets FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.artifact_review FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z95_assistant_log_to_kernel AFTER INSERT ON public.assistant_logs FOR EACH ROW WHEN ((new.escalated IS TRUE)) EXECUTE FUNCTION trg_assistant_log_to_kernel();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
+CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER company_faq_sync AFTER INSERT OR DELETE OR UPDATE ON public.company_faq FOR EACH STATEMENT EXECUTE FUNCTION trg_company_faq_sync();
-CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
 CREATE TRIGGER z95_contact_message_to_kernel AFTER INSERT ON public.contact_messages FOR EACH ROW EXECUTE FUNCTION trg_contact_message_to_kernel();
+CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.control_mode_session FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER z50_customer_registered_kernel_emit AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION trg_customer_registered_kernel();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER trg_norm_customer_ver BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION qd_norm_customer_ver();
+CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER trg_audit_data_owner AFTER INSERT OR DELETE OR UPDATE ON public.data_owner_registry FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.decision_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_decision_gate BEFORE INSERT OR UPDATE ON public.decision_record FOR EACH ROW EXECUTE FUNCTION fn_decision_gate();
-CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.decision_trace FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
 CREATE TRIGGER trg_undo_department_objective BEFORE DELETE OR UPDATE ON public.department_objective FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER z95_document_to_kernel AFTER INSERT ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_document_to_kernel();
 CREATE TRIGGER version_document AFTER INSERT OR UPDATE OF extracted ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_version_document();
+CREATE TRIGGER z95_document_to_kernel AFTER INSERT ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_document_to_kernel();
 CREATE TRIGGER trg_undo_employee_authority BEFORE DELETE OR UPDATE ON public.employee_authority FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('agent_key');
 CREATE TRIGGER trg_undo_employee_kpi BEFORE DELETE OR UPDATE ON public.employee_kpi FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_audit_feature_flags AFTER INSERT OR DELETE OR UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_emit_invoice_received_expense AFTER INSERT ON public.expense_entries FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received_from_expense();
 CREATE TRIGGER trg_undo_feature_flags BEFORE DELETE OR UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_audit_feature_flags AFTER INSERT OR DELETE OR UPDATE ON public.feature_flags FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER t_emit_customer_complaint AFTER INSERT ON public.feedback FOR EACH ROW WHEN ((((new.rating IS NOT NULL) AND (new.rating <= (2)::numeric)) OR ((new.source IS NOT NULL) AND (lower(new.source) ~~ '%complaint%'::text)))) EXECUTE FUNCTION fn_emit_customer_complaint();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
-CREATE TRIGGER a00_founder_approval_names_a_real_refund BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_names_a_real_refund();
-CREATE TRIGGER z10_founder_approval_refund_only BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_refund_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_approval_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_founder_command_trace_guard BEFORE INSERT OR UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_trace_guard();
+CREATE TRIGGER z10_founder_approval_refund_only BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_refund_only();
+CREATE TRIGGER a00_founder_approval_names_a_real_refund BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_names_a_real_refund();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z20_founder_command_state_guard BEFORE UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_state_guard();
-CREATE TRIGGER a00_founder_command_clarification_answer_is_sealed BEFORE INSERT OR DELETE OR UPDATE ON public.founder_command_clarification FOR EACH ROW EXECUTE FUNCTION fn_founder_command_clarification_answer_is_sealed();
+CREATE TRIGGER a00_founder_command_trace_guard BEFORE INSERT OR UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_trace_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_clarification FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z10_founder_command_message_immutable BEFORE DELETE OR UPDATE ON public.founder_command_message FOR EACH ROW EXECUTE FUNCTION fn_founder_command_message_immutable();
+CREATE TRIGGER a00_founder_command_clarification_answer_is_sealed BEFORE INSERT OR DELETE OR UPDATE ON public.founder_command_clarification FOR EACH ROW EXECUTE FUNCTION fn_founder_command_clarification_answer_is_sealed();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_message FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_release_approval FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z10_founder_command_message_immutable BEFORE DELETE OR UPDATE ON public.founder_command_message FOR EACH ROW EXECUTE FUNCTION fn_founder_command_message_immutable();
 CREATE TRIGGER z10_phase_c_no_new_release_approval BEFORE INSERT ON public.founder_release_approval FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_release_approval FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal_lines FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_gl_lines_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.gl_journal_lines FOR EACH ROW EXECUTE FUNCTION fn_gl_lines_immutable();
 CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.gl_settings FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
@@ -87217,110 +87644,110 @@ CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_chec
 CREATE TRIGGER trg_idea_score BEFORE INSERT OR UPDATE ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_idea_rescore();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
 CREATE TRIGGER z95_inbound_message_to_kernel AFTER INSERT ON public.inbound_messages FOR EACH ROW WHEN (((new.created_new_lead IS TRUE) AND (new.lead_id IS NOT NULL))) EXECUTE FUNCTION trg_inbound_message_to_kernel();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
-CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
-CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
 CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
+CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
+CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
-CREATE TRIGGER inquiry_answer_value_domain BEFORE INSERT ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_domain();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER inquiry_answer_value_domain BEFORE INSERT ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_domain();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_conflict_value FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_corroboration FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_document FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER answer_document_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_document FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER inquiry_gate_state_sync BEFORE INSERT OR UPDATE ON public.inquiry_gate FOR EACH ROW EXECUTE FUNCTION trg_inquiry_gate_state_sync();
-CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
 CREATE TRIGGER a00_unsafe_match_eligibility BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_unsafe_match_eligibility_guard();
+CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
 CREATE TRIGGER notify_matched_supplier AFTER INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_notify_matched_supplier();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_scope_disposition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON public.inquiry_scope_disposition FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_state_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_supplier_brief FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_trade_candidate_evidence FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.internal_credential_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_routine_ownership FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.internal_credential_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_routine_ownership_guard AFTER INSERT OR UPDATE ON public.kernel_routine_ownership FOR EACH ROW EXECUTE FUNCTION a00_kernel_routine_ownership_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_routine_ownership FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_signal_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_inbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_signal_type_activation_guard BEFORE UPDATE ON public.kernel_signal_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_signal_type_activation_guard();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_trigger_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_inbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_trigger_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_trigger_type_routing_guard BEFORE INSERT OR UPDATE OF workflow_id, trigger_type ON public.kernel_trigger_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_trigger_type_routing_guard();
+CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
+CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER trg_leads_a_licence_gate BEFORE INSERT OR UPDATE OF license_doc_path, trade_license_no, license_expiry ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_gate_rerun();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_leads_lifecycle_stage BEFORE INSERT OR UPDATE OF claimed, signed, registration_submitted_at, claimed_by, approval_status, registration_status, portal_updated_at, accepted_terms_at, owner_email_verified, invite_status, invited_at, contacted, created_at, lifecycle_stage ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_lifecycle_stage();
-CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
 CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER z95_lead_dob_to_kernel AFTER UPDATE OF owner_dob ON public.leads FOR EACH ROW WHEN (((old.owner_dob IS NULL) AND (new.owner_dob IS NOT NULL))) EXECUTE FUNCTION trg_lead_dob_to_kernel();
-CREATE TRIGGER trg_leads_a_licence_gate BEFORE INSERT OR UPDATE OF license_doc_path, trade_license_no, license_expiry ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_gate_rerun();
-CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
-CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.llm_attempt FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER mep_trade_pattern_norm BEFORE INSERT OR UPDATE ON public.mep_trade_pattern FOR EACH ROW EXECUTE FUNCTION trg_mep_pattern_norm();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_invite_status_on_send AFTER UPDATE OF status ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_invite_status_on_send();
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
-CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_action_executor FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_authority FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER trg_org_authority_guard BEFORE INSERT OR DELETE OR UPDATE ON public.org_authority FOR EACH ROW EXECUTE FUNCTION fn_org_authority_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_authority FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_departments FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_phase_baseline FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_phase_baseline FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
+CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role_identity FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a00_org_tasks_founder_routing_refund_only BEFORE INSERT OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_kernel_founder_routing_is_refund_only();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_tasks FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
+CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_tasks FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_org_tasks_founder_routing_refund_only BEFORE INSERT OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_kernel_founder_routing_is_refund_only();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
-CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
-CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
-CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.os_incidents FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
+CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER holdout_expectations_immutable BEFORE DELETE OR UPDATE ON public.p2c1_holdout_case FOR EACH ROW EXECUTE FUNCTION trg_holdout_expectations_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.p2c1_holdout_case FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.p2c1_holdout_result_of_record FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
@@ -87328,8 +87755,8 @@ CREATE TRIGGER holdout_record_immutable BEFORE DELETE OR UPDATE ON public.p2c1_h
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER z95_pdpl_request_to_kernel AFTER INSERT ON public.pdpl_requests FOR EACH ROW EXECUTE FUNCTION trg_pdpl_request_to_kernel();
-CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase1_rollback_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_business_rule FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_b_cr_append_only BEFORE DELETE OR UPDATE ON public.phase_b_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_b_change_request_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_change_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
@@ -87340,168 +87767,169 @@ CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_hando
 CREATE TRIGGER a10_phase_b_handoff_guard BEFORE INSERT OR UPDATE ON public.phase_b_handoff FOR EACH ROW EXECUTE FUNCTION fn_phase_b_handoff_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_step_state FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_step_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a10_phase_b_workflow_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow FOR EACH ROW EXECUTE FUNCTION fn_phase_b_workflow_owner_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a10_phase_b_workflow_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow FOR EACH ROW EXECUTE FUNCTION fn_phase_b_workflow_owner_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_state FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_phase_b_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow_step FOR EACH ROW EXECUTE FUNCTION fn_phase_b_owner_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_step FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a15_phase_c_change_request_disposition_follows_approval BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_disposition_follows_approval();
+CREATE TRIGGER a10_change_request_approver_is_the_founder BEFORE INSERT OR UPDATE OF approved_by, approved_at ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approver_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_change_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a05_phase_c_change_request_approval_is_derived BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_approval_is_derived();
-CREATE TRIGGER a10_change_request_approver_is_the_founder BEFORE INSERT OR UPDATE OF approved_by, approved_at ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approver_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_component FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_phase_c_component_classification_guard BEFORE INSERT OR UPDATE OF classification, activation_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_component_classification_guard();
+CREATE TRIGGER a15_phase_c_change_request_disposition_follows_approval BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_disposition_follows_approval();
 CREATE TRIGGER a00_phase_c_readonly_exemption_guard BEFORE INSERT OR UPDATE OF trace_policy_id, mutates_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_readonly_exemption_guard();
-CREATE TRIGGER a00_phase_c_event_binding_status_guard BEFORE INSERT OR UPDATE OF connection_status ON public.phase_c_event_binding FOR EACH ROW EXECUTE FUNCTION fn_phase_c_event_binding_status_guard();
+CREATE TRIGGER a00_phase_c_component_classification_guard BEFORE INSERT OR UPDATE OF classification, activation_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_component_classification_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_component FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_event_binding FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER a00_phase_c_event_binding_status_guard BEFORE INSERT OR UPDATE OF connection_status ON public.phase_c_event_binding FOR EACH ROW EXECUTE FUNCTION fn_phase_c_event_binding_status_guard();
 CREATE TRIGGER z05_outbox_refuse_cancelled_subject BEFORE UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_outbox_refuse_cancelled_subject();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_event_outbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_phase_c_founder_approval_immutable BEFORE DELETE OR UPDATE ON public.phase_c_founder_approval FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approval_immutable();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_founder_approval FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_phase_c_founder_approval_immutable BEFORE DELETE OR UPDATE ON public.phase_c_founder_approval FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approval_immutable();
+CREATE TRIGGER a00_phase_c_founder_auth_event_is_server_minted BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_founder_auth_event FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_auth_event_is_server_minted();
 CREATE TRIGGER z10_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_founder_auth_event FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_founder_auth_event FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_phase_c_founder_auth_event_is_server_minted BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_founder_auth_event FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_auth_event_is_server_minted();
 CREATE TRIGGER a00_phase_c_founder_identity_human_only BEFORE INSERT OR UPDATE ON public.phase_c_founder_identity FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_identity_human_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_founder_identity FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a05_freeze_amendment_session_claim_is_verified BEFORE INSERT OR UPDATE ON public.phase_c_freeze_amendment FOR EACH ROW EXECUTE FUNCTION fn_phase_c_freeze_amendment_session_claim_is_verified();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_freeze_amendment FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_freeze_amendment_approver_is_the_founder BEFORE INSERT OR UPDATE OF approved_by, approved_at ON public.phase_c_freeze_amendment FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approver_guard();
-CREATE TRIGGER a00_phase_c_frozen_subject_immutable BEFORE DELETE OR UPDATE ON public.phase_c_frozen_subject FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approval_immutable();
+CREATE TRIGGER a05_freeze_amendment_session_claim_is_verified BEFORE INSERT OR UPDATE ON public.phase_c_freeze_amendment FOR EACH ROW EXECUTE FUNCTION fn_phase_c_freeze_amendment_session_claim_is_verified();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_frozen_subject FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_phase_c_frozen_subject_immutable BEFORE DELETE OR UPDATE ON public.phase_c_frozen_subject FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approval_immutable();
 CREATE TRIGGER a00_phase_c_governance_decision_is_session_backed BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_governance_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_governance_decision_is_session_backed();
 CREATE TRIGGER z10_phase_c_governance_decision_applies AFTER INSERT ON public.phase_c_governance_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_governance_decision_applies();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_governance_decision FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z30_phase_c_handoff_sender_retains BEFORE INSERT OR UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_handoff_sender_retains();
-CREATE TRIGGER a00_kernel_handoff_run_trace_guard BEFORE UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_handoff_run_trace_guard();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_handoff_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_phase_c_historical_repair_append_only BEFORE DELETE OR UPDATE ON public.phase_c_historical_repair FOR EACH ROW EXECUTE FUNCTION fn_phase_c_historical_repair_append_only();
+CREATE TRIGGER a00_kernel_handoff_run_trace_guard BEFORE UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_handoff_run_trace_guard();
+CREATE TRIGGER z30_phase_c_handoff_sender_retains BEFORE INSERT OR UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_handoff_sender_retains();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_handoff_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_historical_repair FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_kernel_epoch FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_phase_c_historical_repair_append_only BEFORE DELETE OR UPDATE ON public.phase_c_historical_repair FOR EACH ROW EXECUTE FUNCTION fn_phase_c_historical_repair_append_only();
 CREATE TRIGGER z10_phase_c_kernel_epoch_immutable BEFORE DELETE OR UPDATE ON public.phase_c_kernel_epoch FOR EACH ROW EXECUTE FUNCTION fn_phase_c_kernel_epoch_immutable();
-CREATE TRIGGER z10_phase_c_refund_decision_guard BEFORE INSERT OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_decision_guard();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_refund_decision FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_kernel_epoch FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_c_refund_decision_immutable BEFORE DELETE OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_decision_immutable();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER z10_phase_c_refund_decision_guard BEFORE INSERT OR UPDATE ON public.phase_c_refund_decision FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_decision_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_refund_decision FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_source_cutover FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_source_signal_guard BEFORE INSERT OR UPDATE ON public.phase_c_source_cutover FOR EACH ROW EXECUTE FUNCTION fn_kernel_source_signal_guard();
-CREATE CONSTRAINT TRIGGER z90_system_execution_pair_guard AFTER INSERT ON public.phase_c_system_execution DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_kernel_system_execution_pair_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_system_execution FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_phase_c_system_execution_append_only BEFORE DELETE OR UPDATE ON public.phase_c_system_execution FOR EACH ROW EXECUTE FUNCTION fn_phase_c_system_execution_append_only();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
-CREATE TRIGGER z90_phase_c_task_trace_subject AFTER INSERT ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_subject();
-CREATE TRIGGER z20_phase_c_task_state_guard BEFORE INSERT OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_state_guard();
-CREATE TRIGGER z10_phase_c_overlay_not_accountable BEFORE INSERT OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_overlay_may_not_dispatch();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_task FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE CONSTRAINT TRIGGER z95_phase_c_task_trace_committed AFTER INSERT OR UPDATE ON public.phase_c_task DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_committed();
+CREATE CONSTRAINT TRIGGER z90_system_execution_pair_guard AFTER INSERT ON public.phase_c_system_execution DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_kernel_system_execution_pair_guard();
 CREATE TRIGGER a00_phase_c_task_trace_guard BEFORE UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_guard();
+CREATE TRIGGER z90_phase_c_task_trace_subject AFTER INSERT ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_subject();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER z10_phase_c_overlay_not_accountable BEFORE INSERT OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_overlay_may_not_dispatch();
+CREATE CONSTRAINT TRIGGER z95_phase_c_task_trace_committed AFTER INSERT OR UPDATE ON public.phase_c_task DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_trace_committed();
+CREATE TRIGGER z20_phase_c_task_state_guard BEFORE INSERT OR UPDATE ON public.phase_c_task FOR EACH ROW EXECUTE FUNCTION fn_phase_c_task_state_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_task FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE CONSTRAINT TRIGGER z90_system_execution_pair_guard AFTER INSERT OR UPDATE ON public.phase_c_trace DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_kernel_system_execution_pair_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_trace FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_phase_c_trace_append_only BEFORE UPDATE ON public.phase_c_trace FOR EACH ROW EXECUTE FUNCTION fn_phase_c_trace_append_only();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_workflow_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_trace FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_kernel_workflow_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_workflow_run_trace_guard();
 CREATE TRIGGER z20_phase_c_workflow_state_guard BEFORE UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_workflow_state_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_workflow_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_kernel_workflow_run_parent_exists BEFORE INSERT ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_workflow_run_parent_exists();
 CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
-CREATE TRIGGER a00_kernel_workflow_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_workflow_run_trace_guard();
-CREATE TRIGGER a02_phase_c_step_run_owner_admissible BEFORE INSERT OR UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_owner_admissible();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_workflow_step_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a01_phase_c_step_run_review_verdict BEFORE UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_review_verdict_guard();
-CREATE TRIGGER a00_phase_c_step_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_guard();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z90_phase_c_step_run_trace_subject AFTER INSERT ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_subject();
+CREATE TRIGGER a00_phase_c_step_run_trace_guard BEFORE UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_guard();
+CREATE TRIGGER a01_phase_c_step_run_review_verdict BEFORE UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_review_verdict_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
+CREATE TRIGGER a02_phase_c_step_run_owner_admissible BEFORE INSERT OR UPDATE ON public.phase_c_workflow_step_run FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_owner_admissible();
 CREATE CONSTRAINT TRIGGER z95_phase_c_step_run_trace_committed AFTER INSERT OR UPDATE ON public.phase_c_workflow_step_run DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_phase_c_step_run_trace_committed();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_workflow_step_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_capability_contract FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z10_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_d_capability_request FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_capability_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z10_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_d_capability_request FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_capability_result FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_d_capability_result FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_file_revision FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_phase_d_file_revision_reviewer BEFORE INSERT OR UPDATE ON public.phase_d_file_revision FOR EACH ROW EXECUTE FUNCTION fn_phase_d_file_revision_reviewer_independent();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_file_revision FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a11_phase_d_catalogue_payment_state_declared BEFORE INSERT OR UPDATE ON public.phase_d_fixture_catalogue FOR EACH ROW EXECUTE FUNCTION fn_phase_d_catalogue_payment_state_declared();
 CREATE TRIGGER a10_phase_d_fixture_catalogue_checksum BEFORE INSERT OR UPDATE ON public.phase_d_fixture_catalogue FOR EACH ROW EXECUTE FUNCTION fn_phase_d_fixture_catalogue_checksum();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_fixture_catalogue FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a11_phase_d_catalogue_payment_state_declared BEFORE INSERT OR UPDATE ON public.phase_d_fixture_catalogue FOR EACH ROW EXECUTE FUNCTION fn_phase_d_catalogue_payment_state_declared();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_fixture_stage FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_d_stage_payment_state BEFORE INSERT OR UPDATE OF working_state, object_id ON public.phase_d_fixture_stage FOR EACH ROW EXECUTE FUNCTION fn_phase_d_stage_payment_state_declared();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_legal_assertion FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_phase_d_legal_assertion_source BEFORE INSERT OR UPDATE ON public.phase_d_legal_assertion FOR EACH ROW EXECUTE FUNCTION fn_phase_d_legal_assertion_source_is_current();
-CREATE TRIGGER t_emit_campaign_published AFTER INSERT OR UPDATE ON public.phase_d_object_record FOR EACH ROW WHEN (((new.object_id = 'content_campaign'::text) AND (new.state = 'published'::text))) EXECUTE FUNCTION fn_emit_campaign_published();
-CREATE TRIGGER a30_phase_d_object_owner_is_stable BEFORE INSERT OR UPDATE ON public.phase_d_object_record FOR EACH ROW EXECUTE FUNCTION fn_phase_d_object_owner_is_stable();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_legal_assertion FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_object_record FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_d_object_policy_guard BEFORE DELETE OR UPDATE ON public.phase_d_object_record FOR EACH ROW EXECUTE FUNCTION fn_phase_d_object_policy_guard();
 CREATE TRIGGER z40_phase_d_object_record_contract BEFORE INSERT OR UPDATE ON public.phase_d_object_record FOR EACH ROW EXECUTE FUNCTION fn_phase_d_object_record_contract();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_object_record FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a30_phase_d_object_owner_is_stable BEFORE INSERT OR UPDATE ON public.phase_d_object_record FOR EACH ROW EXECUTE FUNCTION fn_phase_d_object_owner_is_stable();
+CREATE TRIGGER t_emit_campaign_published AFTER INSERT OR UPDATE ON public.phase_d_object_record FOR EACH ROW WHEN (((new.object_id = 'content_campaign'::text) AND (new.state = 'published'::text))) EXECUTE FUNCTION fn_emit_campaign_published();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_output_domain_registry FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a10_phase_d_normalisation_shape BEFORE INSERT OR UPDATE ON public.phase_d_quote_normalisation FOR EACH ROW EXECUTE FUNCTION fn_phase_d_normalisation_does_not_restate_the_original();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_quote_normalisation FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a10_phase_d_normalisation_shape BEFORE INSERT OR UPDATE ON public.phase_d_quote_normalisation FOR EACH ROW EXECUTE FUNCTION fn_phase_d_normalisation_does_not_restate_the_original();
 CREATE TRIGGER z10_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_d_scenario_record FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_scenario_record FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_d_test_context_grant FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.phase_d_test_context_grant FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
-CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
+CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_undo_priority_hierarchy BEFORE DELETE OR UPDATE ON public.priority_hierarchy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('rank');
-CREATE TRIGGER z10_phase_c_no_new_procurement_approval BEFORE INSERT ON public.procurement_approval_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.procurement_approval_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z10_phase_c_no_new_procurement_approval BEFORE INSERT ON public.procurement_approval_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
-CREATE TRIGGER quote_items_roll AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_roll();
-CREATE TRIGGER trg_items_submittable AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION fn_quote_recompute_submittable();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER trg_items_submittable AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION fn_quote_recompute_submittable();
+CREATE TRIGGER quote_items_roll AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_roll();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.quotes FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
 CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER trg_new_quote_sms AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION notify_new_quote_sms();
-CREATE TRIGGER z05_refund_execution_requires_decision BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_execution_requires_decision();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
-CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
-CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
-CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
-CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.refunds FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
+CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
+CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER z00_refund_founder_decision_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_founder_decision_only();
-CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
+CREATE TRIGGER z05_refund_execution_requires_decision BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_execution_requires_decision();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
+CREATE TRIGGER trg_regulation_propagate AFTER INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION fn_regulation_propagate();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.review_chain FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
-CREATE TRIGGER trg_event_review AFTER INSERT ON public.review_chain FOR EACH ROW WHEN (((new.stage = 'published'::text) OR (new.decision = ANY (ARRAY['reject'::text, 'request_revision'::text, 'hold_for_human'::text, 'escalate'::text])))) EXECUTE FUNCTION fn_emit_event('review', 'review.step');
+CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_role_permissions AFTER INSERT OR DELETE OR UPDATE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER expectation_annotation_append_only BEFORE DELETE OR UPDATE ON public.scenario_expectation_annotation FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.scenario_expectation_annotation FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER expectation_baseline_immutable BEFORE DELETE OR UPDATE ON public.scenario_expectation_baseline FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.scenario_expectation_baseline FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER expectation_baseline_immutable BEFORE DELETE OR UPDATE ON public.scenario_expectation_baseline FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.scenario_expectation_change FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER expectation_ledger_no_update BEFORE DELETE OR UPDATE ON public.scenario_expectation_change FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
 CREATE TRIGGER expectation_work_item_real BEFORE INSERT ON public.scenario_expectation_change FOR EACH ROW EXECUTE FUNCTION trg_expectation_work_item_real();
+CREATE TRIGGER expectation_ledger_no_update BEFORE DELETE OR UPDATE ON public.scenario_expectation_change FOR EACH ROW EXECUTE FUNCTION trg_expectation_ledger_append_only();
 CREATE TRIGGER scope_marker_norm BEFORE INSERT OR UPDATE ON public.scope_marker FOR EACH ROW EXECUTE FUNCTION trg_scope_marker_norm();
-CREATE TRIGGER trg_sec_audit_immutable BEFORE DELETE OR UPDATE ON public.security_audit_log FOR EACH ROW EXECUTE FUNCTION fn_security_audit_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.security_audit_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_sec_audit_immutable BEFORE DELETE OR UPDATE ON public.security_audit_log FOR EACH ROW EXECUTE FUNCTION fn_security_audit_immutable();
 CREATE TRIGGER trg_event_selfreview AFTER INSERT ON public.self_review FOR EACH ROW EXECUTE FUNCTION fn_emit_event('self_review', 'process.repeated_failure');
 CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_categories FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER trg_due_paid AFTER UPDATE ON public.supplier_dues FOR EACH ROW EXECUTE FUNCTION qd_on_due_paid();
 CREATE TRIGGER trg_reveal_receipt_a AFTER INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
-CREATE TRIGGER trg_refund_resolved BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION qd_on_refund_resolved();
-CREATE TRIGGER trg_notify_refund AFTER UPDATE ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION qd_notify_refund_request();
-CREATE TRIGGER z00_transactions_refund_needs_founder BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transactions_refund_needs_the_founder_gate();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_notify_refund AFTER UPDATE ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION qd_notify_refund_request();
+CREATE TRIGGER trg_refund_resolved BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION qd_on_refund_resolved();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z00_transactions_refund_needs_founder BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transactions_refund_needs_the_founder_gate();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
+CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER z95_wa_message_to_kernel AFTER INSERT ON public.wa_messages FOR EACH ROW WHEN ((new.escalated IS TRUE)) EXECUTE FUNCTION trg_wa_message_to_kernel();
-CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.workflow_step_run FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
 ALTER TABLE public.action_approval ENABLE ROW LEVEL SECURITY;
@@ -88034,6 +88462,7 @@ ALTER TABLE public.quote_requirements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quote_review_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quote_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.red_episode ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_event_quarantine ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_status_transition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refunds ENABLE ROW LEVEL SECURITY;
@@ -88142,13 +88571,13 @@ select cron.schedule('sms_flush','*/2 * * * *',$CRON$select public.fn_kernel_cro
 select cron.schedule('auto_deploy','*/2 * * * *',$CRON$select public.run_auto_deploy()$CRON$);
 select cron.schedule('no_quote_nudges','17 * * * *',$CRON$select public.run_no_quote_nudges()$CRON$);
 select cron.schedule('health_check','*/30 * * * *',$CRON$select public.fn_kernel_cron_exec(7);$CRON$);
-select cron.schedule('agent_onboarding_hourly','23 * * * *',$CRON$select public.run_agent('onboarding')$CRON$);
+select cron.schedule('agent_onboarding_hourly','23 * * * *',$CRON$select public.fn_kernel_cron_exec(8);$CRON$);
 select cron.schedule('agent_compliance_weekly','17 4 * * 1',$CRON$ select public.run_agent('compliance') $CRON$);
-select cron.schedule('agent_followup_daily','37 5 * * *',$CRON$ select public.run_agent('followup') $CRON$);
+select cron.schedule('agent_followup_daily','37 5 * * *',$CRON$select public.fn_kernel_cron_exec(10);$CRON$);
 select cron.schedule('agent_finance_weekly','0 4 * * 1',$CRON$ select public.run_agent('finance') $CRON$);
 select cron.schedule('agent_marketing_weekly','0 6 * * 1',$CRON$ select run_agent('marketing') $CRON$);
 select cron.schedule('founder_brief_daily','30 4 * * *',$CRON$select public.fn_kernel_cron_exec(14);$CRON$);
-select cron.schedule('agent_it_health_hourly','15 * * * *',$CRON$ select run_agent('it_health') $CRON$);
+select cron.schedule('agent_it_health_hourly','15 * * * *',$CRON$select public.fn_kernel_cron_exec(15);$CRON$);
 select cron.schedule('vt_scan_daily','0 3 * * *',$CRON$ select fn_run_vt() $CRON$);
 select cron.schedule('agent_reflect_weekly','0 2 * * 0',$CRON$
   select net.http_post(
@@ -88370,7 +88799,7 @@ select cron.schedule('dues_interest_daily','15 3 * * *',$CRON$select public.fn_a
 select cron.schedule('dues_ban_overdue_daily','25 3 * * *',$CRON$select public.fn_ban_overdue_dues();$CRON$);
 select cron.schedule('doc_final_notice_daily','10 5 * * *',$CRON$select public.fn_doc_final_notice(7)$CRON$);
 select cron.schedule('supplier_capability_chase_daily','30 6 * * *',$CRON$select public.fn_supplier_capability_chase();$CRON$);
-select cron.schedule('category_sales_daily','30 5 * * *',$CRON$select public.fn_category_sales();$CRON$);
+select cron.schedule('category_sales_daily','30 5 * * *',$CRON$select public.fn_kernel_cron_exec(119);$CRON$);
 select cron.schedule('backfill_invite_trades','15 4 * * *',$CRON$select public.fn_leads_retrade_stale(3000);$CRON$);
 select cron.schedule('invite_ramp_daily','45 8 * * *',$CRON$select public.fn_invite_ramp();$CRON$);
 select cron.schedule('resilience_watch_10min','*/10 * * * *',$CRON$select public.fn_kernel_cron_exec(123);$CRON$);
@@ -88547,7 +88976,7 @@ select cron.schedule('v3_category_readiness_daily','35 1 * * *',$CRON$select pub
 select cron.schedule('v3_context_retrieval_prune_daily','40 1 * * *',$CRON$select public.fn_context_retrieval_prune();$CRON$);
 select cron.schedule('phase_c_outbox_deliver_1min','* * * * *',$CRON$select public.fn_kernel_cron_exec(278);$CRON$);
 select cron.schedule('incident_watchdog_hourly','20 * * * *',$CRON$select public.fn_kernel_cron_exec(279);$CRON$);
-select cron.schedule('department_conflict_scan_weekly','0 6 * * 1',$CRON$select public.fn_emit_department_conflict();$CRON$);
+select cron.schedule('department_conflict_scan_weekly','0 6 * * 1',$CRON$select public.fn_kernel_cron_exec(280);$CRON$);
 select cron.schedule('remediation_escalate_consume_daily','15 5 * * *',$CRON$select public.fn_kernel_cron_exec(281);$CRON$);
 select cron.schedule('promotion_review_weekly','30 6 * * 1',$CRON$select public.fn_kernel_cron_exec(282);$CRON$);
 select cron.schedule('objective_review_weekly','30 5 * * 1',$CRON$select public.fn_kernel_cron_exec(285);$CRON$);
@@ -88566,6 +88995,7 @@ select cron.schedule('agent_daily_thought','15 4 * * *',$CRON$select public.fn_k
 select cron.schedule('knowledge_exam_retrieval_daily','23 3 * * *',$CRON$select public.fn_kernel_cron_exec(320);$CRON$);
 select cron.schedule('resilience_drill_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(321);$CRON$);
 select cron.schedule('supplier_discovery_daily','50 2 * * *',$CRON$select public.fn_kernel_cron_exec(322);$CRON$);
+select cron.schedule('red_view_alert_15min','7,22,37,52 * * * *',$CRON$select public.fn_kernel_cron_exec(324);$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   admin_emails
