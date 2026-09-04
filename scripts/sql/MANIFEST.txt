@@ -1599,3 +1599,11 @@ scripts/sql/knowledge_fill_executor_reconciles_recent_chunks_only.sql
 scripts/sql/fn_ads_manage_paces_under_the_founders_cap_and_emits_budget_exceeded.sql
 scripts/sql/seven_packets_settle_into_one_estate.sql
 scripts/sql/kernel_ledger_follows_the_manifest_4_sep_b.sql
+scripts/sql/the_trace_state_board_judges_only_finished_executions.sql
+$f
+;
+node
+scripts/apply_sql.mjs
+$f
+--apply
+--ddl

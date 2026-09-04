@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T07:35:57.630Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-04T07:56:13.331Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -40073,6 +40073,11 @@ runs as (   -- every firing of a wrapped state-changing cron job, split by the e
          (r.start_time >= greatest((select started_at from epoch), w.wrapped_at)) as is_new
     from cron.job_run_details r
     join public.phase_c_system_execution_wrapper w on w.jobid = r.jobid
+   -- 4 SEP 2026: a tick that is still running has not had its chance to trace -- the wrapper writes
+   -- the trace when the routine returns. Judged while in flight it read as an untraced execution
+   -- for the length of one pass (a 60s alerter sweep was enough) and grew the ratchet by one in CI
+   -- while the same query read one fewer a minute later. Only finished firings are judged.
+   where r.end_time is not null
 ),
 traced as (
   select runs.*,
