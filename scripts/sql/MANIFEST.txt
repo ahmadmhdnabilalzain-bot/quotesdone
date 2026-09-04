@@ -1590,3 +1590,4 @@ scripts/sql/phase_e_retire_the_no_caller_functions.sql
 scripts/sql/red_view_alerter.sql
 scripts/sql/reenable_agents_crons.sql
 scripts/sql/fn_edge_health_scan_probe_failure_is_not_silence.sql
+scripts/sql/ad_spend_needs_the_founders_cap_and_go.sql
