@@ -38,7 +38,7 @@ await write(`insert into public.rehearsal_window (run_tag, opened_by) values (${
 try {
   // The policy the rehearsal runs under is the live default row; read it rather than assume it.
   const pol = (await read('select * from public.ad_spend_policy where policy_key=\'default\''))[0];
-  const ceiling = Number((await read('select public.fn_ad_spend_daily_ceiling() c'))[0].c);
+  const ceiling = Number((await read('select public.fn_ad_spend_daily_ceiling(true) c'))[0].c);
   ok('policy row present, ceiling computed', !!pol && ceiling > 0, `daily_cap=${pol.daily_cap_aed} target_cpl=${pol.target_cpl_aed} kill=${pol.kill_multiplier}x ceiling=${ceiling}`);
   const target = Number(pol.target_cpl_aed), kill = Number(pol.kill_multiplier), maxPer = Number(pol.max_daily_per_campaign_aed), step = Number(pol.scale_step_pct);
 
@@ -118,7 +118,7 @@ try {
     declare v_down int; v_pause int; v_ceiling numeric; v_total numeric;
     begin
       update public.ad_spend_policy set monthly_cap_aed = 100, month_spent_aed = 99, month_label = to_char(now(), 'YYYY-MM') where policy_key = 'default';
-      v_ceiling := public.fn_ad_spend_daily_ceiling();
+      v_ceiling := public.fn_ad_spend_daily_ceiling(true);
       select count(*) filter (where rule_key='pace_down'), count(*) filter (where rule_key='pace_pause') into v_down, v_pause from public.fn_ads_manage(true, ${q(tag)});
       raise exception 'PROBE|pace|ceiling=%|down=%|pause=%', round(v_ceiling, 3), v_down, v_pause;
     end;`);
@@ -126,6 +126,65 @@ try {
   ok('pacing: ceiling collapses and the active set is shrunk then paused to fit', pm.length === 4 && Number(pm[1]) < 1 && Number(pm[2]) >= 1 && Number(pm[3]) >= 1, g3.slice(0, 90));
   const polBack = (await read('select monthly_cap_aed, month_spent_aed from public.ad_spend_policy where policy_key=\'default\''))[0];
   ok('pacing probe rolled back (policy untouched)', String(polBack.monthly_cap_aed ?? '') === String(pol.monthly_cap_aed ?? '') && Number(polBack.month_spent_aed) === Number(pol.month_spent_aed), JSON.stringify(polBack));
+
+  // 8. THE FOUNDER'S GO (4 Sep 2026). Real campaigns: with golive false nothing is switched on; with
+  //    golive true + a token + a cap, an activation under the cap auto-approves and one above the
+  //    cap is refused — only the founder raising meta_daily_budget_cap_aed lets it through. Every
+  //    write here happens inside an aborted transaction: the secrets on production are untouched.
+  const R = { A: `${tag}-real-a`, B: `${tag}-real-b` };
+  const g4 = await probe(`
+    declare v_state jsonb; v_a text; v_b text; v_c text; v_ceiling0 numeric; v_ceiling1 numeric; v_managed int;
+    begin
+      insert into public.ad_campaign_state (campaign_id, campaign_name, status, daily_budget_aed, is_demo) values
+        (${q(R.A)}, 'ZZ DEMO real-a (probe)', 'PAUSED', 60, false),
+        (${q(R.B)}, 'ZZ DEMO real-b (probe)', 'PAUSED', 60, false);
+      v_state := public.fn_ads_autospend_state();
+      v_ceiling0 := public.fn_ad_spend_daily_ceiling(false);
+      select count(*) into v_managed from public.fn_ads_manage(false, ${q(tag)});
+      begin
+        insert into public.ad_decision (campaign_id, action, rule_key, reason, run_tag) values (${q(R.A)}, 'activate', 'probe', 'probe', ${q(tag)});
+        v_a := 'ALLOWED';
+      exception when others then v_a := split_part(sqlerrm, ':', 1); end;
+      -- the founder flips his switch, mints a token and sets 100 AED/day (all rolled back below)
+      update public.app_secrets set value = 'true' where key = 'meta_autospend_golive';
+      update public.app_secrets set value = '100' where key = 'meta_daily_budget_cap_aed';
+      insert into public.app_secrets (key, value) values ('meta_access_token', repeat('x', 40)) on conflict (key) do update set value = excluded.value;
+      v_ceiling1 := public.fn_ad_spend_daily_ceiling(false);
+      begin
+        insert into public.ad_decision (campaign_id, action, rule_key, reason, run_tag) values (${q(R.A)}, 'activate', 'probe', 'probe', ${q(tag)});
+        v_b := 'ALLOWED';
+      exception when others then v_b := split_part(sqlerrm, ':', 1); end;
+      update public.ad_campaign_state set status = 'ACTIVE', started_at = now() where campaign_id = ${q(R.A)};
+      begin
+        insert into public.ad_decision (campaign_id, action, rule_key, reason, run_tag) values (${q(R.B)}, 'activate', 'probe', 'probe', ${q(tag)});
+        v_c := 'ALLOWED';
+      exception when others then v_c := split_part(sqlerrm, ':', 1); end;
+      raise exception 'PROBE|go|live=%|ceil0=%|managed=%|off=%|ceil1=%|under=%|over=%', v_state->>'live_allowed', v_ceiling0, v_managed, v_a, v_ceiling1, v_b, v_c;
+    end;`);
+  const gm = /PROBE\|go\|live=(\w+)\|ceil0=([0-9.]+)\|managed=(\d+)\|off=([A-Z_]+)\|ceil1=([0-9.]+)\|under=([A-Z_]+)\|over=([A-Z_]+)/.exec(g4) || [];
+  ok('real spend OFF: live_allowed false, real ceiling 0, manager writes nothing, activation refused', gm[1] === 'false' && Number(gm[2]) === 0 && Number(gm[3]) === 0 && gm[4] === 'AD_SPEND_GOLIVE', g4.slice(0, 120));
+  ok('founder go + token + cap 100: ceiling 100, 60 AED activation under the cap auto-approves', Number(gm[5]) === 100 && gm[6] === 'ALLOWED', `ceil1=${gm[5]} under=${gm[6]}`);
+  ok('second 60 AED activation would exceed his cap: refused (founder-gated by the number he set)', gm[7] === 'AD_SPEND_CEILING', `over=${gm[7]}`);
+  const secBack = (await read("select string_agg(key||'='||value, ',' order by key) s from public.app_secrets where key in ('meta_autospend_golive','meta_daily_budget_cap_aed')"))[0].s;
+  const tokBack = (await read("select count(*)::int c from public.app_secrets where key='meta_access_token'"))[0].c;
+  ok('the go probe rolled back: switches untouched, no token row written', secBack === 'meta_autospend_golive=false,meta_daily_budget_cap_aed=UNSET' && tokBack === 0, `${secBack} token_rows=${tokBack}`);
+
+  // 9. D3 (4 Sep 2026): no fresh insight row is NO DATA — a winner with a stale row is held, not
+  //    killed as "spend fell to 0"; a lifetime row synced beside a last_30d row does not win.
+  const g5 = await probe(`
+    declare v_n int; v_rule text;
+    begin
+      update public.meta_insights set synced_at = now() - interval '10 days' where campaign_id = ${q(C.W)};
+      select count(*) into v_n from public.fn_ads_manage(true, ${q(tag)}) where campaign_id = ${q(C.W)};
+      update public.meta_insights set synced_at = now(), time_window = 'last_30d' where campaign_id = ${q(C.W)};
+      insert into public.meta_insights (campaign_id, campaign_name, effective_status, objective, time_window, spend, results, synced_at, synced_via)
+        values (${q(C.W)}, 'ZZ DEMO winner', 'ACTIVE', 'OUTCOME_LEADS', 'maximum', 9000, 1, now() + interval '1 second', 'rehearsal');
+      select coalesce(string_agg(rule_key, ','), 'none') into v_rule from public.fn_ads_manage(true, ${q(tag)}) where campaign_id = ${q(C.W)};
+      raise exception 'PROBE|nodata|stale_decisions=%|with_lifetime_row=%', v_n, v_rule;
+    end;`);
+  const nm = /PROBE\|nodata\|stale_decisions=(\d+)\|with_lifetime_row=([a-z_,]+)/.exec(g5) || [];
+  ok('stale insight row (10 days) = no data: the winner is held, not judged', nm[1] === '0', g5.slice(0, 80));
+  ok('a lifetime row synced beside the last_30d row does not override it (winner still scales)', nm[2] === 'scale_winner', `rules=${nm[2]}`);
 
   // 7. The real manager never sees the fixtures.
   const realSees = (await read(`select count(*)::int c from public.fn_ads_manage(false, ${q(tag)}) where campaign_id like ${q(tag + '%')}`))[0].c;

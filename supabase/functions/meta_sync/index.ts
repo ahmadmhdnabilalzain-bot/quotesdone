@@ -58,9 +58,14 @@ Deno.serve(async (req) => {
       for (const dp of ['last_30d','maximum']) {
         const iurl = `https://graph.facebook.com/${GV}/${c.id}/insights?fields=spend,impressions,clicks,reach,ctr,cpc,actions&date_preset=${dp}&access_token=${encodeURIComponent(token)}`;
         const ir = await fetch(iurl); const ij = await ir.json();
-        if (ij?.error) { INSIGHT_ERRORS++; LAST_ERR = 'insights call failed for campaign ' + String(c.id) + ' (' + dp + '): ' + String(ij.error?.message || ''); }
-        else if (!(Array.isArray(ij?.data) && ij.data.length)) { EMPTY_INSIGHTS++; }
-        const row = Array.isArray(ij?.data) && ij.data.length ? ij.data[0] : {};
+        // D3 (4 Sep 2026): an errored or empty insights read writes NO ROW. Until today it wrote a row
+        // of zeros, and a zero row is indistinguishable from "this campaign spent nothing" — the
+        // optimizer (fn_ads_manage) would have read a winner's outage as spend falling to 0. Now the
+        // previous row simply ages out: fn_ads_manage treats anything older than 3 days as no data
+        // and holds the campaign instead of judging it. Error and empty must not equal success.
+        if (ij?.error) { INSIGHT_ERRORS++; LAST_ERR = 'insights call failed for campaign ' + String(c.id) + ' (' + dp + '): ' + String(ij.error?.message || ''); continue; }
+        if (!(Array.isArray(ij?.data) && ij.data.length)) { EMPTY_INSIGHTS++; continue; }
+        const row = ij.data[0];
         const rec = {
           campaign_id: String(c.id), campaign_name: c.name, effective_status: c.effective_status, objective: c.objective,
           time_window: dp, spend: Number(row?.spend)||0, impressions: Number(row?.impressions)||0, clicks: Number(row?.clicks)||0,
@@ -97,8 +102,8 @@ Deno.serve(async (req) => {
     const expected = camps.length * 2;
     let note: string;
     if (camps.length === 0) { note = 'Meta returned NO campaigns matching the "' + filter + '" name filter: nothing synced, so meta_insights has no fresh ad spend/lead data and marketing dashboards will show stale or zero figures'; }
-    else if (INSIGHT_ERRORS >= expected) { note = 'every insights call failed for all ' + camps.length + ' matched campaign(s): rows were written with ZERO spend, impressions and results, which silently understates Meta ad spend and lead attribution'; }
-    else if (INSIGHT_ERRORS > 0 || EMPTY_INSIGHTS > 0) { note = 'synced ' + upserts + '/' + expected + ' rows for ' + camps.length + ' campaign(s), but ' + INSIGHT_ERRORS + ' insights call(s) errored and ' + EMPTY_INSIGHTS + ' returned no data — those rows were stored as zeros and understate real spend/results'; }
+    else if (INSIGHT_ERRORS >= expected) { note = 'every insights call failed for all ' + camps.length + ' matched campaign(s): NO insight rows were written (never zeros), so meta_insights is stale and the ad autopilot holds these campaigns as no-data until a sync succeeds'; }
+    else if (INSIGHT_ERRORS > 0 || EMPTY_INSIGHTS > 0) { note = 'synced ' + upserts + '/' + expected + ' rows for ' + camps.length + ' campaign(s); ' + INSIGHT_ERRORS + ' insights call(s) errored and ' + EMPTY_INSIGHTS + ' returned no data — no row was written for those (never zeros); the previous row ages out and the autopilot reads them as no data'; }
     else { note = 'synced ' + upserts + '/' + expected + ' insight rows for ' + camps.length + ' matched Meta campaign(s)'; }
     if (UPSERT_FAILS > 0) { note += ' | ' + UPSERT_FAILS + ' row(s) failed to write to meta_insights'; }
     if (LAST_ERR) { note += ' | last error: ' + LAST_ERR; }
