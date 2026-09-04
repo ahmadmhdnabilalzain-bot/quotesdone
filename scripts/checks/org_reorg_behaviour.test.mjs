@@ -228,8 +228,10 @@ for (const [label, ref] of Object.entries(PROJECTS)) {
     // Two statements, not one: a single SELECT reads its snapshot before the function inside it
     // performs the INSERT, so the count would be 0 for a row that exists.
     const counts = await probe(ref, `
-      select (fn_specialist_invoke('rfq_qualification_manager','boq_analyst','inquiry','reorg-probe-3',
-                'BOQ technical judgement')->>'ok') into v_out;
+      -- boq_analyst was parked on 4 Sep 2026 (STAFF_ORG seat-at-plan-size); the Match-eval analyst is the
+      -- on-demand specialist the RFQ qualification manager reaches for now.
+      select (fn_specialist_invoke('rfq_qualification_manager','supplier_analyst','inquiry','reorg-probe-3',
+                'supplier reliability judgement')->>'ok') into v_out;
       select v_out||'/'||(select count(*)::text from review_chain
                            where subject_id='reorg-probe-3' and stage='specialist_invocation')
         into v_out;`);
