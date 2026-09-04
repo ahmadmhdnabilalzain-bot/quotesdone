@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T07:56:13.331Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-04T10:29:39.415Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17115,6 +17115,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17140,16 +17150,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -28718,7 +28718,24 @@ begin
             v_title,
             v_detail,
             case when v_tier = 'autonomous' then 'assigned' else 'proposed' end,
-            v_tier, v_tier <> 'autonomous', 'analysis', 'fn_event_dispatch', clock_timestamp())
+            v_tier,
+            -- 4 SEP 2026: needs_founder was `v_tier <> 'autonomous'`, which reads "the department is
+            -- not autonomous for this class" as "the founder must decide this". The company's rule is
+            -- the opposite, and fn_kernel_founder_routing_is_refund_only enforces it: ONLY an action
+            -- class marked founder_approval_required reaches him, which today is the refund class
+            -- alone. A merely gated task goes up the INTERNAL chain -- it is written 'proposed' above
+            -- and fn_task_approve resolves the entitled head. MASTER_PLAN 4.5.
+            --
+            -- It became visible only when the STAFF_ORG seating gave Supply its own head: supply
+            -- grants 'analysis' at 'gated', so every event routed to a Supply subscriber tried to page
+            -- the founder and the guard refused it with 23514. Fourteen failed kernel traces for
+            -- cron:event_dispatch_15min between 05:45 and 09:00 UTC on 4 Sep; the wrapper swallows the
+            -- failure so cron.job_run_details still said 'succeeded', and the red-view alerter built
+            -- that morning is what surfaced it. needs_founder now reads the same table the guard reads,
+            -- so the writer and the guard cannot disagree again.
+            exists (select 1 from public.phase_c_action_class c
+                     where c.action_class = 'analysis' and c.founder_approval_required),
+            'analysis', 'fn_event_dispatch', clock_timestamp())
     returning id into v_task;
     v_tasks := v_tasks + 1;
     -- The standing task counts as back-pressured too: it is the one task the cap allows, not a
@@ -45837,6 +45854,7 @@ AS $function$
 declare
   r record; v_pick text;
   v_assigned int := 0; v_no_capacity int := 0; v_considered int := 0; v_saturated text;
+  v_promote jsonb;
   REVIEW_CLASSES constant text[] := array['review','audit','verify','qa_gate','security_review',
                                           'compliance_check','legal_review','supplier_verify',
                                           'capability_review','self_review'];
@@ -45903,19 +45921,30 @@ begin
            order by count(*) desc
            limit 6) x;
 
+  -- ONTO THE SPINE (§4.3). An owned task that needs doing is promoted into its employee_task run, and
+  -- a task parked for want of knowledge is re-opened when the department has since acquired some.
+  begin
+    v_promote := public.fn_org_task_promote();
+  exception when others then
+    v_promote := jsonb_build_object('error', sqlerrm);
+  end;
+
   insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
   values ('org_task_assign', now(), now(), 'ok',
           jsonb_build_object('considered', v_considered, 'assigned', v_assigned,
-                             'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none')),
+                             'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none'),
+                             'promoted_to_spine', v_promote),
           'Assigned '||v_assigned||' of '||v_considered||' unowned open task(s) to the currently '
           ||'least-loaded named colleague in the owning department, spreading within the department '
           ||'and skipping independent reviewers for non-review work. '||v_no_capacity||' left unowned '
           ||'only where every eligible colleague was already at max_open_tasks - deliberate: an '
           ||'unowned task is visible, an overloaded one is not. Departments still carrying more open '
-          ||'work than they staff (unowned/capacity): '||coalesce(v_saturated,'none')||'.');
+          ||'work than they staff (unowned/capacity): '||coalesce(v_saturated,'none')||'. Promoted onto '
+          ||'the workflow spine: '||coalesce(v_promote::text,'{}')||'.');
 
   return jsonb_build_object('considered', v_considered, 'assigned', v_assigned,
-                            'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none'));
+                            'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none'),
+                            'promoted_to_spine', v_promote);
 end
 $function$
 
@@ -45977,6 +46006,234 @@ begin
     'decline it.', new.decided_by, v_author_os, new.dept_key, v_target_os
     using errcode = 'check_violation';
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_deterministic_done(p_task_id bigint, p_step_run_id bigint, p_output jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t            record;
+  v_floor      numeric := 0.85;      -- fn_apply_playbook's floor; a caller cannot lower it here
+  v_sim        numeric;
+  v_terms      int;
+  v_total      int;
+  v_deliv      text;
+  v_outcome    text;
+  v_employee   text;
+  v_review     jsonb;
+  v_verdict    text;
+  v_trace      uuid;
+  v_queue      bigint;
+  v_rc         text;
+  v_att        numeric;
+  v_band       text;
+  v_known      int;
+begin
+  select o.id, o.dept_key, o.title, o.detail, o.action_class, o.tier, o.status, o.assigned_agent
+    into t from public.org_tasks o where o.id = p_task_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'no such org_task ' || p_task_id);
+  end if;
+  if t.status not in ('assigned','in_progress') then
+    return jsonb_build_object('ok', false, 'reason', 'org_task ' || p_task_id || ' is ' || t.status || ', not open work');
+  end if;
+
+  v_deliv   := coalesce(p_output->>'deliverable', '');
+  v_outcome := coalesce(nullif(p_output->>'outcome',''), left(v_deliv, 280));
+  v_sim     := nullif(p_output->>'similarity', '')::numeric;
+  v_terms   := coalesce(nullif(p_output->>'terms_matched','')::int, 0);
+  v_total   := coalesce(nullif(p_output->>'terms_total','')::int, 0);
+  v_employee := coalesce(nullif(p_output->>'employee',''), t.assigned_agent, t.dept_key);
+
+  -- FALSE-SUCCESS GUARDS. Nothing below runs unless the determination has substance.
+  if coalesce(p_output->>'playbook_record_id','') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'no playbook_record_id: a determination must cite the company knowledge it applied');
+  end if;
+  if not exists (select 1 from public.ops_knowledge k
+                  where k.record_id = p_output->>'playbook_record_id'
+                    and k.runtime_eligible and k.supersession_state = 'current'
+                    and k.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')) then
+    return jsonb_build_object('ok', false, 'reason', 'playbook ' || (p_output->>'playbook_record_id')
+             || ' is not a current, runtime-eligible, ACTIONABLE ops_knowledge record');
+  end if;
+  if v_sim is null or v_sim < v_floor then
+    return jsonb_build_object('ok', false, 'reason', 'similarity ' || coalesce(v_sim::text,'null') || ' is below the apply floor ' || v_floor);
+  end if;
+  if v_terms < 2 or v_total < 1 or (v_terms::numeric / v_total) < 0.30 then
+    return jsonb_build_object('ok', false, 'reason', 'corroboration ' || v_terms || ' of ' || v_total
+             || ' task terms is under the 2-and-30% bar the applier demands');
+  end if;
+  if length(v_deliv) < 300 then
+    return jsonb_build_object('ok', false, 'reason', 'deliverable shorter than 300 characters is not a determination');
+  end if;
+
+  -- The org_task quality standard requires a RESULT: line (major severity). The determination is the
+  -- playbook's own content, which does not carry one, so the applier's outcome sentence becomes it.
+  if v_deliv !~* '(^|\n)\s*RESULT:' then
+    v_deliv := v_deliv || E'\n\nRESULT: ' || left(v_outcome, 300);
+  end if;
+
+  -- A KPI-miss task cannot close without a root cause (trg_org_task_root_cause). The honest
+  -- deterministic diagnosis available without the model is the ATTAINMENT BAND, read from the task's
+  -- own numbers, which fn_kpi_review wrote into the detail as "actual X (Y% of target)". A band is a
+  -- class of cause, and it says which class it is rather than inventing a specific one.
+  if t.title ilike 'KPI missed%' then
+    v_att := nullif(substring(coalesce(t.detail,'') from '\(([0-9]+(?:\.[0-9]+)?)% of target\)'), '')::numeric;
+    v_band := case
+      when v_att is null      then 'unmeasured: the task carries no attainment figure, so the variance class cannot be read from it'
+      when v_att < 5          then 'no throughput: attainment ' || v_att || '% means the input that feeds this metric has not started, not that it under-performed'
+      when v_att < 50         then 'capacity or conversion shortfall: attainment ' || v_att || '% is real activity falling well short of the target'
+      when v_att < 100        then 'target above current capability: attainment ' || v_att || '% is near-miss performance against a target set higher than the process currently reaches'
+      else 'measurement: attainment ' || v_att || '% is at or above target, so the miss is in how the metric is measured or dated, not in the work' end;
+    v_rc := left('Root cause (deterministic band, no model call): ' || v_band
+              || '. Closing action taken from company playbook "' || coalesce(p_output->>'playbook_title','') || '" ('
+              || (p_output->>'playbook_record_id') || ', cosine ' || v_sim || ', corroborated ' || v_terms || '/' || v_total || ').', 500);
+  end if;
+
+  -- The deliverable must be ON THE ROW before the review: fn_task_review reads it off org_tasks, and
+  -- so does the author derivation (result.employee).
+  update public.org_tasks
+     set result = jsonb_build_object(
+                    'deliverable', left(v_deliv, 20000),
+                    'summary',     left(v_outcome, 300),
+                    'mode',        'determined',
+                    'used_llm',    false,
+                    'lane',        'org_task',
+                    'worked_by',   'workflow_dispatch',
+                    'employee',    v_employee,
+                    'playbook_record_id',   p_output->>'playbook_record_id',
+                    'playbook_title',       p_output->>'playbook_title',
+                    'playbook_record_type', p_output->>'playbook_record_type',
+                    'similarity',   v_sim,
+                    'terms_matched', v_terms,
+                    'terms_total',   v_total,
+                    'workflow_step_run_id', p_step_run_id,
+                    'at', now())
+                  || case when coalesce(result,'{}'::jsonb) ? 'parked'
+                          then jsonb_build_object('previously_parked', result->'parked') else '{}'::jsonb end,
+         root_cause  = coalesce(v_rc, root_cause),
+         decided_by  = 'workflow_dispatch',
+         last_run_at = now(),
+         attempts    = coalesce(attempts, 0) + 1,
+         updated_at  = now()
+   where id = p_task_id;
+
+  -- THE PUBLISHER. Department head -> Chief of Staff -> ownership -> cross-department challenge.
+  v_review  := public.fn_task_review(p_task_id);
+  v_verdict := coalesce(v_review->>'outcome', 'unknown');
+
+  -- A VERDICT THAT IS NOT A CLOSE IS A RESTING STATE, NOT A RETRY. The determination is a pure
+  -- function of (task, playbook), so the same verdict comes back every tick; the task moves to the
+  -- state the verdict actually means and fn_workflow_step_claim stops picking it (it claims only while
+  -- the task is open).
+  if v_verdict not in ('published','approve') then
+    if v_verdict = 'escalate' then
+      update public.org_tasks
+         set status = 'escalated', updated_at = now(),
+             result = coalesce(result,'{}'::jsonb) || jsonb_build_object(
+               'review', v_review,
+               'escalated', jsonb_build_object('at', now(), 'by', 'workflow_dispatch (org_task lane)',
+                 'reason', coalesce(v_review->>'reason', 'the review chain could not resolve an available approver'),
+                 'note', 'The determination was produced and stored; it is the REVIEW that could not '
+                      || 'complete, because this department has no approver independent of the author. '
+                      || 'That is an org finding, not a work failure, and it rests here rather than '
+                      || 'being retried against the same chain every ten minutes.'))
+       where id = p_task_id;
+    else
+      v_known := public.fn_org_task_lane_knowledge(t.dept_key);
+      update public.org_tasks
+         set status = 'blocked', updated_at = now(),
+             result = coalesce(result,'{}'::jsonb) || jsonb_build_object(
+               'review', v_review,
+               'parked', jsonb_build_object('at', now(), 'by', 'workflow_dispatch (org_task lane)',
+                 'reason', 'the review returned ' || v_verdict,
+                 'violations', coalesce(v_review->'violations','[]'::jsonb),
+                 'knowledge_at_park', v_known,
+                 'note', 'The deterministic determination did not meet the org_task quality standard. '
+                      || 'The determination is a pure function of this task and the playbook applied, so '
+                      || 'another attempt returns the same verdict; what has to change is the KNOWLEDGE. '
+                      || 'fn_org_task_promote re-opens this when the department holds more actionable '
+                      || 'in-scope knowledge than the ' || v_known || ' records it held here.'))
+       where id = p_task_id;
+    end if;
+
+    return jsonb_build_object('ok', false, 'terminal', true, 'review_outcome', v_verdict,
+             'reason', 'review returned ' || v_verdict
+               || coalesce(': ' || left((v_review->'violations')::text, 300), '')
+               || '; the org_task now rests as '
+               || case when v_verdict = 'escalate' then 'escalated' else 'blocked' end
+               || ' and is not retried',
+             'review', v_review);
+  end if;
+
+  -- The sealed record of what was decided, on what, by which rule, with what confidence.
+  insert into public.decision_trace(
+      correlation_id, entity_type, entity_id, decision_type,
+      proposed_by, decided_by, policy_keys, knowledge_refs, evidence_refs, alternatives,
+      assumptions, risk, confidence, authority_result,
+      decision, outcome_status, agent_key, department_id, task_class,
+      knowledge_versions, source_freshness, tools_requested, tools_executed, tool_result_refs,
+      uncertainty, escalation_decision, proposed_action, expected_outcome,
+      model, provider, input_tokens, output_tokens, estimated_cost_aed, final_status, sealed_at)
+  values (
+      gen_random_uuid(), 'org_task', p_task_id::text, 'deterministic_playbook_application',
+      v_employee, 'fn_apply_playbook', array['deterministic_first','org_task_lane']::text[],
+      jsonb_build_array(jsonb_build_object('record_id', p_output->>'playbook_record_id',
+                                           'title', p_output->>'playbook_title',
+                                           'similarity', v_sim,
+                                           'terms_matched', v_terms, 'terms_total', v_total)),
+      jsonb_build_array(jsonb_build_object('org_task_id', p_task_id, 'dept_key', t.dept_key,
+                                           'title', t.title, 'action_class', t.action_class,
+                                           'workflow_step_run_id', p_step_run_id,
+                                           'review', v_review)),
+      coalesce(p_output->'candidates', '[]'::jsonb),
+      jsonb_build_array('the nearest CORROBORATED actionable company playbook is the applicable one for this task'),
+      jsonb_build_object('level', 'low', 'note', 'advisory determination; moves no money, sends nothing, approves nobody'),
+      v_sim,
+      jsonb_build_object('mode', 'advisory', 'tier', t.tier, 'paid_provider', 'held'),
+      jsonb_build_object('determination', left(v_deliv, 8000), 'outcome', left(v_outcome, 400),
+                         'basis', 'nearest corroborated company knowledge by meaning; no model call'),
+      'pending', v_employee, t.dept_key, 'org_task',
+      '{}'::jsonb, jsonb_build_object('ops_knowledge', 'live at decision time'), '{}'::text[], '{}'::text[], '[]'::jsonb,
+      'low-confidence deterministic disposition: the corroborated playbook was applied, not reasoned over; queued for review',
+      'review_queued', 'close the org_task with a deterministic disposition',
+      'the mirroring employee_task run closes with it; a reviewer can overturn the determination',
+      'none', 'deterministic', 0, 0, 0, 'auto_done', now())
+  returning id into v_trace;
+
+  insert into public.review_queue(kind, dept_key, title, summary, payload, status)
+  values ('deterministic_org_task', t.dept_key,
+          left('Deterministic determination: org_task ' || p_task_id || ' — ' || coalesce(t.title,''), 240),
+          left(v_outcome, 600),
+          jsonb_build_object('org_task_id', p_task_id, 'dept_key', t.dept_key,
+                             'workflow_step_run_id', p_step_run_id,
+                             'employee', v_employee,
+                             'playbook_record_id', p_output->>'playbook_record_id',
+                             'playbook_title', p_output->>'playbook_title',
+                             'similarity', v_sim, 'terms_matched', v_terms, 'terms_total', v_total,
+                             'decision_trace_id', v_trace, 'review', v_review,
+                             'disposition', 'deterministic_low_confidence'),
+          'pending')
+  returning id into v_queue;
+
+  update public.org_tasks
+     set status     = 'done',
+         updated_at = now(),
+         result     = coalesce(result,'{}'::jsonb) || jsonb_build_object(
+                        'review', v_review,
+                        'decision_trace_id', v_trace,
+                        'review_queue_id', v_queue,
+                        'disposition', 'deterministic_low_confidence')
+   where id = p_task_id;
+
+  return jsonb_build_object('ok', true, 'org_task_id', p_task_id, 'review_outcome', v_verdict,
+                            'decision_trace_id', v_trace, 'review_queue_id', v_queue,
+                            'root_cause', v_rc);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_org_task_execute_sweep(p_limit integer DEFAULT 5)
@@ -46111,6 +46368,103 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_org_task_lane_knowledge(p_dept text)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select count(*)::int
+    from public.ops_knowledge k
+   where k.runtime_eligible
+     and k.supersession_state = 'current'
+     and k.embedding_gte is not null
+     and k.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')
+     and (k.scope_type in ('company','external_source')
+          or (k.scope_type = 'department' and k.dept_key = any(public.fn_dept_scope(coalesce(p_dept,'exec')))));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_promote(p_limit integer DEFAULT 12, p_in_flight_ceiling integer DEFAULT 60)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record; v_run uuid;
+  v_unparked int := 0; v_promoted int := 0; v_in_flight int; v_room int; v_backlog int;
+begin
+  -- (1) un-park what the company has since learned how to do
+  for r in
+    select t.id, t.dept_key, coalesce((t.result->'parked'->>'knowledge_at_park')::int, 0) was
+      from public.org_tasks t
+     where t.status = 'blocked' and (t.result ? 'parked')
+     order by t.id
+     limit 200
+  loop
+    if public.fn_org_task_lane_knowledge(r.dept_key) > r.was then
+      update public.org_tasks
+         set status = 'assigned', updated_at = now(),
+             result = coalesce(result,'{}'::jsonb) || jsonb_build_object(
+               'unparked', jsonb_build_object('at', now(),
+                 'knowledge_at_park', r.was,
+                 'knowledge_now', public.fn_org_task_lane_knowledge(r.dept_key),
+                 'reason', 'the department now holds more actionable in-scope knowledge than when this parked'))
+       where id = r.id;
+      update public.workflow_step_run sr
+         set status = 'ready', attempts = 0, error = null
+        from public.workflow_run wr
+       where wr.id = sr.workflow_run_id and wr.workflow_key = 'employee_task'
+         and wr.context->>'task_id' = r.id::text
+         and sr.finished_at is null
+         and coalesce(sr.error->>'disposition','') = 'awaiting_model';
+      v_unparked := v_unparked + 1;
+    end if;
+  end loop;
+
+  -- (2) promote, within the in-flight ceiling
+  select count(*) into v_in_flight
+    from public.workflow_run r where r.workflow_key = 'employee_task' and r.status = 'running';
+  v_room := greatest(least(coalesce(p_limit, 12), coalesce(p_in_flight_ceiling, 60) - v_in_flight), 0);
+
+  select count(*) into v_backlog
+    from public.org_tasks t
+   where t.status in ('assigned','in_progress')
+     and not exists (select 1 from public.workflow_run r
+                      where r.workflow_key = 'employee_task' and r.context->>'task_id' = t.id::text);
+
+  if v_room > 0 then
+    for r in
+      select t.id, t.dept_key
+        from public.org_tasks t
+       where t.status in ('assigned','in_progress')
+         and coalesce(t.needs_founder, false) = false
+         and not exists (select 1 from public.workflow_run wr
+                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text)
+       order by t.priority desc nulls last, t.created_at, t.id
+       limit v_room
+    loop
+      begin
+        v_run := public.fn_workflow_start('employee_task', null, 'org_task', r.id::text,
+                   jsonb_build_object('task_id', r.id::text, 'dept_key', r.dept_key,
+                                      'promoted_by', 'fn_org_task_promote',
+                                      'promoted_at', now()));
+        if v_run is not null then v_promoted := v_promoted + 1; end if;
+      exception when others then
+        -- one task that cannot be promoted (no resolvable actor, say) must not stop the sweep
+        null;
+      end;
+    end loop;
+  end if;
+
+  return jsonb_build_object('unparked', v_unparked, 'promoted', v_promoted,
+                            'in_flight_before', v_in_flight, 'room', v_room,
+                            'backlog_without_a_run', v_backlog, 'ran_at', now());
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_org_task_root_cause_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -46200,6 +46554,25 @@ begin
             ||' raised to a founder alert, '||v_reassigned||' re-assigned.');
   return jsonb_build_object('ok',true,'escalated_to_manager',v_esc,'escalated_to_founder',v_founder,'reassigned',v_reassigned);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_subject(p_title text, p_action_class text, p_dept_key text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select btrim(regexp_replace(
+           regexp_replace(
+             regexp_replace(
+               regexp_replace(coalesce(p_title, ''),
+                 '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', ' ', 'gi'),
+               '[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?', ' ', 'g'),
+             '\m[0-9]+\M', ' ', 'g'),
+           '\s+', ' ', 'g'))
+      || ' ' || coalesce(p_action_class, '')
+      || ' ' || coalesce(p_dept_key, '');
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_ai_quality()
@@ -77992,7 +78365,7 @@ declare
   v_own_os      text;
   v_own_agent   text;
 begin
-  select o.id, o.dept_key, o.title, o.detail, o.action_class, o.result, o.tier
+  select o.id, o.dept_key, o.title, o.detail, o.action_class, o.result, o.tier, o.assigned_agent
     into t from org_tasks o where o.id = p_task_id;
   if t.id is null then
     return jsonb_build_object('error', 'no such task', 'task_id', p_task_id);
@@ -78004,8 +78377,17 @@ begin
       'reason', 'The task carries no deliverable to review.');
   end if;
 
-  select coalesce(d.brain_agent, d.lead_agent, t.dept_key) into v_author
+  -- WHO ACTUALLY WROTE IT (4 Sep 2026). This was `coalesce(d.brain_agent, d.lead_agent, dept_key)` —
+  -- the department head, whoever performed the work. fn_pick_reviewer then correctly refuses to let a
+  -- head approve its own output, and for the Office of the CEO there is nobody above the ceo, so every
+  -- exec task escalated on an authorship nobody claimed. The row records its worker; read it.
+  select coalesce(nullif(t.result->>'employee',''), nullif(t.assigned_agent,''),
+                  d.brain_agent, d.lead_agent, t.dept_key)
+    into v_author
     from org_departments d where d.dept_key = t.dept_key;
+  if v_author is null then
+    v_author := coalesce(nullif(t.result->>'employee',''), nullif(t.assigned_agent,''), t.dept_key);
+  end if;
 
   -- STAGE 1+2: department head, then Chief of Staff. This is fn_review_submit unchanged — the
   -- reviewer is resolved live through delegation_rule and seniority, so a head who is unavailable
@@ -78135,6 +78517,7 @@ begin
     'task_id',        p_task_id,
     'outcome',        v_outcome,
     'stopped_at',     v_chain->>'stopped_at',
+    'author',         v_author,
     'reviewer',       v_chain->>'reviewer',
     'delegated_from', v_chain->>'delegated_from',
     'violations',     coalesce(v_chain->'violations', '[]'::jsonb),
@@ -80151,15 +80534,26 @@ begin
      where sr.status = 'ready'
        and sr.finished_at is null
        and r.status = 'running'
-       and r.workflow_key <> 'employee_task'
+       -- THE ORG_TASK LANE (§4.3). An employee_task run is the promotion of one org_task into the
+       -- spine; the dispatcher works it while the task is still open, and the follow trigger owns it
+       -- once the task has closed or parked. A run whose task is gone is nobody's work.
+       and (r.workflow_key <> 'employee_task'
+            or exists (select 1 from public.org_tasks t
+                        where t.id::text = r.context->>'task_id'
+                          and t.status in ('assigned','in_progress')))
        and coalesce(sr.input->>'gate','') <> 'founder'
+       -- the reflection ceiling is untouched: it bounds PAID reasoning, and while the model is held
+       -- (v_held) nothing here can reach a paid provider. When the hold lifts the lane obeys it.
        and (public.fn_task_is_demand(sr.action_class) or v_today < v_cap or v_held)
        and public.fn_workflow_actor_resolve(sr.workflow_run_id, sr.actor) is not null
        -- parked awaiting the model: not claimed again until the hold lifts
        and not (v_held and coalesce(sr.error->>'disposition','') = 'awaiting_model')
        and (
+         -- the org_task lane is always the dispatcher's: its executor (cos_execute on coordinate) was
+         -- retired on 3 Sep and the sweep's low-risk predicate never accepted it
+         r.workflow_key = 'employee_task'
          -- (a) no safe executor owns it: the dispatcher's row, as before
-         not exists (
+         or not exists (
              select 1 from public.org_action_executor e
               where e.action_class = sr.action_class and e.active and e.kind = 'edge'
                 and e.risk_tier = 'low' and e.advisory_safe and e.reversible
@@ -80211,6 +80605,15 @@ begin
            'attempts',     coalesce(c.attempts, 0),
            'model_held',   v_held,
            'deterministic_only', v_held,
+           -- THE ORG_TASK LANE: the work is the task, not the loop step it is recorded under.
+           'lane',                 case when r.workflow_key = 'employee_task' and t.id is not null then 'org_task' else 'workflow_step' end,
+           'org_task_id',           t.id,
+           'org_task_title',        t.title,
+           'org_task_detail',       left(coalesce(t.detail, ''), 2000),
+           'org_task_dept',         t.dept_key,
+           'org_task_action_class', t.action_class,
+           'org_task_subject',      case when t.id is null then null
+                                         else public.fn_org_task_subject(t.title, t.action_class, t.dept_key) end,
            'stranded_reason', case
               when exists (select 1 from public.org_action_executor e
                             where e.action_class = c.action_class and e.active and e.kind = 'edge'
@@ -80242,7 +80645,9 @@ begin
     into v_out
     from claimed c
     join public.workflow_run r on r.id = c.workflow_run_id
-    left join public.workflow w on w.workflow_key = r.workflow_key;
+    left join public.workflow w on w.workflow_key = r.workflow_key
+    left join public.org_tasks t on r.workflow_key = 'employee_task'
+                                and t.id::text = r.context->>'task_id';
 
   return v_out;
 end
@@ -80414,7 +80819,7 @@ CREATE OR REPLACE FUNCTION public.fn_workflow_step_release(p_step_run_id bigint,
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_attempts int; v_disp text;
+declare v_attempts int; v_disp text; v_task bigint; v_dept text; v_known int; v_parked int := 0;
 begin
   select coalesce(attempts,0) + 1 into v_attempts from public.workflow_step_run
    where id = p_step_run_id and status = 'running' and finished_at is null;
@@ -80435,7 +80840,40 @@ begin
                                                       || ' deterministic attempts; it waits for the ~5% model path (held) and is not retried until the hold lifts'
                                                     else null end)
    where id = p_step_run_id and status = 'running' and finished_at is null;
-  return case when v_disp = 'awaiting_model' then 'parked awaiting model' else 'released' end;
+
+  if v_disp = 'awaiting_model' then
+    select t.id, t.dept_key into v_task, v_dept
+      from public.workflow_step_run s
+      join public.workflow_run r on r.id = s.workflow_run_id and r.workflow_key = 'employee_task'
+      join public.org_tasks t on t.id::text = r.context->>'task_id'
+     where s.id = p_step_run_id and t.status in ('assigned','in_progress');
+
+    if v_task is not null then
+      v_known := public.fn_org_task_lane_knowledge(v_dept);
+      update public.org_tasks
+         set status     = 'blocked',
+             updated_at = now(),
+             last_run_at = now(),
+             result     = coalesce(result, '{}'::jsonb) || jsonb_build_object(
+               'parked', jsonb_build_object(
+                 'at', now(), 'by', 'workflow_dispatch (org_task lane)',
+                 'attempts', v_attempts,
+                 'reason', left(coalesce(p_reason,''), 500),
+                 'knowledge_at_park', v_known,
+                 'note', 'No corroborated actionable company playbook covers this task, so it was not '
+                      || 'closed and it is not retried in a loop. The org_task lane is deterministic '
+                      || 'only — its model executor (cos_execute on coordinate) was retired on 3 Sep — '
+                      || 'so what this waits for is AUTHORED KNOWLEDGE, not inference. '
+                      || 'fn_org_task_promote re-opens it when the department holds more actionable '
+                      || 'in-scope knowledge than the ' || v_known || ' records it held here.'))
+       where id = v_task;
+      get diagnostics v_parked = row_count;
+    end if;
+  end if;
+
+  return case when v_disp = 'awaiting_model'
+              then 'parked awaiting model' || case when v_parked > 0 then ' (org_task ' || v_task || ' parked)' else '' end
+              else 'released' end;
 end
 $function$
 
@@ -87194,7 +87632,7 @@ select cron.schedule('action_queue_sweep_hourly','35 * * * *',$CRON$select publi
 select cron.schedule('bi_snapshot_6h','35 */6 * * *',$CRON$select public.fn_kernel_cron_exec(218);$CRON$);
 select cron.schedule('capability_verify_daily','15 2 * * *',$CRON$select public.fn_capability_verify();$CRON$);
 select cron.schedule('index_slowdown_watch_daily','15 4 * * *',$CRON$select public.fn_kernel_cron_exec(221);$CRON$);
-select cron.schedule('kb_route_tests_hourly','5 * * * *',$CRON$select public.fn_kb_route_test_run(400);$CRON$);
+select cron.schedule('kb_route_tests_hourly','5 * * * *',$CRON$select public.fn_kernel_cron_exec(222);$CRON$);
 select cron.schedule('ops_scenarios_hourly','25 * * * *',$CRON$select public.fn_ops_scenarios_sweep();$CRON$);
 select cron.schedule('kb_corpus_integrity_daily','40 3 * * *',$CRON$select public.fn_kernel_cron_exec(225);$CRON$);
 select cron.schedule('model_catalog_drift_daily','50 3 * * *',$CRON$select public.fn_kernel_cron_exec(226);$CRON$);
