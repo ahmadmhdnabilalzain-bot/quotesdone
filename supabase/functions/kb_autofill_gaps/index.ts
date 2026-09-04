@@ -44,10 +44,18 @@ Deno.serve(async (req) => {
       try {
         const r = await fetch(`${BASE}/kb_fill_gap`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, category: g.category, label: g.label }) });
         const jd = await r.json().catch(() => ({} as any));
-        results.push({ category: g.category, ok: !!jd?.ok, inserted: jd?.inserted || 0, error: jd?.error, http: r.status });
+        results.push({ category: g.category, ok: !!jd?.ok, held: jd?.held === true, inserted: jd?.inserted || 0, error: jd?.error, http: r.status });
       } catch (e) { results.push({ category: g.category, ok: false, error: String((e as Error)?.message || e) }); }
     }
     const anyOk = results.some((r) => r.ok);
+    // 4 SEP 2026: every gap answered 'held' is the founder's paid-provider hold, not a failure of this
+    // job: record it as skipped, page nobody, and let the next run try again once the hold lifts. The
+    // old path logged status=error 27 times in one morning and posted a founder warning each time.
+    if (!anyOk && results.length && results.every((r) => r.held)) {
+      await logRun('skipped', { gaps: gaps.length, attempted: results.length, filled: 0, failed: 0, held: results.length, chunks_inserted: 0 },
+        'paid provider held by the founder: ' + results.length + ' knowledge gap(s) [' + results.map((r) => r.category).join(', ') + '] left unfilled; nothing was generated, charged or paged');
+      return J({ ok: true, skipped: 'provider_held', filled: [] });
+    }
     if (!anyOk) { // exception-only alert
       try { await fetch(`${BASE}/alert_founder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, level: 'warn', subject: 'Knowledge auto-fill failed', body: 'The weekly knowledge gap auto-fill produced no new knowledge. Details: ' + JSON.stringify(results).slice(0, 400) }) }); } catch (_e) {}
     }

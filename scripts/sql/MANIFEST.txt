@@ -1596,4 +1596,6 @@ scripts/sql/apply_playbook_needs_corroboration.sql
 scripts/sql/workflow_backlog_drain_2026_09_04.sql
 scripts/sql/fn_task_review_ownership_is_not_a_self_review.sql
 scripts/sql/knowledge_fill_executor_reconciles_recent_chunks_only.sql
-"scripts/sql/knowledge_fill_executor_reconciles_recent_chunks_only.sql" ; tail -2 scripts/sql/MANIFEST.txt; node "C:/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/cd432ea4-4602-4dcf-a262-875622bbb1d9/scratchpad/qa1_a610.mjs" "select public.fn_kernel_cron_exec(266) rpc_tick"  
+scripts/sql/fn_ads_manage_paces_under_the_founders_cap_and_emits_budget_exceeded.sql
+scripts/sql/seven_packets_settle_into_one_estate.sql
+scripts/sql/kernel_ledger_follows_the_manifest_4_sep_b.sql

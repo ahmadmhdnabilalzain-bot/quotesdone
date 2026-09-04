@@ -386,7 +386,11 @@ Deno.serve(async (req) => {
       const grantedTier = String(authRow?.tier || 'gated');
       if (t.tier === 'autonomous' && grantedTier !== 'autonomous') {
         try {
-          await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'error',
+          // 4 SEP 2026: a refusal is not a failed run. The guard did its job (the row claimed more
+          // than the authority model grants and was not executed); recording it as 'error' put a
+          // correct refusal on the founder's failure ledger, the same shape the department-mismatch
+          // refusal below had until 3 Sep. The signal stays on the row so the minting writer is found.
+          await admin.from('agent_runs').insert({ agent: 'cos_execute', status: 'skipped',
             counts: { signal: 'tier_claim_exceeds_grant', task_id: t.id, dept: t.dept_key,
                       action_class: t.action_class, claimed: t.tier, granted: grantedTier },
             note: ('org_tasks#' + t.id + ' was written with tier=autonomous but the authority model grants only "'

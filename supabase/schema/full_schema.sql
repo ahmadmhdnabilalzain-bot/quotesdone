@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T06:56:30.197Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-04T07:35:57.630Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17327,8 +17327,9 @@ begin
               jsonb_build_object('active_total', v_active, 'ceiling', v_ceiling, 'cpl', c.cpl), p_run_tag)
       returning * into d;
       return next d;
-      v_active := v_active - c.daily_budget_aed;
+      v_active := v_active - least(c.daily_budget_aed, greatest(p.min_daily_per_campaign_aed, floor(c.daily_budget_aed * coalesce(v_factor, 1))));
     end loop;
+    return;  -- a pacing tick judges nothing else; the next tick sees the paced set
   end if;
 
   -- 2. JUDGE every active campaign that has no decision waiting.
@@ -17419,7 +17420,8 @@ begin
     end loop;
   end if;
   return;
-end;$function$
+end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_action_resolve_addressee()
