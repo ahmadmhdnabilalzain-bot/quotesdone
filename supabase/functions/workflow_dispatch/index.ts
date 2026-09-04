@@ -21,14 +21,21 @@
 //
 // WHAT IT WILL NOT TOUCH, enforced in fn_workflow_step_claim rather than here so the refusal is a
 // property of the queue and not of this caller:
-//   - employee_task runs. They mirror an org_task that cos_execute already performs and
-//     fn_task_review already reviews; their trigger_event is 'task.assigned', so creating work per
-//     step would start another 17-step run per step. They follow their own task instead
-//     (fn_workflow_run_follow_task).
 //   - gate = 'founder'. The four absolute gates — Stripe refund, invoice payment, campaign
 //     publish, complaint remedy. Nothing here can pass one.
 //   - a step a real executor can genuinely run. That is the sweep's row; a real side effect beats
 //     an advisory note and the two halves must not race for it.
+//
+// THE ORG_TASK LANE (4 Sep 2026, MASTER_PLAN §4.3). This function used to refuse employee_task runs
+// outright, because "they mirror an org_task that cos_execute already performs and fn_task_review
+// already reviews". cos_execute-on-org_tasks was RETIRED on 3 Sep (cron 124 off, §5.1), so that
+// deferral outlived its executor and 35 runs sat on step 1 with 605+ tasks behind them. The claim now
+// hands such a step over with lane='org_task' and the OWNING TASK's subject attached, because the work
+// is the task, not the generic loop step it is recorded under ("Understand request" retrieves nothing).
+// The lane is DETERMINISTIC ONLY: it applies a corroborated company playbook and closes through
+// fn_org_task_deterministic_done (fn_task_review publishes), or it releases with the applier's own
+// numbers and parks after three attempts. It never reaches for the model — the model executor for this
+// lane is the one that was retired, and what an uncovered task waits for is authored knowledge.
 //
 // THIS PRODUCES ADVISORY WORK, AND SAYS SO. agent_brain is advisory by construction: it reasons,
 // determines and hands off; it moves no money, approves no supplier and sends nothing. The step
@@ -131,15 +138,26 @@ Deno.serve(async (req: Request) => {
       const employee = String(s.employee ?? '');
       const stepText = String(s.step ?? '');
       const wfName = String(s.workflow ?? s.workflow_key ?? '');
+      // THE ORG_TASK LANE. `lane` and the org_task_* fields come from fn_workflow_step_claim.
+      const isTaskLane = s.lane === 'org_task' && s.org_task_id != null;
+      const taskId = isTaskLane ? Number(s.org_task_id) : null;
+      const taskTitle = String(s.org_task_title ?? '');
+      const taskDetail = String(s.org_task_detail ?? '');
+      // The corroboration text the claim computed: the title with opaque identifiers removed, plus the
+      // task's own routing words. See fn_org_task_subject for why an id is not a corroboratable term.
+      const taskSubject = String(s.org_task_subject ?? '');
 
       // The employee's own context, keyed on the step so the query-aware layers retrieve for it.
       // fn_agent_context ignores any p_max_chars under 22,000 — always the _capped wrapper.
+      // The org_task lane never prompts a model, so it never needs the prompt's context block.
       let brain = '';
-      try {
-        const { data } = await admin.rpc('fn_agent_context_capped',
-          { p_agent_key: employee, p_max_chars: 6000, p_query: (wfName + ' ' + stepText).slice(0, 400) });
-        brain = data ? String(data) : '';
-      } catch (_e) { /* an employee with no context still has to answer */ }
+      if (!isTaskLane) {
+        try {
+          const { data } = await admin.rpc('fn_agent_context_capped',
+            { p_agent_key: employee, p_max_chars: 6000, p_query: (wfName + ' ' + stepText).slice(0, 400) });
+          brain = data ? String(data) : '';
+        } catch (_e) { /* an employee with no context still has to answer */ }
+      }
 
       const sys = 'You are ' + employee + ' at QuotesDone, a UAE B2B anonymous quotation marketplace. '
         + 'You own one step of a company process that is running right now, and you are performing it. '
@@ -197,7 +215,12 @@ Deno.serve(async (req: Request) => {
       try {
         // The step, its process and what triggered the run — the trigger context is what makes
         // "Detect from health, drift or a failed gate" retrieve the health playbook, not a generic one.
-        const need = (wfName + ' — ' + stepText + ' — ' + JSON.stringify(s.context ?? {})).slice(0, 1200);
+        // On the org_task lane the unit of work is the TASK: its title and its detail (the event that
+        // raised it, who subscribes and why, and what it asks for). The generic loop step it is
+        // recorded under — "Understand request" — describes the ceremony, not the work.
+        const need = isTaskLane
+          ? (taskTitle + ' — ' + taskDetail).slice(0, 1200)
+          : (wfName + ' — ' + stepText + ' — ' + JSON.stringify(s.context ?? {})).slice(0, 1200);
         // deno-lint-ignore no-explicit-any
         const emb = await (new (globalThis as any).Supabase.ai.Session('gte-small'))
           .run(need, { mean_pool: true, normalize: true }) as number[];
@@ -209,7 +232,7 @@ Deno.serve(async (req: Request) => {
             // Corroboration counts the STEP's own words (process + step), not the trigger JSON — a
             // context blob adds dozens of lexemes and made "8 of 28 terms" fail a step whose own text
             // was fully covered. The embedding above still carries the context for meaning.
-            p_query_text: wfName + ' ' + stepText,
+            p_query_text: isTaskLane ? taskSubject : wfName + ' ' + stepText,
             p_min_similarity: 0.85, p_k: 20 });
         // deno-lint-ignore no-explicit-any
         const d = det as any;
@@ -229,7 +252,8 @@ Deno.serve(async (req: Request) => {
       // Only reach for the model when the deterministic engine found no company knowledge for the step,
       // AND the model is available (the ~5% path; skipped while the founder holds it — the step is then
       // released cleanly rather than erroring). A step the claim flagged deterministic_only never does.
-      if (!deliverable && !modelHeld && s.deterministic_only !== true) {
+      // The org_task lane never reaches for the model: its model executor was the retired one.
+      if (!deliverable && !modelHeld && s.deterministic_only !== true && !isTaskLane) {
         workedBy = 'model';
         const out = await llmAs(employee)(sys, user, 8000);
         const raw = (out ?? '').trim();
@@ -249,9 +273,12 @@ Deno.serve(async (req: Request) => {
         // (the applier's own words — "best match 0.31 is below the apply floor 0.42"). After three
         // such attempts fn_workflow_step_release parks the step as awaiting_model.
         const reason = workedBy === 'deterministic'
-          ? 'no company playbook or rule confidently covers this step (' + noMatchWhy.slice(0, 300)
-            + '); it waits for a specialist, a source, or the ~5% model path'
-            + (modelHeld ? ' (held)' : '')
+          ? 'no company playbook or rule confidently covers this '
+            + (isTaskLane ? 'task (org_task ' + taskId + ': ' + taskTitle.slice(0, 80) + ') (' : 'step (')
+            + noMatchWhy.slice(0, 300) + ')'
+            + (isTaskLane
+                ? '; the org_task lane is deterministic only, so it waits for authored knowledge in this department'
+                : '; it waits for a specialist, a source, or the ~5% model path' + (modelHeld ? ' (held)' : ''))
           : (!deliverable ? 'the model returned nothing'
              : NOT_WORK.test(deliverable) ? 'the reply is an apology, not a deliverable'
              : 'deliverable shorter than ' + MIN_CHARS + ' characters');
@@ -273,12 +300,44 @@ Deno.serve(async (req: Request) => {
         brain_chars: brain.length,
         used_llm: workedBy === 'model',
         stranded_reason: s.stranded_reason ?? null,
+        lane: isTaskLane ? 'org_task' : 'workflow_step',
+        org_task_id: taskId,
       };
 
       // deno-lint-ignore no-explicit-any
       let adv: any = null;
       let doneErr: { message: string } | null = null;
-      if (workedBy === 'deterministic') {
+      if (isTaskLane) {
+        // ONE SPINE. The determination closes the TASK, and fn_workflow_run_follow_task closes the
+        // mirroring run in one act — the trigger's own words. fn_org_task_deterministic_done re-checks
+        // the substance (playbook id and kind, cosine floor, corroboration, length), writes the
+        // deliverable, lets fn_task_review PUBLISH it, seals the trace and queues the review. Anything
+        // short of {ok:true} — including a reviewer who returned it for revision — releases the step
+        // with the routine's own reason.
+        const { data: det, error: detErr } = await admin.rpc('fn_org_task_deterministic_done', {
+          p_task_id: taskId,
+          p_step_run_id: stepRunId,
+          p_output: {
+            ...output,
+            playbook_record_id: playbook?.record_id ?? null,
+            playbook_title: playbook?.title ?? null,
+            playbook_record_type: playbook?.record_type ?? null,
+            similarity: playbook?.similarity ?? null,
+            terms_matched: playbook?.terms_matched ?? null,
+            terms_total: playbook?.terms_total ?? null,
+            candidates: playbook?.candidates ?? [],
+          },
+        });
+        // deno-lint-ignore no-explicit-any
+        const dd = det as any;
+        if (detErr) doneErr = { message: 'fn_org_task_deterministic_done: ' + detErr.message };
+        else if (!dd || dd.ok !== true) {
+          // A review that returns the work for revision is NOT "no playbook" — it must not count
+          // towards the awaiting-knowledge park, so the reason deliberately does not start with the
+          // park phrase fn_workflow_step_release keys on.
+          doneErr = { message: 'org_task close refused: ' + String(dd?.reason ?? 'no ok') };
+        } else adv = dd;
+      } else if (workedBy === 'deterministic') {
         // A deterministic determination closes ONLY through fn_workflow_step_deterministic_done: it
         // re-checks the substance (playbook id, similarity floor, length), seals the decision_trace,
         // queues the review row, supersedes the parked executor attempt, then advances. Anything short
@@ -318,6 +377,7 @@ Deno.serve(async (req: Request) => {
       }
 
       worked.push({ step_run_id: stepRunId, run_id: s.run_id, step_no: s.step_no, employee,
+                    lane: isTaskLane ? 'org_task' : 'workflow_step', org_task_id: taskId,
                     workflow: wfName, chars: deliverable.length, advanced: adv, worked_by: workedBy,
                     playbook: playbook ? { record_id: playbook.record_id, title: playbook.title, similarity: playbook.similarity } : null,
                     outcome: outcome.slice(0, 200) });
