@@ -44,19 +44,6 @@ begin
   -- created carry promoted_by = fn_org_task_promote, and the raise reproduces on any backlog task.
   -- Correlation ties together work that shares a cause; a promoted task IS its own cause.
   v_corr := coalesce(v_corr, gen_random_uuid());
-  -- 4 SEP 2026: a run started WITHOUT a triggering event begins its own correlation.
-  -- The line above finds nothing when p_trigger_event_id is null, workflow_run.correlation_id is
-  -- NOT NULL, and the insert below therefore raised 23502 on every eventless start. The line before
-  -- it already anticipates exactly this case -- it mints a fresh idempotency key rather than
-  -- colliding -- so the omission was in the next statement, not in the design.
-  --
-  -- It is the reason MASTER_PLAN 4.3's one-spine design never ran: fn_org_task_promote is the leg
-  -- that lifts an org_task onto the workflow spine, it calls this with a null event because a
-  -- backlog task has no event, every call raised, and the promoter's own
-  -- `exception when others then null` swallowed it. Measured: 0 of 301 employee_task runs ever
-  -- created carry promoted_by = fn_org_task_promote, and the raise reproduces on any backlog task.
-  -- Correlation ties together work that shares a cause; a promoted task IS its own cause.
-  v_corr := coalesce(v_corr, gen_random_uuid());
 
   insert into workflow_run (workflow_key, trigger_event_id, correlation_id, entity_type, entity_id,
                             idempotency_key, status, current_step, context, started_at)
