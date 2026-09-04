@@ -1627,3 +1627,12 @@ scripts/apply_sql.mjs
 $f
 --apply
 --ddl
+scripts/sql/the_promoter_raised_on_every_call.sql
+$f
+;
+node
+scripts/apply_sql.mjs
+$f
+--apply
+--ddl
+scripts/sql/an_eventless_start_begins_its_own_correlation.sql
