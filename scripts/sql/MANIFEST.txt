@@ -1617,3 +1617,8 @@ scripts/sql/change_deployment_deterministic_executors.sql
 scripts/sql/claim_leaves_rpc_executor_steps_to_the_sweep.sql
 scripts/sql/a_second_closing_path_beside_the_spine.sql
 scripts/sql/every_open_task_gets_a_reason_or_a_run.sql
+scripts/sql/fn_recommend_deterministic.sql
+scripts/sql/fn_exec_review_deterministic.sql
+scripts/sql/fn_knowledge_gap_deterministic.sql
+scripts/sql/fn_workflow_step_claim_owns_rpc_executors.sql
+scripts/sql/deterministic_substitutes_registered_2026_09_05.sql

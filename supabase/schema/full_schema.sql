@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-05T19:31:34.930Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-05T19:07:17.477Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -47227,13 +47227,8 @@ begin
    where d.dept_key = t.dept_key
      and t.status = 'escalated'
      and (t.result ? 'escalated')
-     -- who AUTHORED it, as the review recorded — a task claimed while unowned resolves to the head too
-     and coalesce(t.result->'review'->>'author', t.assigned_agent) = d.lead_agent
-     -- once per escalation: a task claimed while it was still on the head can escalate again after
-     -- its first re-open, and that later verdict is re-examined too — never a loop, because a task
-     -- the assigner has re-homed no longer carries the head as its assignee
-     and coalesce((t.result->'reopened'->>'at')::timestamptz, '-infinity'::timestamptz)
-         < coalesce((t.result->'escalated'->>'at')::timestamptz, now())
+     and t.assigned_agent = d.lead_agent
+     and not (coalesce(t.result,'{}'::jsonb) ? 'reopened')
      and not exists (select 1 from public.org_agents h
                       join public.org_agents m on m.agent_key = h.manager_key and m.active
                      where h.agent_key = d.lead_agent)
@@ -47264,11 +47259,8 @@ begin
   select count(*) into v_backlog
     from public.org_tasks t
    where t.status in ('assigned','in_progress')
-     -- a RUNNING run, not any run: a task re-opened after an escalation keeps its earlier (failed) run
-     -- and needs a new one — measured 5 Sep: 18 re-opened exec tasks sat unpromoted behind this predicate
      and not exists (select 1 from public.workflow_run wr
-                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
-                        and wr.status = 'running');
+                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text);
 
   if v_room > 0 then
     for r in
@@ -47278,8 +47270,7 @@ begin
          and coalesce(t.needs_founder, false) = false
          and exists (select 1 from public.org_agents a where a.agent_key = t.assigned_agent and a.active)
          and not exists (select 1 from public.workflow_run wr
-                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
-                            and wr.status = 'running')
+                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text)
        order by t.priority desc nulls last, t.created_at, t.id
        limit v_room
     loop
