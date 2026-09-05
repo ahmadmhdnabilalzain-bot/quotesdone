@@ -1528,10 +1528,6 @@ scripts/sql/retire_the_legacy_credential_and_the_parallel_task_executor.sql
 scripts/sql/staff_org_recarve_settlement_c_2026_09_03.sql
 scripts/sql/deploy_completed_has_subscribers.sql
 scripts/sql/kernel_ledger_follows_the_manifest_3_sep_d.sql
-$f
-;
-node
-scripts/apply_sql.mjs
 scripts/sql/every_live_entry_point_is_a_component.sql
 scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
 scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
@@ -1600,13 +1596,6 @@ scripts/sql/fn_ads_manage_paces_under_the_founders_cap_and_emits_budget_exceeded
 scripts/sql/seven_packets_settle_into_one_estate.sql
 scripts/sql/kernel_ledger_follows_the_manifest_4_sep_b.sql
 scripts/sql/the_trace_state_board_judges_only_finished_executions.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/strategic_review_playbooks_2026_09_04.sql
 [INFO] Recording command outcome: printf
 
@@ -1620,19 +1609,7 @@ scripts/sql/org_task_lane_terminal_verdicts_2026_09_04.sql
 scripts/sql/a_gated_task_is_not_a_founder_task.sql
 scripts/sql/the_route_tests_run_again.sql
 scripts/sql/the_manual_records_the_four_jobs_enabled_today.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/the_promoter_raised_on_every_call.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
+scripts/sql/a_second_closing_path_beside_the_spine.sql
+scripts/sql/every_open_task_gets_a_reason_or_a_run.sql
