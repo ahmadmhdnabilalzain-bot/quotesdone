@@ -1229,8 +1229,10 @@ function NotificationsBell({ pulse, onNav }: { pulse: number; onNav: (id: string
   // screen 14 asks for and the bell never showed.
   React.useEffect(() => { let alive = true; osApi('ws.notifications').then((d: any) => { if (alive) setTiers(d); }).catch(() => {}); return () => { alive = false; }; }, [pulse]);
   const routeFor = (t: string) => { const s = String(t); return /finance|payment|invoice/.test(s) ? 'finance' : /uptime|site|governance|security/.test(s) ? 'governance' : /ops|error|operation/.test(s) ? 'operations' : 'escalations'; };
-  const TIERS: [string, string, string][] = [['critical', 'Critical', 'escalations'], ['important', 'Important', 'operations'],
-    ['suggested', 'Suggested', 'intelligence'], ['completed_today', 'Completed Today', 'audit']];
+  // 'important' is the refund queue — the only thing waiting on him. 'held' is open work owned by
+  // a named role, shown so he can see it, never counted on the badge.
+  const TIERS: [string, string, string][] = [['critical', 'Critical', 'escalations'], ['important', 'Refund approvals', 'refunds'],
+    ['held', 'Held with departments', 'operations'], ['suggested', 'Suggested', 'intelligence'], ['completed_today', 'Completed Today', 'audit']];
   const count = (tiers?.critical?.count ?? 0) + (tiers?.important?.count ?? 0) || items.length;
   return (
     <>
@@ -1313,10 +1315,11 @@ function PipelineTracker({ onNav }: { onNav: (id: string) => void }) {
 
 // THE DECISIONS WAITING ON HIM, RANKED OLDEST FIRST.
 //
-// Every figure comes from ws.founder_queue -> fn_founder_queue, which counts agent_actions joined
-// to agent_action_kind_policy where policy = 'founder'. Nothing is computed here and nothing is
-// estimated: an item is on this list because a named agent raised it and the policy table says
-// only he can answer it.
+// Every figure comes from ws.founder_queue -> fn_founder_queue. Since 5 Sep 2026 that is the REFUND
+// queue: pending founder_approval_request rows (refund-only by trigger) plus any agent_action whose
+// kind policy is 'founder' (no kind carries it). Nothing is computed here and nothing is estimated:
+// an item is on this list because a refund decision was prepared for him. Everything else the
+// company has open is held with a named role and is not listed as his.
 //
 // It renders NOTHING when the queue is empty, so a cleared queue gives the console its clean
 // canvas back rather than a heading over a green tick. The age is the point of the whole panel -
@@ -1823,7 +1826,11 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
             formally accepts accountable work from another. */}
         <StatTile label='Events delivered' value={eh.events_delivered_24h != null ? Number(eh.events_delivered_24h).toLocaleString() : '—'} hint='message bus, last 24 hours' onClick={() => onNav('operations')} />
         <StatTile label='Handoffs between employees' value={eh.handoffs_24h != null ? Number(eh.handoffs_24h).toLocaleString() : '—'} hint='accepted work, last 24 hours' onClick={() => onNav('operations')} />
-        <StatTile label='Decisions waiting' value={eh.decisions_open ?? '—'} hint='review queue' onClick={() => onNav('escalations')} />
+        {/* HIS decisions are refund approvals and nothing else (founder rule, restated 5 Sep 2026).
+            This tile used to count every open agent_action and call it 'Decisions waiting'; those
+            rows belong to named roles and are the next tile, under that name. */}
+        <StatTile label='Refund approvals waiting' value={eh.decisions_open ?? '—'} hint='the only decision that is yours' onClick={() => onNav('refunds')} />
+        <StatTile label='Held with departments' value={eh.held_with_roles ?? '—'} hint='open items owned by a named role' onClick={() => onNav('operations')} />
         <StatTile label='Open tasks' value={eh.tasks_open ?? '—'} hint='across every department' onClick={() => onNav('operations')} />
         <StatTile label='Knowledge updated' value={eh.knowledge_revisions_7d != null ? Number(eh.knowledge_revisions_7d).toLocaleString() : '—'} hint='revisions in 7 days' onClick={() => onNav('knowledge')} />
         <StatTile label='Uptime' value={eh.uptime_pct_24h != null ? eh.uptime_pct_24h + '%' : '—'} hint='edge probes, last 24 hours' onClick={() => onNav('health')} />
@@ -1913,8 +1920,6 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
   React.useEffect(() => { load(); }, [load]);
   const openItem = (it: any) => { setSel(it); setDraft(it.draft || ''); setMsg(''); };
   const send = async () => { if (!sel) return; setBusy(true); setMsg(''); try { await osApi('inbox_send', { id: sel.id, body: draft }); setSel(null); load(); } catch (e: any) { setMsg('Could not send: ' + (e?.message || 'error')); } setBusy(false); };
-  const [dbusy, setDbusy] = React.useState<string | null>(null);
-  const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) { } setDbusy(null); };
   if (err) return <Card className='p-6 text-sm text-destructive'>Could not load escalations: {err}</Card>;
   if (!d) return <div className='text-muted-foreground text-sm'>Loading escalations…</div>;
   const kpis = (d.inbox && d.inbox.kpis) || {}; const rows = (d.inbox && d.inbox.rows) || []; const attention = d.attention || [];
@@ -1925,7 +1930,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
         <Card className='p-4'><div className='text-xs text-muted-foreground'>Needs Review</div><div className='text-2xl font-bold mt-1'>{fmt(kpis.needs_review ?? 0)}</div></Card>
         <Card className='p-4'><div className='text-xs text-muted-foreground'>Untriaged</div><div className='text-2xl font-bold mt-1'>{fmt(kpis.untriaged ?? 0)}</div></Card>
         <Card className='p-4'><div className='text-xs text-muted-foreground'>Replied (7d)</div><div className='text-2xl font-bold mt-1'>{fmt(kpis.replied_7d ?? 0)}</div></Card>
-        <Card className='p-4'><div className='text-xs text-muted-foreground'>Agent Holds</div><div className='text-2xl font-bold mt-1'>{fmt(attention.length)}</div></Card>
+        <Card className='p-4'><div className='text-xs text-muted-foreground'>Held with departments</div><div className='text-2xl font-bold mt-1'>{fmt(attention.length)}</div></Card>
       </div>
       <Card className='overflow-hidden'>
         <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Inbox — awaiting your reply<Badge variant='secondary'>{rows.length}</Badge></div>
@@ -1939,13 +1944,16 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
         ))}</div> : <div className='px-4 py-6 text-sm text-muted-foreground'>Nothing awaiting a reply right now.</div>}
       </Card>
       {attention.length ? <Card className='overflow-hidden'>
-        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Agent decisions held for review<Badge variant='secondary'>{attention.length}</Badge></div>
+        {/* NOT HIS. Each row is an open agent decision held with the role fn_action_holder names.
+            The Approve/Reject buttons that used to sit on every row are gone: nothing here routes to
+            the founder, and a button that lets him decide it was the defect he reported. */}
+        <div className='px-4 py-3 border-b border-border text-sm font-semibold flex items-center justify-between'>Held with departments — not yours to approve<Badge variant='secondary'>{attention.length}</Badge></div>
         <div className='divide-y divide-border'>{attention.map((a: any) => (
           <div key={a.id} onClick={() => setRow({ entity: 'agent_action', id: a.id, title: (a.kind_label || titleCase(String(a.kind || 'decision'))), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 hover:bg-foreground/5 transition-colors cursor-pointer'>
             {/* Every action explains itself: which OS owned it, why, and what happened after —
                 and clicking it opens the full record, which is where the explanation lives. */}
             <div className='min-w-0'><div className='text-sm truncate flex items-center gap-2'>{(a.kind_label || titleCase(String(a.kind || 'decision')))} · <span className='text-muted-foreground'>{a.actor}</span>{a.os ? <Chip label={titleCase(String(a.os)) + ' OS'} tone='slate' /> : null}{a.risk ? <Chip label={a.risk} tone={riskTone(String(a.risk))} /> : null}</div>
-              <div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → {a.route_to}</div>
+              <div className='text-xs text-muted-foreground truncate'>{a.title || a.decision} → held with <b className='text-foreground'>{a.holder || a.route_to}</b></div>
               {Array.isArray(a.reasons) && a.reasons.length ? <div className='text-[11px] text-muted-foreground truncate'>Why: {a.reasons.join(' · ')}</div> : null}
               {a.outcome ? <div className='text-[11px] text-muted-foreground truncate'>After: {a.outcome}</div> : null}
               {/* Under which rule. action_autonomy decides whether the sweep may clear this kind
@@ -1962,9 +1970,7 @@ function Escalations({ onNav }: { onNav: (id: string) => void }) {
                   absent line is the honest rendering of that. */}
               {Array.isArray(a.alternatives) && a.alternatives.length ? <div className='text-[11px] text-muted-foreground truncate'>Alternatives: {a.alternatives.map((o: any) => String(o?.option || '') + (o?.selected ? ' (taken)' : '')).join(' · ')}</div> : null}</div>
             <div className='flex items-center gap-1.5 shrink-0' onClick={(e) => e.stopPropagation()}>
-              <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button>
-              <Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button>
-              <button onClick={() => onNav('agents')} title='Review in Smart Engine' className='text-muted-foreground hover:text-foreground'><ArrowUpRight className='h-4 w-4' /></button>
+              <button onClick={() => onNav('agents')} title='Open the owning agent' className='text-muted-foreground hover:text-foreground'><ArrowUpRight className='h-4 w-4' /></button>
             </div>
           </div>
         ))}</div>
@@ -2930,14 +2936,17 @@ function OperationsApp() {
   const decide = async (id: any, op: string) => { setDbusy(String(id) + op); try { await osOps('action_decide', { id, op }); load(); } catch (_e) {} setDbusy(''); };
   const taskDone = async (id: any) => { setDbusy('t' + id); try { await osOps('task_done', { id, op: 'done' }); load(); } catch (_e) {} setDbusy(''); };
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Operations: {err}</Card>;
-  const k = d?.kpis || {}; const tasks = d?.tasks || []; const decisions = d?.decisions || []; const approvals = d?.approvals || []; const sec = d?.security || {};
-  const held = decisions.filter((x: any) => /held|review|pending|proposed|open/.test(String(x.decision || x.status)));
+  const k = d?.kpis || {}; const tasks = d?.tasks || []; const approvals = d?.approvals || []; const sec = d?.security || {};
+  // `approvals` is fn_founder_queue verbatim (refund decisions, the only thing that is his);
+  // `held` is every other open agent_action with the role that holds it. The old page built the
+  // held list from decision_log and put Approve/Reject on each row — the defect he reported.
+  const held: any[] = d?.held || [];
   return (<div className='space-y-4'>
     <AppHeader icon={Settings2} title='Operations' onRefresh={load} busy={busy} badge={k.high_risk ? <Badge className='bg-red-500/15 text-red-600 border-0'>{k.high_risk} high risk</Badge> : null} />
-    <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Approvals pending', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held for review', held.length]]} />
-    {held.length ? <SectionCard title='Decisions held for review' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{(a.kind_label || titleCase(String(a.kind || 'decision')))}<span className='text-muted-foreground text-xs'>{a.actor}</span><Chip label={titleCase(String(a.decision))} tone={statusTone(String(a.decision))} /></div><div className='text-xs text-muted-foreground'>→ {a.route_to} · {fmt(a.created_at)}</div></div><div className='flex gap-1.5 shrink-0'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></div></div>))}</div></SectionCard> : null}
+    <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Refund approvals (yours)', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held with departments', k.held_with_roles ?? held.length]]} />
+    {approvals.length ? <SectionCard title='Refund approvals waiting on you' count={approvals.length}><div className='divide-y divide-border'>{approvals.map((a: any) => (<div key={String(a.id)} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{a.kind_label || 'Refund decision'}<span className='text-muted-foreground text-xs'>{a.from}</span></div><div className='text-xs text-muted-foreground'>{a.title} · {fmt(a.raised)}</div></div><div className='flex gap-1.5 shrink-0'>{a.source === 'agent_actions' ? <><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></> : <span className='text-[11px] text-muted-foreground'>decide it in Refunds</span>}</div></div>))}</div></SectionCard> : null}
+    {held.length ? <SectionCard title='Held with departments — not yours to approve' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} onClick={() => setRow({ id: a.id, title: String(a.title || 'Action'), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-foreground/5'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{(a.kind_label || titleCase(String(a.kind || 'decision')))}<span className='text-muted-foreground text-xs'>{a.agent}</span>{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}</div><div className='text-xs text-muted-foreground'>{a.title} · held with <b className='text-foreground'>{a.holder}</b> · {fmt(a.created_at)}</div></div></div>))}</div></SectionCard> : null}
     <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
-    {approvals.length ? <SectionCard title='Approvals pending' count={approvals.length}><div className='p-4'><div className='mb-2 flex flex-wrap gap-1.5'>{(approvals as any[]).map((a: any, i: number) => (<button key={i} onClick={() => setRow({ id: a.id ?? i, title: String(a.title || 'Action'), row: a })} className='text-[11px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>Open #{a.id ?? i}</button>))}</div><ReadableObject data={approvals} /></div></SectionCard> : null}
     {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {Object.keys(sec).length ? <SectionCard title='Security posture'><div className='p-4'><ReadableObject data={sec} /></div></SectionCard> : null}
   </div>);
@@ -3750,7 +3759,7 @@ function GovernanceApp() {
   const personaPct = k.active_agents ? Math.round(100 * (k.agents_with_persona || 0) / k.active_agents) : 0;
   const auditPct = k.active_agents ? Math.round(100 * (k.agents_with_audit_trail || 0) / k.active_agents) : 0;
   return (<div className='space-y-4'>
-    <AppHeader icon={Scale} title='Governance' onRefresh={load} busy={busy} badge={k.open_for_review ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.open_for_review} awaiting review</Badge> : null} />
+    <AppHeader icon={Scale} title='Governance' onRefresh={load} busy={busy} badge={k.open_for_review ? <Badge className='bg-amber-500/15 text-amber-600 border-0'>{k.open_for_review} refund approval{k.open_for_review === 1 ? '' : 's'} waiting on you</Badge> : k.held_with_roles ? <Badge variant='secondary'>{k.held_with_roles} held with departments</Badge> : null} />
     <KpiRow items={[['Active agents', k.active_agents], ['Global rules', k.global_rules], ['Decisions 30d', k.decisions_30d], ['Escalated 30d', k.escalated_30d], ['Avg confidence', k.avg_confidence != null ? Math.round(k.avg_confidence * 100) + '%' : '—'], ['Knowledge items', k.knowledge_items]]} />
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
       <SectionCard title='Governance coverage'><div className='p-4 space-y-3'>
@@ -3953,7 +3962,9 @@ function Workspace({ mod }: { mod: Mod }) {
           else if (mod.id === 'rfqs') { out.push(btn('Mark won','rfq_outcome',{inquiry:r.id,outcome:'won'}), btn('Mark lost','rfq_outcome',{inquiry:r.id,outcome:'lost'})); }
           else if (mod.id === 'fraud') { if (r.subject_type && r.subject_id != null) { out.push(btnApi('Dismiss','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'dismiss'}), btnApi('Ban','fraud_resolve',{subject_type:r.subject_type,subject_id:String(r.subject_id),op:'ban'})); } else if (r.kind && r.subject_id != null && r.reason !== undefined) { out.push(btnApi('Unban','fraud_resolve',{subject_type:r.kind,subject_id:String(r.subject_id),op:'unban'})); } }
           else if (mod.id === 'refunds') { const tid = r.transaction_id ?? r.id; if (tid != null && r.refund_status !== undefined) { out.push(btnApi('Approve refund','refund_resolve',{transaction_id:String(tid),op:'approve'}), btnApi('Reject refund','refund_resolve',{transaction_id:String(tid),op:'reject'})); } }
-          if (r && r.agent && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
+          // Approve/Reject only on a row the founder queue marked as his (`yours`); an open
+          // agent_action held with a role is opened, read, and left to that role.
+          if (r && r.agent && r.yours === true && (r.status === 'pending' || r.status === 'needs_review')) { out.push(btn('Approve','action_decide',{id:r.id,op:'approve'}), btn('Reject','action_decide',{id:r.id,op:'reject'})); }
           return out;
         })();
         const actions = <>{acts}{editableType() ? <Button className='h-8 text-xs' variant='outline' disabled={ebusy} onClick={() => openEdit(editableType()!)}>Edit</Button> : null}<Button className='h-8 text-xs' variant='outline' onClick={() => { try { navigator.clipboard?.writeText(JSON.stringify(row, null, 2)); } catch (_e) {} }}>Copy details</Button></>;
