@@ -272,7 +272,11 @@ if (hasToken) {
            max(d.start_time)::text as newest
       from cron.job_run_details d
       left join cron.job j on j.jobid = d.jobid
-     where d.status <> 'succeeded' and d.start_time > timestamptz '${WATERMARK}'
+     -- 5 SEP 2026: a tick still running has not failed. The red-view alerter's 15-minute sweep
+     -- takes about a minute, CI read it mid-flight as status 'running', and this check reported
+     -- "red_view_alert_15min: 1" as a failed scheduled run while every one of its ticks succeeded.
+     -- Only a finished tick is judged — the same rule fn_kernel_system_trace_state adopted on 4 Sep.
+     where d.status <> 'succeeded' and d.end_time is not null and d.start_time > timestamptz '${WATERMARK}'
      group by 1 order by 2 desc`);
   agentRows = await sql(`
     select agent, count(*)::int as errors, max(started_at)::text as newest
