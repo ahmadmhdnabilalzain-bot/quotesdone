@@ -1636,3 +1636,9 @@ $f
 --apply
 --ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
+scripts/sql/rpc_invoker_passes_the_request_and_honours_defer.sql
+scripts/sql/change_deployment_deterministic_executors.sql
+scripts/sql/claim_leaves_rpc_executor_steps_to_the_sweep.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
