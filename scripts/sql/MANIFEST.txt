@@ -1620,3 +1620,4 @@ scripts/sql/deterministic_substitutes_registered_2026_09_05.sql
 scripts/sql/a_poison_pair_does_not_block_the_bus.sql
 scripts/sql/a_watcher_signature_resolves_when_its_subject_succeeds.sql
 scripts/sql/the_register_knows_the_invoker_passes_one_jsonb.sql
+scripts/sql/org_task_close_renders_from_the_tasks_facts_2026_09_06.sql
