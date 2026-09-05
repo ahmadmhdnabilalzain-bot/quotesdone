@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-04T10:45:30.993Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-05T21:28:06.081Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -691,7 +691,8 @@ CREATE TABLE IF NOT EXISTS public.alert_signature (
   first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
   last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
   last_alerted_at timestamp with time zone,
-  seen_count bigint DEFAULT 1 NOT NULL
+  seen_count bigint DEFAULT 1 NOT NULL,
+  resolved_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.alert_watermark (
@@ -12199,6 +12200,7 @@ CREATE OR REPLACE VIEW public.v_cron_stale AS  WITH j AS (
             job.schedule,
             split_part(job.schedule, ' '::text, 1) AS m,
             split_part(job.schedule, ' '::text, 2) AS h,
+            split_part(job.schedule, ' '::text, 3) AS dom,
             split_part(job.schedule, ' '::text, 5) AS dow
            FROM cron.job
           WHERE job.active
@@ -12208,11 +12210,13 @@ CREATE OR REPLACE VIEW public.v_cron_stale AS  WITH j AS (
             j.schedule,
             j.m,
             j.h,
+            j.dom,
             j.dow,
                 CASE
                     WHEN ((j.m ~~ '*/%'::text) AND (j.m ~ '^\*/[0-9]+$'::text)) THEN (((substr(j.m, 3))::integer)::double precision * '00:01:00'::interval)
                     WHEN ((j.m ~ '^[0-9]+$'::text) AND (j.h = '*'::text)) THEN '01:00:00'::interval
                     WHEN ((j.h ~~ '*/%'::text) AND (j.h ~ '^\*/[0-9]+$'::text)) THEN (((substr(j.h, 3))::integer)::double precision * '01:00:00'::interval)
+                    WHEN (j.dom ~ '^[0-9]+$'::text) THEN '31 days'::interval
                     WHEN (j.dow ~ '^[0-6]$'::text) THEN '7 days'::interval
                     ELSE '1 day'::interval
                 END AS every
@@ -12229,6 +12233,7 @@ CREATE OR REPLACE VIEW public.v_cron_stale AS  WITH j AS (
             iv.schedule,
             iv.m,
             iv.h,
+            iv.dom,
             iv.dow,
             iv.every,
             runs.last_any,
@@ -16425,8 +16430,15 @@ begin
       begin
         update public.org_tasks k
            set status = 'done', updated_at = now(), last_run_at = now(),
+               -- 5 SEP 2026: a10_org_task_done_needs_a_determination refuses a close with no
+               -- deliverable or no decided_by (the org_task lane packet closed the second closing
+               -- path). This close carried a summary and no decider, so its next success would
+               -- have been refused inside the exception block below and swallowed. The executor's
+               -- own response IS the deliverable, and the invoker that ran it is the decider.
+               decided_by = coalesce(k.decided_by, 'invoker:' || r.executor),
                result = coalesce(k.result,'{}'::jsonb) || jsonb_build_object(
                  'mode','executed_by_invoker', 'executor', r.executor,
+                 'deliverable', left(coalesce(v_body, ''), 4000),
                  'http_status', v_status, 'at', now(),
                  'summary', left(coalesce(v_body,''), 500),
                  -- SIX KEYS, NOT THREE (12 Aug 2026). See the header: action_worker is the largest
@@ -16666,17 +16678,19 @@ CREATE OR REPLACE FUNCTION public.fn_action_invoke_rpc(p_limit integer DEFAULT 5
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v_ran int := 0; v_refused int := 0; v_skipped int := 0; v_failed int := 0;
-        v_key text; v_res jsonb; v_missing boolean; v_required int;
+declare r record; v_ran int := 0; v_refused int := 0; v_skipped int := 0; v_failed int := 0; v_deferred int := 0;
+        v_key text; v_res jsonb; v_missing boolean; v_required int; v_takes_jsonb boolean; v_arg jsonb;
 begin
   for r in
     select a.id, a.action_class, a.request, a.idempotency_key, a.attempts,
            e.target, e.active, e.risk_tier, e.advisory_safe, e.reversible,
            e.required_authority, e.compensation_action_class, e.idempotency_strategy,
-           e.notifies_human, e.unattended_ok
+           e.notifies_human, e.unattended_ok, e.params
       from public.action_execution a
       join public.org_action_executor e on e.action_class = a.action_class
      where a.status = 'queued' and e.kind = 'rpc'
+       -- a deferred execution is not due yet; see (2) in the header
+       and coalesce(nullif(a.request->>'not_before','')::timestamptz, now()) <= now()
      order by a.created_at
      limit greatest(coalesce(p_limit, 5), 1)
   loop
@@ -16707,10 +16721,12 @@ begin
     end if;
 
     -- CAN THIS TARGET ACTUALLY BE CALLED? Asked of pg_proc, not assumed from the table. A missing
-    -- function and a function needing arguments we do not have are different failures and are
-    -- reported as different reasons.
-    select (p.oid is null), coalesce(p.pronargs - p.pronargdefaults, -1)
-      into v_missing, v_required
+    -- function, a function that takes the request as one jsonb, and a function needing arguments we
+    -- do not have are three different cases and are reported as three different things.
+    select (p.oid is null),
+           coalesce(p.pronargs - p.pronargdefaults, -1),
+           coalesce(p.pronargs = 1 and p.proargtypes[0] = 'jsonb'::regtype::oid, false)
+      into v_missing, v_required, v_takes_jsonb
       from (select 1) _
       left join pg_proc p on p.proname = r.target and p.pronamespace = 'public'::regnamespace;
 
@@ -16725,12 +16741,12 @@ begin
       continue;
     end if;
 
-    if v_required > 0 then
+    if v_required > 0 and not v_takes_jsonb then
       update public.action_execution
          set status = 'failed', finished_at = now(), attempts = coalesce(attempts,0) + 1,
              response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
                'invoker','failed','at',now(),'kind','rpc',
-               'error', format('public.%s() requires %s argument(s) with no default, and a workflow step carries none to give it. Supply them through org_action_executor.params, or give the function defaults - do not let the invoker invent them.',
+               'error', format('public.%s() requires %s argument(s) with no default, and a workflow step carries none to give it. Take the request as ONE jsonb parameter (the invoker passes params || request || {action_execution_id}), or give the function defaults - do not let the invoker invent them.',
                                r.target, v_required))
        where id = r.id;
       v_failed := v_failed + 1;
@@ -16755,10 +16771,35 @@ begin
 
     -- One form for every return shape. A set-returning function yields its rows; a scalar
     -- function in FROM yields exactly one. Wrapped per row so one failing target cannot roll back
-    -- the others in this sweep.
+    -- the others in this sweep. A jsonb-taking target gets the same body the edge invoker posts.
     begin
-      execute format('select coalesce(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) from public.%I() t', r.target)
-        into v_res;
+      if v_takes_jsonb then
+        v_arg := coalesce(r.params, '{}'::jsonb) || coalesce(r.request, '{}'::jsonb)
+                 || jsonb_build_object('action_execution_id', r.id);
+        execute format('select coalesce(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) from public.%I($1) t', r.target)
+          into v_res using v_arg;
+      else
+        execute format('select coalesce(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) from public.%I() t', r.target)
+          into v_res;
+      end if;
+
+      -- (2) THE TARGET ASKED TO BE CALLED BACK LATER. Left queued and dated; not an attempt.
+      if jsonb_typeof(v_res->0) = 'object' and (v_res->0) ? 'defer_until'
+         and nullif(v_res->0->>'defer_until','') is not null then
+        update public.action_execution
+           set executor = r.target, idempotency_key = v_key,
+               request = coalesce(request,'{}'::jsonb)
+                         || jsonb_build_object('not_before', (v_res->0->>'defer_until')::timestamptz),
+               response = coalesce(response,'{}'::jsonb) || jsonb_build_object(
+                 'invoker','deferred','at',now(),'kind','rpc',
+                 'not_before', (v_res->0->>'defer_until')::timestamptz,
+                 'defer_reason', left(coalesce(v_res->0->>'reason',''), 500),
+                 'deferrals', coalesce((response->>'deferrals')::int, 0) + 1)
+         where id = r.id;
+        v_deferred := v_deferred + 1;
+        continue;
+      end if;
+
       update public.action_execution
          set status = 'succeeded', finished_at = now(), attempts = coalesce(attempts,0) + 1,
              executor = r.target, idempotency_key = v_key,
@@ -16780,7 +16821,7 @@ begin
   end loop;
 
   return jsonb_build_object('ran', v_ran, 'refused', v_refused, 'deduplicated', v_skipped,
-                            'failed', v_failed, 'ran_at', now());
+                            'failed', v_failed, 'deferred', v_deferred, 'ran_at', now());
 end $function$
 
 
@@ -17115,16 +17156,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17150,6 +17181,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -22539,6 +22580,255 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_change_deployment_execute(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_run_id     uuid := nullif(p->>'workflow_run_id','')::uuid;
+  v_step_no    int  := nullif(p->>'step_no','')::int;
+  v_ctx        jsonb;
+  v_ref        text;
+  v_at         timestamptz;
+  v_fns        text[];
+  v_window_min int  := coalesce(nullif(p->>'grade_window_minutes','')::int, 60);
+  v_from       timestamptz;
+  v_to         timestamptz;
+  v_per        jsonb;
+  v_err        int;
+  v_runs       int;
+  v_traces     int;
+  v_base       jsonb;
+  v_base_src   text;
+  v_hours      numeric;
+  v_base_rate  numeric;
+  v_post_rate  numeric;
+  v_grade      text;
+  v_task       bigint;
+  v_money      text[];
+  v_deliv      text;
+  v_verified   jsonb;
+  v_parity     text;
+  v_project    text;
+begin
+  if v_run_id is null or v_step_no is null then
+    raise exception 'fn_change_deployment_execute: request carries no workflow_run_id/step_no (got %)', left(p::text, 300);
+  end if;
+
+  select r.context into v_ctx from public.workflow_run r where r.id = v_run_id;
+  if v_ctx is null then
+    raise exception 'fn_change_deployment_execute: workflow_run % not found', v_run_id;
+  end if;
+
+  v_ref := v_ctx->>'ref';
+  v_at  := nullif(v_ctx->>'at','')::timestamptz;
+  select coalesce(array_agg(x order by x), '{}'::text[]) into v_fns
+    from jsonb_array_elements_text(coalesce(v_ctx->'functions', '[]'::jsonb)) x;
+
+  -- The one project is read, not embedded: fn_action_invoke_dispatch reads the same key, and the schema
+  -- export must stay portable (export_from_either_source_is_identical flags an embedded ref).
+  select value into v_project from public.app_secrets where key = 'project_ref';
+  if v_project is null then
+    raise exception 'app_secrets.project_ref is not set: a mis-targeted deploy cannot be told from the one project';
+  end if;
+
+  -- ESCALATE INSTEAD OF PROPOSING (step-1 playbook, enforced): these are not proposable changes.
+  if v_ref is distinct from v_project then
+    raise exception 'mis-targeted deploy: deploy.completed names ref % and the one project is %; nothing here is proposed or graded', coalesce(v_ref, '(none)'), v_project;
+  end if;
+  if coalesce(array_length(v_fns, 1), 0) = 0 then
+    raise exception 'deploy.completed carries no function slugs: there is nothing to measure, so the change is not proposed';
+  end if;
+  if v_at is null then
+    raise exception 'deploy.completed carries no "at" timestamp: the baseline window cannot be placed';
+  end if;
+
+  -- ------------------------------------------------------------------ the metric, read over a window
+  -- Failures per deployed function: errored agent_runs (the function logs under its own slug) plus failed
+  -- kernel traces of any cron whose command invokes /functions/v1/<slug>.
+  if v_step_no = 1 then v_from := v_at - interval '7 days'; v_to := v_at;
+  elsif v_step_no = 9 then v_from := v_at; v_to := least(now(), v_at + interval '24 hours');
+  end if;
+
+  if v_step_no in (1, 9) then
+    if v_step_no = 9 and now() < v_at + make_interval(mins => v_window_min) then
+      return jsonb_build_object(
+        'defer_until', v_at + make_interval(mins => v_window_min),
+        'reason', format('grading needs at least %s minutes after the deploy at %s; %s minutes have elapsed',
+                         v_window_min, v_at, floor(extract(epoch from now() - v_at) / 60)::int),
+        'step_no', 9, 'worked_by', 'fn_change_deployment_execute');
+    end if;
+
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'slug', f.slug,
+             'errored_runs', (select count(*) from public.agent_runs a
+                               where a.agent = f.slug and a.status = 'error'
+                                 and a.started_at >= v_from and a.started_at < v_to),
+             'total_runs',   (select count(*) from public.agent_runs a
+                               where a.agent = f.slug
+                                 and a.started_at >= v_from and a.started_at < v_to),
+             'failed_traces', (select count(*) from public.phase_c_system_execution t
+                                where t.result = 'failed'
+                                  and t.started_at >= v_from and t.started_at < v_to
+                                  and t.component_id in (select w.component_id
+                                                           from public.phase_c_system_execution_wrapper w
+                                                          where w.original_command like '%/functions/v1/' || f.slug || '%')))
+           order by f.slug), '[]'::jsonb)
+      into v_per
+      from unnest(v_fns) as f(slug);
+
+    select coalesce(sum((e->>'errored_runs')::int), 0), coalesce(sum((e->>'total_runs')::int), 0),
+           coalesce(sum((e->>'failed_traces')::int), 0)
+      into v_err, v_runs, v_traces
+      from jsonb_array_elements(v_per) e;
+  end if;
+
+  -- ------------------------------------------------------------------ step 1: propose + baseline
+  if v_step_no = 1 then
+    v_deliv := format(
+      'CHANGE PROPOSED: the deploy of %s function(s) to %s completed at %s (deploy.completed, emitted by scripts/deploy_functions.mjs after reading each version back): %s. '
+      || 'METRIC IT SHOULD MOVE: each deployed function''s failure count — errored agent_runs under its own slug plus failed kernel traces of the crons that call it. '
+      || 'BASELINE CAPTURED over the 7 days ending at %s (168h): %s errored run(s) of %s run(s) and %s failed kernel trace(s) across the set; per function: %s. '
+      || 'REVERSIBILITY: redeploy the previously committed bundle for each slug (node scripts/deploy_functions.mjs --ref=%s --production <slug>); a SQL change reverses by its down script under scripts/sql/down/. '
+      || 'Step 9 grades the window after the deploy against these numbers.',
+      array_length(v_fns, 1), v_ref, v_at, array_to_string(v_fns, ', '), v_at, v_err, v_runs, v_traces,
+      (select string_agg(format('%s errored %s/%s runs, %s failed trace(s)', e->>'slug', e->>'errored_runs', e->>'total_runs', e->>'failed_traces'), '; ')
+         from jsonb_array_elements(v_per) e),
+      v_project);
+    return jsonb_build_object(
+      'step_no', 1, 'kind', 'baseline', 'mode', 'performed', 'worked_by', 'fn_change_deployment_execute',
+      'used_llm', false, 'used_llm_basis', 'plpgsql over agent_runs and phase_c_system_execution; no provider call exists in this routine',
+      'ref', v_ref, 'at', v_at, 'functions', to_jsonb(v_fns), 'count', array_length(v_fns, 1),
+      'metric', 'errored agent_runs per deployed function + failed kernel traces of the crons calling it',
+      'window', jsonb_build_object('from', v_from, 'to', v_to, 'hours', 168),
+      'baseline', jsonb_build_object('errored_runs', v_err, 'total_runs', v_runs, 'failed_traces', v_traces,
+                                     'failures', v_err + v_traces, 'per_function', v_per),
+      'reversibility', 'redeploy the previously committed bundle per slug; SQL by its down script',
+      'deliverable', v_deliv,
+      'outcome', format('proposed %s function(s); baseline %s failure(s) over 168h before %s', array_length(v_fns, 1), v_err + v_traces, v_at));
+  end if;
+
+  -- ------------------------------------------------------------------ step 8: promote to production
+  if v_step_no = 8 then
+    v_verified := v_ctx->'verified';
+    v_parity := case
+      when v_verified is null then 'not_in_payload'
+      when coalesce((v_verified->>'pass')::int, -1) = array_length(v_fns, 1)
+           and coalesce(jsonb_array_length(v_verified->'not_verified'), 0) = 0 then 'verified_all'
+      else 'verified_partial' end;
+    -- Money and identity surfaces are founder-gated territory whatever the diff size (step-2 playbook).
+    select coalesce(array_agg(s), '{}'::text[]) into v_money
+      from unnest(v_fns) s
+     where s ~ '^(customer_api|os_api|refunds?_api|stripe_webhook|payment|checkout|reveal|invoice)';
+    v_deliv := format(
+      'PROMOTED TO PRODUCTION: the deploy IS the promotion — deploy.completed is emitted only after scripts/deploy_functions.mjs read each function''s version back from the management API. Functions (%s): %s. Target %s at %s. '
+      || 'PARITY: %s%s. '
+      || 'BLAST RADIUS: %s. '
+      || 'No further action moves the change; step 9 monitors it against the step-1 baseline.',
+      array_length(v_fns, 1), array_to_string(v_fns, ', '), v_ref, v_at,
+      case v_parity
+        when 'verified_all' then format('the emitter verified %s/%s version bump(s)', v_verified->>'pass', v_verified->>'of')
+        when 'verified_partial' then format('the emitter verified %s/%s; not verified: %s', v_verified->>'pass', v_verified->>'of', coalesce(v_verified->>'not_verified', '[]'))
+        else 'the event predates the 5 Sep emitter and carries no verification detail; the emitter''s own rule 4 (version read-back before the event is emitted) is the only evidence, and it is not repeated here' end,
+      case when v_verified ? 'versions' then '; versions: ' || left((v_verified->'versions')::text, 1500) else '' end,
+      case when coalesce(array_length(v_money, 1), 0) > 0
+           then 'includes a money/identity surface (' || array_to_string(v_money, ', ') || ') — high radius regardless of diff size'
+           else 'no money/identity surface among the slugs; radius is the ' || array_length(v_fns, 1) || ' function(s) and what they write' end);
+    return jsonb_build_object(
+      'step_no', 8, 'kind', 'promote', 'mode', 'performed', 'worked_by', 'fn_change_deployment_execute',
+      'used_llm', false, 'used_llm_basis', 'plpgsql over the run context; no provider call exists in this routine',
+      'promoted', true, 'promotion_is', 'the verified deploy the event describes',
+      'ref', v_ref, 'at', v_at, 'functions', to_jsonb(v_fns), 'count', array_length(v_fns, 1),
+      'parity', jsonb_build_object('verdict', v_parity, 'instrument', 'scripts/deploy_functions.mjs rule 4 (version read-back), carried as context.verified',
+                                   'verified', coalesce(v_verified, 'null'::jsonb)),
+      'money_surfaces', to_jsonb(v_money),
+      'deliverable', v_deliv,
+      'outcome', format('promoted %s function(s) at %s; parity %s', array_length(v_fns, 1), v_at, v_parity));
+  end if;
+
+  -- ------------------------------------------------------------------ step 9: monitor, grade, recommend
+  if v_step_no = 9 then
+    v_hours := greatest(extract(epoch from v_to - v_from) / 3600.0, 0.01);
+    select s.output->'result'->0->'baseline' into v_base
+      from public.workflow_step_run s
+     where s.workflow_run_id = v_run_id and s.step_no = 1 and s.status = 'done';
+    if v_base ? 'failures' then
+      v_base_src := 'step 1 of this run';
+    else
+      -- step 1 was closed advisory (before this file) or the shape is foreign: recompute from the same predicate
+      select jsonb_build_object(
+               'errored_runs', coalesce(sum(e.err), 0), 'total_runs', coalesce(sum(e.tot), 0),
+               'failed_traces', coalesce(sum(e.tr), 0), 'failures', coalesce(sum(e.err + e.tr), 0))
+        into v_base
+        from (select (select count(*) from public.agent_runs a where a.agent = f.slug and a.status = 'error'
+                        and a.started_at >= v_at - interval '7 days' and a.started_at < v_at) err,
+                     (select count(*) from public.agent_runs a where a.agent = f.slug
+                        and a.started_at >= v_at - interval '7 days' and a.started_at < v_at) tot,
+                     (select count(*) from public.phase_c_system_execution t where t.result = 'failed'
+                        and t.started_at >= v_at - interval '7 days' and t.started_at < v_at
+                        and t.component_id in (select w.component_id from public.phase_c_system_execution_wrapper w
+                                                where w.original_command like '%/functions/v1/' || f.slug || '%')) tr
+                from unnest(v_fns) f(slug)) e;
+      v_base_src := 'recomputed over the 7 days before the deploy (step 1 recorded no baseline)';
+    end if;
+
+    v_base_rate := (v_base->>'failures')::numeric / 168.0;
+    v_post_rate := (v_err + v_traces)::numeric / v_hours;
+    v_grade := case
+      when (v_err + v_traces) >= 3 and v_post_rate > 1.5 * v_base_rate then 'worse'
+      when (v_base->>'failures')::int >= 3 and v_post_rate < 0.5 * v_base_rate then 'improved'
+      else 'no_change' end;
+
+    if v_grade = 'worse' then
+      insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, priority)
+      select 'product_eng',
+             left(format('Reverse the deploy of %s: post-deploy failures worse than baseline (run %s)', array_to_string(v_fns, ', '), v_run_id), 240),
+             format('change_deployment step 9 graded the deploy at %s WORSE: %s failure(s) in %sh after it (%s/h) against a baseline of %s over 168h (%s/h; %s). Per function after the deploy: %s. '
+                    || 'RECOMMENDED REVERSAL: redeploy the previously committed bundle for each slug — node scripts/deploy_functions.mjs --ref=%s --production %s. '
+                    || 'This task RECORDS the recommendation; reversing a production deploy is a gated action for the Platform lead and was not performed by the executor.',
+                    v_at, v_err + v_traces, round(v_hours, 1), round(v_post_rate, 3), v_base->>'failures', round(v_base_rate, 3), v_base_src,
+                    (select string_agg(format('%s errored %s/%s, %s failed trace(s)', e->>'slug', e->>'errored_runs', e->>'total_runs', e->>'failed_traces'), '; ') from jsonb_array_elements(v_per) e),
+                    v_project, array_to_string(v_fns, ' ')),
+             'proposed', 'gated', false, 'incident_fix', 1
+       where not exists (select 1 from public.org_tasks t
+                          where t.title like '%(run ' || v_run_id || ')' and t.status <> 'done')
+      returning id into v_task;
+    end if;
+
+    v_deliv := format(
+      'MONITORED the %s deployed function(s) (%s) over %sh after the deploy at %s (window %s to %s, minimum %s min, cap 24h): %s errored run(s) of %s run(s) and %s failed kernel trace(s); per function: %s. '
+      || 'BASELINE (%s): %s failure(s) over 168h = %s/h. POST: %s/h. '
+      || 'GRADE: %s (worse = post >= 3 failures and rate > 1.5x baseline; improved = baseline >= 3 and rate < 0.5x; else no_change). %s',
+      array_length(v_fns, 1), array_to_string(v_fns, ', '), round(v_hours, 1), v_at, v_from, v_to, v_window_min,
+      v_err, v_runs, v_traces,
+      (select string_agg(format('%s errored %s/%s runs, %s failed trace(s)', e->>'slug', e->>'errored_runs', e->>'total_runs', e->>'failed_traces'), '; ') from jsonb_array_elements(v_per) e),
+      v_base_src, v_base->>'failures', round(v_base_rate, 3), round(v_post_rate, 3), v_grade,
+      case when v_grade = 'worse' and v_task is not null then format('REVERSAL RECOMMENDED as org_task %s for Platform & Reliability (product_eng): redeploy the previously committed bundle per slug. Not performed here — a production reversal is the Platform lead''s gated action.', v_task)
+           when v_grade = 'worse' then 'REVERSAL RECOMMENDED; an open org_task for this run already carries it.'
+           else 'No reversal: the deploy is not worse than its baseline on this metric.' end);
+    return jsonb_build_object(
+      'step_no', 9, 'kind', 'grade', 'mode', 'performed', 'worked_by', 'fn_change_deployment_execute',
+      'used_llm', false, 'used_llm_basis', 'plpgsql over agent_runs, phase_c_system_execution and this run''s step 1; no provider call exists in this routine',
+      'ref', v_ref, 'at', v_at, 'functions', to_jsonb(v_fns), 'count', array_length(v_fns, 1),
+      'window', jsonb_build_object('from', v_from, 'to', v_to, 'hours', round(v_hours, 2), 'minimum_minutes', v_window_min),
+      'baseline', v_base || jsonb_build_object('source', v_base_src, 'per_hour', round(v_base_rate, 4)),
+      'post', jsonb_build_object('errored_runs', v_err, 'total_runs', v_runs, 'failed_traces', v_traces,
+                                 'failures', v_err + v_traces, 'per_hour', round(v_post_rate, 4), 'per_function', v_per),
+      'grade', v_grade,
+      'rollback_recommended', v_grade = 'worse',
+      'rollback_task_id', v_task,
+      'reversal_performed', false,
+      'deliverable', v_deliv,
+      'outcome', format('graded %s: %s failure(s) in %sh vs baseline %s/168h%s', v_grade, v_err + v_traces, round(v_hours, 1), v_base->>'failures',
+                        case when v_task is not null then '; reversal recommended as org_task ' || v_task else '' end));
+  end if;
+
+  raise exception 'fn_change_deployment_execute: step % of change_deployment has no deterministic determination here (steps 1, 8, 9 only)', v_step_no;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_check_licence_activity(p_subject_id text, p_content text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -22809,6 +23099,20 @@ AS $function$
        ('contract.submitted'), -- third-party contract intake (arrives from counterparties)
        ('deploy.completed')    -- CI / deploy hook (scripts/deploy_functions.mjs)
   ),
+  -- Event types a non-dispatcher trigger on company_event consumes: a few trigger bodies against
+  -- the distinct types, not against every event row.
+  trigger_consumed(event_type) as (
+    select distinct et.event_type
+      from (select distinct ce.event_type from public.company_event ce) et
+      join (select p.prosrc from pg_trigger t
+              join pg_class c on c.oid = t.tgrelid
+              join pg_namespace n on n.oid = c.relnamespace
+              join pg_proc p on p.oid = t.tgfoid
+             where n.nspname = 'public' and c.relname = 'company_event'
+               and not t.tgisinternal and t.tgenabled <> 'D'
+               and p.proname <> 'trg_company_event_dispatch') tf
+        on tf.prosrc like '%' || et.event_type || '%'
+  ),
   -- Every event type some database code can emit: a literal in a routine body, or a literal
   -- argument on a trigger (fn_emit_event reads the type from tg_argv, so the body never names it).
   producer(event_type) as (
@@ -22861,6 +23165,13 @@ AS $function$
    where ce.event_type <> 'task.assigned'
      and not exists (select 1 from public.event_subscription es
                       where es.active and es.event_type = ce.event_type)
+     -- 5 SEP 2026: a consumer is also a TRIGGER on company_event -- one that is not the generic
+     -- dispatcher and whose function body names the event type (MASTER_PLAN 4.4 routes
+     -- priority.updated to trg_priority_backlog_reorder, a named consumer with no subscription).
+     -- 6 SEP 2026: computed ONCE in the trigger_consumed CTE. The first version correlated a
+     -- LIKE over every trigger body per company_event row; the register went from seconds to
+     -- past the cron's 120s statement_timeout and the red-view alerter's 21:22Z tick failed.
+     and not exists (select 1 from trigger_consumed tc where tc.event_type = ce.event_type)
      and (exists (select 1 from producer p where p.event_type = ce.event_type)
           or exists (select 1 from external_intake x where x.event_type = ce.event_type))
 
@@ -22890,6 +23201,14 @@ AS $function$
     join public.workflow_step s on s.action_class = e.action_class
     join public.workflow w on w.workflow_key = s.workflow_key and w.active
    where e.active and e.kind = 'rpc' and (p.pronargs - p.pronargdefaults) > 0
+     -- 5 SEP 2026: the invoker now supplies ONE argument -- a single jsonb parameter receives
+     -- params || request || {action_execution_id} (fn_action_invoke_rpc, the change_deployment
+     -- packet). A target whose only required argument is that one jsonb is callable, and three
+     -- such targets (change_deploy_baseline/promote/grade -> fn_change_deployment_execute) were
+     -- read as gaps by the old rule and paged the founder on 5 Sep. Any other required argument
+     -- is still a gap the invoker cannot fill.
+     and not ((p.pronargs - p.pronargdefaults) = 1 and p.pronargs = 1
+              and p.proargtypes[0] = 'jsonb'::regtype)
 
   union all
   -- F · an active workflow whose trigger_event has NO producer, so it can never auto-start. The live
@@ -26858,6 +27177,7 @@ declare
   v_kind       text;
   v_severity   text;
   v_platform   jsonb;
+  v_task       bigint;
 begin
   select coalesce(jsonb_agg(x), '[]'::jsonb) into v_platform
   from (
@@ -26960,12 +27280,23 @@ begin
          set status = 'resolved', resolved_at = now(), resolved_by = 'edge_health_watchdog',
              resolution = 'Capability resumed producing effects; last beat ' || coalesce(v_beat::text,'?')
        where status = 'open' and detail->>'fn_key' = r.fn_key;
-      update org_tasks
-         set status = 'done', updated_at = now(),
-             result = coalesce(result,'{}'::jsonb) || jsonb_build_object('auto_closed','capability recovered','last_beat_at', v_beat)
-       where status in ('proposed','assigned','in_progress')
-         and action_class = 'investigate'
-         and (title like 'Silent failure: ' || r.fn_key || ' %' or title like 'Probe broken: the heartbeat_sql for ' || r.fn_key || ' %');
+      -- 5 SEP 2026: a recovered capability closes its investigate task through fn_org_task_close_as_fact,
+      -- so the close carries the deliverable, the decider, a decision_trace and a review — what the spine
+      -- records — instead of status='done' with result NULL. The guard a10_org_task_done_needs_a_determination
+      -- refuses the bare form now.
+      for v_task in
+        select t.id from org_tasks t
+         where t.status in ('proposed','assigned','in_progress')
+           and t.action_class = 'investigate'
+           and (t.title like 'Silent failure: ' || r.fn_key || ' %' or t.title like 'Probe broken: the heartbeat_sql for ' || r.fn_key || ' %')
+      loop
+        perform fn_org_task_close_as_fact(v_task, 'edge_health_watchdog',
+          'Capability ' || r.fn_key || ' resumed producing effects; last beat ' || coalesce(v_beat::text, '?')
+            || ' (threshold ' || r.max_silence_minutes || ' minutes). ' || coalesce(r.purpose, '')
+            || ' The watchdog measures the EFFECT of the capability, not its logs, so this close is the observed recovery itself.',
+          jsonb_build_object('fn_key', r.fn_key, 'last_beat_at', v_beat, 'threshold_minutes', r.max_silence_minutes,
+                             'auto_closed', 'capability recovered', 'source', 'fn_edge_health_scan'));
+      end loop;
     end if;
 
     fn_key := r.fn_key; verdict := v_verdict; silent_minutes := v_silent; opened_incident := v_open;
@@ -28387,6 +28718,8 @@ declare v_delivered integer := 0; v_tasks integer := 0; v_gated integer := 0;
         -- standing miss re-minted itself every tick and was answered again at the large tier.
         v_recur_task bigint; v_suppressed integer := 0; v_cooldown_days integer;
         v_open_bus integer; v_capped boolean; v_backpressured integer := 0;
+        -- 5 SEP 2026: per-pair failures are counted and carried, never allowed to abort the batch.
+        v_failed integer := 0; v_first_err text;
         -- BACK-PRESSURE. 25 OPEN BUS TASKS PER DEPARTMENT, MEASURED 6 Aug 2026 ON PRODUCTION.
         --
         -- The queue grows ~100x faster than it drains. The dispatcher mints up to 50 (event,
@@ -28509,6 +28842,9 @@ begin
     -- instead of in a single burst, and the cron runs every 15 minutes.
     limit c_max_batch
   loop
+    -- 5 SEP 2026: one sub-transaction per pair. See the header: a single raising pair used to roll
+    -- back the whole batch, and at the head of the cron sweep it blocked every delivery behind it.
+    begin
     select department into v_dept from org_agents where agent_key = r.agent_key;
     -- xos-03. The OS, not just the agent. Resolved through the same os_department link the rest
     -- of the blueprint uses, so a department that belongs to no OS is visibly null rather than
@@ -28747,12 +29083,28 @@ begin
     values (r.event_id, r.agent_key, r.event_type, v_os, v_task, clock_timestamp())
     on conflict do nothing;
     v_delivered := v_delivered + 1;
+    exception when others then
+      v_failed := v_failed + 1;
+      if v_first_err is null then
+        v_first_err := format('%s %s (event %s -> %s)', sqlstate, left(sqlerrm, 300), r.event_id, r.agent_key);
+      end if;
+    end;
   end loop;
 
   -- Leave no correlation bound to the session after the loop: a later statement on this
   -- connection is NOT part of the last event's chain, and inheriting it would be a false link.
   perform set_config('app.correlation_id', '', true);
   perform set_config('app.causation_event_id', '', true);
+
+  -- 5 SEP 2026: a failed pair is a real failure and is said once per call, on the ledger the
+  -- failed-runs watcher reads. It is not re-raised: re-raising is exactly the head-of-line block.
+  if v_failed > 0 then
+    insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+    values ('event_dispatch', clock_timestamp(), clock_timestamp(), 'error',
+            jsonb_build_object('pairs_failed', v_failed, 'delivered', v_delivered, 'lookback_minutes', p_lookback_minutes),
+            left(format('%s (event, subscriber) pair(s) failed and were left undelivered for the next pass; '
+                     || 'the other %s pair(s) in the batch were delivered. First failure: %s', v_failed, v_delivered, v_first_err), 1000));
+  end if;
 
   return jsonb_build_object('delivered', v_delivered, 'tasks_created', v_tasks,
                             'attached_to_existing_task', v_attached,
@@ -28763,6 +29115,7 @@ begin
                             'unroutable', v_unroutable, 'assessed', v_assessed,
                             'lookback_minutes', p_lookback_minutes,
                             'max_batch', c_max_batch,
+                            'pairs_failed', v_failed,
                             'max_open_per_dept', c_max_open_per_dept);
 end; $function$
 
@@ -29401,6 +29754,137 @@ begin
                             'priorities',jsonb_array_length(recs),'challenges',v_ch,
                             'raised_for_approval',v_raised,
                             'finance_health',v_fin_health,'runway_months',v_runway,'metrics',m);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_exec_review_deterministic(p_step_run_id bigint DEFAULT NULL::bigint)
+ RETURNS TABLE(determination text, employee text, department text, workflow_key text, step_no integer, step text, outcome text, deliverable text, inputs jsonb, rationale jsonb, used_llm boolean)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_sid bigint := p_step_run_id; v_located text := 'p_step_run_id';
+  v_actor text; v_employee text; v_dept text; v_wf text; v_wfname text; v_step_no int; v_step text; v_run uuid; v_ctx jsonb := '{}'::jsonb; v_gate text;
+  v_prior jsonb; v_prior_n int := 0; v_prior_with_deliv int := 0; v_failed int := 0;
+  v_role text; v_officer_tier text; v_manager text;
+  v_dept_auth jsonb; v_dept_tier text;
+  v_amount numeric; v_esc jsonb; v_reasons jsonb := '[]'::jsonb;
+  v_text text; v_evidence text; v_addressee text;
+begin
+  used_llm := false;
+  if v_sid is null then
+    select x.workflow_step_run_id, x.request->>'actor' into v_sid, v_actor
+      from public.action_execution x
+      join public.org_action_executor e on e.action_class = x.action_class and e.kind = 'rpc'
+     where x.action_class = 'exec_review' and x.status = 'queued'
+     order by x.created_at limit 1;
+    v_located := case when v_sid is not null then 'action_execution.workflow_step_run_id'
+                      when v_actor is not null then 'action_execution.request.actor' else 'nothing queued' end;
+  end if;
+  if v_sid is not null then
+    select s.actor, s.step_no, s.input->>'step', s.input->>'gate', s.workflow_run_id, r.workflow_key, coalesce(r.context,'{}'::jsonb), w.name
+      into v_actor, v_step_no, v_step, v_gate, v_run, v_wf, v_ctx, v_wfname
+      from public.workflow_step_run s join public.workflow_run r on r.id = s.workflow_run_id
+      left join public.workflow w on w.workflow_key = r.workflow_key
+     where s.id = v_sid;
+    v_employee := public.fn_workflow_actor_resolve(v_run, v_actor);
+  elsif v_actor is not null then
+    v_employee := public.fn_org_agent_resolve(v_actor);
+  end if;
+  select o.department, o.manager_key into v_dept, v_manager from public.org_agents o where o.agent_key = v_employee and o.active;
+  employee := v_employee; department := v_dept; workflow_key := v_wf; step_no := v_step_no; step := v_step;
+  if v_dept is null then
+    determination := 'no_scope';
+    outcome := 'no decision: the caller resolves to no active employee, so nobody holds the authority being asked for';
+    deliverable := outcome;
+    inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'actor', v_actor, 'employee', v_employee);
+    rationale := null; return next; return;
+  end if;
+
+  -- 1. THE EVIDENCE: what the run's earlier steps produced.
+  select coalesce(jsonb_agg(jsonb_build_object('step_no', p.step_no, 'step', p.input->>'step', 'status', p.status,
+           'by', coalesce(p.output->>'employee', p.actor), 'worked_by', p.output->>'worked_by',
+           'outcome', left(coalesce(p.output->>'outcome', p.output->>'note', p.output#>>'{result,0,outcome}', ''), 400),
+           'has_deliverable', coalesce(p.output->>'deliverable', p.output#>>'{result,0,deliverable}', '') <> '',
+           'used_llm', p.output->>'used_llm') order by p.step_no), '[]'::jsonb),
+         count(*) filter (where p.status = 'done'),
+         count(*) filter (where p.status = 'done' and coalesce(p.output->>'deliverable', p.output#>>'{result,0,deliverable}', p.output->>'outcome', '') <> ''),
+         count(*) filter (where p.status = 'failed')
+    into v_prior, v_prior_n, v_prior_with_deliv, v_failed
+    from public.workflow_step_run p
+   where v_run is not null and p.workflow_run_id = v_run and p.step_no < coalesce(v_step_no, 0) and p.status in ('done','failed');
+
+  -- 2. THE AUTHORITY: the officer's own tier, and the department's tier for this class.
+  select r.role_id, r.authority_level into v_role, v_officer_tier
+    from public.org_role r where r.runtime_agent_key = v_employee and r.status = 'active'
+   order by case r.authority_level when 'execute_high' then 0 when 'execute_medium' then 1 when 'execute_low' then 2 else 3 end limit 1;
+  v_dept_auth := public.fn_dept_authority(v_dept, 'exec_review', null);
+  v_dept_tier := v_dept_auth->>'tier';
+
+  -- 3. THE MONEY AND RISK CHECK from the run context and prior outputs, through decision_policy.
+  v_amount := coalesce(nullif(v_ctx->>'amount_aed','')::numeric,
+                       (select max(nullif(p->>'amount_aed','')::numeric) from jsonb_array_elements(v_prior) p));
+  v_esc := public.fn_should_escalate(jsonb_build_object(
+             'actor', v_employee, 'kind', 'exec_review', 'amount_aed', v_amount,
+             'moves_money', coalesce((v_ctx->>'moves_money')::boolean, v_wf in ('refund','payment')),
+             'category', v_ctx->>'category', 'text', coalesce(v_ctx->>'title', ''),
+             'confidence', nullif(v_ctx->>'confidence','')::numeric));
+  if coalesce((v_esc->>'escalate')::boolean, false) then v_reasons := coalesce(v_esc->'reasons', '[]'::jsonb); end if;
+  if coalesce(v_gate,'') = 'founder' or v_wf = 'refund' then
+    v_reasons := v_reasons || jsonb_build_array('the step is founder-gated: refunds and founder boundaries are never approved by an officer');
+  end if;
+  if v_officer_tier is null then
+    v_reasons := v_reasons || jsonb_build_array(format('%s holds no active org_role with an authority_level, so it cannot sign off; its manager %s must', v_employee, coalesce(v_manager, '(none)')));
+  elsif v_officer_tier = 'execute_low' and v_dept_tier in ('gated','advisory') then
+    v_reasons := v_reasons || jsonb_build_array(format('%s is execute_low and the department tier for exec_review is %s (%s)', v_employee, v_dept_tier, v_dept_auth->>'reason'));
+  end if;
+  if v_failed > 0 then
+    v_reasons := v_reasons || jsonb_build_array(format('%s prior step(s) of this run failed; nothing built on a failed step is approved', v_failed));
+  end if;
+
+  inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'actor', v_actor, 'employee', v_employee, 'department', v_dept,
+    'gate', v_gate, 'prior_steps_done', v_prior_n, 'prior_steps_with_deliverable', v_prior_with_deliv, 'prior_steps_failed', v_failed,
+    'officer_role', v_role, 'officer_tier', v_officer_tier, 'manager', v_manager, 'department_authority', v_dept_auth,
+    'amount_aed', v_amount, 'should_escalate', v_esc, 'run_context', v_ctx - 'at' - 'ref' - 'functions', 'measured_at', now());
+
+  v_evidence := coalesce((select string_agg(format('step %s "%s" %s by %s: %s', p->>'step_no', p->>'step', p->>'status', p->>'by', coalesce(nullif(p->>'outcome',''), '(no stated outcome)')), E'\n' order by (p->>'step_no')::int) from jsonb_array_elements(v_prior) p), '(no prior steps)');
+
+  if v_prior_with_deliv = 0 and v_failed = 0 then
+    determination := 'nothing_to_review';
+    outcome := format('nothing to approve: %s prior step(s) done in this run and none carries a deliverable or outcome', v_prior_n);
+    rationale := jsonb_build_object('evidence', '[]'::jsonb, 'authority', jsonb_build_object('officer_tier', v_officer_tier, 'department_tier', v_dept_tier));
+    deliverable := format(E'EXEC REVIEW: NOTHING TO REVIEW\nWorkflow %s step %s (%s), officer %s (%s, %s) for %s.\n%s\nA sign-off needs evidence; the run reached this step with none. Basis: workflow_step_run outputs of this run, org_role.authority_level, fn_dept_authority. No model call.',
+                          coalesce(v_wfname, v_wf), v_step_no, v_step, v_employee, coalesce(v_role,'no role'), coalesce(v_officer_tier,'no tier'), v_dept, outcome);
+    return next; return;
+  end if;
+
+  if jsonb_array_length(v_reasons) > 0 then
+    determination := 'escalate';
+    v_addressee := case when coalesce(v_gate,'') = 'founder' or v_wf = 'refund' then 'founder'
+                        when nullif(v_esc->>'route_to','') is not null then v_esc->>'route_to' else coalesce(v_manager, 'ceo') end;
+    outcome := left(format('escalated to %s: %s', v_addressee, (select string_agg(x #>> '{}', '; ') from jsonb_array_elements(v_reasons) x)), 600);
+    rationale := jsonb_build_object('reasons', v_reasons, 'addressee', v_addressee, 'evidence', v_prior,
+                   'authority', jsonb_build_object('officer_role', v_role, 'officer_tier', v_officer_tier, 'department_tier', v_dept_tier, 'department_basis', v_dept_auth->>'reason'));
+    deliverable := format(E'EXEC REVIEW: ESCALATE to %s\nWorkflow %s step %s (%s), officer %s (%s, %s) for %s.\nEvidence read (%s done, %s with a deliverable, %s failed):\n%s\nReasons:\n%s\nAuthority: officer %s; department tier for exec_review %s (%s).\nBasis: fn_should_escalate over decision_policy (confidence_min, financial_review_aed, auto_action_max_aed, fraud_score_max), org_role.authority_level, fn_dept_authority, the step gate. No model call.',
+                          v_addressee, coalesce(v_wfname, v_wf), v_step_no, v_step, v_employee, coalesce(v_role,'no role'), coalesce(v_officer_tier,'no tier'), v_dept,
+                          v_prior_n, v_prior_with_deliv, v_failed, v_evidence,
+                          (select string_agg('- ' || (x #>> '{}'), E'\n') from jsonb_array_elements(v_reasons) x),
+                          coalesce(v_officer_tier,'none'), coalesce(v_dept_tier,'unknown'), coalesce(v_dept_auth->>'reason',''));
+    return next; return;
+  end if;
+
+  determination := 'approved_within_authority';
+  outcome := left(format('approved by %s (%s, %s): %s prior step(s) with deliverables reviewed, no money above the autonomous limit, department tier %s',
+                         v_employee, coalesce(v_role, 'no role'), v_officer_tier, v_prior_with_deliv, v_dept_tier), 600);
+  rationale := jsonb_build_object('evidence', v_prior, 'addressee', null,
+                 'authority', jsonb_build_object('officer_role', v_role, 'officer_tier', v_officer_tier, 'department_tier', v_dept_tier, 'department_basis', v_dept_auth->>'reason'),
+                 'checks', jsonb_build_object('should_escalate', v_esc, 'amount_aed', v_amount, 'gate', v_gate));
+  deliverable := format(E'EXEC REVIEW: APPROVED WITHIN AUTHORITY\nWorkflow %s step %s (%s), officer %s (%s, %s) for %s.\nEvidence read (%s done, %s with a deliverable, %s failed):\n%s\nChecks: amount %s AED against decision_policy; fn_should_escalate returned escalate=%s; gate %s; officer tier %s covers department tier %s (%s).\nDecision: the prior steps stand; the run advances. Basis: workflow_step_run outputs of this run, org_role.authority_level, fn_dept_authority, fn_should_escalate. No model call.',
+                        coalesce(v_wfname, v_wf), v_step_no, v_step, v_employee, coalesce(v_role,'no role'), v_officer_tier, v_dept,
+                        v_prior_n, v_prior_with_deliv, v_failed, v_evidence,
+                        coalesce(v_amount::text, 'none stated'), coalesce(v_esc->>'escalate','false'), coalesce(v_gate,'none'), v_officer_tier, coalesce(v_dept_tier,'unknown'), coalesce(v_dept_auth->>'reason',''));
+  return next;
 end $function$
 
 
@@ -42254,6 +42738,132 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_knowledge_gap_deterministic(p_step_run_id bigint DEFAULT NULL::bigint)
+ RETURNS TABLE(determination text, employee text, department text, workflow_key text, step_no integer, step text, outcome text, deliverable text, inputs jsonb, gaps jsonb, rows_written integer, used_llm boolean)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_sid bigint := p_step_run_id; v_located text := 'p_step_run_id';
+  v_actor text; v_employee text; v_dept text; v_wf text; v_wfname text; v_step_no int; v_step text; v_run uuid; v_ctx jsonb := '{}'::jsonb;
+  v_cat text; v_mode text;
+  v_past int := 0; v_marked int := 0; v_total int := 0; v_no_date int := 0; v_next date; v_by_dept jsonb;
+  v_p25 numeric; v_roster int := 0; v_gaps jsonb; v_ngaps int := 0; v_missing int := 0; v_thin int := 0; v_stale int := 0; v_ok int := 0;
+  v_text text;
+begin
+  used_llm := false; rows_written := 0;
+  if v_sid is null then
+    select x.workflow_step_run_id, x.request->>'actor' into v_sid, v_actor
+      from public.action_execution x
+      join public.org_action_executor e on e.action_class = x.action_class and e.kind = 'rpc'
+     where x.action_class = 'knowledge_fill_gap' and x.status = 'queued'
+     order by x.created_at limit 1;
+    v_located := case when v_sid is not null then 'action_execution.workflow_step_run_id'
+                      when v_actor is not null then 'action_execution.request.actor' else 'nothing queued' end;
+  end if;
+  if v_sid is not null then
+    select s.actor, s.step_no, s.input->>'step', s.workflow_run_id, r.workflow_key, coalesce(r.context,'{}'::jsonb), w.name
+      into v_actor, v_step_no, v_step, v_run, v_wf, v_ctx, v_wfname
+      from public.workflow_step_run s join public.workflow_run r on r.id = s.workflow_run_id
+      left join public.workflow w on w.workflow_key = r.workflow_key
+     where s.id = v_sid;
+    v_employee := public.fn_workflow_actor_resolve(v_run, v_actor);
+  elsif v_actor is not null then
+    v_employee := public.fn_org_agent_resolve(v_actor);
+  end if;
+  select o.department into v_dept from public.org_agents o where o.agent_key = v_employee and o.active;
+  employee := v_employee; department := v_dept; workflow_key := v_wf; step_no := v_step_no; step := v_step;
+  v_cat := nullif(btrim(coalesce(v_ctx->>'category', v_ctx->>'category_slug', v_ctx->>'slug', '')), '');
+  v_mode := case when v_step ilike '%decay%' or v_step ilike '%review date%' then 'decay' else 'coverage' end;
+
+  if v_mode = 'decay' then
+    select count(*), count(*) filter (where review_after < current_date),
+           count(*) filter (where review_after < current_date and coalesce(source_freshness,'') <> 'review_required'),
+           count(*) filter (where review_after is null), min(review_after) filter (where review_after >= current_date)
+      into v_total, v_past, v_marked, v_no_date, v_next
+      from public.ops_knowledge
+     where v_cat is null or category_key = v_cat or scope_key = v_cat;
+    select coalesce(jsonb_agg(jsonb_build_object('dept', dept_key, 'past_review', n) order by n desc), '[]'::jsonb)
+      into v_by_dept
+      from (select coalesce(dept_key, '(company)') dept_key, count(*) n from public.ops_knowledge
+             where review_after < current_date and (v_cat is null or category_key = v_cat or scope_key = v_cat) group by 1) q;
+    update public.ops_knowledge
+       set source_freshness = 'review_required'
+     where review_after < current_date and coalesce(source_freshness,'') <> 'review_required'
+       and (v_cat is null or category_key = v_cat or scope_key = v_cat);
+    get diagnostics rows_written = row_count;
+    determination := 'decayed';
+    inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'employee', v_employee, 'department', v_dept, 'mode', v_mode,
+                'category', v_cat, 'ops_knowledge_rows', v_total, 'past_review_after', v_past, 'newly_marked', v_marked, 'no_review_date', v_no_date,
+                'next_review_after', v_next, 'past_review_by_dept', v_by_dept, 'measured_at', now());
+    gaps := v_by_dept;
+    outcome := format('decayed %s of %s ops_knowledge row(s) past their review date (%s already marked, %s without a review date, next review falls due %s)%s',
+                      rows_written, v_past, v_past - v_marked, v_no_date, coalesce(v_next::text, 'never'), coalesce(' for category ' || v_cat, ''));
+    deliverable := format(E'CONFIDENCE DECAY PAST REVIEW DATE\nWorkflow %s step %s (%s), worked by %s for %s%s.\n%s.\nBy department: %s.\nAction taken: source_freshness set to review_required on %s row(s); reversible. Basis: ops_knowledge.review_after against current_date %s. No model call.',
+                          coalesce(v_wfname, v_wf), v_step_no, v_step, v_employee, v_dept, coalesce(' scoped to ' || v_cat, ' (company-wide)'), outcome,
+                          coalesce((select string_agg(format('%s %s', x->>'dept', x->>'past_review'), ', ') from jsonb_array_elements(v_by_dept) x), 'none past review'),
+                          rows_written, current_date);
+    return next; return;
+  end if;
+
+  -- coverage
+  if v_cat is not null and not exists (select 1 from public.category_agents c where c.active and c.slug = v_cat) then
+    determination := 'no_scope';
+    outcome := format('category %s is not an active category_agents row; nothing to measure', v_cat);
+    deliverable := outcome;
+    inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'employee', v_employee, 'department', v_dept, 'mode', v_mode, 'category', v_cat);
+    gaps := null; return next; return;
+  end if;
+  -- One grouped pass over the roster's categories through kb_chunks_cat_id_idx; four correlated
+  -- subqueries per category hit the statement timeout on the 2.68M-row table (measured 5 Sep 2026).
+  with agg as (
+    select k.category, count(*) n, max(k.effective_date) newest,
+           count(*) filter (where k.effective_date is null) undated, max(k.created_at) last_added
+      from public.kb_chunks k
+     where k.category in (select c.slug from public.category_agents c where c.active and (v_cat is null or c.slug = v_cat))
+     group by k.category
+  ), per as (
+    select c.slug, c.name, c.requires_regulation, coalesce(a.n, 0) n, a.newest, coalesce(a.undated, 0) undated, a.last_added
+      from public.category_agents c left join agg a on a.category = c.slug
+     where c.active and (v_cat is null or c.slug = v_cat)
+  ), stats as (
+    select (percentile_cont(0.25) within group (order by n))::numeric p25, count(*) roster from per
+  ), cls as (
+    select per.*, s.p25, s.roster,
+           case when n = 0 then 'missing'
+                when n < s.p25 then 'thin'
+                when newest is null or newest < current_date - 365 then 'stale'
+                else 'ok' end state
+      from per, stats s
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('category', slug, 'name', name, 'state', state, 'chunks', n, 'roster_p25', round(p25, 1),
+           'newest_effective_date', newest, 'undated_chunks', undated, 'last_added', last_added, 'requires_regulation', requires_regulation,
+           'determination', case state
+             when 'missing' then format('MISSING: %s has 0 kb_chunks; acquire from a cited source (knowledge_acquire) before it can serve a quote', name)
+             when 'thin' then format('THIN: %s has %s chunks against a roster 25th percentile of %s; deepen it next', name, n, round(p25,1))
+             when 'stale' then format('STALE: %s has %s chunks but the newest effective_date is %s (%s undated); re-validate against a current source', name, n, coalesce(newest::text, 'none'), undated)
+             else format('OK: %s has %s chunks, newest effective_date %s', name, n, newest) end)
+           order by case state when 'missing' then 0 when 'thin' then 1 when 'stale' then 2 else 3 end, n, slug) filter (where state <> 'ok' or v_cat is not null), '[]'::jsonb),
+         count(*) filter (where state <> 'ok'), count(*) filter (where state = 'missing'), count(*) filter (where state = 'thin'),
+         count(*) filter (where state = 'stale'), count(*) filter (where state = 'ok'), max(roster), max(p25)
+    into v_gaps, v_ngaps, v_missing, v_thin, v_stale, v_ok, v_roster, v_p25
+    from cls;
+  inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'employee', v_employee, 'department', v_dept, 'mode', v_mode,
+              'category', v_cat, 'roster', v_roster, 'roster_p25_chunks', round(v_p25, 1), 'missing', v_missing, 'thin', v_thin, 'stale', v_stale, 'ok', v_ok,
+              'measured_at', now());
+  gaps := v_gaps;
+  determination := case when v_ngaps > 0 then 'coverage_gaps' else 'coverage_ok' end;
+  outcome := format('%s of %s active categor%s measured: %s missing, %s thin (below %s chunks), %s stale (newest effective_date older than 365 days or all undated), %s ok',
+                    v_ngaps, v_roster, case when v_roster = 1 then 'y' else 'ies' end, v_missing, v_thin, round(v_p25, 1), v_stale, v_ok)
+             || case when v_cat is not null then ' - scoped to ' || v_cat else '' end;
+  deliverable := format(E'CATEGORY MODULE COVERAGE\nWorkflow %s step %s (%s), worked by %s for %s%s.\n%s.\n%s\nBasis: kb_chunks counted per active category_agents row, effective_date and created_at read as stored. No model call.',
+                        coalesce(v_wfname, v_wf), v_step_no, v_step, v_employee, v_dept, coalesce(' scoped to ' || v_cat, ' (whole roster)'), outcome,
+                        coalesce((select string_agg(t.x->>'determination', E'\n' order by t.o) from jsonb_array_elements(v_gaps) with ordinality as t(x, o) where t.o <= 12), 'No gap: every category is at or above the roster percentile with a dated chunk inside 365 days.'));
+  return next;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_knowledge_gaps(p_stale_days integer DEFAULT 14, p_thin_min integer DEFAULT 4)
  RETURNS jsonb
  LANGUAGE sql
@@ -45854,18 +46464,54 @@ AS $function$
 declare
   r record; v_pick text;
   v_assigned int := 0; v_no_capacity int := 0; v_considered int := 0; v_saturated text;
+  v_released int := 0; v_gone int := 0;
   v_promote jsonb;
   REVIEW_CLASSES constant text[] := array['review','audit','verify','qa_gate','security_review',
                                           'compliance_check','legal_review','supplier_verify',
                                           'capability_review','self_review'];
 begin
-  -- ONE TASK AT A TIME, TO THE CURRENTLY-LEAST-LOADED ELIGIBLE COLLEAGUE. Assigning inside the
-  -- transaction makes each pick see the assignments already made in this sweep, so the load spreads
-  -- breadth-first across the department and a single sweep fills it.
-  --
-  -- 4 Sep 2026: priority first. fn_priority_backlog_reorder raises it on the open tasks of a
-  -- cross-OS episode that concluded with a high/medium assessed severity (priority.updated), so a
-  -- re-prioritisation changes who gets served next instead of only minting a task about it.
+  -- release unworked work from a head nobody can review, where a colleague exists
+  update public.org_tasks t
+     set assigned_agent = null, updated_at = now(),
+         result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
+           'released', jsonb_build_object('at', now(), 'by', 'fn_org_task_assign', 'from', t.assigned_agent,
+             'reason', 'the department head has no manager, so work it authors cannot be reviewed; '
+                    || 'released to a colleague the head can review'))
+    from public.org_departments d
+   where d.dept_key = t.dept_key
+     and t.status in ('assigned','in_progress')
+     and t.assigned_agent = d.lead_agent
+     and coalesce(t.attempts, 0) = 0
+     and not exists (select 1 from public.org_agents h
+                      join public.org_agents m on m.agent_key = h.manager_key and m.active
+                     where h.agent_key = d.lead_agent)
+     and exists (select 1 from public.org_agents b
+                  left join public.org_role rb on rb.runtime_agent_key = b.agent_key and rb.status = 'active'
+                 where b.active and coalesce(b.available, true) and b.department = d.dept_key
+                   and b.agent_key <> d.lead_agent
+                   and coalesce(rb.runtime_mode, 'on_demand_specialist') <> 'independent_reviewer')
+     and not exists (select 1 from public.workflow_step_run sr
+                      join public.workflow_run wr on wr.id = sr.workflow_run_id
+                     where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
+                       and sr.status = 'running');
+  get diagnostics v_released = row_count;
+
+  -- release work held by a colleague who is no longer active or available: fn_workflow_actor_resolve
+  -- resolves such an owner to no employee and the promotion is refused (10 open tasks, 5 Sep 2026,
+  -- surfaced the moment the promoter stopped swallowing the refusal)
+  update public.org_tasks t
+     set assigned_agent = null, updated_at = now(),
+         result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
+           'released', jsonb_build_object('at', now(), 'by', 'fn_org_task_assign', 'from', t.assigned_agent,
+             'reason', 'the assignee is no longer an active, available colleague; released to be re-homed'))
+   where t.status in ('assigned','in_progress')
+     and t.assigned_agent is not null
+     and not exists (select 1 from public.org_agents a
+                      where a.agent_key = t.assigned_agent and a.active and coalesce(a.available, true)
+                        and (a.unavailable_until is null or a.unavailable_until < now()));
+  get diagnostics v_gone = row_count;
+  v_released := v_released + v_gone;
+
   for r in
     select t.id, t.dept_key, t.action_class
       from public.org_tasks t
@@ -45879,16 +46525,23 @@ begin
       from public.org_agents a
       left join public.agent_reputation p on p.agent_key = a.agent_key
       left join public.org_role rr on rr.runtime_agent_key = a.agent_key and rr.status = 'active'
+      join public.org_departments d on d.dept_key = a.department
      where a.active
        and coalesce(a.available, true)
        and (a.unavailable_until is null or a.unavailable_until < now())
        and a.department = r.dept_key
-       -- AN INDEPENDENT REVIEWER CARRYING THE DEPARTMENT'S ROUTINE QUEUE IS NOT INDEPENDENT OF IT.
-       -- Review work still reaches them: the review action classes are the exception, and
-       -- fn_pick_reviewer routes review directly rather than through this queue.
        and (coalesce(rr.runtime_mode, 'on_demand_specialist') <> 'independent_reviewer'
             or coalesce(r.action_class, '') = any (REVIEW_CLASSES))
-       -- REMAINING CAPACITY, RECOMPUTED EACH PICK so it counts what this sweep already assigned.
+       -- the picker knows who it must not select: a head nobody can review, while a colleague exists
+       and not (a.agent_key = d.lead_agent
+                and not exists (select 1 from public.org_agents h
+                                 join public.org_agents m on m.agent_key = h.manager_key and m.active
+                                where h.agent_key = d.lead_agent)
+                and exists (select 1 from public.org_agents b
+                             left join public.org_role rb on rb.runtime_agent_key = b.agent_key and rb.status = 'active'
+                            where b.active and coalesce(b.available, true) and b.department = d.dept_key
+                              and b.agent_key <> d.lead_agent
+                              and coalesce(rb.runtime_mode, 'on_demand_specialist') <> 'independent_reviewer'))
        and (select count(*) from public.org_tasks o
              where o.assigned_agent = a.agent_key
                and o.status in ('assigned','in_progress')) < coalesce(a.max_open_tasks, 6)
@@ -45907,8 +46560,6 @@ begin
     end if;
   end loop;
 
-  -- Departments that genuinely could not take all their open work: every eligible colleague was at
-  -- max_open_tasks. Now that a sweep fills a department, this is a TRUE saturation signal.
   select string_agg(x.dept_key||' '||x.unowned||'/'||x.capacity, ', ' order by x.unowned desc)
     into v_saturated
     from (select t.dept_key, count(*) as unowned,
@@ -45921,8 +46572,15 @@ begin
            order by count(*) desc
            limit 6) x;
 
-  -- ONTO THE SPINE (§4.3). An owned task that needs doing is promoted into its employee_task run, and
-  -- a task parked for want of knowledge is re-opened when the department has since acquired some.
+  -- an unowned task carries its reason on the row: every eligible colleague is at max_open_tasks
+  update public.org_tasks t
+     set result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
+           'waiting', jsonb_build_object('at', now(), 'by', 'fn_org_task_assign',
+             'reason', 'unowned: every eligible colleague in ' || t.dept_key || ' is at max_open_tasks; '
+                    || 'it is assigned and promoted onto the spine as capacity frees (hourly)'))
+   where t.assigned_agent is null and t.status in ('assigned','in_progress')
+     and not (coalesce(t.result,'{}'::jsonb) ? 'waiting');
+
   begin
     v_promote := public.fn_org_task_promote();
   exception when others then
@@ -45932,17 +46590,20 @@ begin
   insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
   values ('org_task_assign', now(), now(), 'ok',
           jsonb_build_object('considered', v_considered, 'assigned', v_assigned,
+                             'released_from_unreviewable_head', v_released,
                              'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none'),
                              'promoted_to_spine', v_promote),
           'Assigned '||v_assigned||' of '||v_considered||' unowned open task(s) to the currently '
-          ||'least-loaded named colleague in the owning department, spreading within the department '
-          ||'and skipping independent reviewers for non-review work. '||v_no_capacity||' left unowned '
+          ||'least-loaded named colleague in the owning department, spreading within the department, '
+          ||'skipping independent reviewers for non-review work and never a head nobody can review ('
+          ||v_released||' released from one). '||v_no_capacity||' left unowned '
           ||'only where every eligible colleague was already at max_open_tasks - deliberate: an '
           ||'unowned task is visible, an overloaded one is not. Departments still carrying more open '
           ||'work than they staff (unowned/capacity): '||coalesce(v_saturated,'none')||'. Promoted onto '
           ||'the workflow spine: '||coalesce(v_promote::text,'{}')||'.');
 
   return jsonb_build_object('considered', v_considered, 'assigned', v_assigned,
+                            'released_from_unreviewable_head', v_released,
                             'left_unowned', v_no_capacity, 'oversubscribed', coalesce(v_saturated,'none'),
                             'promoted_to_spine', v_promote);
 end
@@ -45973,6 +46634,107 @@ begin
     new.id, new.tier, (v ->> 'blockers')
     using errcode = 'check_violation';
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_close_as_fact(p_task_id bigint, p_decided_by text, p_deliverable text, p_basis jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t          record;
+  v_deliv    text;
+  v_employee text;
+  v_review   jsonb;
+  v_trace    uuid;
+begin
+  select o.id, o.dept_key, o.title, o.action_class, o.tier, o.status, o.assigned_agent, o.result
+    into t from public.org_tasks o where o.id = p_task_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'no such org_task ' || p_task_id);
+  end if;
+  if t.status = 'done' then
+    return jsonb_build_object('ok', false, 'reason', 'org_task ' || p_task_id || ' is already done');
+  end if;
+  if coalesce(btrim(p_decided_by), '') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'a fact close must name who resolved it (p_decided_by)');
+  end if;
+  v_deliv := btrim(coalesce(p_deliverable, ''));
+  if length(v_deliv) < 40 then
+    return jsonb_build_object('ok', false, 'reason', 'a fact close needs the resolution in words (>= 40 characters), not a status flip');
+  end if;
+
+  -- the employee accountable for the fact: the incident owner when it is an active colleague, else the
+  -- task's assignee, else the department (which fn_org_agent_resolve maps to its head)
+  select a.agent_key into v_employee
+    from public.org_agents a
+   where a.active and a.agent_key = coalesce(p_basis->>'owner', '');
+  v_employee := coalesce(v_employee, nullif(t.assigned_agent, ''), t.dept_key);
+
+  update public.org_tasks
+     set result = coalesce(result, '{}'::jsonb) || jsonb_build_object(
+                    'deliverable', left(v_deliv, 20000),
+                    'summary',     left(v_deliv, 300),
+                    'mode',        'fact_close',
+                    'used_llm',    false,
+                    'lane',        'fact',
+                    'employee',    v_employee,
+                    'basis',       coalesce(p_basis, '{}'::jsonb),
+                    'at',          now()),
+         decided_by  = p_decided_by,
+         last_run_at = now(),
+         attempts    = coalesce(attempts, 0) + 1,
+         updated_at  = now()
+   where id = p_task_id;
+
+  v_review := public.fn_task_review(p_task_id);
+
+  insert into public.decision_trace(
+      correlation_id, entity_type, entity_id, decision_type,
+      proposed_by, decided_by, policy_keys, knowledge_refs, evidence_refs, alternatives,
+      assumptions, risk, confidence, authority_result,
+      decision, outcome_status, agent_key, department_id, task_class,
+      knowledge_versions, source_freshness, tools_requested, tools_executed, tool_result_refs,
+      uncertainty, escalation_decision, proposed_action, expected_outcome,
+      model, provider, input_tokens, output_tokens, estimated_cost_aed, final_status, sealed_at)
+  values (
+      gen_random_uuid(), 'org_task', p_task_id::text, 'fact_close',
+      v_employee, p_decided_by, array['org_task_lane','fact_close']::text[],
+      '[]'::jsonb,
+      jsonb_build_array(jsonb_build_object('org_task_id', p_task_id, 'dept_key', t.dept_key,
+                                           'title', t.title, 'action_class', t.action_class,
+                                           'basis', coalesce(p_basis, '{}'::jsonb), 'review', v_review)),
+      '[]'::jsonb,
+      jsonb_build_array('the task closes because the fact it was raised for has been recorded as resolved by a named resolver'),
+      jsonb_build_object('level', 'low', 'note', 'closes a task on a recorded fact; moves no money, sends nothing, approves nobody'),
+      1.0,
+      jsonb_build_object('mode', 'fact', 'tier', t.tier, 'paid_provider', 'not used'),
+      jsonb_build_object('determination', left(v_deliv, 8000), 'basis', 'recorded resolution; no model call'),
+      'closed', v_employee, t.dept_key, 'org_task',
+      '{}'::jsonb, jsonb_build_object('os_incidents', 'live at close time'), '{}'::text[], '{}'::text[], '[]'::jsonb,
+      'none: the close restates a recorded fact', 'not_escalated',
+      'close the org_task on the recorded resolution', 'the mirroring employee_task run, if any, closes with it',
+      'none', 'deterministic', 0, 0, 0, 'auto_done', now())
+  returning id into v_trace;
+
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values (v_employee, now(), now(), 'ok',
+          jsonb_build_object('org_task_id', p_task_id, 'lane', 'fact', 'decision_trace_id', v_trace,
+                             'decided_by', p_decided_by, 'review_outcome', v_review->>'outcome'),
+          left('org_task ' || p_task_id || ' closed on a recorded fact by ' || p_decided_by || ': ' || v_deliv, 500));
+
+  update public.org_tasks
+     set status  = 'done',
+         updated_at = now(),
+         result  = coalesce(result, '{}'::jsonb) || jsonb_build_object(
+                     'review', v_review, 'decision_trace_id', v_trace, 'disposition', 'fact_close')
+   where id = p_task_id;
+
+  return jsonb_build_object('ok', true, 'org_task_id', p_task_id, 'employee', v_employee,
+                            'decision_trace_id', v_trace, 'review_outcome', v_review->>'outcome');
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_org_task_cross_os_guard()
@@ -46028,9 +46790,16 @@ declare
   v_trace      uuid;
   v_queue      bigint;
   v_rc         text;
-  v_att        numeric;
-  v_band       text;
   v_known      int;
+  -- the record applied
+  v_pb_id text; v_pb_title text; v_pb_type text; v_pb_content text; v_pb_sd jsonb;
+  -- facts + rendering
+  v_facts jsonb; v_bound int; v_disp text; v_mode text; v_source text := 'task_facts_rendered';
+  -- executor
+  ex record; v_needs_model boolean := false; v_exec_status text; v_exec_id uuid; v_exec_result jsonb; v_exec_text text;
+  v_req_args int; v_argnames text[]; v_kind text := null; v_target text; v_err text; x jsonb;
+  -- measurement
+  v_step_started timestamptz; v_llm int := 0; v_cost int := 0; v_used_llm boolean; v_llm_basis text;
 begin
   select o.id, o.dept_key, o.title, o.detail, o.action_class, o.tier, o.status, o.assigned_agent
     into t from public.org_tasks o where o.id = p_task_id;
@@ -46042,20 +46811,22 @@ begin
   end if;
 
   v_deliv   := coalesce(p_output->>'deliverable', '');
-  v_outcome := coalesce(nullif(p_output->>'outcome',''), left(v_deliv, 280));
   v_sim     := nullif(p_output->>'similarity', '')::numeric;
   v_terms   := coalesce(nullif(p_output->>'terms_matched','')::int, 0);
   v_total   := coalesce(nullif(p_output->>'terms_total','')::int, 0);
   v_employee := coalesce(nullif(p_output->>'employee',''), t.assigned_agent, t.dept_key);
 
-  -- FALSE-SUCCESS GUARDS. Nothing below runs unless the determination has substance.
+  -- FALSE-SUCCESS GUARDS, UNCHANGED. Nothing below runs unless the match has substance.
   if coalesce(p_output->>'playbook_record_id','') = '' then
     return jsonb_build_object('ok', false, 'reason', 'no playbook_record_id: a determination must cite the company knowledge it applied');
   end if;
-  if not exists (select 1 from public.ops_knowledge k
-                  where k.record_id = p_output->>'playbook_record_id'
-                    and k.runtime_eligible and k.supersession_state = 'current'
-                    and k.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')) then
+  select k.record_id, k.title, k.record_type, k.content, coalesce(k.structured_data, '{}'::jsonb)
+    into v_pb_id, v_pb_title, v_pb_type, v_pb_content, v_pb_sd
+    from public.ops_knowledge k
+   where k.record_id = p_output->>'playbook_record_id'
+     and k.runtime_eligible and k.supersession_state = 'current'
+     and k.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook');
+  if v_pb_id is null then
     return jsonb_build_object('ok', false, 'reason', 'playbook ' || (p_output->>'playbook_record_id')
              || ' is not a current, runtime-eligible, ACTIONABLE ops_knowledge record');
   end if;
@@ -46070,28 +46841,139 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'deliverable shorter than 300 characters is not a determination');
   end if;
 
-  -- The org_task quality standard requires a RESULT: line (major severity). The determination is the
-  -- playbook's own content, which does not carry one, so the applier's outcome sentence becomes it.
+  -- THE FACTS, then the deliverable AS A FUNCTION OF THEM.
+  v_facts := public.fn_org_task_facts(p_task_id, p_step_run_id);
+  v_bound := coalesce((v_facts->>'facts_bound')::int, 0);
+
+  -- THE EXECUTOR of the task's action class. Read the registry row and decide from it, in words.
+  select e.action_class, e.kind, e.target, e.risk_tier, e.advisory_safe, e.reversible, e.notifies_human, e.required_authority
+    into ex
+    from public.org_action_executor e
+   where e.action_class = t.action_class and e.active
+   order by (e.kind = 'rpc') desc, e.kind limit 1;
+  if not found then
+    v_exec_status := 'none: no active executor is mapped to action_class ' || coalesce(t.action_class, '(null)') || '; rendered from the task''s facts';
+  else
+    v_kind := ex.kind; v_target := ex.target;
+    v_needs_model := public.fn_executor_needs_model(ex.target);
+    if v_needs_model then
+      v_exec_status := 'held: ' || ex.target || ' is routed to a model task class by fn_task_class and the paid provider is held; not invoked — this close is advisory';
+    elsif coalesce(ex.required_authority, '') = 'founder' then
+      v_exec_status := 'withheld: ' || ex.target || ' is reserved to the founder';
+    elsif ex.notifies_human then
+      v_exec_status := 'withheld: ' || ex.target || ' notifies a human (org_action_executor.notifies_human); the deterministic close never sends';
+    elsif not (ex.risk_tier = 'low' and ex.advisory_safe and ex.reversible) then
+      v_exec_status := format('withheld: %s is risk_tier=%s advisory_safe=%s reversible=%s; the close invokes low/advisory_safe/reversible only',
+                              ex.target, ex.risk_tier, ex.advisory_safe, ex.reversible);
+    elsif ex.kind <> 'rpc' then
+      -- ponytail: an edge executor needs the HTTP invoker and a step left running for the sweep to settle;
+      -- the task lane closes the run with the task, so it invokes rpc inline only. Upgrade path: queue an
+      -- action_execution here and let fn_workflow_step_sweep close the task when it settles.
+      v_exec_status := 'withheld: ' || ex.target || ' is a ' || ex.kind || ' executor; the org_task lane invokes rpc executors inline only';
+    else
+      select coalesce(p.pronargs - p.pronargdefaults, -1), p.proargnames into v_req_args, v_argnames
+        from pg_proc p where p.proname = ex.target and p.pronamespace = 'public'::regnamespace
+       order by p.pronargs limit 1;
+      if v_req_args is null then
+        v_exec_status := 'failed: public.' || ex.target || '() does not exist';
+      elsif v_req_args > 0 then
+        v_exec_status := 'withheld: public.' || ex.target || '() requires ' || v_req_args || ' argument(s) an org_task cannot supply';
+      else
+        v_exec_id := gen_random_uuid();
+        begin
+          if p_step_run_id is not null and 'p_step_run_id' = any(coalesce(v_argnames, '{}'::text[])) then
+            execute format('select coalesce(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) from public.%I(p_step_run_id => $1) t', ex.target)
+               into v_exec_result using p_step_run_id;
+          else
+            execute format('select coalesce(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) from public.%I() t', ex.target) into v_exec_result;
+          end if;
+          insert into public.action_execution(id, correlation_id, workflow_step_run_id, action_class, executor, idempotency_key,
+                                              risk_tier, reversible, request, response, status, attempts, started_at, finished_at)
+          values (v_exec_id, gen_random_uuid(), p_step_run_id, t.action_class, ex.target,
+                  'org_task:' || p_task_id || ':det:' || to_char(now(), 'YYYYMMDDHH24MISSMS'),
+                  ex.risk_tier, ex.reversible,
+                  jsonb_build_object('org_task_id', p_task_id, 'workflow_step_run_id', p_step_run_id, 'dept_key', t.dept_key,
+                                     'actor', v_employee, 'source', 'fn_org_task_deterministic_done', 'kind', 'rpc'),
+                  jsonb_build_object('invoker', 'succeeded', 'at', now(), 'kind', 'rpc', 'inline', true,
+                                     'result_rows', coalesce(jsonb_array_length(v_exec_result), 0),
+                                     'result', case when pg_column_size(v_exec_result) > 20000 then to_jsonb(left(v_exec_result::text, 20000)) else v_exec_result end),
+                  'succeeded', 1, now(), now());
+          v_exec_status := 'ran: public.' || ex.target || '(' || case when p_step_run_id is not null and 'p_step_run_id' = any(coalesce(v_argnames, '{}'::text[]))
+                                                                      then 'p_step_run_id => ' || p_step_run_id else '' end
+                           || ') inline, ' || coalesce(jsonb_array_length(v_exec_result), 0) || ' row(s), action_execution ' || v_exec_id;
+          v_source := 'executor:' || ex.target;
+          -- the executor's own words into the deliverable
+          v_exec_text := '';
+          for x in select * from jsonb_array_elements(v_exec_result) loop
+            if x ? 'deliverable' or x ? 'determination' or x ? 'outcome' then
+              v_exec_text := v_exec_text
+                || case when x ? 'determination' then 'determination: ' || (x->>'determination') || E'\n' else '' end
+                || case when x ? 'outcome' then 'outcome: ' || (x->>'outcome') || E'\n' else '' end
+                || case when x ? 'deliverable' then (x->>'deliverable') || E'\n' else '' end;
+            else
+              v_exec_text := v_exec_text || left(x::text, 1500) || E'\n';
+            end if;
+            exit when length(v_exec_text) > 8000;
+          end loop;
+          v_exec_text := left(coalesce(nullif(v_exec_text, ''), '(the executor returned no rows)'), 8000);
+        exception when others then
+          v_err := sqlstate || ' ' || left(sqlerrm, 400);
+          -- the failure is a fact: record it and refuse the close, so the step is released with the reason
+          insert into public.action_execution(id, correlation_id, workflow_step_run_id, action_class, executor, idempotency_key,
+                                              risk_tier, reversible, request, response, status, attempts, started_at, finished_at)
+          values (v_exec_id, gen_random_uuid(), p_step_run_id, t.action_class, ex.target,
+                  'org_task:' || p_task_id || ':det:' || to_char(now(), 'YYYYMMDDHH24MISSMS'),
+                  ex.risk_tier, ex.reversible,
+                  jsonb_build_object('org_task_id', p_task_id, 'workflow_step_run_id', p_step_run_id, 'dept_key', t.dept_key,
+                                     'actor', v_employee, 'source', 'fn_org_task_deterministic_done', 'kind', 'rpc'),
+                  jsonb_build_object('invoker', 'failed', 'at', now(), 'kind', 'rpc', 'inline', true, 'error', v_err),
+                  'failed', 1, now(), now());
+          return jsonb_build_object('ok', false, 'reason', 'executor public.' || ex.target || '() failed: ' || v_err,
+                                    'action_execution_id', v_exec_id);
+        end;
+      end if;
+    end if;
+  end if;
+
+  -- THE DELIVERABLE, rendered from the facts, with the executor's output. RESULT: is the org_task
+  -- quality standard's major criterion; the outcome sentence is it.
+  v_disp := case when v_bound = 0 then 'needs_narrative'
+                 when v_needs_model then 'advisory_held_model'
+                 else 'determined' end;
+  v_mode := case when v_disp = 'determined' then 'determined' else 'advisory' end;
+  v_outcome := case when v_disp = 'needs_narrative'
+                    then 'No fact was bound for org_task ' || p_task_id || ' (no event, objective, KPI row, department number or prior review); the record "'
+                         || v_pb_title || '" applies as written and the task needs narrative from a reviewer.'
+                    else coalesce(nullif(v_facts#>>'{derived,band}', '') || ' '
+                                  || coalesce(v_facts#>>'{kpi,metric}', v_facts#>>'{derived,event_type}', t.action_class) || ': ', '')
+                         || 'applied ' || v_pb_type || ' "' || v_pb_title || '" to ' || v_bound || ' bound fact(s) of org_task ' || p_task_id
+                         || case when v_facts#>>'{derived,cause}' is not null then '; cause ' || (v_facts#>>'{derived,cause}') else '' end
+                         || '; executor ' || split_part(coalesce(v_exec_status, 'none'), ':', 1) end;
+  v_deliv := public.fn_org_task_render(v_facts, v_pb_title, v_pb_type, v_pb_content, v_pb_sd, v_exec_status, v_exec_text);
   if v_deliv !~* '(^|\n)\s*RESULT:' then
     v_deliv := v_deliv || E'\n\nRESULT: ' || left(v_outcome, 300);
   end if;
 
-  -- A KPI-miss task cannot close without a root cause (trg_org_task_root_cause). The honest
-  -- deterministic diagnosis available without the model is the ATTAINMENT BAND, read from the task's
-  -- own numbers, which fn_kpi_review wrote into the detail as "actual X (Y% of target)". A band is a
-  -- class of cause, and it says which class it is rather than inventing a specific one.
-  if t.title ilike 'KPI missed%' then
-    v_att := nullif(substring(coalesce(t.detail,'') from '\(([0-9]+(?:\.[0-9]+)?)% of target\)'), '')::numeric;
-    v_band := case
-      when v_att is null      then 'unmeasured: the task carries no attainment figure, so the variance class cannot be read from it'
-      when v_att < 5          then 'no throughput: attainment ' || v_att || '% means the input that feeds this metric has not started, not that it under-performed'
-      when v_att < 50         then 'capacity or conversion shortfall: attainment ' || v_att || '% is real activity falling well short of the target'
-      when v_att < 100        then 'target above current capability: attainment ' || v_att || '% is near-miss performance against a target set higher than the process currently reaches'
-      else 'measurement: attainment ' || v_att || '% is at or above target, so the miss is in how the metric is measured or dated, not in the work' end;
-    v_rc := left('Root cause (deterministic band, no model call): ' || v_band
-              || '. Closing action taken from company playbook "' || coalesce(p_output->>'playbook_title','') || '" ('
-              || (p_output->>'playbook_record_id') || ', cosine ' || v_sim || ', corroborated ' || v_terms || '/' || v_total || ').', 500);
+  -- A KPI-miss task cannot close without a root cause (trg_org_task_root_cause). The cause class and
+  -- its evidence come from the facts (the live employee_kpi row, else the task's own numbers).
+  if t.title ilike 'KPI missed%' or t.title ~* 'KPI missed: ' then
+    v_rc := left('Root cause (deterministic, no model call): ' || coalesce(v_facts#>>'{derived,cause}', 'not established')
+              || ' — ' || coalesce(v_facts#>>'{derived,cause_evidence}', 'no attainment figure available')
+              || '. Closing action taken from company playbook "' || coalesce(v_pb_title,'') || '" ('
+              || v_pb_id || ', cosine ' || v_sim || ', corroborated ' || v_terms || '/' || v_total || ')'
+              || case when v_source like 'executor:%' then '; executor ' || v_target || ' ran' else '' end || '.', 500);
   end if;
+
+  -- used_llm IS A MEASUREMENT: the provider ledgers since the dispatcher claimed the step.
+  if p_step_run_id is not null then
+    select s.started_at into v_step_started from public.workflow_step_run s where s.id = p_step_run_id;
+  end if;
+  v_step_started := coalesce(v_step_started, now() - interval '10 minutes');
+  select count(*) into v_llm  from public.llm_attempt a where a.fn = 'workflow_dispatch' and a.created_at >= v_step_started;
+  select count(*) into v_cost from public.ai_cost_log c where c.fn = 'workflow_dispatch' and c.occurred_at >= v_step_started;
+  v_used_llm := (v_llm + v_cost) > 0;
+  v_llm_basis := 'measured at close: ' || v_llm || ' llm_attempt + ' || v_cost || ' ai_cost_log row(s) by workflow_dispatch since '
+                 || v_step_started || case when p_step_run_id is null then ' (no step_run id: a 10-minute window)' else ' (the step was claimed)' end;
 
   -- The deliverable must be ON THE ROW before the review: fn_task_review reads it off org_tasks, and
   -- so does the author derivation (result.employee).
@@ -46099,14 +46981,22 @@ begin
      set result = jsonb_build_object(
                     'deliverable', left(v_deliv, 20000),
                     'summary',     left(v_outcome, 300),
-                    'mode',        'determined',
-                    'used_llm',    false,
+                    'mode',        v_mode,
+                    'disposition', v_disp,
+                    'determination_source', v_source,
+                    'executor_status', v_exec_status,
+                    'executor_kind', v_kind,
+                    'action_execution_id', v_exec_id,
+                    'facts_bound', v_bound,
+                    'facts',       v_facts,
+                    'used_llm',    v_used_llm,
+                    'used_llm_basis', v_llm_basis,
                     'lane',        'org_task',
                     'worked_by',   'workflow_dispatch',
                     'employee',    v_employee,
-                    'playbook_record_id',   p_output->>'playbook_record_id',
-                    'playbook_title',       p_output->>'playbook_title',
-                    'playbook_record_type', p_output->>'playbook_record_type',
+                    'playbook_record_id',   v_pb_id,
+                    'playbook_title',       v_pb_title,
+                    'playbook_record_type', v_pb_type,
                     'similarity',   v_sim,
                     'terms_matched', v_terms,
                     'terms_total',   v_total,
@@ -46124,17 +47014,20 @@ begin
   -- THE PUBLISHER. Department head -> Chief of Staff -> ownership -> cross-department challenge.
   v_review  := public.fn_task_review(p_task_id);
   v_verdict := coalesce(v_review->>'outcome', 'unknown');
+  -- result.review: the chain's verdict, labelled as the chain's; queue_status is added once a queue row exists.
+  v_review := v_review || jsonb_build_object('chain_outcome', v_verdict, 'chain_by', 'fn_task_review',
+                'note', 'chain_outcome is fn_task_review''s verdict on the deliverable (head, chief of staff, ownership, challenge). '
+                     || 'queue_status is the review_queue row an independent reviewer has yet to decide. They are not the same thing.');
 
   -- A VERDICT THAT IS NOT A CLOSE IS A RESTING STATE, NOT A RETRY. The determination is a pure
-  -- function of (task, playbook), so the same verdict comes back every tick; the task moves to the
-  -- state the verdict actually means and fn_workflow_step_claim stops picking it (it claims only while
-  -- the task is open).
+  -- function of (task facts, executor, playbook), so the same verdict comes back every tick; the task
+  -- moves to the state the verdict actually means and fn_workflow_step_claim stops picking it.
   if v_verdict not in ('published','approve') then
     if v_verdict = 'escalate' then
       update public.org_tasks
          set status = 'escalated', updated_at = now(),
              result = coalesce(result,'{}'::jsonb) || jsonb_build_object(
-               'review', v_review,
+               'review', v_review || jsonb_build_object('queue_status', 'no queue row: the close did not complete'),
                'escalated', jsonb_build_object('at', now(), 'by', 'workflow_dispatch (org_task lane)',
                  'reason', coalesce(v_review->>'reason', 'the review chain could not resolve an available approver'),
                  'note', 'The determination was produced and stored; it is the REVIEW that could not '
@@ -46147,18 +47040,30 @@ begin
       update public.org_tasks
          set status = 'blocked', updated_at = now(),
              result = coalesce(result,'{}'::jsonb) || jsonb_build_object(
-               'review', v_review,
+               'review', v_review || jsonb_build_object('queue_status', 'no queue row: the close did not complete'),
                'parked', jsonb_build_object('at', now(), 'by', 'workflow_dispatch (org_task lane)',
                  'reason', 'the review returned ' || v_verdict,
                  'violations', coalesce(v_review->'violations','[]'::jsonb),
                  'knowledge_at_park', v_known,
                  'note', 'The deterministic determination did not meet the org_task quality standard. '
-                      || 'The determination is a pure function of this task and the playbook applied, so '
-                      || 'another attempt returns the same verdict; what has to change is the KNOWLEDGE. '
+                      || 'The determination is a pure function of this task''s facts and the playbook applied, so '
+                      || 'another attempt returns the same verdict; what has to change is the KNOWLEDGE or the facts. '
                       || 'fn_org_task_promote re-opens this when the department holds more actionable '
                       || 'in-scope knowledge than the ' || v_known || ' records it held here.'))
        where id = p_task_id;
     end if;
+
+    -- THE RUN IS THE EMPLOYEE'S: 'ok' when the verdict is an org finding (escalate: no approver),
+    -- 'rejected' when the determination itself failed review. Never 'error': fn_watch_failed_runs pages
+    -- the founder on error rows and nothing here is an outage.
+    insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+    values (v_employee, now(), now(), case when v_verdict = 'escalate' then 'ok' else 'rejected' end,
+            jsonb_build_object('org_task_id', p_task_id, 'lane', 'org_task', 'review_outcome', v_verdict,
+                               'workflow_step_run_id', p_step_run_id, 'used_llm', v_used_llm,
+                               'disposition', v_disp, 'executor_status', v_exec_status, 'action_execution_id', v_exec_id),
+            left('org_task ' || p_task_id || ' determined from ' || v_bound || ' fact(s) and playbook ' || coalesce(v_pb_title,'')
+                 || '; review returned ' || v_verdict || ' and the task rests as '
+                 || case when v_verdict = 'escalate' then 'escalated' else 'blocked' end, 500));
 
     return jsonb_build_object('ok', false, 'terminal', true, 'review_outcome', v_verdict,
              'reason', 'review returned ' || v_verdict
@@ -46166,7 +47071,7 @@ begin
                || '; the org_task now rests as '
                || case when v_verdict = 'escalate' then 'escalated' else 'blocked' end
                || ' and is not retried',
-             'review', v_review);
+             'review', v_review, 'disposition', v_disp, 'executor_status', v_exec_status, 'action_execution_id', v_exec_id);
   end if;
 
   -- The sealed record of what was decided, on what, by which rule, with what confidence.
@@ -46180,42 +47085,62 @@ begin
       model, provider, input_tokens, output_tokens, estimated_cost_aed, final_status, sealed_at)
   values (
       gen_random_uuid(), 'org_task', p_task_id::text, 'deterministic_playbook_application',
-      v_employee, 'fn_apply_playbook', array['deterministic_first','org_task_lane']::text[],
-      jsonb_build_array(jsonb_build_object('record_id', p_output->>'playbook_record_id',
-                                           'title', p_output->>'playbook_title',
-                                           'similarity', v_sim,
-                                           'terms_matched', v_terms, 'terms_total', v_total)),
+      v_employee, 'fn_org_task_deterministic_done', array['deterministic_first','org_task_lane']::text[],
+      jsonb_build_array(jsonb_build_object('record_id', v_pb_id, 'title', v_pb_title, 'record_type', v_pb_type,
+                                           'similarity', v_sim, 'terms_matched', v_terms, 'terms_total', v_total)),
       jsonb_build_array(jsonb_build_object('org_task_id', p_task_id, 'dept_key', t.dept_key,
                                            'title', t.title, 'action_class', t.action_class,
                                            'workflow_step_run_id', p_step_run_id,
-                                           'review', v_review)),
+                                           'facts', v_facts, 'review', v_review)),
       coalesce(p_output->'candidates', '[]'::jsonb),
-      jsonb_build_array('the nearest CORROBORATED actionable company playbook is the applicable one for this task'),
-      jsonb_build_object('level', 'low', 'note', 'advisory determination; moves no money, sends nothing, approves nobody'),
+      jsonb_build_array('the nearest CORROBORATED actionable company record is the applicable one for this task',
+                        'the facts read at close time are the facts the task is about'),
+      jsonb_build_object('level', 'low', 'note', case when v_source like 'executor:%'
+                                                      then 'a low-risk, advisory-safe, reversible executor was invoked; moves no money, sends nothing, approves nobody'
+                                                      else 'determination only; moves no money, sends nothing, approves nobody' end),
       v_sim,
-      jsonb_build_object('mode', 'advisory', 'tier', t.tier, 'paid_provider', 'held'),
-      jsonb_build_object('determination', left(v_deliv, 8000), 'outcome', left(v_outcome, 400),
-                         'basis', 'nearest corroborated company knowledge by meaning; no model call'),
+      jsonb_build_object('mode', v_mode, 'tier', t.tier, 'paid_provider', 'held', 'executor', v_exec_status),
+      jsonb_build_object('determination', left(v_deliv, 8000), 'outcome', left(v_outcome, 400), 'disposition', v_disp,
+                         'determination_source', v_source, 'basis', 'facts of the task rendered against the corroborated record; no model call'),
       'pending', v_employee, t.dept_key, 'org_task',
-      '{}'::jsonb, jsonb_build_object('ops_knowledge', 'live at decision time'), '{}'::text[], '{}'::text[], '[]'::jsonb,
-      'low-confidence deterministic disposition: the corroborated playbook was applied, not reasoned over; queued for review',
-      'review_queued', 'close the org_task with a deterministic disposition',
+      '{}'::jsonb, jsonb_build_object('ops_knowledge', 'live at decision time', 'facts_read_at', v_facts->>'read_at'),
+      case when v_target is not null then array[v_target] else '{}'::text[] end,
+      case when v_source like 'executor:%' then array[v_target] else '{}'::text[] end,
+      case when v_exec_id is null then '[]'::jsonb else jsonb_build_array(jsonb_build_object('action_execution_id', v_exec_id)) end,
+      case v_disp when 'determined' then 'determined from ' || v_bound || ' bound fact(s); queued for review'
+                  when 'advisory_held_model' then 'determined from ' || v_bound || ' bound fact(s), but the task''s executor needs the held model; advisory until the hold lifts'
+                  else 'no fact bound: the record applies as written; narrative is needed' end,
+      'review_queued', 'close the org_task with disposition ' || v_disp,
       'the mirroring employee_task run closes with it; a reviewer can overturn the determination',
       'none', 'deterministic', 0, 0, 0, 'auto_done', now())
   returning id into v_trace;
 
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+  values (v_employee, now(), now(), 'ok',
+          jsonb_build_object('org_task_id', p_task_id, 'lane', 'org_task', 'review_outcome', v_verdict,
+                             'decision_trace_id', v_trace, 'workflow_step_run_id', p_step_run_id,
+                             'playbook_record_id', v_pb_id, 'similarity', v_sim, 'used_llm', v_used_llm,
+                             'disposition', v_disp, 'facts_bound', v_bound, 'executor_status', v_exec_status,
+                             'action_execution_id', v_exec_id),
+          left('org_task ' || p_task_id || ' determined from ' || v_bound || ' fact(s) and playbook ' || coalesce(v_pb_title,'')
+               || ' (cosine ' || v_sim || ', corroborated ' || v_terms || '/' || v_total || '); executor '
+               || split_part(coalesce(v_exec_status,'none'), ':', 1) || '; review chain ' || v_verdict, 500));
+
+  -- Never a silent pass: the determination is queued for an independent reviewer, with everything
+  -- needed to overturn it. The row is NOT decided here.
   insert into public.review_queue(kind, dept_key, title, summary, payload, status)
   values ('deterministic_org_task', t.dept_key,
-          left('Deterministic determination: org_task ' || p_task_id || ' — ' || coalesce(t.title,''), 240),
+          left(initcap(replace(v_disp, '_', ' ')) || ': org_task ' || p_task_id || ' — ' || coalesce(t.title,''), 240),
           left(v_outcome, 600),
           jsonb_build_object('org_task_id', p_task_id, 'dept_key', t.dept_key,
                              'workflow_step_run_id', p_step_run_id,
                              'employee', v_employee,
-                             'playbook_record_id', p_output->>'playbook_record_id',
-                             'playbook_title', p_output->>'playbook_title',
+                             'playbook_record_id', v_pb_id, 'playbook_title', v_pb_title,
                              'similarity', v_sim, 'terms_matched', v_terms, 'terms_total', v_total,
-                             'decision_trace_id', v_trace, 'review', v_review,
-                             'disposition', 'deterministic_low_confidence'),
+                             'decision_trace_id', v_trace, 'review_chain', v_review,
+                             'disposition', v_disp, 'determination_source', v_source,
+                             'executor_status', v_exec_status, 'action_execution_id', v_exec_id,
+                             'facts_bound', v_bound, 'used_llm', v_used_llm),
           'pending')
   returning id into v_queue;
 
@@ -46223,15 +47148,46 @@ begin
      set status     = 'done',
          updated_at = now(),
          result     = coalesce(result,'{}'::jsonb) || jsonb_build_object(
-                        'review', v_review,
+                        'review', v_review || jsonb_build_object('queue_status', 'pending', 'review_queue_id', v_queue),
                         'decision_trace_id', v_trace,
                         'review_queue_id', v_queue,
-                        'disposition', 'deterministic_low_confidence')
+                        'review_queue_status', 'pending',
+                        'disposition', v_disp)
    where id = p_task_id;
 
   return jsonb_build_object('ok', true, 'org_task_id', p_task_id, 'review_outcome', v_verdict,
+                            'review', jsonb_build_object('chain_outcome', v_verdict, 'queue_status', 'pending', 'review_queue_id', v_queue),
                             'decision_trace_id', v_trace, 'review_queue_id', v_queue,
-                            'root_cause', v_rc);
+                            'disposition', v_disp, 'determination_source', v_source,
+                            'executor_status', v_exec_status, 'action_execution_id', v_exec_id,
+                            'facts_bound', v_bound, 'used_llm', v_used_llm, 'root_cause', v_rc);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_done_needs_a_determination()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.status = 'done' and (tg_op = 'INSERT' or coalesce(old.status, '') <> 'done') then
+    if coalesce(btrim(new.result->>'deliverable'), '') = '' or coalesce(btrim(new.decided_by), '') = '' then
+      raise exception
+        'org_tasks #% (%) cannot close to done without a determination: % — a task is done when it carries '
+        'result.deliverable (what was determined or resolved) and decided_by (who decided it). Close it through '
+        'the spine (fn_org_task_deterministic_done: playbook, review, decision_trace) or, for a recorded fact such '
+        'as a resolved incident, through fn_org_task_close_as_fact(task, resolver, resolution). A bare status flip '
+        'is the second closing path this guard exists to refuse.',
+        new.id, left(coalesce(new.title, ''), 70),
+        case when coalesce(btrim(new.result->>'deliverable'), '') = '' and coalesce(btrim(new.decided_by), '') = ''
+             then 'no deliverable and no decided_by'
+             when coalesce(btrim(new.result->>'deliverable'), '') = '' then 'no deliverable'
+             else 'no decided_by' end
+        using errcode = 'check_violation';
+    end if;
+  end if;
+  return new;
 end
 $function$
 
@@ -46286,6 +47242,216 @@ begin
                               and not exists (select 1 from public.action_execution x
                                                where x.idempotency_key = 'org_task:' || k.id)));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_facts(p_task_id bigint, p_step_run_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t record;
+  v_bound int := 0;
+  v_obj jsonb := null;
+  v_events jsonb := '[]'::jsonb; v_deliveries int := 0;
+  v_entity_type text; v_entity_id text; v_event_type text;
+  v_kpi jsonb := null; v_kpi_metric text; v_kpi_owner text;
+  k record; v_prev numeric; v_prev_on date; v_missed14 int := 0; v_met14 int := 0;
+  v_att numeric; v_band text; v_cause text; v_cause_why text; v_att_source text;
+  v_depts text[]; v_dept jsonb := null;
+  v_kpi_rows int := 0; v_kpi_measured int := 0; v_kpi_met int := 0; v_kpi_missed int := 0; v_worst jsonb;
+  v_sc_rows int := 0; v_sc_off int := 0; v_sc_list jsonb;
+  v_hist jsonb; v_rq jsonb; v_rc_n int := 0; v_rc_last text; v_dt_n int := 0;
+  v_step jsonb := null; v_step_bound int := 0;
+  v_derived jsonb;
+begin
+  select o.id, o.dept_key, o.title, o.detail, o.action_class, o.tier, o.priority, o.status, o.assigned_agent,
+         coalesce(o.attempts, 0) as attempts, o.created_at, o.updated_at, o.root_cause, o.needs_founder,
+         o.objective_id, coalesce(o.result, '{}'::jsonb) as result, o.decided_by
+    into t from public.org_tasks o where o.id = p_task_id;
+  if not found then return null; end if;
+
+  -- THE OBJECTIVE the task serves
+  if t.objective_id is not null then
+    select jsonb_strip_nulls(jsonb_build_object('id', d.id, 'objective', d.objective, 'goal_key', d.goal_key,
+             'horizon', d.horizon, 'status', d.status, 'target_value', d.target_value, 'unit', d.unit,
+             'actual_value', d.actual_value, 'measured_at', d.measured_at))
+      into v_obj from public.department_objective d where d.id = t.objective_id;
+    if v_obj is not null then v_bound := v_bound + 1; end if;
+  end if;
+
+  -- THE EVENTS it was minted from (event_delivery is the provenance; decided_by is overwritten at close)
+  select count(*) into v_deliveries from public.event_delivery ed where ed.task_id = t.id;
+  select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+           'event_id', ce.id, 'event_type', ce.event_type, 'entity_type', ce.entity_type, 'entity_id', ce.entity_id,
+           'actor', ce.actor, 'occurred_at', ce.occurred_at, 'delivered_to', ed.agent_key,
+           'payload', coalesce(ce.payload, '{}'::jsonb))) order by ce.occurred_at desc), '[]'::jsonb)
+    into v_events
+    from (select * from public.event_delivery ed where ed.task_id = t.id order by ed.delivered_at desc limit 5) ed
+    join public.company_event ce on ce.id = ed.event_id;
+  v_bound := v_bound + jsonb_array_length(v_events)
+             + (select count(*) from jsonb_array_elements(v_events) e, jsonb_each(e->'payload') p
+                 where jsonb_typeof(p.value) in ('string','number','boolean'))::int;
+
+  -- THE ENTITY it is about: the newest event's, else parsed from the bus title "<type> on <entity_type> <id>"
+  if jsonb_array_length(v_events) > 0 then
+    v_event_type  := v_events->0->>'event_type';
+    v_entity_type := v_events->0->>'entity_type';
+    v_entity_id   := v_events->0->>'entity_id';
+  else
+    v_event_type  := substring(t.title from '^(?:ZZ DEMO\s*[—-]?\s*)?([a-z_]+\.[a-z_]+) on ');
+    v_entity_type := substring(t.title from ' on ([a-z_]+) ');
+    v_entity_id   := substring(t.title from ' on [a-z_]+ (\S+)\s*$');
+  end if;
+
+  -- THE KPI ROW a "KPI missed: <metric> (<owner>)" task is about, live
+  if t.title ~* 'KPI missed: ' then
+    v_kpi_metric := substring(t.title from 'KPI missed: (.+) \([a-z0-9_]+\)\s*$');
+    v_kpi_owner  := substring(t.title from 'KPI missed: .+ \(([a-z0-9_]+)\)\s*$');
+    select e.id, e.metric, e.target_value, e.actual_value, e.unit, e.cadence, e.serves_goal, e.measured_at,
+           e.no_measure_reason, e.kpi_class
+      into k
+      from public.employee_kpi e
+     where e.agent_key = v_kpi_owner and e.metric = v_kpi_metric
+     order by e.active desc, e.measured_at desc nulls last limit 1;
+    if found then
+      select h.actual_value, h.measured_on into v_prev, v_prev_on
+        from public.employee_kpi_history h
+       where h.kpi_id = k.id and (k.measured_at is null or h.measured_at < k.measured_at - interval '1 hour')
+       order by h.measured_at desc limit 1;
+      select count(*) filter (where h.verdict = 'MISSED'), count(*) filter (where h.verdict = 'MET')
+        into v_missed14, v_met14
+        from public.employee_kpi_history h
+       where h.kpi_id = k.id and h.measured_on >= current_date - 14;
+      v_att := case when k.actual_value is null or k.target_value is null then null
+                    when k.unit in ('percent_max', 'minutes') or k.unit ilike '%max%' then
+                         case when k.actual_value > 0 then round(100 * k.target_value / k.actual_value, 1) else 100 end
+                    when k.target_value > 0 then round(100 * k.actual_value / k.target_value, 1)
+                    when k.actual_value <= 0 then 100 else null end;
+      v_att_source := 'employee_kpi live (' || coalesce(k.measured_at::text, 'never measured') || ')';
+      v_kpi := jsonb_strip_nulls(jsonb_build_object(
+                 'kpi_id', k.id, 'owner', v_kpi_owner, 'metric', k.metric, 'target', k.target_value, 'actual', k.actual_value,
+                 'unit', k.unit, 'cadence', k.cadence, 'serves_goal', k.serves_goal, 'measured_at', k.measured_at,
+                 'no_measure_reason', k.no_measure_reason, 'kpi_class', k.kpi_class,
+                 'previous_value', v_prev, 'previous_on', v_prev_on,
+                 'missed_verdicts_14d', v_missed14, 'met_verdicts_14d', v_met14, 'attainment_pct', v_att));
+      v_bound := v_bound + (k.actual_value is not null)::int + (k.target_value is not null)::int
+                 + (v_prev is not null)::int + ((v_missed14 + v_met14) > 0)::int;
+    end if;
+    if v_att is null then
+      -- the minter wrote "actual X (Y% of target)" into the detail; it is a fact of the task even without a live row
+      v_att := nullif(substring(coalesce(t.detail,'') from '\(([0-9]+(?:\.[0-9]+)?)% of target\)'), '')::numeric;
+      if v_att is not null then
+        v_att_source := 'task detail as written by fn_kpi_review';
+        v_bound := v_bound + 1;
+      end if;
+    end if;
+    v_band := case when v_att is null then 'UNMEASURED'
+                   when v_att >= 100 then 'ON_TARGET'
+                   when v_att >= 70 then 'BEHIND'
+                   else 'OFF_TARGET' end;
+    if k.no_measure_reason is not null then
+      v_cause := 'INSTRUMENT'; v_cause_why := 'employee_kpi.no_measure_reason: ' || k.no_measure_reason;
+    elsif v_att is null then
+      v_cause := 'INSTRUMENT'; v_cause_why := 'no attainment figure on the row or in the task: the variance class cannot be read';
+    elsif v_att >= 100 then
+      v_cause := 'NONE'; v_cause_why := 'attainment ' || v_att || '% is at or above target, so the miss is in how the metric is measured or dated, not in the work';
+    elsif v_att < 5 then
+      v_cause := 'EXECUTION'; v_cause_why := 'no throughput: attainment ' || v_att || '% means the input that feeds this metric has not started, not that it under-performed';
+    elsif v_att < 50 then
+      v_cause := 'EXECUTION'; v_cause_why := 'capacity or conversion shortfall: attainment ' || v_att || '% is real activity falling well short of the target';
+    elsif v_met14 = 0 and v_missed14 >= 3 then
+      v_cause := 'TARGET_MIS_SET'; v_cause_why := 'near-miss at ' || v_att || '% with ' || v_missed14 || ' MISSED and 0 MET verdicts in 14 days: the target sits above what the process currently reaches';
+    else
+      v_cause := 'EXECUTION'; v_cause_why := 'near-miss at ' || v_att || '% (' || v_missed14 || ' MISSED / ' || v_met14 || ' MET verdicts in 14 days): execution against a target the process has reached before';
+    end if;
+  end if;
+
+  -- THE DEPARTMENT'S LIVE NUMBERS (the same sources fn_workflow_step_facts / fn_recommend_deterministic read)
+  select coalesce(array_agg(d.dept_key), array[t.dept_key]) into v_depts
+    from public.org_departments d where d.merged_into = t.dept_key or d.dept_key = t.dept_key;
+  with kp as (
+    select e.id, e.agent_key, e.metric, e.target_value, e.actual_value, e.unit,
+           (select h.verdict from public.employee_kpi_history h where h.kpi_id = e.id order by h.measured_at desc limit 1) verdict,
+           (select h.attainment from public.employee_kpi_history h where h.kpi_id = e.id order by h.measured_at desc limit 1) attainment
+      from public.employee_kpi e join public.org_agents a on a.agent_key = e.agent_key
+     where e.active and a.department = t.dept_key)
+  select count(*), count(*) filter (where actual_value is not null),
+         count(*) filter (where verdict = 'MET'), count(*) filter (where verdict = 'MISSED'),
+         (select jsonb_agg(jsonb_build_object('owner', agent_key, 'metric', metric, 'actual', actual_value, 'target', target_value,
+                                              'unit', unit, 'attainment_pct', attainment))
+            from (select * from kp where verdict = 'MISSED' and attainment is not null order by attainment asc limit 3) w)
+    into v_kpi_rows, v_kpi_measured, v_kpi_met, v_kpi_missed, v_worst
+    from kp;
+  select count(*), count(*) filter (where sc.state is distinct from 'ON_TARGET'),
+         (select jsonb_agg(jsonb_build_object('label', s2.label, 'metric_key', s2.metric_key, 'value', s2.value, 'target', s2.target,
+                                              'state', s2.state, 'error', s2.error) order by s2.state, s2.label)
+            from (select * from public.v_bi_scorecard s2 where s2.owner_dept = any(v_depts) and s2.state is distinct from 'ON_TARGET'
+                  order by s2.state, s2.label limit 6) s2)
+    into v_sc_rows, v_sc_off, v_sc_list
+    from public.v_bi_scorecard sc where sc.owner_dept = any(v_depts);
+  v_dept := jsonb_strip_nulls(jsonb_build_object(
+              'dept_key', t.dept_key, 'crosswalk', to_jsonb(v_depts),
+              'kpi_rows', v_kpi_rows, 'kpi_measured', v_kpi_measured, 'kpi_met', v_kpi_met, 'kpi_missed', v_kpi_missed,
+              'worst_missed', v_worst,
+              'scorecard_rows', v_sc_rows, 'scorecard_off_target', v_sc_off, 'scorecard_off_target_list', v_sc_list));
+  v_bound := v_bound + (v_kpi_measured > 0)::int + (v_sc_rows > 0)::int;
+
+  -- PRIOR ATTEMPTS AND REVIEWS on this row
+  select coalesce(jsonb_agg(jsonb_build_object('id', q.id, 'kind', q.kind, 'status', q.status, 'decided_by', q.decided_by,
+                                               'created_at', q.created_at) order by q.created_at desc), '[]'::jsonb)
+    into v_rq
+    from (select * from public.review_queue q where q.payload->>'org_task_id' = t.id::text order by q.created_at desc limit 5) q;
+  select count(*), max(rc.stage || '/' || rc.decision || ' by ' || rc.reviewer_agent) into v_rc_n, v_rc_last
+    from public.review_chain rc where rc.subject_type = 'org_task' and rc.subject_id = t.id::text;
+  select count(*) into v_dt_n from public.decision_trace d where d.entity_type = 'org_task' and d.entity_id = t.id::text;
+  v_hist := jsonb_strip_nulls(jsonb_build_object(
+              'attempts', t.attempts, 'decided_by_before', t.decided_by, 'root_cause_before', t.root_cause,
+              'parked', t.result->'parked', 'previously_parked', t.result->'previously_parked',
+              'held', t.result->'held', 'escalated', t.result->'escalated',
+              'prior_review_chain_outcome', t.result->'review'->>'outcome',
+              'review_queue_rows', v_rq, 'review_chain_rows', v_rc_n, 'review_chain_last', v_rc_last,
+              'decision_traces', v_dt_n));
+  v_bound := v_bound + (t.attempts > 0)::int + (v_rc_n > 0)::int + (jsonb_array_length(v_rq) > 0)::int;
+
+  -- THE STEP'S FACTS when the lane's run has a step_run (a trigger event and its metric, when any)
+  if p_step_run_id is not null then
+    v_step := public.fn_workflow_step_facts(p_step_run_id);
+    if v_step is not null then
+      v_step_bound := coalesce((v_step->>'facts_bound')::int, 0);
+      v_step := v_step - 'context' - 'read_at';
+      v_bound := v_bound + v_step_bound;
+      if v_band is null and v_step#>>'{derived,band}' is not null then
+        v_band := v_step#>>'{derived,band}'; v_cause := v_step#>>'{derived,cause}'; v_cause_why := v_step#>>'{derived,cause_evidence}';
+      end if;
+    end if;
+  end if;
+
+  v_derived := jsonb_strip_nulls(jsonb_build_object(
+    'band', v_band, 'attainment_pct', v_att, 'attainment_source', v_att_source,
+    'cause', v_cause, 'cause_evidence', v_cause_why,
+    'event_type', v_event_type, 'entity_type', v_entity_type, 'entity_id', v_entity_id,
+    'recurrence', v_deliveries, 'days_open', round(extract(epoch from (now() - t.created_at)) / 86400.0, 1),
+    'dept_kpi_attainment_pct', case when v_kpi_met + v_kpi_missed > 0 then round(100.0 * v_kpi_met / (v_kpi_met + v_kpi_missed), 1) end,
+    'dept_scorecard_off_target', v_sc_off));
+
+  return jsonb_strip_nulls(jsonb_build_object(
+    'task', jsonb_build_object('id', t.id, 'dept_key', t.dept_key, 'title', t.title, 'detail', left(coalesce(t.detail,''), 2000),
+                               'action_class', t.action_class, 'tier', t.tier, 'priority', t.priority, 'status', t.status,
+                               'assigned_agent', t.assigned_agent, 'needs_founder', t.needs_founder, 'created_at', t.created_at),
+    'objective', v_obj,
+    'events', v_events, 'deliveries_total', v_deliveries,
+    'entity', case when v_entity_type is null then null else jsonb_build_object('type', v_entity_type, 'id', v_entity_id) end,
+    'kpi', v_kpi,
+    'department', v_dept,
+    'history', v_hist,
+    'step_facts', v_step,
+    'derived', v_derived,
+    'facts_bound', v_bound,
+    'read_at', now()));
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_org_task_fill_ownership()
@@ -46394,8 +47560,9 @@ AS $function$
 declare
   r record; v_run uuid;
   v_unparked int := 0; v_promoted int := 0; v_in_flight int; v_room int; v_backlog int;
+  v_reopened_cos int := 0; v_reopened_head int := 0; v_held int := 0;
 begin
-  -- (1) un-park what the company has since learned how to do
+  -- 1. a park heals when the company learns something
   for r in
     select t.id, t.dept_key, coalesce((t.result->'parked'->>'knowledge_at_park')::int, 0) was
       from public.org_tasks t
@@ -46423,7 +47590,66 @@ begin
     end if;
   end loop;
 
-  -- (2) promote, within the in-flight ceiling
+  -- 2. the retired executor's outages are not verdicts
+  update public.org_tasks t
+     set status = 'assigned', updated_at = now(),
+         attempts = 0,
+         result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
+           'reopened', jsonb_build_object('at', now(), 'by', 'fn_org_task_promote',
+             'from', 'escalated', 'previous_attempts', coalesce(t.attempts, 0),
+             'previous_decided_by', t.decided_by,
+             'reason', 'escalated by cos_execute (retired 3 Sep 2026) after its model call failed; '
+                    || 'that was the executor''s outage, not a verdict on the task. It re-enters the '
+                    || 'deterministic org_task lane, which determines it from company knowledge or parks it with a reason'))
+   where t.status = 'escalated'
+     and t.decided_by = 'cos'
+     and not (coalesce(t.result,'{}'::jsonb) ? 'escalated')
+     and not (coalesce(t.result,'{}'::jsonb) ? 'reopened');
+  get diagnostics v_reopened_cos = row_count;
+
+  -- 3. no approver because the head authored it: re-enter unowned, a colleague will author it
+  update public.org_tasks t
+     set status = 'assigned', updated_at = now(), assigned_agent = null,
+         result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
+           'reopened', jsonb_build_object('at', now(), 'by', 'fn_org_task_promote',
+             'from', 'escalated', 'previous_author', t.assigned_agent,
+             'reason', 'the review chain had no approver because the department head (' || t.assigned_agent
+                    || ', who has no manager) authored the work; re-entered unowned so that a colleague the '
+                    || 'head can review performs it'))
+    from public.org_departments d
+   where d.dept_key = t.dept_key
+     and t.status = 'escalated'
+     and (t.result ? 'escalated')
+     -- who AUTHORED it, as the review recorded — a task claimed while unowned resolves to the head too
+     and coalesce(t.result->'review'->>'author', t.assigned_agent) = d.lead_agent
+     -- once per escalation: a task claimed while it was still on the head can escalate again after
+     -- its first re-open, and that later verdict is re-examined too — never a loop, because a task
+     -- the assigner has re-homed no longer carries the head as its assignee
+     and coalesce((t.result->'reopened'->>'at')::timestamptz, '-infinity'::timestamptz)
+         < coalesce((t.result->'escalated'->>'at')::timestamptz, now())
+     and not exists (select 1 from public.org_agents h
+                      join public.org_agents m on m.agent_key = h.manager_key and m.active
+                     where h.agent_key = d.lead_agent)
+     and exists (select 1 from public.org_agents b
+                  left join public.org_role rb on rb.runtime_agent_key = b.agent_key and rb.status = 'active'
+                 where b.active and coalesce(b.available, true) and b.department = d.dept_key
+                   and b.agent_key <> d.lead_agent
+                   and coalesce(rb.runtime_mode, 'on_demand_specialist') <> 'independent_reviewer');
+  get diagnostics v_reopened_head = row_count;
+
+  -- 4. a held proposal says on the row why it is held
+  update public.org_tasks t
+     set result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
+           'held', jsonb_build_object('at', now(), 'by', 'fn_task_approve', 'reason', h.reason, 'decided_at', h.created_at))
+    from (select distinct on (rc.subject_id) rc.subject_id, rc.reason, rc.created_at
+            from public.review_chain rc
+           where rc.subject_type = 'org_task' and rc.stage = 'approval' and rc.decision = 'hold'
+           order by rc.subject_id, rc.created_at desc) h
+   where t.status = 'proposed'
+     and h.subject_id = t.id::text
+     and coalesce(t.result->'held'->>'reason', '') is distinct from h.reason;
+  get diagnostics v_held = row_count;
+
   select count(*) into v_in_flight
     from public.workflow_run wr where wr.workflow_key = 'employee_task' and wr.status = 'running';
   v_room := greatest(least(coalesce(p_limit, 12), coalesce(p_in_flight_ceiling, 60) - v_in_flight), 0);
@@ -46431,8 +47657,11 @@ begin
   select count(*) into v_backlog
     from public.org_tasks t
    where t.status in ('assigned','in_progress')
+     -- a RUNNING run, not any run: a task re-opened after an escalation keeps its earlier (failed) run
+     -- and needs a new one — measured 5 Sep: 18 re-opened exec tasks sat unpromoted behind this predicate
      and not exists (select 1 from public.workflow_run wr
-                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text);
+                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
+                        and wr.status = 'running');
 
   if v_room > 0 then
     for r in
@@ -46440,8 +47669,10 @@ begin
         from public.org_tasks t
        where t.status in ('assigned','in_progress')
          and coalesce(t.needs_founder, false) = false
+         and exists (select 1 from public.org_agents a where a.agent_key = t.assigned_agent and a.active)
          and not exists (select 1 from public.workflow_run wr
-                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text)
+                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
+                            and wr.status = 'running')
        order by t.priority desc nulls last, t.created_at, t.id
        limit v_room
     loop
@@ -46452,15 +47683,159 @@ begin
                                       'promoted_at', now()));
         if v_run is not null then v_promoted := v_promoted + 1; end if;
       exception when others then
-        -- one task that cannot be promoted (no resolvable actor, say) must not stop the sweep
-        null;
+        -- 4 Sep 2026: two swallowed errors here hid a leg that never ran. A refusal is recorded ON THE
+        -- TASK, in words, so the next census reads it instead of counting a healthy promoter.
+        update public.org_tasks
+           set result = coalesce(result,'{}'::jsonb) || jsonb_build_object(
+                 'promotion_refused', jsonb_build_object('at', now(), 'sqlstate', sqlstate, 'error', left(sqlerrm, 400)))
+         where id = r.id;
       end;
     end loop;
   end if;
 
   return jsonb_build_object('unparked', v_unparked, 'promoted', v_promoted,
+                            'reopened_from_retired_executor', v_reopened_cos,
+                            'reopened_head_authored', v_reopened_head,
+                            'held_proposals_annotated', v_held,
                             'in_flight_before', v_in_flight, 'room', v_room,
                             'backlog_without_a_run', v_backlog, 'ran_at', now());
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_render(p_facts jsonb, p_title text, p_record_type text, p_content text, p_structured jsonb, p_executor_status text DEFAULT NULL::text, p_executor_output text DEFAULT NULL::text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  f jsonb := coalesce(p_facts, '{}'::jsonb);
+  d jsonb := coalesce(p_facts->'derived', '{}'::jsonb);
+  tk jsonb := coalesce(p_facts->'task', '{}'::jsonb);
+  kp jsonb := p_facts->'kpi';
+  dp jsonb := p_facts->'department';
+  h jsonb := coalesce(p_facts->'history', '{}'::jsonb);
+  t text := '';
+  sel text[]; k text; v jsonb; s text; x jsonb; n int := 0; lines text := '';
+begin
+  t := 'DETERMINATION — QuotesDone org_task #' || coalesce(tk->>'id', '?') || ' (' || coalesce(tk->>'dept_key', '?') || ', '
+       || coalesce(tk->>'action_class', '?') || ', tier ' || coalesce(tk->>'tier', '?') || '): ' || coalesce(tk->>'title', '') || E'\n'
+       || 'Decided by ' || coalesce(tk->>'assigned_agent', tk->>'dept_key', '?') || ' at ' || coalesce(f->>'read_at', '') || ' from '
+       || coalesce(f->>'facts_bound', '0') || ' bound fact(s); no model call.' || E'\n\n';
+
+  t := t || E'FACTS THIS TASK DECIDED FROM\n';
+  t := t || '- the task: ' || coalesce(tk->>'detail', '(no detail)') || E'\n';
+  t := t || '- open ' || coalesce(d->>'days_open', '?') || ' day(s), attempts before this one ' || coalesce(h->>'attempts', '0')
+       || ', priority ' || coalesce(tk->>'priority', 'none') || E'\n';
+  if f ? 'objective' then
+    t := t || '- objective served: "' || coalesce(f#>>'{objective,objective}', '?') || '" (goal ' || coalesce(f#>>'{objective,goal_key}', 'none')
+         || ', ' || coalesce(f#>>'{objective,status}', '?') || ', target ' || coalesce(f#>>'{objective,target_value}', 'null') || ' '
+         || coalesce(f#>>'{objective,unit}', '') || ', actual ' || coalesce(f#>>'{objective,actual_value}', 'null')
+         || case when f#>>'{objective,measured_at}' is not null then ' measured ' || (f#>>'{objective,measured_at}') else '' end || ')' || E'\n';
+  else
+    t := t || E'- objective served: none linked on the row\n';
+  end if;
+  if jsonb_typeof(f->'events') = 'array' and jsonb_array_length(f->'events') > 0 then
+    t := t || '- minted from ' || coalesce(f->>'deliveries_total', '?') || ' event delivery(ies); newest first:' || E'\n';
+    for x in select * from jsonb_array_elements(f->'events') loop
+      t := t || '    · ' || coalesce(x->>'event_type', '?') || ' on ' || coalesce(x->>'entity_type', '?') || ' ' || coalesce(x->>'entity_id', '?')
+           || ' by ' || coalesce(x->>'actor', 'system') || ' at ' || coalesce(x->>'occurred_at', '?') || ' (event ' || coalesce(x->>'event_id', '?')
+           || ') payload ' || left(coalesce((x->'payload')::text, '{}'), 700) || E'\n';
+    end loop;
+  elsif f ? 'entity' then
+    t := t || '- about ' || coalesce(f#>>'{entity,type}', '?') || ' ' || coalesce(f#>>'{entity,id}', '?') || ' (from the title; no event_delivery row links this task to a company_event)' || E'\n';
+  else
+    t := t || E'- minted from: no company_event delivery on this task\n';
+  end if;
+  if kp is not null then
+    t := t || '- the KPI: "' || coalesce(kp->>'metric', '?') || '" owned by ' || coalesce(kp->>'owner', '?') || ' (employee_kpi ' || coalesce(kp->>'kpi_id', '?')
+         || '): actual ' || coalesce(kp->>'actual', 'null') || ' ' || coalesce(kp->>'unit', '') || ' against target ' || coalesce(kp->>'target', 'null')
+         || ', cadence ' || coalesce(kp->>'cadence', '?') || ', serves ' || coalesce(kp->>'serves_goal', 'no goal')
+         || ', measured ' || coalesce(kp->>'measured_at', 'never')
+         || case when kp ? 'previous_value' then '; previous ' || (kp->>'previous_value') || ' on ' || coalesce(kp->>'previous_on', '?') else '; no earlier measurement' end
+         || '; last 14 days ' || coalesce(kp->>'missed_verdicts_14d', '0') || ' MISSED / ' || coalesce(kp->>'met_verdicts_14d', '0') || ' MET'
+         || case when kp ? 'no_measure_reason' then '; no_measure_reason: ' || (kp->>'no_measure_reason') else '' end || E'\n';
+  elsif (tk->>'title') ~* 'KPI missed' then
+    t := t || E'- the KPI: no employee_kpi row matches the owner and metric in the title; the task''s own numbers are used\n';
+  end if;
+  if dp is not null then
+    t := t || '- the department ' || coalesce(dp->>'dept_key', '?') || ': ' || coalesce(dp->>'kpi_rows', '0') || ' active KPI(s), '
+         || coalesce(dp->>'kpi_measured', '0') || ' measured, ' || coalesce(dp->>'kpi_met', '0') || ' MET / ' || coalesce(dp->>'kpi_missed', '0') || ' MISSED at the latest verdict'
+         || case when d ? 'dept_kpi_attainment_pct' then ' (' || (d->>'dept_kpi_attainment_pct') || '% of verdicts met)' else '' end
+         || '; scorecard ' || coalesce(dp->>'scorecard_rows', '0') || ' metric(s), ' || coalesce(dp->>'scorecard_off_target', '0') || ' not on target' || E'\n';
+    if jsonb_typeof(dp->'worst_missed') = 'array' then
+      for x in select * from jsonb_array_elements(dp->'worst_missed') loop
+        t := t || '    · worst missed: ' || coalesce(x->>'metric', '?') || ' (' || coalesce(x->>'owner', '?') || ') ' || coalesce(x->>'actual', 'null')
+             || '/' || coalesce(x->>'target', 'null') || ' ' || coalesce(x->>'unit', '') || ' = ' || coalesce(x->>'attainment_pct', '?') || '%' || E'\n';
+      end loop;
+    end if;
+    if jsonb_typeof(dp->'scorecard_off_target_list') = 'array' then
+      for x in select * from jsonb_array_elements(dp->'scorecard_off_target_list') loop
+        t := t || '    · scorecard ' || coalesce(x->>'state', '?') || ': ' || coalesce(x->>'label', '?') || ' [' || coalesce(x->>'metric_key', '?') || '] value='
+             || coalesce(x->>'value', 'null') || ' target=' || coalesce(x->>'target', 'null')
+             || case when (x->>'error') is not null then ' ERROR=' || (x->>'error') else '' end || E'\n';
+      end loop;
+    end if;
+  end if;
+  if h ? 'review_chain_rows' and (h->>'review_chain_rows')::int > 0 then
+    t := t || '- prior review: ' || (h->>'review_chain_rows') || ' review_chain row(s), last ' || coalesce(h->>'review_chain_last', '?')
+         || '; ' || coalesce(jsonb_array_length(h->'review_queue_rows')::text, '0') || ' review_queue row(s); ' || coalesce(h->>'decision_traces', '0') || ' decision trace(s)' || E'\n';
+  end if;
+  if h ? 'parked' or h ? 'previously_parked' then
+    t := t || '- previously parked: ' || left(coalesce((h->'parked')::text, (h->'previously_parked')::text), 400) || E'\n';
+  end if;
+  if h ? 'held' then t := t || '- previously held: ' || left((h->'held')::text, 300) || E'\n'; end if;
+  if h ? 'escalated' then t := t || '- previously escalated: ' || left((h->'escalated')::text, 300) || E'\n'; end if;
+  if f ? 'step_facts' and (f#>'{step_facts,trigger}') is not null then
+    t := t || '- the run''s trigger: ' || coalesce(f#>>'{step_facts,trigger,event_type}', '?') || ' on ' || coalesce(f#>>'{step_facts,trigger,entity_type}', '?')
+         || ' ' || coalesce(f#>>'{step_facts,trigger,entity_id}', '?') || ' payload ' || left(coalesce((f#>'{step_facts,trigger,payload}')::text, '{}'), 400) || E'\n';
+  end if;
+  if f ? 'step_facts' and (f#>'{step_facts,metric}') is not null then
+    t := t || '- the run''s metric: ' || left((f#>'{step_facts,metric}')::text, 600) || E'\n';
+  end if;
+
+  t := t || E'\nDETERMINED\n';
+  if d ? 'band' then
+    t := t || '- variance: ' || coalesce(kp->>'metric', f#>>'{step_facts,metric,label}', tk->>'title') || ' is ' || (d->>'band')
+         || case when d ? 'attainment_pct' then ' at ' || (d->>'attainment_pct') || '% attainment (' || coalesce(d->>'attainment_source', '?') || ')' else '' end || E'\n'
+         || '- cause class: ' || coalesce(d->>'cause', 'not established') || ' — ' || coalesce(d->>'cause_evidence', '') || E'\n';
+  end if;
+  if coalesce((d->>'recurrence')::int, 0) > 1 then
+    t := t || '- recurrence: ' || (d->>'recurrence') || ' deliveries of the same event landed on this one task; the condition is standing, not new' || E'\n';
+  end if;
+  t := t || '- executor: ' || coalesce(p_executor_status, 'none: no active executor is mapped to this action class') || E'\n';
+
+  -- resolve keyed maps in structured_data at the facts
+  sel := array_remove(array[d->>'band', d->>'cause', tk->>'action_class', d->>'event_type', d->>'entity_type', tk->>'tier', tk->>'dept_key',
+                            lower(d->>'band'), lower(d->>'cause')], null);
+  if p_structured is not null and jsonb_typeof(p_structured) = 'object' then
+    for k, v in select * from jsonb_each(p_structured) loop
+      if jsonb_typeof(v) = 'object' then
+        foreach s in array coalesce(sel, '{}'::text[]) loop
+          if v ? s then
+            n := n + 1;
+            lines := lines || '- ' || k || '[' || s || '] → ' || case when jsonb_typeof(v->s) = 'string' then v->>s else (v->s)::text end || E'\n';
+          end if;
+        end loop;
+      end if;
+    end loop;
+  end if;
+  if n > 0 then
+    t := t || 'Selected from "' || coalesce(p_title, '?') || '" at the facts above (' || n || ' rule(s)):' || E'\n' || lines;
+  else
+    t := t || 'No keyed rule in "' || coalesce(p_title, '?') || '" resolves at these facts; the record applies as written below.' || E'\n';
+  end if;
+
+  if p_executor_output is not null then
+    t := t || E'\nEXECUTOR OUTPUT (the work performed for this task)\n' || p_executor_output || E'\n';
+  end if;
+
+  t := t || E'\nAPPLIED RECORD: ' || coalesce(p_record_type, '?') || ' "' || coalesce(p_title, '?') || E'"\n' || coalesce(p_content, '');
+  if p_structured is not null and p_structured <> '{}'::jsonb then
+    t := t || E'\n\nSTRUCTURED DATA OF THE RECORD:\n' || jsonb_pretty(p_structured);
+  end if;
+  return t;
 end
 $function$
 
@@ -47294,13 +48669,27 @@ CREATE OR REPLACE FUNCTION public.fn_os_incident_close_task()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_task record;
 begin
   if new.status in ('resolved','closed') and coalesce(old.status,'') not in ('resolved','closed') then
-    -- close the corrective task the incident opened
+    -- close the corrective task the incident opened — with the resolution ON the task (5 Sep 2026):
+    -- a bare status flip is refused by a10_org_task_done_needs_a_determination now
     if new.org_task_id is not null then
-      update public.org_tasks
-         set status='done', updated_at=now()
-       where id = new.org_task_id and status <> 'done';
+      select o.id, o.status into v_task from public.org_tasks o where o.id = new.org_task_id;
+      if found and v_task.status <> 'done' then
+        perform public.fn_org_task_close_as_fact(new.org_task_id,
+          coalesce(nullif(new.resolved_by, ''), 'os_incidents#' || new.id),
+          'Incident #' || new.id || ' (' || coalesce(new.kind, 'incident') || ', severity ' || coalesce(new.severity, '?')
+            || ') "' || coalesce(new.title, '') || '" was ' || new.status || ' by '
+            || coalesce(nullif(new.resolved_by, ''), 'an unnamed resolver') || ' at '
+            || coalesce(coalesce(new.resolved_at, now())::text, '?') || '. Resolution: '
+            || coalesce(nullif(new.resolution, ''), nullif(new.detail->>'resolution', ''), '(none recorded on the incident)')
+            || '. Opened ' || coalesce(new.opened_at::text, '?') || ' by ' || coalesce(new.opened_by, '?')
+            || '; owner ' || coalesce(new.owner, '(none)') || '.',
+          jsonb_build_object('os_incident_id', new.id, 'kind', new.kind, 'severity', new.severity,
+                             'owner', new.owner, 'resolved_by', new.resolved_by, 'resolved_at', new.resolved_at,
+                             'source', 'fn_os_incident_close_task'));
+      end if;
     end if;
     -- capture the lesson so the resolution is remembered, not re-learned
     begin
@@ -69877,6 +71266,237 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_recommend_deterministic(p_step_run_id bigint DEFAULT NULL::bigint, p_record boolean DEFAULT true)
+ RETURNS TABLE(determination text, employee text, department text, workflow_key text, step_no integer, step text, outcome text, deliverable text, inputs jsonb, recommendations jsonb, used_llm boolean)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_sid bigint := p_step_run_id;
+  v_actor text; v_employee text; v_dept text; v_wf text; v_wfname text; v_step_no int; v_step text;
+  v_run uuid; v_ctx jsonb := '{}'::jsonb; v_located text := 'p_step_run_id';
+  v_framing text;
+  v_kpis jsonb; v_kpi_rows int := 0; v_kpi_measured int := 0; v_kpi_missed int := 0; v_kpi_met int := 0;
+  v_sc jsonb; v_sc_rows int := 0; v_sc_off int := 0;
+  v_meta jsonb; v_meta_rows int := 0;
+  v_recs jsonb; v_n int := 0;
+  v_text text; v_one text; rec record;
+  v_old_depts text[];
+begin
+  used_llm := false;
+  -- 1. WHO IS ASKING. The step, or the queued action_execution row this invocation is running.
+  if v_sid is null then
+    select x.workflow_step_run_id, x.request->>'actor'
+      into v_sid, v_actor
+      from public.action_execution x
+      join public.org_action_executor e on e.action_class = x.action_class and e.kind = 'rpc'
+     where x.action_class = 'recommend' and x.status = 'queued'
+     order by x.created_at limit 1;
+    v_located := case when v_sid is not null then 'action_execution.workflow_step_run_id'
+                      when v_actor is not null then 'action_execution.request.actor' else 'nothing queued' end;
+  end if;
+  if v_sid is not null then
+    select s.actor, s.step_no, s.input->>'step', s.workflow_run_id, r.workflow_key, coalesce(r.context,'{}'::jsonb), w.name
+      into v_actor, v_step_no, v_step, v_run, v_wf, v_ctx, v_wfname
+      from public.workflow_step_run s
+      join public.workflow_run r on r.id = s.workflow_run_id
+      left join public.workflow w on w.workflow_key = r.workflow_key
+     where s.id = v_sid;
+    v_employee := public.fn_workflow_actor_resolve(v_run, v_actor);
+  elsif v_actor is not null then
+    v_employee := public.fn_org_agent_resolve(v_actor);
+  end if;
+  select o.department into v_dept from public.org_agents o where o.agent_key = v_employee and o.active;
+  if v_dept is null then
+    determination := 'no_scope'; employee := v_employee; department := null; workflow_key := v_wf; step_no := v_step_no; step := v_step;
+    outcome := 'no determination: the caller resolves to no active employee, so there is no department whose numbers to read';
+    deliverable := outcome;
+    inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'actor', v_actor, 'employee', v_employee);
+    recommendations := null;
+    return next; return;
+  end if;
+  -- metric_definition.owner_dept still speaks the pre-merge vocabulary (marketing, it, knowledge ...);
+  -- org_departments.merged_into is the crosswalk, so a growth step also reads 'marketing' metrics.
+  select coalesce(array_agg(d.dept_key), '{}') into v_old_depts
+    from public.org_departments d where d.merged_into = v_dept or d.dept_key = v_dept;
+
+  -- 2. THE STEP'S OWN WORDS choose the framing; the numbers are the same engine.
+  v_framing := case
+    when v_step ilike '%variance%' then 'variance'
+    when v_step ilike '%root cause%' then 'root_cause'
+    when v_step ilike '%revise%' or v_step ilike '%retire%' then 'revise_or_retire'
+    when v_step ilike '%option%' then 'options'
+    when v_step ilike '%grade%' or v_step ilike '%monitor%' then 'grade'
+    when v_step ilike '%baseline%' then 'baseline'
+    when v_step ilike '%define the metric%' then 'define'
+    else 'recommend' end;
+
+  -- 3. THE DEPARTMENT'S KPIs, with yesterday's (or the last recorded) value beside today's.
+  with k as (
+    select k.id, k.agent_key, k.metric, k.kpi, k.unit, k.cadence, k.target_value t, k.actual_value v,
+           k.measured_at, k.no_measure_reason, k.serves_goal,
+           (select h.actual_value from public.employee_kpi_history h
+             where h.kpi_id = k.id and (k.measured_at is null or h.measured_at < k.measured_at - interval '1 hour')
+             order by h.measured_at desc limit 1) prev,
+           (select h.measured_on from public.employee_kpi_history h
+             where h.kpi_id = k.id and (k.measured_at is null or h.measured_at < k.measured_at - interval '1 hour')
+             order by h.measured_at desc limit 1) prev_on,
+           (select count(*) from public.employee_kpi_history h
+             where h.kpi_id = k.id and h.verdict = 'MISSED' and h.measured_on >= current_date - 14) missed_14d
+      from public.employee_kpi k join public.org_agents a on a.agent_key = k.agent_key
+     where k.active and a.department = v_dept
+  ), s as (
+    select k.*,
+      case when v is null or t is null then null
+           when t = 0 then case when v <= 0 then 100.0 else 0.0 end
+           when unit = 'percent_max' then round(least(100.0, 100.0 * t / nullif(v,0)), 1)
+           else round(100.0 * v / t, 1) end attainment
+      from k
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'kpi_id', id, 'agent', agent_key, 'metric', metric, 'unit', unit, 'cadence', cadence,
+           'target', t, 'actual', v, 'attainment', attainment,
+           'verdict', case when v is null then 'NO DATA' when attainment is null then 'NO TARGET'
+                           when attainment >= 100 then 'MET' when attainment >= 90 then 'NEAR' else 'MISSED' end,
+           'measured_at', measured_at, 'previous', prev, 'previous_on', prev_on,
+           'delta', case when v is not null and prev is not null then round(v - prev, 2) end,
+           'missed_days_14d', missed_14d, 'no_measure_reason', no_measure_reason, 'serves_goal', serves_goal)
+           order by (v is null), attainment nulls last, id), '[]'::jsonb),
+         count(*), count(*) filter (where v is not null),
+         count(*) filter (where v is not null and attainment is not null and attainment < 90),
+         count(*) filter (where attainment >= 100)
+    into v_kpis, v_kpi_rows, v_kpi_measured, v_kpi_missed, v_kpi_met
+    from s;
+
+  -- 4. THE COMPANY SCORECARD rows this department owns, with the prior snapshot beside the latest.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'metric_key', b.metric_key, 'label', b.label, 'owner_dept', b.owner_dept, 'value', b.value,
+           'target', b.target, 'direction', b.direction, 'state', b.state, 'taken_at', b.taken_at,
+           'previous', (select m.value from public.metric_snapshot m where m.metric_key = b.metric_key
+                          and m.taken_at < b.taken_at - interval '20 hours' and m.error is null
+                          order by m.taken_at desc limit 1),
+           'delta', case when b.value is not null then round(b.value - (select m.value from public.metric_snapshot m
+                          where m.metric_key = b.metric_key and m.taken_at < b.taken_at - interval '20 hours' and m.error is null
+                          order by m.taken_at desc limit 1), 2) end)
+           order by case b.state when 'OFF_TARGET' then 0 when 'BEHIND' then 1 when 'ERROR' then 2 when 'UNMEASURED' then 3 else 4 end, b.metric_key), '[]'::jsonb),
+         count(*), count(*) filter (where b.state in ('OFF_TARGET','BEHIND'))
+    into v_sc, v_sc_rows, v_sc_off
+    from public.v_bi_scorecard b
+   where b.owner_dept = any (v_old_depts);
+
+  -- 5. AD DATA, when the sync has written any. Only the growth scope reads it; it is that department's.
+  if v_dept = 'growth' then
+    select coalesce(jsonb_agg(jsonb_build_object('campaign', m.campaign_name, 'status', m.effective_status,
+             'window', m.time_window, 'spend', m.spend, 'currency', m.currency, 'impressions', m.impressions,
+             'clicks', m.clicks, 'ctr', m.ctr, 'cpc', m.cpc, 'results', m.results, 'synced_at', m.synced_at,
+             'synced_via', m.synced_via) order by m.synced_at desc), '[]'::jsonb), count(*)
+      into v_meta, v_meta_rows
+      from (select distinct on (campaign_id, time_window) * from public.meta_insights order by campaign_id, time_window, synced_at desc) m;
+  end if;
+
+  inputs := jsonb_build_object(
+    'located_by', v_located, 'step_run_id', v_sid, 'actor', v_actor, 'employee', v_employee, 'department', v_dept,
+    'scorecard_owner_depts', to_jsonb(v_old_depts), 'framing', v_framing,
+    'kpi_rows', v_kpi_rows, 'kpi_measured', v_kpi_measured, 'kpi_missed', v_kpi_missed, 'kpi_met', v_kpi_met,
+    'scorecard_rows', v_sc_rows, 'scorecard_off_target', v_sc_off, 'meta_rows', v_meta_rows,
+    'kpis', v_kpis, 'scorecard', v_sc, 'meta', coalesce(v_meta, '[]'::jsonb),
+    'run_context', case when v_ctx ? 'failing_metrics' or v_ctx ? 'goals_at_risk' or v_ctx ? 'title'
+                        then v_ctx - 'at' - 'ref' - 'functions' else null end,
+    'measured_at', now());
+
+  employee := v_employee; department := v_dept; workflow_key := v_wf; step_no := v_step_no; step := v_step;
+
+  -- 6. NO DATA is its own answer, in its own shape.
+  if v_kpi_measured = 0 and v_sc_rows = 0 and v_meta_rows = 0 then
+    determination := 'no_data';
+    outcome := format('no determination for %s: %s KPI row(s) in scope and %s of them measured, %s scorecard metric(s) owned, %s ad-insight row(s)',
+                      v_dept, v_kpi_rows, v_kpi_measured, v_sc_rows, v_meta_rows);
+    deliverable := outcome || case when v_kpi_rows > 0 then '. The KPIs exist but carry no measurement: '
+        || (select string_agg(x->>'metric' || coalesce(' (' || (x->>'no_measure_reason') || ')', ''), '; ') from jsonb_array_elements(v_kpis) x)
+        || '. Instrument the measure before asking for a recommendation.' else '.' end;
+    recommendations := null;
+    return next; return;
+  end if;
+
+  -- 7. THE RANKED MOVERS. Missed KPIs by attainment, off-target company metrics, then anything worsening.
+  with cand as (
+    select 'kpi' src, x->>'metric' metric, x->>'agent' owner, (x->>'actual')::numeric actual, (x->>'target')::numeric target,
+           x->>'unit' unit, (x->>'attainment')::numeric attainment, x->>'verdict' verdict,
+           (x->>'previous')::numeric previous, (x->>'delta')::numeric delta, x->>'measured_at' measured_at,
+           (x->>'missed_days_14d')::int missed_14d, x->>'serves_goal' goal,
+           case x->>'verdict' when 'MISSED' then 0 when 'NEAR' then 1 when 'NO TARGET' then 3 else 4 end sev
+      from jsonb_array_elements(v_kpis) x where x->>'verdict' <> 'NO DATA'
+    union all
+    select 'scorecard', x->>'label', x->>'owner_dept', (x->>'value')::numeric, (x->>'target')::numeric, x->>'direction',
+           case when (x->>'target')::numeric is null or (x->>'value')::numeric is null then null
+                when (x->>'direction') = 'down' then round(least(100.0, 100.0 * (x->>'target')::numeric / nullif((x->>'value')::numeric,0)), 1)
+                else round(100.0 * (x->>'value')::numeric / nullif((x->>'target')::numeric,0), 1) end,
+           x->>'state', (x->>'previous')::numeric, (x->>'delta')::numeric, x->>'taken_at', null, null,
+           case x->>'state' when 'OFF_TARGET' then 0 when 'BEHIND' then 1 when 'ERROR' then 2 else 4 end
+      from jsonb_array_elements(v_sc) x where x->>'state' not in ('UNMEASURED')
+  ), ranked as (
+    select c.*, row_number() over (order by sev, attainment nulls last, delta nulls last, metric) rk from cand c
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'rank', rk, 'source', src, 'metric', metric, 'owner', owner, 'actual', actual, 'target', target, 'unit', unit,
+           'attainment_pct', attainment, 'verdict', verdict, 'previous', previous, 'delta', delta, 'measured_at', measured_at,
+           'missed_days_14d', missed_14d, 'serves_goal', goal,
+           'trend', case when delta is null then 'no prior measurement' when delta > 0 then 'up ' || delta when delta < 0 then 'down ' || abs(delta) else 'flat' end,
+           'determination', case v_framing
+             when 'variance' then case when verdict in ('MISSED','OFF_TARGET','BEHIND')
+                 then format('variance: %s at %s against target %s (%s%% attainment); %s',
+                             metric, actual, target, attainment, case when delta is null then 'no prior point to trend' when delta < 0 then 'worsened by ' || abs(delta) || ' since the previous measurement' when delta > 0 then 'improved by ' || delta || ' but still short' else 'unchanged' end)
+                 else format('within tolerance: %s at %s against target %s (%s%%)', metric, actual, target, attainment) end
+             when 'root_cause' then case
+                 when verdict in ('MET','ON_TARGET','NEAR') then format('%s is at %s%% of target: no gap to explain', metric, attainment)
+                 when coalesce(missed_14d, 0) >= 10 and coalesce(delta, 0) <= 0 then format('the TARGET: %s missed on %s of the last 14 measured days with no improving trend (actual %s vs target %s); propose a revised target with the run of actuals as evidence', metric, missed_14d, actual, target)
+                 when delta is not null and delta > 0 then format('the WORK: %s is moving toward target (%s -> %s, target %s); keep the current plan and re-measure on cadence', metric, previous, actual, target)
+                 else format('the WORK: %s at %s vs target %s (%s%%) with %s missed day(s) in 14; the gap is recent enough to be closed by the owner %s', metric, actual, target, attainment, coalesce(missed_14d,0), owner) end
+             when 'revise_or_retire' then case
+                 when coalesce(missed_14d, 0) >= 14 then format('REVISE: %s missed every one of the last 14 measured days (actual %s vs target %s); the target does not describe this business yet', metric, actual, target)
+                 when verdict in ('MET','ON_TARGET') and coalesce(missed_14d, 0) = 0 then format('KEEP: %s met at %s against %s and never missed in 14 days', metric, actual, target)
+                 else format('KEEP and watch: %s at %s%% attainment, %s missed day(s) in 14', metric, attainment, coalesce(missed_14d,0)) end
+             when 'options' then format('option: close the gap on %s (actual %s, target %s, gap %s %s); cost proxy = gap size, risk = %s', metric, actual, target, round(abs(coalesce(target,0) - coalesce(actual,0)), 2), coalesce(unit,''), case when attainment is null then 'unknown' when attainment < 50 then 'high (below half of target)' when attainment < 90 then 'medium' else 'low' end)
+             when 'grade' then format('grade: %s %s (%s -> %s against target %s)', metric, case when delta is null then 'UNGRADED, no prior measurement' when (unit = 'percent_max' or unit = 'down') and delta < 0 then 'BETTER' when (unit = 'percent_max' or unit = 'down') and delta > 0 then 'WORSE' when delta > 0 then 'BETTER' when delta < 0 then 'WORSE' else 'FLAT' end, previous, actual, target)
+             when 'baseline' then format('baseline captured: %s = %s (%s) measured %s, target %s', metric, actual, coalesce(unit,''), measured_at, target)
+             else format('%s: %s at %s against target %s (%s%%), owner %s', verdict, metric, actual, target, attainment, owner) end)
+           order by rk), '[]'::jsonb), count(*)
+    into v_recs, v_n
+    from ranked where rk <= 5;
+
+  determination := 'recommendation';
+  recommendations := v_recs;
+  v_one := coalesce((select x->>'determination' from jsonb_array_elements(v_recs) x order by (x->>'rank')::int limit 1), 'nothing in scope moved');
+  outcome := left(format('%s: %s of %s KPIs measured, %s missed, %s met; %s of %s owned scorecard metrics off target%s. Top mover: %s',
+                    v_dept, v_kpi_measured, v_kpi_rows, v_kpi_missed, v_kpi_met, v_sc_off, v_sc_rows,
+                    case when v_meta_rows > 0 then format('; %s ad-insight row(s) read', v_meta_rows) else '' end, v_one), 600);
+  v_text := format(E'%s\nWorkflow %s step %s (%s), worked by %s for %s on %s.\nInputs: %s KPI rows (%s measured, %s missed, %s met), %s scorecard metrics (%s off target), %s ad-insight rows.\n',
+                   case v_framing when 'variance' then 'VARIANCE AGAINST TARGET' when 'root_cause' then 'ROOT CAUSE: THE WORK OR THE TARGET' when 'revise_or_retire' then 'REVISE OR RETIRE' when 'options' then 'OPTIONS WITH COST AND RISK' when 'grade' then 'GRADE AGAINST BASELINE' when 'baseline' then 'BASELINE' when 'define' then 'METRIC DEFINITION REVIEW' else 'RECOMMENDATION' end,
+                   coalesce(v_wfname, v_wf, '(no workflow)'), coalesce(v_step_no::text, '-'), coalesce(v_step, 'direct call'), v_employee, v_dept, to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI') || ' UTC',
+                   v_kpi_rows, v_kpi_measured, v_kpi_missed, v_kpi_met, v_sc_rows, v_sc_off, v_meta_rows);
+  for rec in select x from jsonb_array_elements(v_recs) x order by (x->>'rank')::int loop
+    v_text := v_text || format(E'%s. %s [%s; trend %s; measured %s]\n', rec.x->>'rank', rec.x->>'determination', rec.x->>'source', rec.x->>'trend', coalesce(left(rec.x->>'measured_at', 16), '?'));
+  end loop;
+  if v_meta_rows > 0 then
+    v_text := v_text || 'Ad data: ' || (select string_agg(format('%s [%s] %s: spend %s %s, %s impressions, %s clicks, ctr %s, cpc %s (synced %s via %s)',
+        m->>'campaign', m->>'status', m->>'window', m->>'spend', m->>'currency', m->>'impressions', m->>'clicks', coalesce(m->>'ctr','-'), coalesce(m->>'cpc','-'), left(m->>'synced_at',10), m->>'synced_via'), '; ')
+        from jsonb_array_elements(v_meta) m) || E'\n';
+  end if;
+  if v_ctx ? 'failing_metrics' then
+    v_text := v_text || 'Trigger context named failing metrics ' || (v_ctx->'failing_metrics')::text || coalesce(' and goals at risk ' || (v_ctx->'goals_at_risk')::text, '') || E'.\n';
+  end if;
+  v_text := v_text || 'Basis: employee_kpi actual/target as measured, employee_kpi_history for the previous point and the 14-day miss count, v_bi_scorecard + metric_snapshot for company metrics' || case when v_dept = 'growth' then ', meta_insights for ad data' else '' end || '. No model call.';
+  deliverable := v_text;
+
+  if p_record then
+    insert into public.org_memory(scope, kind, content, source)
+    values ('analytics', 'insight', left(coalesce(v_wf,'direct') || ' step ' || coalesce(v_step_no::text,'-') || ' — ' || outcome, 500) || E'\n\n' || left(v_text, 3000), 'fn_recommend_deterministic');
+  end if;
+  return next;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reconcile_doc_blocks(p_grace_days integer DEFAULT 0)
  RETURNS json
  LANGUAGE plpgsql
@@ -70230,7 +71850,9 @@ begin
   select 'watcher', 'watcher:' || left(s.signature, 150), left(s.signature, 300), s.first_seen_at
     from public.alert_signature s
    where s.watcher = 'failed_runs' and s.last_alerted_at is not null
-     and s.last_seen_at > v_now - interval '24 hours';
+     and s.last_seen_at > v_now - interval '24 hours'
+     -- 5 Sep 2026: a signature the watcher has resolved on merit (its subject succeeded since) is green
+     and s.resolved_at is null;
 
   select count(distinct check_key) into v_red from red_now;
 
@@ -80013,7 +81635,7 @@ begin
       insert into public.alert_signature (watcher, signature)
         values ('failed_runs', v_fail.signature)
         on conflict (watcher, signature) do update
-          set last_seen_at = now(), seen_count = alert_signature.seen_count + 1;
+          set last_seen_at = now(), seen_count = alert_signature.seen_count + 1, resolved_at = null;
       continue;
     end if;
 
@@ -80024,7 +81646,7 @@ begin
     insert into public.alert_signature (watcher, signature)
       values ('failed_runs', v_fail.signature)
       on conflict (watcher, signature) do update
-        set last_seen_at = now(), seen_count = alert_signature.seen_count + 1;
+        set last_seen_at = now(), seen_count = alert_signature.seen_count + 1, resolved_at = null;
 
     if exists (select 1 from public.alert_signature s
                 where s.watcher = 'failed_runs' and s.signature = v_fail.signature
@@ -80053,7 +81675,7 @@ begin
   for v_stale in select jobname, schedule, why from public.v_cron_stale order by jobname loop
     v_stale_n := v_stale_n + 1;
     insert into public.alert_signature (watcher, signature) values ('failed_runs', 'cron_stale:' || v_stale.jobname)
-    on conflict (watcher, signature) do update set last_seen_at = now(), seen_count = alert_signature.seen_count + 1;
+    on conflict (watcher, signature) do update set last_seen_at = now(), seen_count = alert_signature.seen_count + 1, resolved_at = null;
     if exists (select 1 from public.alert_signature s where s.watcher = 'failed_runs'
                  and s.signature = 'cron_stale:' || v_stale.jobname and s.last_alerted_at > now() - interval '24 hours') then
       continue;
@@ -80062,6 +81684,30 @@ begin
     v_alerts := v_alerts + 1;
     update public.alert_signature set last_alerted_at = now() where watcher = 'failed_runs' and signature = 'cron_stale:' || v_stale.jobname;
   end loop;
+
+  -- A SIGNATURE RESOLVES ON MERIT, NOT ON THE CLOCK (5 Sep 2026). The red view carried a watcher
+  -- episode for 24 h after the last sighting whatever the subject did next. kb_embed had run
+  -- 'ok' 83 times after its last error and dr_drill 4 times, and both stayed red; monthly_report was
+  -- listed stale every hour and paged every day because v_cron_stale read '0 7 1 * *' as daily.
+  -- Two rules, both measured from the subject's own ledger:
+  --   failed-run signature  -> resolved when the agent has a status='ok' run started AFTER the
+  --                            watcher last saw the failure (last_seen_at). A later failure re-opens
+  --                            it through the upsert above (resolved_at = null), which the red view
+  --                            then treats as a NEW episode and pages again.
+  --   cron_stale signature  -> resolved when the job is no longer listed by v_cron_stale on this
+  --                            pass, i.e. a run of any status has been recorded since.
+  update public.alert_signature s
+     set resolved_at = now()
+   where s.watcher = 'failed_runs' and s.resolved_at is null
+     and s.signature not like 'cron_stale:%'
+     and exists (select 1 from public.agent_runs ok
+                  where ok.agent = split_part(s.signature, ':', 1)
+                    and ok.status = 'ok' and ok.started_at > s.last_seen_at);
+  update public.alert_signature s
+     set resolved_at = now()
+   where s.watcher = 'failed_runs' and s.resolved_at is null
+     and s.signature like 'cron_stale:%'
+     and not exists (select 1 from public.v_cron_stale c where 'cron_stale:' || c.jobname = s.signature);
 
   if v_rehearsal > 0 then
     v_detail := v_detail || E'\n' || v_rehearsal || ' further run(s) failed inside a declared sandbox rehearsal window and were not paged.' || E'\n';
@@ -80528,7 +82174,7 @@ begin
      and public.fn_workflow_actor_resolve(sr.workflow_run_id, sr.actor) is not null
      and not exists (
            select 1 from public.org_action_executor e
-            where e.action_class = sr.action_class and e.active and e.kind = 'edge'
+            where e.action_class = sr.action_class and e.active and e.kind in ('edge','rpc')
               and e.risk_tier = 'low' and e.advisory_safe and e.reversible
               and not e.notifies_human
               and coalesce(e.required_authority,'') <> 'founder');
@@ -80568,7 +82214,7 @@ begin
          -- (a) no safe executor owns it: the dispatcher's row, as before
          or not exists (
              select 1 from public.org_action_executor e
-              where e.action_class = sr.action_class and e.active and e.kind = 'edge'
+              where e.action_class = sr.action_class and e.active and e.kind in ('edge','rpc')
                 and e.risk_tier = 'low' and e.advisory_safe and e.reversible
                 and not e.notifies_human
                 and coalesce(e.required_authority,'') <> 'founder')
@@ -80629,7 +82275,7 @@ begin
                                          else public.fn_org_task_subject(t.title, t.action_class, t.dept_key) end,
            'stranded_reason', case
               when exists (select 1 from public.org_action_executor e
-                            where e.action_class = c.action_class and e.active and e.kind = 'edge'
+                            where e.action_class = c.action_class and e.active and e.kind in ('edge','rpc')
                               and e.risk_tier = 'low' and e.advisory_safe and e.reversible
                               and not e.notifies_human)
                then coalesce((select 'executor ' || coalesce(x.executor, e2.target) || ' left status=' || x.status
@@ -80676,8 +82322,8 @@ AS $function$
 declare
   sr           record;
   v_sim        numeric;
-  v_floor      numeric := 0.42;
-  v_deliv      text;
+  v_floor      numeric := 0.85;
+  v_terms      int;
   v_employee   text;
   v_dept       text;
   v_trace      uuid;
@@ -80685,8 +82331,19 @@ declare
   v_superseded int := 0;
   v_res        text;
   v_out        jsonb;
+  -- the record applied
+  v_pb_id text; v_pb_title text; v_pb_type text; v_pb_content text; v_pb_sd jsonb;
+  -- facts + rendering
+  v_facts jsonb; v_bound int; v_deliv text; v_outcome text;
+  -- executor
+  ex record; v_has_ex boolean := false; v_needs_model boolean := false; v_exec_status text; v_exec_id uuid;
+  v_exec_result jsonb; v_req_args int; v_kind text := null; v_source text := 'playbook_rendered';
+  v_queued boolean := false; v_refused text; v_err text; v_target text;
+  -- measurement
+  v_llm int := 0; v_cost int := 0; v_used_llm boolean;
+  v_disp text; v_mode text;
 begin
-  select s.id, s.workflow_run_id, s.step_no, s.actor, s.action_class, s.input, s.attempts,
+  select s.id, s.workflow_run_id, s.step_no, s.actor, s.action_class, s.input, s.attempts, s.started_at, s.output as prev_output,
          r.workflow_key, r.context, r.correlation_id, r.trigger_event_id
     into sr
     from public.workflow_step_run s
@@ -80696,23 +82353,165 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'step is not held running by a dispatcher');
   end if;
 
-  v_deliv    := coalesce(p_output->>'deliverable', '');
   v_sim      := nullif(p_output->>'similarity', '')::numeric;
+  v_terms    := nullif(p_output->>'terms_matched', '')::int;
   v_employee := coalesce(nullif(p_output->>'employee',''), sr.actor);
 
-  -- FALSE-SUCCESS GUARDS. Nothing below runs unless the determination has substance.
+  -- FALSE-SUCCESS GUARDS. Nothing below runs unless the determination has substance. The floors are the
+  -- applier's own (0.85 cosine AND keyword corroboration), so a caller cannot pass on cosine alone.
   if coalesce(p_output->>'playbook_record_id','') = '' then
     return jsonb_build_object('ok', false, 'reason', 'no playbook_record_id: a determination must cite the company knowledge it applied');
   end if;
   if v_sim is null or v_sim < v_floor then
     return jsonb_build_object('ok', false, 'reason', 'similarity ' || coalesce(v_sim::text,'null') || ' is below the apply floor ' || v_floor);
   end if;
-  if length(v_deliv) < 300 then
-    return jsonb_build_object('ok', false, 'reason', 'deliverable shorter than 300 characters is not a determination');
+  if v_terms is null or v_terms < 2 then
+    return jsonb_build_object('ok', false, 'reason', 'terms_matched ' || coalesce(v_terms::text,'null') || ' is below the corroboration floor of 2 step terms');
   end if;
-  if not exists (select 1 from public.ops_knowledge k where k.record_id = p_output->>'playbook_record_id' and k.runtime_eligible) then
+  select k.record_id, k.title, k.record_type, k.content, k.structured_data
+    into v_pb_id, v_pb_title, v_pb_type, v_pb_content, v_pb_sd
+    from public.ops_knowledge k
+   where k.record_id = p_output->>'playbook_record_id' and k.runtime_eligible;
+  if v_pb_id is null then
     return jsonb_build_object('ok', false, 'reason', 'playbook ' || (p_output->>'playbook_record_id') || ' is not a runtime-eligible ops_knowledge record');
   end if;
+  if v_pb_type not in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook') then
+    return jsonb_build_object('ok', false, 'reason', 'record ' || v_pb_id || ' is a ' || v_pb_type || ', not an actionable kind');
+  end if;
+
+  -- THE FACTS, then the deliverable AS A FUNCTION OF THEM.
+  v_facts := public.fn_workflow_step_facts(sr.id);
+  v_bound := coalesce((v_facts->>'facts_bound')::int, 0);
+
+  -- THE EXECUTOR. Read the registry row and decide from it, in words.
+  select e.action_class, e.kind, e.target, e.active, e.risk_tier, e.advisory_safe, e.reversible,
+         e.notifies_human, e.unattended_ok, e.required_authority, e.compensation_action_class
+    into ex
+    from public.org_action_executor e
+   where e.action_class = sr.action_class and e.active
+   order by e.kind limit 1;
+  v_has_ex := found;
+  if v_has_ex then v_target := ex.target; end if;
+  if not v_has_ex then
+    v_exec_status := 'none: no active executor is mapped to action_class ' || coalesce(sr.action_class, '(null)');
+  else
+    v_kind := ex.kind;
+    v_needs_model := public.fn_executor_needs_model(ex.target);
+    if v_needs_model then
+      v_exec_status := 'held: ' || ex.target || ' is routed to a model task class by fn_task_class and the paid provider is held; not invoked';
+    elsif coalesce(ex.required_authority, '') = 'founder' then
+      v_exec_status := 'withheld: ' || ex.target || ' is reserved to the founder';
+    elsif ex.notifies_human then
+      v_exec_status := 'withheld: ' || ex.target || ' notifies a human (org_action_executor.notifies_human); the deterministic close never sends';
+    elsif not (ex.risk_tier = 'low' and ex.advisory_safe and ex.reversible) then
+      v_exec_status := format('withheld: %s is risk_tier=%s advisory_safe=%s reversible=%s; the close invokes low/advisory_safe/reversible only',
+                              ex.target, ex.risk_tier, ex.advisory_safe, ex.reversible);
+    elsif ex.kind not in ('rpc', 'edge') then
+      v_exec_status := 'withheld: ' || ex.target || ' is a ' || ex.kind || ' executor and no invoker handles that kind';
+    elsif exists (select 1 from public.action_execution x where x.workflow_step_run_id = sr.id and x.status in ('queued','running')) then
+      return jsonb_build_object('ok', false, 'reason', 'executor ' || ex.target || ' is already queued or running for this step; the sweep settles it');
+    elsif ex.kind = 'rpc' then
+      select coalesce(p.pronargs - p.pronargdefaults, -1) into v_req_args
+        from pg_proc p where p.proname = ex.target and p.pronamespace = 'public'::regnamespace
+       order by p.pronargs limit 1;
+      if v_req_args is null then
+        v_exec_status := 'failed: public.' || ex.target || '() does not exist';
+      elsif v_req_args > 0 then
+        v_exec_status := 'withheld: public.' || ex.target || '() requires ' || v_req_args || ' argument(s) a workflow step cannot supply';
+      else
+        v_exec_id := gen_random_uuid();
+        begin
+          execute format('select coalesce(jsonb_agg(to_jsonb(t)), ''[]''::jsonb) from public.%I() t', ex.target) into v_exec_result;
+          insert into public.action_execution(id, correlation_id, workflow_step_run_id, action_class, executor, idempotency_key,
+                                              risk_tier, reversible, request, response, status, attempts, started_at, finished_at)
+          values (v_exec_id, coalesce(sr.correlation_id, gen_random_uuid()), sr.id, sr.action_class, ex.target,
+                  'workflow_step:' || sr.id || ':det:' || to_char(now(), 'YYYYMMDDHH24MISSMS'),
+                  ex.risk_tier, ex.reversible,
+                  jsonb_build_object('workflow_step_run_id', sr.id, 'workflow_run_id', sr.workflow_run_id, 'step_no', sr.step_no,
+                                     'actor', sr.actor, 'source', 'fn_workflow_step_deterministic_done', 'kind', 'rpc'),
+                  jsonb_build_object('invoker', 'succeeded', 'at', now(), 'kind', 'rpc', 'inline', true,
+                                     'result_rows', coalesce(jsonb_array_length(v_exec_result), 0),
+                                     'result', case when pg_column_size(v_exec_result) > 20000 then to_jsonb(left(v_exec_result::text, 20000)) else v_exec_result end),
+                  'succeeded', 1, now(), now());
+          v_exec_status := 'ran: public.' || ex.target || '() inline, ' || coalesce(jsonb_array_length(v_exec_result), 0)
+                           || ' row(s), action_execution ' || v_exec_id;
+          v_source := 'executor:' || ex.target;
+        exception when others then
+          v_err := sqlstate || ' ' || left(sqlerrm, 400);
+          -- the failure is a fact: record it and refuse the close, so the step is released with the reason
+          insert into public.action_execution(id, correlation_id, workflow_step_run_id, action_class, executor, idempotency_key,
+                                              risk_tier, reversible, request, response, status, attempts, started_at, finished_at)
+          values (v_exec_id, coalesce(sr.correlation_id, gen_random_uuid()), sr.id, sr.action_class, ex.target,
+                  'workflow_step:' || sr.id || ':det:' || to_char(now(), 'YYYYMMDDHH24MISSMS'),
+                  ex.risk_tier, ex.reversible,
+                  jsonb_build_object('workflow_step_run_id', sr.id, 'workflow_run_id', sr.workflow_run_id, 'step_no', sr.step_no,
+                                     'actor', sr.actor, 'source', 'fn_workflow_step_deterministic_done', 'kind', 'rpc'),
+                  jsonb_build_object('invoker', 'failed', 'at', now(), 'kind', 'rpc', 'inline', true, 'error', v_err),
+                  'failed', 1, now(), now());
+          return jsonb_build_object('ok', false, 'reason', 'executor public.' || ex.target || '() failed: ' || v_err,
+                                    'action_execution_id', v_exec_id);
+        end;
+      end if;
+    else -- edge, deterministic
+      select x.response->>'reason' into v_refused
+        from public.action_execution x
+       where x.workflow_step_run_id = sr.id and x.response->>'invoker' = 'refused'
+       order by x.created_at desc limit 1;
+      if v_refused is not null then
+        v_exec_status := 'withheld: the invoker refused ' || ex.target || ' for this step earlier (' || left(v_refused, 200) || '); not re-queued';
+      elsif exists (select 1 from public.action_execution x
+                     where x.workflow_step_run_id = sr.id and x.request->>'source' = 'fn_workflow_step_deterministic_done') then
+        select 'withheld: an earlier re-queue of ' || ex.target || ' for this step ended ' || x.status into v_exec_status
+          from public.action_execution x
+         where x.workflow_step_run_id = sr.id and x.request->>'source' = 'fn_workflow_step_deterministic_done'
+         order by x.created_at desc limit 1;
+      else
+        v_exec_id := gen_random_uuid();
+        insert into public.action_execution(id, correlation_id, workflow_step_run_id, action_class, executor, idempotency_key,
+                                            risk_tier, reversible, request, status, attempts)
+        values (v_exec_id, coalesce(sr.correlation_id, gen_random_uuid()), sr.id, sr.action_class, ex.target,
+                'workflow_step:' || sr.id || ':det:' || to_char(now(), 'YYYYMMDDHH24MISSMS'),
+                ex.risk_tier, ex.reversible,
+                jsonb_build_object('workflow_step_run_id', sr.id, 'workflow_run_id', sr.workflow_run_id, 'step_no', sr.step_no,
+                                   'actor', sr.actor, 'input', coalesce(sr.input, '{}'::jsonb),
+                                   'source', 'fn_workflow_step_deterministic_done', 'kind', 'edge'),
+                'queued', 0);
+        v_queued := true;
+        v_exec_status := 'queued: ' || ex.target || ' as action_execution ' || v_exec_id || ' for the HTTP invoker; the step closes when the sweep settles it';
+        v_source := 'executor:' || ex.target;
+      end if;
+    end if;
+  end if;
+
+  -- THE DELIVERABLE, rendered from the facts, with the executor line.
+  v_deliv := public.fn_workflow_step_render(v_facts, v_pb_title, v_pb_type, v_pb_content, v_pb_sd);
+  v_deliv := regexp_replace(v_deliv, E'\nAPPLIED RECORD: ',
+               E'- executor: ' || coalesce(v_exec_status, '?') || E'\n\nAPPLIED RECORD: ');
+
+  -- THE DISPOSITION, earned.
+  -- 5 SEP 2026, from the skeptic that audited this routine: 'determined' used to mean "not routed
+  -- to a model", and both rows that carried it had executed nothing (executor withheld). A label
+  -- that reads as 'executed' must be EARNED by an execution: an action_execution this close created
+  -- and which succeeded. Facts bound and rendered, but no executor ran (none mapped, withheld,
+  -- queued for the HTTP invoker, refused) is 'rendered' -- true, and not the same word as done.
+  v_disp := case when v_bound = 0 then 'needs_narrative'
+                 when v_needs_model then 'advisory_held_model'
+                 when v_exec_id is not null and exists (select 1 from public.action_execution x
+                        where x.id = v_exec_id and x.status = 'succeeded') then 'determined'
+                 else 'rendered' end;
+  v_mode := case when v_disp = 'determined' then 'determined' else 'advisory' end;
+  v_outcome := case when v_disp = 'needs_narrative'
+                    then 'No fact was bound for this step (no metric, goal, event payload or prior conclusion); the record "'
+                         || v_pb_title || '" applies as written and the step needs narrative from a reviewer or the model path.'
+                    else coalesce(nullif(v_facts#>>'{derived,band}', '') || ' ' || coalesce(v_facts#>>'{metric,label}', '') || ': ', '')
+                         || 'applied ' || v_pb_type || ' "' || v_pb_title || '" to ' || v_bound || ' bound fact(s)'
+                         || case when v_facts#>>'{derived,cause}' is not null then '; cause ' || (v_facts#>>'{derived,cause}') else '' end
+                         || '; executor ' || split_part(coalesce(v_exec_status, 'none'), ':', 1) end;
+
+  -- used_llm IS A MEASUREMENT: the provider ledgers since the dispatcher claimed this step.
+  select count(*) into v_llm  from public.llm_attempt a where a.fn = 'workflow_dispatch' and a.created_at >= sr.started_at;
+  select count(*) into v_cost from public.ai_cost_log c where c.fn = 'workflow_dispatch' and c.occurred_at >= sr.started_at;
+  v_used_llm := (v_llm + v_cost) > 0;
 
   select o.department into v_dept from public.org_agents o where o.agent_key = v_employee;
 
@@ -80728,37 +82527,46 @@ begin
   values (
       coalesce(sr.correlation_id, gen_random_uuid()), sr.trigger_event_id,
       'workflow_step_run', sr.id::text, 'deterministic_playbook_application',
-      v_employee, 'fn_apply_playbook', array['deterministic_first']::text[],
-      jsonb_build_array(jsonb_build_object('record_id', p_output->>'playbook_record_id',
-                                           'title', p_output->>'playbook_title',
-                                           'similarity', v_sim)),
+      v_employee, 'fn_workflow_step_deterministic_done', array['deterministic_first']::text[],
+      jsonb_build_array(jsonb_build_object('record_id', v_pb_id, 'title', v_pb_title, 'record_type', v_pb_type,
+                                           'similarity', v_sim, 'terms_matched', v_terms)),
       jsonb_build_array(jsonb_build_object('workflow_run_id', sr.workflow_run_id, 'workflow_key', sr.workflow_key,
                                            'step_no', sr.step_no, 'step', sr.input->>'step',
-                                           'trigger_context', sr.context)),
+                                           'facts', v_facts)),
       coalesce(p_output->'candidates', '[]'::jsonb),
-      jsonb_build_array('the nearest company playbook by cosine similarity is the applicable one for this step'),
-      jsonb_build_object('level', 'low', 'note', 'advisory determination; moves no money, sends nothing, approves nobody'),
+      jsonb_build_array('the corroborated nearest actionable company record is the applicable one for this step',
+                        'the facts read at close time are the facts the step is about'),
+      jsonb_build_object('level', 'low', 'note', case when v_source like 'executor:%'
+                                                      then 'a low-risk, advisory-safe, reversible executor was invoked; moves no money, sends nothing, approves nobody'
+                                                      else 'determination only; moves no money, sends nothing, approves nobody' end),
       v_sim,
-      jsonb_build_object('mode', 'advisory', 'gate', coalesce(sr.input->>'gate', 'none'), 'paid_provider', 'held'),
-      jsonb_build_object('determination', left(v_deliv, 8000), 'outcome', p_output->>'outcome',
-                         'basis', 'nearest company knowledge by meaning; no model call'),
+      jsonb_build_object('mode', v_mode, 'gate', coalesce(sr.input->>'gate', 'none'), 'paid_provider', 'held', 'executor', v_exec_status),
+      jsonb_build_object('determination', left(v_deliv, 8000), 'outcome', v_outcome, 'disposition', v_disp,
+                         'determination_source', v_source, 'basis', 'facts of the step rendered against the corroborated record; no model call'),
       'pending', v_employee, v_dept, 'workflow_step',
-      '{}'::jsonb, jsonb_build_object('ops_knowledge', 'live at decision time'), '{}'::text[], '{}'::text[], '[]'::jsonb,
-      'low-confidence deterministic disposition: the nearest playbook was applied, not reasoned over; queued for review',
-      'review_queued', 'mark the workflow step done with a deterministic disposition',
-      'the run advances to its deterministic tail steps; a reviewer can overturn the determination',
+      '{}'::jsonb, jsonb_build_object('ops_knowledge', 'live at decision time', 'facts_read_at', v_facts->>'read_at'),
+      case when v_target is not null then array[v_target] else '{}'::text[] end,
+      case when v_source like 'executor:%' then array[v_target] else '{}'::text[] end,
+      case when v_exec_id is null then '[]'::jsonb else jsonb_build_array(jsonb_build_object('action_execution_id', v_exec_id)) end,
+      case v_disp when 'determined' then 'determined from ' || v_bound || ' bound fact(s); queued for review'
+                  when 'advisory_held_model' then 'determined from ' || v_bound || ' bound fact(s), but the step''s executor needs the held model; advisory until the hold lifts'
+                  else 'no fact bound: the record applies as written; narrative is needed' end,
+      'review_queued', 'close the workflow step with disposition ' || v_disp,
+      'the run advances; a reviewer can overturn the determination',
       'none', 'deterministic', 0, 0, 0, 'auto_done', now())
   returning id into v_trace;
 
   -- Never a silent pass: the determination is queued for review, with everything needed to overturn it.
   insert into public.review_queue(kind, dept_key, title, summary, payload, status)
   values ('deterministic_step', v_dept,
-          left('Deterministic determination: ' || sr.workflow_key || ' step ' || sr.step_no || ' — ' || coalesce(sr.input->>'step',''), 240),
-          left(coalesce(p_output->>'outcome',''), 600),
+          left(initcap(replace(v_disp, '_', ' ')) || ': ' || sr.workflow_key || ' step ' || sr.step_no || ' — ' || coalesce(sr.input->>'step',''), 240),
+          left(v_outcome, 600),
           jsonb_build_object('workflow_run_id', sr.workflow_run_id, 'step_run_id', sr.id, 'step_no', sr.step_no,
-                             'employee', v_employee, 'playbook_record_id', p_output->>'playbook_record_id',
-                             'playbook_title', p_output->>'playbook_title', 'similarity', v_sim,
-                             'decision_trace_id', v_trace, 'disposition', 'deterministic_low_confidence'),
+                             'employee', v_employee, 'playbook_record_id', v_pb_id,
+                             'playbook_title', v_pb_title, 'similarity', v_sim, 'terms_matched', v_terms,
+                             'decision_trace_id', v_trace, 'disposition', v_disp,
+                             'determination_source', v_source, 'executor_status', v_exec_status,
+                             'facts_bound', v_bound, 'used_llm', v_used_llm),
           'pending')
   returning id into v_review;
 
@@ -80773,17 +82581,42 @@ begin
   get diagnostics v_superseded = row_count;
 
   v_out := coalesce(p_output, '{}'::jsonb) || jsonb_build_object(
-             'used_llm', false,
-             'disposition', 'deterministic_low_confidence',
+             'mode', v_mode,
+             'deliverable', left(v_deliv, 20000),
+             'outcome', left(v_outcome, 400),
+             'disposition', v_disp,
+             'determination_source', v_source,
+             'executor_status', v_exec_status,
+             'executor_kind', v_kind,
+             'action_execution_id', v_exec_id,
+             'facts_bound', v_bound,
+             'facts', v_facts,
+             'used_llm', v_used_llm,
+             'used_llm_basis', 'measured at close: ' || v_llm || ' llm_attempt + ' || v_cost
+                               || ' ai_cost_log row(s) by workflow_dispatch since the step was claimed at ' || sr.started_at,
              'decision_trace_id', v_trace,
              'review_queue_id', v_review,
              'review_status', 'pending',
              'superseded_executions', v_superseded);
 
+  if v_queued then
+    -- the step stays running with a queued execution; fn_workflow_step_sweep settles it when the
+    -- executor answers, merging the response over this determination
+    update public.workflow_step_run set output = v_out where id = sr.id;
+    return jsonb_build_object('ok', true, 'advanced', 'awaiting executor ' || v_target, 'decision_trace_id', v_trace,
+                              'review_queue_id', v_review, 'superseded_executions', v_superseded,
+                              'disposition', v_disp, 'determination_source', v_source,
+                              'executor_status', v_exec_status, 'action_execution_id', v_exec_id,
+                              'facts_bound', v_bound, 'used_llm', v_used_llm);
+  end if;
+
   v_res := public.fn_workflow_step_done(sr.workflow_run_id, sr.step_no, v_out, 'done');
 
   return jsonb_build_object('ok', true, 'advanced', v_res, 'decision_trace_id', v_trace,
-                            'review_queue_id', v_review, 'superseded_executions', v_superseded);
+                            'review_queue_id', v_review, 'superseded_executions', v_superseded,
+                            'disposition', v_disp, 'determination_source', v_source,
+                            'executor_status', v_exec_status, 'action_execution_id', v_exec_id,
+                            'facts_bound', v_bound, 'used_llm', v_used_llm);
 end
 $function$
 
@@ -80824,6 +82657,203 @@ begin
   update workflow_run set current_step = v_next, updated_at = now() where id = p_run;
   return 'advanced to step ' || v_next;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_workflow_step_facts(p_step_run_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  -- step + run
+  v_step_no int; v_actor text; v_action_class text; v_input jsonb; v_started timestamptz; v_run uuid;
+  v_wf text; v_ctx jsonb; v_trigger bigint; v_r_entity_type text; v_r_entity_id text;
+  -- event
+  v_ev_type text; v_ev_entity_type text; v_ev_entity_id text; v_ev_payload jsonb; v_ev_at timestamptz; v_ev_actor text;
+  -- metric
+  v_mk text; v_label text; v_owner text; v_val numeric; v_tgt numeric; v_dir text; v_state text; v_err text;
+  v_taken timestamptz; v_definition text; v_in_scorecard boolean := false;
+  v_hist jsonb; v_consec int := 0; v_ever_met boolean := false; v_n_snap int := 0; snap record; v_off boolean;
+  v_metric jsonb := null; v_band text; v_gap numeric; v_att numeric; v_cause text; v_cause_why text;
+  -- goals
+  v_goals jsonb := null; v_failing jsonb := null; v_prior jsonb := '[]'::jsonb;
+  v_bound int := 0; v_derived jsonb := '{}'::jsonb;
+begin
+  select s.step_no, s.actor, s.action_class, s.input, s.started_at, s.workflow_run_id,
+         r.workflow_key, coalesce(r.context, '{}'::jsonb), r.trigger_event_id, r.entity_type, r.entity_id
+    into v_step_no, v_actor, v_action_class, v_input, v_started, v_run,
+         v_wf, v_ctx, v_trigger, v_r_entity_type, v_r_entity_id
+    from public.workflow_step_run s
+    join public.workflow_run r on r.id = s.workflow_run_id
+   where s.id = p_step_run_id;
+  if v_run is null then return null; end if;
+
+  select e.event_type, e.entity_type, e.entity_id, e.payload, e.occurred_at, e.actor
+    into v_ev_type, v_ev_entity_type, v_ev_entity_id, v_ev_payload, v_ev_at, v_ev_actor
+    from public.company_event e where e.id = v_trigger;
+  v_ev_payload := coalesce(v_ev_payload, '{}'::jsonb);
+
+  -- THE METRIC THIS RUN IS ABOUT. Keyed by the event's entity (kpi.missed carries metric_key as
+  -- entity_id), else by the context's metric_key, else by the label the emitter wrote.
+  v_mk := case when v_ev_entity_type = 'metric' then v_ev_entity_id
+               when v_ctx ? 'metric_key' then v_ctx->>'metric_key'
+               when v_r_entity_type = 'metric' then v_r_entity_id
+               else (select d.metric_key from public.metric_definition d
+                      where d.label = coalesce(v_ctx->>'label', v_ev_payload->>'label') limit 1) end;
+  -- the emitter's numbers are facts even when the metric is a fixture with no definition row
+  v_label := coalesce(v_ctx->>'label', v_ev_payload->>'label');
+  v_val   := coalesce(nullif(v_ev_payload->>'value','')::numeric, nullif(v_ctx->>'value','')::numeric);
+  v_tgt   := coalesce(nullif(v_ev_payload->>'target','')::numeric, nullif(v_ctx->>'target','')::numeric);
+  v_state := coalesce(v_ev_payload->>'state', v_ctx->>'state');
+  v_dir   := coalesce(v_ev_payload->>'direction', v_ctx->>'direction');
+
+  if v_mk is not null then
+    select sc.label, sc.owner_dept, sc.value, sc.target, sc.direction, sc.state, sc.error, sc.taken_at, sc.definition, true
+      into v_label, v_owner, v_val, v_tgt, v_dir, v_state, v_err, v_taken, v_definition, v_in_scorecard
+      from public.v_bi_scorecard sc where sc.metric_key = v_mk;
+    v_in_scorecard := coalesce(v_in_scorecard, false);
+    if not v_in_scorecard then
+      -- the scorecard select found nothing and nulled the targets: restore the emitter's numbers
+      v_label := coalesce(v_ctx->>'label', v_ev_payload->>'label');
+      v_val   := coalesce(nullif(v_ev_payload->>'value','')::numeric, nullif(v_ctx->>'value','')::numeric);
+      v_tgt   := coalesce(nullif(v_ev_payload->>'target','')::numeric, nullif(v_ctx->>'target','')::numeric);
+      v_state := coalesce(v_ev_payload->>'state', v_ctx->>'state');
+      v_dir   := coalesce(v_ev_payload->>'direction', v_ctx->>'direction');
+    end if;
+
+    -- snapshot history, newest first, and the leading run of misses — the metric_lifecycle playbooks'
+    -- TARGET_MIS_SET test reads ">= 3 consecutive measured periods, never met since the target was set"
+    v_hist := '[]'::jsonb;
+    for snap in
+      select s.value, s.error, s.taken_at from public.metric_snapshot s
+       where s.metric_key = v_mk order by s.taken_at desc limit 12
+    loop
+      v_n_snap := v_n_snap + 1;
+      if v_n_snap <= 6 then
+        v_hist := v_hist || jsonb_build_object('value', snap.value, 'error', snap.error, 'taken_at', snap.taken_at);
+      end if;
+      v_off := snap.error is null and snap.value is not null and v_tgt is not null
+               and ((v_dir = 'up' and snap.value < v_tgt * 0.7) or (v_dir = 'down' and snap.value > v_tgt * 1.3));
+      if v_off and v_consec = v_n_snap - 1 then v_consec := v_consec + 1; end if;
+      if snap.error is null and snap.value is not null and v_tgt is not null
+         and ((v_dir = 'up' and snap.value >= v_tgt) or (v_dir = 'down' and snap.value <= v_tgt)) then
+        v_ever_met := true;
+      end if;
+    end loop;
+  end if;
+
+  if v_label is not null or v_val is not null or v_mk is not null then
+    -- band by the scorecard's own rule when the scorecard did not already say
+    v_band := coalesce(v_state,
+                case when v_err is not null then 'ERROR'
+                     when v_val is null or v_tgt is null then 'UNMEASURED'
+                     when v_dir = 'up'   and v_val >= v_tgt then 'ON_TARGET'
+                     when v_dir = 'down' and v_val <= v_tgt then 'ON_TARGET'
+                     when v_dir = 'up'   and v_val >= v_tgt * 0.7 then 'BEHIND'
+                     when v_dir = 'down' and v_val <= v_tgt * 1.3 then 'BEHIND'
+                     when v_val is not null and v_tgt is not null then 'OFF_TARGET' end);
+    v_gap := case when v_val is not null and v_tgt is not null then v_val - v_tgt end;
+    v_att := case when v_val is null or v_tgt is null then null
+                  when coalesce(v_dir,'up') = 'up' then
+                       case when v_tgt > 0 then round(100 * v_val / v_tgt, 1)
+                            when v_val <= 0 then 100 else null end
+                  else case when v_val > 0 then least(100, round(100 * v_tgt / v_val, 1)) else 100 end end;
+    -- cause class, by the "root cause" playbook's own definitions, from what is measurable here
+    if v_band = 'ERROR' or v_err is not null then
+      v_cause := 'INSTRUMENT'; v_cause_why := 'the latest snapshot carries an error: ' || coalesce(v_err, '(null)');
+    elsif v_band = 'UNMEASURED' then
+      v_cause := 'INSTRUMENT'; v_cause_why := 'value or target is null; the metric is UNMEASURED, not failing';
+    elsif v_band in ('ON_TARGET', 'BEHIND') then
+      v_cause := 'NONE'; v_cause_why := 'band ' || v_band || ': no miss to attribute';
+    elsif v_consec >= 3 and not v_ever_met and coalesce(btrim(v_definition), '') = '' then
+      v_cause := 'TARGET_MIS_SET';
+      v_cause_why := v_consec || ' consecutive OFF_TARGET snapshots, never met in ' || v_n_snap
+                     || ' recorded, and metric_definition.definition is empty (no documented basis)';
+    else
+      v_cause := 'EXECUTION';
+      v_cause_why := 'default per the playbook: input existed and the instrument is sound. TARGET_MIS_SET test: '
+                     || v_consec || ' consecutive OFF_TARGET snapshot(s) (needs >= 3), ever met = ' || v_ever_met
+                     || ', documented basis = ' || (coalesce(btrim(v_definition), '') <> '')
+                     || case when v_n_snap = 0 then '; no snapshot history for this key' else '' end;
+    end if;
+    v_metric := jsonb_strip_nulls(jsonb_build_object(
+      'metric_key', v_mk, 'label', v_label, 'owner_dept', v_owner, 'in_scorecard', v_in_scorecard,
+      'value', v_val, 'target', v_tgt, 'direction', v_dir, 'state', v_state, 'error', v_err,
+      'taken_at', v_taken, 'snapshots_newest_first', v_hist, 'snapshots_read', v_n_snap,
+      'consecutive_off_target', v_consec, 'ever_met', v_ever_met));
+    v_bound := v_bound + (v_val is not null)::int + (v_tgt is not null)::int + (v_band is not null)::int
+               + (v_n_snap > 0)::int;
+    v_derived := jsonb_strip_nulls(jsonb_build_object(
+      'band', v_band, 'gap', v_gap, 'attainment_pct', v_att, 'cause', v_cause, 'cause_evidence', v_cause_why,
+      'direction', v_dir));
+  end if;
+
+  -- GOALS AT RISK and FAILING METRICS (goal.at_risk carries both as arrays of keys / labels)
+  if jsonb_typeof(v_ctx->'goals_at_risk') = 'array' or jsonb_typeof(v_ev_payload->'goals_at_risk') = 'array' then
+    select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+             'key', g.key, 'goal', g.goal, 'metric', g.metric, 'target_value', g.target_value, 'unit', g.unit,
+             'direction', g.direction, 'owner_dept', g.owner_dept, 'horizon', g.horizon, 'deadline', g.deadline,
+             'active', g.active,
+             'latest_period', (select jsonb_build_object('period', p.period_label, 'actual', p.actual_value,
+                                                         'target', p.target_value, 'status', p.status)
+                                 from public.goal_period p where p.goal_key = g.key
+                                order by p.updated_at desc limit 1))) order by g.key), '[]'::jsonb)
+      into v_goals
+      from public.company_goals g
+     where g.key in (select jsonb_array_elements_text(coalesce(v_ctx->'goals_at_risk', v_ev_payload->'goals_at_risk')));
+    -- a fixture goal with no company_goals row is still a named fact of the trigger
+    select coalesce(v_goals, '[]'::jsonb) || coalesce(jsonb_agg(jsonb_build_object('key', k, 'in_company_goals', false)), '[]'::jsonb)
+      into v_goals
+      from jsonb_array_elements_text(coalesce(v_ctx->'goals_at_risk', v_ev_payload->'goals_at_risk')) k
+     where not exists (select 1 from public.company_goals g where g.key = k);
+    v_bound := v_bound + coalesce(jsonb_array_length(v_goals), 0);
+  end if;
+  if jsonb_typeof(v_ctx->'failing_metrics') = 'array' or jsonb_typeof(v_ev_payload->'failing_metrics') = 'array' then
+    select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+             'label', lbl, 'metric_key', sc.metric_key, 'value', sc.value, 'target', sc.target,
+             'direction', sc.direction, 'state', sc.state, 'error', sc.error, 'taken_at', sc.taken_at,
+             'owner_dept', sc.owner_dept, 'in_scorecard', (sc.metric_key is not null))) order by lbl), '[]'::jsonb)
+      into v_failing
+      from jsonb_array_elements_text(coalesce(v_ctx->'failing_metrics', v_ev_payload->'failing_metrics')) lbl
+      left join public.v_bi_scorecard sc on sc.label = lbl;
+    v_bound := v_bound + coalesce(jsonb_array_length(v_failing), 0);
+  end if;
+
+  -- WHAT THIS RUN ALREADY CONCLUDED (outcome lines only, in order)
+  select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+           'step_no', p.step_no, 'step', p.input->>'step', 'by', coalesce(p.output->>'employee', p.actor),
+           'outcome', left(coalesce(p.output->>'outcome', p.output->>'note', ''), 600),
+           'disposition', p.output->>'disposition', 'determination_source', p.output->>'determination_source',
+           'executor_status', p.output->>'executor_status')) order by p.step_no), '[]'::jsonb)
+    into v_prior
+    from public.workflow_step_run p
+   where p.workflow_run_id = v_run and p.step_no < v_step_no and p.status = 'done';
+  v_bound := v_bound + (select count(*) from jsonb_array_elements(v_prior) x where coalesce(x->>'outcome','') <> '')::int;
+
+  -- the trigger payload's own scalar facts, beyond the ones already read above
+  v_bound := v_bound + (select count(*) from jsonb_each(v_ev_payload) e
+                         where jsonb_typeof(e.value) in ('string','number','boolean')
+                           and e.key not in ('label','value','target','state','direction'))::int;
+
+  return jsonb_strip_nulls(jsonb_build_object(
+    'step', jsonb_build_object('workflow_key', v_wf, 'step_no', v_step_no, 'step', v_input->>'step',
+                               'gate', v_input->>'gate', 'actor', v_actor, 'action_class', v_action_class,
+                               'claimed_at', v_started),
+    'trigger', case when v_ev_type is null then null else
+                 jsonb_build_object('event_id', v_trigger, 'event_type', v_ev_type, 'entity_type', v_ev_entity_type,
+                                    'entity_id', v_ev_entity_id, 'actor', v_ev_actor, 'occurred_at', v_ev_at,
+                                    'payload', v_ev_payload) end,
+    'context', v_ctx,
+    'metric', v_metric,
+    'goals_at_risk', v_goals,
+    'failing_metrics', v_failing,
+    'prior_steps', v_prior,
+    'derived', v_derived,
+    'facts_bound', v_bound,
+    'read_at', now()));
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_workflow_step_release(p_step_run_id bigint, p_reason text)
@@ -80891,6 +82921,118 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_workflow_step_render(p_facts jsonb, p_title text, p_record_type text, p_content text, p_structured jsonb)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  f jsonb := coalesce(p_facts, '{}'::jsonb);
+  d jsonb := coalesce(p_facts->'derived', '{}'::jsonb);
+  m jsonb := p_facts->'metric';
+  t text := '';
+  sel text[]; k text; v jsonb; s text; x jsonb; n int := 0; lines text := '';
+begin
+  t := 'DETERMINATION — ' || coalesce(f#>>'{step,workflow_key}', '?') || ' step ' || coalesce(f#>>'{step,step_no}', '?')
+       || ': ' || coalesce(f#>>'{step,step}', '') || E'\n'
+       || 'Decided by ' || coalesce(f#>>'{step,actor}', '?') || ' at ' || coalesce(f->>'read_at', '') || ' from '
+       || coalesce(f->>'facts_bound', '0') || ' bound fact(s); no model call.' || E'\n\n';
+
+  t := t || E'FACTS THIS STEP DECIDED FROM\n';
+  if f ? 'trigger' then
+    t := t || '- trigger: ' || coalesce(f#>>'{trigger,event_type}', '?') || ' on ' || coalesce(f#>>'{trigger,entity_type}', '?')
+         || ' ' || coalesce(f#>>'{trigger,entity_id}', '?') || ' at ' || coalesce(f#>>'{trigger,occurred_at}', '?')
+         || ' (event ' || coalesce(f#>>'{trigger,event_id}', '?') || ') payload ' || coalesce((f#>'{trigger,payload}')::text, '{}') || E'\n';
+  else
+    t := t || E'- trigger: none recorded on this run\n';
+  end if;
+  if m is not null then
+    t := t || '- metric: ' || coalesce(m->>'label', m->>'metric_key', '?')
+         || case when (m->>'metric_key') is not null then ' [' || (m->>'metric_key') || ']' else '' end
+         || ' value=' || coalesce(m->>'value', 'null') || ' target=' || coalesce(m->>'target', 'null')
+         || ' direction=' || coalesce(m->>'direction', 'unknown') || ' state=' || coalesce(m->>'state', d->>'band', 'unknown')
+         || case when (m->>'error') is not null then ' ERROR=' || (m->>'error') else '' end
+         || case when (m->>'taken_at') is not null then ' taken_at=' || (m->>'taken_at') else '' end
+         || ' owner=' || coalesce(m->>'owner_dept', 'unknown')
+         || ' in_scorecard=' || coalesce(m->>'in_scorecard', 'false') || E'\n'
+         || '- snapshots (newest first, ' || coalesce(m->>'snapshots_read', '0') || ' read): ' || coalesce((m->'snapshots_newest_first')::text, '[]')
+         || '; consecutive_off_target=' || coalesce(m->>'consecutive_off_target', '0') || ' ever_met=' || coalesce(m->>'ever_met', 'false') || E'\n';
+  end if;
+  if jsonb_typeof(f->'goals_at_risk') = 'array' then
+    for x in select * from jsonb_array_elements(f->'goals_at_risk') loop
+      t := t || '- goal at risk: ' || coalesce(x->>'key', '?')
+           || case when coalesce(x->>'in_company_goals', 'true') = 'false' then ' (no company_goals row)'
+                   else ' "' || coalesce(x->>'goal', '') || '" target ' || coalesce(x->>'target_value', 'null') || ' ' || coalesce(x->>'unit', '')
+                        || ' dir=' || coalesce(x->>'direction', '?') || ' owner=' || coalesce(x->>'owner_dept', '?')
+                        || ' deadline=' || coalesce(x->>'deadline', 'none')
+                        || case when x ? 'latest_period' then ' latest period ' || (x->'latest_period')::text else ' (no goal_period yet)' end end
+           || E'\n';
+    end loop;
+  end if;
+  if jsonb_typeof(f->'failing_metrics') = 'array' then
+    for x in select * from jsonb_array_elements(f->'failing_metrics') loop
+      t := t || '- failing metric: ' || coalesce(x->>'label', '?')
+           || case when coalesce(x->>'in_scorecard', 'false') = 'true'
+                   then ' [' || (x->>'metric_key') || '] value=' || coalesce(x->>'value', 'null') || ' target=' || coalesce(x->>'target', 'null')
+                        || ' state=' || coalesce(x->>'state', '?') || ' owner=' || coalesce(x->>'owner_dept', '?')
+                        || case when (x->>'error') is not null then ' ERROR=' || (x->>'error') else '' end
+                   else ' (not on v_bi_scorecard: the emitter''s label only)' end
+           || E'\n';
+    end loop;
+  end if;
+  if jsonb_typeof(f->'prior_steps') = 'array' and jsonb_array_length(f->'prior_steps') > 0 then
+    for x in select * from jsonb_array_elements(f->'prior_steps') loop
+      t := t || '- prior step ' || coalesce(x->>'step_no', '?') || ' (' || coalesce(x->>'by', '?') || ', '
+           || coalesce(x->>'disposition', 'no disposition') || '): ' || coalesce(x->>'outcome', '') || E'\n';
+    end loop;
+  else
+    t := t || E'- prior steps: none concluded yet; this is the first step of the run to decide anything\n';
+  end if;
+  if f ? 'context' and (f->'context') <> '{}'::jsonb then
+    t := t || '- run context: ' || (f->'context')::text || E'\n';
+  end if;
+
+  t := t || E'\nDETERMINED\n';
+  if m is not null then
+    t := t || '- variance: ' || coalesce(m->>'label', '?') || ' is ' || coalesce(d->>'band', 'unknown')
+         || case when d ? 'gap' then ' — gap ' || (d->>'gap') || ' against target ' || coalesce(m->>'target', 'null')
+                                   || ' (direction ' || coalesce(d->>'direction', 'unknown') || ')' else '' end
+         || case when d ? 'attainment_pct' then ', attainment ' || (d->>'attainment_pct') || '%' else '' end || E'\n'
+         || '- cause class: ' || coalesce(d->>'cause', 'not established') || ' — ' || coalesce(d->>'cause_evidence', '') || E'\n';
+  end if;
+
+  -- resolve keyed maps in structured_data at the facts
+  sel := array_remove(array[d->>'band', d->>'cause', d->>'direction', f#>>'{trigger,event_type}', f#>>'{step,gate}',
+                            lower(d->>'band'), lower(d->>'cause')], null);
+  if p_structured is not null and jsonb_typeof(p_structured) = 'object' then
+    for k, v in select * from jsonb_each(p_structured) loop
+      if jsonb_typeof(v) = 'object' then
+        foreach s in array coalesce(sel, '{}'::text[]) loop
+          if v ? s then
+            n := n + 1;
+            lines := lines || '- ' || k || '[' || s || '] → ' || case when jsonb_typeof(v->s) = 'string' then v->>s else (v->s)::text end || E'\n';
+          end if;
+        end loop;
+      end if;
+    end loop;
+  end if;
+  if n > 0 then
+    t := t || 'Selected from "' || coalesce(p_title, '?') || '" at the facts above (' || n || ' rule(s)):' || E'\n' || lines;
+  else
+    t := t || 'No keyed rule in "' || coalesce(p_title, '?') || '" resolves at these facts; the record applies as written below.' || E'\n';
+  end if;
+
+  t := t || E'\nAPPLIED RECORD: ' || coalesce(p_record_type, '?') || ' "' || coalesce(p_title, '?') || E'"\n'
+       || coalesce(p_content, '');
+  if p_structured is not null and p_structured <> '{}'::jsonb then
+    t := t || E'\n\nSTRUCTURED DATA OF THE RECORD:\n' || jsonb_pretty(p_structured);
+  end if;
+  return t;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_workflow_step_sweep(p_limit integer DEFAULT 5)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -80903,9 +83045,10 @@ declare s record; v_settled int := 0; v_q int := 0; v_key text; v_res text; v_ou
 begin
   v_held := coalesce((public.fn_kernel_paid_provider_gate('anthropic/claude-sonnet-5')->>'allowed')::boolean, false) = false;
 
-  -- 1. SETTLE what the invoker has already finished.
+  -- 1. SETTLE what the invoker has already finished. A determination stored on the step before its
+  --    executor ran (fn_workflow_step_deterministic_done's queued-edge path) is kept under the response.
   for s in
-    select x.status, x.response, x.executor, r.id sid, r.workflow_run_id, r.step_no
+    select x.status, x.response, x.executor, r.id sid, r.workflow_run_id, r.step_no, r.output prev_output
       from public.action_execution x
       join public.workflow_step_run r on r.id = x.workflow_step_run_id
      where x.workflow_step_run_id is not null
@@ -80916,8 +83059,10 @@ begin
   loop
     v_res := public.fn_workflow_step_done(
       s.workflow_run_id, s.step_no,
-      coalesce(s.response, '{}'::jsonb)
-        || jsonb_build_object('worked_by', 'executor:' || coalesce(s.executor, '?'))
+      coalesce(s.prev_output, '{}'::jsonb)
+        || coalesce(s.response, '{}'::jsonb)
+        || jsonb_build_object('worked_by', 'executor:' || coalesce(s.executor, '?'),
+                              'executor_status', case when s.status = 'succeeded' then 'ran: ' else 'failed: ' end || coalesce(s.executor, '?'))
         || case when v_held then jsonb_build_object('used_llm', false, 'used_llm_basis', 'paid provider held (kernel K12) at settle time') else '{}'::jsonb end,
       case when s.status = 'succeeded' then 'done' else 'failed' end);
     v_settled := v_settled + 1;
@@ -86349,17 +88494,17 @@ CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON publ
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_approval_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_founder_approval_refund_only BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_refund_only();
 CREATE TRIGGER a00_founder_approval_names_a_real_refund BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_names_a_real_refund();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z20_founder_command_state_guard BEFORE UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_state_guard();
 CREATE TRIGGER a00_founder_command_trace_guard BEFORE INSERT OR UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_trace_guard();
+CREATE TRIGGER z20_founder_command_state_guard BEFORE UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_state_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_clarification FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_founder_command_clarification_answer_is_sealed BEFORE INSERT OR DELETE OR UPDATE ON public.founder_command_clarification FOR EACH ROW EXECUTE FUNCTION fn_founder_command_clarification_answer_is_sealed();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_message FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_founder_command_message_immutable BEFORE DELETE OR UPDATE ON public.founder_command_message FOR EACH ROW EXECUTE FUNCTION fn_founder_command_message_immutable();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_message FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_phase_c_no_new_release_approval BEFORE INSERT ON public.founder_release_approval FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_release_approval FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal_lines FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_gl_lines_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.gl_journal_lines FOR EACH ROW EXECUTE FUNCTION fn_gl_lines_immutable();
 CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.gl_settings FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
@@ -86367,75 +88512,75 @@ CREATE TRIGGER trg_undo_governance_rule BEFORE DELETE OR UPDATE ON public.govern
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.handoff_contract FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
-CREATE TRIGGER trg_idea_score BEFORE INSERT OR UPDATE ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_idea_rescore();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
+CREATE TRIGGER trg_idea_score BEFORE INSERT OR UPDATE ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_idea_rescore();
 CREATE TRIGGER z95_inbound_message_to_kernel AFTER INSERT ON public.inbound_messages FOR EACH ROW WHEN (((new.created_new_lead IS TRUE) AND (new.lead_id IS NOT NULL))) EXECUTE FUNCTION trg_inbound_message_to_kernel();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
+CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
+CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
+CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
 CREATE TRIGGER trg_inquiry_received_a AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_received();
 CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER customer_abandon_ban AFTER UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_customer_abandon_ban();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
-CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER autodispatch_inquiry AFTER INSERT OR UPDATE OF rfq_ready ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_autodispatch_inquiry();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
-CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER inquiry_answer_value_domain BEFORE INSERT ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_domain();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_conflict_value FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_corroboration FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_corroboration FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_document FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER answer_document_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_document FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER inquiry_gate_state_sync BEFORE INSERT OR UPDATE ON public.inquiry_gate FOR EACH ROW EXECUTE FUNCTION trg_inquiry_gate_state_sync();
 CREATE TRIGGER a00_unsafe_match_eligibility BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_unsafe_match_eligibility_guard();
 CREATE TRIGGER gate_incomplete_match BEFORE INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION trg_gate_incomplete_match();
 CREATE TRIGGER notify_matched_supplier AFTER INSERT ON public.inquiry_matches FOR EACH ROW EXECUTE FUNCTION fn_notify_matched_supplier();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_scope_disposition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON public.inquiry_scope_disposition FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_scope_disposition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_state_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_supplier_brief FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_trade_candidate_evidence FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.internal_credential_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER a00_kernel_routine_ownership_guard AFTER INSERT OR UPDATE ON public.kernel_routine_ownership FOR EACH ROW EXECUTE FUNCTION a00_kernel_routine_ownership_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_routine_ownership FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_signal_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_inbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_signal_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
 CREATE TRIGGER z10_signal_type_activation_guard BEFORE UPDATE ON public.kernel_signal_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_signal_type_activation_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_inbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_write_guard BEFORE INSERT OR DELETE OR UPDATE ON public.kernel_trigger_inbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_write_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_trigger_type_routing_guard BEFORE INSERT OR UPDATE OF workflow_id, trigger_type ON public.kernel_trigger_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_trigger_type_routing_guard();
-CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
-CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
-CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
-CREATE TRIGGER trg_leads_a_licence_gate BEFORE INSERT OR UPDATE OF license_doc_path, trade_license_no, license_expiry ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_gate_rerun();
-CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_leads_lifecycle_stage BEFORE INSERT OR UPDATE OF claimed, signed, registration_submitted_at, claimed_by, approval_status, registration_status, portal_updated_at, accepted_terms_at, owner_email_verified, invite_status, invited_at, contacted, created_at, lifecycle_stage ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_leads_lifecycle_stage();
+CREATE TRIGGER trg_norm_supplier_ver BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION qd_norm_supplier_ver();
 CREATE TRIGGER trg_self_reg_category AFTER INSERT OR UPDATE OF categories, source ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_self_reg_category();
+CREATE TRIGGER trg_leads_a_licence_gate BEFORE INSERT OR UPDATE OF license_doc_path, trade_license_no, license_expiry ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_licence_gate_rerun();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER z95_lead_dob_to_kernel AFTER UPDATE OF owner_dob ON public.leads FOR EACH ROW WHEN (((old.owner_dob IS NULL) AND (new.owner_dob IS NOT NULL))) EXECUTE FUNCTION trg_lead_dob_to_kernel();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER supplier_capability BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_supplier_capability();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
+CREATE TRIGGER enrich_capability_on_approve AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_enrich_capability();
+CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.llm_attempt FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER mep_trade_pattern_norm BEFORE INSERT OR UPDATE ON public.mep_trade_pattern FOR EACH ROW EXECUTE FUNCTION trg_mep_pattern_norm();
@@ -86448,38 +88593,39 @@ CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FO
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_action_executor FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
-CREATE TRIGGER trg_org_authority_guard BEFORE INSERT OR DELETE OR UPDATE ON public.org_authority FOR EACH ROW EXECUTE FUNCTION fn_org_authority_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_authority FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_org_authority_guard BEFORE INSERT OR DELETE OR UPDATE ON public.org_authority FOR EACH ROW EXECUTE FUNCTION fn_org_authority_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_departments FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_phase_baseline FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
-CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
-CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
+CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role_identity FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
-CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
-CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
+CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_tasks FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_org_tasks_founder_routing_refund_only BEFORE INSERT OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_kernel_founder_routing_is_refund_only();
 CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
+CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
+CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.os_incidents FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
-CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
 CREATE TRIGGER a00_kernel_parent_delete_guard BEFORE DELETE ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_kernel_business_parent_delete_guard();
 CREATE TRIGGER holdout_expectations_immutable BEFORE DELETE OR UPDATE ON public.p2c1_holdout_case FOR EACH ROW EXECUTE FUNCTION trg_holdout_expectations_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.p2c1_holdout_case FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.p2c1_holdout_result_of_record FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER holdout_record_immutable BEFORE DELETE OR UPDATE ON public.p2c1_holdout_result_of_record FOR EACH ROW EXECUTE FUNCTION trg_holdout_record_immutable();
-CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.p2c1_holdout_result_of_record FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
+CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER z95_pdpl_request_to_kernel AFTER INSERT ON public.pdpl_requests FOR EACH ROW EXECUTE FUNCTION trg_pdpl_request_to_kernel();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase1_rollback_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
@@ -86493,19 +88639,19 @@ CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_hando
 CREATE TRIGGER a10_phase_b_handoff_guard BEFORE INSERT OR UPDATE ON public.phase_b_handoff FOR EACH ROW EXECUTE FUNCTION fn_phase_b_handoff_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_step_state FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_step_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_phase_b_workflow_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow FOR EACH ROW EXECUTE FUNCTION fn_phase_b_workflow_owner_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_state FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a10_phase_b_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow_step FOR EACH ROW EXECUTE FUNCTION fn_phase_b_owner_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_step FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a10_phase_b_owner_guard BEFORE INSERT OR UPDATE ON public.phase_b_workflow_step FOR EACH ROW EXECUTE FUNCTION fn_phase_b_owner_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a10_change_request_approver_is_the_founder BEFORE INSERT OR UPDATE OF approved_by, approved_at ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approver_guard();
+CREATE TRIGGER a15_phase_c_change_request_disposition_follows_approval BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_disposition_follows_approval();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_change_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a05_phase_c_change_request_approval_is_derived BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_approval_is_derived();
-CREATE TRIGGER a15_phase_c_change_request_disposition_follows_approval BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_disposition_follows_approval();
-CREATE TRIGGER a00_phase_c_readonly_exemption_guard BEFORE INSERT OR UPDATE OF trace_policy_id, mutates_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_readonly_exemption_guard();
-CREATE TRIGGER a00_phase_c_component_classification_guard BEFORE INSERT OR UPDATE OF classification, activation_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_component_classification_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_component FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_phase_c_component_classification_guard BEFORE INSERT OR UPDATE OF classification, activation_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_component_classification_guard();
+CREATE TRIGGER a00_phase_c_readonly_exemption_guard BEFORE INSERT OR UPDATE OF trace_policy_id, mutates_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_readonly_exemption_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_event_binding FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_c_event_binding_status_guard BEFORE INSERT OR UPDATE OF connection_status ON public.phase_c_event_binding FOR EACH ROW EXECUTE FUNCTION fn_phase_c_event_binding_status_guard();
 CREATE TRIGGER z05_outbox_refuse_cancelled_subject BEFORE UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_outbox_refuse_cancelled_subject();

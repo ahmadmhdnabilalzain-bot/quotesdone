@@ -314,7 +314,12 @@ const iw = await probe(`do $p$ declare v_id bigint; v_owner text; v_task bigint;
   select owner, org_task_id into v_owner, v_task from os_incidents where id=v_id;
   select dept_key, action_class into v_dept, v_ac from org_tasks where id=v_task;
   update org_tasks set status='in_progress' where id=v_task; select acknowledged_at into v_ack from os_incidents where id=v_id;
-  update org_tasks set status='done' where id=v_task; select status into v_st from os_incidents where id=v_id;
+  -- 5 SEP 2026: a bare status flip to done is refused by a10_org_task_done_needs_a_determination
+  -- (the guard that closed the second closing path). The employee completes the task the way the
+  -- company does — through the fact-close door, with the deliverable on the row — and THAT must
+  -- resolve the incident.
+  perform fn_org_task_close_as_fact(v_task, v_owner, 'ZZ probe: the incident work was done and is recorded on the task', jsonb_build_object('probe', true));
+  select status into v_st from os_incidents where id=v_id;
   insert into os_incidents(title,kind,severity,detail,opened_by,opened_at)
     values('ZZ probe overdue','silent_failure','high','{}'::jsonb,'os',now()-interval '2 days') returning id into v_over;
   update os_incidents set due_at=now()-interval '1 day', escalated_at=null where id=v_over;

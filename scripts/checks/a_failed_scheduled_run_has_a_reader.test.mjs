@@ -272,7 +272,11 @@ if (hasToken) {
            max(d.start_time)::text as newest
       from cron.job_run_details d
       left join cron.job j on j.jobid = d.jobid
-     where d.status <> 'succeeded' and d.start_time > timestamptz '${WATERMARK}'
+     -- 5 SEP 2026: a tick still running has not failed. The red-view alerter's 15-minute sweep
+     -- takes about a minute, CI read it mid-flight as status 'running', and this check reported
+     -- "red_view_alert_15min: 1" as a failed scheduled run while every one of its ticks succeeded.
+     -- Only a finished tick is judged — the same rule fn_kernel_system_trace_state adopted on 4 Sep.
+     where d.status <> 'succeeded' and d.end_time is not null and d.start_time > timestamptz '${WATERMARK}'
      group by 1 order by 2 desc`);
   agentRows = await sql(`
     select agent, count(*)::int as errors, max(started_at)::text as newest
@@ -318,6 +322,15 @@ const DISCLOSED_CRON_AFTER_THE_WATERMARK = [
     why: 'the 00:50Z run failed because its component carried accountable_role_id \'brief\', which does '
        + 'not resolve in org_role. Fixed: role set to agent_workforce_capability_director (the crosswalk '
        + 'value); the job traces cleanly now.' },
+  { job: 'red_view_alert_15min', failures: 1,
+    why: '5 SEP 2026, 21:22Z: one tick hit the 120s cron statement_timeout inside '
+       + 'fn_company_connectivity_register, which the alerter calls on every sweep. Cause: the class C '
+       + 'arm added that evening (a trigger on company_event is a named consumer) correlated a LIKE over '
+       + 'every trigger body per company_event ROW; idle it runs in about a second (measured 1s on 6 Sep), '
+       + 'and under the lane packet\'s concurrent drive of sixteen dispatcher passes it crossed 120s once. '
+       + 'FIXED 6 Sep (the_registers_trigger_arm_is_computed_once.sql): the arm is a membership test '
+       + 'against a CTE computed once over the distinct event types. Every later tick succeeded. One '
+       + 'historical row remains until it ages out; a second still fails this check.' },
   { job: 'action_invoke_rpc_5min', failures: 4,
     why: '4 SEP 2026, 06:15-06:30Z: four ticks hit the 120s statement timeout inside fn_org_exec_knowledge_fill, which ran a full-table category reconcile over 2.65M kb_chunks on every knowledge_fill action once the workflow loop was revived. FIXED the same morning (knowledge_fill_executor_reconciles_recent_chunks_only.sql): the reconcile is scoped to recent chunks; 0 failures since 06:31Z. The four historical rows remain until they age out; a fifth still fails this check.' },
   { job: 'learning_loop_sweep_hourly', failures: 1,

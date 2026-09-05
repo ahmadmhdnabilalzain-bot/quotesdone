@@ -174,6 +174,7 @@ slugs.forEach((f, i) => {
 // ── RULE 4: VERIFY AGAINST THE DEPLOYED BUNDLE ─────────────────────────────────────────────────
 console.log('\n--- verifying against the DEPLOYED bundle ---');
 const notVerified = [];
+const after = {};
 let pass = 0;
 // PACE THE LOOP, DO NOT ONLY RECOVER FROM IT. The 429 retry took a 130-function deploy from
 // 120 verified to 129, and translate_page still exhausted five attempts — because the loop fires
@@ -188,6 +189,7 @@ for (const f of slugs) {
     const m = await api(`/functions/${f}`);
     // A first deploy has no previous version, so "bumped" is satisfied by the function existing.
     const bumped = before[f] < 0 ? Number(m.version) >= 1 : Number(m.version) > before[f];
+    after[f] = Number(m.version);
     if (bumped) pass++; else notVerified.push(f);
     console.log(`${f.padEnd(24)} v${String(m.version).padEnd(4)} (was v${String(before[f]).padEnd(4)}) `
       + `ok=${String(bumped).padEnd(5)} verify_jwt=${m.verify_jwt}`);
@@ -207,8 +209,16 @@ console.log('ALL GOOD');
 // waited on deploy.completed and nothing in the estate ever emitted it; this is the only place that
 // KNOWS a deploy completed and was read back, so it says so. Best-effort: a deploy that succeeded is
 // not un-succeeded by a failed event write, but the failure is printed, never swallowed.
+// 5 SEP 2026: the payload also carries the rule-4 verification itself — pass/of, the slugs not
+// verified, and each function's version before and after — so change_deployment step 8 ("promote to
+// production", fn_change_deployment_execute) records the parity verdict from the instrument that
+// measured it instead of re-asserting it. An event without `verified` is read as "not in payload".
 try {
-  const payload = JSON.stringify({ ref, functions: slugs, count: slugs.length, at: new Date().toISOString() });
+  const payload = JSON.stringify({
+    ref, functions: slugs, count: slugs.length, at: new Date().toISOString(),
+    verified: { pass, of: slugs.length, not_verified: notVerified,
+                versions: Object.fromEntries(slugs.map((f) => [f, { before: before[f], after: after[f] ?? null }])) },
+  });
   const q = (v) => "'" + String(v).replace(/'/g, "''") + "'";
   await sql(`select public.fn_emit('deploy.completed', 'deploy', ${q(new Date().toISOString())}, 'deploy_functions', ${q(payload)}::jsonb)`);
   console.log(`deploy.completed emitted for ${slugs.length} function(s)`);

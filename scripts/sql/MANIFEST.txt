@@ -1372,8 +1372,6 @@ scripts/sql/phase_c_the_bind_door_took_the_subject_as_an_argument.sql
 scripts/sql/phase_c_active_work_whose_business_parent_is_gone.sql
 scripts/sql/phase_c_the_scorer_would_have_read_a_hold_as_underperformance.sql
 scripts/sql/phase_c_two_boards_written_when_the_door_had_never_opened.sql
-[INFO] Recording command outcome: printf
-[OK] Command outcome recorded
 scripts/sql/phase_c_the_ownership_ledger_named_two_superseded_files.sql
 scripts/sql/spec3_three_rows_a_capability_was_waiting_on.sql
 scripts/sql/spec3_the_sixth_reputation_axis_had_no_column.sql
@@ -1528,10 +1526,6 @@ scripts/sql/retire_the_legacy_credential_and_the_parallel_task_executor.sql
 scripts/sql/staff_org_recarve_settlement_c_2026_09_03.sql
 scripts/sql/deploy_completed_has_subscribers.sql
 scripts/sql/kernel_ledger_follows_the_manifest_3_sep_d.sql
-$f
-;
-node
-scripts/apply_sql.mjs
 scripts/sql/every_live_entry_point_is_a_component.sql
 scripts/sql/the_four_raw_crons_run_through_the_kernel.sql
 scripts/sql/a_trace_is_required_from_the_moment_the_door_exists.sql
@@ -1600,17 +1594,7 @@ scripts/sql/fn_ads_manage_paces_under_the_founders_cap_and_emits_budget_exceeded
 scripts/sql/seven_packets_settle_into_one_estate.sql
 scripts/sql/kernel_ledger_follows_the_manifest_4_sep_b.sql
 scripts/sql/the_trace_state_board_judges_only_finished_executions.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/strategic_review_playbooks_2026_09_04.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/change_deployment_has_a_playbook_for_every_step.sql
 scripts/sql/change_deployment_runs_resume_now_the_playbooks_exist.sql
 scripts/sql/metric_lifecycle_playbooks_close_the_loop_model_off.sql
@@ -1620,19 +1604,25 @@ scripts/sql/org_task_lane_terminal_verdicts_2026_09_04.sql
 scripts/sql/a_gated_task_is_not_a_founder_task.sql
 scripts/sql/the_route_tests_run_again.sql
 scripts/sql/the_manual_records_the_four_jobs_enabled_today.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/the_promoter_raised_on_every_call.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
+scripts/sql/a_deterministic_close_performs_the_step_2026_09_05.sql
+scripts/sql/rpc_invoker_passes_the_request_and_honours_defer.sql
+scripts/sql/change_deployment_deterministic_executors.sql
+scripts/sql/claim_leaves_rpc_executor_steps_to_the_sweep.sql
+scripts/sql/a_second_closing_path_beside_the_spine.sql
+scripts/sql/every_open_task_gets_a_reason_or_a_run.sql
+scripts/sql/fn_recommend_deterministic.sql
+scripts/sql/fn_exec_review_deterministic.sql
+scripts/sql/fn_knowledge_gap_deterministic.sql
+scripts/sql/fn_workflow_step_claim_owns_rpc_executors.sql
+scripts/sql/deterministic_substitutes_registered_2026_09_05.sql
+scripts/sql/a_poison_pair_does_not_block_the_bus.sql
+scripts/sql/a_watcher_signature_resolves_when_its_subject_succeeds.sql
+scripts/sql/the_register_knows_the_invoker_passes_one_jsonb.sql
+scripts/sql/a_close_is_determined_only_when_its_executor_ran.sql
+scripts/sql/the_invokers_close_carries_its_deliverable_and_decider.sql
+scripts/sql/a_reorder_signal_is_not_work_for_the_cpo.sql
+scripts/sql/a_trigger_on_the_bus_is_a_named_consumer.sql
+scripts/sql/org_task_close_renders_from_the_tasks_facts_2026_09_06.sql
+scripts/sql/the_registers_trigger_arm_is_computed_once.sql

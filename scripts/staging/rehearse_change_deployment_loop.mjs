@@ -1,20 +1,28 @@
 // rehearse_change_deployment_loop.mjs — ONE deploy.completed, ONE change_deployment run, START TO
-// DONE WITH THE PAID MODEL HELD (MASTER_PLAN A1 / §4.2).
+// DONE WITH THE PAID MODEL HELD, EVERY STEP PERFORMED BY AN EXECUTOR (MASTER_PLAN A1 / §4.2).
 //
-// The 26 runs parked on 4 Sep proved the workflow could not turn. This proves it can: a single
-// deploy.completed event, emitted inside a declared rehearsal window, becomes a workflow_run that
-// walks all nine steps and finishes — every step closed with used_llm=false, the deterministic ones
-// citing the change_deployment playbook they applied with a sealed decision_trace and a review row.
+// 4 Sep: the 26 parked runs proved the workflow could not turn; the same evening 28 runs reached done
+// with steps 1 and 9 closed by the dispatcher applying a playbook — 1 distinct deliverable across 28
+// different deploys, no baseline read, no grade. 5 Sep: steps 1, 8 and 9 have a deterministic executor
+// (fn_change_deployment_execute, kind rpc) that reads THIS run's payload, captures a baseline, records
+// the promotion and its parity verdict, defers until the monitoring window has elapsed, and grades.
+// This proves that chain end to end on production with no model call.
 //
 // WHAT IS REAL AND WHAT IS A FIXTURE, said plainly:
 //   * The event is a FIXTURE. Its payload carries rehearsal:true and the run tag, so nobody can read
-//     it as a record of a deploy that happened. Everything downstream of it is the live machinery:
-//     fn_workflow_start_due, fn_workflow_step_claim, fn_apply_playbook, the real edge executors
-//     (qa_suite, resilience_ping, knowledge_exam) and fn_workflow_step_sweep.
+//     it as a record of a deploy that happened, and it deliberately carries NO `verified` block — no
+//     deploy was verified — so step 8 must report parity 'not_in_payload', never a verdict it invented.
+//     Everything downstream is the live machinery: fn_workflow_start_due, fn_workflow_step_sweep,
+//     fn_action_invoke_rpc / fn_action_invoke_dispatch / fn_action_invoke_collect, the real edge
+//     executors (qa_suite, resilience_ping, knowledge_exam), and the dispatcher (workflow_dispatch),
+//     which is called every round to prove it no longer takes a step an rpc executor owns.
+//   * The baseline and the grade are read from production's own agent_runs / kernel traces for the
+//     slug in the payload (workflow_dispatch) — real numbers over real windows.
+//   * Step 9 waits: the executor defers until 60 minutes after the payload's `at`. The loop sleeps
+//     until the deferral's not_before instead of hammering the API, so a full run takes ~65-75 minutes.
 //   * withRun declares a rehearsal_window first, so fn_watch_failed_runs does not page the founder
 //     about rows this run puts in agent_runs.
-//   * No paid provider is reached: the founder's hold is in force and every step must report
-//     used_llm=false. A step that reports otherwise fails this rehearsal.
+//   * No paid provider is reached: the founder's hold is in force and every step must report used_llm=false.
 //   * The workflow_run and its event are NOT torn down. They are the evidence, and the payload says
 //     what they are.
 //
@@ -22,10 +30,10 @@
 import { withRun, REF, q, jb } from './demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
 
-const BUDGET_ROUNDS = Number(process.env.QD_ROUNDS || 40);
+const BUDGET_MS = Number(process.env.QD_BUDGET_MINUTES || 110) * 60000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const checks = [];
-const ok = (name, pass, detail = '') => { checks.push(pass); console.log(`${pass ? 'PASS' : 'FAIL'} ${String(checks.length).padStart(2)} ${name.padEnd(58)} ${detail}`); };
+const ok = (name, pass, detail = '') => { checks.push(pass); console.log(`${pass ? 'PASS' : 'FAIL'} ${String(checks.length).padStart(2)} ${name.padEnd(62)} ${detail}`); };
 
 const secret = (await mgmtRead(REF, `select value from public.app_secrets where key = 'cred_cron_agents'`))[0]?.value;
 if (!secret) { console.error('no cred_cron_agents in app_secrets'); process.exit(2); }
@@ -37,17 +45,18 @@ async function dispatch(limit = 3) {
     body: JSON.stringify({ __secret: secret, limit }) });
   try { return await r.json(); } catch { return { http: r.status }; }
 }
+const kernel = async (stmt, where) => { try { await mgmtFixture(REF, stmt, where); } catch { /* 429: next round */ } };
 
 await withRun(async (run) => {
   const held = (await mgmtRead(REF,
     `select (public.fn_kernel_paid_provider_gate('anthropic/claude-sonnet-5')->>'allowed')::boolean a`))[0]?.a;
   ok('the paid provider is held before the rehearsal starts', held === false, `allowed=${held}`);
 
-  // 1. THE FIXTURE EVENT, shaped exactly like the one scripts/deploy_functions.mjs emits.
+  // 1. THE FIXTURE EVENT, shaped like the one scripts/deploy_functions.mjs emits — minus `verified`.
   const payload = {
     ref: REF, functions: ['workflow_dispatch'], count: 1, at: new Date().toISOString(),
     rehearsal: true, run_tag: `qd_run:${run.tag}`,
-    note: 'rehearsal of the change_deployment loop; no deploy happened',
+    note: 'rehearsal of the change_deployment loop; no deploy happened, nothing was verified',
   };
   await mgmtFixture(REF,
     `select public.fn_emit('deploy.completed', 'deploy', ${q(payload.at)}, 'rehearse_change_deployment_loop', ${jb(payload)})`,
@@ -66,47 +75,78 @@ await withRun(async (run) => {
   ok('a change_deployment run started from that event', !!runId, `run_id=${runId}`);
   if (!runId) return;
 
-  // 3. TURN THE LOOP with the three real routines, until the run finishes or the budget is spent.
-  let status = 'running', doneSteps = 0;
-  for (let i = 1; i <= BUDGET_ROUNDS && status === 'running'; i++) {
-    await dispatch(3);
-    try { await mgmtFixture(REF, `select public.fn_workflow_step_sweep(5)`, 'sweep'); } catch { /* rate limit */ }
-    try { await mgmtFixture(REF, `select public.fn_action_invoke_dispatch(5)`, 'invoke'); } catch { /* rate limit */ }
+  // 3. TURN THE LOOP with the real routines until the run finishes or the budget is spent. The
+  //    dispatcher is called first every round: the claim must now leave steps 1, 8, 9 alone.
+  const t0 = Date.now();
+  let status = 'running', doneSteps = 0, round = 0, dispatcherTookOurs = 0;
+  while (Date.now() - t0 < BUDGET_MS && status === 'running') {
+    round++;
+    const d = await dispatch(3);
+    for (const w of (d?.detail?.worked || [])) if (String(w.run_id) === String(runId)) dispatcherTookOurs++;
+    await kernel(`select public.fn_workflow_step_sweep(5)`, 'sweep');
+    await kernel(`select public.fn_action_invoke_dispatch(5)`, 'invoke edge');
+    await kernel(`select public.fn_action_invoke_rpc(5)`, 'invoke rpc');
+    await kernel(`select public.fn_action_invoke_collect()`, 'collect');
     await sleep(4000);
     const s = (await mgmtRead(REF,
-      `select r.status, (select count(*) from public.workflow_step_run x
-                          where x.workflow_run_id = r.id and x.finished_at is not null) fin
+      `select r.status, r.current_step,
+              (select count(*) from public.workflow_step_run x where x.workflow_run_id = r.id and x.finished_at is not null) fin,
+              (select x.response->>'not_before' from public.action_execution x
+                 join public.workflow_step_run sr on sr.id = x.workflow_step_run_id
+                where sr.workflow_run_id = r.id and x.status = 'queued' and x.response->>'invoker' = 'deferred'
+                order by x.created_at desc limit 1) not_before
          from public.workflow_run r where r.id = ${q(runId)}`))[0];
     status = s?.status; doneSteps = Number(s?.fin ?? 0);
-    console.log(`  round ${String(i).padStart(2)}  run ${status}  ${doneSteps}/9 steps finished`);
+    const nb = s?.not_before ? new Date(s.not_before).getTime() - Date.now() : 0;
+    console.log(`  round ${String(round).padStart(3)}  run ${status}  step ${s?.current_step}  ${doneSteps}/9 finished`
+      + (nb > 0 ? `  (step 9 deferred; ${Math.ceil(nb / 60000)} min to go)` : ''));
+    if (nb > 0) await sleep(Math.min(nb + 2000, 60000));
   }
-  ok('the run reached done', status === 'done', `status=${status}, ${doneSteps}/9 steps finished`);
+  ok('the run reached done', status === 'done', `status=${status}, ${doneSteps}/9 steps finished after ${round} rounds`);
+  ok('the dispatcher took none of this run\'s executor-owned steps', dispatcherTookOurs === 0, `taken=${dispatcherTookOurs}`);
 
   // 4. WHAT THE RUN ACTUALLY RECORDED.
   const steps = await mgmtRead(REF,
     `select step_no, status, output->>'used_llm' used_llm, output->>'worked_by' worked_by,
-            output->>'playbook_record_id' pb, output->>'similarity' sim,
-            output->>'decision_trace_id' trace, output->>'review_queue_id' review
+            output->>'playbook_record_id' pb,
+            output->'result'->0 as res
        from public.workflow_step_run where workflow_run_id = ${q(runId)} order by step_no`);
   for (const s of steps) {
-    console.log(`     step ${s.step_no} ${String(s.status).padEnd(8)} used_llm=${s.used_llm} ${s.worked_by ?? ''} ${s.pb ?? ''} ${s.sim ?? ''}`);
+    const r = s.res || {};
+    console.log(`     step ${s.step_no} ${String(s.status).padEnd(8)} used_llm=${s.used_llm} ${s.worked_by ?? ''}`
+      + (r.kind ? `  ${r.kind}: ${String(r.outcome || '').slice(0, 140)}` : ''));
   }
-  ok('all nine steps are finished', steps.length === 9 && steps.every((s) => s.status !== 'ready' && s.status !== 'queued'),
-     steps.map((s) => s.status).join(','));
-  ok('no step used the paid model', steps.every((s) => s.used_llm === 'false'),
-     steps.map((s) => s.used_llm).join(','));
+  ok('all nine steps are done', steps.length === 9 && steps.every((s) => s.status === 'done'), steps.map((s) => s.status).join(','));
+  ok('no step used the paid model', steps.every((s) => s.used_llm === 'false'), steps.map((s) => s.used_llm).join(','));
+  ok('no step was closed advisory by a playbook', steps.every((s) => !s.pb), steps.filter((s) => s.pb).map((s) => s.step_no).join(',') || 'none');
+  ok('every step was settled from an executor', steps.every((s) => String(s.worked_by || '').startsWith('executor:')),
+     steps.map((s) => s.worked_by).join(','));
 
-  const det = steps.filter((s) => s.pb);
-  ok('every deterministic close cites a change_deployment playbook',
-     det.length > 0 && det.every((s) => String(s.pb).startsWith('ops-change-deployment-step-')),
-     `${det.length} deterministic close(s)`);
-  ok('every deterministic close sealed a trace and queued a review',
-     det.every((s) => s.trace && s.review), det.map((s) => `${s.step_no}:${s.trace ? 'T' : '-'}${s.review ? 'R' : '-'}`).join(' '));
+  const by = (n) => steps.find((s) => Number(s.step_no) === n);
+  const s1 = by(1)?.res || {}, s8 = by(8)?.res || {}, s9 = by(9)?.res || {};
+  ok('step 1 captured a baseline for the slug in the payload',
+     by(1)?.worked_by === 'executor:fn_change_deployment_execute' && s1.kind === 'baseline'
+       && Array.isArray(s1.functions) && s1.functions[0] === 'workflow_dispatch' && Number.isInteger(s1.baseline?.failures),
+     `baseline failures=${s1.baseline?.failures} over ${s1.window?.hours}h ending ${s1.at}`);
+  ok('step 8 recorded the promotion and an honest parity verdict',
+     s8.kind === 'promote' && s8.promoted === true && s8.parity?.verdict === 'not_in_payload',
+     `parity=${s8.parity?.verdict}`);
+  ok('step 9 graded over a window of at least 60 minutes against step 1',
+     s9.kind === 'grade' && ['improved', 'no_change', 'worse'].includes(s9.grade)
+       && Number(s9.window?.hours) >= 0.99 && s9.baseline?.source === 'step 1 of this run',
+     `grade=${s9.grade} window=${s9.window?.hours}h post=${s9.post?.failures} baseline=${s9.baseline?.failures} (${s9.baseline?.source})`);
+  ok('step 9 never reversed anything itself', s9.reversal_performed === false,
+     `rollback_recommended=${s9.rollback_recommended} task=${s9.rollback_task_id}`);
+  const deferred = (await mgmtRead(REF,
+    `select coalesce(max((x.response->>'deferrals')::int), 0) d from public.action_execution x
+       join public.workflow_step_run sr on sr.id = x.workflow_step_run_id
+      where sr.workflow_run_id = ${q(runId)} and sr.step_no = 9`))[0]?.d;
+  ok('step 9 was deferred by the invoker before it graded', Number(deferred) >= 1, `deferrals=${deferred}`);
 
   const cost = (await mgmtRead(REF,
     `select count(*)::int c from public.ai_cost_log
-      where created_at >= now() - interval '30 minutes' and coalesce(estimated_cost_aed,0) > 0`))[0]?.c;
-  ok('no paid model call was billed during the rehearsal', Number(cost) === 0, `billed calls in the last 30m=${cost}`);
+      where occurred_at >= ${q(new Date(t0).toISOString())} and coalesce(cost_aed,0) > 0`))[0]?.c;
+  ok('no paid model call was billed during the rehearsal', Number(cost) === 0, `billed calls since start=${cost}`);
 }, { keep: true });
 
 const failed = checks.filter((c) => !c).length;
