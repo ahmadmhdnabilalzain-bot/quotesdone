@@ -1636,3 +1636,8 @@ $f
 --apply
 --ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
+scripts/sql/fn_recommend_deterministic.sql
+scripts/sql/fn_exec_review_deterministic.sql
+scripts/sql/fn_knowledge_gap_deterministic.sql
+scripts/sql/fn_workflow_step_claim_owns_rpc_executors.sql
+scripts/sql/deterministic_substitutes_registered_2026_09_05.sql
