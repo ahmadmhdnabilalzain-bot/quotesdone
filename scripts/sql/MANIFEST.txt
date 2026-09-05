@@ -1636,3 +1636,4 @@ $f
 --apply
 --ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
+scripts/sql/a_deterministic_close_performs_the_step_2026_09_05.sql

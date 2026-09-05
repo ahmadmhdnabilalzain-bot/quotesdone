@@ -40,7 +40,10 @@
 // THIS PRODUCES ADVISORY WORK, AND SAYS SO. agent_brain is advisory by construction: it reasons,
 // determines and hands off; it moves no money, approves no supplier and sends nothing. The step
 // output carries mode:'advisory' so a reader is never told a side effect happened when a
-// determination was written.
+// determination was written. Since 5 Sep 2026 the DETERMINISTIC close is the exception it names:
+// fn_workflow_step_deterministic_done sets mode:'determined' only when it rendered the step's own
+// facts AND the step's executor was deterministic (ran inline, queued for the invoker, or withheld by
+// the sweep's own policy — executor_status says which); a model-backed executor stays advisory.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
@@ -376,9 +379,19 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      // A DETERMINISTIC CLOSE PERFORMS THE STEP (5 Sep 2026). fn_workflow_step_deterministic_done renders
+      // the deliverable from the step's OWN facts (the playbook text handed over above is the record it
+      // applies, not the work product), invokes a deterministic executor, measures used_llm from the
+      // provider ledgers and earns one of three dispositions: determined / advisory_held_model /
+      // needs_narrative. The routine's answer is reported here, never this function's assumption.
       worked.push({ step_run_id: stepRunId, run_id: s.run_id, step_no: s.step_no, employee,
                     lane: isTaskLane ? 'org_task' : 'workflow_step', org_task_id: taskId,
                     workflow: wfName, chars: deliverable.length, advanced: adv, worked_by: workedBy,
+                    disposition: adv?.disposition ?? null,
+                    determination_source: adv?.determination_source ?? null,
+                    executor_status: adv?.executor_status ?? null,
+                    facts_bound: adv?.facts_bound ?? null,
+                    used_llm: typeof adv?.used_llm === 'boolean' ? adv.used_llm : (workedBy === 'model'),
                     playbook: playbook ? { record_id: playbook.record_id, title: playbook.title, similarity: playbook.similarity } : null,
                     outcome: outcome.slice(0, 200) });
     }
