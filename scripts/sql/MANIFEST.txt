@@ -1636,3 +1636,8 @@ $f
 --apply
 --ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
+scripts/sql/a_poison_pair_does_not_block_the_bus.sql
+scripts/sql/a_watcher_signature_resolves_when_its_subject_succeeds.sql
+[INFO] Recording command outcome: echo
+
+[OK] Command outcome recorded
