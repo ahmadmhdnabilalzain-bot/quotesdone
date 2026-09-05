@@ -59,7 +59,9 @@ const METADATA_PATHS = ['/api/v1/key', '/api/v1/credits', '/api/v1/models'];
 // The register: file -> { kind, why }. Nothing else may reach a provider host.
 const REGISTER = {
   'ai_gateway': { kind: 'INFERENCE', why: 'the gateway itself — this is the single door every other function is supposed to use' },
-  'resend_inbound': { kind: 'INFERENCE', why: 'DISCLOSED BYPASS: posts chat/completions directly because the gateway does not proxy image payloads yet (its own comment says so). Gated by the zero-cost check; still not routed through _shared/llm.ts' },
+  // resend_inbound left this register on 6 Sep 2026 (MASTER_PLAN A6): its classifier now goes through
+  // _shared/llm.ts with a `messages` array, image parts included — the gateway had accepted those
+  // since 11 Aug and the comment that kept the direct POST alive was stale.
   'designer': { kind: 'INFERENCE', why: 'DISCLOSED BYPASS: posts api.openai.com image generations directly. K12 gated it on 16 Aug after it was found calling a paid provider with no gate at all, because a grep for "openrouter" could not see a different host. Gated is not routed' },
   'ai_health': { kind: 'METADATA', why: 'GETs /api/v1/key as a liveness probe — metadata, not inference — and consults the provider hold before calling' },
   'cost_snapshot': { kind: 'METADATA', why: 'GETs /api/v1/credits for the billing balance — metadata, not inference — gated on paidOk' },
@@ -129,14 +131,15 @@ test('no edge function reaches a paid provider except the gateway and the disclo
   assert.deepEqual(problems, [], '\n  ' + problems.join('\n  ') + '\n');
 });
 
-test('the two disclosed inference bypasses are still exactly two, and still disclosed', () => {
+test('the disclosed inference bypass is still exactly one, and still disclosed', () => {
   const inference = Object.entries(REGISTER)
     .filter(([fn, r]) => r.kind === 'INFERENCE' && fn !== 'ai_gateway')
     .map(([fn]) => fn).sort();
   // THE RATCHET. This is the number the founder is owed: how many paid-inference calls do not go
-  // through the one door. It is 2, both disclosed, both gated. A third is a regression even if it
-  // is added to the register above.
-  assert.deepEqual(inference, ['designer', 'resend_inbound'],
+  // through the one door. It was 2 until 6 Sep 2026; resend_inbound now goes through the gateway,
+  // so it is 1 (designer: an image-generation host the gateway does not front). A second is a
+  // regression even if it is added to the register above.
+  assert.deepEqual(inference, ['designer'],
     'the set of edge functions doing paid inference outside the gateway changed. That is an '
     + 'architectural change, not a refactor: say so out loud and record why.');
 });

@@ -20,11 +20,13 @@
 // over the exact bytes; it is parsed only after verification succeeds.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
+import { makeLlmRich } from '../_shared/llm.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const MODEL = 'anthropic/claude-sonnet-5';
+const classify = makeLlmRich([MODEL], { max: 500, temperature: 0.1, fn: 'resend_inbound' });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 
 // Observability -------------------------------------------------------------
@@ -114,7 +116,9 @@ Deno.serve(async (req) => {
     const isResend = p?.type === 'email.received' && p?.data;
     let d = isResend ? p.data : (p.data || p);
     const emailId = String(d.email_id || d.id || '');
-    const rkey = await sec('resend_api_key'); const key = await sec('openrouter_api_key'); const inbSecret = await sec('cred_fn_ai');
+    // 6 SEP 2026 (MASTER_PLAN A6): the classifier no longer holds a provider key. It reaches the
+    // model through ai_gateway like every other caller; `key` below is only "is classification on".
+    const rkey = await sec('resend_api_key'); const key = await sec('cred_fn_resend_inbound'); const inbSecret = await sec('cred_fn_ai');
     let text = pickBody(d);
     let atts: any[] = Array.isArray(d.attachments) ? d.attachments : [];
     if ((!text || text.length < 20 || !atts.length) && emailId && rkey) {
@@ -272,9 +276,13 @@ Deno.serve(async (req) => {
           ai = { ...ai, summary: 'skipped_due_to_zero_cost_mode: attachment stored and linked; no classification, because every paid inference route is held.' };
           classifySkipped++;
         } else try {
-          // NOT migrated to ai_gateway: this call attaches image content for image attachments and the gateway does not proxy image payloads yet.
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,max_tokens:500,temperature:0.1,messages:[{role:'system',content:SYS},{role:'user',content}]})});
-          const jd = await r.json(); if (r.ok) ai = { ...ai, ...parseJson(jd?.choices?.[0]?.message?.content||'{}') }; else classifyFailures++;
+          // 6 SEP 2026 (MASTER_PLAN A6): through the one door. The gateway has taken a full OpenAI
+          // `messages` array, image parts included, since 11 Aug (inferCaps marks vision); the
+          // "does not proxy image payloads" comment that kept this call direct was stale. The
+          // gateway runs fn_llm_preflight, the hold, the budget and the cost ledger; the direct
+          // POST above ran none of them and was the estate's last inference call outside it.
+          const r = await classify(SYS, '', 500, '', { messages: [{ role: 'system', content: SYS }, { role: 'user', content }] });
+          if (r.content) ai = { ...ai, ...parseJson(r.content) }; else classifyFailures++;
         } catch { classifyFailures++; }
       }
       const cat = String(ai.category||'other');
