@@ -1626,3 +1626,13 @@ scripts/sql/a_reorder_signal_is_not_work_for_the_cpo.sql
 scripts/sql/a_trigger_on_the_bus_is_a_named_consumer.sql
 scripts/sql/org_task_close_renders_from_the_tasks_facts_2026_09_06.sql
 scripts/sql/the_registers_trigger_arm_is_computed_once.sql
+scripts/sql/the_inbound_classifier_uses_the_one_door.sql
+scripts/sql/credentials_expire_and_rotate_themselves.sql
+scripts/sql/the_alerter_reads_credential_expiry.sql
+scripts/sql/the_signal_intake_loses_its_rc4_block.sql
+scripts/sql/the_retire_routine_has_a_caller.sql
+$f
+;
+node
+scripts/checks/canonical_routine_manifest.mjs
+--emit

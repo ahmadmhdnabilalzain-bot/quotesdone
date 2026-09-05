@@ -41,7 +41,12 @@ declare
     -- the same reason action_worker was: the credential is issued at runtime by
     -- scripts/sql/wiring_for_the_employee_side_of_the_engine.sql, and a rebuilt database that never
     -- replayed that file would put every step deliberation back on the shared secret.
-    'workflow_dispatch'];
+    'workflow_dispatch',
+    -- resend_inbound added 6 Sep 2026 (MASTER_PLAN A6): the inbound-document classifier was the
+    -- estate's last chat/completions call outside ai_gateway. Its credential is issued at runtime by
+    -- scripts/sql/the_inbound_classifier_uses_the_one_door.sql; named here for the same reason as
+    -- the two above.
+    'resend_inbound'];
   c text; v jsonb; v_id bigint; v_has_secret boolean;
   n_widened int := 0; n_issued int := 0; n_rotated int := 0; n_noop int := 0; n_missing int;
 begin

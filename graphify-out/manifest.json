@@ -990,8 +990,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/resend_inbound/index.ts": {
-    "mtime": 1786945492.6771488,
-    "ast_hash": "4570477b703c66380022326295a1e4b6",
+    "mtime": 1788646518.9451828,
+    "ast_hash": "a5e8629ffa07eaa0aef7489e97766a5f",
     "semantic_hash": ""
   },
   "supabase/functions/resend_webhook/index.ts": {
@@ -2610,8 +2610,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788639717.892949,
-    "ast_hash": "15fd4d7d2f5c18ab76c9a5de0509adc4",
+    "mtime": 1788647451.0968246,
+    "ast_hash": "006949ac67da8b6fbda9626f2f407291",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -4100,7 +4100,7 @@
     "semantic_hash": ""
   },
   "scripts/deploy_functions.mjs": {
-    "mtime": 1788638183.3253386,
+    "mtime": 1788645146.2435954,
     "ast_hash": "a9bf79112fd43209d6cbe8782df2ceca",
     "semantic_hash": ""
   },
@@ -5985,7 +5985,7 @@
     "semantic_hash": ""
   },
   "supabase/functions/workflow_dispatch/index.ts": {
-    "mtime": 1788638181.5508354,
+    "mtime": 1788645146.261648,
     "ast_hash": "396d86157b61d8cf9326c27a05db4a86",
     "semantic_hash": ""
   },
@@ -9560,8 +9560,8 @@
     "semantic_hash": ""
   },
   "supabase/migrations_history/20260803221752_audit_95_llm_path_scoped_credentials.sql": {
-    "mtime": 1786487355.5426123,
-    "ast_hash": "41836f7e9deaefb82a64ea3b2428fd35",
+    "mtime": 1788646531.0152817,
+    "ast_hash": "abc8a3b70835a4adb7e1b9db75c6a639",
     "semantic_hash": ""
   },
   "supabase/migrations_history/20260803223607_founder_decision_refund_auto_window_ceiling_2000.sql": {
@@ -12610,8 +12610,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/kernel-boards.json": {
-    "mtime": 1788639639.1886208,
-    "ast_hash": "a927d8aaf8b70dcc40c29802f094fc6e",
+    "mtime": 1788645146.2425897,
+    "ast_hash": "929d98b86d7de320008400e467285ed2",
     "semantic_hash": ""
   },
   "scripts/checks/kernel_boards_are_green.test.mjs": {
@@ -14995,8 +14995,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788639593.2495258,
-    "ast_hash": "2d7eca97cfc49e45942aa2a6c1e0e921",
+    "mtime": 1788647533.5250087,
+    "ast_hash": "f3ac5d198744069e3e36252b5173c09d",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -15440,8 +15440,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/a_failed_scheduled_run_has_a_reader.test.mjs": {
-    "mtime": 1788509862.3402157,
-    "ast_hash": "3030dcafee228d9e0c7dc2225a379426",
+    "mtime": 1788645146.2417948,
+    "ast_hash": "9ec07ee768f2afa1b3d98808c323f02c",
     "semantic_hash": ""
   },
   "scripts/checks/anon_cannot_execute_security_definer.test.mjs": {
@@ -15725,8 +15725,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/no_edge_function_calls_a_provider_directly.test.mjs": {
-    "mtime": 1787561324.278505,
-    "ast_hash": "b8c9de7ff994a65098cda295e222cb3e",
+    "mtime": 1788646528.0280032,
+    "ast_hash": "da36605156f657739dc2868ec2dfbf54",
     "semantic_hash": ""
   },
   "scripts/checks/phase_d_dispatch_reaches_executed.test.mjs": {
@@ -17635,7 +17635,7 @@
     "semantic_hash": ""
   },
   "scripts/checks/org_connectivity_scenarios.test.mjs": {
-    "mtime": 1788639617.519468,
+    "mtime": 1788645146.2435954,
     "ast_hash": "db4007f6970562470bf317b2896fb6c5",
     "semantic_hash": ""
   },
@@ -19395,7 +19395,7 @@
     "semantic_hash": ""
   },
   "scripts/sql/change_deployment_deterministic_executors.sql": {
-    "mtime": 1788638183.3253386,
+    "mtime": 1788645146.2469945,
     "ast_hash": "f93073847579a0eb8dd8c27057f58f1f",
     "semantic_hash": ""
   },
@@ -19410,22 +19410,22 @@
     "semantic_hash": ""
   },
   "scripts/sql/claim_leaves_rpc_executor_steps_to_the_sweep.sql": {
-    "mtime": 1788638183.3253386,
+    "mtime": 1788645146.2469945,
     "ast_hash": "db173cf16a399debd33a2c7699984d37",
     "semantic_hash": ""
   },
   "scripts/sql/down/change_deployment_deterministic_executors_down.sql": {
-    "mtime": 1788638183.3253386,
+    "mtime": 1788645146.2469945,
     "ast_hash": "38a88979d474a2e14574ceef6484a99e",
     "semantic_hash": ""
   },
   "scripts/sql/down/claim_leaves_rpc_executor_steps_to_the_sweep_down.sql": {
-    "mtime": 1788638183.3411684,
+    "mtime": 1788645146.2469945,
     "ast_hash": "27fdc8b2781c87ab8b062c36aa07bbd9",
     "semantic_hash": ""
   },
   "scripts/sql/down/rpc_invoker_passes_the_request_and_honours_defer_down.sql": {
-    "mtime": 1788638183.3411684,
+    "mtime": 1788645146.2469945,
     "ast_hash": "4a735be49ee8e2b4edbeb153710e5287",
     "semantic_hash": ""
   },
@@ -19450,7 +19450,7 @@
     "semantic_hash": ""
   },
   "scripts/sql/rpc_invoker_passes_the_request_and_honours_defer.sql": {
-    "mtime": 1788638183.3424277,
+    "mtime": 1788645146.261648,
     "ast_hash": "4ac502c357bf991487b271f9171a2858",
     "semantic_hash": ""
   },
@@ -19475,7 +19475,7 @@
     "semantic_hash": ""
   },
   "scripts/staging/rehearse_change_deployment_loop.mjs": {
-    "mtime": 1788638183.343574,
+    "mtime": 1788645146.261648,
     "ast_hash": "f7b8f730f33026e59dee8ba7170c81af",
     "semantic_hash": ""
   },
@@ -20145,72 +20145,72 @@
     "semantic_hash": ""
   },
   "scripts/phase_c/drive_org_task_lane.mjs": {
-    "mtime": 1788638184.9071112,
+    "mtime": 1788645146.2435954,
     "ast_hash": "431d8c99b493f0a4394fe4064885d60d",
     "semantic_hash": ""
   },
   "scripts/phase_c/probe_org_task_done_guard.sql": {
-    "mtime": 1788638184.9071112,
+    "mtime": 1788645146.2435954,
     "ast_hash": "43d3d68f255c91002f0ab3ff67356dbe",
     "semantic_hash": ""
   },
   "scripts/phase_c/probe_park_and_retry.sql": {
-    "mtime": 1788638184.9071112,
+    "mtime": 1788645146.2469945,
     "ast_hash": "3078805c0444ec609d89a647d1c753eb",
     "semantic_hash": ""
   },
   "scripts/sql/a_deterministic_close_performs_the_step_2026_09_05.sql": {
-    "mtime": 1788638181.5424476,
+    "mtime": 1788645146.2469945,
     "ast_hash": "16208fe832cc5a86bf0e9edf47dbb7fe",
     "semantic_hash": ""
   },
   "scripts/sql/a_poison_pair_does_not_block_the_bus.sql": {
-    "mtime": 1788638187.156971,
+    "mtime": 1788645146.2469945,
     "ast_hash": "a936a2554e3f78d15746f9a85ef1c36b",
     "semantic_hash": ""
   },
   "scripts/sql/a_second_closing_path_beside_the_spine.sql": {
-    "mtime": 1788638184.9071112,
+    "mtime": 1788645146.2469945,
     "ast_hash": "ab796ffb0d46f36ed5659a167a0a9de3",
     "semantic_hash": ""
   },
   "scripts/sql/a_watcher_signature_resolves_when_its_subject_succeeds.sql": {
-    "mtime": 1788638187.156971,
+    "mtime": 1788645146.2469945,
     "ast_hash": "4ee4c0e1a19af4058840a7c9ce845a4a",
     "semantic_hash": ""
   },
   "scripts/sql/deterministic_substitutes_registered_2026_09_05.sql": {
-    "mtime": 1788638186.006449,
+    "mtime": 1788645146.2469945,
     "ast_hash": "02142533af626c960f47a0236e9301d0",
     "semantic_hash": ""
   },
   "scripts/sql/every_open_task_gets_a_reason_or_a_run.sql": {
-    "mtime": 1788638184.9071112,
+    "mtime": 1788645146.2469945,
     "ast_hash": "d6b99cde452fa2a4170a9f8371abb842",
     "semantic_hash": ""
   },
   "scripts/sql/fn_exec_review_deterministic.sql": {
-    "mtime": 1788638186.006449,
+    "mtime": 1788645146.2469945,
     "ast_hash": "322f43a3b0c02cfed1abc72e7be23a8c",
     "semantic_hash": ""
   },
   "scripts/sql/fn_knowledge_gap_deterministic.sql": {
-    "mtime": 1788638186.006449,
+    "mtime": 1788645146.2469945,
     "ast_hash": "baa9fc596ec4d4da0c3937918b17d134",
     "semantic_hash": ""
   },
   "scripts/sql/fn_recommend_deterministic.sql": {
-    "mtime": 1788638186.0210228,
+    "mtime": 1788645146.259638,
     "ast_hash": "5e32db90f8e47f968b53d81203b40727",
     "semantic_hash": ""
   },
   "scripts/sql/fn_workflow_step_claim_owns_rpc_executors.sql": {
-    "mtime": 1788638186.0210228,
+    "mtime": 1788645146.259638,
     "ast_hash": "f2810151c148d94e3d1051348f128090",
     "semantic_hash": ""
   },
   "scripts/sql/the_register_knows_the_invoker_passes_one_jsonb.sql": {
-    "mtime": 1788639712.8609352,
+    "mtime": 1788645146.261648,
     "ast_hash": "a76fc5beb4dc50bfb3e2b5288dfaa234",
     "semantic_hash": ""
   },
@@ -24490,7 +24490,7 @@
     "semantic_hash": ""
   },
   "docs/DETERMINATIONS_CENSUS.md": {
-    "mtime": 1788638186.006449,
+    "mtime": 1788645146.1151106,
     "ast_hash": "b4209e9f3d3c7d956f099d533ac768f4",
     "semantic_hash": ""
   },
@@ -25217,6 +25217,66 @@
   "os-top.png": {
     "mtime": 1788298923.6809363,
     "ast_hash": "11979248eff1eab2cbbbe1ea9d7857ba",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_close_is_determined_only_when_its_executor_ran.sql": {
+    "mtime": 1788645146.2469945,
+    "ast_hash": "a65c6bbcd29270481f44ebf2450349ea",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_reorder_signal_is_not_work_for_the_cpo.sql": {
+    "mtime": 1788645146.2469945,
+    "ast_hash": "785dc46de6079414aa52f20076671bd8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_trigger_on_the_bus_is_a_named_consumer.sql": {
+    "mtime": 1788645146.2469945,
+    "ast_hash": "9b7d2c6ad0af935e753be98687f1ac67",
+    "semantic_hash": ""
+  },
+  "scripts/sql/org_task_close_renders_from_the_tasks_facts_2026_09_06.sql": {
+    "mtime": 1788645146.259638,
+    "ast_hash": "728cc0e0fc4b543de40ecd4b3b3cb28f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_invokers_close_carries_its_deliverable_and_decider.sql": {
+    "mtime": 1788645146.261648,
+    "ast_hash": "27689ef9176d84a9a7fa0c9de6bfb101",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_registers_trigger_arm_is_computed_once.sql": {
+    "mtime": 1788645146.261648,
+    "ast_hash": "c50b88da232c6997103ef16758af8143",
+    "semantic_hash": ""
+  },
+  "m2.json": {
+    "mtime": 1788647520.7115176,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/credentials_expire_and_rotate_themselves.sql": {
+    "mtime": 1788646602.1467912,
+    "ast_hash": "f173b032463fa7c79d2a7e8a7451dc7f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_alerter_reads_credential_expiry.sql": {
+    "mtime": 1788646643.8966503,
+    "ast_hash": "42194061da85a24142f3976c391390cc",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_inbound_classifier_uses_the_one_door.sql": {
+    "mtime": 1788646543.9033349,
+    "ast_hash": "30492c50ff6921c6fbc8bba8724a1a95",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_retire_routine_has_a_caller.sql": {
+    "mtime": 1788647367.8939195,
+    "ast_hash": "5209428a6067c3048d29424bc25a15e5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_signal_intake_loses_its_rc4_block.sql": {
+    "mtime": 1788646645.5105832,
+    "ast_hash": "310028d1b52c6769bf82adf1cc88fbc8",
     "semantic_hash": ""
   }
 }
