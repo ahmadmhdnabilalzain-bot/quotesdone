@@ -12,19 +12,30 @@
 //   node --test scripts/checks/founder_approval_is_refunds_only.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { sql } from '../phase_c/lib/db.mjs';
+
+// Against production: only the one CI job with a management credential can run this. Elsewhere it
+// skips through node:test's own skip (never process.exit), printing the string the parity gate
+// greps for — the same shape as a_failed_scheduled_run_has_a_reader.test.mjs.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 const REFUND = /refund|payout|payment|withdraw|transfer|money|charge/i;
 const q = (s) => sql(`set statement_timeout = '8s'; ${s}`);
 const one = async (s) => (await q(s))[0];
 
-test('agent_action_kind_policy: policy = founder only for a refund kind', async () => {
+test('agent_action_kind_policy: policy = founder only for a refund kind', { skip: SKIP }, async () => {
   const rows = await q(`select kind from public.agent_action_kind_policy where policy = 'founder'`);
   const bad = rows.map(r => r.kind).filter(k => !REFUND.test(k));
   assert.deepEqual(bad, [], `non-refund kinds route to the founder: ${bad.join(', ')}`);
 });
 
-test('decision_policy: action_autonomy never says founder; founder_review_gates are refunds only', async () => {
+test('decision_policy: action_autonomy never says founder; founder_review_gates are refunds only', { skip: SKIP }, async () => {
   const r = await one(`select
       (select value from public.decision_policy where key = 'action_autonomy') autonomy,
       (select value from public.decision_policy where key = 'founder_review_gates') gates`);
@@ -38,12 +49,12 @@ test('decision_policy: action_autonomy never says founder; founder_review_gates 
   assert.deepEqual(badGates, [], `founder_review_gates lists non-refund gates: ${badGates.join(', ')}`);
 });
 
-test('phase_c_action_class: founder_approval_required only for refund_decision', async () => {
+test('phase_c_action_class: founder_approval_required only for refund_decision', { skip: SKIP }, async () => {
   const rows = await q(`select action_class from public.phase_c_action_class where founder_approval_required`);
   assert.deepEqual(rows.map(r => r.action_class).sort(), ['refund_decision']);
 });
 
-test('fn_autonomy_class returns founder for a refund and for nothing else', async () => {
+test('fn_autonomy_class returns founder for a refund and for nothing else', { skip: SKIP }, async () => {
   const r = await one(`select
       public.fn_autonomy_class('refund_request', null, null) refund,
       array_remove(array[
@@ -61,7 +72,7 @@ test('fn_autonomy_class returns founder for a refund and for nothing else', asyn
   assert.deepEqual(r.founder_for, [], `fn_autonomy_class returns founder for: ${r.founder_for.join(', ')}`);
 });
 
-test('every founder-facing surface lists only the refund queue as his', async () => {
+test('every founder-facing surface lists only the refund queue as his', { skip: SKIP }, async () => {
   const r = await one(`select
       public.fn_founder_refund_approvals_open() refunds,
       public.fn_founder_queue(200) fq,
@@ -88,7 +99,7 @@ test('every founder-facing surface lists only the refund queue as his', async ()
   assert.equal(Number(r.dashboard_escalations), refunds + Number(r.severe_alerts), 'fn_ops_dashboard escalations is not refunds + severe alerts');
 });
 
-test('the daily brief puts only refunds under DECISIONS NEEDED (aborted probe, nothing sent)', async () => {
+test('the daily brief puts only refunds under DECISIONS NEEDED (aborted probe, nothing sent)', { skip: SKIP }, async () => {
   let msg = '';
   try {
     await q(`do $$ declare v text; begin
