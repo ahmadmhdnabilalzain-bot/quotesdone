@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-05T18:58:51.039Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-05T19:53:53.431Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -42779,13 +42779,18 @@ begin
     inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'employee', v_employee, 'department', v_dept, 'mode', v_mode, 'category', v_cat);
     gaps := null; return next; return;
   end if;
-  with per as (
-    select c.slug, c.name, c.requires_regulation,
-           (select count(*) from public.kb_chunks k where k.category = c.slug) n,
-           (select max(k.effective_date) from public.kb_chunks k where k.category = c.slug) newest,
-           (select count(*) from public.kb_chunks k where k.category = c.slug and k.effective_date is null) undated,
-           (select max(k.created_at) from public.kb_chunks k where k.category = c.slug) last_added
-      from public.category_agents c where c.active and (v_cat is null or c.slug = v_cat)
+  -- One grouped pass over the roster's categories through kb_chunks_cat_id_idx; four correlated
+  -- subqueries per category hit the statement timeout on the 2.68M-row table (measured 5 Sep 2026).
+  with agg as (
+    select k.category, count(*) n, max(k.effective_date) newest,
+           count(*) filter (where k.effective_date is null) undated, max(k.created_at) last_added
+      from public.kb_chunks k
+     where k.category in (select c.slug from public.category_agents c where c.active and (v_cat is null or c.slug = v_cat))
+     group by k.category
+  ), per as (
+    select c.slug, c.name, c.requires_regulation, coalesce(a.n, 0) n, a.newest, coalesce(a.undated, 0) undated, a.last_added
+      from public.category_agents c left join agg a on a.category = c.slug
+     where c.active and (v_cat is null or c.slug = v_cat)
   ), stats as (
     select (percentile_cont(0.25) within group (order by n))::numeric p25, count(*) roster from per
   ), cls as (
@@ -47222,8 +47227,13 @@ begin
    where d.dept_key = t.dept_key
      and t.status = 'escalated'
      and (t.result ? 'escalated')
-     and t.assigned_agent = d.lead_agent
-     and not (coalesce(t.result,'{}'::jsonb) ? 'reopened')
+     -- who AUTHORED it, as the review recorded — a task claimed while unowned resolves to the head too
+     and coalesce(t.result->'review'->>'author', t.assigned_agent) = d.lead_agent
+     -- once per escalation: a task claimed while it was still on the head can escalate again after
+     -- its first re-open, and that later verdict is re-examined too — never a loop, because a task
+     -- the assigner has re-homed no longer carries the head as its assignee
+     and coalesce((t.result->'reopened'->>'at')::timestamptz, '-infinity'::timestamptz)
+         < coalesce((t.result->'escalated'->>'at')::timestamptz, now())
      and not exists (select 1 from public.org_agents h
                       join public.org_agents m on m.agent_key = h.manager_key and m.active
                      where h.agent_key = d.lead_agent)
@@ -47254,8 +47264,11 @@ begin
   select count(*) into v_backlog
     from public.org_tasks t
    where t.status in ('assigned','in_progress')
+     -- a RUNNING run, not any run: a task re-opened after an escalation keeps its earlier (failed) run
+     -- and needs a new one — measured 5 Sep: 18 re-opened exec tasks sat unpromoted behind this predicate
      and not exists (select 1 from public.workflow_run wr
-                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text);
+                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
+                        and wr.status = 'running');
 
   if v_room > 0 then
     for r in
@@ -47265,7 +47278,8 @@ begin
          and coalesce(t.needs_founder, false) = false
          and exists (select 1 from public.org_agents a where a.agent_key = t.assigned_agent and a.active)
          and not exists (select 1 from public.workflow_run wr
-                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text)
+                          where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
+                            and wr.status = 'running')
        order by t.priority desc nulls last, t.created_at, t.id
        limit v_room
     loop

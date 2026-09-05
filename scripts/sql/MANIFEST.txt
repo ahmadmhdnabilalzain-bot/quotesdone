@@ -1600,17 +1600,10 @@ scripts/sql/fn_ads_manage_paces_under_the_founders_cap_and_emits_budget_exceeded
 scripts/sql/seven_packets_settle_into_one_estate.sql
 scripts/sql/kernel_ledger_follows_the_manifest_4_sep_b.sql
 scripts/sql/the_trace_state_board_judges_only_finished_executions.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
 --apply
 --ddl
 scripts/sql/strategic_review_playbooks_2026_09_04.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/change_deployment_has_a_playbook_for_every_step.sql
 scripts/sql/change_deployment_runs_resume_now_the_playbooks_exist.sql
 scripts/sql/metric_lifecycle_playbooks_close_the_loop_model_off.sql
@@ -1620,20 +1613,9 @@ scripts/sql/org_task_lane_terminal_verdicts_2026_09_04.sql
 scripts/sql/a_gated_task_is_not_a_founder_task.sql
 scripts/sql/the_route_tests_run_again.sql
 scripts/sql/the_manual_records_the_four_jobs_enabled_today.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/the_promoter_raised_on_every_call.sql
-$f
-;
-node
-scripts/apply_sql.mjs
-$f
---apply
---ddl
 scripts/sql/an_eventless_start_begins_its_own_correlation.sql
 scripts/sql/a_deterministic_close_performs_the_step_2026_09_05.sql
+scripts/sql/rpc_invoker_passes_the_request_and_honours_defer.sql
+scripts/sql/change_deployment_deterministic_executors.sql
+scripts/sql/claim_leaves_rpc_executor_steps_to_the_sweep.sql
