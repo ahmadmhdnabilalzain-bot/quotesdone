@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-05T21:13:41.954Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-05T21:28:06.081Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -23099,6 +23099,20 @@ AS $function$
        ('contract.submitted'), -- third-party contract intake (arrives from counterparties)
        ('deploy.completed')    -- CI / deploy hook (scripts/deploy_functions.mjs)
   ),
+  -- Event types a non-dispatcher trigger on company_event consumes: a few trigger bodies against
+  -- the distinct types, not against every event row.
+  trigger_consumed(event_type) as (
+    select distinct et.event_type
+      from (select distinct ce.event_type from public.company_event ce) et
+      join (select p.prosrc from pg_trigger t
+              join pg_class c on c.oid = t.tgrelid
+              join pg_namespace n on n.oid = c.relnamespace
+              join pg_proc p on p.oid = t.tgfoid
+             where n.nspname = 'public' and c.relname = 'company_event'
+               and not t.tgisinternal and t.tgenabled <> 'D'
+               and p.proname <> 'trg_company_event_dispatch') tf
+        on tf.prosrc like '%' || et.event_type || '%'
+  ),
   -- Every event type some database code can emit: a literal in a routine body, or a literal
   -- argument on a trigger (fn_emit_event reads the type from tg_argv, so the body never names it).
   producer(event_type) as (
@@ -23152,19 +23166,12 @@ AS $function$
      and not exists (select 1 from public.event_subscription es
                       where es.active and es.event_type = ce.event_type)
      -- 5 SEP 2026: a consumer is also a TRIGGER on company_event -- one that is not the generic
-     -- dispatcher and whose function body names the event type. MASTER_PLAN 4.4 routes
-     -- priority.updated to the planner backlog reorder (trg_priority_backlog_reorder ->
-     -- fn_priority_backlog_reorder), which is a named consumer with no subscription row; the CPO's
-     -- subscription beside it minted a task per reorder signal and was retired. Without this arm
-     -- the register read the retirement as 'delivered nowhere' while the trigger consumed it.
-     and not exists (select 1 from pg_trigger t
-                       join pg_class c on c.oid = t.tgrelid
-                       join pg_namespace n on n.oid = c.relnamespace
-                       join pg_proc p on p.oid = t.tgfoid
-                      where n.nspname = 'public' and c.relname = 'company_event'
-                        and not t.tgisinternal and t.tgenabled <> 'D'
-                        and p.proname <> 'trg_company_event_dispatch'
-                        and p.prosrc like '%' || ce.event_type || '%')
+     -- dispatcher and whose function body names the event type (MASTER_PLAN 4.4 routes
+     -- priority.updated to trg_priority_backlog_reorder, a named consumer with no subscription).
+     -- 6 SEP 2026: computed ONCE in the trigger_consumed CTE. The first version correlated a
+     -- LIKE over every trigger body per company_event row; the register went from seconds to
+     -- past the cron's 120s statement_timeout and the red-view alerter's 21:22Z tick failed.
+     and not exists (select 1 from trigger_consumed tc where tc.event_type = ce.event_type)
      and (exists (select 1 from producer p where p.event_type = ce.event_type)
           or exists (select 1 from external_intake x where x.event_type = ce.event_type))
 
