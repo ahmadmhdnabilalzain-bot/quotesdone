@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-05T20:21:57.883Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-05T20:35:07.772Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16430,8 +16430,15 @@ begin
       begin
         update public.org_tasks k
            set status = 'done', updated_at = now(), last_run_at = now(),
+               -- 5 SEP 2026: a10_org_task_done_needs_a_determination refuses a close with no
+               -- deliverable or no decided_by (the org_task lane packet closed the second closing
+               -- path). This close carried a summary and no decider, so its next success would
+               -- have been refused inside the exception block below and swallowed. The executor's
+               -- own response IS the deliverable, and the invoker that ran it is the decider.
+               decided_by = coalesce(k.decided_by, 'invoker:' || r.executor),
                result = coalesce(k.result,'{}'::jsonb) || jsonb_build_object(
                  'mode','executed_by_invoker', 'executor', r.executor,
+                 'deliverable', left(coalesce(v_body, ''), 4000),
                  'http_status', v_status, 'at', now(),
                  'summary', left(coalesce(v_body,''), 500),
                  -- SIX KEYS, NOT THREE (12 Aug 2026). See the header: action_worker is the largest
@@ -81967,9 +81974,16 @@ begin
                E'- executor: ' || coalesce(v_exec_status, '?') || E'\n\nAPPLIED RECORD: ');
 
   -- THE DISPOSITION, earned.
+  -- 5 SEP 2026, from the skeptic that audited this routine: 'determined' used to mean "not routed
+  -- to a model", and both rows that carried it had executed nothing (executor withheld). A label
+  -- that reads as 'executed' must be EARNED by an execution: an action_execution this close created
+  -- and which succeeded. Facts bound and rendered, but no executor ran (none mapped, withheld,
+  -- queued for the HTTP invoker, refused) is 'rendered' -- true, and not the same word as done.
   v_disp := case when v_bound = 0 then 'needs_narrative'
                  when v_needs_model then 'advisory_held_model'
-                 else 'determined' end;
+                 when v_exec_id is not null and exists (select 1 from public.action_execution x
+                        where x.id = v_exec_id and x.status = 'succeeded') then 'determined'
+                 else 'rendered' end;
   v_mode := case when v_disp = 'determined' then 'determined' else 'advisory' end;
   v_outcome := case when v_disp = 'needs_narrative'
                     then 'No fact was bound for this step (no metric, goal, event payload or prior conclusion); the record "'
