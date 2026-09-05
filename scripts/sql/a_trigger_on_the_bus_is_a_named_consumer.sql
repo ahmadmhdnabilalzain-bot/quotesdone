@@ -89,20 +89,6 @@ AS $function$
                         and not t.tgisinternal and t.tgenabled <> 'D'
                         and p.proname <> 'trg_company_event_dispatch'
                         and p.prosrc like '%' || ce.event_type || '%')
-     -- 5 SEP 2026: a consumer is also a TRIGGER on company_event -- one that is not the generic
-     -- dispatcher and whose function body names the event type. MASTER_PLAN 4.4 routes
-     -- priority.updated to the planner backlog reorder (trg_priority_backlog_reorder ->
-     -- fn_priority_backlog_reorder), which is a named consumer with no subscription row; the CPO's
-     -- subscription beside it minted a task per reorder signal and was retired. Without this arm
-     -- the register read the retirement as 'delivered nowhere' while the trigger consumed it.
-     and not exists (select 1 from pg_trigger t
-                       join pg_class c on c.oid = t.tgrelid
-                       join pg_namespace n on n.oid = c.relnamespace
-                       join pg_proc p on p.oid = t.tgfoid
-                      where n.nspname = 'public' and c.relname = 'company_event'
-                        and not t.tgisinternal and t.tgenabled <> 'D'
-                        and p.proname <> 'trg_company_event_dispatch'
-                        and p.prosrc like '%' || ce.event_type || '%')
      and (exists (select 1 from producer p where p.event_type = ce.event_type)
           or exists (select 1 from external_intake x where x.event_type = ce.event_type))
 
