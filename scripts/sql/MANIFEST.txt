@@ -1622,3 +1622,6 @@ scripts/sql/fn_exec_review_deterministic.sql
 scripts/sql/fn_knowledge_gap_deterministic.sql
 scripts/sql/fn_workflow_step_claim_owns_rpc_executors.sql
 scripts/sql/deterministic_substitutes_registered_2026_09_05.sql
+scripts/sql/a_poison_pair_does_not_block_the_bus.sql
+scripts/sql/a_watcher_signature_resolves_when_its_subject_succeeds.sql
+[INFO] Recording command outcome: echo

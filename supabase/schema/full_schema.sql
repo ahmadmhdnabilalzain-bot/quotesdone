@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-05T19:07:17.477Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-05T18:53:29.915Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -22603,7 +22603,6 @@ declare
   v_deliv      text;
   v_verified   jsonb;
   v_parity     text;
-  v_project    text;
 begin
   if v_run_id is null or v_step_no is null then
     raise exception 'fn_change_deployment_execute: request carries no workflow_run_id/step_no (got %)', left(p::text, 300);
@@ -22619,16 +22618,9 @@ begin
   select coalesce(array_agg(x order by x), '{}'::text[]) into v_fns
     from jsonb_array_elements_text(coalesce(v_ctx->'functions', '[]'::jsonb)) x;
 
-  -- The one project is read, not embedded: fn_action_invoke_dispatch reads the same key, and the schema
-  -- export must stay portable (export_from_either_source_is_identical flags an embedded ref).
-  select value into v_project from public.app_secrets where key = 'project_ref';
-  if v_project is null then
-    raise exception 'app_secrets.project_ref is not set: a mis-targeted deploy cannot be told from the one project';
-  end if;
-
   -- ESCALATE INSTEAD OF PROPOSING (step-1 playbook, enforced): these are not proposable changes.
-  if v_ref is distinct from v_project then
-    raise exception 'mis-targeted deploy: deploy.completed names ref % and the one project is %; nothing here is proposed or graded', coalesce(v_ref, '(none)'), v_project;
+  if v_ref is distinct from 'htdblwldjkcgjvmqkbeh' then
+    raise exception 'mis-targeted deploy: deploy.completed names ref % and the one project is htdblwldjkcgjvmqkbeh; nothing here is proposed or graded', coalesce(v_ref, '(none)');
   end if;
   if coalesce(array_length(v_fns, 1), 0) = 0 then
     raise exception 'deploy.completed carries no function slugs: there is nothing to measure, so the change is not proposed';
@@ -22683,12 +22675,11 @@ begin
       'CHANGE PROPOSED: the deploy of %s function(s) to %s completed at %s (deploy.completed, emitted by scripts/deploy_functions.mjs after reading each version back): %s. '
       || 'METRIC IT SHOULD MOVE: each deployed function''s failure count — errored agent_runs under its own slug plus failed kernel traces of the crons that call it. '
       || 'BASELINE CAPTURED over the 7 days ending at %s (168h): %s errored run(s) of %s run(s) and %s failed kernel trace(s) across the set; per function: %s. '
-      || 'REVERSIBILITY: redeploy the previously committed bundle for each slug (node scripts/deploy_functions.mjs --ref=%s --production <slug>); a SQL change reverses by its down script under scripts/sql/down/. '
+      || 'REVERSIBILITY: redeploy the previously committed bundle for each slug (node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <slug>); a SQL change reverses by its down script under scripts/sql/down/. '
       || 'Step 9 grades the window after the deploy against these numbers.',
       array_length(v_fns, 1), v_ref, v_at, array_to_string(v_fns, ', '), v_at, v_err, v_runs, v_traces,
       (select string_agg(format('%s errored %s/%s runs, %s failed trace(s)', e->>'slug', e->>'errored_runs', e->>'total_runs', e->>'failed_traces'), '; ')
-         from jsonb_array_elements(v_per) e),
-      v_project);
+         from jsonb_array_elements(v_per) e));
     return jsonb_build_object(
       'step_no', 1, 'kind', 'baseline', 'mode', 'performed', 'worked_by', 'fn_change_deployment_execute',
       'used_llm', false, 'used_llm_basis', 'plpgsql over agent_runs and phase_c_system_execution; no provider call exists in this routine',
@@ -22778,11 +22769,11 @@ begin
       select 'product_eng',
              left(format('Reverse the deploy of %s: post-deploy failures worse than baseline (run %s)', array_to_string(v_fns, ', '), v_run_id), 240),
              format('change_deployment step 9 graded the deploy at %s WORSE: %s failure(s) in %sh after it (%s/h) against a baseline of %s over 168h (%s/h; %s). Per function after the deploy: %s. '
-                    || 'RECOMMENDED REVERSAL: redeploy the previously committed bundle for each slug — node scripts/deploy_functions.mjs --ref=%s --production %s. '
+                    || 'RECOMMENDED REVERSAL: redeploy the previously committed bundle for each slug — node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production %s. '
                     || 'This task RECORDS the recommendation; reversing a production deploy is a gated action for the Platform lead and was not performed by the executor.',
                     v_at, v_err + v_traces, round(v_hours, 1), round(v_post_rate, 3), v_base->>'failures', round(v_base_rate, 3), v_base_src,
                     (select string_agg(format('%s errored %s/%s, %s failed trace(s)', e->>'slug', e->>'errored_runs', e->>'total_runs', e->>'failed_traces'), '; ') from jsonb_array_elements(v_per) e),
-                    v_project, array_to_string(v_fns, ' ')),
+                    array_to_string(v_fns, ' ')),
              'proposed', 'gated', false, 'incident_fix', 1
        where not exists (select 1 from public.org_tasks t
                           where t.title like '%(run ' || v_run_id || ')' and t.status <> 'done')
@@ -42779,20 +42770,15 @@ begin
     inputs := jsonb_build_object('located_by', v_located, 'step_run_id', v_sid, 'employee', v_employee, 'department', v_dept, 'mode', v_mode, 'category', v_cat);
     gaps := null; return next; return;
   end if;
-  -- One grouped pass over the roster's categories through kb_chunks_cat_id_idx; four correlated
-  -- subqueries per category hit the statement timeout on the 2.68M-row table (measured 5 Sep 2026).
-  with agg as (
-    select k.category, count(*) n, max(k.effective_date) newest,
-           count(*) filter (where k.effective_date is null) undated, max(k.created_at) last_added
-      from public.kb_chunks k
-     where k.category in (select c.slug from public.category_agents c where c.active and (v_cat is null or c.slug = v_cat))
-     group by k.category
-  ), per as (
-    select c.slug, c.name, c.requires_regulation, coalesce(a.n, 0) n, a.newest, coalesce(a.undated, 0) undated, a.last_added
-      from public.category_agents c left join agg a on a.category = c.slug
-     where c.active and (v_cat is null or c.slug = v_cat)
+  with per as (
+    select c.slug, c.name, c.requires_regulation,
+           (select count(*) from public.kb_chunks k where k.category = c.slug) n,
+           (select max(k.effective_date) from public.kb_chunks k where k.category = c.slug) newest,
+           (select count(*) from public.kb_chunks k where k.category = c.slug and k.effective_date is null) undated,
+           (select max(k.created_at) from public.kb_chunks k where k.category = c.slug) last_added
+      from public.category_agents c where c.active and (v_cat is null or c.slug = v_cat)
   ), stats as (
-    select (percentile_cont(0.25) within group (order by n))::numeric p25, count(*) roster from per
+    select percentile_cont(0.25) within group (order by n) p25, count(*) roster from per
   ), cls as (
     select per.*, s.p25, s.roster,
            case when n = 0 then 'missing'
@@ -46428,7 +46414,7 @@ AS $function$
 declare
   r record; v_pick text;
   v_assigned int := 0; v_no_capacity int := 0; v_considered int := 0; v_saturated text;
-  v_released int := 0; v_gone int := 0;
+  v_released int := 0;
   v_promote jsonb;
   REVIEW_CLASSES constant text[] := array['review','audit','verify','qa_gate','security_review',
                                           'compliance_check','legal_review','supplier_verify',
@@ -46459,22 +46445,6 @@ begin
                      where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text
                        and sr.status = 'running');
   get diagnostics v_released = row_count;
-
-  -- release work held by a colleague who is no longer active or available: fn_workflow_actor_resolve
-  -- resolves such an owner to no employee and the promotion is refused (10 open tasks, 5 Sep 2026,
-  -- surfaced the moment the promoter stopped swallowing the refusal)
-  update public.org_tasks t
-     set assigned_agent = null, updated_at = now(),
-         result = coalesce(t.result,'{}'::jsonb) || jsonb_build_object(
-           'released', jsonb_build_object('at', now(), 'by', 'fn_org_task_assign', 'from', t.assigned_agent,
-             'reason', 'the assignee is no longer an active, available colleague; released to be re-homed'))
-   where t.status in ('assigned','in_progress')
-     and t.assigned_agent is not null
-     and not exists (select 1 from public.org_agents a
-                      where a.agent_key = t.assigned_agent and a.active and coalesce(a.available, true)
-                        and (a.unavailable_until is null or a.unavailable_until < now()));
-  get diagnostics v_gone = row_count;
-  v_released := v_released + v_gone;
 
   for r in
     select t.id, t.dept_key, t.action_class
@@ -47268,7 +47238,7 @@ begin
         from public.org_tasks t
        where t.status in ('assigned','in_progress')
          and coalesce(t.needs_founder, false) = false
-         and exists (select 1 from public.org_agents a where a.agent_key = t.assigned_agent and a.active)
+         and t.assigned_agent is not null
          and not exists (select 1 from public.workflow_run wr
                           where wr.workflow_key = 'employee_task' and wr.context->>'task_id' = t.id::text)
        order by t.priority desc nulls last, t.created_at, t.id
@@ -70742,7 +70712,7 @@ declare
   v_sc jsonb; v_sc_rows int := 0; v_sc_off int := 0;
   v_meta jsonb; v_meta_rows int := 0;
   v_recs jsonb; v_n int := 0;
-  v_text text; v_one text; rec record;
+  v_text text; v_one text; r record;
   v_old_depts text[];
 begin
   used_llm := false;
@@ -70936,8 +70906,8 @@ begin
                    case v_framing when 'variance' then 'VARIANCE AGAINST TARGET' when 'root_cause' then 'ROOT CAUSE: THE WORK OR THE TARGET' when 'revise_or_retire' then 'REVISE OR RETIRE' when 'options' then 'OPTIONS WITH COST AND RISK' when 'grade' then 'GRADE AGAINST BASELINE' when 'baseline' then 'BASELINE' when 'define' then 'METRIC DEFINITION REVIEW' else 'RECOMMENDATION' end,
                    coalesce(v_wfname, v_wf, '(no workflow)'), coalesce(v_step_no::text, '-'), coalesce(v_step, 'direct call'), v_employee, v_dept, to_char(now() at time zone 'utc', 'YYYY-MM-DD HH24:MI') || ' UTC',
                    v_kpi_rows, v_kpi_measured, v_kpi_missed, v_kpi_met, v_sc_rows, v_sc_off, v_meta_rows);
-  for rec in select x from jsonb_array_elements(v_recs) x order by (x->>'rank')::int loop
-    v_text := v_text || format(E'%s. %s [%s; trend %s; measured %s]\n', rec.x->>'rank', rec.x->>'determination', rec.x->>'source', rec.x->>'trend', coalesce(left(rec.x->>'measured_at', 16), '?'));
+  for r in select x from jsonb_array_elements(v_recs) x order by (x->>'rank')::int loop
+    v_text := v_text || format(E'%s. %s [%s; trend %s; measured %s]\n', r.x->>'rank', r.x->>'determination', r.x->>'source', r.x->>'trend', coalesce(left(r.x->>'measured_at', 16), '?'));
   end loop;
   if v_meta_rows > 0 then
     v_text := v_text || 'Ad data: ' || (select string_agg(format('%s [%s] %s: spend %s %s, %s impressions, %s clicks, ctr %s, cpc %s (synced %s via %s)',
