@@ -1660,3 +1660,5 @@ scripts/sql/fn_ai_trainer_prompt_is_held_with_its_role.sql
 scripts/sql/fn_knowledge_curator_regulation_is_held_with_its_role.sql
 scripts/sql/fn_operations_ai_approval_backlog_is_held_with_roles.sql
 scripts/sql/fn_task_approve_ceiling_is_not_a_founder_decision.sql
+scripts/sql/receipts_book_themselves_2026_09_06.sql
+scripts/sql/receipts_book_themselves_ownership_ledger.sql
