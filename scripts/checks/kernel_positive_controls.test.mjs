@@ -656,7 +656,17 @@ for (const door of doors) {
       + `fn_phase_c_founder_subject_bind refuses this connection (${bindDoor}). PCCR-006 finding D.`);
     continue;
   }
-  const probe = `do $pc$
+  // 6 SEP 2026: the whole aborted probe runs at REPEATABLE READ. Every control is one transaction
+  // that opens, acts, reads its own effect and raises to roll back; under READ COMMITTED the reads
+  // inside it also saw what the RUNNING COMPANY committed meanwhile — a scheduler tick's trace every
+  // six seconds, an outbox delivery at the minute — and the committed-scenario door read those as
+  // residue ("watermark drift: public.phase_c_trace 1079 -> 1080") twice in CI and once on the
+  // operator machine, while the same door answered ok in a quiet second. A snapshot taken at the
+  // start makes the probe see exactly its own writes and nothing that happens around it, which is
+  // the subject every one of these controls measures. The management API honours the statement as
+  // the first in its transaction (measured: transaction_isolation = repeatable read).
+  const probe = `set transaction isolation level repeatable read;
+do $pc$
 declare v jsonb; v2 jsonb; res jsonb;
         cmd bigint; run bigint; sr bigint; sr2_id bigint; tsk bigint; ob bigint; hnd bigint;
         stp text; stp2 text; owner text; recv text; sender text;

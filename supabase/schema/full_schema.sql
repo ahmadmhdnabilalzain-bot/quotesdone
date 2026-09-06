@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T21:38:25.802Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T21:50:42.892Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6096,7 +6096,8 @@ CREATE TABLE IF NOT EXISTS public.phase_d_committed_scenario_cron (
 CREATE TABLE IF NOT EXISTS public.phase_d_committed_scenario_watch (
   relation text NOT NULL,
   reached_by text NOT NULL,
-  is_queue boolean DEFAULT false NOT NULL
+  is_queue boolean DEFAULT false NOT NULL,
+  count_filter text
 );
 
 CREATE TABLE IF NOT EXISTS public.phase_d_concurrency_probe_result (
@@ -58550,8 +58551,13 @@ begin
   )
   select coalesce(array_agg(distinct trace_id), '{}') into v_keep from anchored;
 
+  -- 6 SEP 2026: v_ao is the retained rows the WATERMARK counts. The watermark for phase_c_trace
+  -- excludes the scheduler's own executions (phase_d_committed_scenario_watch.count_filter =
+  -- subject_kind <> 'system_execution'), so a retained system_execution trace must not be added to
+  -- the allowance either, or Q04 asks for one row more than the filtered count can ever show.
   select count(*) into v_ao from public.phase_c_trace t
-   where t.run_id = any(v_runs) and t.trace_id = any(v_keep);
+   where t.run_id = any(v_runs) and t.trace_id = any(v_keep)
+     and t.subject_kind <> 'system_execution';
 
   delete from public.phase_c_trace t
    where t.run_id = any(v_runs) and not (t.trace_id = any(v_keep));
@@ -58907,8 +58913,12 @@ CREATE OR REPLACE FUNCTION public.fn_phase_d_committed_scenario_watermarks()
 AS $function$
 declare r record; v_n bigint; v_out jsonb := '{}'::jsonb;
 begin
-  for r in select relation from public.phase_d_committed_scenario_watch order by relation loop
-    execute format('select count(*) from %s', r.relation) into v_n;
+  for r in select relation, count_filter from public.phase_d_committed_scenario_watch order by relation loop
+    if coalesce(r.count_filter, '') <> '' then
+      execute format('select count(*) from %s where %s', r.relation, r.count_filter) into v_n;
+    else
+      execute format('select count(*) from %s', r.relation) into v_n;
+    end if;
     v_out := v_out || jsonb_build_object(r.relation, v_n);
   end loop;
   select coalesce(max(id),0) into v_n from net.http_request_queue;
