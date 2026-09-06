@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T01:36:59.041Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T01:52:12.206Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -73744,6 +73744,7 @@ CREATE OR REPLACE FUNCTION public.fn_resilience_watch()
 AS $function$
 declare
   v_run bigint; v_owner text; v_secret text;
+  v_sig text;
   v_base text := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/';
   v_email_backlog int := 0; v_prev_backlog int; v_flushed boolean := false;
   v_email_on text; v_stripe text; v_kill text;
@@ -73890,9 +73891,26 @@ begin
 
   v_body := v_issues||v_findings;
 
+  -- ONCE PER CONDITION, NOT ONCE PER THREE HOURS (6 Sep 2026). The signature is the body with every number
+  -- replaced, so the same standing finding with a different count or timestamp in it is still the same
+  -- condition. A signature alerted inside the last 24 hours is recorded as seen and does not page again;
+  -- every open signature NOT present on this pass is resolved on merit, so a finding that comes back later
+  -- is a new episode and pages again.
+  v_sig := md5(regexp_replace(v_body, '[0-9]+', '#', 'g'));
+  update public.alert_signature s set resolved_at = now()
+   where s.watcher = 'resilience' and s.resolved_at is null
+     and (v_body = '' or s.signature <> v_sig);
+
   if v_body<>'' then
-    select exists(select 1 from notifications where type='resilience_alert' and created_at>now()-interval '3 hours') into v_deduped;
+    insert into public.alert_signature (watcher, signature) values ('resilience', v_sig)
+      on conflict (watcher, signature) do update
+        set last_seen_at = now(), seen_count = alert_signature.seen_count + 1, resolved_at = null;
+    select exists(select 1 from public.alert_signature s
+                   where s.watcher = 'resilience' and s.signature = v_sig
+                     and s.last_alerted_at > now() - interval '24 hours') into v_deduped;
     if not v_deduped and v_secret is not null then
+      update public.alert_signature set last_alerted_at = now()
+       where watcher = 'resilience' and signature = v_sig;
       perform net.http_post(url:=v_base||'alert_founder',
         headers:='{"Content-Type":"application/json"}'::jsonb,
         body:=jsonb_build_object('__secret',v_secret,'event','Resilience: the platform needs attention',
