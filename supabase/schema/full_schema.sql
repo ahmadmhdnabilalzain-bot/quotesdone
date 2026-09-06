@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T09:34:25.663Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T09:39:50.127Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -28540,6 +28540,53 @@ begin
 end; $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_employee_knowledge_freshness(p_stale_days integer DEFAULT 30, p_thin_min integer DEFAULT 1)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with base as (
+    select a.agent_key as slug, coalesce(a.title, a.role, a.agent_key) as name, a.department,
+           (select count(*) from public.agent_knowledge k
+             where k.agent_key = a.agent_key and coalesce(k.layer,'profession') in ('profession','state')
+               and coalesce(k.validation_status,'') <> 'quarantined') as items,
+           (select max(k.updated_at) from public.agent_knowledge k
+             where k.agent_key = a.agent_key and coalesce(k.layer,'profession') in ('profession','state')
+               and coalesce(k.validation_status,'') <> 'quarantined') as last_updated,
+           (select count(*) from public.agent_knowledge k
+             where k.agent_key = a.agent_key and k.layer = 'experience'
+               and coalesce(k.validation_status,'') <> 'quarantined') as lessons
+      from public.org_agents a
+     where a.active and a.kind in ('brain','agent')
+  ),
+  scored as (
+    select slug, name, department, items, lessons, last_updated,
+           case when last_updated is null then null else floor(extract(epoch from (now() - last_updated))/86400)::int end as days_stale,
+           case when items = 0 then 'missing'
+                when last_updated < now() - (p_stale_days || ' days')::interval then 'stale'
+                when items < p_thin_min then 'thin'
+                else 'ok' end as status
+      from base
+  )
+  select jsonb_build_object(
+    'population', 'employees (org_agents active, kind brain/agent)',
+    'thresholds', jsonb_build_object('stale_days', p_stale_days, 'thin_min', p_thin_min),
+    'summary', jsonb_build_object(
+      'total', (select count(*) from scored),
+      'ok', (select count(*) from scored where status = 'ok'),
+      'stale', (select count(*) from scored where status = 'stale'),
+      'thin', (select count(*) from scored where status = 'thin'),
+      'missing', (select count(*) from scored where status = 'missing'),
+      'coverage_pct', round(100.0 * (select count(*) from scored where status = 'ok') / nullif((select count(*) from scored), 0), 1)),
+    'agents', coalesce((select jsonb_agg(jsonb_build_object(
+        'slug', slug, 'name', name, 'emoji', null, 'department', department, 'items', items, 'lessons', lessons,
+        'last_updated', last_updated, 'days_stale', days_stale, 'status', status)
+        order by case status when 'missing' then 0 when 'stale' then 1 when 'thin' then 2 else 3 end, days_stale desc nulls last, slug)
+      from scored), '[]'::jsonb));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_employee_kpi_assign()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43314,7 +43361,7 @@ CREATE OR REPLACE FUNCTION public.fn_knowledge_decay()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n_decayed int; n_quarantined int; n_tasks int := 0;
+declare n_decayed int; n_quarantined int; n_tasks int := 0; v_dept text;
 begin
   update agent_knowledge
      set confidence = greatest(0.10, round((confidence - (0.05 * greatest(1, floor(extract(epoch from (now() - review_due))/(30*86400)))))::numeric, 2)),
@@ -43329,15 +43376,18 @@ begin
    where confidence < 0.35 and coalesce(validation_status,'') <> 'quarantined';
   get diagnostics n_quarantined = row_count;
 
-  -- a quarantined expert is a capability gap, so it becomes work
+  -- a quarantined expert is a capability gap, so it becomes work - for the rows THIS routine
+  -- quarantined (under its confidence floor). A row quarantined deliberately, with its reason on the
+  -- row, is retired knowledge, not a gap to refresh.
+  v_dept := coalesce((select d.merged_into from org_departments d where d.dept_key = 'knowledge'), 'knowledge');
   insert into org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class)
-  select 'knowledge',
+  select v_dept,
          'Knowledge quarantined: '||agent_key,
          count(*)||' knowledge item(s) for '||agent_key||' fell below the confidence floor and are no longer served. '
          ||'Refresh from source and re-validate, or retire the topic.',
          'proposed','advisory', false, 'knowledge_fill'
     from agent_knowledge
-   where validation_status='quarantined'
+   where validation_status='quarantined' and confidence < 0.35
    group by agent_key
   having not exists (select 1 from org_tasks t where t.title='Knowledge quarantined: '||agent_knowledge.agent_key and t.status<>'done');
   get diagnostics n_tasks = row_count;
@@ -43748,6 +43798,9 @@ AS $function$
     from base
   )
   select jsonb_build_object(
+    -- THE POPULATION IS NAMED. 'summary' and 'agents' are the supplier-category PERSONAS
+    -- (category_agents, cat:<slug>); the 54 employees are under 'employees'.
+    'population', 'category personas (category_agents active)',
     'thresholds', jsonb_build_object('stale_days', p_stale_days, 'thin_min', p_thin_min),
     'summary', jsonb_build_object(
       'total', (select count(*) from scored),
@@ -43762,7 +43815,8 @@ AS $function$
         'slug', slug, 'name', name, 'emoji', emoji, 'items', items, 'owner_os', owner_os,
         'last_updated', last_updated, 'days_stale', days_stale, 'status', status
       ) order by case status when 'stale' then 0 when 'thin' then 1 when 'missing' then 2 else 3 end, days_stale desc nulls last, slug)
-      from scored), '[]'::jsonb)
+      from scored), '[]'::jsonb),
+    'employees', public.fn_employee_knowledge_freshness(30, 1)
   );
 $function$
 
