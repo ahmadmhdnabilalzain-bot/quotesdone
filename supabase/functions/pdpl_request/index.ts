@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (error) return J({ error: error.message }, 500);
     // notify founder
     const inbound = await sec('cred_fn_pdpl_request');
-    fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/alert_founder`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: inbound, event:'PDPL '+kind+' request', detail: email, level:'action' }) }).catch(()=>{});
+    fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/alert_founder`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: inbound, event:'PDPL '+kind+' request', detail: email, level:'action', kind: 'pdpl_request' }) }).catch(()=>{});
     return J({ ok:true, id: data?.id, message: kind==='delete' ? 'Your deletion request has been received. We will process it within 30 days.' : 'Your data export request has been received. We will email it within 30 days.' });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }
 });

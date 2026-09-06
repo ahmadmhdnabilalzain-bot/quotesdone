@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
     // Until then this call is authenticated by the legacy credential - which is now COUNTED, so it
     // shows up in v_internal_credential_health as a reason the shared secret is still in use.
     const outbound = await sec('cred_fn_to_alert_founder');
-    try { await fetch(FN + '/alert_founder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: outbound, level: 'critical', event: 'Live site check failing', detail, dedupe_key: 'site_down' }) }); } catch (_e) { /* */ }
+    try { await fetch(FN + '/alert_founder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: outbound, level: 'critical', kind: 'platform_down', event: 'Live site check failing', detail, dedupe_key: 'site_down' }) }); } catch (_e) { /* */ }
     return J({ ok: false, escalated: true, failures: fails.length, fails });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 });

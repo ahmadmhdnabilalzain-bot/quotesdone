@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       return J({ ok: true, skipped: 'provider_held', filled: [] });
     }
     if (!anyOk) { // exception-only alert
-      try { await fetch(`${BASE}/alert_founder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, level: 'warn', subject: 'Knowledge auto-fill failed', body: 'The weekly knowledge gap auto-fill produced no new knowledge. Details: ' + JSON.stringify(results).slice(0, 400) }) }); } catch (_e) {}
+      try { await fetch(`${BASE}/alert_founder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, level: 'warn', kind: 'knowledge_coverage', event: 'Knowledge auto-fill failed', detail: 'The weekly knowledge gap auto-fill produced no new knowledge. Details: ' + JSON.stringify(results).slice(0, 400) }) }); } catch (_e) {}
     }
     const okCount = results.filter((r) => r.ok).length;
     const failed = results.filter((r) => !r.ok);
