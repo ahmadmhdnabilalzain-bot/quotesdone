@@ -505,7 +505,7 @@ begin
   end if;
 
   return out;
-end $function$
+end $function$;
 
 -- The 3-argument overload, unchanged (it delegates to the 2-argument one above).
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
