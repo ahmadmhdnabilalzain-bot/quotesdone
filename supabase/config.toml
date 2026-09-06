@@ -3,7 +3,7 @@
 #
 # Why this file exists (decision D1, 3 Aug 2026). Without it, `supabase functions deploy`
 # sets verify_jwt from whatever CLI flag it is passed, and the deploy scripts pass a blanket
-# --no-verify-jwt. 13 of these 202 functions REQUIRE a JWT, so one routine redeploy
+# --no-verify-jwt. 13 of these 203 functions REQUIRE a JWT, so one routine redeploy
 # could silently strip that requirement with nothing failing and nothing logged. Pinning the
 # value here makes the auth posture reviewable in git: an unintended change shows up as a diff.
 #
@@ -486,8 +486,6 @@ verify_jwt = false
 [functions.report_body]
 verify_jwt = false
 
-# report_pdf is internal-only (scoped credential via requireInternal); the action invoker and os_api
-# call it server-to-server with no JWT.
 [functions.report_pdf]
 verify_jwt = false
 

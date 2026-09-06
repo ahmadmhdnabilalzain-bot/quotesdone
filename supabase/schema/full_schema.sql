@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T01:07:05.385Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T01:17:49.539Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11185,9 +11185,11 @@ CREATE OR REPLACE VIEW public.report_kpis AS  WITH reg AS (
             max(reg.created_at) FILTER (WHERE (reg.source = 'finance'::text)) AS finance_at
            FROM reg
         ), daily AS (
-         SELECT max(agent_actions.created_at) AS daily_at
-           FROM agent_actions
-          WHERE (agent_actions.kind = 'exec_briefing'::text)
+         SELECT GREATEST(( SELECT max(a.created_at) AS max
+                   FROM agent_actions a
+                  WHERE (a.kind = 'exec_briefing'::text)), ( SELECT max(n.created_at) AS max
+                   FROM notifications n
+                  WHERE (n.type = 'founder_brief'::text))) AS daily_at
         )
  SELECT ( SELECT count(*) AS count
            FROM reg) AS total_reports,
@@ -14307,6 +14309,27 @@ CREATE OR REPLACE VIEW public.v_org_chart AS  SELECT d.sort,
      LEFT JOIN org_agents a ON ((a.department = d.dept_key)))
   WHERE d.active;
 
+CREATE OR REPLACE VIEW public.v_org_open_tasks AS  SELECT id,
+    objective_id,
+    dept_key,
+    title,
+    detail,
+    status,
+    tier,
+    needs_founder,
+    result,
+    created_at,
+    updated_at,
+    decided_by,
+    action_class,
+    attempts,
+    last_run_at,
+    root_cause,
+    assigned_agent,
+    priority
+   FROM org_tasks t
+  WHERE (status <> ALL (ARRAY['done'::text, 'cancelled'::text]));
+
 CREATE OR REPLACE VIEW public.v_org_role_full AS  SELECT r.role_id,
     r.display_name,
     r.primary_department_id,
@@ -14759,24 +14782,48 @@ CREATE OR REPLACE VIEW public.v_refunds_unreconciled AS  SELECT id,
   WHERE ((reconciled_at IS NULL) AND ((status = ANY (ARRAY['succeeded'::text, 'processing'::text])) OR (amount_fils IS NULL)))
   ORDER BY (amount_fils IS NULL) DESC, settled_at NULLS FIRST;
 
-CREATE OR REPLACE VIEW public.v_resource_pressure AS  SELECT resource,
+CREATE OR REPLACE VIEW public.v_resource_pressure AS  WITH live AS (
+         SELECT r.id,
+            r.resource,
+            r.kind,
+            r.owner_dept,
+            r.unit,
+            r.capacity,
+            r.committed,
+            r.window_label,
+            r.degrade_at_pct,
+            r.halt_at_pct,
+            r.source_ref,
+            r.note,
+            r.updated_at,
+            r.os_key,
+                CASE
+                    WHEN (r.source_ref = 'org_agents.max_open_tasks'::text) THEN ( SELECT (count(*))::numeric AS count
+                       FROM (v_org_open_tasks t
+                         JOIN os_department od ON ((od.dept_key = t.dept_key)))
+                      WHERE (od.os_key = r.os_key))
+                    ELSE r.committed
+                END AS committed_live
+           FROM resource_pool r
+        )
+ SELECT resource,
     kind,
     owner_dept,
     unit,
     capacity,
-    committed,
+    committed_live AS committed,
         CASE
-            WHEN (capacity > (0)::numeric) THEN round(((100.0 * committed) / capacity), 1)
+            WHEN (capacity > (0)::numeric) THEN round(((100.0 * committed_live) / capacity), 1)
             ELSE NULL::numeric
         END AS used_pct,
         CASE
             WHEN (capacity = (0)::numeric) THEN 'UNSET'::text
-            WHEN (((100.0 * committed) / capacity) >= (halt_at_pct)::numeric) THEN 'HALT'::text
-            WHEN (((100.0 * committed) / capacity) >= (degrade_at_pct)::numeric) THEN 'DEGRADE'::text
+            WHEN (((100.0 * committed_live) / capacity) >= (halt_at_pct)::numeric) THEN 'HALT'::text
+            WHEN (((100.0 * committed_live) / capacity) >= (degrade_at_pct)::numeric) THEN 'DEGRADE'::text
             ELSE 'OK'::text
         END AS state,
     note
-   FROM resource_pool r;
+   FROM live;
 
 CREATE OR REPLACE VIEW public.v_revenue_cascade_coverage AS  WITH d AS (
          SELECT a.packaged_department,
@@ -19583,18 +19630,23 @@ begin
            count(*) filter (where started_at > now() - interval '24 hours' and status in ('error','failed')) as fails24,
            max(started_at) as last_run, (array_agg(status order by started_at desc))[1] as last_status
     from agent_runs group by agent
-  ), base as (
+  ), everyone as (
     select a.agent_key, coalesce(nullif(trim(a.department),''),'General') as department, a.role, a.kind, coalesce(a.active,true) as active,
       coalesce(r.runs24,0) as runs24, coalesce(r.fails24,0) as fails24, r.last_run, r.last_status
     from org_agents a left join runs r on r.agent = a.agent_key
-  ), dc as (select department, count(*) c, sum(runs24) rs from base group by department)
+  ), base as (select * from everyone where active),
+  dc as (select department, count(*) c, sum(runs24) rs from base group by department)
   select jsonb_build_object(
     'total',(select count(*) from base),
+    'parked_total',(select count(*) from everyone where not active),
     'runs24',(select coalesce(sum(runs24),0) from base),
     'departments',(select coalesce(jsonb_agg(jsonb_build_object('key',d.department,'label',d.department,'count',d.c,'runs',d.rs,
         'cards',(select jsonb_agg(jsonb_build_object('id',b.agent_key,'agent_key',b.agent_key,'role',b.role,'kind',b.kind,'active',b.active,'runs24',b.runs24,'fails24',b.fails24,'last_status',b.last_status,'last_run',b.last_run) order by b.runs24 desc, b.agent_key) from base b where b.department=d.department))
         order by d.rs desc nulls last, d.department),'[]'::jsonb) from dc d),
-    'rows',(select coalesce(jsonb_agg(jsonb_build_object('id',b.agent_key,'agent_key',b.agent_key,'department',b.department,'role',b.role,'kind',b.kind,'active',b.active,'runs24',b.runs24,'fails24',b.fails24,'last_status',b.last_status,'last_run',b.last_run) order by b.runs24 desc, b.agent_key),'[]'::jsonb) from base b)
+    'rows',(select coalesce(jsonb_agg(jsonb_build_object('id',b.agent_key,'agent_key',b.agent_key,'department',b.department,'role',b.role,'kind',b.kind,'active',b.active,'runs24',b.runs24,'fails24',b.fails24,'last_status',b.last_status,'last_run',b.last_run) order by b.runs24 desc, b.agent_key),'[]'::jsonb) from base b),
+    -- Parked personas: greyed in the UI, labelled "parked", never "error". No run figures either —
+    -- a persona that is not on the roster has no run rate, only a history.
+    'parked',(select coalesce(jsonb_agg(jsonb_build_object('id',e.agent_key,'agent_key',e.agent_key,'department',e.department,'role',e.role,'kind',e.kind,'active',false,'runs24',0,'fails24',0,'last_status',null,'last_run',e.last_run) order by e.department, e.agent_key),'[]'::jsonb) from everyone e where not e.active)
   ) into out; return out;
 end $function$
 
@@ -31966,6 +32018,21 @@ begin
       'task_ids','[]'::jsonb, 'owner','chief_of_staff', 'tasks_created', 0,
       'reply', (select r.notes from public.phase_c_command_rule r where r.rule_id = c.matched_rule_id),
       'blocker', 'Nothing to approve: the ritual this names was retired on 2 September 2026.',
+      'trace_id', v_trace);
+  end if;
+
+  -- A STATUS ASK GETS THE BRIEF, NOT A CLARIFICATION (6 Sep 2026). "status" typed into the Console —
+  -- whose placeholder says "Ask for a status…" — matched CR-020 (command_or_task_status, which needs an
+  -- identifier) and bounced back as "I can route this, but not safely yet" (command 81887). Rule CR-004
+  -- classifies a bare "status" / "brief" / "how are we doing" as CMD-BRIEF: the reply is the overnight
+  -- brief sentence fn_ws_exec_home writes (the same text the Console's "speak the overnight brief"
+  -- button reads), the command closes as accepted, and no task is minted.
+  if c.outcome = 'BRIEF_REPLY' then
+    update public.founder_command set state = 'accepted', closed_at = now() where command_id = v_cmd;
+    return jsonb_build_object('ok', true, 'command_id', v_cmd, 'status','accepted',
+      'intent', c.intent_id, 'interpretation', c.reason, 'control_command', true,
+      'workflow_ids','[]'::jsonb, 'task_ids','[]'::jsonb, 'owner','chief_of_staff', 'tasks_created', 0,
+      'reply', coalesce(public.fn_ws_exec_home()->>'brief_text', 'The company brief is not available right now.'),
       'trace_id', v_trace);
   end if;
 
@@ -48998,7 +49065,7 @@ begin
                      join org_agents a on a.department = od.dept_key and a.active
                     where od.os_key = o.os_key), 0),
          coalesce((select count(*) from os_department od
-                     join org_tasks t on t.dept_key = od.dept_key and t.status <> 'done'
+                     join public.v_org_open_tasks t on t.dept_key = od.dept_key
                     where od.os_key = o.os_key), 0),
          'rolling', 80, 100, 'org_agents.max_open_tasks',
          'Open tasks in this OS''s departments against the sum of max_open_tasks for its '
@@ -73677,7 +73744,6 @@ CREATE OR REPLACE FUNCTION public.fn_resilience_watch()
 AS $function$
 declare
   v_run bigint; v_owner text; v_secret text;
-  v_sig text;
   v_base text := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/';
   v_email_backlog int := 0; v_prev_backlog int; v_flushed boolean := false;
   v_email_on text; v_stripe text; v_kill text;
@@ -73824,26 +73890,9 @@ begin
 
   v_body := v_issues||v_findings;
 
-  -- ONCE PER CONDITION, NOT ONCE PER THREE HOURS (6 Sep 2026). The signature is the body with every number
-  -- replaced, so the same standing finding with a different count or timestamp in it is still the same
-  -- condition. A signature alerted inside the last 24 hours is recorded as seen and does not page again;
-  -- every open signature NOT present on this pass is resolved on merit, so a finding that comes back later
-  -- is a new episode and pages again.
-  v_sig := md5(regexp_replace(v_body, '[0-9]+', '#', 'g'));
-  update public.alert_signature s set resolved_at = now()
-   where s.watcher = 'resilience' and s.resolved_at is null
-     and (v_body = '' or s.signature <> v_sig);
-
   if v_body<>'' then
-    insert into public.alert_signature (watcher, signature) values ('resilience', v_sig)
-      on conflict (watcher, signature) do update
-        set last_seen_at = now(), seen_count = alert_signature.seen_count + 1, resolved_at = null;
-    select exists(select 1 from public.alert_signature s
-                   where s.watcher = 'resilience' and s.signature = v_sig
-                     and s.last_alerted_at > now() - interval '24 hours') into v_deduped;
+    select exists(select 1 from notifications where type='resilience_alert' and created_at>now()-interval '3 hours') into v_deduped;
     if not v_deduped and v_secret is not null then
-      update public.alert_signature set last_alerted_at = now()
-       where watcher = 'resilience' and signature = v_sig;
       perform net.http_post(url:=v_base||'alert_founder',
         headers:='{"Content-Type":"application/json"}'::jsonb,
         body:=jsonb_build_object('__secret',v_secret,'event','Resilience: the platform needs attention',
@@ -84960,8 +85009,8 @@ AS $function$
       from jsonb_array_elements(public.fn_agents_board()->'departments') e
       left join public.v_department_health dh on dh.dept_key = e->>'key'
   ),
-  fq as (select public.fn_founder_queue(1) j)
-  select jsonb_build_object(
+  fq as (select public.fn_founder_queue(1) j),
+  home as (select jsonb_build_object(
     'health_index',     (select (j->>'index')::numeric from h),
     'mood',             (select j->>'band' from h),
     'health_note',      (select j->>'note' from h),
@@ -85004,9 +85053,25 @@ AS $function$
     'decisions_open',   public.fn_founder_refund_approvals_open(),
     'held_with_roles',  (select (j->>'held_with_roles_total')::int from fq),
     'held_with',        (select j->'held_with_roles' from fq),
-    'tasks_open',       (select count(*) from public.org_tasks where status not in ('done','cancelled')),
+    -- ONE definition of an open task: public.v_org_open_tasks (see one_definition_of_an_open_task.sql).
+    'tasks_open',       (select count(*) from public.v_org_open_tasks),
     'generated_at',     now()
-  );
+  ) j)
+  -- THE OVERNIGHT BRIEF, AS ONE SENTENCE. Written here so the Console's "speak the overnight brief"
+  -- button and the founder command channel ("status", "brief", "how are we doing") read the SAME
+  -- text from the SAME figures, instead of one composing it in the browser and the other having no
+  -- answer at all (6 Sep 2026: "status" came back as "clarification required").
+  select h.j || jsonb_build_object('brief_text',
+       'Company health ' || coalesce(h.j->>'health_index', 'unknown') || ', mood ' || coalesce(h.j->>'mood', 'unknown') || '. '
+    || 'Revenue today ' || coalesce(h.j->>'revenue_today', '0') || ' dirhams, ' || coalesce(h.j->>'revenue_30d', '0') || ' over thirty days. '
+    || coalesce(h.j->>'suppliers_active', '0') || ' active suppliers, ' || coalesce(h.j->>'customers_active', '0') || ' active customers. '
+    || coalesce(h.j->>'employees_working', '0') || ' of ' || coalesce(h.j->>'employees', '0') || ' AI employees worked overnight. '
+    || 'Goal progress ' || coalesce(h.j->>'goal_progress_pct', '0') || ' percent. '
+    || coalesce(h.j->>'tasks_open', '0') || ' open tasks across every department. '
+    || case when jsonb_array_length(coalesce(h.j->'bottlenecks', '[]'::jsonb)) > 0
+            then jsonb_array_length(h.j->'bottlenecks')::text || ' departments are over capacity.'
+            else 'No department is over capacity.' end)
+  from home h;
 $function$
 
 
@@ -85576,7 +85641,8 @@ AS $function$
       'approvals_pending', public.fn_founder_refund_approvals_open(),
       'held_with_roles', (select (j->>'held_with_roles_total')::int from fq),
       'high_risk',(select count(*) from agent_actions where status='pending' and coalesce(risk,'') in ('high','critical')),
-      'tasks_open',(select count(*) from crm_tasks where coalesce(status,'open') not in ('done','cancelled')),
+      -- ONE definition of an open task (was: crm_tasks, the founder's own to-do list, which is 0).
+      'tasks_open',(select count(*) from public.v_org_open_tasks),
       'decisions_24h',(select count(*) from decision_log where created_at > now()-interval '24 hours' and created_at >= public.fn_os_fresh_start_at()),
       'disputes',(select count(*) from transactions where coalesce(refund_status,'') in ('requested','pending'))
     ),
@@ -85599,7 +85665,10 @@ AS $function$
          order by (coalesce(a.risk,'')='critical') desc, a.created_at desc limit 30) a),'[]'::jsonb),
     'decisions', coalesce((select jsonb_agg(jsonb_build_object('id',id,'actor',actor,'kind',kind,'decision',decision,
         'confidence',confidence,'route_to',route_to,'created_at',created_at)) from (select * from decision_log where created_at >= public.fn_os_fresh_start_at() order by created_at desc limit 20) d),'[]'::jsonb),
-    'tasks', coalesce((select jsonb_agg(jsonb_build_object('id',id,'title',title,'status',status,'priority',priority,'due',due_date,'source',source,'entity',entity)) from (select * from crm_tasks where coalesce(status,'open') not in ('done','cancelled') order by created_at desc limit 20) t),'[]'::jsonb)
+    -- The company's open org_tasks, owned by their departments' agents (not his to close: no Done button).
+    'tasks', coalesce((select jsonb_agg(jsonb_build_object('id',id,'title',title,'status',status,'priority',priority,'due',null,
+        'source', coalesce(dept_key,'—') || case when assigned_agent is not null then ' · ' || assigned_agent else '' end,
+        'entity','org_task','created_at',created_at)) from (select * from public.v_org_open_tasks order by created_at desc limit 20) t),'[]'::jsonb)
   );
 $function$
 
@@ -85672,6 +85741,18 @@ AS $function$
           select distinct on (report_type) report_type, id, source, title, created_at
           from public.report_registry where created_at >= public.fn_os_fresh_start_at() order by report_type, created_at desc
         ) x order by report_type) t),
+    -- WHO PRODUCES EACH TYPE, AND WHETHER IT IS RUNNING. A tile that shows only a last date reads
+    -- as live; this says "paused" out loud when the cron behind a type is off. Keyed by report_type.
+    'producers', (select coalesce(jsonb_object_agg(p.report_type, jsonb_build_object(
+        'job', p.jobname, 'active', coalesce(j.active, false),
+        'last_run', (select to_char(max(d.start_time),'YYYY-MM-DD HH24:MI') from cron.job_run_details d where d.jobid = j.jobid),
+        'paused_reason', case when coalesce(j.active, false) then null
+                              when j.jobid is null then 'no cron job named ' || p.jobname
+                              else 'cron ' || p.jobname || ' is paused' end)), '{}'::jsonb)
+      from (values ('daily','founder_brief_daily'), ('department','reporting_ai_daily'), ('supplier','reporting_ai_daily'),
+                   ('customer','reporting_ai_daily'), ('ai','reporting_ai_daily'), ('weekly','board_report_weekly'),
+                   ('monthly','monthly_report'), ('quarterly','quarterly_report'), ('finance','finance_ai_daily')) as p(report_type, jobname)
+      left join cron.job j on j.jobname = p.jobname),
     'flags', (select coalesce(jsonb_agg(f), '[]'::jsonb) from (
         select title, risk, status, to_char(created_at,'YYYY-MM-DD') as created
         from public.agent_actions
@@ -85748,7 +85829,8 @@ AS $function$
         select kind, title, impact, status, coalesce(source,'—') as source
         from public.market_intel where status<>'dismissed' order by created_at desc limit 20) m),
     'recent_simulations', (select coalesce(jsonb_agg(s),'[]'::jsonb) from (
-        select coalesce(scenario->>'type','scenario') as title,
+        select coalesce(nullif(scenario->>'question',''), nullif(scenario->>'title',''), nullif(scenario->>'type',''), 'Scenario #' || id) as title,
+               (scenario->>'confidence')::numeric as confidence,
                to_char(created_at,'YYYY-MM-DD HH24:MI') as created
         from public.simulations order by created_at desc limit 8) s)
   );
@@ -90202,7 +90284,7 @@ select cron.schedule('operations_ai_daily','45 4 * * *',$CRON$select public.fn_o
 select cron.schedule('ea_assistant_daily','0 4 * * *',$CRON$select public.fn_ea_assistant();$CRON$);
 select cron.schedule('document_controller_daily','25 4 * * *',$CRON$select public.fn_document_controller();$CRON$);
 select cron.schedule('dropbox_sync_daily','40 2 * * *',$CRON$select public.fn_kernel_cron_exec(81);$CRON$);
-select cron.schedule('reporting_ai_daily','20 4 * * *',$CRON$select public.fn_reporting_ai();$CRON$);
+select cron.schedule('reporting_ai_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(83);$CRON$);
 select cron.schedule('strategy_ai_daily','25 5 * * *',$CRON$select public.fn_kernel_cron_exec(84);$CRON$);
 select cron.schedule('scan_new_supplier_categories','20 3 * * *',$CRON$select public.fn_kernel_cron_exec(85);$CRON$);
 select cron.schedule('capability_backfill_daily','40 2 * * *',$CRON$select net.http_post(
