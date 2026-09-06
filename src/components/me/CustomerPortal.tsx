@@ -531,7 +531,13 @@ function ProfileGate({ token, lang, onDone }) {
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
   const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg((j && j.error) || t(lang, 'load_failed')); };
-  const profileDone = st.full_name && st.phone && st.dob;
+  // DOB MUST NOT GATE THE CRITICAL PATH (6 Sep 2026). This required st.dob, so a customer who did not
+  // supply a date of birth never saw the Verify-mobile / Verify-email / accept-Terms sections and was
+  // silently stuck — measured on the first real registrant (07:38Z): 8 save_customer calls, ZERO
+  // send_sms, phone unverified, terms never accepted, dob null. DOB is in neither `complete` (below)
+  // nor the create_inquiry gate, so requiring it here blocked verification for a field the rest of the
+  // system treats as optional. The gate now needs only the two facts a code can be sent to.
+  const profileDone = st.full_name && st.phone;
   return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
     <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</div>
     <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
