@@ -2,6 +2,14 @@
 import * as React from 'react';
 import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL, founderCommand, founderCommandThread, founderCommandClarify, founderCommandControl } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
+// REPORTS ARE CORPORATE PDFS (6 Sep 2026). One door for every PDF button: os_api report_pdf_url
+// mints (or re-signs) the report's PDF and answers a 15-minute signed URL. The tab is opened
+// synchronously on the click so a popup blocker does not eat the URL that arrives a second later.
+async function openReportPdf(req: Record<string, any>, w?: Window | null): Promise<string> {
+  const tab = w === undefined && typeof window !== 'undefined' ? window.open('', '_blank') : w;
+  try { const r: any = await osApi('report_pdf_url', req); const url = r && r.url; if (!url) throw new Error('no url'); if (tab) tab.location.href = url; else if (typeof window !== 'undefined') window.location.href = url; return url; }
+  catch (e: any) { if (tab) tab.close(); throw e; }
+}
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
   const [rep, setRep] = React.useState<any>(null);
@@ -9,6 +17,7 @@ function ReportViewer({ id }: { id: number }) {
   // contributed — the three things the requirement names.
   const [drillData, setDrillData] = React.useState<any>(null);
   const [approving, setApproving] = React.useState<number | null>(null); const [approved, setApproved] = React.useState<number[]>([]);
+  const [pdfBusy, setPdfBusy] = React.useState(false);
   // Approve a recommended action from inside the report, which is where the founder is reading it.
   const approveRec = async (i: number) => { setApproving(i); try { await osApi('report_recommend_approve', { report_id: id, index: i, source: rep?.report_type === 'exec_reports' ? 'exec_reports' : 'exec_reports' }); setApproved((a) => [...a, i]); } catch (_e) {} setApproving(null); };
   const drill = async (metric: string) => { try { setDrillData(await osApi('drilldown', { metric, days: 60 })); } catch (_e) { setDrillData(null); } };
@@ -26,7 +35,7 @@ function ReportViewer({ id }: { id: number }) {
     w.document.close(); w.focus(); setTimeout(() => { try { w.print(); } catch (_e) {} }, 300);
   };
   return (<div className='mt-4'>
-    {st === 'done' && rep ? <button onClick={printIt} className='inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 mb-2'>Print / Save as PDF</button> : null}
+    {st === 'done' && rep ? <div className='flex gap-2 mb-2'><button onClick={() => { setPdfBusy(true); openReportPdf({ source: rep.report_type === 'exec_reports' ? 'exec' : 'board', id }).catch(() => {}).finally(() => setPdfBusy(false)); }} disabled={pdfBusy} className='inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60'>{pdfBusy ? 'Preparing PDF…' : 'Download PDF'}</button><button onClick={printIt} className='inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:bg-foreground/5'>Print</button></div> : null}
     {st === 'load' ? <div className='text-sm text-muted-foreground'>Loading report…</div> : null}
     {st === 'err' ? <div className='text-sm text-amber-400'>{err}</div> : null}
     {st === 'done' && rep ? <div className='space-y-3'>
@@ -208,6 +217,15 @@ function WindowLayer({ wins, focus, close, min, max, move, size, snap }: { wins:
 
 export default function OsxShell() {
   const [ready, setReady] = React.useState(false);
+  // The founder brief email links the weekly/monthly report as /os?report_pdf=<source>:<id>. Once the
+  // session is ready the OS mints the signed URL and goes straight to the PDF in this tab (the link IS
+  // the click, so no popup is involved); a failure leaves the founder on the OS with the param cleared.
+  React.useEffect(() => {
+    if (!ready || typeof window === 'undefined') return;
+    const q = new URLSearchParams(window.location.search); const want = q.get('report_pdf'); if (!want) return;
+    const [source, id] = want.split(':'); q.delete('report_pdf'); window.history.replaceState(null, '', window.location.pathname + (q.toString() ? '?' + q.toString() : ''));
+    if (source && id) openReportPdf({ source, id: Number(id) }, null).catch(() => {});
+  }, [ready]);
   const [email, setEmail] = React.useState('');
   const [cur, setCur] = React.useState('console');
   const [tabs, setTabs] = React.useState<string[]>(['console']);
@@ -2575,6 +2593,7 @@ function FinanceApp() {
   const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
   const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false);
   const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
+  const [finPdfBusy, setFinPdfBusy] = React.useState(false);
   const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.finance').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
   React.useEffect(() => { load(); }, [load]);
   const glTotals = () => glLines.reduce((a: any, l: any) => ({ dr: a.dr + (Number(l.debit) || 0), cr: a.cr + (Number(l.credit) || 0) }), { dr: 0, cr: 0 });
@@ -2590,6 +2609,7 @@ function FinanceApp() {
         <Badge className={cn('border-0', (d?.ai?.health ?? 0) >= 60 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600')}>Health {Math.round(Number(d?.ai?.health || 0))}/100</Badge>
         <div className='ml-auto flex gap-2'>
           <Button className='h-8 text-xs' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+          <Button className='h-8 text-xs' variant='outline' disabled={finPdfBusy} onClick={() => { setFinPdfBusy(true); openReportPdf({ latest_finance: true }).catch((e: any) => setErr(String(e?.message || 'Could not prepare the finance PDF'))).finally(() => setFinPdfBusy(false)); }}>{finPdfBusy ? 'Preparing PDF…' : 'Download finance report (PDF)'}</Button>
           <Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button>
           <Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button>
         </div>
@@ -3874,6 +3894,12 @@ function MeetingReplay({ meeting }: { meeting: any }) {
     {challenges.length ? <div className='px-4 py-3 border-t border-border'><div className='text-xs font-semibold mb-2'>Challenged in the meeting</div><div className='space-y-1.5'>{challenges.map((ch: any, i: number) => (<div key={i} className='text-xs flex items-start gap-2'><Chip label={String(ch.stance || '')} tone={stanceTone(String(ch.stance || ''))} /><span className='flex-1'><span className='text-muted-foreground'>{String(ch.by || '')} on {String(ch.of || '')}: </span>{String(ch.reasoning || '')}</span></div>))}</div></div> : null}
   </SectionCard>);
 }
+// The PDF control on a report row. It sits inside the row's own button, so the click must not open the
+// drawer as well; the report row's src is board | exec | finance, exactly what report_pdf resolves.
+function PdfButton({ src, id }: { src: string; id: number }) {
+  const [busy, setBusy] = React.useState(false);
+  return <span role='button' tabIndex={0} title='Open the corporate PDF' onClick={(e) => { e.stopPropagation(); if (busy) return; setBusy(true); openReportPdf({ source: src || 'board', id }).catch(() => {}).finally(() => setBusy(false)); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).click(); } }} className={cn('inline-flex h-6 items-center rounded-md border border-border px-2 text-[11px] font-medium shrink-0 hover:bg-primary hover:text-primary-foreground transition-colors', busy && 'opacity-60')}>{busy ? '…' : 'PDF'}</span>;
+}
 function ReportsApp() {
   const { d, err, busy, load } = useWs('ws.reports'); const [sel, setSel] = React.useState<any>(null);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Reports: {err}</Card>;
@@ -3886,8 +3912,8 @@ function ReportsApp() {
     {meeting ? <MeetingReplay meeting={meeting} /> : null}
     {fresh.length ? <SectionCard title='Report freshness'><div className='p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2'>{fresh.map((f) => (<div key={f.type} className={cn('rounded-md border p-2.5', f.fresh ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-amber-500/30 bg-amber-500/[0.03]')}><div className='flex items-center justify-between'><span className='text-xs font-medium capitalize'>{f.type}</span>{f.fresh ? <Check className='h-3.5 w-3.5 text-emerald-500' /> : <AlertTriangle className='h-3.5 w-3.5 text-amber-500' />}</div><div className='text-[10px] text-muted-foreground mt-1'>{fmt(f.at)}</div></div>))}</div></SectionCard> : null}
     {flags.length ? <SectionCard title='Report flags' count={flags.length}><div className='divide-y divide-border'>{flags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span className='flex-1'>{f.title}</span>{f.status ? <Chip label={titleCase(String(f.status))} tone={statusTone(String(f.status))} /> : null}</div>))}</div></SectionCard> : null}
-    <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
-    {byType.length ? <SectionCard title='Latest by type' count={byType.length}><div className='divide-y divide-border'>{byType.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='flex-1 text-sm line-clamp-1'>{r.title}</span><Chip label={titleCase(String(r.report_type))} tone='blue' /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div></SectionCard> : null}
+    <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<PdfButton src={r.src} id={r.id} /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
+    {byType.length ? <SectionCard title='Latest by type' count={byType.length}><div className='divide-y divide-border'>{byType.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='flex-1 text-sm line-clamp-1'>{r.title}</span><Chip label={titleCase(String(r.report_type))} tone='blue' /><PdfButton src={r.src} id={r.id} /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div></SectionCard> : null}
     {sel ? <ReportViewerDrawer report={sel} onClose={() => setSel(null)} /> : null}
   </div>);
 }
