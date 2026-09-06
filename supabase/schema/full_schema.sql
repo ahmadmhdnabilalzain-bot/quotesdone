@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T10:25:59.142Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T11:07:22.441Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -9926,6 +9926,7 @@ CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx ON public.kb_chunks USING btree (
 CREATE INDEX kb_chunks_source_id_idx ON public.kb_chunks USING btree (source_id);
 CREATE INDEX kb_chunks_source_kind_idx ON public.kb_chunks USING btree (source_kind);
 CREATE INDEX kb_chunks_unembedded_cat_created_idx ON public.kb_chunks USING btree (category, created_at) WHERE (embedding_gte IS NULL);
+CREATE INDEX kb_chunks_unembedded_created_idx ON public.kb_chunks USING btree (created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_op_alias_lang_idx ON public.kb_operational_alias USING btree (language, negative);
 CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (alias_norm);
 CREATE INDEX kb_op_route_map_pkg_idx ON public.kb_operational_route_map USING btree (package_slug, subcategory_slug);
