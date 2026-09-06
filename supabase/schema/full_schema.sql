@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T09:39:50.127Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T10:12:10.741Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19391,11 +19391,11 @@ begin
       ||coalesce(r.attempts::text,'?')||'/'||coalesce(r.max_attempts::text,'?')||' attempts, latest score '
       ||coalesce(r.latest_score::text,'?')||'). Autonomy is still blocked. Decide: retrain, reassign, or downgrade seniority.',
       'assigned', 'supervised', false, 'remediation', v_mgr);
-    begin
-      perform public.fn_notify_founder('Remediation escalated: '||r.agent_key,
-        r.agent_key||' failed remediation on '||coalesce(r.competency,r.failure_class)||' and remains autonomy-blocked. A manager task was opened for '||coalesce(v_mgr,'the manager')||'.',
-        'high', p_kind => 'remediation_escalated');
-    exception when others then null; end;
+    -- 6 SEP 2026: the manager task opened above IS the routing. This used to also call
+    -- fn_notify_founder(kind remediation_escalated); under the founder-mail policy that kind is
+    -- routed, not emailed, and the router opened a SECOND task for the same escalation
+    -- (org_connectivity_scenarios: "exactly one, deduplicated" read 2). The escalation reaches the
+    -- founder through the brief's WITH THE ORGANISATION count, which reads org_tasks.
     v_handled := v_handled + 1;
   end loop;
   insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
