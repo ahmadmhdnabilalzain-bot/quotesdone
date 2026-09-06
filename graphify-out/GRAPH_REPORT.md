@@ -1,11 +1,11 @@
-# Graph Report - wf_9d4fde26-79c-3  (2026-09-06)
+# Graph Report - wf_9d4fde26-79c-6  (2026-09-06)
 
 ## Corpus Check
-- 3953 files · ~7,216,505 words
+- 3953 files · ~7,199,886 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 26219 nodes · 29153 edges · 3833 communities (3128 shown, 705 thin omitted)
+- 26168 nodes · 29093 edges · 3838 communities (3131 shown, 707 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 171 edges (avg confidence: 0.56)
 - Token cost: 0 input · 0 output
 
@@ -1711,7 +1711,6 @@
 - $WT/scripts/staging/prove_supplier_negotiation.mjs
 - $WT/src/components/portal/supplier/SupplierInventory.tsx
 - $WT/src/components/portal/supplier/SupplierSettings.tsx
-- $WT/supabase/functions/agent_learnings_report/index.ts
 - $WT/supabase/functions/apify_scrape/index.ts
 - $WT/supabase/functions/backup/index.ts
 - $WT/supabase/functions/category_reqs/index.ts
@@ -2011,12 +2010,9 @@
 - d3-shape
 - react-dom
 - @supabase/supabase-js
-- .claude/skills/vercel-optimize/lib/util.mjs
-- V3 certification — runtime evidence
 - patch_rscl4.mjs
 - patch_s8d.mjs
 - Appendix — per-routine tables (generated from the live-caller dump, 5 Sep 2026)
-- gen_migration.mjs
 - ai
 - phase_d_e13_an_amendment_that_excuses_itself_down.sql
 - phase_d_e19_absent_evidence_and_broken_policy_wore_one_name_down.sql
@@ -2047,16 +2043,14 @@
 - phase_d_o16_four_enforcing_tables_this_session_created_and_left_truncatable.sql
 - phase_d_q01_a_deferred_guard_that_ran_as_the_caller_down.sql
 - decide_src.mjs
+- SupplierRelationship.tsx
 - messages_api/index.ts
 - apply_sql.mjs
 - phase_a/freeze.mjs
-- V3 CERTIFICATION — RESULT OF RECORD
-- 1. `scripts/phase_d/run_section8_security_probes.mjs` (714 lines)
 - fixpatch.mjs
-- .claude/skills/vercel-optimize/lib/route-normalize.mjs
-- .claude/skills/vercel-optimize/scripts/render-report.mjs
 - Knowledge audit — Agent Ops (`people_ops`)
 - phase_c_command_acceptance.RETIRED.mjs
+- SupplierTwin.tsx
 - command.tsx
 - The Phase C/D acceptance drives are retired — the properties stay (4 Sep 2026, Phase E)
 - What only you can give the machine
@@ -2065,6 +2059,7 @@
 - quote_extract/index.ts
 - Knowledge audit — the company-wide layer every agent inherits
 - SupplierNetworkMap.tsx
+- enrich_capability/index.ts
 - m03_run.mjs
 - phase_c_invariants.RETIRED.mjs
 - patch_events.mjs
@@ -2074,13 +2069,14 @@
 - patch_s8c.mjs
 - patch_s8e.mjs
 - patch_zerocost.mjs
-- .agents/skills/vercel-optimize/lib/budget-summary.mjs
 - agent_learnings_report/index.ts
 - SupplierInsightBoard.tsx
 - KNOWLEDGE_PLAN_2026-09-06.md
 - Knowledge audit — Growth department (7 active agents)
+- run_concurrency_probes.mjs
 - copilot/index.ts
 - Knowledge audit — Supply department (6 agents)
+- freeze_amendment_names_a_real_change_request.RETIRED.mjs
 - Knowledge audit — Customer Experience department (5 active agents)
 - Knowledge audit — data_intel (Data & Experimentation)
 - verify_os_health_brief.mjs
@@ -2090,7 +2086,10 @@
 - email_cron/index.ts
 - stage1_ai_managerial_approval_tier.sql
 - QuotesDone toolbox
+- quote_review/index.ts
+- build_rule_gate_result.mjs
 - exec_agents/index.ts
+- business_object_id
 - launch_step1_a_new_target_cascades.sql
 - phase_c_fdr002_reserves_the_pricing_model_not_every_run.sql
 - phase_c_pccr006_bootstrap_approval_record.sql
@@ -2117,13 +2116,16 @@
 - gate_decision_chain.mjs
 - backup/index.ts
 - dept_learn/index.ts
+- gen_category_personas/index.ts
+- type
 - Product & Engineering (platform & reliability) — 6 agents
-- Supply — 6 agents
 - phase_c_founder_chain.RETIRED.mjs
 - reg_fetch_refuses_private_addresses.mjs
 - embed_leads/index.ts
+- approve_pccr009.mjs
 - staff_org_seat_at_plan_size_2026_09_04.sql
 - kb_autofill_gaps/index.ts
+- retention_purge/index.ts
 - a_watcher_signature_resolves_when_its_subject_succeeds.sql
 - Finance — 5 agents
 - Customer Experience — 5 agents
@@ -2134,19 +2136,18 @@
 - bus_noise_retired_phantom_subscriptions_cut_priority_reorder.sql
 - reg_fetch/index.ts
 - phase_d_input_schemas_are_typed_and_closed.test.mjs
-- .agents/skills/vercel-optimize/lib/gates/usage-spike-triage.mjs
 - red_view_alerter.sql
 - a_second_closing_path_beside_the_spine.sql
-- .agents/skills/vercel-optimize/lib/gates/build-minutes-fanout.mjs
-- .agents/skills/vercel-optimize/lib/gates/isr-overrevalidation.mjs
+- .agents/skills/vercel-optimize/lib/scanners/missing-cache-headers.mjs
 - enum
-- .agents/skills/vercel-optimize/lib/gates/middleware-heavy.mjs
-- .agents/skills/vercel-optimize/lib/gates/observability-events-attribution.mjs
+- business_object_version
 - created_at
 - the_alerter_reads_credential_expiry.sql
 - public.agent_actions
+- started_at
 - attempt_no
 - business_object_id
+- state
 - clsx
 - deadline
 - type
@@ -2160,7 +2161,7 @@
 2. `2. Edge functions` - 189 edges
 3. `cn()` - 163 edges
 4. `requireInternal()` - 148 edges
-5. `sql()` - 130 edges
+5. `sql()` - 129 edges
 6. `Every failing case, individually` - 100 edges
 7. `3. Database migrations` - 89 edges
 8. `react` - 80 edges
@@ -2182,15 +2183,15 @@
 ## Import Cycles
 - None detected.
 
-## Communities (3833 total, 705 thin omitted)
+## Communities (3838 total, 707 thin omitted)
 
 ### Community 0 - "OsxShell.tsx"
 Cohesion: 0.06
-Nodes (86): isKnownUrl(), findRecContradictions(), asArray(), buildScriptHasMigrationSideEffect(), cacheInvalidationFileCache, cacheLifeNeedsContentFreshnessProof(), cleanHeaderValue(), compilePattern() (+78 more)
+Nodes (85): findRecContradictions(), asArray(), buildScriptHasMigrationSideEffect(), cacheInvalidationFileCache, cacheLifeNeedsContentFreshnessProof(), cleanHeaderValue(), compilePattern(), configContainsTag() (+77 more)
 
 ### Community 1 - "pdf_native/index.ts"
-Cohesion: 0.09
-Nodes (30): admin, armPage(), authed(), BANDTXT, bidi, CO, CO_AR, CORS (+22 more)
+Cohesion: 0.10
+Nodes (51): admin, armPage(), authed(), BANDTXT, bidi, bidiRuns(), blockBadge(), blockKV() (+43 more)
 
 ### Community 2 - "CustomerPortal.tsx"
 Cohesion: 0.06
@@ -2213,8 +2214,8 @@ Cohesion: 0.12
 Nodes (30): admin, callFn(), cnt(), CORS, dayAgo(), HIGH, isHigh(), llm() (+22 more)
 
 ### Community 7 - "customer_api/index.ts"
-Cohesion: 0.08
-Nodes (23): admin, buildBriefPdf(), buildComparePdf(), buildQuotePdf(), BuyerName, buyerNameOf(), Cfg, clipCell() (+15 more)
+Cohesion: 0.07
+Nodes (25): admin, buildBriefPdf(), buildComparePdf(), buildQuotePdf(), BuyerName, buyerNameOf(), Cfg, clipCell() (+17 more)
 
 ### Community 8 - "compilerOptions"
 Cohesion: 0.06
@@ -2225,8 +2226,8 @@ Cohesion: 0.17
 Nodes (23): summarizeClaimResults(), applyQualityFloor(), grade(), gradeRecommendation(), isAccountScope(), roundTo(), scoreActionability(), scoreEvidence() (+15 more)
 
 ### Community 10 - "site_deploy/index.ts"
-Cohesion: 0.08
-Nodes (29): admin, capabilityRetrieve(), clip(), embed(), _norm(), policyBool(), policyNum(), policyOn() (+21 more)
+Cohesion: 0.17
+Nodes (16): admin, blogHub(), blogPost(), contactPage(), COSTMAP, coverSVG(), EMIRATES, esc() (+8 more)
 
 ### Community 11 - "[locale]/page.tsx"
 Cohesion: 0.13
@@ -2234,7 +2235,7 @@ Nodes (23): generateMetadata(), Categories(), Item, toTags(), CtaBand(), Hero(),
 
 ### Community 12 - "crm_api/index.ts"
 Cohesion: 0.00
-Nodes (813): public.action_class_gate, public.admin_mfa_sessions, public.agent_action_log, public.agent_chats, public.agent_command_log, public.agent_context_head, public.agent_context_retrieval, public.agent_evals (+805 more)
+Nodes (803): public.action_class_gate, public.admin_mfa_sessions, public.agent_action_log, public.agent_chats, public.agent_command_log, public.agent_context_head, public.agent_context_retrieval, public.agent_evals (+795 more)
 
 ### Community 13 - "login_otp/index.ts"
 Cohesion: 0.12
@@ -2269,8 +2270,8 @@ Cohesion: 0.12
 Nodes (15): 1. What changed, and what it does not yet prove, 2. Population, 3. The 38, one row each, 4. The four categories at 0 of 5, 5. The QUOTE write path, from the code, 6. G1 — the 54 event self-loops are not a Phase D defect, 7. Boundary of this document, DISPATCH — 0 / 5 (+7 more)
 
 ### Community 22 - "agent_brain/index.ts"
-Cohesion: 0.08
-Nodes (29): sig(), admin, cntT(), context(), CORS, instructions(), learn(), lintClean() (+21 more)
+Cohesion: 0.09
+Nodes (28): admin, cntT(), context(), CORS, instructions(), learn(), lintClean(), llmFast() (+20 more)
 
 ### Community 23 - "secretary/index.ts"
 Cohesion: 0.01
@@ -2317,8 +2318,8 @@ Cohesion: 0.15
 Nodes (7): admin, CORS, otpHash(), otpKey(), sec(), sendEmail(), twilioAuth()
 
 ### Community 35 - "messages_api/index.ts"
-Cohesion: 0.05
-Nodes (42): tok(), esc(), OUT, writeCSV(), FN_DIR, rows, SURFACES, edgeSrc (+34 more)
+Cohesion: 0.14
+Nodes (18): tok(), collectRoleRefs(), csv(), DECLARED_COUNTS, loadPackage(), RFC-4180, parseCSV(), PKG (+10 more)
 
 ### Community 36 - "wa_inbound/index.ts"
 Cohesion: 0.18
@@ -2341,16 +2342,16 @@ Cohesion: 0.11
 Nodes (18): 1. Information architecture and navigation, 2. The assistant — "a dumb chat bot", and that is my words, 3. The visual design, Craft, since "static and outdated" was half the complaint, HOW I WANT THE SESSION RUN, Mapping to our domain — this is the "our requirement though", Next session prompt — finish the customer portal, RULE ZERO, EARNED THE HARD WAY LAST SESSION: OPEN IT IN A BROWSER. (+10 more)
 
 ### Community 41 - "finance_ingest/index.ts"
-Cohesion: 0.09
-Nodes (14): addCycle(), admin, CORS, doForecast(), doLog(), doRemind(), founderEmail(), sec() (+6 more)
+Cohesion: 0.29
+Nodes (10): addCycle(), admin, CORS, doForecast(), doLog(), doRemind(), founderEmail(), sec() (+2 more)
 
 ### Community 42 - "inquiry_ai/index.ts"
 Cohesion: 0.22
 Nodes (8): admin, callModel(), CORS, EMIRATES, hasNotSure(), mergeMissing(), parseJson(), PLACE_TO_EMIRATE
 
 ### Community 43 - "learn_gaps/index.ts"
-Cohesion: 0.08
-Nodes (28): admin, Block, Cell, clean(), Doc, GOLD, INK, licenceLine() (+20 more)
+Cohesion: 0.09
+Nodes (35): H(), admin, Block, buildDoc(), Cell, clean(), Doc, financeStatements() (+27 more)
 
 ### Community 44 - "os_pages/index.ts"
 Cohesion: 0.23
@@ -2446,7 +2447,7 @@ Nodes (6): admin, CONTENT, dbxToken(), EDITABLE, READONLY, sec()
 
 ### Community 69 - "@radix-ui/react-separator"
 Cohesion: 0.03
-Nodes (78): arr(), pkg, qs(), RESOLVE(), resolveList(), SQL_DIR, TITLE_ALIASES, DYNAMIC_ACTORS (+70 more)
+Nodes (63): NON_ACCOUNTABLE_ACTORS, badStepStateRefs, badStTrans, badTargets, badWfTrans, canonical, classify(), closureAnomalies (+55 more)
 
 ### Community 70 - "resend_webhook/index.ts"
 Cohesion: 0.25
@@ -2461,8 +2462,8 @@ Cohesion: 0.22
 Nodes (4): admin, logRun(), logThrottled(), T0
 
 ### Community 74 - "supplier_portal/index.ts"
-Cohesion: 0.11
-Nodes (12): codes, COLS, fatal, intentFailed, intentVerdict, mismatch, nostage, refused (+4 more)
+Cohesion: 0.03
+Nodes (72): aliasTo, byComponent, canonRoles, cross, out, overlayRoles, pkg, roleById (+64 more)
 
 ### Community 75 - "yello_scrape/index.ts"
 Cohesion: 0.33
@@ -2470,7 +2471,7 @@ Nodes (3): admin, genOnce(), parseSections()
 
 ### Community 76 - "portal/page.tsx"
 Cohesion: 0.05
-Nodes (85): hash, run, arr(), AUTHORITY, BUCKET_SOURCES(), call(), capabilityInsert(), capabilityProfile() (+77 more)
+Nodes (89): hash, run, arr(), AUTHORITY, BUCKET_SOURCES(), call(), capabilityInsert(), capabilityProfile() (+81 more)
 
 ### Community 77 - "admin_detail/index.ts"
 Cohesion: 0.03
@@ -2481,8 +2482,8 @@ Cohesion: 0.23
 Nodes (17): candidateKey(), canonicalizeBranchPrefix(), canonicalizeRoute(), decodeSegmentToken(), dedupeCandidates(), firstRouteSegment(), isBase64FlagState(), isDynamicPlaceholder() (+9 more)
 
 ### Community 79 - "cad_convert/index.ts"
-Cohesion: 0.07
-Nodes (28): Arabic and English (UAE B2B), Asset index, Avatars (one square for every platform), Buttons, links and states, Clear space, minimum size, and the don'ts, Colour, Contrast (measured 6 September 2026), Covers and headers (+20 more)
+Cohesion: 0.03
+Nodes (46): REF, BRIDGE, REF, values, MAP, REF, rows, REF (+38 more)
 
 ### Community 80 - "dispatch_inquiry/index.ts"
 Cohesion: 0.09
@@ -2501,8 +2502,8 @@ Cohesion: 0.07
 Nodes (27): Administration & Operations, AI Department, Business Development, Customer Success, Data & Analytics, Document Intelligence, Engineering, Evolution (+19 more)
 
 ### Community 84 - "match_eval/index.ts"
-Cohesion: 0.13
-Nodes (18): ar(), call(), DiscoveryReachPanel(), DiscoveryReachPanelProps, HistoryProject, HistoryResponse, HistorySupplier, Lang (+10 more)
+Cohesion: 0.11
+Nodes (12): codes, COLS, fatal, intentFailed, intentVerdict, mismatch, nostage, refused (+4 more)
 
 ### Community 85 - "os_api/index.ts"
 Cohesion: 0.15
@@ -2557,8 +2558,8 @@ Cohesion: 0.19
 Nodes (12): cols, emit(), failArm(), JOBS, ONLY, passArm(), PRE(), queue (+4 more)
 
 ### Community 98 - "gen_category_knowledge/index.ts"
-Cohesion: 0.02
-Nodes (58): contexts, load(), rows(), RULES, one(), q(), rows(), rows() (+50 more)
+Cohesion: 0.03
+Nodes (49): one(), q(), rows(), rows(), rows(), tokenPath, rows(), rows() (+41 more)
 
 ### Community 99 - "gen_category_personas/index.ts"
 Cohesion: 0.13
@@ -2577,8 +2578,8 @@ Cohesion: 0.10
 Nodes (51): isDailyQuotaExceeded(), aggregateServicesByName(), baselineStack(), categorizeError(), checkAuth(), checkCliVersion(), checkObservabilityPlusConfiguration(), classifyObservabilityPlusConfiguration() (+43 more)
 
 ### Community 103 - "postiz_publish/index.ts"
-Cohesion: 0.07
-Nodes (28): ids, probe, sql(), token(), addr(), admin, attachmentBytes(), b64ToBytes() (+20 more)
+Cohesion: 0.14
+Nodes (15): ids, probe, sql(), token(), MONTHS, num(), originalSender(), parseAmount() (+7 more)
 
 ### Community 104 - "quote_pdf/index.ts"
 Cohesion: 0.04
@@ -2598,7 +2599,7 @@ Nodes (18): [comp-14-can-decide] (loose-check), [comp-14-can-spend, comp-15-who-
 
 ### Community 110 - "backup/index.ts"
 Cohesion: 0.09
-Nodes (42): compareVersion(), HERE, LIBRARY_PATH, libraryForStack(), loadLibrary(), lookupSkillRule(), lookupUrl(), matchesFrameworkVersion() (+34 more)
+Nodes (42): compareVersion(), HERE, isKnownUrl(), LIBRARY_PATH, libraryForStack(), loadLibrary(), lookupSkillRule(), lookupUrl() (+34 more)
 
 ### Community 111 - "blog_weekly/index.ts"
 Cohesion: 0.12
@@ -2617,16 +2618,16 @@ Cohesion: 0.05
 Nodes (42): 0. THE RULE FOR THIS SESSION — demo data, always, 1. Settled — do not re-open, 2.1 What exists today, 2.2 What staging was carrying — CLEARED in session 9, 2.3 The factory — BUILT, 2.4 Traps that specifically break demo data — read before writing a fixture, 2. Demo data: what exists, what is rotting, what to build, 3.1 Phase 3 — supplier journey (+34 more)
 
 ### Community 116 - "embed_leads/index.ts"
-Cohesion: 0.13
-Nodes (12): cfg, dirty, jwtDrift, live, liveSlugs, local, notDeployed, pinned (+4 more)
+Cohesion: 0.15
+Nodes (13): admin, capabilityRetrieve(), clip(), embed(), _norm(), policyBool(), policyNum(), policyOn() (+5 more)
 
 ### Community 117 - "exec_board/index.ts"
 Cohesion: 0.05
 Nodes (39): appLive, classCount, classified, classify(), conflicts, ddl, drifted, driftedKeys (+31 more)
 
 ### Community 118 - "extract_text/index.ts"
-Cohesion: 0.18
-Nodes (6): admin, authed(), CORS, sec(), admin, SAFE_UPLOAD
+Cohesion: 0.10
+Nodes (10): admin, authed(), CORS, sec(), admin, SAFE_UPLOAD, admin, cors (+2 more)
 
 ### Community 119 - "kb_autofill_gaps/index.ts"
 Cohesion: 0.12
@@ -2637,8 +2638,8 @@ Cohesion: 0.14
 Nodes (33): answer_document_append_only, conflict_value_append_only, corroboration_append_only, inquiry_answer_value_immutable, inquiry_state_audit_append_only, public.field_definition, public.field_definition_source, public.field_definition_trade (+25 more)
 
 ### Community 121 - "make_xlsx/index.ts"
-Cohesion: 0.17
-Nodes (10): changed, deployedVer, H, missing, one(), out, SIGNATURES, slugs (+2 more)
+Cohesion: 0.02
+Nodes (54): mgmtRead(), mgmtRead(), rows(), APPROVED_BY_THE_FOUNDER_IN_WRITING, drive(), mgmtRead(), REQUIRED_ELEMENTS, token() (+46 more)
 
 ### Community 122 - "ops_live/index.ts"
 Cohesion: 0.14
@@ -2661,8 +2662,8 @@ Cohesion: 0.11
 Nodes (22): DENSE_LICENCE, denseLicencePdf(), esc(), EXPIRED_LICENCE, expiredLicencePdf(), ILLEGIBLE_LINES, illegibleLicencePdf(), licenceLines() (+14 more)
 
 ### Community 128 - "seo_gen/index.ts"
-Cohesion: 0.14
-Nodes (11): load(), EDGE_FNS, EDGE_SRC, EDGE_TABLES, edgeClosure(), edgeSrc(), FN_DIR, REPO (+3 more)
+Cohesion: 0.09
+Nodes (27): CompanyTwin(), Fact(), L(), S, Twin, CustomerMemory(), FIELDS, L() (+19 more)
 
 ### Community 129 - "social_stage/index.ts"
 Cohesion: 0.31
@@ -2718,15 +2719,15 @@ Nodes (15): [comp-11-actual-values] (loose-check), [comp-11-improvement-plan] (l
 
 ### Community 143 - "email_triage/index.ts"
 Cohesion: 0.02
-Nodes (68): admin, aiSummary(), cors, llm, T0, admin, llm, llmJSON() (+60 more)
+Nodes (65): admin, ALLOWED, CORS, KMAP, llm, PERSONAS, SAFE_DELETE, admin (+57 more)
 
 ### Community 144 - "export_leads_csv/index.ts"
-Cohesion: 0.18
-Nodes (8): APPLY, checks, extraCK, extraNN, missCK, missNN, set(), stmts
+Cohesion: 0.20
+Nodes (10): aed(), call(), Lang, Money, Opp, Pick, Rec, RISK_TONE (+2 more)
 
 ### Community 145 - "finance_doc/index.ts"
-Cohesion: 0.18
-Nodes (6): storeOriginal(), safeFilename(), admin, cors, DOC_KINDS, DOC_ORDER
+Cohesion: 0.20
+Nodes (5): admin, aiSummary(), cors, llm, T0
 
 ### Community 146 - "kb_ingest_text/index.ts"
 Cohesion: 0.10
@@ -2734,7 +2735,7 @@ Nodes (19): Absent input never scores as satisfied, Agent orchestration — test
 
 ### Community 150 - "pending_digest/index.ts"
 Cohesion: 0.13
-Nodes (7): admin, ALLOWED, CORS, KMAP, llm, PERSONAS, SAFE_DELETE
+Nodes (12): byId, cat, cats, CLOSED, COLS, decided, missing, notref (+4 more)
 
 ### Community 152 - "prompt_improve/index.ts"
 Cohesion: 0.08
@@ -2761,8 +2762,8 @@ Cohesion: 0.40
 Nodes (4): admin, WHY: this wrote attacker-controllable text into app_secrets.voice_otp_last, gate, T0, XML
 
 ### Community 161 - "vt_scan/index.ts"
-Cohesion: 0.09
-Nodes (52): ApiResult, projectApi(), aed(), CLOSED_RFQ_STATUSES, DerivedStats, deriveStats(), elapsedPct(), fmtDate() (+44 more)
+Cohesion: 0.08
+Nodes (55): ApiResult, projectApi(), aed(), CLOSED_RFQ_STATUSES, DerivedStats, deriveStats(), elapsedPct(), fmtDate() (+47 more)
 
 ### Community 162 - "badge.tsx"
 Cohesion: 0.06
@@ -2801,8 +2802,8 @@ Cohesion: 0.12
 Nodes (16): [comp-11-improvement-plan], [comp-11-objectives], [comp-11-root-cause], [comp-11-root-cause], [comp-11-variance], [comp-12-best-practices], [comp-12-best-practices], [comp-12-failures] (+8 more)
 
 ### Community 176 - "reg_fetch/index.ts"
-Cohesion: 0.25
-Nodes (7): body, files, fingerprint(), m, MIGRATION_FILES, sha(), SQL_DIR
+Cohesion: 0.13
+Nodes (13): addr(), admin, attachmentBytes(), b64ToBytes(), bytesToB64(), classify, extractDoc(), fetchInboundAttachmentBytes() (+5 more)
 
 ### Community 178 - "translate_html/index.ts"
 Cohesion: 0.12
@@ -2861,8 +2862,8 @@ Cohesion: 0.07
 Nodes (30): add(), AI, csvRows(), dead, KB86, KBPKGS, lines(), one() (+22 more)
 
 ### Community 197 - "@radix-ui/react-tooltip"
-Cohesion: 0.25
-Nodes (7): Adj, call(), Cat, Graph, Lang, SupplierKnowledgeGraph(), T
+Cohesion: 0.17
+Nodes (10): changed, deployedVer, H, missing, one(), out, SIGNATURES, slugs (+2 more)
 
 ### Community 198 - "react-dom"
 Cohesion: 0.06
@@ -3117,8 +3118,8 @@ Cohesion: 0.20
 Nodes (9): 5. Configuration, Architecture at a glance, Contents, .gitignore, next.config.mjs, package.json, QuotesDone — Complete Codebase, Statistics (+1 more)
 
 ### Community 283 - "backfill_production_embeddings.mjs"
-Cohesion: 0.13
-Nodes (35): ApiResult, call(), aed(), fmtDate(), Forecast, ForecastCategory, Lang, marketComparison (+27 more)
+Cohesion: 0.14
+Nodes (32): ApiResult, call(), aed(), fmtDate(), Forecast, ForecastCategory, Lang, marketComparison (+24 more)
 
 ### Community 284 - "sync_src_from_github/index.ts"
 Cohesion: 0.24
@@ -3163,6 +3164,10 @@ Nodes (8): cols, inList, json, ph, setList, sh, [table, keyCol, ...keys], token
 ### Community 294 - "verify_spec_architecture.mjs"
 Cohesion: 0.31
 Nodes (7): COUNT_READERS(), missing, one(), q(), READERS(), req(), rows
+
+### Community 295 - "20260803035619_single_source_supplier_registration_state_audit_4_2.sql"
+Cohesion: 0.20
+Nodes (7): after, before, DRY, keys, need, token, total
 
 ### Community 296 - "20260803161058_audit_65_supplier_state_invariants_and_dead_letter.sql"
 Cohesion: 0.06
@@ -3241,8 +3246,8 @@ Cohesion: 0.09
 Nodes (23): §10 — Decision Engine (L1311–L1326), §11 — Exception handling, the 16 scenarios (L1328–L1353) — **the largest gap in the file**, §12 — Self-healing, the 8 examples (L1355–L1370), §13 — Continuous monitoring, the 11 signals (L1372–L1390), §14 — Learning & adaptation, the 6 examples (L1392–L1405), §15 — The six additional platform components (L1407–L1498), §16 — The one contract claim that is actively false in production, §17 — The same shape, measured everywhere else it occurs (+15 more)
 
 ### Community 316 - "3. Control Mode"
-Cohesion: 0.20
-Nodes (7): after, before, DRY, keys, need, token, total
+Cohesion: 0.33
+Nodes (6): apply(), metadata, apply(), metadata, MODE_PATTERNS, extractRoute()
 
 ### Community 317 - "5. Refunds"
 Cohesion: 0.15
@@ -3261,16 +3266,16 @@ Cohesion: 0.29
 Nodes (4): APPLY, out, results, TARGETS
 
 ### Community 321 - "gate_decision_chain.mjs"
-Cohesion: 0.09
-Nodes (28): CompanyTwin(), Fact(), L(), S, Twin, CustomerMemory(), FIELDS, L() (+20 more)
+Cohesion: 0.22
+Nodes (7): allDbSrc, cronCommands, fnDir, frontSrc, inv, pageFiles, srcDir
 
 ### Community 322 - "verify_review_chain.mjs"
 Cohesion: 0.10
 Nodes (29): aed(), CategoryMixChart(), CustomerStats, Lang, Panel(), QuoteSpreadChart(), RequestTrendChart(), SpendingIntelligence() (+21 more)
 
 ### Community 323 - "verify_taxonomy.mjs"
-Cohesion: 0.02
-Nodes (55): mgmtRead(), mgmtRead(), rows(), APPROVED_BY_THE_FOUNDER_IN_WRITING, drive(), mgmtRead(), REQUIRED_ELEMENTS, token() (+47 more)
+Cohesion: 0.25
+Nodes (6): back, commit, finished, sql, started, token
 
 ### Community 326 - "intent_router/index.ts"
 Cohesion: 0.06
@@ -3309,8 +3314,8 @@ Cohesion: 0.33
 Nodes (3): inquiry_answer_value_domain, public.trg_inquiry_answer_value_domain(), public.v_inquiry_trade_status
 
 ### Community 335 - "1. Customer anonymity and drawing redaction"
-Cohesion: 0.07
-Nodes (26): RFC-4180, body1, checks, m, out, checks, m, out (+18 more)
+Cohesion: 0.17
+Nodes (12): ctx, drive, gate, produce, write, ctx, write, elig (+4 more)
 
 ### Community 336 - "4. Supplier pricing"
 Cohesion: 0.33
@@ -3481,8 +3486,8 @@ Cohesion: 0.36
 Nodes (6): cnt(), guarded(), RD(), rdCronOk(), rdSql(), WR()
 
 ### Community 387 - "os_incidents/index.ts"
-Cohesion: 0.29
-Nodes (6): bad, DIGEST(), DRY, q(), results, TABLES
+Cohesion: 0.25
+Nodes (8): call(), Cert, DOT, IMPACT_STYLE, Lang, Payload, SupplierCertifications(), T
 
 ### Community 389 - "20260724_cto_audit_hardening_wave1.sql"
 Cohesion: 0.06
@@ -3497,8 +3502,8 @@ Cohesion: 0.06
 Nodes (36): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Canonical events, Chain of command, Command intents that route primarily to this role, Consumes, Decisions and boundaries (+28 more)
 
 ### Community 392 - "20260728173145_ai_economy_attribute_spend_and_enforce_budgets.sql"
-Cohesion: 0.53
-Nodes (10): buildDoc(), financeStatements(), fmtNum(), isMoneyKey(), kpiStatements(), numOf(), parseNarrative(), Row (+2 more)
+Cohesion: 0.25
+Nodes (8): call(), Lang, ORDER, Payload, Rung, STYLE, SupplierTier(), T
 
 ### Community 393 - "20260728193744_reputation_maturity_energy_and_marketplace_health.sql"
 Cohesion: 0.12
@@ -3562,7 +3567,7 @@ Nodes (11): Category specialists, Certification separation, Ingestion integrity,
 
 ### Community 408 - "20260804181935_executor_registry_required_fields_and_measurable_acceptance.sql"
 Cohesion: 0.06
-Nodes (30): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Canonical events, Chain of command, Consumes, Decisions and boundaries, Direct command-intent ownership (+22 more)
+Nodes (36): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Canonical events, Chain of command, Consumes, Decisions and boundaries, Direct command-intent ownership (+28 more)
 
 ### Community 409 - "Stage A / B / B.5 — verbatim recovery manifest"
 Cohesion: 0.06
@@ -3663,6 +3668,10 @@ Nodes (14): CASE_ORDER, DECIDED, emit(), EXPECT, JOBS, NEGATIVE, ONLY, query() (
 ### Community 439 - "20260802165847_p2_c1_stage_a_teardown_gate.sql"
 Cohesion: 0.14
 Nodes (14): Built and verified by execution, `correctness` is a clock, not a missing grader — checked before calling it blocked, End-of-session sweep, 10 Aug ~07:00 UTC, Measured and found HONESTLY BLOCKED — do not "fix" these, `regulation.changed` had ten subscribers, no emitter — and the brief's reason was wrong, REPUTATION CAN TAKE AUTHORITY AWAY AND HAS NO WAY TO GIVE IT BACK — FOUNDER DECISION, Session 6 (10 Aug 2026, opened 05:47 UTC) — THE CLOCK WAS READ FIRST, AND IT PAID, The 14 never-emitted names, resolved into two very different piles (+6 more)
+
+### Community 440 - "20260802172556_p2_c1_stage_b_dispatch_blockers_and_trade_status.sql"
+Cohesion: 0.29
+Nodes (6): bad, DIGEST(), DRY, q(), results, TABLES
 
 ### Community 441 - "20260802172643_p2_c1_stage_b_value_domain_enforcement.sql"
 Cohesion: 0.16
@@ -3781,12 +3790,12 @@ Cohesion: 0.18
 Nodes (11): contested, fails, H, keys, list, pre, sleep(), sql() (+3 more)
 
 ### Community 480 - "20260728191919_os_independent_knowledge_and_weekly_improvement.sql"
-Cohesion: 0.32
-Nodes (7): attr(), Attrs, call(), Lang, Product, SupplierInventory(), T
+Cohesion: 0.14
+Nodes (10): cfgPath, edgeFilesEarly, FN_DIR, frontFilesEarly, inv, noJwt, outDir, outsideSrc (+2 more)
 
 ### Community 481 - "20260728192259_memory_os_backfill_sop_loop_and_full_health_v2.sql"
-Cohesion: 0.15
-Nodes (12): c360(), checks, cleanup(), one(), prefOf(), [AGENT, DEPT, OS, EVT_DECLARED], checks, cleanup() (+4 more)
+Cohesion: 0.29
+Nodes (5): admin, authed(), CORS, judge, sec()
 
 ### Community 482 - "20260728203036_ai_spend_guard.sql"
 Cohesion: 0.24
@@ -3912,10 +3921,6 @@ Nodes (10): By spec file, END-OF-SESSION SWEEP, THE COUNT, THE FILES, THE HONEST
 Cohesion: 0.20
 Nodes (9): Five need no work — they clear themselves. Re-measure, do not rebuild., NEXT SESSION — ROW #3 (second pass, 11 Aug 2026 PM), One can never pass as written, STILL OPEN, NOT IN THE SCORER, THE CORRECTION, THE ONE-LINE RULE, WHAT IS ACTUALLY LEFT AND BUILDABLE, WHAT THIS SESSION CLOSED (+1 more)
 
-### Community 529 - "motion"
-Cohesion: 0.25
-Nodes (8): call(), Lang, ORDER, Payload, Rung, STYLE, SupplierTier(), T
-
 ### Community 530 - "next"
 Cohesion: 0.06
 Nodes (36): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Canonical events, Chain of command, Consumes, Decisions and boundaries, Direct command-intent ownership (+28 more)
@@ -3925,8 +3930,8 @@ Cohesion: 0.08
 Nodes (22): command, osApi, root, shell, componentFor(), EDGE_FNS, EDGE_SRC, EDGE_TABLES (+14 more)
 
 ### Community 532 - "tailwind-merge"
-Cohesion: 0.20
-Nodes (16): ALL_READS(), closure(), componentFor(), COUNT_IF_EXISTS(), NOT_WRITER(), REL_EXISTS(), renderedKeys(), ROOT_FNS (+8 more)
+Cohesion: 0.11
+Nodes (27): ALL_READS(), closure(), componentFor(), COUNT_IF_EXISTS(), EDGE_FNS, EDGE_SRC, EDGE_TABLES, edgeClosure() (+19 more)
 
 ### Community 545 - "20260724_analytics_department.sql"
 Cohesion: 0.20
@@ -3965,8 +3970,8 @@ Cohesion: 0.22
 Nodes (4): admin, CASES, FIX, T0
 
 ### Community 554 - "20260728080201_lead_haystack_view.sql"
-Cohesion: 0.04
-Nodes (133): react, react, GROUPS, metadata, ActivityPanel(), aed(), AgentDrawer(), AgentsApp() (+125 more)
+Cohesion: 0.03
+Nodes (139): react, react, GROUPS, metadata, ActivityPanel(), aed(), AgentDrawer(), AgentsApp() (+131 more)
 
 ### Community 555 - "20260728103435_invite_balance_across_canonical_categories.sql"
 Cohesion: 0.29
@@ -4020,13 +4025,9 @@ Nodes (36): Action classes owned, Action classes reviewed/contributed to, AI Dir
 Cohesion: 0.06
 Nodes (36): Action classes owned, Action classes reviewed/contributed to, AI Architect, Authority and system accountability, Canonical events, Chain of command, Consumes, Decisions and boundaries (+28 more)
 
-### Community 569 - "20260728193453_fn_challenge_fix_false_negative_and_rank1_severity.sql"
-Cohesion: 0.29
-Nodes (4): admin, llm(), llmShared, T0
-
 ### Community 570 - "20260728193632_fn_company_reflect_fix_actor_column.sql"
 Cohesion: 0.03
-Nodes (82): metadata, metadata, BoardHeader(), ChannelLinks(), Chip(), Funnel(), HBars(), PostThumb() (+74 more)
+Nodes (77): metadata, metadata, Lang, call(), Doc, Impact, Lang, SupplierDocumentImpact() (+69 more)
 
 ### Community 571 - "20260728193932_fn_company_indices_no_inline_scoreboard.sql"
 Cohesion: 0.06
@@ -4073,8 +4074,8 @@ Cohesion: 0.06
 Nodes (36): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Canonical events, Chain of command, Consumes, Decisions and boundaries, Direct command-intent ownership (+28 more)
 
 ### Community 583 - "20260802122221_kb_rollback_public_wrapper.sql"
-Cohesion: 0.06
-Nodes (36): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Backend Engineer, Canonical events, Chain of command, Consumes, Decisions and boundaries (+28 more)
+Cohesion: 0.05
+Nodes (37): Action classes owned, Action classes reviewed/contributed to, Authority and system accountability, Backend Engineer, Canonical events, Chain of command, Consumes, Decisions and boundaries (+29 more)
 
 ### Community 584 - "20260802124428_kb_router_decision_thresholds_v2.sql"
 Cohesion: 0.06
@@ -4309,8 +4310,8 @@ Cohesion: 0.29
 Nodes (6): blockingRegion, eligibility, mgmtToken, NOT_THE_SUPPLIER_S_TO_FIX, PORTAL, SRC
 
 ### Community 684 - "20260728165824_fix_supplier_coverage_metric_measure_onboarded_not_scraped.sql"
-Cohesion: 0.11
-Nodes (22): apply(), metadata, apply(), metadata, MODE_PATTERNS, isApplicable(), metadata, scan() (+14 more)
+Cohesion: 0.14
+Nodes (14): isApplicable(), metadata, scan(), metadata, scan(), metadata, scan(), metadata (+6 more)
 
 ### Community 685 - "20260728172404_fn_outcome_evaluate_grade_and_retire.sql"
 Cohesion: 0.13
@@ -4389,8 +4390,8 @@ Cohesion: 0.07
 Nodes (28): A) `VERCEL_TOKEN` is already set in the environment, About `.vercel/` Directory, Authentication error, B) Token is in a `.env` file under `VERCEL_TOKEN`, Build failure, C) Token is in a `.env` file under a different name, Check project state first, CLI not installed (+20 more)
 
 ### Community 706 - "20260802143532_p1_04b_control_mode_sweep_cron.sql"
-Cohesion: 0.06
-Nodes (33): type, type, maximum, minimum, type, type, type, type (+25 more)
+Cohesion: 0.07
+Nodes (30): type, type, maximum, minimum, type, type, type, type (+22 more)
 
 ### Community 707 - "20260802154652_p1h_09_drop_superseded_refund_settle_overload.sql"
 Cohesion: 0.12
@@ -4429,8 +4430,8 @@ Cohesion: 0.18
 Nodes (25): affectedFiles(), appliesAlsoEntry(), cacheLifeIntent(), dedupEditTarget(), dedupeRecommendations(), dedupIntent(), firstAffectedFile(), fixShape() (+17 more)
 
 ### Community 716 - "20260803031538_classify_os_ops_actions_audit_3_1.sql"
-Cohesion: 0.16
-Nodes (12): extractColdStarts(), gate(), metadata, gates, MAX_CODE_CANDIDATES, metadata, HERE, main() (+4 more)
+Cohesion: 0.06
+Nodes (35): gate(), metadata, unique(), extractColdStarts(), gate(), metadata, gates, MAX_CODE_CANDIDATES (+27 more)
 
 ### Community 717 - "20260803053604_move_crons_and_db_functions_to_scoped_credentials_audit_9_5.sql"
 Cohesion: 0.26
@@ -4465,8 +4466,8 @@ Cohesion: 0.33
 Nodes (3): BASELINE, dirs, HELPERS
 
 ### Community 725 - "20260803173357_audit_44_company_facts_sync_must_state_start_date.sql"
-Cohesion: 0.20
-Nodes (15): escapeODataString(), mergeIntoEvidence(), odataEq(), SCANNER_KINDS, simplify(), SPEC_GENERATORS, specsForCandidate(), readProjectJson() (+7 more)
+Cohesion: 0.14
+Nodes (20): escapeODataString(), mergeIntoEvidence(), odataEq(), SCANNER_KINDS, simplify(), SPEC_GENERATORS, specsForCandidate(), defaultNormalize() (+12 more)
 
 ### Community 726 - "20260803182149_founding_rank_daily_backstop_enabled.sql"
 Cohesion: 0.12
@@ -4477,8 +4478,8 @@ Cohesion: 0.33
 Nodes (3): public.department_objective, public.employee_kpi, public.org_tasks
 
 ### Community 729 - "20260803221752_audit_95_llm_path_scoped_credentials.sql"
-Cohesion: 0.14
-Nodes (14): scanners, isApplicable(), metadata, scan(), isApplicable(), metadata, scan(), metadata (+6 more)
+Cohesion: 0.67
+Nodes (3): isApplicable(), metadata, scan()
 
 ### Community 730 - "20260803224717_audit_71_drop_the_regex_overload_that_would_have_won.sql"
 Cohesion: 0.60
@@ -4545,8 +4546,8 @@ Cohesion: 0.07
 Nodes (27): ALL_EDGE, ALL_SRC, AUTHED, CARD, DASH, EDGE, edgeNamesMatching(), edgeSrc() (+19 more)
 
 ### Community 777 - "verify_portal_blueprint.mjs"
-Cohesion: 0.09
-Nodes (19): applyDollarStrip(), stripDollarLiterals(), metadata, STRING_FIELDS, metadata, STRING_FIELDS, metadata, STRING_FIELDS (+11 more)
+Cohesion: 0.08
+Nodes (22): sanitizeCitations(), applyDollarStrip(), stripDollarLiterals(), metadata, STRING_FIELDS, metadata, STRING_FIELDS, metadata (+14 more)
 
 ### Community 778 - "projects_and_rfq.mjs"
 Cohesion: 0.16
@@ -4557,8 +4558,8 @@ Cohesion: 0.09
 Nodes (22): Boundaries of this audit, FAIL 10 — CHECK F: there IS a general founder approval inbox, and a founder refund decision is not immutable, FAIL 11 — CHECK G: `ai_gateway` fails OPEN when it cannot read its gate, FAIL 12 — CHECK E and gate 9: the clarification the founder cannot answer, FAIL 13 — Two of the four `unclassified_*` invariants still carry the exact defect the correction was written to fix, and the same migration made them permanently unfireable, FAIL 1 — The Command Center answers an unauthenticated request as the founder, FAIL 2 — The self-feeding queue was not fixed. The fix is in the repository and is not on production, FAIL 3 — Repository / live parity reports zero drift over a correction that is not on production (+14 more)
 
 ### Community 781 - "verify_portal_rfq.mjs"
-Cohesion: 0.36
-Nodes (7): apply(), collectText(), matchConcurrency(), matchProviders(), metadata, PROVIDER_LIMITS, PROVIDER_RE
+Cohesion: 0.32
+Nodes (7): attr(), Attrs, call(), Lang, Product, SupplierInventory(), T
 
 ### Community 782 - "Vendor evaluation — CAD / OCR / ERP references"
 Cohesion: 0.18
@@ -4569,8 +4570,8 @@ Cohesion: 0.25
 Nodes (8): public.fn_approval_list(), public.fn_approval_raise_on_award(), public.fn_customer_orders(), public.fn_po_orders_link(), public.po_orders, public.v_approval_trace, trg_approval_raise_on_award, trg_po_orders_link
 
 ### Community 785 - "verify_approval_chain.mjs"
-Cohesion: 0.14
-Nodes (12): checks, kernel(), actors, eq(), fails, ids, ok(), one() (+4 more)
+Cohesion: 0.24
+Nodes (10): actors, eq(), fails, ids, ok(), one(), R(), STEPS (+2 more)
 
 ### Community 786 - "verify_constraints.mjs"
 Cohesion: 0.33
@@ -4670,7 +4671,7 @@ Nodes (21): 1. Frozen inputs, 2. Phase C question, 3.10 Decision and execution t
 
 ### Community 821 - "@radix-ui/react-dropdown-menu"
 Cohesion: 0.13
-Nodes (22): type, type, type, type, null, string, type, type (+14 more)
+Nodes (22): type, type, type, null, string, type, type, error_code (+14 more)
 
 ### Community 825 - "@supabase/supabase-js"
 Cohesion: 0.47
@@ -4737,8 +4738,8 @@ Cohesion: 0.10
 Nodes (19): (A) the writer refuses every missing field class — 23 refusals, all `23514`, (B) the read-only exemption guard — refuses in both directions, and is not a wall, (C) the wrapper, both ends, Collisions with work being written in parallel — for the lead, not fixed here, (D) the state function — and proof the coverage line can go both ways, Defects this rehearsal caught in my own file, One complete valid trace, every required field populated, Open, named, not fixed here (+11 more)
 
 ### Community 849 - "core-web-vitals-client-bottlenecks.md"
-Cohesion: 0.22
-Nodes (12): checks, gaps(), l2topics(), lit(), one(), opsDigest(), [po, so], probes (+4 more)
+Cohesion: 0.21
+Nodes (13): checks, gaps(), l2topics(), lit(), one(), opsDigest(), [po, so], probes (+5 more)
 
 ### Community 850 - "database-egress-pooling-region.md"
 Cohesion: 0.11
@@ -4747,6 +4748,10 @@ Nodes (18): 10. Output and truncation controls, 11. Cost controls, 12. Tests, 1.
 ### Community 851 - "dynamic-rendering-traps.md"
 Cohesion: 0.11
 Nodes (18): 1. PREFLIGHT AND DEPLOYMENT PARITY, 2. PR #444 — TRUNCATE PROTECTION, INDEPENDENTLY REPRODUCED, 3. PHASE C RUNTIME REGRESSION, 4. GUARD SUITES, 5. ROUTINE MANIFEST AND MANIFEST.TXT, 6. PHASE D TEST-HARNESS READINESS, 7. AUTOMATION HOLD, 8. ZERO-COST OBSERVATION (+10 more)
+
+### Community 852 - "external-api-critical-path-platform.md"
+Cohesion: 0.48
+Nodes (6): countMatches(), findRepeated(), metadata, record(), scan(), truncate()
 
 ### Community 853 - "fast-data-transfer-payloads.md"
 Cohesion: 0.20
@@ -4762,7 +4767,7 @@ Nodes (17): `cache-components-suspense-dedupe` — 'use cache' with multiple Sus
 
 ### Community 856 - "image-optimization-cost-control.md"
 Cohesion: 0.11
-Nodes (18): type, type, type, type, type, properties, accountable_owner_role, closure_criteria (+10 more)
+Nodes (19): type, type, type, type, type, properties, acceptance_criteria, accountable_owner_role (+11 more)
 
 ### Community 857 - "isr-revalidation-static-generation.md"
 Cohesion: 0.11
@@ -4776,10 +4781,6 @@ Nodes (18): type, type, null, string, authority_class, due_at, requested_output,
 Cohesion: 0.15
 Nodes (18): type, type, null, string, type, error_code, finished_at, request_hash (+10 more)
 
-### Community 860 - "next-font-cls-self-hosting.md"
-Cohesion: 0.29
-Nodes (7): Exact Phase B workflow participation, Steps contributed to, Steps owned, Steps reviewed independently, Workflow-level accountability, Workflow-level contribution, Workflow-level independent review/challenge
-
 ### Community 861 - "next-heavy-ui-lazy-load-boundaries.md"
 Cohesion: 0.15
 Nodes (13): a00_founder_command_trace_guard, a00_phase_c_step_run_trace_guard, a00_phase_c_task_trace_guard, public.fn_founder_command_trace_guard(), public.fn_phase_c_step_run_trace_committed(), public.fn_phase_c_step_run_trace_guard(), public.fn_phase_c_task_trace_committed(), public.fn_phase_c_task_trace_guard() (+5 more)
@@ -4789,8 +4790,8 @@ Cohesion: 0.12
 Nodes (16): 1.1 Avoid Boolean Prop Proliferation, 1.2 Use Compound Components, 1. Component Architecture, 2.1 Decouple State Management from UI, 2.2 Define Generic Context Interfaces for Dependency Injection, 2.3 Lift State into Provider Components, 2. State Management, 3.1 Create Explicit Component Variants (+8 more)
 
 ### Community 863 - "next-route-handler-get-cache-defaults.md"
-Cohesion: 0.21
-Nodes (15): formatNumberLike(), formatPublicText(), formatSignal(), formatSignalPart(), formatSignalValue(), humanizeKey(), KIND_LABELS, normalizeObservedWindowUnits() (+7 more)
+Cohesion: 0.13
+Nodes (26): buildBudgetSummary(), buildChatPreview(), buildExactChatMessage(), buildOptions(), buildPrintCheck(), buildQuestionPayload(), buildQuestionText(), renderBudgetSummaryMarkdown() (+18 more)
 
 ### Community 864 - "next-script-third-party-strategy.md"
 Cohesion: 0.29
@@ -4877,8 +4878,8 @@ Cohesion: 0.40
 Nodes (5): MARGINAL VERDICT TO REVISIT, MODULE 2 BUILT AND REFUTED — `command_and_environment.mjs`, §4 §5 §6, EXPECTED 31, ⚠ NEW DEFECT CLASS, FOUND IN §4 — worth carrying into every remaining module, PRODUCT FINDING — DEAD UI, not a scorer artefact, Refutation round 2 — three more false METs removed in §4
 
 ### Community 885 - "project_parity.mjs"
-Cohesion: 0.02
-Nodes (66): code, sql, token, mgmtWriteWrapper(), REF, BRIDGE, REF, values (+58 more)
+Cohesion: 0.03
+Nodes (45): code, sql, token, mgmtWriteWrapper(), assertNoProductionLiteral(), mgmtWrite(), names, sql (+37 more)
 
 ### Community 886 - "performance_becomes_a_trend_not_a_point.sql"
 Cohesion: 0.50
@@ -5252,6 +5253,10 @@ Nodes (15): acceptance_criteria, closure_criteria, evidence, handoff_id, status,
 Cohesion: 0.13
 Nodes (14): 10. Backward compatibility, 11. Founder approval requirement, 1. Observed problem, 2. Evidence, 3. Current workflow and step, 4. Proposed change, 5. Affected owners, 6. State-machine impact (+6 more)
 
+### Community 1218 - "patterns-explicit-variants.md"
+Cohesion: 0.67
+Nodes (3): minLength, type, created_at
+
 ### Community 1219 - "react19-no-forwardref.md"
 Cohesion: 0.13
 Nodes (15): minLength, type, minLength, type, type, properties, accountable_role_id, objective (+7 more)
@@ -5269,8 +5274,8 @@ Cohesion: 0.13
 Nodes (14): 1. What was measured first, before anything was built, 2. The registry finding K3 refuses to paper over, 3. Verbatim transcript — one aborted production transaction, 4. Reading the transcript, 5. K3b — the real numbers, 6. Regression check against the whole estate, not just this increment, 7. Rollback rehearsal, 8. What the lead engineer applies (+6 more)
 
 ### Community 1224 - "advanced-effect-event-deps.md"
-Cohesion: 0.10
-Nodes (19): DIR, files, HAS_READER(), helpers, HERE, N_READERS(), one(), OUT (+11 more)
+Cohesion: 0.09
+Nodes (21): DIR, files, HAS_READER(), helpers, HERE, load(), N_READERS(), one() (+13 more)
 
 ### Community 1225 - "advanced-event-handler-refs.md"
 Cohesion: 0.14
@@ -5382,7 +5387,7 @@ Nodes (13): items, type, uniqueItems, items, type, uniqueItems, type, acceptance
 
 ### Community 1252 - "js-request-idle-callback.md"
 Cohesion: 0.15
-Nodes (13): minLength, type, minLength, type, minLength, type, properties, action_class (+5 more)
+Nodes (13): minLength, type, minLength, type, minLength, type, properties, actor_role_id (+5 more)
 
 ### Community 1253 - "js-set-map-lookups.md"
 Cohesion: 0.15
@@ -5403,6 +5408,10 @@ Nodes (12): 10. The document conflict this request exists inside, 11. Founder ap
 ### Community 1257 - "rendering-conditional-render.md"
 Cohesion: 0.33
 Nodes (5): DIMS, flat, meta, ok, RECORDS_SCHEMA
+
+### Community 1258 - "rendering-content-visibility.md"
+Cohesion: 0.33
+Nodes (3): admin, genOne(), parseJson()
 
 ### Community 1259 - "rendering-hoist-jsx.md"
 Cohesion: 0.17
@@ -5677,16 +5686,16 @@ Cohesion: 0.11
 Nodes (17): Boundary of this addendum, Boundary of this evidence, Capability boundary — why no mock completed a business step, Live external effects, Measured for this session, after the fix, Nothing left behind, Persistent demo data, Phase D — zero-cost and zero-external-effect evidence (+9 more)
 
 ### Community 1327 - "ui-styling.md"
-Cohesion: 0.29
-Nodes (7): accepted, draft, refused, superseded, status, enum, type
+Cohesion: 0.53
+Nodes (5): apply(), extractCodeBlocks(), metadata, NODE_BUILTINS, pkgRoot()
 
 ### Community 1330 - "@radix-ui/react-slot"
 Cohesion: 0.40
 Nodes (3): public.fn_rehearsal_window_covers(), public.founder_alerts, public.rehearsal_window
 
 ### Community 1331 - "@react-three/drei"
-Cohesion: 0.53
-Nodes (5): defaultNormalize(), normalizeColdStart(), normalizerFor(), QUERIES, normalizeSummary()
+Cohesion: 0.33
+Nodes (5): end, HEADER, hits, patched, selfLines
 
 ### Community 1333 - "sonner"
 Cohesion: 0.29
@@ -5740,10 +5749,6 @@ Nodes (7): 12 Aug 2026, part 4 — ten workflows, and a counter that inverted it
 Cohesion: 0.43
 Nodes (5): public.agent_action_kind_policy, public.fn_action_invoke_dispatch(), public.fn_agent_action_work_sweep(), public.fn_founder_queue(), public.org_action_executor
 
-### Community 1987 - "intent_router/index.ts"
-Cohesion: 0.48
-Nodes (6): countMatches(), findRepeated(), metadata, record(), scan(), truncate()
-
 ### Community 1992 - "make_fixture_licence_pdf.mjs"
 Cohesion: 0.40
 Nodes (4): buf, LINES, objs, offsets
@@ -5788,10 +5793,6 @@ Nodes (9): 4.1 Deduplicate Global Event Listeners, 4.2 Use Passive Event Listene
 Cohesion: 0.20
 Nodes (9): 1. Eliminating Waterfalls (async), 2. Bundle Size Optimization (bundle), 3. Server-Side Performance (server), 4. Client-Side Data Fetching (client), 5. Re-render Optimization (rerender), 6. Rendering Performance (rendering), 7. JavaScript Performance (js), 8. Advanced Patterns (advanced) (+1 more)
 
-### Community 2105 - "analytics_recommend/index.ts"
-Cohesion: 0.33
-Nodes (6): type, object, data, array, boolean, number
-
 ### Community 2106 - "content_revise/index.ts"
 Cohesion: 0.31
 Nodes (12): ARGS, BEHAVIOURAL, hasFn(), lit(), main(), one(), provenance(), q() (+4 more)
@@ -5829,8 +5830,8 @@ Cohesion: 0.20
 Nodes (10): blocked, clarification_required, escalated, refused, enum, output_status, complete, infrastructure_error (+2 more)
 
 ### Community 2120 - "quote_review/index.ts"
-Cohesion: 0.20
-Nodes (10): accepted, blocked, completed, draft, escalated, in_progress, returned, enum (+2 more)
+Cohesion: 0.18
+Nodes (11): accepted, blocked, completed, draft, escalated, in_progress, returned, status (+3 more)
 
 ### Community 2121 - "cwv-poor.mjs"
 Cohesion: 0.20
@@ -5847,10 +5848,6 @@ Nodes (5): mgmtToken, post(), probe(), PROJECTS, q()
 ### Community 2124 - "artifact_review/index.ts"
 Cohesion: 0.22
 Nodes (5): admin, CORS, measureVideo(), readBoxes(), VideoFacts
-
-### Community 2125 - "kb_autofill_gaps/index.ts"
-Cohesion: 0.29
-Nodes (4): here, kpis, md, { title, body }
 
 ### Community 2126 - "v3_artifact_review.sql"
 Cohesion: 0.40
@@ -5893,8 +5890,8 @@ Cohesion: 0.20
 Nodes (9): Aborted rehearsal, before anything was written, End-of-session sweep, Phase B — production deployment evidence, Post-deployment verification, Rollback readiness, The committed migration, What the deployment created, Where and when (+1 more)
 
 ### Community 2141 - "@supabase/supabase-js"
-Cohesion: 0.33
-Nodes (5): end, HEADER, hits, patched, selfLines
+Cohesion: 0.50
+Nodes (4): CASES, mgmtRead(), run(), token()
 
 ### Community 2151 - "video_produce/index.ts"
 Cohesion: 0.20
@@ -5914,7 +5911,7 @@ Nodes (9): Authority/review invariants, Binding invariants, Cost invariants, Fou
 
 ### Community 2156 - "observability-events-attribution.mjs"
 Cohesion: 0.22
-Nodes (9): minLength, type, minLength, type, properties, accountable_role_id, action_class, trace_id (+1 more)
+Nodes (9): minLength, type, minLength, type, type, properties, accountable_role_id, action_class (+1 more)
 
 ### Community 2157 - "region-pin-in-config.mjs"
 Cohesion: 0.20
@@ -5930,7 +5927,7 @@ Nodes (10): cancelled, empty, refused, success, timeout, status, enum, type (+2 
 
 ### Community 2184 - "$WT/supabase/functions/secretary_act/index.ts"
 Cohesion: 0.20
-Nodes (10): minLength, type, properties, created_at, state, workflow_id, minLength, type (+2 more)
+Nodes (10): minLength, type, properties, created_at, start_event_id, workflow_id, minLength, type (+2 more)
 
 ### Community 2185 - ".agents/skills/vercel-optimize/lib/extract-claims.mjs"
 Cohesion: 0.27
@@ -5953,8 +5950,8 @@ Cohesion: 0.20
 Nodes (8): all, digestsAfter, digestsBefore, drifted, extra, failed, JSON_OUT, sums
 
 ### Community 2190 - "React View Transitions"
-Cohesion: 0.33
-Nodes (5): end, HEADER, hits, patched, selfLines
+Cohesion: 0.67
+Nodes (3): isApplicable(), metadata, scan()
 
 ### Community 2191 - "The AI spend, call site by call site — 14 August 2026"
 Cohesion: 0.20
@@ -5977,8 +5974,12 @@ Cohesion: 0.24
 Nodes (5): a00_phase_c_task_trace_guard, public.fn_phase_c_task_trace_guard(), public.fn_phase_c_task_trace_subject(), public.phase_c_trace, z90_phase_c_task_trace_subject
 
 ### Community 2197 - "QuotesDone P2-C1 Stage B.6 — holdout v2 authoring brief (sanitized, v2.1)"
-Cohesion: 0.18
-Nodes (8): admin(), bearerFor(), drift, EMAIL, failed, MGMT, results, WRITE
+Cohesion: 0.05
+Nodes (26): RFC-4180, body1, checks, m, out, checks, m, out (+18 more)
+
+### Community 2198 - "$WT/knowledge-import/test_idempotency.py"
+Cohesion: 0.67
+Nodes (3): minLength, type, plan_id
 
 ### Community 2199 - "$WT/scripts/staging/verify_license_extract.mjs"
 Cohesion: 0.36
@@ -6412,10 +6413,6 @@ Nodes (8): Package errata, Phase C — Identity Resolution, Reviewer independenc
 Cohesion: 0.22
 Nodes (8): Category overlays, Null is not success, Phase C — Tool and Knowledge Interfaces, Role context, The knowledge scope interface, The tool boundary, What was not done here, Zero paid inference
 
-### Community 2307 - "Handover — 13 Aug 2026 (session ran 19:40–22:40 UTC / 23:40–02:40 Dubai)"
-Cohesion: 0.33
-Nodes (3): admin, genOne(), parseJson()
-
 ### Community 2308 - "Row #3, part 3 — opening brief"
 Cohesion: 0.17
 Nodes (12): 2026-08-24 — Gate 5 closed, Gate 1 prepared, five audit-safety findings closed, An adversarial pass found four more, and one would have broken working runs, GATE 1 — prepared, and NOT applied, GATE 5 — the field named `decision` carried a sentence, The 33 that are the founder's, and are raised rather than invented, The check the audit named is no longer scoped to one field, The exact remaining blockers, The five audit-safety findings (+4 more)
@@ -6530,7 +6527,7 @@ Nodes (10): 1. `edge:inquiry_intake` — **A. ACTIVE_CURRENT_DEFECT**, 2. `dbtri
 
 ### Community 2337 - "components_1_9.mjs - sound=False, 14 defects"
 Cohesion: 0.40
-Nodes (5): cell(), cross, csv(), pkgIdFor, q()
+Nodes (4): contexts, load(), rows(), RULES
 
 ### Community 2338 - "cross_os.mjs - sound=False, 14 defects"
 Cohesion: 0.36
@@ -6541,12 +6538,12 @@ Cohesion: 0.10
 Nodes (20): DIR, errs, files, HAS_READER(), helpers, HERE, N_READERS(), one() (+12 more)
 
 ### Community 2340 - "$WT/scripts/apply_sql.mjs"
-Cohesion: 0.40
-Nodes (3): bypasses, inference, metadata
+Cohesion: 0.67
+Nodes (3): version, minimum, type
 
 ### Community 2341 - "$WT/scripts/check_migration_order.mjs"
-Cohesion: 0.50
-Nodes (4): CASES, mgmtRead(), run(), token()
+Cohesion: 0.67
+Nodes (3): minLength, type, action_class
 
 ### Community 2343 - "$WT/scripts/kb/audit_packs.mjs"
 Cohesion: 0.32
@@ -6557,8 +6554,8 @@ Cohesion: 0.15
 Nodes (12): 1. Idempotency — what the database refuses, not what the code intends, 2026-08-24 — normalisation lineage, replay, and the publication state, 2. Concurrency — what is proved and by what, 3. What the numbers are, 4. Not proved, and named, Boundary of this evidence, PD-QUOTE-004 — an unpublished quotation is not a customer's to read, PD-QUOTE-005 — a supplier's original values may never be overwritten by normalisation (+4 more)
 
 ### Community 2345 - "$WT/scripts/staging/verify_agent_knowledge.mjs"
-Cohesion: 0.02
-Nodes (79): diffDeliverable(), stripVolatile(), token, claims, COLS, MGMT, NAMED, RECORD (+71 more)
+Cohesion: 0.03
+Nodes (60): diffDeliverable(), stripVolatile(), token, claims, COLS, MGMT, NAMED, RECORD (+52 more)
 
 ### Community 2346 - "$WT/scripts/staging/verify_category_agents.mjs"
 Cohesion: 0.18
@@ -6566,7 +6563,7 @@ Nodes (10): 1,799-case result, All-schema result, Boundary conditions, all still
 
 ### Community 2347 - "$WT/src/components/MarketingDoc.tsx"
 Cohesion: 0.67
-Nodes (3): minLength, type, primary_owner_role_id
+Nodes (3): tool_call_id, minLength, type
 
 ### Community 2348 - "$WT/supabase/functions/capability_agent/index.ts"
 Cohesion: 0.14
@@ -6590,7 +6587,7 @@ Nodes (13): 1. Provenance, 2. Structural layer — 23 of 26, then 27 of 29, 3.1 
 
 ### Community 2354 - "role_runtime_smoke.mjs"
 Cohesion: 0.05
-Nodes (26): byFail, cols, LIVE, LIVE_TIER, OUT, REF, rows, runLive() (+18 more)
+Nodes (27): byFail, cols, LIVE, LIVE_TIER, OUT, REF, rows, runLive() (+19 more)
 
 ### Community 2355 - "React View Transitions"
 Cohesion: 0.48
@@ -6682,7 +6679,7 @@ Nodes (10): 2026-08-24 — the nine product controls, built and executed, `main`
 
 ### Community 2383 - "Session 8 (10 Aug 2026, opened 12:15 UTC) — ALL SIX PACKS 100%, IN USE 22 OF 37 → 37 OF 37"
 Cohesion: 0.03
-Nodes (68): ChatWidget(), Msg, render(), T, askAssistant(), AssistantPanel(), MOBILE_PRIMARY, NAV_GROUPS (+60 more)
+Nodes (57): ChatWidget(), Msg, render(), T, askAssistant(), AssistantPanel(), MOBILE_PRIMARY, NAV_GROUPS (+49 more)
 
 ### Community 2384 - "components_1_9.mjs - 12 defects"
 Cohesion: 0.29
@@ -6696,10 +6693,6 @@ Nodes (6): a00_phase_c_historical_repair_append_only, public.fn_kernel_historica
 Cohesion: 0.38
 Nodes (4): public.fn_kernel_outbox_emit(), public.fn_kernel_outbox_refuse_cancelled_subject(), public.phase_c_event_outbox, z05_outbox_refuse_cancelled_subject
 
-### Community 2387 - "QuotesDone — Public Website"
-Cohesion: 0.67
-Nodes (3): minLength, type, decision_trace_id
-
 ### Community 2391 - "$WT/scripts/staging/prove_redaction_retry.mjs"
 Cohesion: 0.33
 Nodes (5): 1. Component Architecture (architecture), 2. State Management (state), 3. Implementation Patterns (patterns), 4. React 19 APIs (react19), Sections
@@ -6707,10 +6700,6 @@ Nodes (5): 1. Component Architecture (architecture), 2. State Management (state)
 ### Community 2392 - "$WT/scripts/staging/verify_portal_rfq.mjs"
 Cohesion: 0.22
 Nodes (8): 1. Three steps do not produce their declared effect, 2. PCCR-004 awaits the founder, 3. Injected defects: 38 NOT_RUN, 2 NOT_DISCRIMINATED, 4. D6–D12, Closed this session, Open, with the exact measurement, Phase D — hand-over, 23 Aug 2026, Standing facts a next session should not re-derive
-
-### Community 2393 - "$WT/supabase/functions/ai_gateway/index.ts"
-Cohesion: 0.67
-Nodes (3): minimum, type, business_object_version
 
 ### Community 2394 - "$WT/supabase/functions/collections_legal/index.ts"
 Cohesion: 0.53
@@ -6859,10 +6848,6 @@ Nodes (17): before, blocked, CASES, CONCURRENT, inProbe(), outsideArrivals, outs
 ### Community 2466 - "$WT/scripts/staging/verify_approval_chain.mjs"
 Cohesion: 0.18
 Nodes (10): 1. The 14 contract fields, 2026-08-24 — legal-source currency, and what still did not leave the estate, 2. The seven cases, and what the adapter does with each, 3. It cannot send, 4. The founder's reveal contract — encoded, not enabled, 5. Board, Boundary of this evidence, Nothing left, and here is the measurement rather than the assurance (+2 more)
-
-### Community 2467 - "$WT/src/components/portal/supplier/SupplierNetworkMap.tsx"
-Cohesion: 0.67
-Nodes (3): minLength, type, accountable_role_id
 
 ### Community 2469 - "$WT/supabase/functions/supplier_portal/index.ts"
 Cohesion: 0.40
@@ -7236,6 +7221,10 @@ Nodes (3): Also observed — the founder-gated control is currently satisfied by
 Cohesion: 0.67
 Nodes (3): status, minLength, type
 
+### Community 2584 - "$WT/.agents/skills/vercel-optimize/references/docs-library.json"
+Cohesion: 0.11
+Nodes (15): arr(), pkg, qs(), RESOLVE(), resolveList(), SQL_DIR, TITLE_ALIASES, DYNAMIC_ACTORS (+7 more)
+
 ### Community 2588 - "Phase 2 kickoff brief — for a fresh session"
 Cohesion: 0.40
 Nodes (3): bindRefused, replayClean, token
@@ -7497,8 +7486,8 @@ Cohesion: 0.48
 Nodes (5): public.fn_phase_d_committed_scenario_guards(), public.fn_phase_d_committed_scenario_watermarks(), public.phase_d_committed_scenario, public.phase_d_committed_scenario_cron, public.phase_d_committed_scenario_watch
 
 ### Community 3173 - "dropbox_oauth/index.ts"
-Cohesion: 0.22
-Nodes (7): defaultModule(), modules(), admin, dbxAccessToken(), H(), sec(), SHELL()
+Cohesion: 0.25
+Nodes (6): defaultModule(), modules(), admin, dbxAccessToken(), sec(), SHELL()
 
 ### Community 3175 - "retention_purge/index.ts"
 Cohesion: 0.33
@@ -7517,8 +7506,8 @@ Cohesion: 0.47
 Nodes (4): callsIn(), HOSTS, METADATA_PATHS, REGISTER
 
 ### Community 3183 - "build_d0_crosswalk.mjs"
-Cohesion: 0.13
-Nodes (15): type, minLength, type, minLength, type, minLength, type, properties (+7 more)
+Cohesion: 0.12
+Nodes (16): type, minLength, type, accepted, draft, refused, superseded, minLength (+8 more)
 
 ### Community 3185 - "phase_d_o07_seven_predicates_that_named_a_control_and_tested_something_else.sql"
 Cohesion: 0.40
@@ -7527,14 +7516,6 @@ Nodes (3): a10_phase_d_legal_assertion_source, public.fn_phase_d_legal_assertion
 ### Community 3186 - "phase_d_q03_a_customer_created_by_eleven_paths_and_routed_by_none.sql"
 Cohesion: 0.53
 Nodes (5): public.fn_kernel_trigger_state(), public.kernel_trigger_source, public.trg_customer_registered_kernel(), public.v_kernel_trigger_source_derived, z50_customer_registered_kernel_emit
-
-### Community 3190 - "workflow_run_id"
-Cohesion: 0.03
-Nodes (75): aliasTo, byComponent, canonRoles, cross, out, overlayRoles, pkg, roleById (+67 more)
-
-### Community 3196 - "recharts"
-Cohesion: 0.67
-Nodes (3): tool_call_id, minLength, type
 
 ### Community 3198 - "patch_rscl3.mjs"
 Cohesion: 0.33
@@ -7624,17 +7605,9 @@ Nodes (5): Defects fixed (deployed + verified in the same turn), Deliberately NO
 Cohesion: 0.33
 Nodes (6): 1. The freeze-board row this was about, 2. What PCCR-003's approval actually is, 3. Why the session could not clear it on its own, 4. What cleared it — and it took four sends, 5. Required outcomes, stated against what was measured, PCCR-003 — FINAL DISPOSITION AS OF 2026-08-27
 
-### Community 3314 - "V3 certification — runtime evidence"
-Cohesion: 0.30
-Nodes (21): bidiRuns(), blockBadge(), blockKV(), blockTable(), blockTotal(), bullet(), drawRTL(), ensure() (+13 more)
-
 ### Community 3317 - "Appendix — per-routine tables (generated from the live-caller dump, 5 Sep 2026)"
 Cohesion: 0.11
 Nodes (17): 1. The executor estate (org_action_executor), 2. The seven categories — routines that exist, and their live callers, 3. The substitutes (built, applied, proven 5 Sep 2026), 4. Through the real loop, 5. Not done, and why, Appendix — per-routine tables (generated from the live-caller dump, 5 Sep 2026), approval_tier: 76 fn_* routines by name, 36 with a live caller (cron/trigger/executor/one-hop), 1 whose body reaches HTTP/ai_gateway, compliance_trust: 29 fn_* routines by name, 19 with a live caller (cron/trigger/executor/one-hop), 0 whose body reaches HTTP/ai_gateway (+9 more)
-
-### Community 3318 - "gen_migration.mjs"
-Cohesion: 0.67
-Nodes (3): start_event_id, minLength, type
 
 ### Community 3319 - "ai"
 Cohesion: 0.67
@@ -7647,6 +7620,10 @@ Nodes (3): probe(), q(), token
 ### Community 3421 - "decide_src.mjs"
 Cohesion: 0.40
 Nodes (4): Certification targets per agent field — the real "done" bar (2026-08-31), Functional fields, The two-part "done" test (per field), Trade specialists
+
+### Community 3423 - "SupplierRelationship.tsx"
+Cohesion: 0.13
+Nodes (18): ar(), call(), DiscoveryReachPanel(), DiscoveryReachPanelProps, HistoryProject, HistoryResponse, HistorySupplier, Lang (+10 more)
 
 ### Community 3433 - "messages_api/index.ts"
 Cohesion: 0.08
@@ -7668,6 +7645,10 @@ Nodes (17): 0. The one fact that overrides every gap table below, 1. Roster and 
 Cohesion: 0.18
 Nodes (10): ALIAS, cases, firstStepOwner, lit(), MERGED, REPO, results, stepOwners (+2 more)
 
+### Community 3451 - "SupplierTwin.tsx"
+Cohesion: 0.12
+Nodes (13): esc(), OUT, writeCSV(), FN_DIR, rows, SURFACES, edgeSrc, FN_DIR (+5 more)
+
 ### Community 3457 - "command.tsx"
 Cohesion: 0.16
 Nodes (12): Command, CommandDialog(), CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, DialogContent (+4 more)
@@ -7685,8 +7666,8 @@ Cohesion: 0.20
 Nodes (8): clientSrc, delta, deployed, founderGated, inCode, inDb, REPO, src
 
 ### Community 3481 - "4. Per-department, per-agent plan"
-Cohesion: 0.13
-Nodes (15): 4. Per-department, per-agent plan, Agent Ops (`people_ops`) — 4 agents, brief — Chief of Staff, ceo — Chief Executive (AI), compliance_mgr — Compliance & Privacy Officer, cpo — Chief Performance Officer (Corporate Performance Director), culture_performance_mgr — Culture & Performance Manager, Exec — 3 agents (+7 more)
+Cohesion: 0.09
+Nodes (22): 4. Per-department, per-agent plan, Agent Ops (`people_ops`) — 4 agents, bd — Business Development Manager, brief — Chief of Staff, ceo — Chief Executive (AI), compliance_mgr — Compliance & Privacy Officer, cpo — Chief Performance Officer (Corporate Performance Director), culture_performance_mgr — Culture & Performance Manager (+14 more)
 
 ### Community 3487 - "Knowledge audit — the company-wide layer every agent inherits"
 Cohesion: 0.15
@@ -7696,6 +7677,10 @@ Nodes (12): 1. Company self-knowledge — what "every agent knows the company" a
 Cohesion: 0.22
 Nodes (10): call(), Globe(), Lang, Layer, LayerKey, MapData, Marker, SupplierNetworkMap() (+2 more)
 
+### Community 3489 - "enrich_capability/index.ts"
+Cohesion: 0.38
+Nodes (5): checks, decide(), digest(), one(), [ph, sh]
+
 ### Community 3490 - "m03_run.mjs"
 Cohesion: 0.50
 Nodes (3): probe(), q(), token
@@ -7703,10 +7688,6 @@ Nodes (3): probe(), q(), token
 ### Community 3493 - "phase_c_invariants.RETIRED.mjs"
 Cohesion: 0.25
 Nodes (6): bad, deployed, missing, PAIRS, REPO, wanted
-
-### Community 3503 - ".agents/skills/vercel-optimize/lib/budget-summary.mjs"
-Cohesion: 0.31
-Nodes (11): buildBudgetSummary(), buildChatPreview(), buildExactChatMessage(), buildOptions(), buildPrintCheck(), buildQuestionPayload(), buildQuestionText(), renderBudgetSummaryMarkdown() (+3 more)
 
 ### Community 3604 - "SupplierInsightBoard.tsx"
 Cohesion: 0.24
@@ -7720,6 +7701,10 @@ Nodes (6): 0. Findings that apply to all three, 1. `ceo` — Chief Executive (AI
 Cohesion: 0.18
 Nodes (11): 0. What could and could not be measured, 1. Findings that apply to all seven agents (measured once, cited per agent below), 2. `sales_director` — Chief Revenue Officer, 3. `brand_mgr` — Brand & Creative Manager, 4. `marketing_analyst` — Marketing Performance Analyst, 5. `marketing_content` — Content Strategy & Copy Specialist, 6. `marketing_design` — Visual Design Specialist, 7. `marketing_social` — Social Media & Community Manager (+3 more)
 
+### Community 3609 - "run_concurrency_probes.mjs"
+Cohesion: 0.25
+Nodes (4): AUDIT, canary, claimableBefore, marked()
+
 ### Community 3610 - "copilot/index.ts"
 Cohesion: 0.24
 Nodes (8): admin, CORS, identify(), llm, ROLE_GUIDE, sec(), snapshot(), toCats()
@@ -7727,6 +7712,10 @@ Nodes (8): admin, CORS, identify(), llm, ROLE_GUIDE, sec(), snapshot(), toCats()
 ### Community 3611 - "Knowledge audit — Supply department (6 agents)"
 Cohesion: 0.18
 Nodes (10): 0.1 Department-level inventory (what a Supply agent can reach through the scope arms), 0. How knowledge reaches a Supply agent today (shared findings), 1. `bd` — Business Development Manager, 2. `onboarding` — Supplier Onboarding Specialist (supplier onboarding / KYC), 3. `partnerships_mgr` — Partnerships Manager (canonical role: Strategic Partnerships & Government Relations Manager), 4. `supplier_coverage` — Supplier Coverage & Liquidity Specialist, 5. `supplier_retention` — Supplier Retention Specialist, 6. `supplier_verification` — Supplier Verification Reviewer (+2 more)
+
+### Community 3621 - "freeze_amendment_names_a_real_change_request.RETIRED.mjs"
+Cohesion: 0.40
+Nodes (5): cell(), cross, csv(), pkgIdFor, q()
 
 ### Community 3627 - "Knowledge audit — Customer Experience department (5 active agents)"
 Cohesion: 0.20
@@ -7760,9 +7749,17 @@ Nodes (4): admin, logRun(), logThrottled(), T0
 Cohesion: 0.50
 Nodes (3): QuotesDone toolbox, The line these tools do NOT cross on their own, What is installed, and what each is FOR
 
+### Community 3644 - "build_rule_gate_result.mjs"
+Cohesion: 0.22
+Nodes (6): all, cell(), header, q(), row(), unregistered
+
 ### Community 3645 - "exec_agents/index.ts"
 Cohesion: 0.27
 Nodes (6): admin, llm, metricsFingerprint(), OFFICERS, parseJson(), runOfficer()
+
+### Community 3647 - "business_object_id"
+Cohesion: 0.67
+Nodes (3): minLength, type, accountable_role_id
 
 ### Community 3658 - "Knowledge audit — Finance department (5 AI employees)"
 Cohesion: 0.22
@@ -7820,13 +7817,17 @@ Nodes (3): admin, FULL, Slot
 Cohesion: 0.32
 Nodes (6): admin, authed(), CORS, learnDept(), llm, sec()
 
+### Community 3810 - "gen_category_personas/index.ts"
+Cohesion: 0.29
+Nodes (4): admin, llm(), llmShared, T0
+
+### Community 3817 - "type"
+Cohesion: 0.33
+Nodes (6): type, object, data, array, boolean, number
+
 ### Community 3820 - "Product & Engineering (platform & reliability) — 6 agents"
 Cohesion: 0.29
 Nodes (7): backend_engineer — Backend Engineer, cto — Chief Product & Technology Officer, it — IT Operations & Site Reliability Engineer, Product & Engineering (platform & reliability) — 6 agents, qa_manager — QA & Release Management Director, red_view_alerter — Red-view Alerter, security — Cybersecurity Engineer
-
-### Community 3821 - "Supply — 6 agents"
-Cohesion: 0.29
-Nodes (7): bd — Business Development Manager, onboarding — Supplier Onboarding Specialist (supplier KYC), partnerships_mgr — Partnerships Manager (canonical role: Strategic Partnerships & Government Relations), supplier_coverage — Supplier Coverage & Liquidity Specialist, supplier_retention — Supplier Retention Specialist, supplier_verification — Supplier Verification Reviewer, Supply — 6 agents
 
 ### Community 3830 - "phase_c_founder_chain.RETIRED.mjs"
 Cohesion: 0.33
@@ -7835,6 +7836,10 @@ Nodes (3): delta, [evWf, evRun, evCorr, evCaus, evStatus, evTrace], [runWf, runO
 ### Community 3831 - "reg_fetch_refuses_private_addresses.mjs"
 Cohesion: 0.33
 Nodes (5): cases, js, m, src, unsafeUrl
+
+### Community 3834 - "approve_pccr009.mjs"
+Cohesion: 0.33
+Nodes (4): claims, docDigest, MGMT, RECORD
 
 ### Community 3835 - "staff_org_seat_at_plan_size_2026_09_04.sql"
 Cohesion: 0.33
@@ -7872,33 +7877,21 @@ Nodes (4): public.fn_org_task_assign(), public.fn_priority_backlog_reorder(), pu
 Cohesion: 0.50
 Nodes (3): mgmtRead(), q(), WELL_FORMED
 
-### Community 3914 - ".agents/skills/vercel-optimize/lib/gates/usage-spike-triage.mjs"
-Cohesion: 0.60
-Nodes (4): aggregateSkuStats(), dayTotal(), gate(), metadata
-
 ### Community 3923 - "red_view_alerter.sql"
 Cohesion: 0.83
 Nodes (3): public.fn_red_view_alert(), public.red_episode, red_now
 
-### Community 3985 - ".agents/skills/vercel-optimize/lib/gates/build-minutes-fanout.mjs"
+### Community 3958 - ".agents/skills/vercel-optimize/lib/scanners/missing-cache-headers.mjs"
 Cohesion: 0.67
-Nodes (3): gate(), metadata, unique()
-
-### Community 3986 - ".agents/skills/vercel-optimize/lib/gates/isr-overrevalidation.mjs"
-Cohesion: 0.67
-Nodes (3): extractRows(), gate(), metadata
+Nodes (3): isApplicable(), metadata, scan()
 
 ### Community 3987 - "enum"
 Cohesion: 0.67
 Nodes (3): enum, canonical_role, founder
 
-### Community 3988 - ".agents/skills/vercel-optimize/lib/gates/middleware-heavy.mjs"
+### Community 3989 - "business_object_version"
 Cohesion: 0.67
-Nodes (3): gate(), metadata, sumRows()
-
-### Community 3990 - ".agents/skills/vercel-optimize/lib/gates/observability-events-attribution.mjs"
-Cohesion: 0.67
-Nodes (3): gate(), metadata, sumBilled()
+Nodes (3): minimum, type, business_object_version
 
 ### Community 3991 - "created_at"
 Cohesion: 0.67
@@ -7908,6 +7901,10 @@ Nodes (3): minLength, type, manager_role_id
 Cohesion: 0.67
 Nodes (3): public.agent_actions, public.dedupe_it_incident(), public.fn_action_queue_consequential_sweep()
 
+### Community 4020 - "started_at"
+Cohesion: 0.67
+Nodes (3): started_at, format, type
+
 ### Community 4021 - "attempt_no"
 Cohesion: 0.67
 Nodes (3): minimum, type, attempt_no
@@ -7916,29 +7913,29 @@ Nodes (3): minimum, type, attempt_no
 Cohesion: 0.67
 Nodes (3): minLength, type, business_object_id
 
-### Community 4195 - "public.ad_decision"
-Cohesion: 0.50
-Nodes (4): public.ad_campaign_state, public.ad_decision, public.fn_ad_decision_mark_executed(), public.fn_ads_autopilot_tick()
+### Community 4025 - "state"
+Cohesion: 0.67
+Nodes (3): state, minLength, type
 
 ## Knowledge Gaps
-- **13509 isolated node(s):** `deploy-codex.sh script`, `deploy.sh script`, `HERE`, `LIBRARY_PATH`, `SERVICE_DIMENSION` (+13504 more)
+- **13471 isolated node(s):** `deploy-codex.sh script`, `deploy.sh script`, `HERE`, `LIBRARY_PATH`, `SERVICE_DIMENSION` (+13466 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **705 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **707 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `mgmtRead()` connect `sync_org_config_to_staging.mjs` to `cn`, `os_incidents/index.ts`, `verify_os_knowledge_cluster.mjs`, `React View Transitions`, `export_leads_csv/index.ts`, `verify_approval_chain.mjs`, `screens_10_17.mjs`, `20260803161926_audit_53_55_refund_status_and_reconciliation_visibility.sql`, `prompt_improve/index.ts`, `20260724_founder_brief_objectives.sql`, `20260724_gstack_role_principles.sql`, `components_1_9.mjs - sound=False, 14 defects`, `components_11_13.mjs - sound=False`, `verify_event_contract.mjs`, `verify_spec_architecture.mjs`, `$WT/scripts/staging/verify_agent_knowledge.mjs`, `kb_import/index.ts`, `meta_ads/index.ts`, `export_cat_knowledge/index.ts`, `content_revise/index.ts`, `3. Control Mode`, `drawing_redact/index.ts`, `inbound_email/index.ts`, `verify_taxonomy.mjs`, `advanced-effect-event-deps.md`, `portal/page.tsx`, `core-web-vitals-client-bottlenecks.md`, `@supabase/supabase-js`, `20260728192259_memory_os_backfill_sop_loop_and_full_health_v2.sql`, `20260802144014_p1_07_refunds_ledger.sql`, `quote_pdf/index.ts`, `apply_sql.mjs`, `phase_a/freeze.mjs`, `20260802143708_p1_04d_control_mode_otp_hash_match.sql`, `Writing Guidelines`, `embed_leads/index.ts`, `project_parity.mjs`, `schema_dump_not_replayable.test.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`, `retention_purge/index.ts`?**
+- **Why does `mgmtRead()` connect `sync_org_config_to_staging.mjs` to `cn`, `verify_os_knowledge_cluster.mjs`, `verify_approval_chain.mjs`, `screens_10_17.mjs`, `20260803161926_audit_53_55_refund_status_and_reconciliation_visibility.sql`, `prompt_improve/index.ts`, `20260724_founder_brief_objectives.sql`, `20260724_gstack_role_principles.sql`, `enrich_capability/index.ts`, `components_11_13.mjs - sound=False`, `freeze_amendment_names_a_real_change_request.RETIRED.mjs`, `verify_event_contract.mjs`, `20260803035619_single_source_supplier_registration_state_audit_4_2.sql`, `verify_spec_architecture.mjs`, `$WT/scripts/staging/verify_agent_knowledge.mjs`, `kb_import/index.ts`, `meta_ads/index.ts`, `@react-three/drei`, `20260802172556_p2_c1_stage_b_dispatch_blockers_and_trade_status.sql`, `export_cat_knowledge/index.ts`, `content_revise/index.ts`, `build_rule_gate_result.mjs`, `drawing_redact/index.ts`, `inbound_email/index.ts`, `@radix-ui/react-tooltip`, `advanced-effect-event-deps.md`, `portal/page.tsx`, `cad_convert/index.ts`, `core-web-vitals-client-bottlenecks.md`, `20260802144014_p1_07_refunds_ledger.sql`, `quote_pdf/index.ts`, `apply_sql.mjs`, `phase_a/freeze.mjs`, `20260802143708_p1_04d_control_mode_otp_hash_match.sql`, `Writing Guidelines`, `project_parity.mjs`, `schema_dump_not_replayable.test.mjs`, `make_xlsx/index.ts`, `pdpl_erase/index.ts`, `retention_purge/index.ts`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `sig()` connect `agent_brain/index.ts` to `core-web-vitals-client-bottlenecks.md`?**
+- **Why does `n()` connect `20260802143520_p1_04_observe_and_control_mode.sql` to `@radix-ui/react-scroll-area`, `entry_and_twin.mjs`, `pdpl_erase/index.ts`, `tailwind-merge`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `surf()` connect `@radix-ui/react-scroll-area` to `20260802143520_p1_04_observe_and_control_mode.sql`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `deploy-codex.sh script`, `deploy.sh script`, `HERE` to the rest of the system?**
-  _13509 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _13471 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `OsxShell.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0577324973876698 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05854049719326383 - nodes in this community are weakly interconnected._
 - **Should `pdf_native/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.08522727272727272 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09503843466107617 - nodes in this community are weakly interconnected._
 - **Should `CustomerPortal.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.055191256830601096 - nodes in this community are weakly interconnected._
-- **Should `cn` be split into smaller, more focused modules?**
-  _Cohesion score 0.04983164983164983 - nodes in this community are weakly interconnected._
