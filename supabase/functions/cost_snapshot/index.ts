@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
           // so a daily check cannot turn into a daily nag.
           level: 'critical',
           dedupe_key: 'openrouter_credit_low',
+          kind: 'ai_credit_low',   // founder_mail_policy: the CFO's to top up; the brief carries it (6 Sep 2026)
           event: 'AI credit low: $' + Number(or.remaining).toFixed(2) + ' left',
           detail: 'Every AI call in the company - all agents, the Secretary, document reading, translation and supplier matching - runs on one OpenRouter balance. They all stop when it reaches zero.'
             + runway + ' Top up at https://openrouter.ai/credits. This warning fires below $' + minUsd
