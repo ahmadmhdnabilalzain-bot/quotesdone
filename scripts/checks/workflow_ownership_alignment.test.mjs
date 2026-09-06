@@ -348,8 +348,12 @@ end $$;`);
     assert.equal(r.overlay_mode, 'knowledge_overlay', 'the UAE tax capability is not an overlay');
     assert.equal(r.overlay_agent, null,
       'the UAE tax overlay has a runtime agent - it has become another persistent employee');
-    assert.equal(Number(r.active_agents), 90,
-      `the active employee count moved to ${r.active_agents}; the tax capability was supposed to add none`);
+    // 6 SEP 2026: the headcount this guards is the Phase A frozen one, not a literal from before the
+    // 3 Sep 2026 re-carve (PACR-004 took the company from 90 to 54 active employees under the freeze
+    // guard). The point stands — the tax capability is an overlay and adds nobody — so the count is
+    // compared with what org_agents held at the freeze, read from the same table the guard protects.
+    assert.equal(Number(r.active_agents), 54,
+      `the active employee count moved to ${r.active_agents}; the tax capability was supposed to add none (54 since PACR-004)`);
   });
 
   // -------------------------------------------------------------------------------------------

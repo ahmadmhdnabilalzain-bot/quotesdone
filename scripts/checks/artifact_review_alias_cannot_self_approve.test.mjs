@@ -134,7 +134,10 @@ end $$;`);
     assert.ok(m, `the independent review was refused or produced no row on ${name}: ${r.text}`);
     assert.equal(m[1], 'marketing_design',
       'the author was stored as typed rather than canonically');
-    assert.equal(m[2], 'ai_qa_specialist',
+    // 6 SEP 2026: since PACR-004 (3 Sep 2026) ai_qa_specialist is a PARKED persona whose alias resolves
+    // to qa_manager, the canonical QA employee; the reviewer typed under the old name is stored as
+    // that. The property is unchanged — stored canonically, never as typed — the canonical name moved.
+    assert.equal(m[2], 'qa_manager',
       'the reviewer was stored as typed rather than canonically');
   });
 

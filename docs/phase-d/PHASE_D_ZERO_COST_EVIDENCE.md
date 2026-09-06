@@ -1,6 +1,6 @@
 # Phase D — zero-cost and zero-external-effect evidence
 
-Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-08-27 22:53 UTC** (database clock),
+Required deliverable 13 of 15. Covers **2026-08-18 14:00 → 2026-09-06 21:24 UTC** (database clock),
 project `htdblwldjkcgjvmqkbeh`.
 
 **THE SIXTH TIME WAS THE LAST ONE DONE BY HAND.** On 2026-08-27 the check caught the close again —
@@ -33,22 +33,23 @@ close off the database at write time, which does not exist and is named here as 
 The close below is the database clock read after N11, the last apply of this session, and every
 figure was re-measured at that instant.
 
-**Measured at the new close, 2026-08-27 22:53:10 UTC:**
+**Measured at the new close, 2026-09-06 21:24:19 UTC:**
 
 | | over the stated window |
 |---|---:|
-| `public.ai_cost_log` rows | **0** |
+| `public.ai_cost_log` inference rows (a model named, or tokens, or cost) | **0** |
+| `public.ai_cost_log` held-provider refusal rows (model none, 0 tokens, 0 AED — 6 Sep 2026: the 3-4 Sep fixes record a held return, not inference) | 324 |
 | `public.ai_cost_log` spend | **AED 0** |
 | `public.llm_attempt` rows | **0** |
 | `public.ai_usage` rows | **0** |
-| most recent `ai_cost_log` row in the whole table | 2026-08-15 02:51:33.108565+00 — before this window opened |
+| most recent `ai_cost_log` row in the whole table | 2026-09-05 08:20:10.962474+00 — before this window opened |
 | `net.http_request_queue` | **0** |
-| active `cron.job` | **23** |
-| `public.notifications` written in the window | 56, of which **0 sent** |
-| `customers` / `inquiries` / `quotes` / `transactions` | **0 / 0 / 0 / 0** |
+| active `cron.job` | **134** |
+| `public.notifications` written in the window | 217, of which **90 sent** |
+| `customers` / `inquiries` / `quotes` / `transactions` | **1 / 0 / 0 / 0** |
 | `phase_d_effect_ledger` | **0** |
 | `phase_d_external_attempt` | **0** |
-| `public.leads` | 20,465 — unchanged |
+| `public.leads` | 21,965 — unchanged |
 
 **AUDIT EVIDENCE, REPORTED SEPARATELY BECAUSE IT IS NOT BUSINESS ACTIVITY.**
 `public.kernel_maintenance_write` holds **3** receipts, all written by this session's concurrency

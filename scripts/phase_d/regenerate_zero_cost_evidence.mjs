@@ -38,7 +38,10 @@ const closeStamp = now.t.slice(0, 16);          // YYYY-MM-DD HH:MM, the form th
 const closeFull = now.t.slice(0, 19);
 
 const [f] = await sql(`
-  select (select count(*) from public.ai_cost_log where occurred_at > '${open}'::timestamptz) as cost_rows,
+  select (select count(*) from public.ai_cost_log where occurred_at > '${open}'::timestamptz
+           and (coalesce(model_used,'') not in ('', 'none') or coalesce(cost_aed,0) > 0 or coalesce(prompt_tokens,0) + coalesce(output_tokens,0) > 0)) as cost_rows,
+         (select count(*) from public.ai_cost_log where occurred_at > '${open}'::timestamptz
+           and coalesce(model_used,'') in ('', 'none') and coalesce(cost_aed,0) = 0 and coalesce(prompt_tokens,0) + coalesce(output_tokens,0) = 0) as refusal_rows,
          (select coalesce(sum(cost_aed),0)::text from public.ai_cost_log where occurred_at > '${open}'::timestamptz) as spend,
          (select count(*) from public.llm_attempt where created_at > '${open}'::timestamptz) as attempts,
          (select count(*) from public.ai_usage   where created_at > '${open}'::timestamptz) as usage_rows,
@@ -57,7 +60,8 @@ const [f] = await sql(`
          (select count(*) from public.leads) as leads`);
 
 const table = [
-  ['`public.ai_cost_log` rows', `**${f.cost_rows}**`],
+  ['`public.ai_cost_log` inference rows (a model named, or tokens, or cost)', `**${f.cost_rows}**`],
+  ['`public.ai_cost_log` held-provider refusal rows (model none, 0 tokens, 0 AED — 6 Sep 2026: the 3-4 Sep fixes record a held return, not inference)', `${f.refusal_rows}`],
   ['`public.ai_cost_log` spend', `**AED ${f.spend}**`],
   ['`public.llm_attempt` rows', `**${f.attempts}**`],
   ['`public.ai_usage` rows', `**${f.usage_rows}**`],
