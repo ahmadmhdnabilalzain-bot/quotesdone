@@ -144,12 +144,28 @@ Deno.serve(async (req) => {
       if (uerr) { writeFailed++; lastWriteErr = String(uerr?.message || uerr).slice(0, 160); }
       n++;
     }
-    const { count: remaining } = await admin.from(tgt.table).select(tgt.idcol, { count: 'exact', head: true }).is('embedding_gte', null);
+    // BOUNDED, NOT COUNTED (6 Sep 2026). This was `count: 'exact'` over `embedding_gte is null` on
+    // kb_chunks - 2.65M rows, ~2.54M of them null - and it hit the 8 s statement wall on every run:
+    // 28 error rows in 7 days saying "could not read its target table, so it reported done", written
+    // by a function that had just embedded five chunks. fn_kb_embed_backlog() is planner statistics
+    // (reltuples x null_frac, dated by the analyze that produced them) plus one index-bounded
+    // min(created_at) - the frontier the oldest-first picker is at - and never a scan. The two small
+    // targets keep the exact count: company_faq is 484 rows and ops_knowledge ~9k.
+    let remaining: number | null = null;
+    let backlog: Record<string, unknown> | null = null;
+    if (tgt.table === 'kb_chunks') {
+      const { data: bl } = await admin.rpc('fn_kb_embed_backlog');
+      backlog = (bl && typeof bl === 'object') ? bl as Record<string, unknown> : null;
+      remaining = backlog && typeof backlog.estimated_unembedded === 'number' ? backlog.estimated_unembedded : null;
+    } else {
+      const { count } = await admin.from(tgt.table).select(tgt.idcol, { count: 'exact', head: true }).is('embedding_gte', null);
+      remaining = count ?? null;
+    }
     if (writeFailed > 0) {
       await logThrottled('embedding_write_failed', 60, 'error', { attempted: n, write_failed: writeFailed, remaining }, 'kb_embed computed embeddings but failed to write ' + writeFailed + ' of ' + n + ' back to kb_chunks. Those chunks stay unembedded and are re-picked on every run, so the backfill loops forever without progressing and that content never becomes searchable. ' + lastWriteErr);
     } else {
-      await logThrottled('progress', 60, 'ok', { embedded: n, remaining, budget_hit: budgetHit }, 'kb_embed backfill is progressing: embedded ' + n + ' chunk(s) this run, ' + String(remaining ?? '?') + ' still unembedded.');
+      await logThrottled('progress', 60, 'ok', { embedded: n, remaining, budget_hit: budgetHit, frontier: backlog?.frontier_created_at ?? null, stats_as_of: backlog?.stats_as_of ?? null }, 'kb_embed backfill is progressing: embedded ' + n + ' chunk(s) this run, ~' + String(remaining ?? '?') + ' still unembedded (planner estimate' + (backlog?.frontier_created_at ? '; oldest unembedded chunk created ' + String(backlog.frontier_created_at) : '') + ').');
     }
-    return J({ ok: true, embedded: n, remaining, budget_hit: budgetHit });
+    return J({ ok: true, embedded: n, remaining, backlog, budget_hit: budgetHit });
   } catch (e) { await logThrottled('embed_failed', 60, 'error', { stage: 'fatal' }, 'kb_embed crashed during the embedding pass (model session or database failure); the embedding backfill has stopped making progress and newly added knowledge-base chunks are not searchable. ' + String((e as Error)?.message || e).slice(0, 200)); return J({ error: String((e as Error)?.message || e) }, 500); }
 });
