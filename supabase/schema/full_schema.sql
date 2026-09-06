@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T10:21:41.142Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T10:24:49.451Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -18514,6 +18514,15 @@ begin
   out := out || '# LAYER 1 - COMPANY KNOWLEDGE (authoritative; pricing marked LIVE overrides any other figure)'||E'\n\n';
   piece := coalesce(public.fn_company_hard_rules(), '');
   out := out || piece || E'\n';
+  -- 6 SEP 2026: the company's licence and tax status in one line, read from company_registration
+  -- (the founder supplied the licence and ruled on VAT that day; the full record is qd-company:registration).
+  select 'LICENCE & TAX: ' || cr.authority || ' ' || cr.license_type || ' no. ' || cr.license_no || ' "' || cr.trade_name || '", expires '
+         || to_char(cr.expires_on, 'DD Mon YYYY') || '; activities ' || left(cr.activities, 90) || '. '
+         || case when cr.vat_registered then 'VAT-registered, TRN ' || coalesce(cr.trn, '?') || '.'
+                 else 'NOT VAT-registered: no VAT is charged or shown until AED ' || to_char(cr.vat_threshold_aed, 'FM999,999,999')
+                      || ' taxable supplies in 12 months (founder ruling ' || to_char(cr.vat_ruling_on, 'DD Mon YYYY') || '; never ask the founder about VAT or the TRN).' end
+    into piece from public.company_registration cr order by cr.recorded_at desc limit 1;
+  if piece is not null then out := out || piece || E'\n\n'; end if;
   v_used := 0;
   for r in select o.record_id, o.title, o.content, o.effective_date
              from ops_knowledge o

@@ -1687,3 +1687,4 @@ scripts/sql/fn_agent_context_both_overloads_are_canonical.sql
 scripts/sql/decay_opens_a_task_for_its_own_quarantine_only_ownership_ledger.sql
 scripts/sql/an_escalated_remediation_opens_one_task.sql
 scripts/sql/the_company_knows_its_own_licence_and_tax_status.sql
+scripts/sql/every_head_carries_the_licence_and_tax_status.sql
