@@ -1656,3 +1656,5 @@ scripts/sql/the_automation_list_ownership_ledger.sql
 scripts/sql/the_knowledge_page_answers_in_under_a_second.sql
 scripts/sql/social_posts_are_clickable.sql
 scripts/sql/social_posts_ownership_ledger.sql
+scripts/sql/reports_are_corporate_pdfs.sql
+scripts/sql/fn_founder_brief_carries_the_report_pdf_link.sql

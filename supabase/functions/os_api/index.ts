@@ -84,7 +84,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   memory: 'read_only', drilldown: 'read_only', report_recommend_approve: 'mutating',
   simulate: 'mutating', simulation_approve: 'mutating',
   marketing_studio: 'read_only', knowledge_gaps: 'read_only', exam_summary: 'read_only',
-  knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only',
+  knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only', report_pdf_url: 'read_only',
   'ws.suppliers': 'read_only', 'ws.supplier': 'read_only', 'ws.customer': 'read_only',
   'ws.agent': 'read_only', 'ws.rfq': 'read_only', 'ws.exec': 'read_only',
   'ws.marketplace': 'read_only', 'ws.customers': 'read_only', 'ws.operations': 'read_only',
@@ -140,12 +140,12 @@ const OSAPI_MUTATIONS = new Set(
 );
 // What the x-os-key preview bypass may reach. Narrower than read_only on purpose: two actions read
 // before they do anything, but still cost something a static string should not be able to spend.
-//   report_pdf   - renders and stores a PDF object in the finance-reports bucket
+//   report_pdf / report_pdf_url - render and store a PDF object in the private reports bucket
 //   extract_doc  - hands caller-supplied bytes to extract_text, which is a paid OCR call
 // Everything else classified read_only is allowed; anything mutating, mode_control or unclassified
 // is not, so the bypass cannot reach a handler added later without someone classifying it first.
 //   transcribe   - hands caller-supplied audio to the transcribe function, a paid speech-to-text call
-const BYPASS_DENY = new Set(['report_pdf', 'extract_doc', 'transcribe']);
+const BYPASS_DENY = new Set(['report_pdf', 'report_pdf_url', 'extract_doc', 'transcribe']);
 const READONLY = new Set(
   Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'read_only' && !BYPASS_DENY.has(a)),
 );
@@ -426,14 +426,24 @@ Deno.serve(async (req) => {
 
     if (action === 'files') { const { data, error } = await admin.rpc('fn_entity_files', { p_entity: String(body?.entity || ''), p_id: String(body?.id || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'file') { const bucket = String(body?.bucket || 'supplier-docs'); const path = String(body?.path || '').replace(/^\/+/, ''); if (!path) return J({ error: 'path_required' }, 400); const { data, error } = await admin.storage.from(bucket).createSignedUrl(path, 300); if (error || !data?.signedUrl) return J({ error: error?.message || 'could_not_sign' }, 500); return J({ ok: true, data: { url: data.signedUrl } }); }
-    if (action === 'report_pdf') {
-      const id = Number(body?.id); const src = String(body?.src || 'board'); let title = 'Report'; let text = '';
-      if (src === 'exec') { const { data } = await admin.from('exec_reports').select('officer,period,summary,findings,recommendations').eq('id', id).maybeSingle(); if (!data) return J({ error: 'not_found' }, 404); title = `${(data as any).officer} — ${(data as any).period}`; text = String((data as any).summary || ''); if ((data as any).findings) text += '\n\nFINDINGS\n' + JSON.stringify((data as any).findings, null, 2); if ((data as any).recommendations) text += '\n\nRECOMMENDATIONS\n' + JSON.stringify((data as any).recommendations, null, 2); }
-      else { const { data } = await admin.from('board_reports').select('title,body').eq('id', id).maybeSingle(); if (!data) return J({ error: 'not_found' }, 404); title = String((data as any).title || 'Report'); text = String((data as any).body || ''); }
-      let hb = ''; for (const raw of text.split('\n')) { const t = raw.replace(/\s+$/, ''); if (!t) { hb += '<div style="height:6px"></div>'; continue; } if (/^[=\-_]{3,}$/.test(t)) continue; if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length < 64) hb += `<h3>${esc(t)}</h3>`; else hb += `<p>${esc(t)}</p>`; }
-      const html = `<html><head><title>${esc(title)}</title></head><body><h1>${esc(title)}</h1>${hb}</body></html>`;
-      const r = await fetch(`${BASE}/make_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), html, title, name: 'report-' + id, bucket: 'finance-reports', folder: 'reports' }) });
-      const jd = await r.json().catch(() => ({})); if (!jd?.url) return J({ error: jd?.error || 'render_failed' }, 500); return J({ ok: true, data: { url: jd.url, path: jd.path } });
+    // REPORTS ARE CORPORATE PDFS (6 Sep 2026). Both actions resolve to the report_pdf edge function,
+    // which renders the row deterministically (pdf-lib, no model call) into the private reports bucket,
+    // stamps pdf_path/pdf_generated_at on the row and answers with a short-lived signed URL. A row that
+    // already carries a PDF is signed without re-rendering; { force: true } re-renders. Accepts
+    // { source, id } (source board|exec|finance), { kind, period? }, or { latest_finance: true }.
+    // 'report_pdf' stays as the older name of the same door (it used to build HTML for make_pdf).
+    if (action === 'report_pdf' || action === 'report_pdf_url') {
+      const payload: Record<string, unknown> = { __secret: await sec('cred_fn_os_api'), ttl_seconds: 900 };
+      if (body?.latest_finance) payload.latest_finance = true;
+      if (body?.id != null) payload.id = Number(body.id);
+      if (body?.source || body?.src) payload.source = String(body.source || body.src);
+      if (body?.kind) payload.kind = String(body.kind);
+      if (body?.period) payload.period = String(body.period);
+      if (body?.force) payload.force = true;
+      const r = await fetch(`${BASE}/report_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const jd = await r.json().catch(() => ({} as any));
+      if (!r.ok || !jd?.ok || !jd?.url) return J({ error: jd?.error || jd?.message || ('report_pdf ' + r.status), detail: jd?.detail }, r.status === 404 ? 404 : 502);
+      return J({ ok: true, data: { url: jd.url, path: jd.path, bucket: jd.bucket, source: jd.source, id: jd.id, pages: jd.pages, bytes: jd.bytes, rendered: jd.rendered, expires_in: jd.expires_in } });
     }
 
     if (action === 'prompt_view') {

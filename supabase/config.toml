@@ -486,6 +486,11 @@ verify_jwt = false
 [functions.report_body]
 verify_jwt = false
 
+# report_pdf is internal-only (scoped credential via requireInternal); the action invoker and os_api
+# call it server-to-server with no JWT.
+[functions.report_pdf]
+verify_jwt = false
+
 [functions.resend_inbound]
 verify_jwt = false
 

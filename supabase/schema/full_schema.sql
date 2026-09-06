@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T00:58:07.015Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T01:07:05.385Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -30929,6 +30929,7 @@ declare
   v_ai_cost numeric := 0; v_ai_cost_prev numeric := 0; v_ai_delta numeric := 0;
   v_opp text; v_goal numeric; v_goal_j jsonb;
   v_scope_confirmed int; v_scope_total int;   -- the supply side of matching accuracy, 13 Aug 2026
+  v_pdf_lines text := '';   -- 6 Sep 2026: the weekly / monthly report PDFs, when they exist
 begin
   select split_part(coalesce(value,'management@quotesdone.com'),',',1) into v_owner from app_secrets where key='admin_emails';
   if v_owner is null then v_owner := 'management@quotesdone.com'; end if;
@@ -31211,6 +31212,21 @@ begin
            else ' — no goal has a measured actual for this period' end||E'\n'||
     '- Emerging opportunity: '||coalesce(v_opp,'none detected')||E'\n'||
     E'\n'||'Open your dashboard: https://quotesdone.com/os  (Ops for live status; Governance for officer reports).';
+
+  -- REPORTS ARE CORPORATE PDFS (6 Sep 2026). The newest weekly board report and monthly business report
+  -- that already carry a rendered PDF are linked as /os?report_pdf=board:<id>; the OS mints the signed URL
+  -- behind the founder's own session and opens the PDF. A report whose PDF is still queued is not linked.
+  select string_agg(line, E'\n' order by ord) into v_pdf_lines
+    from (
+      select 1 as ord, '- Weekly board report (PDF): https://quotesdone.com/os?report_pdf=board:'||id||'  ('||title||')' as line
+        from (select id, title from board_reports where report_type='weekly' and pdf_generated_at is not null order by created_at desc limit 1) w
+      union all
+      select 2, '- Monthly business report (PDF): https://quotesdone.com/os?report_pdf=board:'||id||'  ('||title||')'
+        from (select id, title from board_reports where report_type='monthly' and pdf_generated_at is not null order by created_at desc limit 1) m
+    ) x;
+  if coalesce(v_pdf_lines,'') <> '' then
+    v_body := v_body || E'\n\n' || 'REPORTS (corporate PDF)' || E'\n' || v_pdf_lines;
+  end if;
 
   insert into notifications(type,to_email,to_role,channel,subject,body) values ('founder_brief',v_owner,'admin','email',v_subj,v_body);
   -- AND into founder_alerts, because that is where the console reads alerts from. Before this the
