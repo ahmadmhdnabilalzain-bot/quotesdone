@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T10:15:10.186Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T10:21:41.142Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (614) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (615) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -1273,6 +1273,29 @@ CREATE TABLE IF NOT EXISTS public.company_reflection (
   concerns integer DEFAULT 0 NOT NULL,
   actions integer DEFAULT 0 NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.company_registration (
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  authority text NOT NULL,
+  license_type text NOT NULL,
+  license_no text NOT NULL,
+  trade_name text NOT NULL,
+  issued_on date NOT NULL,
+  expires_on date NOT NULL,
+  owner_name text NOT NULL,
+  owner_share text NOT NULL,
+  activities text NOT NULL,
+  registered_email text NOT NULL,
+  registered_mobile text NOT NULL,
+  e_stores text NOT NULL,
+  license_class_note text NOT NULL,
+  source_file text NOT NULL,
+  vat_registered boolean DEFAULT false NOT NULL,
+  trn text,
+  vat_threshold_aed numeric DEFAULT 375000 NOT NULL,
+  vat_ruling_on date,
+  corporate_tax_note text
 );
 
 CREATE TABLE IF NOT EXISTS public.company_snapshot (
@@ -8198,6 +8221,7 @@ ALTER TABLE public.company_faq ADD CONSTRAINT company_faq_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_pkey PRIMARY KEY (key);
 ALTER TABLE public.company_index ADD CONSTRAINT company_index_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_reflection ADD CONSTRAINT company_reflection_pkey PRIMARY KEY (id);
+ALTER TABLE public.company_registration ADD CONSTRAINT company_registration_pkey PRIMARY KEY (recorded_at);
 ALTER TABLE public.company_snapshot ADD CONSTRAINT company_snapshot_pkey PRIMARY KEY (snapshot_on);
 ALTER TABLE public.company_stand_down ADD CONSTRAINT company_stand_down_pkey PRIMARY KEY (id);
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_pkey PRIMARY KEY (id);
@@ -24135,7 +24159,9 @@ declare
   v_founder text;
   v_rev numeric; v_exp numeric; v_pnl text;
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
+  reg public.company_registration%rowtype;
 begin
+  select * into reg from public.company_registration order by recorded_at desc limit 1;
   -- the founder identity (who leads the company)
   select string_agg(identity, ' / ' order by identity) into v_founder
     from public.phase_c_founder_identity where active and kind = 'email';
@@ -24165,6 +24191,27 @@ begin
    where workflow_id in ('W04','W05','W06','W07','W08','W09','W10','W12','W13','W14','W15','W16','W17','W18');
 
   v_records := jsonb_build_array(
+
+    -- 6 SEP 2026: the company's registration and tax status, from company_registration (the founder
+    -- supplied the trade licence and ruled on VAT that day; both are closed facts, never questions).
+    jsonb_build_object('rid','registration','module','company_registration',
+      'title','QuotesDone — Trade licence, registration and tax status',
+      'kw', to_jsonb(array['trade licence','trade license','licence number','license number','DET','department of economy and tourism',
+        'issuing authority','licence expiry','renewal','activity code','portal','software design','trader licence','e-trader',
+        'VAT','vat registered','TRN','tax registration number','FTA','federal tax authority','threshold','375,000','corporate tax',
+        'are we vat registered','do we charge vat','company registration','legal entity','owner','who owns the licence']),
+      'content',
+        case when reg.license_no is null then 'REGISTRATION: not recorded.' else
+        'TRADE LICENCE: ' || reg.authority || ' ' || reg.license_type || ' no. ' || reg.license_no || ', trade name "' || reg.trade_name || '"; issued ' ||
+        to_char(reg.issued_on,'DD Mon YYYY') || ', expires ' || to_char(reg.expires_on,'DD Mon YYYY') || ' (renew before then; renewal is a company task, not a founder question).' || E'\n' ||
+        'OWNER: ' || reg.owner_name || ' (' || reg.owner_share || '); licensed activities: ' || reg.activities || '.' || E'\n' ||
+        'REGISTERED CONTACT: ' || reg.registered_email || ', ' || reg.registered_mobile || '; e-stores on the licence: ' || reg.e_stores || '.' || E'\n' ||
+        'LICENCE CLASS: ' || reg.license_class_note || E'\n' ||
+        'TAX STATUS: ' || case when reg.vat_registered then 'VAT-registered, TRN ' || coalesce(reg.trn,'?') else
+          'NOT VAT-registered (founder ruling ' || to_char(reg.vat_ruling_on,'DD Mon YYYY') || '): no VAT is charged or shown on any QuotesDone invoice until taxable supplies reach the FTA mandatory registration threshold of AED ' ||
+          to_char(reg.vat_threshold_aed,'FM999,999,999') || ' in a rolling 12 months. Do not ask the founder about VAT or the TRN; when revenue approaches the threshold the CFO opens a registration task.' end || E'\n' ||
+        'CORPORATE TAX: ' || coalesce(reg.corporate_tax_note,'registration status not recorded.')
+        end),
 
     jsonb_build_object('rid','identity','module','company_identity',
       'title','QuotesDone — Identity, Vision and Mission',
@@ -90106,6 +90153,7 @@ ALTER TABLE public.company_faq ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_index ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_reflection ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_registration ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_stand_down ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_vision ENABLE ROW LEVEL SECURITY;
