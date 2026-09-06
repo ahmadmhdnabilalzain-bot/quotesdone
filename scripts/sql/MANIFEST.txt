@@ -1669,3 +1669,4 @@ scripts/sql/the_smart_engine_and_strategy_ledger_rows.sql
 scripts/sql/the_report_pdf_function_is_a_component.sql
 scripts/sql/every_agent_receives_its_profession.sql
 scripts/sql/supply_has_a_live_state_layer.sql
+scripts/sql/layer_2c_scopes_like_the_playbook_binder.sql
