@@ -489,9 +489,6 @@ verify_jwt = false
 [functions.report_pdf]
 verify_jwt = false
 
-[functions.sanctions_screen]
-verify_jwt = false
-
 [functions.resend_inbound]
 verify_jwt = false
 

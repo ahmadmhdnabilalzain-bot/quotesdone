@@ -46,8 +46,8 @@ const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sa
   },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
-    en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 3 working days. Open your portal here: {{2}} Thank you.',
-    ar: 'QuotesDone: قام عميل بالدفع للاطلاع على عرض سعرك لـ {{1}}. يُرجى الرد خلال 3 أيام عمل. افتح بوابتك هنا: {{2}} شكرًا لك.',
+    en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',
+    ar: 'QuotesDone: قام عميل بالدفع للاطلاع على عرض سعرك لـ {{1}}. يُرجى الرد خلال 5 أيام عمل. افتح بوابتك هنا: {{2}} شكرًا لك.',
     sample1_en: 'supply and install aluminium windows for a villa in Dubai', sample1_ar: 'توريد وتركيب نوافذ ألمنيوم لفيلا في دبي',
     url: 'https://quotesdone.com/portal',
   },
