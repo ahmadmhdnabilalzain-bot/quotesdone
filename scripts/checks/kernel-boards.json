@@ -57,7 +57,7 @@
     {
       "board": "fn_kernel_trace_integrity",
       "check": "system_execution_components_with_no_trace",
-      "max_numerator": 541,
+      "max_numerator": 540,
       "why_2026_09_03": "Lowered 589 -> 534 on 3 Sep 2026 to lock in the gain the check reported (components that have never produced a trace fell as the self-management crons were wrapped and began tracing).",
       "why": "Counts components that have never produced a trace. 430 of the 635 are edge functions, database triggers or event subscriptions, for which this database holds no invocation log at all — fn_kernel_system_trace_state states that explicitly and declines to score them. The number is therefore a coverage-unknown figure, not a defect count, and kernel_k6 keeps it visible under section G rather than filtering it. What IS asserted, on the same board, is that 933 of 933 post-epoch wrapped cron executions carry their required trace and 0 are missing one.",
       "owner": "open — falls as sources are cut over to the kernel and begin tracing",
@@ -69,7 +69,8 @@
       "why_2026_09_03_f": "542 -> 539 within the hour: three of the four newly wrapped crons produced their first trace. Locked in.",
       "why_2026_09_04": "522 -> 542 on 4 Sep 2026: seven parallel packets DECLARED 24 new doors (five kernel-wrapped crons and nineteen event subscriptions created by the STAFF_ORG seating and the dead-trigger wiring). A declared door that has not yet fired has no trace by definition; four of the five crons were driven once through fn_kernel_cron_exec the same morning and now trace, the subscriptions fall on their first delivery. Growth from declaring doors is disclosure, not regression; the number must fall from here.",
       "why_2026_09_05": "542 -> 541 on 5 Sep 2026: one more declared door produced its first trace. Locked in as the board reported it.",
-      "why_2026_09_06_lock": "Measured 540 on the integrated tree at 03:40Z, then edge:report_pdf was recorded as a component (it is reached through the action invoker, which carries the trace) and the board read 541 of 695 again. The lock at 540 was premature; disclosed at 541 as before. A 542nd still fails."
+      "why_2026_09_06_lock": "Measured 540 on the integrated tree at 03:40Z, then edge:report_pdf was recorded as a component (it is reached through the action invoker, which carries the trace) and the board read 541 of 695 again. The lock at 540 was premature; disclosed at 541 as before. A 542nd still fails.",
+      "why_2026_09_06": "Lowered 541 -> 540 on 6 Sep 2026 to lock in the gain the check reported after the day's crons (wa_flush 34, supplier_outreach_daily 344, sanctions_screen_weekly 345, the embedding boost on a 6-second schedule) were wrapped and traced; one more component produced its first trace. Same coverage-unknown figure as before, one lower."
     },
     {
       "board": "fn_kernel_cutover_measure",

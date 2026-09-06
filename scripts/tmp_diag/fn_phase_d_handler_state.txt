@@ -1,0 +1,83 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_handler_state()
+ RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_steps int; n_bound int; n_amb int; n_sch int; n_drift int; n_blocked int; n_def int;
+        n_produced int;
+        n_wired int; n_needwrite int;
+begin
+  select count(*) into n_steps from public.phase_b_workflow_step;
+  select count(*) into n_bound from public.phase_d_handler_binding;
+
+  check_name := 'every_frozen_step_has_a_handler_binding';
+  expected := n_steps::text; actual := n_bound::text; ok := (n_bound = n_steps); return next;
+
+  select count(*) into n_amb from public.phase_d_handler_binding b
+   where not exists (select 1 from public.phase_b_workflow_step s where s.step_id = b.step_id);
+  check_name := 'no_binding_for_an_unfrozen_step';
+  expected := '0'; actual := n_amb::text; ok := (n_amb = 0); return next;
+
+  select count(*) into n_sch from public.phase_d_handler_schema;
+  check_name := 'two_schemas_per_step';
+  expected := (n_steps * 2)::text; actual := n_sch::text; ok := (n_sch = n_steps * 2); return next;
+
+  select count(*) into n_drift from public.phase_d_handler_schema sc
+    join public.phase_b_workflow_step s on s.step_id = sc.step_id
+   where sc.source_digest <> encode(sha256(convert_to(
+           case sc.schema_kind
+             when 'input' then coalesce(s.required_inputs,'')
+             else coalesce(s.required_output,'') || ' || ' || coalesce(s.acceptance_criteria,'')
+           end, 'UTF8')), 'hex');
+  check_name := 'no_schema_drift_against_frozen_phase_b';
+  expected := '0'; actual := n_drift::text; ok := (n_drift = 0); return next;
+
+  select count(*) into n_blocked from public.phase_d_handler_binding
+   where phase_d_status = 'BLOCKED_DEFECT';
+  check_name := 'blocked_defects';
+  expected := '0'; actual := n_blocked::text; ok := (n_blocked = 0); return next;
+
+  select count(*) into n_def
+    from public.phase_d_handler_binding b
+    join public.kernel_retired_path rp
+      on b.handler_routine like '%' || rp.path_name || '%'
+   where rp.disposition = 'DISABLED';
+  check_name := 'no_binding_names_a_retired_routine';
+  expected := '0'; actual := n_def::text; ok := (n_def = 0); return next;
+
+  -- THE HONEST ONE. Red until a handler actually writes its business object. This check exists
+  -- so the 236 NEW_DETERMINISTIC_HANDLER rows cannot be read as 236 steps with a business effect.
+  --
+  -- Counted as the GAP, not as the coverage, so the number FALLS as the work lands and the
+  -- kernel-boards ratchet can cap it. A check reading "0 of 257 wired" would have to be ratcheted
+  -- at a number that must grow, which the ratchet cannot express and which would invert its
+  -- meaning: it asserts disclosed debt does not get worse.
+  select count(*) into n_wired from public.phase_d_handler_binding where business_write_wired;
+  select count(*) into n_needwrite from public.phase_d_handler_binding;
+  -- E20 / finding 10. RENAMED TO WHAT IT COMPUTES. It reads business_write_wired, a stored boolean
+  -- that records a binding DECLARING a business write. A declaration is not a write, and a check
+  -- whose name says "not writing" while its body counts a column asserts something untrue about
+  -- itself. E10 added a comment saying so; the name still said the other thing.
+  check_name := 'handler_bindings_that_declare_no_business_write';
+  expected := '0'; actual := (n_needwrite - n_wired)::text
+           || ' of ' || n_needwrite::text || ' (source: phase_d_handler_binding.business_write_wired, '
+           || 'a declaration; see handlers_that_have_actually_produced_an_effect below for writes)';
+  ok := (n_needwrite - n_wired = 0); return next;
+
+  -- E10. WHAT THAT ZERO IS, AND WHAT IT IS NOT. It is derived from the handler's declared call to
+  -- fn_phase_d_effect_produce plus a stored boolean — a statement that the PATH EXISTS. It is not a
+  -- statement that any handler has ever written a business object, and the two read identically at
+  -- a glance because both are the number 0 beside a green tick.
+  -- The question it does not answer is on fn_phase_d_effect_state as
+  -- steps_with_no_effect_ever_produced, which reads 257 and is this phase's only red. Both numbers
+  -- are quoted here so a reader of this board cannot take the green one for the other.
+  select count(distinct step_id) into n_produced from public.phase_d_effect_ledger;
+
+  check_name := 'handlers_that_have_actually_produced_an_effect';
+  expected := 'informational — the green above says the path EXISTS, this says whether it has RUN';
+  actual := n_produced::text || ' of ' || n_steps::text
+         || ' steps have ever produced an effect; see fn_phase_d_effect_state.'
+         || 'steps_with_no_effect_ever_produced for what holds the remainder';
+  ok := true; return next;
+end $function$

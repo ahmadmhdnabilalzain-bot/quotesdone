@@ -61,7 +61,10 @@ for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
     // Self-clearing. The bounce auto-pause deliberately flips invite_enabled to false and needs a
     // human to restore it; a public holiday must resume on its own the next morning.
     const guard = def.slice(calAt, schedAt);
-    assert.doesNotMatch(guard, /invite_enabled/,
+    // 6 SEP 2026: the founder's outreach switch (supplier_outreach_golive) and the ramp's own gate
+    // (invite_enabled) are READ inside this range now, before anything is planned. Reading a gate is
+    // not the outage this guards against; WRITING invite_enabled from the calendar pause is.
+    assert.doesNotMatch(guard, /update\s+(public\.)?app_secrets[^;]*invite_enabled/i,
       'the calendar pause must not touch app_secrets.invite_enabled — a holiday that needs a human '
       + 'to switch invites back on is an outage, not a pause');
 

@@ -108,7 +108,7 @@ const T = {
     next_1:'We structure your description into a request suppliers can price, and send it to matching UAE suppliers — without your name or number.',
     next_2:'Their quotes come back onto this screen. Most requests get their first quote within 48 hours; you are emailed as each one arrives.',
     next_3:'You compare them side by side for free. Supplier names stay hidden until you choose one.',
-    next_4:'Revealing a supplier costs 3% of that quote, and nothing else. It is refundable if they do not respond within 3 working days.',
+    next_4:'Revealing a supplier costs 3% of that quote, and nothing else. It is refunded in full if they do not respond within 5 working days: we chase them for you after 3, and banks take 7-14 working days to show a refund.',
     // ── shell ──
     nav_main:'Portal navigation', nav_work:'Work', nav_collaborate:'Collaborate', nav_intelligence:'Intelligence',
     nav_account:'Account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More',
@@ -197,7 +197,7 @@ const T = {
     next_1:'نحوّل وصفك إلى طلب يستطيع الموردون تسعيره، ونرسله إلى الموردين المطابقين في الإمارات — دون اسمك أو رقمك.',
     next_2:'تعود عروضهم إلى هذه الشاشة. معظم الطلبات يصلها أول عرض خلال 48 ساعة، ويصلك بريد عند وصول كل عرض.',
     next_3:'تقارنها جنبًا إلى جنب مجانًا. تبقى أسماء الموردين مخفية حتى تختار أحدهم.',
-    next_4:'كشف المورّد يكلّف 3% من قيمة عرضه، ولا شيء غير ذلك. وهو قابل للاسترداد إذا لم يردّ خلال 3 أيام عمل.',
+    next_4:'كشف المورّد يكلّف 3% من قيمة عرضه، ولا شيء غير ذلك. ويُردّ بالكامل إذا لم يردّ خلال 5 أيام عمل: نتابعه نيابةً عنك بعد 3 أيام، وتستغرق البنوك 7-14 يوم عمل لإظهار الاسترداد.',
     // ── الهيكل ──
     nav_main:'تنقل البوابة', nav_work:'العمل', nav_collaborate:'التعاون', nav_intelligence:'الذكاء',
     nav_account:'الحساب', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد',
@@ -531,7 +531,13 @@ function ProfileGate({ token, lang, onDone }) {
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg((j && j.error) || t(lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
   const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg((j && j.error) || t(lang, 'load_failed')); };
-  const profileDone = st.full_name && st.phone && st.dob;
+  // DOB MUST NOT GATE THE CRITICAL PATH (6 Sep 2026). This required st.dob, so a customer who did not
+  // supply a date of birth never saw the Verify-mobile / Verify-email / accept-Terms sections and was
+  // silently stuck — measured on the first real registrant (07:38Z): 8 save_customer calls, ZERO
+  // send_sms, phone unverified, terms never accepted, dob null. DOB is in neither `complete` (below)
+  // nor the create_inquiry gate, so requiring it here blocked verification for a field the rest of the
+  // system treats as optional. The gate now needs only the two facts a code can be sent to.
+  const profileDone = st.full_name && st.phone;
   return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
     <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</div>
     <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
@@ -1299,7 +1305,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired })
     <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
     {state === 'revealed' ? (contact ? <Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /> : <div className={S.sub}>Loading contact…</div>)
       : (<div className="flex justify-between items-center gap-2.5 mt-2.5 flex-wrap">
-          <div className={S.sub}>Reveal fee {aed(q.reveal_fee)} — refundable if the supplier doesn't respond in 3 working days.</div>
+          <div className={S.sub}>Reveal fee {aed(q.reveal_fee)} — refunded in full if the supplier doesn't respond in 5 working days (we chase them after 3).</div>
           <Button size="sm" disabled={busy || concluded} onClick={reveal}>{busy ? 'Please wait…' : 'Reveal & contact'}</Button>
         </div>)}
     {msg && <div className={S.err}>{msg}</div>}
@@ -1310,7 +1316,7 @@ function Contact({ c, q, token, onChange, lang, won }) {
   const s = c.supplier || {};
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
   const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone('Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
-  const refund = async () => { if (!confirm('Request a refund of the reveal fee? This is only valid within 3 working days if the supplier did not respond.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? 'Refund requested — we will review it.' : ((j && j.error) || 'Could not request refund.')); };
+  const refund = async () => { if (!confirm('Tell us the supplier is not responding? We chase them after 3 working days and the fee is refunded in full if they are still silent after 5; our founder makes the final call. Banks take 7-14 working days to show a refund.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? 'Refund requested — we will review it.' : ((j && j.error) || 'Could not request refund.')); };
   const hire = async () => { if (!confirm('Mark this supplier as hired for this project?')) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token); if (j && j.ok) { setDone('Marked as hired.'); onChange && onChange(); } else setDone((j && j.error) || 'Could not update.'); };
   return (<div className="mt-2.5 rounded-lg border border-primary/30 bg-primary/10 p-3">
     <div className="font-bold">{s.company_name || 'Supplier'}</div>

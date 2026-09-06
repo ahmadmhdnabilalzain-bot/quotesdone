@@ -245,9 +245,12 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   return { matches: landedIds.length, routing };
 }
 
-type Cfg = { promo_until: string | null; promo_reveal_rate: number; promo_reveal_cap: number; standard_reveal_rate: number; standard_reveal_cap: number; refund_window_working_days: number };
-async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { promo_until: null, promo_reveal_rate: 0.02, promo_reveal_cap: 250, standard_reveal_rate: 0.02, standard_reveal_cap: 250, refund_window_working_days: 3 }; }
-function revealFee(amount: number, cfg: Cfg, at: Date = new Date()): number { if (!amount || amount <= 0) return 0; const promo = !!cfg.promo_until && at <= new Date(cfg.promo_until); const rate = Number(promo ? cfg.promo_reveal_rate : cfg.standard_reveal_rate); const cap = Number(promo ? cfg.promo_reveal_cap : cfg.standard_reveal_cap); return Math.min(Math.round(amount * rate * 100) / 100, cap); }
+type Cfg = { standard_reveal_rate: number; refund_window_working_days: number };
+async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { standard_reveal_rate: 0.03, refund_window_working_days: 3 }; }
+// 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
+// and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
+// pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
+function revealFee(amount: number, cfg: Cfg): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
 function ratingOf(l: Record<string, any>) { const appN = Number(l.app_reviews || 0); if (appN > 0) return { value: l.app_rating != null ? Number(l.app_rating) : null, count: appN, source: 'QuotesDone' }; const g = l.rating ?? l.rating_maps; const gn = l.reviews ?? l.reviews_maps; return { value: g != null ? Number(g) : null, count: gn != null ? Number(gn) : 0, source: 'Google' }; }
 function band(n: number) { n = Number(n || 0); if (n < 1000) return '< AED 1k'; if (n < 5000) return 'AED 1–5k'; if (n < 20000) return 'AED 5–20k'; if (n < 50000) return 'AED 20–50k'; return 'AED 50k+'; }
 // PRE-REVEAL FINGERPRINT (27 Jul 2026). my_inquiries used to return the supplier's exact rating,
@@ -921,7 +924,8 @@ Deno.serve(async (req) => {
       // the wire only where nothing was listening, and CustomerPortal fell back to
       // localStorage['qd-lang'] and the NEXT_LOCALE cookie. A customer who set Arabic on one device
       // got English on the next, and the Arabic journey exercised a path the portal could not reach.
-      return J({ inquiries: out, locale: cust.locale || null, promo: !!cfg.promo_until && new Date() <= new Date(cfg.promo_until) });
+      // promo is always false: there is no promotional reveal rate (founder, 6 Sep 2026); the key stays so no reader breaks.
+      return J({ inquiries: out, locale: cust.locale || null, promo: false });
     }
 
     if (action === 'compare_pdf') {
@@ -1010,7 +1014,9 @@ Deno.serve(async (req) => {
       const { data: tx } = await admin.from('transactions').select('id,customer_id,refund_deadline,refund_status,fee_status').eq('quote_id', qid).maybeSingle();
       if (!tx || tx.customer_id !== cust.id) return J({ error: 'Transaction not found' }, 404);
       if (tx.refund_status) return J({ ok: true, refund_status: tx.refund_status });
-      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) return J({ error: 'The 3 working-day refund window has passed.' }, 400);
+      // 6 Sep 2026: the ladder is pricing_config.refund_window_working_days (5) from payment, a chase at 3,
+      // the founder's final call at 5; the sweep files the refund itself once the window has elapsed.
+      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) { const cfgR = await getCfg(); return J({ error: `The ${cfgR.refund_window_working_days} working-day window has elapsed; the case has gone to our founder for the final call and the refund is issued if the supplier does not respond.` }, 400); }
       const { data: q2 } = await admin.from('quotes').select('inquiry_id,supplier_id').eq('id', qid).maybeSingle();
       if (q2) {
         const { data: inq2 } = await admin.from('inquiries').select('status,outcome,hired_supplier_id').eq('id', q2.inquiry_id).maybeSingle();

@@ -567,7 +567,11 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     assert.equal(Number(r.dept), 672);
     assert.equal(Number(r.cat), 2924);
     assert.equal(Number(r.v3_cases), 8972, 'the delivery declares 8,972 V3 training cases');
-    assert.equal(Number(r.roles_with_knowledge), 96);
-    assert.equal(Number(r.cats_with_knowledge), 86);
+    // 6 SEP 2026: the V3 delivery's role and category coverage is a FLOOR, not an exact figure. The
+    // company adds role-scoped records as it learns (that day: the supplier-acquisition and sanctions
+    // screening SOPs for two more roles, 96 -> 98); an equality here would redden every time an
+    // employee is taught something, which is the opposite of what the delivery count protects.
+    assert.ok(Number(r.roles_with_knowledge) >= 96, `roles with knowledge fell below the delivery's 96: ${r.roles_with_knowledge}`);
+    assert.ok(Number(r.cats_with_knowledge) >= 86, `categories with knowledge fell below the delivery's 86: ${r.cats_with_knowledge}`);
   });
 }

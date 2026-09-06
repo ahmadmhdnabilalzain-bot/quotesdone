@@ -1,0 +1,279 @@
+-- 1/30 W01
+-- 2/30 W01
+-- 3/30 W01
+-- 4/30 W02
+-- 5/30 W02
+-- 6/30 W02
+-- 7/30 W03
+-- 8/30 W03
+-- 9/30 W03
+-- 10/30 W04
+-- 11/30 W04
+-- 12/30 W04
+-- 13/30 W05
+-- 14/30 W05
+-- 15/30 W05
+-- 16/30 W06
+-- 17/30 W06
+-- 18/30 W07
+-- 19/30 W06
+-- 20/30 W07
+-- 21/30 W08
+-- 22/30 W07
+-- 23/30 W08
+-- 24/30 W09
+-- 25/30 W08
+-- 26/30 W09
+-- 27/30 W10
+-- 28/30 W09
+-- 29/30 W10
+-- 30/30 W11
+-- 31/30 W10
+-- 32/30 W11
+-- 33/30 W12
+-- 34/30 W11
+-- 35/30 W12
+-- 36/30 W13
+-- 37/30 W12
+-- 38/30 W13
+-- 39/30 W14
+-- 40/30 W13
+-- 41/30 W14
+-- 42/30 W15
+-- 43/30 W15
+-- 44/30 W14
+-- 45/30 W16
+-- 46/30 W16
+-- 47/30 W15
+-- 48/30 W17
+-- 49/30 W17
+-- 50/30 W16
+-- 51/30 W18
+-- 52/30 W18
+-- 53/30 W17
+-- 54/30 W19
+-- 55/30 W19
+-- 56/30 W18
+-- 57/30 W19
+-- 58/30 W20
+-- 59/30 W20
+-- 60/30 W21
+-- 61/30 W20
+-- 62/30 W21
+-- 63/30 W22
+-- 64/30 W21
+-- 65/30 W22
+-- 66/30 W23
+-- 67/30 W22
+-- 68/30 W23
+-- 69/30 W23
+-- 70/30 W24
+-- 71/30 W24
+-- 72/30 W24
+-- 73/30 W25
+-- 74/30 W25
+-- 75/30 W25
+-- 76/30 W26
+-- 77/30 W26
+-- 78/30 W27
+-- 79/30 W28
+-- 80/30 W29
+-- 81/30 W30
+-- transport ECONNRESET; retry in 2s (1/5)
+-- 82/30 W27
+-- 83/30 W28
+-- 84/30 W29
+-- 85/30 W26
+-- 86/30 W30
+-- 87/30 W27
+-- 88/30 W28
+-- 89/30 W29
+-- transport ECONNRESET; retry in 2s (1/5)
+-- 90/30 W30
+
+frozen events in the register        347
+observed in the outbox, this run     317
+observed in the outbox, cumulative   317 of 347
+emitted ids not in the register      0
+
+per arm:
+  W01 PASS completed
+  W01 PASS completed
+  W01 PASS completed
+  W01 FAIL active
+  W01 FAIL active
+  W01 FAIL active
+  W02 PASS completed
+  W02 PASS completed
+  W02 FAIL active
+  W02 PASS completed
+  W02 FAIL active
+  W03 PASS completed
+  W02 FAIL active
+  W03 PASS completed
+  W03 FAIL active
+  W03 PASS completed
+  W03 FAIL active
+  W04 PASS completed
+  W03 FAIL active
+  W04 PASS completed
+  W04 FAIL active
+  W04 PASS completed
+  W04 FAIL active
+  W05 PASS completed
+  W04 FAIL active
+  W05 PASS completed
+  W05 FAIL active
+  W05 PASS completed
+  W05 FAIL active
+  W06 PASS completed
+  W05 FAIL active
+  W06 FAIL active
+  W06 PASS completed
+  W06 PASS completed
+  W07 PASS completed
+  W06 FAIL active
+  W07 FAIL active
+  W06 FAIL active
+  W07 PASS completed
+  W07 PASS completed
+  W08 PASS completed
+  W07 FAIL active
+  W08 FAIL active
+  W07 FAIL active
+  W08 PASS completed
+  W09 PASS completed
+  W08 PASS completed
+  W08 FAIL active
+  W09 FAIL active
+  W09 PASS completed
+  W08 FAIL active
+  W10 PASS completed
+  W09 PASS completed
+  W09 FAIL active
+  W10 FAIL active
+  W10 PASS completed
+  W09 FAIL active
+  W10 PASS completed
+  W11 PASS completed
+  W10 FAIL active
+  W11 FAIL active
+  W10 FAIL active
+  W11 PASS completed
+  W12 PASS completed
+  W11 PASS completed
+  W11 FAIL active
+  W12 FAIL active
+  W12 PASS completed
+  W11 FAIL active
+  W12 PASS completed
+  W13 PASS completed
+  W12 FAIL active
+  W13 FAIL active
+  W12 FAIL active
+  W13 PASS completed
+  W14 PASS completed
+  W13 FAIL active
+  W13 PASS completed
+  W14 FAIL active
+  W14 PASS completed
+  W13 FAIL active
+  W15 PASS completed
+  W14 FAIL active
+  W15 PASS completed
+  W15 FAIL active
+  W14 PASS completed
+  W16 PASS completed
+  W15 FAIL active
+  W14 FAIL active
+  W16 PASS completed
+  W16 FAIL active
+  W15 PASS completed
+  W17 PASS completed
+  W16 FAIL active
+  W15 FAIL active
+  W17 PASS completed
+  W17 FAIL active
+  W16 PASS completed
+  W18 PASS completed
+  W17 FAIL active
+  W16 FAIL active
+  W18 PASS completed
+  W18 FAIL no_open_step
+  W17 PASS completed
+  W18 FAIL no_open_step
+  W19 PASS completed
+  W17 FAIL active
+  W19 PASS completed
+  W18 PASS completed
+  W19 FAIL active
+  W19 FAIL active
+  W20 PASS completed
+  W18 FAIL no_open_step
+  W19 PASS completed
+  W19 FAIL active
+  W20 PASS completed
+  W20 FAIL active
+  W20 PASS completed
+  W20 FAIL active
+  W21 PASS completed
+  W21 PASS completed
+  W21 FAIL active
+  W20 FAIL active
+  W22 PASS completed
+  W21 FAIL active
+  W21 PASS completed
+  W22 PASS completed
+  W22 FAIL active
+  W21 FAIL active
+  W22 FAIL active
+  W23 PASS completed
+  W22 PASS completed
+  W23 PASS completed
+  W23 FAIL active
+  W22 FAIL active
+  W23 PASS completed
+  W23 FAIL active
+  W24 PASS completed
+  W23 FAIL active
+  W24 PASS completed
+  W24 FAIL active
+  W24 PASS completed
+  W24 FAIL active
+  W25 PASS completed
+  W24 FAIL active
+  W25 PASS completed
+  W25 FAIL active
+  W25 PASS completed
+  W25 FAIL active
+  W26 PASS completed
+  W25 FAIL active
+  W26 PASS completed
+  W26 FAIL active
+  W26 FAIL active
+  W27 PASS completed
+  W27 FAIL active
+  W28 PASS completed
+  W28 FAIL active
+  W29 PASS completed
+  W29 FAIL active
+  W30 PASS completed
+  W30 FAIL active
+  W27 PASS completed
+  W27 FAIL active
+  W28 PASS completed
+  W28 FAIL active
+  W29 PASS completed
+  W26 PASS completed
+  W29 FAIL active
+  W26 FAIL active
+  W30 PASS completed
+  W27 PASS completed
+  W30 FAIL active
+  W27 FAIL active
+  W28 PASS completed
+  W28 FAIL active
+  W29 PASS completed
+  W29 FAIL active
+  W30 PASS completed
+  W30 FAIL active

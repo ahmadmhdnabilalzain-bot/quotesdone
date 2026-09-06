@@ -1,0 +1,67 @@
+// PHASE D — THE 1,799 STEP-CONTRACT CASES, DECIDED AGAINST A LIVE STEP RUN.
+//
+//   node scripts/phase_d/run_step_cases_live.mjs [--only=W01,W02] [--jobs=3]
+//
+// The committed matrix passed 1,799 of 1,799 and its own `decided_at` column said where each case
+// was settled: 771 at `step_contract`, 771 at `executor_boundary`, 257 at `structural_constraint`,
+// and NONE against a live step run. A contract that refuses a hand-built payload is a real
+// assertion about the contract; it is not a claim that the HANDLER refuses that payload when the
+// kernel hands it one. The session brief of 23 Aug 2026 says exactly that, and adds: a step held
+// open by `pd_handler_held_for_branch_probe` proves the KERNEL's fail edge and nothing about the
+// handler's.
+//
+// This driver settles six of the seven kinds against a real step run of a real drive, in one
+// aborted transaction per step. For each step:
+//
+//   1. the workflow is driven with app.phase_d_hold_step set to this step, so the step run is OPEN
+//      and un-dispatched -- the handler declines and says so;
+//   2. THE HOLD IS THEN RELEASED, inside the same transaction, so every call below reaches the real
+//      handler rather than the probe's own refusal;
+//   3. the five negative cases run against that live step run, each varying ONE thing from the
+//      positive and each asserting that the effect ledger did not move;
+//   4. the positive runs LAST, through fn_phase_d_dispatch_step -- the kernel's own door, which
+//      supplies the context, the gate evidence, the business key and the owner exactly as it does
+//      in production. Nothing here re-implements it;
+//   5. the duplicate runs after the positive: the same door again, and the assertion is the ledger
+//      row count.
+//
+// DISCRIMINATION IS THE POINT, not the refusal. Every negative is paired with a control that
+// differs in exactly one respect, and a case passes only when the two answers DIFFER. A negative
+// that refuses for the same reason as its control has discriminated nothing -- that is the defect
+// this estate has recorded as NOT_DISCRIMINATED twice, and scoring it as a pass would repeat it.
+//
+// WHAT IS NOT DRIVEN, said out loud. `malformed_output` is decided at the kernel door
+// (fn_kernel_step_complete with an empty output, refusal k3_output_empty) rather than inside the
+// handler: the handler BUILDS its own output from the frozen registry and a caller has no lever on
+// it, so there is no input that makes a handler produce an output its own contract rejects. The row
+// records decided_at = 'kernel_boundary' and says so.
+import { sql } from '../phase_c/lib/db.mjs';
+
+const arg = (k, d) => (process.argv.find(a => a.startsWith(`--${k}=`)) || `--${k}=${d}`).split('=').slice(1).join('=');
+const ONLY = arg('only', '').split(',').filter(Boolean);
+const JOBS = Math.max(1, Number(arg('jobs', 3)));
+
+const STEPS = await sql(`select s.step_id, s.workflow_id, s.step_no
+  from public.phase_b_workflow_step s order by s.workflow_id, s.step_no`);
+const WORK = STEPS.filter(s => !ONLY.length || ONLY.includes(s.workflow_id));
+
+const CASE_ORDER = ['positive', 'missing_input', 'wrong_actor', 'invalid_state',
+                    'duplicate', 'failed_rule_or_gate', 'malformed_output'];
+
+// A transport failure is not a measurement.
+async function emit(q, marker) {
+  for (let attempt = 1; ; attempt++) {
+    try { await sql(q); return 'ERROR:the probe did not raise its marker'; }
+    catch (e) {
+      const m = String(e.message); const a = m.indexOf(marker + '<<');
+      if (a >= 0) return m.slice(a + marker.length + 2, m.indexOf('>>', a));
+      if (/fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|HTTP 429|HTTP 5\d\d/i.test(m) && attempt < 4) {
+        await new Promise(r => setTimeout(r, 3000 * attempt)); continue;
+      }
+      return 'ERROR:' + m.slice(0, 300).replace(/[\s|~]+/g, ' ');
+    }
+  }
+}
+
+const CODE = "coalesce((regexp_match(SQLERRM,'[(]((pd|k[0-9]+|br[0-9]+|gate[0-9]+)_[a-z0-9_]+)[)]'))[1], 'other:' || left(regexp_replace(SQLERRM,'[|~<>]',' ','g'),60))";
+

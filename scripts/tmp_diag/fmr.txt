@@ -1,0 +1,63 @@
+W01 exec=8/9 caps=0 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W02 exec=9/12 caps=1 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W03 exec=9/10 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W04 exec=7/10 caps=0 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W05 exec=9/11 caps=0 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W06 exec=7/8 caps=0 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W07 exec=8/11 caps=1 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W08 exec=8/11 caps=0 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W09 exec=9/12 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W10 exec=8/12 caps=1 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W11 exec=7/8 caps=1 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W12 exec=9/12 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W13 exec=7/8 caps=0 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W14 exec=9/12 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W15 exec=9/11 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W16 exec=9/11 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W17 exec=11/18 caps=2 eff=11 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W18 exec=7/7 caps=0 eff=7 HANDLER_CLOSED_UNAIDED fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W19 exec=7/9 caps=1 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W20 exec=9/12 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W21 exec=8/11 caps=1 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W22 exec=7/9 caps=1 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W23 exec=9/15 caps=2 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W24 exec=10/17 caps=0 eff=10 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W25 exec=8/11 caps=2 eff=8 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W26 exec=9/11 caps=0 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W27 exec=10/17 caps=2 eff=10 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W28 exec=9/16 caps=4 eff=9 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W29 exec=10/14 caps=1 eff=10 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W30 exec=11/17 caps=1 eff=11 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+
+workflows                      30 of 30
+happy: handler closed unaided  1 of 30
+happy: reached terminal        30 of 30
+failure path exercised         30 of 30
+cancellation reached cancelled 30 of 30
+replay: duplicate effects       30 of 30 clean
+replay: result reference moved  30 of 30 clean
+replay: duplicate objects       30 of 30 clean
+  of which: step runs whose FIRST effect only appeared on the second dispatch — a
+  premature first dispatch, not a duplicate — 0 across all runs
+business rows created in-tx    120 (all rolled back; residue is read below, after every transaction aborted)
+capability results accepted    21
+dispatches executed            257 of 352
+
+residue after every transaction aborted:
+  customers                  0
+  inquiries                  0
+  quotes                     0
+  transactions               0
+  object_records             0
+  dispatches                 0
+  effects                    0
+  scenario_records           0
+  fixture_contexts           0
+  capability_requests        0
+  capability_results         0
+  fixture_founder_commands   0
+  notifications_2h           0
+  outbound_http              0
+  ai_cost_log_rows           3507
+  llm_attempt_rows           69
+  fixture_residue            0

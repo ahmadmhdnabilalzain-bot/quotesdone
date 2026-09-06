@@ -1,0 +1,59 @@
+W01 exec=5/8 caps=0 eff=5 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W02 exec=7/11 caps=1 eff=7 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W03 exec=5/9 caps=0 eff=5 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W04 exec=1/8 caps=0 eff=1 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W05 exec=3/9 caps=0 eff=2 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W06 exec=6/7 caps=0 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+3 in_tx_rows=4
+W07 exec=4/11 caps=1 eff=4 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W08 exec=5/10 caps=0 eff=5 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+1 in_tx_rows=4
+W09 exec=4/11 caps=0 eff=4 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W10 exec=5/11 caps=1 eff=5 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W11 exec=7/8 caps=1 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W12 exec=5/11 caps=0 eff=5 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+3 in_tx_rows=4
+W13 exec=7/8 caps=0 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+1 in_tx_rows=4
+W14 exec=0/9 caps=0 eff=0 ACTOR_DRIVEN_TO_TERMINAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W15 exec=3/11 caps=0 eff=3 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W16 exec=1/9 caps=0 eff=1 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W17 exec=4/16 caps=2 eff=4 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W18 exec=7/7 caps=0 eff=7 HANDLER_CLOSED_UNAIDED fail=REFUSED:22023 cancel=REFUSED:23514 replay+3 in_tx_rows=4
+W19 exec=6/8 caps=1 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+1 in_tx_rows=4
+W20 exec=3/9 caps=0 eff=3 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+1 in_tx_rows=4
+W21 exec=6/10 caps=1 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W22 exec=6/9 caps=1 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+1 in_tx_rows=4
+W23 exec=6/14 caps=2 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+2 in_tx_rows=4
+W24 exec=3/15 caps=0 eff=3 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W25 exec=7/10 caps=2 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+0 in_tx_rows=4
+W26 exec=4/9 caps=0 eff=4 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=cancelled replay+2 in_tx_rows=4
+W27 exec=5/16 caps=2 eff=5 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+W28 exec=6/15 caps=4 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:23514 cancel=REFUSED:23514 replay+0 in_tx_rows=4
+W29 exec=7/13 caps=1 eff=7 ACTOR_DRIVEN_PARTIAL fail=step:failed,run:blocked cancel=cancelled replay+1 in_tx_rows=4
+W30 exec=6/14 caps=1 eff=6 ACTOR_DRIVEN_PARTIAL fail=REFUSED:22023 cancel=REFUSED:23514 replay+1 in_tx_rows=4
+
+workflows                      30 of 30
+happy: handler closed unaided  1 of 30
+happy: reached terminal        30 of 30
+failure path exercised         6 of 30
+cancellation reached cancelled 13 of 30
+replay produced no new effect  11 of 30
+business rows created in-tx    120 (all rolled back; residue is read below, after every transaction aborted)
+capability results accepted    21
+dispatches executed            144 of 316
+
+residue after every transaction aborted:
+  customers                  0
+  inquiries                  0
+  quotes                     0
+  transactions               0
+  object_records             0
+  dispatches                 0
+  effects                    0
+  scenario_records           0
+  fixture_contexts           0
+  capability_requests        0
+  capability_results         0
+  fixture_founder_commands   0
+  notifications_2h           0
+  outbound_http              0
+  ai_cost_log_rows           3507
+  llm_attempt_rows           69
+  fixture_residue            0

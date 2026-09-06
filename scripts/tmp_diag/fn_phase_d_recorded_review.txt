@@ -1,0 +1,25 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_recorded_review(p_step_run_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+AS $function$
+  select jsonb_strip_nulls(jsonb_build_object(
+           'task_id', t.task_id,
+           'reviewer_role_id', nullif(btrim(coalesce(t.reviewer_role_id,'')),''),
+           'verdict', (select ev->>'review_decision'
+                         from public.phase_c_trace tr,
+                              lateral jsonb_array_elements(
+                                case when jsonb_typeof(coalesce(tr.evidence_refs,'[]'::jsonb)) = 'array'
+                                     then tr.evidence_refs else '[]'::jsonb end) ev
+                        where tr.task_id = t.task_id
+                          and ev ? 'review_decision'
+                        order by tr.trace_id desc
+                        limit 1)))
+    from public.phase_c_workflow_step_run sr
+    join public.phase_c_task t
+      on t.run_id = sr.run_id and t.step_id = sr.step_id
+   where sr.step_run_id = p_step_run_id
+   order by t.task_id desc
+   limit 1;
+$function$

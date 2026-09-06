@@ -46,8 +46,9 @@ function buildSvg(headline: string, eyebrow: string): string {
   const blockH = lines.length * lh;
   let y = Math.round((H - blockH) / 2) + fs; // baseline of first line, vertically centred
   const tspans = lines.map((ln) => { const t = `<tspan x="${PAD}" y="${y}">${esc(ln)}</tspan>`; y += lh; return t; }).join('');
-  const eb = eyebrow ? `<text x="${PAD}" y="252" font-family="Poppins" font-weight="700" font-size="30" letter-spacing="4" fill="#5EEAD4">${esc(eyebrow.toUpperCase().slice(0, 40))}</text>` : '';
-  // Official QuotesDone brand system (from the brand kit): navy bg gradient, teal + gold, teal-ring/gold-check mark.
+  // Eyebrow = the kit's teal-light #6EE7D4 (the tagline colour on every cover); it used to be Tailwind's #5EEAD4.
+  const eb = eyebrow ? `<text x="${PAD}" y="252" font-family="Poppins" font-weight="700" font-size="30" letter-spacing="4" fill="#6EE7D4">${esc(eyebrow.toUpperCase().slice(0, 40))}</text>` : '';
+  // Official QuotesDone brand system (public.company_brand, 6 Sep 2026): navy bg gradient, teal + gold, teal-ring/gold-check mark.
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="bg" x1="0.12" y1="0" x2="0.88" y2="1"><stop offset="0" stop-color="#173A4B"/><stop offset="0.55" stop-color="#0C2330"/><stop offset="1" stop-color="#06121B"/></linearGradient>
@@ -62,7 +63,7 @@ function buildSvg(headline: string, eyebrow: string): string {
   <text font-family="Poppins" font-weight="700" font-size="${fs}" fill="#FFFFFF">${tspans}</text>
   <line x1="${PAD}" y1="${H - 150}" x2="${W - PAD}" y2="${H - 150}" stroke="#234A5C" stroke-width="2"/>
   <text x="${PAD}" y="${H - 96}" font-family="Poppins" font-weight="700" font-size="34" fill="#FFFFFF">QuotesDone</text>
-  <text x="${W - PAD}" y="${H - 96}" text-anchor="end" font-family="Poppins" font-weight="400" font-size="28" fill="#8FB0C0">quotesdone.com</text>
+  <text x="${W - PAD}" y="${H - 96}" text-anchor="end" font-family="Poppins" font-weight="400" font-size="28" fill="#9DB2B2">quotesdone.com</text>
 </svg>`;
 }
 

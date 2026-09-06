@@ -24,7 +24,20 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 // catalogue; the default stays the document-expiry notice this function was written for. Every body
 // opens AND closes with literal text (the Meta rule in the header), and {{1}} / {{2}} are the same two
 // variables send_whatsapp's varsFor() supplies: a short summary and a link.
-const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sample1_ar: string; url: string }> = {
+const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sample1_ar: string; url: string; sample2_en?: string; sample2_ar?: string }> = {
+  // 6 SEP 2026 — the founder's own alert. Founder: "whatsapp token with twilio is with you, fix the
+  // template yourself." Until today alert_founder sent him a freeform Body, which WhatsApp never
+  // delivers business-initiated: every founder WhatsApp on the account (13-16 Aug) is 'undelivered'
+  // 63016. {{1}} is the "[level] event" line, {{2}} the detail; both are literal-bounded. UTILITY:
+  // a status notice to the account's own owner, not marketing.
+  founder_alert: {
+    en: 'QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act.',
+    ar: 'تنبيه من QuotesDone: {{1}}. التفاصيل: {{2}}. افتح نظام التشغيل للتصرف.',
+    sample1_en: '[high] Backup may have failed or is overdue', sample1_ar: '[high] قد يكون النسخ الاحتياطي قد فشل أو تأخر',
+    sample2_en: 'last successful backup 2026-09-05 08:00 UTC; the IT operations engineer owns the check',
+    sample2_ar: 'آخر نسخة احتياطية ناجحة 2026-09-05 08:00 UTC؛ مهندس عمليات تقنية المعلومات مسؤول عن الفحص',
+    url: 'https://quotesdone.com/os',
+  },
   supplier_doc_expiry: {
     en: 'QuotesDone reminder: {{1}}. Please renew it to keep receiving customer requests. You can update it here: {{2}} Thank you.',
     ar: 'تذكير من QuotesDone: {{1}}. يُرجى تجديدها للاستمرار في استقبال طلبات العملاء. حدّثها هنا: {{2}} شكرًا لك.',
@@ -33,8 +46,8 @@ const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sa
   },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
-    en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 3 working days. Open your portal here: {{2}} Thank you.',
-    ar: 'QuotesDone: قام عميل بالدفع للاطلاع على عرض سعرك لـ {{1}}. يُرجى الرد خلال 3 أيام عمل. افتح بوابتك هنا: {{2}} شكرًا لك.',
+    en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',
+    ar: 'QuotesDone: قام عميل بالدفع للاطلاع على عرض سعرك لـ {{1}}. يُرجى الرد خلال 5 أيام عمل. افتح بوابتك هنا: {{2}} شكرًا لك.',
     sample1_en: 'supply and install aluminium windows for a villa in Dubai', sample1_ar: 'توريد وتركيب نوافذ ألمنيوم لفيلا في دبي',
     url: 'https://quotesdone.com/portal',
   },
@@ -55,7 +68,10 @@ Deno.serve(async (req) => {
     const auth = 'Basic ' + btoa(ks + ':' + kk);
     const action = String(body.action || 'status');
     const KEY = String(body.key || 'supplier_doc_expiry');
-    if (!CATALOGUE[KEY]) return J({ ok: false, error: 'unknown_key', known: Object.keys(CATALOGUE) }, 400);
+    // 6 SEP 2026: only 'create' needs the copy. 'status' reads whatever wa_template_sids registered — the
+    // three July keys were created by hand before this catalogue existed, and the ledger must carry
+    // Twilio's answer for them too.
+    if (action === 'create' && !CATALOGUE[KEY]) return J({ ok: false, error: 'unknown_key', known: Object.keys(CATALOGUE) }, 400);
 
     // Delivery inspection. Used to confirm where a message actually ended up - an API-level
     // success only means Twilio accepted it, not that anyone received it.
@@ -83,12 +99,13 @@ Deno.serve(async (req) => {
       const cat = CATALOGUE[KEY];
       const text = isAr ? cat.ar : cat.en;
       const sample1 = isAr ? cat.sample1_ar : cat.sample1_en;
+      const sample2 = (isAr ? cat.sample2_ar : cat.sample2_en) || cat.url;   // {{2}} is a link for the customer/supplier notices, a detail for the founder alert
       const stamp = Date.now().toString(36);
 
       const createRes = await fetch('https://content.twilio.com/v1/Content', {
         method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
         body: JSON.stringify({ friendly_name: 'quotesdone_' + KEY + '_' + lang + '_' + stamp, language: lang,
-          variables: { '1': sample1, '2': cat.url },
+          variables: { '1': sample1, '2': sample2 },
           types: { 'twilio/text': { body: text } } }) });
       const created = await createRes.json().catch(() => ({}));
       if (!createRes.ok) return J({ step: 'create', ok: false, http: createRes.status, error: created?.message || created }, 502);
@@ -110,10 +127,22 @@ Deno.serve(async (req) => {
         registered = !error;
       } catch (_e) { /* reported below */ }
 
+      // 6 SEP 2026: the ledger. messaging_template is what send_whatsapp trusts (only 'approved' is
+      // ever sent) and what fn_company_self_knowledge_sync renders, so the approval status is company
+      // knowledge from the moment of submission — never a question for the founder.
+      const apprStatus = String(appr?.status || appr?.whatsapp?.status || (apprRes.ok ? 'pending' : 'unknown'));
+      const nowIso = new Date().toISOString();
+      const { error: ledgerErr } = await admin.from('messaging_template').upsert({
+        sid, channel: 'whatsapp', template_key: KEY, lang, name: apprName, category: 'UTILITY', status: apprStatus,
+        submitted_at: nowIso, last_checked_at: nowIso, approved_at: apprStatus === 'approved' ? nowIso : null,
+        rejection_reason: apprRes.ok ? (appr?.whatsapp?.rejection_reason || null) : String(appr?.message || JSON.stringify(appr)).slice(0, 500),
+      }, { onConflict: 'sid' });
+
       return J({ step: 'create', ok: true, language: lang, content_sid: sid, approval_name: apprName,
-        approval_http: apprRes.status, approval_status: appr?.status || appr?.whatsapp?.status || null,
+        approval_http: apprRes.status, approval_status: apprStatus,
         approval_error: apprRes.ok ? null : (appr?.message || appr),
-        registered_in_app_secrets: registered, template_keys_now: Object.keys(sids) });
+        registered_in_app_secrets: registered, ledger_written: !ledgerErr, ledger_error: ledgerErr?.message || null,
+        template_keys_now: Object.keys(sids) });
     }
 
     if (action === 'status') {
@@ -123,7 +152,19 @@ Deno.serve(async (req) => {
       for (const [lang, sid] of Object.entries(entry)) {
         const r = await fetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests', { headers: { 'Authorization': auth } });
         const j = await r.json().catch(() => ({}));
-        out[lang] = { sid, http: r.status, status: j?.whatsapp?.status || j?.status || null, rejection_reason: j?.whatsapp?.rejection_reason || null };
+        const st = String(j?.whatsapp?.status || j?.status || 'unknown');
+        out[lang] = { sid, http: r.status, status: st, rejection_reason: j?.whatsapp?.rejection_reason || null };
+        // 6 SEP 2026: Twilio's answer lands in the ledger, so the sender and the self-knowledge read it.
+        if (r.ok) {
+          const nowIso = new Date().toISOString();
+          const { data: cur } = await admin.from('messaging_template').select('approved_at').eq('sid', sid).maybeSingle();
+          await admin.from('messaging_template').upsert({
+            sid, channel: 'whatsapp', template_key: KEY, lang, status: st, last_checked_at: nowIso,
+            name: j?.whatsapp?.name || null, category: j?.whatsapp?.category || null,
+            rejection_reason: j?.whatsapp?.rejection_reason || null,
+            approved_at: st === 'approved' ? (cur?.approved_at || nowIso) : null,
+          }, { onConflict: 'sid' });
+        }
       }
       return J({ ok: true, key: KEY, registered_languages: Object.keys(entry), approvals: out });
     }

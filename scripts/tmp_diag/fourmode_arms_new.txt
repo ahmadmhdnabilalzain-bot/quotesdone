@@ -1,0 +1,229 @@
+  -- ---- FAILURE / BLOCK ------------------------------------------------------------------------
+  -- 23 AUG 2026 (H09) — THE ARM WALKS THE RUN THROUGH THE CANONICAL DOORS UNTIL A STEP IS OPEN.
+  --
+  -- The earlier version named a business object that resolves to no row and failed "the first open
+  -- step". That found one for 14 of 30. It could not find one where step 1 executes without reading
+  -- the object (the run cascades past it), nor where the run's first move is a handoff (no step is
+  -- open until the receiving owner accepts), nor where the kernel parked the run in waiting_review.
+  -- None of those is a refusal the model makes; they are the run being further along than the probe
+  -- looked. So the probe now walks: an open step run whose latest dispatch was not EXECUTED is the
+  -- step to fail, through fn_kernel_step_complete with outcome 'fail' and the handler's own refusal
+  -- quoted as the stated reason; an open handoff is accepted through fn_phase_d_handoff_accept,
+  -- exactly as the happy-path driver does, and the walk continues; a run that reaches a terminal
+  -- state with every dispatched step executed had no step an actor could fail, and that is recorded
+  -- as the first fact about it.
+  --
+  -- WHERE THE WALK FINDS NOTHING TO FAIL, THE KERNEL'S OWN SWITCH HOLDS THE HANDLER OFF FOR ONE
+  -- FRESH RUN. app.phase_d_dispatch = off is the control D36 built and negative-controlled: the
+  -- kernel still opens the step, fn_phase_d_dispatch_step records DISPATCH_OFF and executes nothing,
+  -- and the accountable actor fails the open step. That exercises the kernel's failure path --
+  -- step -> failed, run -> the frozen failure_workflow_state -- with no handler effect in between,
+  -- which is also why partial effects are zero by construction on that lever. Which lever was used
+  -- is a column, not a footnote, so the two are never summed as one thing.
+  v_fail_lever := '-'; v_fail_step := '-'; v_fail_partial := 0;
+  v3 := public.fn_phase_d_drive_workflow(jsonb_build_object(
+    'workflow_id','__WF__','label','fmfail-__WFL__',
+    'business_object_id', (select w2.primary_object from public.phase_b_workflow w2
+                            where w2.workflow_id = '__WF__') || ':00000000-0000-0000-0000-000000000000',
+    'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,
+    'max_steps', 0));
+  v_fail_run := (v3->>'run_id')::bigint;
+  v_walk := 0; v_done := false;
+  while not v_done and v_walk < 40 loop
+    v_walk := v_walk + 1;
+    select * into sr from public.phase_c_workflow_step_run
+     where run_id = v_fail_run
+       and state in ('ready','active','not_ready','waiting_input','waiting_review','blocked')
+     order by step_run_id limit 1;
+    if found then
+      select * into dsp from public.phase_d_dispatch where step_run_id = sr.step_run_id order by dispatch_id desc limit 1;
+      if found and dsp.outcome = 'EXECUTED' then
+        -- executed but still open cannot happen (the handler closes through the kernel); record and stop
+        v_out := v_out || 'failure=UNEXPECTED:executed_step_still_open~|~'; v_done := true; exit;
+      end if;
+      v_fail_lever := coalesce(nullif(dsp.refusal_code,''), 'pd_no_dispatch_row');
+      v_fail_step := sr.step_id;
+      begin
+        perform public.fn_kernel_step_complete(jsonb_build_object(
+          'step_run_id', sr.step_run_id, 'actor_role_id', sr.accountable_role_id, 'outcome','fail',
+          'idempotency_key', 'fm-__WFL__:fail:' || sr.step_run_id,
+          'inputs', jsonb_build_object('mode','failure path'),
+          'output', jsonb_build_object('status','failed','output','PHASE_D_FIXTURE_DO_NOT_PUBLISH — deliberate failure path'),
+          'evidence_refs', jsonb_build_array(jsonb_build_object('mode','failure','handler_refusal', coalesce(dsp.refusal_code,'(no dispatch row)'))),
+          'requested_action','block', 'acceptance_criteria','the failure path is exercised',
+          'reason','PHASE_D_FIXTURE_DO_NOT_PUBLISH — the Phase D failure path: the deterministic handler refused this step (' || coalesce(dsp.refusal_code,'no dispatch row') || ') and the accountable actor records the failure, inside a transaction that is aborted',
+          'object_version', 1));
+        select state into v_state from public.phase_c_workflow_step_run where step_run_id = sr.step_run_id;
+        select count(*) into v_fail_partial from public.phase_d_effect_ledger where step_run_id = sr.step_run_id;
+        v_out := v_out || 'failure=step:' || coalesce(v_state,'(null)') || ',run:'
+              || coalesce((select state from public.phase_c_workflow_run where run_id = v_fail_run),'?') || '~|~';
+      exception when others then
+        v_out := v_out || 'failure=REFUSED:' ||
+          coalesce((regexp_match(SQLERRM,'\\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\\)'))[1], SQLSTATE) || '~|~';
+      end;
+      v_done := true;
+    else
+      select * into hr from public.phase_c_handoff_run where run_id = v_fail_run and status = 'open' order by handoff_run_id limit 1;
+      if found then
+        select * into hc from public.phase_d_handoff_contract where handoff_id = hr.handoff_id;
+        select * into v_prev from public.phase_c_workflow_step_run where step_run_id = hr.from_step_run_id;
+        begin
+          perform public.fn_phase_d_handoff_accept(jsonb_build_object(
+            'handoff_run_id', hr.handoff_run_id, 'actor_role_id', hc.receiving_role_id,
+            'idempotency_key', format('fm-__WFL__:fail:%s:%s', hr.handoff_id, hr.handoff_run_id),
+            'packet', coalesce((select jsonb_object_agg(k, format('ZZ DEMO - %s declared by the probe standing in for %s', k, hc.sending_role_id)) from unnest(hc.packet_keys) k), '{}'::jsonb)
+              || jsonb_build_object(
+                 'business_object_id', coalesce((select business_object_id from public.phase_c_workflow_run where run_id = v_fail_run),'-'),
+                 'object_version', coalesce(hr.object_version, 1),
+                 'output', coalesce(v_prev.output_hash, 'no output hash recorded on the sending step run'),
+                 'evidence_refs', coalesce((select string_agg(result_reference, '; ' order by effect_id) from public.phase_d_effect_ledger where step_run_id = hr.from_step_run_id), 'no Phase D effect recorded for the sending step run'),
+                 'requested_action', coalesce((select required_action from public.phase_b_workflow_step where step_id = hc.to_step_id), 'the frozen receiving step names no required action'))));
+        exception when others then
+          v_out := v_out || 'failure=REFUSED:handoff:' || coalesce((regexp_match(SQLERRM,'\\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\\)'))[1], SQLSTATE) || '~|~';
+          v_done := true;
+        end;
+      else
+        -- nothing open and nothing to accept: the run is as far as the kernel takes it
+        v_done := true;
+        v_fail_lever := 'NO_REFUSED_STEP:' || coalesce((select state from public.phase_c_workflow_run where run_id = v_fail_run),'?');
+      end if;
+    end if;
+  end loop;
+  if v_fail_step = '-' then
+    -- THE SECOND LEVER: a fresh run with the REAL scenario object, handler held off by the kernel's
+    -- own switch, the accountable actor failing the first open step.
+    perform set_config('app.phase_d_dispatch', 'off', true);
+    begin
+      v3 := public.fn_phase_d_drive_workflow(jsonb_build_object(
+        'workflow_id','__WF__','label','fmfail2-__WFL__',
+        'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,
+        'max_steps', 0)
+        || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id', v_boid) end);
+      v_fail_run := (v3->>'run_id')::bigint;
+      select * into sr from public.phase_c_workflow_step_run
+       where run_id = v_fail_run and state in ('ready','active','not_ready','waiting_input','waiting_review','blocked')
+       order by step_run_id limit 1;
+      if found then
+        v_fail_lever := 'kernel_actor_fail_dispatch_off'; v_fail_step := sr.step_id;
+        begin
+          perform public.fn_kernel_step_complete(jsonb_build_object(
+            'step_run_id', sr.step_run_id, 'actor_role_id', sr.accountable_role_id, 'outcome','fail',
+            'idempotency_key', 'fm-__WFL__:fail2:' || sr.step_run_id,
+            'inputs', jsonb_build_object('mode','failure path, handler held off'),
+            'output', jsonb_build_object('status','failed','output','PHASE_D_FIXTURE_DO_NOT_PUBLISH — deliberate failure path'),
+            'evidence_refs', jsonb_build_array(jsonb_build_object('mode','failure','lever','app.phase_d_dispatch=off')),
+            'requested_action','block', 'acceptance_criteria','the failure path is exercised',
+            'reason','PHASE_D_FIXTURE_DO_NOT_PUBLISH — the Phase D failure path with the deterministic handler held off by the kernel switch (the run reached terminal with every dispatched step executed on the first lever), inside a transaction that is aborted',
+            'object_version', 1));
+          select state into v_state from public.phase_c_workflow_step_run where step_run_id = sr.step_run_id;
+          select count(*) into v_fail_partial from public.phase_d_effect_ledger where step_run_id = sr.step_run_id;
+          v_out := v_out || 'failure=step:' || coalesce(v_state,'(null)') || ',run:'
+                || coalesce((select state from public.phase_c_workflow_run where run_id = v_fail_run),'?') || '~|~';
+        exception when others then
+          v_out := v_out || 'failure=REFUSED:' ||
+            coalesce((regexp_match(SQLERRM,'\\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\\)'))[1], SQLSTATE) || '~|~';
+        end;
+      else
+        v_out := v_out || 'failure=REFUSED:no_open_step_with_dispatch_off~|~';
+      end if;
+    end;
+    perform set_config('app.phase_d_dispatch', 'on', true);
+  end if;
+
+  -- ---- CANCELLATION ---------------------------------------------------------------------------
+  -- The same walk. fn_kernel_cancel is a kernel door, and the frozen Phase B state model declares
+  -- cancelled from active, blocked, draft, expired, failed, queued, waiting_handoff and
+  -- waiting_input -- and NOT from waiting_review, approved or rejected. A run the kernel parked in
+  -- waiting_review is waiting for its reviewer to accept the handoff (waiting_review -> active is
+  -- declared for exactly that), so the walk accepts the handoff and cancels from active. That is the
+  -- model working, followed to the letter. Where the walk ends at a terminal run nothing was
+  -- cancellable, and the kernel-switch lever gives a fresh run held at its first step to cancel.
+  v_cancel_lever := '-';
+  v4 := public.fn_phase_d_drive_workflow(jsonb_build_object(
+    'workflow_id','__WF__','label','fmcan-__WFL__',
+    'business_object_id', (select w2.primary_object from public.phase_b_workflow w2
+                            where w2.workflow_id = '__WF__') || ':00000000-0000-0000-0000-000000000000',
+    'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,
+    'max_steps', 0));
+  v_can_run := (v4->>'run_id')::bigint;
+  v_walk := 0; v_done := false;
+  while not v_done and v_walk < 40 loop
+    v_walk := v_walk + 1;
+    select state into v_state from public.phase_c_workflow_run where run_id = v_can_run;
+    if exists (select 1 from public.phase_b_workflow_transition t where t.from_state = v_state and t.to_state = 'cancelled') then
+      v_cancel_lever := 'cancelled_from:' || v_state;
+      begin
+        perform public.fn_kernel_cancel(jsonb_build_object(
+          'subject_kind','workflow_run', 'subject_ref', v_can_run::text, 'op','cancel',
+          'reason', 'PHASE_D_FIXTURE_DO_NOT_PUBLISH — Phase D cancellation path, inside a transaction that is aborted',
+          'actor', 'risk_and_governance_manager'));
+        select state into v_state from public.phase_c_workflow_run where run_id = v_can_run;
+        v_out := v_out || 'cancellation=' || coalesce(v_state,'(null)') || '~|~';
+      exception when others then
+        v_out := v_out || 'cancellation=REFUSED:' ||
+          coalesce((regexp_match(SQLERRM,'\\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\\)'))[1], SQLSTATE) || '~|~';
+      end;
+      v_done := true;
+    elsif exists (select 1 from public.phase_b_workflow_state ws where ws.state = v_state and ws.terminal) then
+      v_done := true;
+    else
+      select * into hr from public.phase_c_handoff_run where run_id = v_can_run and status = 'open' order by handoff_run_id limit 1;
+      if found then
+        select * into hc from public.phase_d_handoff_contract where handoff_id = hr.handoff_id;
+        select * into v_prev from public.phase_c_workflow_step_run where step_run_id = hr.from_step_run_id;
+        begin
+          perform public.fn_phase_d_handoff_accept(jsonb_build_object(
+            'handoff_run_id', hr.handoff_run_id, 'actor_role_id', hc.receiving_role_id,
+            'idempotency_key', format('fm-__WFL__:can:%s:%s', hr.handoff_id, hr.handoff_run_id),
+            'packet', coalesce((select jsonb_object_agg(k, format('ZZ DEMO - %s declared by the probe standing in for %s', k, hc.sending_role_id)) from unnest(hc.packet_keys) k), '{}'::jsonb)
+              || jsonb_build_object(
+                 'business_object_id', coalesce((select business_object_id from public.phase_c_workflow_run where run_id = v_can_run),'-'),
+                 'object_version', coalesce(hr.object_version, 1),
+                 'output', coalesce(v_prev.output_hash, 'no output hash recorded on the sending step run'),
+                 'evidence_refs', coalesce((select string_agg(result_reference, '; ' order by effect_id) from public.phase_d_effect_ledger where step_run_id = hr.from_step_run_id), 'no Phase D effect recorded for the sending step run'),
+                 'requested_action', coalesce((select required_action from public.phase_b_workflow_step where step_id = hc.to_step_id), 'the frozen receiving step names no required action'))));
+        exception when others then
+          v_out := v_out || 'cancellation=REFUSED:handoff:' || coalesce((regexp_match(SQLERRM,'\\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\\)'))[1], SQLSTATE) || '~|~';
+          v_done := true;
+        end;
+      else
+        v_done := true;   -- a non-cancellable, non-terminal state with nothing to accept: recorded below
+        v_cancel_lever := 'NOT_CANCELLABLE_FROM:' || v_state;
+      end if;
+    end if;
+  end loop;
+  if v_cancel_lever = '-' or v_cancel_lever like 'NOT_CANCELLABLE_FROM:%' or not exists (select 1 from public.phase_c_workflow_run where run_id = v_can_run and state = 'cancelled') then
+    if position('cancellation=' in v_out) = 0 then
+      -- THE SECOND LEVER, as for the failure arm: a fresh run held at its first step, cancelled from active.
+      perform set_config('app.phase_d_dispatch', 'off', true);
+      begin
+        v4 := public.fn_phase_d_drive_workflow(jsonb_build_object(
+          'workflow_id','__WF__','label','fmcan2-__WFL__',
+          'execution_context','production','reviewer_role_id',v_rev,'reviewer_candidates',v_cands,
+          'max_steps', 0)
+          || case when v_boid is null then '{}'::jsonb else jsonb_build_object('business_object_id', v_boid) end);
+        v_can_run := (v4->>'run_id')::bigint;
+        v_cancel_lever := 'kernel_cancel_dispatch_off:' || coalesce((select state from public.phase_c_workflow_run where run_id = v_can_run),'?');
+        begin
+          perform public.fn_kernel_cancel(jsonb_build_object(
+            'subject_kind','workflow_run', 'subject_ref', v_can_run::text, 'op','cancel',
+            'reason', 'PHASE_D_FIXTURE_DO_NOT_PUBLISH — Phase D cancellation path with the handler held off by the kernel switch, inside a transaction that is aborted',
+            'actor', 'risk_and_governance_manager'));
+          select state into v_state from public.phase_c_workflow_run where run_id = v_can_run;
+          v_out := v_out || 'cancellation=' || coalesce(v_state,'(null)') || '~|~';
+        exception when others then
+          v_out := v_out || 'cancellation=REFUSED:' ||
+            coalesce((regexp_match(SQLERRM,'\\((pd_[a-z0-9_]+|k[0-9]+_[a-z0-9_]+)\\)'))[1], SQLSTATE) || '~|~';
+        end;
+      end;
+      perform set_config('app.phase_d_dispatch', 'on', true);
+    end if;
+  end if;
+  -- CANCELLATION RESIDUE, read from the tables fn_kernel_cancel governs, plus any deliverable
+  -- external attempt the run could have left.
+  select count(*) into v_can_left from (
+    select 1 from public.phase_c_task where run_id = v_can_run and state in ('queued','assigned','accepted','in_progress','blocked')
+    union all select 1 from public.phase_c_workflow_step_run where run_id = v_can_run and state not in ('cancelled','completed','failed','superseded')
+    union all select 1 from public.phase_c_handoff_run where run_id = v_can_run and status = 'open'
+    union all select 1 from public.phase_c_event_outbox o where o.workflow_run_id = v_can_run and o.status in ('pending','claimed','retry_wait')
+    union all select 1 from public.phase_d_external_attempt ea where ea.delivered and ea.idempotency_key like '%fmcan%') z;

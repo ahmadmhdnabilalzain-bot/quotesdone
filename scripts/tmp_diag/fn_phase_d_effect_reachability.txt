@@ -1,0 +1,95 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_effect_reachability()
+ RETURNS TABLE(step_id text, workflow_id text, expected_effect_type text, reachability text, blocker text, blocker_source text, writes_relation text, has_produced_an_effect boolean)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- THE JOIN IS ON WHAT THE BRANCH WRITES, NOT ON WHAT THE ROW DECLARES. fn_phase_d_effect_produce
+  -- hardcodes 'review_record' for every REVIEW_VERDICT step and writes only the ledger for
+  -- EXTERNAL_EFFECT_INTENT and MEASUREMENT_RECORD, so e.effect_object_id is the wrong key for 60 of
+  -- the 257 and reading it was the E5 defect.
+  with resolved as (
+    select e.step_id, e.workflow_id, e.expected_effect_type,
+           case
+             when e.expected_effect_type = 'CAPABILITY_REQUEST'
+               then '(nothing — the branch raises pd_capability_unavailable)'
+             when e.expected_effect_type in
+                  ('KERNEL_ONLY_TRANSITION','EXTERNAL_EFFECT_INTENT','MEASUREMENT_RECORD')
+               then 'public.phase_d_effect_ledger'
+             else (select ob.canonical_relation
+                     from public.phase_d_business_object_binding ob
+                    where ob.object_id = case when e.expected_effect_type = 'REVIEW_VERDICT'
+                                              then 'review_record' else e.effect_object_id end)
+           end as writes_relation,
+           case
+             when e.expected_effect_type in
+                  ('CAPABILITY_REQUEST','KERNEL_ONLY_TRANSITION','EXTERNAL_EFFECT_INTENT',
+                   'MEASUREMENT_RECORD')
+               then null
+             else (select ob.relation_kind
+                     from public.phase_d_business_object_binding ob
+                    where ob.object_id = case when e.expected_effect_type = 'REVIEW_VERDICT'
+                                              then 'review_record' else e.effect_object_id end)
+           end as relation_kind
+      from public.phase_d_step_effect e
+  ),
+  -- THE ATTEMPT, WHERE THERE IS ONE. Last dispatch per step, by dispatch_id. This is the only
+  -- source in the function that is a record of something that happened.
+  observed as (
+    select distinct on (d.step_id)
+           d.step_id, d.outcome, d.refusal_code, d.reason, d.unresolved_keys, d.dispatched_at
+      from public.phase_d_dispatch d
+     order by d.step_id, d.dispatch_id desc
+  ),
+  -- THE PRECONDITIONS, LABELLED AS PRECONDITIONS. Applicability is asked of fn_phase_d_rule_applies
+  -- for every rule bound to the step; a rule that is bound but not applicable blocks nothing.
+  pre as (
+    select hb.step_id,
+           (hb.capability_dependency <> 'NONE') as capability_held,
+           (hb.provider_dependency   <> 'NONE') as provider_held,
+           (select array_agg(rid order by rid) from unnest(hb.rule_ids) rid
+             where (select a.applies from public.fn_phase_d_rule_applies(rid, hb.step_id) a)) as applicable_rules
+      from public.phase_d_handler_binding hb
+  )
+  select r.step_id, r.workflow_id, r.expected_effect_type,
+         case
+           when r.expected_effect_type = 'CAPABILITY_REQUEST' then 'REFUSAL_IS_THE_DECLARED_EFFECT'
+           when r.writes_relation = 'public.phase_d_effect_ledger' then 'WRITES_ONLY_THE_PHASE_D_LEDGER'
+           when r.relation_kind = 'PHASE_D_OBJECT_VIEW' then 'WRITES_ONLY_THE_PHASE_D_OBJECT_STORE'
+           when r.writes_relation in ('public.customers','public.inquiries','public.quotes',
+                                      'public.transactions','public.notifications')
+             then 'WRITES_A_ZERO_RESIDUE_TABLE'
+           when r.relation_kind = 'EXISTING_TABLE' then 'WRITES_AN_EXISTING_TABLE_NOT_UNDER_THE_RULE'
+           else 'UNRESOLVED'
+         end,
+         -- blocker
+         case
+           when o.step_id is not null and o.outcome = 'EXECUTED'
+             then format('none — the last dispatch of this step reached EXECUTED at %s', o.dispatched_at)
+           when o.step_id is not null
+             then format('%s (%s): %s', o.outcome, coalesce(o.refusal_code,'(no code)'),
+                         left(coalesce(o.reason,'(no reason recorded)'), 400))
+           when p.capability_held or p.provider_held
+             then 'PRECONDITION: the capability or provider boundary raises for any execution_context '
+                  || 'other than test, and the kernel path hard-codes production. The refusal is the '
+                  || 'contract, not a defect.'
+           when r.expected_effect_type in ('DOMAIN_MUTATION','VERSIONED_ARTIFACT')
+             then 'PRECONDITION: fn_phase_d_effect_produce requires a caller-supplied business_key '
+                  || 'and owner_ref for a step that writes ' || coalesce(r.writes_relation,'a business object')
+                  || '. It refuses rather than choosing them, deliberately.'
+           when coalesce(cardinality(p.applicable_rules),0) > 0
+             then 'PRECONDITION: ' || cardinality(p.applicable_rules)::text
+                  || ' hard rule(s) apply to this step and read facts about a business subject — '
+                  || array_to_string(p.applicable_rules, ', ')
+           else 'PRECONDITION: none identified at contract level; no dispatch has been committed for '
+                || 'this step, so nothing here is a measurement of why.'
+         end,
+         -- blocker_source: the whole point of this file
+         case when o.step_id is not null then 'OBSERVED_DISPATCH'
+              else 'CONTRACT_PRECONDITION_NOT_YET_OBSERVED' end,
+         coalesce(r.writes_relation, '(unresolved — no binding for the object this branch writes)'),
+         exists (select 1 from public.phase_d_effect_ledger l where l.step_id = r.step_id)
+    from resolved r
+    left join observed o on o.step_id = r.step_id
+    left join pre p      on p.step_id = r.step_id;
+$function$

@@ -1,0 +1,8 @@
+PHASE_D_INJECTED_DEFECT_RESULT.csv  75 rows
+  executed and refused as required   56
+  NOT_RUN with a named blocker       17
+  executed but NOT_DISCRIMINATED     2
+  FAILED TO REFUSE                   0   (must be 0)
+  attempt rows left behind           0   (must be 0)
+  named in the disposition register  19 of 19
+EXIT=0

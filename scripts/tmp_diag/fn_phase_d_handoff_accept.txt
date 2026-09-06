@@ -1,0 +1,184 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_handoff_accept(p_input jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c        public.phase_d_handoff_contract%rowtype;
+  hr       public.phase_c_handoff_run%rowtype;
+  r        public.phase_c_workflow_run%rowtype;
+  prior    public.phase_d_handoff_acceptance%rowtype;
+  v_id     bigint := nullif(p_input->>'handoff_run_id','')::bigint;
+  v_actor  text   := nullif(btrim(coalesce(p_input->>'actor_role_id','')),'');
+  v_packet jsonb  := p_input->'packet';
+  v_idem   text   := nullif(btrim(coalesce(p_input->>'idempotency_key','')),'');
+  v_valid  record;
+  v_res    jsonb;
+  v_resolved text;
+  v_due    timestamptz;
+  v_tasks  int;
+  v_aid    bigint;
+  v_pd_executed boolean;   -- E33: did the Phase D handler execute the receiving step at open?
+begin
+  if v_id is null or v_actor is null then
+    raise exception 'fn_phase_d_handoff_accept: handoff_run_id and actor_role_id are both required (pd_handoff_input_invalid)'
+      using errcode = '22023';
+  end if;
+  v_idem := coalesce(v_idem, format('pd-handoff-accept:%s', v_id));
+
+  select * into hr from public.phase_c_handoff_run where handoff_run_id = v_id;
+  if not found then
+    raise exception 'fn_phase_d_handoff_accept: no handoff run % (pd_handoff_not_found)', v_id
+      using errcode = '23503';
+  end if;
+
+  -- IDEMPOTENCY IS A READ. The kernel would raise k3_handoff_not_open on a second call, which is
+  -- correct but tells a replaying caller nothing about what happened the first time. The stored
+  -- decision is returned verbatim and NOTHING is created.
+  select * into prior from public.phase_d_handoff_acceptance where handoff_run_id = v_id;
+  if found then
+    return jsonb_build_object(
+      'ok', prior.outcome = 'accepted', 'replay', true,
+      'handoff_run_id', v_id, 'handoff_id', prior.handoff_id, 'outcome', prior.outcome,
+      'run_id', prior.run_id, 'to_step_id', prior.to_step_id,
+      'step_run_id', prior.opened_step_run_id, 'task_id', prior.opened_task_id,
+      'accountable_now', prior.accountable_after,
+      'note', 'this handoff run already carries a Phase D decision; no second task was opened');
+  end if;
+
+  select * into c from public.phase_d_handoff_contract where handoff_id = hr.handoff_id;
+  if not found then
+    raise exception 'fn_phase_d_handoff_accept: handoff % carries no Phase D contract — refusing to accept under a contract nobody declared (pd_handoff_uncontracted)',
+      hr.handoff_id using errcode = '23503';
+  end if;
+
+  if hr.status <> 'open' then
+    raise exception 'fn_phase_d_handoff_accept: handoff run % is % and only an open handoff may be accepted (pd_handoff_not_open)',
+      v_id, hr.status using errcode = '23514';
+  end if;
+
+  select * into r from public.phase_c_workflow_run where run_id = hr.run_id;
+  if not found then
+    raise exception 'fn_phase_d_handoff_accept: handoff run % names workflow run %, which does not exist (pd_handoff_run_missing)',
+      v_id, hr.run_id using errcode = '23503';
+  end if;
+  -- A run that has reached a terminal state, or is blocked, cannot take work back. The kernel
+  -- would move it to active regardless, because its transition guard permits waiting_* -> active
+  -- and says nothing about cancelled -> active being reached from here.
+  if r.state not in ('waiting_handoff','waiting_review','active','waiting_input') then
+    raise exception 'fn_phase_d_handoff_accept: run % is in state % and no handoff may be accepted into it (pd_handoff_run_state_invalid)',
+      r.run_id, r.state using errcode = '23514';
+  end if;
+
+  -- THE RECEIVER, DECIDED FROM THE CONTRACT AND NOT FROM THE RUN ROW. The kernel checks the same
+  -- thing against phase_c_handoff_run.receiving_role_id; checking the frozen contract as well means
+  -- a handoff run whose receiver was written wrong cannot be accepted by the wrong role and then
+  -- have the kernel agree with it.
+  select role_id into v_resolved from public.fn_phase_c_resolve_actor(v_actor);
+  if v_resolved is null
+     or v_resolved is distinct from (select role_id from public.fn_phase_c_resolve_actor(c.receiving_role_id)) then
+    raise exception 'fn_phase_d_handoff_accept: handoff % is addressed to % and % may not accept it (pd_handoff_wrong_receiver)',
+      c.handoff_id, c.receiving_role_id, v_actor using errcode = '23514';
+  end if;
+
+  select * into v_valid from public.fn_phase_d_handoff_packet_valid(hr.handoff_id, v_packet);
+  if not v_valid.valid then
+    raise exception 'fn_phase_d_handoff_accept: handoff % packet is missing [%]. Its frozen required_packet is: % (pd_handoff_packet_incomplete)',
+      c.handoff_id, array_to_string(v_valid.missing, ', '),
+      left((select required_packet from public.phase_b_handoff where handoff_id = c.handoff_id), 180)
+      using errcode = '23514';
+  end if;
+
+  -- SLA is a measurement, not a second gate. A late acceptance is still an acceptance; recording it
+  -- as a breach is the contract element, and refusing it would invent a rule Phase B does not state.
+  v_due := coalesce(hr.due_at, hr.opened_at + c.sla_target);
+
+  -- ---- the frozen kernel does the state move ---------------------------------------------------
+  v_res := public.fn_kernel_handoff_accept(jsonb_build_object(
+    'handoff_run_id', v_id, 'actor_role_id', v_actor, 'packet', v_packet,
+    'priority', coalesce(nullif(p_input->>'priority',''), 'P2')));
+
+  if not coalesce((v_res->>'ok')::boolean, false) then
+    raise exception 'fn_phase_d_handoff_accept: the kernel refused handoff run %: % (pd_handoff_kernel_refused)',
+      v_id, coalesce(v_res::text, '(no result)') using errcode = '23514';
+  end if;
+
+  -- AT MOST ONE OPEN TASK ON THE RECEIVING STEP, AND ZERO HAS TWO DIFFERENT CAUSES. Asserted on
+  -- the row count, not inferred from the kernel's own summary. `phase_c_task` carries
+  -- (run_id, step_id) and no step_run_id, so the population is the receiving step of this run; a
+  -- duplicate acceptance that opened a second task makes this 2, which is precisely the failure
+  -- "duplicate acceptance creating duplicate task = 0" names.
+  --
+  -- E33. THIS WAS WRITTEN AS <> 1 AND SO IT ALSO REFUSED ZERO, WHICH SINCE D36 IS WHAT PHASE D
+  -- WORKING LOOKS LIKE. The dispatch runs in the kernel's OPENER, so this very acceptance opens the
+  -- receiving step and the deterministic handler attempts it in the same statement. If the handler
+  -- EXECUTES, the step's work is done and the kernel closes its task - and this count is 0. W01-S05
+  -- and W21-S08 are the only two steps in the estate whose handler executes, and they were the only
+  -- two whose incoming handoff was refused. A guard that fires exactly when the system works.
+  --
+  -- Measured before changing it: two drives of W01 differing only in app.phase_d_dispatch. With the
+  -- dispatch ON the run stops after W01-S05, whose dispatch reads EXECUTED and whose task is
+  -- closed. With it OFF the run reaches W01-S06 with an OPEN task. One variable, opposite outcomes.
+  select count(*) into v_tasks from public.phase_c_task t
+   where t.run_id = r.run_id and t.step_id = c.to_step_id and t.closed_at is null;
+
+  v_pd_executed := exists (
+    select 1 from public.phase_d_dispatch d
+     where d.run_id = r.run_id and d.step_id = c.to_step_id and d.outcome = 'EXECUTED');
+
+  if v_tasks > 1 then
+    raise exception 'fn_phase_d_handoff_accept: accepting handoff run % left % open task(s) on %; a second open task is a duplicate acceptance (pd_handoff_task_count_wrong)',
+      v_id, v_tasks, c.to_step_id using errcode = '23514';
+  end if;
+  if v_tasks = 0 and not v_pd_executed then
+    raise exception 'fn_phase_d_handoff_accept: accepting handoff run % left no open task on % and no Phase D dispatch executed that step, so nothing is carrying the work (pd_handoff_task_count_wrong)',
+      v_id, c.to_step_id using errcode = '23514';
+  end if;
+
+  insert into public.phase_d_handoff_acceptance
+    (handoff_run_id, handoff_id, run_id, workflow_id, outcome, actor_role_id,
+     accountable_before, accountable_after, to_step_id, opened_step_run_id, opened_task_id,
+     packet_digest, packet_keys_present, packet_keys_missing, sla_policy_id, due_at, sla_breached,
+     idempotency_key, trace_id)
+  values (v_id, c.handoff_id, r.run_id, r.workflow_id, 'accepted', v_resolved,
+          c.accountable_before_accept, c.accountable_after_accept, c.to_step_id,
+          (v_res->>'step_run_id')::bigint, (v_res->>'task_id')::bigint,
+          encode(sha256(convert_to(coalesce(v_packet,'{}'::jsonb)::text,'UTF8')),'hex'),
+          v_valid.present, null, c.sla_policy_id, v_due,
+          case when v_due is null then null else now() > v_due end,
+          v_idem, (v_res->>'handoff_trace_id')::bigint)
+  returning acceptance_id into v_aid;
+
+  if v_aid is null then
+    raise exception 'fn_phase_d_handoff_accept: the acceptance ledger insert for handoff run % returned no id (pd_handoff_ledger_produced_nothing)',
+      v_id using errcode = '23502';
+  end if;
+
+  return jsonb_build_object(
+    'ok', true, 'replay', false, 'acceptance_id', v_aid,
+    'handoff_run_id', v_id, 'handoff_id', c.handoff_id,
+    'run_id', r.run_id, 'workflow_id', r.workflow_id,
+    'accepted_by', v_resolved,
+    'accountable_before', c.accountable_before_accept,
+    'accountable_after', c.accountable_after_accept,
+    'to_step_id', c.to_step_id,
+    'step_run_id', (v_res->>'step_run_id')::bigint,
+    'task_id', (v_res->>'task_id')::bigint,
+    -- E33. WHO IS CARRYING THE RECEIVING STEP, on the row rather than only in a comment. An
+    -- acceptance that opened a task for a person and one whose step the deterministic handler had
+    -- already completed are different events, and a reader must not have to infer which from a
+    -- null.
+    'open_tasks_on_receiving_step', v_tasks,
+    'receiving_step_handled_by',
+      case when v_tasks = 1 then 'actor'
+           when v_pd_executed then 'phase_d_handler'
+           else 'nobody' end,
+    'tasks_opened', v_tasks,
+    'packet_keys_checked', v_valid.required,
+    'sla_policy_id', c.sla_policy_id, 'due_at', v_due,
+    'sla_breached', case when v_due is null then null else now() > v_due end,
+    'run_state', v_res->>'run_state',
+    'closure_condition', c.closure_condition);
+end 
+$function$

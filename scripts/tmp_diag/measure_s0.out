@@ -1,0 +1,33 @@
+## now
+[{"utc_now":"2026-08-23 02:00:17.608052"}]
+## counts ERR HTTP 400: {"message":"Failed to run sql query: ERROR:  42P01: relation \"public.phase_b_workflow_state_transition\" does not exist\nLINE 1: select (select count(*) from public.phase_b_workflow) wfs,(select count(*) from public.phase_b_workflow_step) steps,(select count(*) from public.phase_b_workflow_state_transition) transitions,(select count(*) from public.phase_d_object_reference_strategy) ref_
+## transition cols
+[]
+## transitions ERR HTTP 400: {"message":"Failed to run sql query: ERROR:  42P01: relation \"public.phase_b_workflow_state_transition\" does not exist\nLINE 1: select * from public.phase_b_workflow_state_transition order by 1,2 limit 80\n                      ^\n"}
+## step transitions
+[{"table_name":"phase_b_business_object"},{"table_name":"phase_b_business_rule"},{"table_name":"phase_b_change_request"},{"table_name":"phase_b_crosswalk"},{"table_name":"phase_b_dynamic_actor"},{"table_name":"phase_b_event"},{"table_name":"phase_b_exception"},{"table_name":"phase_b_founder_boundary"},{"table_name":"phase_b_gate"},{"table_name":"phase_b_handoff"},{"table_name":"phase_b_package_erratum"},{"table_name":"phase_b_phase_c_wiring_gap"},{"table_name":"phase_b_sla_policy"},{"table_name":"phase_b_step_state"},{"table_name":"phase_b_step_transition"},{"table_name":"phase_b_workflow"},{"table_name":"phase_b_workflow_state"},{"table_name":"phase_b_workflow_step"},{"table_name":"phase_b_workflow_transition"}]
+## residue
+[]
+## cron outcome_evaluate
+[{"jobname":"outcome_evaluate_daily","active":false,"schedule":"30 3 * * *"}]
+## drift A
+[{"n":0}]
+## drift B
+[{"n":0}]
+## freeze board
+[]
+## step_case summary
+[{"case_kind":"duplicate","decided_at":"structural_constraint","ok":257,"n":257},{"case_kind":"failed_rule_or_gate","decided_at":"executor_boundary","ok":257,"n":257},{"case_kind":"invalid_state","decided_at":"executor_boundary","ok":257,"n":257},{"case_kind":"malformed_output","decided_at":"step_contract","ok":257,"n":257},{"case_kind":"missing_input","decided_at":"step_contract","ok":257,"n":257},{"case_kind":"positive","decided_at":"step_contract","ok":257,"n":257},{"case_kind":"wrong_actor","decided_at":"executor_boundary","ok":257,"n":257}]
+## rules ERR HTTP 400: {"message":"Failed to run sql query: ERROR:  42703: column \"enforcement\" does not exist\nLINE 1: select rule_id, left(rule_name,60) rule_name, enforcement, workflow_scope, left(rule_text,300) rule_text from public.phase_b_business_rule where rule_id in ('BR-002','BR-018','BR-019','BR-020','BR-025','BR-027','BR-033') order by 1\n                                                      ^\n"
+## rule cols
+[{"column_name":"rule_id"},{"column_name":"rule_name"},{"column_name":"rule_text"},{"column_name":"workflow_scope"},{"column_name":"rule_type"}]
+## gate cols
+[{"column_name":"gate_id"},{"column_name":"gate_name"},{"column_name":"workflow_scope"},{"column_name":"required_evidence"},{"column_name":"pass_result"},{"column_name":"fail_result"},{"column_name":"gate_type"}]
+## gates
+[{"gate_id":"GATE-005","gate_name":"Founder boundary","workflow_scope":"ALL","required_evidence":"Decision is within delegated authority or founder approval exists.","pass_result":"Proceed.","fail_result":"Block and escalate to founder.","gate_type":"hard"},{"gate_id":"GATE-011","gate_name":"Inquiry quote readiness","workflow_scope":"W05","required_evidence":"Mandatory qualification fields and evidence pass; no unresolved blocker.","pass_result":"Create qualified snapshot.","fail_result":"Block dispatch path.","gate_type":"hard"},{"gate_id":"GATE-019","gate_name":"Payment reconciliation","workflow_scope":"W15;W16","required_evidence":"Provider, transaction, invoice and reconciliation agree on success.","pass_result":"Authorize reveal.","fail_result":"Keep reveal blocked/open exception.","gate_type":"hard"},{"gate_id":"GATE-020","gate_name":"Refund authority and idempotency","workflow_scope":"W17","required_evidence":"Approved case decision and unique financial action key exist.","pass_result":"Execute once.","fail_result":"Block/return existing.","gate_type":"hard"},{"gate_id":"GATE-021","gate_name":"Marketing artifact approval","workflow_scope":"W03;W20","required_evidence":"Exact final asset passes brand and independent artifact review.","pass_result":"Publish approved revision.","fail_result":"Reject/return correction.","gate_type":"hard"},{"gate_id":"GATE-026","gate_name":"Knowledge validation","workflow_scope":"W26","required_evidence":"Independent source/freshness/contradiction review passes.","pass_result":"Publish runtime-eligible version.","fail_result":"Reject/keep draft.","gate_type":"hard"}]
+## gate predicate cols
+[]
+## gate predicates ERR HTTP 400: {"message":"Failed to run sql query: ERROR:  42P01: relation \"public.phase_d_gate_predicate\" does not exist\nLINE 1: select gate_id, left(predicate_sql,600) predicate_sql, required_context, left(evidence_note,300) evidence_note from public.phase_d_gate_predicate where gate_id in ('GATE-005','GATE-011','GATE-019','GATE-020','GATE-021','GATE-026') order by 1\n                            
+## rule enforcement cols
+[{"column_name":"rule_id"},{"column_name":"rule_type"},{"column_name":"enforcement_kind"},{"column_name":"enforcement_point"},{"column_name":"refusal_code"},{"column_name":"applies_when"},{"column_name":"required_context"},{"column_name":"status"},{"column_name":"evidence"},{"column_name":"recorded_at"}]
+## rule enforcement ERR HTTP 400: {"message":"Failed to run sql query: ERROR:  42703: column \"mechanism\" does not exist\nLINE 1: select rule_id, enforcement_kind, required_context, left(mechanism,400) mechanism from public.phase_d_rule_enforcement where rule_id in ('BR-002','BR-018','BR-019','BR-020','BR-025','BR-027','BR-033') order by 1\n                                                                 ^\n"}

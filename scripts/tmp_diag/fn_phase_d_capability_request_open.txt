@@ -1,0 +1,51 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_capability_request_open(p_input jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  sr  public.phase_c_workflow_step_run%rowtype;
+  b   public.phase_d_handler_binding%rowtype;
+  q   public.phase_d_capability_request%rowtype;
+  v_step_run bigint := nullif(p_input->>'step_run_id','')::bigint;
+  v_by       text   := nullif(btrim(coalesce(p_input->>'requested_by','')),'');
+  v_id       bigint;
+begin
+  if v_step_run is null or v_by is null then
+    raise exception 'fn_phase_d_capability_request_open: step_run_id and requested_by are required (pd_capability_request_invalid)'
+      using errcode = '22023';
+  end if;
+  select * into sr from public.phase_c_workflow_step_run where step_run_id = v_step_run;
+  if not found then
+    raise exception 'fn_phase_d_capability_request_open: no step run % (pd_step_state_invalid)', v_step_run
+      using errcode = '23503';
+  end if;
+  select * into b from public.phase_d_handler_binding where step_id = sr.step_id;
+  if not found or b.capability_dependency = 'NONE' then
+    raise exception 'fn_phase_d_capability_request_open: step % declares no capability dependency, so there is nothing to request (pd_capability_not_declared)',
+      sr.step_id using errcode = '22023';
+  end if;
+
+  select * into q from public.phase_d_capability_request
+   where step_run_id = v_step_run and capability = b.capability_dependency;
+  if found then
+    return jsonb_build_object('ok', true, 'replay', true, 'request_id', q.request_id,
+                              'state', q.state, 'capability', q.capability);
+  end if;
+
+  insert into public.phase_d_capability_request
+    (step_run_id, run_id, step_id, workflow_id, capability, requested_by, request_digest,
+     fixture_run_id)
+  values (v_step_run, sr.run_id, sr.step_id, b.workflow_id, b.capability_dependency, v_by,
+          encode(sha256(convert_to(format('%s|%s|%s', sr.step_id, v_step_run,
+                                          b.capability_dependency),'UTF8')),'hex'),
+          public.fn_phase_d_fixture_context())
+  returning request_id into v_id;
+
+  return jsonb_build_object('ok', true, 'replay', false, 'request_id', v_id,
+                            'state','open', 'capability', b.capability_dependency,
+                            'note','a request is open; no provider is available in Phase D, so it '
+                                || 'is answered by a Phase D fixture result or not at all');
+end
+$function$

@@ -1,0 +1,97 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_ref_resolve(p_ref jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+AS $function$
+declare
+  s       public.phase_d_object_reference_strategy%rowtype;
+  v_obj   text := nullif(btrim(coalesce(p_ref->>'object_id','')),'');
+  -- F46. canonical_identity first: it is the one field that always holds the identity. The other
+  -- two are read only for an envelope built before F46, and physical_ref.pk_value is deliberately
+  -- LAST because for a PHASE_D_STORE object it is the physical row, not the identity.
+  v_key   text := nullif(btrim(coalesce(p_ref->>'canonical_identity',
+                                        p_ref->>'business_key',
+                                        p_ref->'physical_ref'->>'pk_value','')),'');
+  v_ver   int  := nullif(btrim(coalesce(p_ref->>'version','')),'')::int;
+  v_n     int;
+  v_rec   record;
+  v_sql   text;
+begin
+  if v_obj is null or v_key is null then
+    raise exception 'fn_phase_d_ref_resolve: a reference must name an object_id and an identity; got % / % (pd_ref_unresolved)',
+      coalesce(v_obj,'(none)'), coalesce(v_key,'(none)') using errcode = '22023';
+  end if;
+
+  select * into s from public.phase_d_object_reference_strategy where object_id = v_obj;
+  if not found then
+    raise exception 'fn_phase_d_ref_resolve: % is not one of the 56 frozen business objects (pd_ref_unknown_object)',
+      v_obj using errcode = '23503';
+  end if;
+
+  if s.storage_kind = 'PHASE_D_STORE' then
+    -- THE VERSION IS PART OF THE IDENTITY. With no version the live one is the record that has not
+    -- been superseded; with a version it is that version exactly, superseded or not, because
+    -- evidence about what was approved must stay readable after a later revision.
+    if v_ver is null then
+      select count(*) into v_n from public.phase_d_object_record
+       where object_id = v_obj and business_key = v_key and superseded_by is null;
+    else
+      select count(*) into v_n from public.phase_d_object_record
+       where object_id = v_obj and business_key = v_key and version = v_ver;
+    end if;
+
+    if v_n = 0 then
+      raise exception 'fn_phase_d_ref_resolve: % / % %resolves to no record in public.phase_d_object_record (pd_ref_unresolved)',
+        v_obj, v_key, case when v_ver is null then '' else 'version ' || v_ver || ' ' end
+        using errcode = '23503';
+    elsif v_n > 1 then
+      raise exception 'fn_phase_d_ref_resolve: % / % %resolves to % records; a reference must name exactly one (pd_ref_ambiguous)',
+        v_obj, v_key, case when v_ver is null then '' else 'version ' || v_ver || ' ' end, v_n
+        using errcode = '23505';
+    end if;
+
+    if v_ver is null then
+      select record_id, business_key, version, state, owner_scope, owner_ref, trace_id
+        into v_rec from public.phase_d_object_record
+       where object_id = v_obj and business_key = v_key and superseded_by is null;
+    else
+      select record_id, business_key, version, state, owner_scope, owner_ref, trace_id
+        into v_rec from public.phase_d_object_record
+       where object_id = v_obj and business_key = v_key and version = v_ver;
+    end if;
+
+    return jsonb_build_object(
+      'ok', true, 'object_id', v_obj, 'storage_kind', s.storage_kind,
+      'canonical_identity', v_rec.business_key,
+      'business_key', v_rec.business_key, 'version', v_rec.version, 'state', v_rec.state,
+      'owner_scope', v_rec.owner_scope, 'owner_ref', v_rec.owner_ref,
+      'trace_id', v_rec.trace_id,
+      'physical_ref', jsonb_build_object('schema','public','relation','phase_d_object_record',
+                                         'pk_column','record_id','pk_value', v_rec.record_id::text));
+  end if;
+
+  -- EXISTING_TABLE and KERNEL_OWNED: the relation's own primary key, compared as text so a uuid, a
+  -- bigint and a natural key all work without the caller having to know which it is.
+  v_sql := format('select count(*) from %I.%I where %I::text = $1',
+                  s.physical_schema, s.physical_relation, s.physical_pk_column);
+  execute v_sql into v_n using v_key;
+
+  if v_n = 0 then
+    raise exception 'fn_phase_d_ref_resolve: % / % resolves to no row in %.% by % (pd_ref_unresolved)',
+      v_obj, v_key, s.physical_schema, s.physical_relation, s.physical_pk_column
+      using errcode = '23503';
+  elsif v_n > 1 then
+    raise exception 'fn_phase_d_ref_resolve: % / % resolves to % rows in %.%; a reference must name exactly one (pd_ref_ambiguous)',
+      v_obj, v_key, v_n, s.physical_schema, s.physical_relation
+      using errcode = '23505';
+  end if;
+
+  return jsonb_build_object(
+    'ok', true, 'object_id', v_obj, 'storage_kind', s.storage_kind,
+    'canonical_identity', v_key,
+    'business_key', v_key, 'version', coalesce(v_ver, 1),
+    'physical_ref', jsonb_build_object('schema', s.physical_schema, 'relation', s.physical_relation,
+                                       'pk_column', s.physical_pk_column, 'pk_value', v_key));
+end
+$function$

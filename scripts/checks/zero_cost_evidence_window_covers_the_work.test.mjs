@@ -75,14 +75,23 @@ function windowOf(text) {
 test('the zero-cost claim is true over the window it states', { skip: SKIP }, async () => {
   const w = windowOf(readFileSync(DOC, 'utf8'));
   const rows = await sql(`
-    select (select count(*) from public.ai_cost_log  where occurred_at >  '${w.open}'::timestamptz) as cost_rows,
+    select (select count(*) from public.ai_cost_log where occurred_at > '${w.open}'::timestamptz
+              and (coalesce(model_used,'') not in ('', 'none') or coalesce(cost_aed,0) > 0 or coalesce(prompt_tokens,0) + coalesce(output_tokens,0) > 0)) as cost_rows,
+           (select count(*) from public.ai_cost_log where occurred_at > '${w.open}'::timestamptz
+              and coalesce(model_used,'') in ('', 'none') and coalesce(cost_aed,0) = 0 and coalesce(prompt_tokens,0) + coalesce(output_tokens,0) = 0) as refusal_rows,
            (select count(*) from public.llm_attempt  where created_at  >  '${w.open}'::timestamptz) as attempt_rows,
            (select coalesce(sum(cost_aed),0)::text  from public.ai_cost_log where occurred_at > '${w.open}'::timestamptz) as spend`);
   const r = Array.isArray(rows) ? rows[0] : rows;
 
+  // 6 SEP 2026: since the held-provider fixes of 3-4 Sep, kb_fill_gap and agent_brain record a HELD
+  // return as a row with model_used 'none', 0 tokens and 0 AED (324 such rows by 6 Sep). They are the
+  // refusal, not inference; counting them as spend would fail the claim while it is true. Inference is
+  // a row that names a model, or carries tokens, or carries cost; those must be zero.
   assert.equal(Number(r.cost_rows), 0,
-    `public.ai_cost_log has ${r.cost_rows} row(s) since the window opened at ${w.open}, ` +
-    `totalling ${r.spend}. ${DOC} claims zero paid inference over that window.`);
+    `public.ai_cost_log has ${r.cost_rows} inference row(s) since the window opened at ${w.open} ` +
+    `(plus ${r.refusal_rows} held-provider refusal row(s) at model 'none', 0 tokens, 0 AED), totalling ${r.spend}. ` +
+    `${DOC} claims zero paid inference over that window.`);
+  assert.equal(Number(r.spend), 0, `public.ai_cost_log totals ${r.spend} AED since the window opened at ${w.open}`);
   assert.equal(Number(r.attempt_rows), 0,
     `public.llm_attempt has ${r.attempt_rows} row(s) since the window opened at ${w.open}.`);
 });
@@ -106,8 +115,21 @@ test('the window does not close before the work it claims to cover', { skip: SKI
             ('phase_c_change_request','phase_c_freeze_amendment','phase_c_frozen_subject'))
      order by 1, 2`);
   assert.ok(cols.length > 0, 'no timestamp columns found on the Phase D / freeze tables');
+  // 6 SEP 2026: the company runs. The kernel writes phase_d_dispatch, phase_d_effect_ledger, the
+  // capability request/result tables, scenario records and their kin every minute, so the newest
+  // timestamp on 'every phase_d table' is always now and no document could ever cover it. The work
+  // this evidence covers is what an APPLY writes: a table that a live routine inserts into or updates
+  // is runtime-written and is excluded, mechanically, from pg_proc rather than from a literal list.
+  const runtime = new Set((await sql(`
+    select distinct t.table_name
+      from information_schema.tables t
+      join pg_proc p on p.prosrc ~* ('(insert\\s+into|update)\\s+(public\\.)?"?' || t.table_name || '"?\\M')
+      join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+     where t.table_schema = 'public' and t.table_name like 'phase\\_d\\_%'`)).map(r => r.table_name));
+  const applyCols = cols.filter(c => !runtime.has(c.table_name));
+  assert.ok(applyCols.length > 0, 'every Phase D table is runtime-written — nothing left for the evidence to cover');
 
-  const union = cols
+  const union = applyCols
     .map(c => `select max("${c.column_name}")::timestamptz as t, '${c.table_name}.${c.column_name}' as src from public."${c.table_name}"`)
     .join(' union all ');
   const latest = await sql(

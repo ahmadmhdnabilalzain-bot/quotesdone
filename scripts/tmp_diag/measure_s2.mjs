@@ -1,0 +1,18 @@
+import { sql } from '../phase_c/lib/db.mjs';
+const q = async (label, s) => { try { const r = await sql(s); console.log('##', label); console.log(JSON.stringify(r).slice(0, 9000)); } catch (e) { console.log('##', label, 'ERR', String(e.message).slice(0, 400)); } };
+await q('gate contracts', `select gate_id, evidence_keys, refusal_code, left(note,200) note from public.phase_d_gate_contract where gate_id in ('GATE-005','GATE-011','GATE-019','GATE-020','GATE-021','GATE-026','GATE-004','GATE-013') order by 1`);
+await q('gate contract cols', `select column_name from information_schema.columns where table_name='phase_d_gate_contract' order by ordinal_position`);
+await q('catalogue by scope', `select scope, count(*) n, count(distinct step_id) steps from public.phase_d_fixture_catalogue group by 1 order by 1`);
+await q('catalogue keys', `select scope, field_key, count(*) n, string_agg(coalesce(nullif(step_id,''),'*'), ' ' order by step_id) steps from public.phase_d_fixture_catalogue group by 1,2 order by 1,2`);
+await q('context_key_object', `select * from public.phase_d_context_key_object order by 1`);
+await q('payment ladder', `select * from public.phase_d_payment_state order by rung`);
+await q('reveal_permitted def', `select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='fn_phase_d_reveal_permitted'`);
+await q('fixture stages', `select stage_no, stage_key, object_id, contributes_ref, contributes_kind, working_state, requires_stages from public.phase_d_fixture_stage order by stage_no`);
+await q('objects without stage', `select s.object_id, s.storage_kind, s.physical_schema||'.'||s.physical_relation rel from public.phase_d_object_reference_strategy s where not exists (select 1 from public.phase_d_fixture_stage f where f.object_id=s.object_id) order by 1`);
+await q('W16 W17 bindings', `select b.step_id, b.handler_class, e.expected_effect_type, e.effect_object_id, b.rule_ids, b.gate_ids, s.independent_reviewer_role_id, b.founder_gate from public.phase_d_handler_binding b join public.phase_d_step_effect e on e.step_id=b.step_id join public.phase_b_workflow_step s on s.step_id=b.step_id where b.workflow_id in ('W16','W17','W14','W05') order by 1`);
+await q('notification effects', `select e.step_id, e.expected_effect_type, e.effect_object_id, e.effect_relation from public.phase_d_step_effect e where e.effect_object_id in ('notification','notification_attempt') or e.workflow_id='W13' order by 1`);
+await q('bindings W13', `select b.step_id, b.handler_class, b.capability_dependency, b.external_effect_policy from public.phase_d_handler_binding b where b.workflow_id='W13' order by 1`);
+await q('refunds status check', `select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid='public.refunds'::regclass and contype='c'`);
+await q('dept objective check', `select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid='public.department_objective'::regclass and contype='c'`);
+await q('org_tasks check', `select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid='public.org_tasks'::regclass and contype='c'`);
+await q('write maps of interest', `select object_id, target_relation, operation, key_column, owner_column, column_map from public.phase_d_object_write_map where object_id in ('refund_dispute_case','department_objective','initiative','legal_risk_review','quotation_comparison','customer_selection','inquiry_document','dispatch_batch','organization_change_request','customer_account','supplier_account','payment_transaction','reveal_transaction','refund_case') order by 1`);

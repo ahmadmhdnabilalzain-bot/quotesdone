@@ -18,8 +18,15 @@ begin
   select count(*) into v_secfns from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE');
   -- allowlist: category_specs (open reference data) + blog_posts (public blog; RLS limits to published=true)
+  -- + documents (6 Sep 2026): the SPEC 14 customer document vault (scripts/sql/documents_customer_vault.sql)
+  --   grants SELECT to authenticated ON PURPOSE, but RLS policy documents_customer_select scopes every
+  --   read to the caller's own (ref_table, ref_id) via fn_customer_document_refs() — a customer sees
+  --   only their own documents. It is a NAMED, reviewed exemption, not a blanket "RLS is enough" rule:
+  --   every other authenticated-readable table still counts as drift. Any grant NOT on this list is a
+  --   finding, which is why the five internal phase_d registries had their stray authenticated grant
+  --   revoked (scripts/sql/the_internal_registries_that_leaked_to_authenticated.sql) rather than listed.
   select count(*) into v_anon_tbl from pg_class c join pg_namespace n on n.oid=c.relnamespace
-    where n.nspname='public' and c.relkind='r' and c.relname not in ('category_specs','blog_posts')
+    where n.nspname='public' and c.relkind='r' and c.relname not in ('category_specs','blog_posts','documents')
       and (has_table_privilege('anon',c.oid,'SELECT') or has_table_privilege('authenticated',c.oid,'SELECT'));
   select count(*) into v_anon_views from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind in ('v','m')

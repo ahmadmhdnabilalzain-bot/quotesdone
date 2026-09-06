@@ -10,6 +10,15 @@
 //     and were silently marked 'skipped' - queued, never delivered, and counted as a success. The mapping and
 //     a portal destination for varsFor() are added here so delivery starts the moment Meta approves the
 //     supplier_doc_expiry template already registered in wa_template_sids.
+// v6 (6 Sep 2026): the founder's own alert gets a template, and the ledger gates every send. Founder:
+//     "whatsapp token with twilio is with you, fix the template yourself." Every WhatsApp this number ever
+//     sent him (13-16 Aug) is 'undelivered' 63016 — a freeform body outside a 24-hour session — because the
+//     founder_alert type had no template. tmplKey() now maps it, varsFor() fills {{1}} from the alert line
+//     and {{2}} from the detail, and public.messaging_template (written by wa_template_setup and refreshed
+//     here from Twilio at most every ten minutes) decides: APPROVED sends; anything else is HELD — supplier
+//     and customer rows stay queued, founder rows are marked skipped WITH the reason (the email already
+//     carried the alert), and a direct send answers with the reason instead of erroring. No Twilio call is
+//     made for a template Meta has not approved, so a pending template never pages anyone.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -58,10 +67,23 @@ function tmplKey(type:string):string|null{
   // transactional notices about the supplier's own account, which is why the Twilio template is
   // registered under the UTILITY category rather than MARKETING.
   if(['supplier_doc_expiry','doc_final_notice','doc_suspended','doc_expiry'].includes(t)) return 'supplier_doc_expiry';
+  // 6 SEP 2026: the founder's own alert. fn_notify_founder queues it (allowed kind, severe level) and
+  // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
+  // by wa_template_setup under this key.
+  if(t==='founder_alert') return 'founder_alert';
   return null;
 }
 function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim(); x=x.replace(/^(QuotesDone[:\-\s]*)/i,''); return x.slice(0,90)||'your request'; }
-function varsFor(key:string, summary:string){
+// A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
+// every value is flattened and capped before it reaches Twilio.
+function waVar(s:string, max:number){ const x=String(s||'').replace(/\s+/g,' ').trim(); return x.length>max ? x.slice(0,max-1)+'…' : x; }
+function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
+  if (key==='founder_alert') {
+    // fn_notify_founder writes 'QuotesDone [level]: event' on the first line and the detail after it.
+    const lines = String(n.body||'').split('\n'); const head = lines.shift()||''; const rest = lines.join(' ').trim();
+    return {'1': waVar(shortSummary(head||n.subject||'') , 120), '2': waVar(rest || 'see the founder console at quotesdone.com/os', 500)};
+  }
+  const summary = shortSummary(n.subject||n.body||'');
   const url = key==='supplier_new_inquiry' ? SUP_URL
             : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted') ? PORTAL_URL
             : APP_URL;
@@ -78,6 +100,24 @@ async function waSendTemplate(acct:string, ks:string, kk:string, from:string, to
   const form = new URLSearchParams({ To: 'whatsapp:'+to, From: 'whatsapp:'+from, ContentSid: contentSid, ContentVariables: JSON.stringify(vars) });
   const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages.json`, { method:'POST', headers:{ 'Authorization':'Basic '+auth, 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(()=>({})); return { ok:r.ok, sid: jd?.sid||null, error: r.ok?null:(jd?.message||('http '+r.status)) };
+}
+// 6 SEP 2026: the ledger decides. public.messaging_template holds Twilio's word for every registered
+// SID; 'approved' is trusted as read, anything else is re-asked of Twilio at most every ten minutes
+// and written back, so approval is noticed within ten minutes of Meta's answer with no cron of its own.
+// ponytail: an approved row is never re-checked; if Meta later pauses a template the send fails loudly
+// and lands in agent_runs — re-ask on a Twilio rejection if that ever happens.
+async function templateStatus(auth:string, sid:string, key:string, lang:string):Promise<{status:string; reason:string|null}>{
+  const { data: row } = await admin.from('messaging_template').select('status,last_checked_at,approved_at,rejection_reason').eq('sid', sid).maybeSingle();
+  const fresh = !!row && (row.status === 'approved' || (!!row.last_checked_at && Date.now() - Date.parse(row.last_checked_at) < 600000));
+  if (fresh) return { status: String(row!.status), reason: (row!.rejection_reason as string|null) || null };
+  const r = await fetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests', { headers: { 'Authorization': 'Basic ' + auth } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return { status: String(row?.status || 'unknown'), reason: 'twilio http ' + r.status };
+  const st = String(j?.whatsapp?.status || j?.status || 'unknown'); const now = new Date().toISOString();
+  await admin.from('messaging_template').upsert({ sid, channel: 'whatsapp', template_key: key, lang, status: st, last_checked_at: now,
+    name: j?.whatsapp?.name || null, category: j?.whatsapp?.category || null, rejection_reason: j?.whatsapp?.rejection_reason || null,
+    approved_at: st === 'approved' ? (row?.approved_at || now) : null }, { onConflict: 'sid' });
+  return { status: st, reason: j?.whatsapp?.rejection_reason || null };
 }
 Deno.serve(async (req) => {
   try {
@@ -110,6 +150,7 @@ Deno.serve(async (req) => {
     const acct = await sec('twilio_account_sid'); const ks = await sec('twilio_api_key_sid'); const kk = await sec('twilio_api_key_secret'); const from = await sec('twilio_wa_from');
     if (!acct || !ks || !kk || !from) { await logThrottled('not_configured', 60, 'error', {}, 'WHATSAPP NOT SENDING - missing twilio_account_sid / api_key_sid / api_key_secret / wa_from'); return J({ ok:false, error:'whatsapp_not_configured' }, 200); }
     const ready = ((await sec('wa_templates_ready'))||'false')==='true';
+    const auth = btoa(ks + ':' + kk);
     let tmpl:any = {};
     try { tmpl = JSON.parse((await sec('wa_template_sids'))||'{}'); } catch(_){ tmpl = {}; }
     // DIRECT SEND. 4 Aug 2026: this accepted only a freeform Body, and freeform is the one thing
@@ -125,9 +166,17 @@ Deno.serve(async (req) => {
       const tkey = String(body.templateKey || '');
       const tsid = tkey ? (tmpl?.[tkey]?.[String(body.lang || 'en')] || tmpl?.[tkey]?.en || null) : null;
       if (tkey && ready && tsid) {
-        const t = await waSendTemplate(acct, ks, kk, from, to, String(tsid), (body.vars || {}) as Record<string,string>);
-        if (t.ok) return J({ ok:true, sid:t.sid, via:'template' });
-        await logRun('error', { direct: true, template: tkey }, 'direct WhatsApp TEMPLATE send rejected by Twilio: ' + String(t.error || '').slice(0, 200));
+        // 6 SEP 2026: the ledger answers first. A template Meta has not approved is not sent, not tried
+        // and not an error — the caller gets the status and the reason; a freeform body, when supplied,
+        // still goes out in-session below.
+        const st = await templateStatus(auth, String(tsid), tkey, String(body.lang || 'en'));
+        if (st.status === 'approved') {
+          const t = await waSendTemplate(acct, ks, kk, from, to, String(tsid), (body.vars || {}) as Record<string,string>);
+          if (t.ok) return J({ ok:true, sid:t.sid, via:'template' });
+          await logRun('error', { direct: true, template: tkey }, 'direct WhatsApp TEMPLATE send rejected by Twilio: ' + String(t.error || '').slice(0, 200));
+        } else if (!body.body) {
+          return J({ ok:false, held:true, error:'template_not_approved:' + tkey, status: st.status, reason: st.reason, via:'template' }, 200);
+        }
       } else if (tkey) {
         await logRun('error', { direct: true, template: tkey }, 'no approved template registered for "' + tkey + '" (wa_templates_ready=' + ready + ') - falling back to freeform, which only delivers in-session');
       }
@@ -164,7 +213,7 @@ Deno.serve(async (req) => {
       return J({ ok:true, sent:0, failed:0, skipped:0, requeued:0, unmapped:0, capped:true, cap:dayCap, sent_last_24h:Number(sentLast24||0) });
     }
     const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
-    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0; let lastErr=''; const unmappedTypes = new Set<string>();
     for (const n of (rows||[])) {
       const to = normPhone(String(n.to_phone||'')); if(!to){ await admin.from('notifications').update({status:'failed'}).eq('id',n.id); failed++; continue; }
       if (budget <= 0) { capped++; requeued++; continue; }
@@ -175,7 +224,19 @@ Deno.serve(async (req) => {
       const sid = (ready && key && tmpl[key]) ? (tmpl[key].en||null) : null;
       let res;
       if (sid) {
-        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, shortSummary(n.subject||n.body||'')));
+        // 6 SEP 2026: the ledger decides before Twilio is asked to send anything.
+        const st = await templateStatus(auth, sid, key!, 'en');
+        if (st.status !== 'approved') {
+          if (key === 'founder_alert') {
+            // The email already carried this alert. Skipped WITH the reason, so the row explains itself and
+            // the queue does not carry a founder row Meta has not yet made deliverable.
+            await admin.from('notifications').update({ status:'skipped', last_error: ('WhatsApp template founder_alert is ' + st.status + (st.reason ? ' (' + st.reason + ')' : '') + ' at Meta; the email carried this alert').slice(0, 500) }).eq('id', n.id);
+            heldFounder++; skipped++; continue;
+          }
+          // supplier / customer notice: held, never dropped — it goes the moment the template is approved
+          skipped++; requeued++; lastErr = 'template ' + key + ' is ' + st.status + (st.reason ? ': ' + String(st.reason).slice(0, 120) : ''); continue;
+        }
+        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, n));
       } else if (!ready) {
         // NOTE: the row is deliberately left 'queued' so it can go out once templates are approved.
         // That means it will be rescanned every run - tracked as 'requeued' so the backlog is visible.
@@ -202,6 +263,9 @@ Deno.serve(async (req) => {
     }
     if (capped) await logThrottled('rate_capped', 180, 'ok', { capped, cap: dayCap, per_recipient: perRecip },
       capped + ' WhatsApp message(s) held this run by the sender-reputation cap (daily ' + dayCap + ', per recipient ' + perRecip + ' / 24h). They stay queued and go out as budget frees up.');
+    // A founder alert held for a pending template is a state, not a failure: recorded once per 3h at 'ok'.
+    if (heldFounder) await logThrottled('founder_template_pending', 180, 'ok', { held_founder: heldFounder },
+      heldFounder + ' founder WhatsApp alert(s) skipped with the reason: the founder_alert template is not approved at Meta yet (messaging_template). The email carried the alert; nothing was sent to Twilio.');
     // Templates not approved yet + a growing queue is the quiet failure worth surfacing.
     if (requeued) await logThrottled('templates_not_ready', 60, 'error', { requeued, pending: (rows||[]).length },
       requeued + ' WhatsApp notification(s) cannot be sent yet because the matching template is missing or still awaiting Meta approval. They stay queued and are rescanned every run, so this backlog will keep growing until the template SIDs are live.');
@@ -209,6 +273,6 @@ Deno.serve(async (req) => {
       unmapped + ' WhatsApp notification(s) had a message type with no template mapping in tmplKey(), so they were dropped. Types: ' + [...unmappedTypes].join(', '));
     if (failed) await logRun('error', { sent, failed, skipped, templates_ready: ready }, 'Twilio rejected ' + failed + ' WhatsApp message(s). Last error: ' + lastErr);
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
+    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, held_founder: heldFounder, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 });

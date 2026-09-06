@@ -1,0 +1,226 @@
+
+===== pd_rule_refused (49)
+  [1] W02-S02
+      fn_phase_d_effect_produce: step W02-S02 is accountable to data_intelligence_director and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W04-S02
+      fn_phase_d_effect_produce: step W04-S02 is accountable to customer_onboarding and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W07-S03
+      fn_phase_d_effect_produce: step W07-S03 is accountable to document_intelligence_manager and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W07-S06
+      fn_phase_d_effect_produce: step W07-S06 is accountable to document_intelligence_manager and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W08-S03
+      fn_phase_d_effect_produce: step W08-S03 is accountable to marketplace_content_privacy_reviewer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W08-S04
+      fn_phase_d_effect_produce: step W08-S04 is accountable to marketplace_content_privacy_reviewer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W09-S02
+      fn_phase_d_effect_produce: step W09-S02 is accountable to supplier_onboarding_specialist and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W09-S03
+      fn_phase_d_handler_execute: step W09-S03 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: acceptance names version phase-d-fixture-terms-v1 at digest 5d31c13d1f0f, which matches 0 row(s) in public.legal_documents whose displayed body hashes to exactly that digest", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br025_terms_version_mismatch", "evidence_absent": false}] (pd_rule_refused)
+  [1] W09-S05
+      fn_phase_d_handler_execute: step W09-S05 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: acceptance names version phase-d-fixture-terms-v1 at digest 5d31c13d1f0f, which matches 0 row(s) in public.legal_documents whose displayed body hashes to exactly that digest", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br025_terms_version_mismatch", "evidence_absent": false}] (pd_rule_refused)
+  [1] W09-S06
+      fn_phase_d_handler_execute: step W09-S06 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: acceptance names version phase-d-fixture-terms-v1 at digest 5d31c13d1f0f, which matches 0 row(s) in public.legal_documents whose displayed body hashes to exactly that digest", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br025_terms_version_mismatch", "evidence_absent": false}] (pd_rule_refused)
+  [1] W09-S07
+      fn_phase_d_effect_produce: step W09-S07 is accountable to supplier_onboarding_specialist and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W10-S02
+      fn_phase_d_effect_produce: step W10-S02 is accountable to supplier_verification and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W10-S03
+      fn_phase_d_effect_produce: step W10-S03 is accountable to supplier_verification and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W12-S04
+      fn_phase_d_effect_produce: step W12-S04 is accountable to marketplace_director and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W12-S05
+      fn_phase_d_effect_produce: step W12-S05 is accountable to supplier_matching_dispatch_operator and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W14-S01
+      fn_phase_d_handler_execute: step W14-S01 refused by 2 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no unedited supplier revision named. The platform may normalise for comparison but never alter the original.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br018_quote_altered", "evidence_absent": false}, {"state": "ENFORCED_FAIL", "reason": "BR-<n>: comparison_id and caller_customer_id are both required.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br019_unpublished_visible", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S02
+      fn_phase_d_handler_execute: step W14-S02 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S03
+      fn_phase_d_handler_execute: step W14-S03 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S04
+      fn_phase_d_handler_execute: step W14-S04 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S05
+      fn_phase_d_handler_execute: step W14-S05 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S06
+      fn_phase_d_handler_execute: step W14-S06 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S07
+      fn_phase_d_handler_execute: step W14-S07 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S08
+      fn_phase_d_handler_execute: step W14-S08 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W14-S09
+      fn_phase_d_handler_execute: step W14-S09 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: no evidence_refs array. A finding that names no evidence is an assertion.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br027_provenance_absent", "evidence_absent": false}] (pd_rule_refused)
+  [1] W15-S01
+      fn_phase_d_effect_produce: step W15-S01 is accountable to rfq_success and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W15-S03
+      fn_phase_d_effect_produce: step W15-S03 is accountable to compliance_and_privacy_officer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W16-S02
+      fn_phase_d_handler_execute: step W16-S02 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: monetary state open matches 0 reconciled rung(s) of the payment ladder public.phase_d_payment_state (2 of its 6 rungs are reconciled: payment_reconciled, reveal_authorized). Unknown, conflicting, unreconciled and unrecognised states are blocked and quarantined, never treated as success.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br033_unknown_money_as_success", "evidence_absent": false}] (pd_rule_refused)
+  [1] W16-S06
+      fn_phase_d_handler_execute: step W16-S06 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: monetary state open matches 0 reconciled rung(s) of the payment ladder public.phase_d_payment_state (2 of its 6 rungs are reconciled: payment_reconciled, reveal_authorized). Unknown, conflicting, unreconciled and unrecognised states are blocked and quarantined, never treated as success.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br033_unknown_money_as_success", "evidence_absent": false}] (pd_rule_refused)
+  [1] W16-S07
+      fn_phase_d_handler_execute: step W16-S07 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: monetary state open matches 0 reconciled rung(s) of the payment ladder public.phase_d_payment_state (2 of its 6 rungs are reconciled: payment_reconciled, reveal_authorized). Unknown, conflicting, unreconciled and unrecognised states are blocked and quarantined, never treated as success.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br033_unknown_money_as_success", "evidence_absent": false}] (pd_rule_refused)
+  [1] W16-S08
+      fn_phase_d_handler_execute: step W16-S08 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: monetary state open matches 0 reconciled rung(s) of the payment ladder public.phase_d_payment_state (2 of its 6 rungs are reconciled: payment_reconciled, reveal_authorized). Unknown, conflicting, unreconciled and unrecognised states are blocked and quarantined, never treated as success.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br033_unknown_money_as_success", "evidence_absent": false}] (pd_rule_refused)
+  [1] W16-S09
+      fn_phase_d_handler_execute: step W16-S09 refused by 1 hard business rule(s): [{"state": "ENFORCED_FAIL", "reason": "BR-<n>: monetary state open matches 0 reconciled rung(s) of the payment ladder public.phase_d_payment_state (2 of its 6 rungs are reconciled: payment_reconciled, reveal_authorized). Unknown, conflicting, unreconciled and unrecognised states are blocked and quarantined, never treated as success.", "rule_id": "BR-<n>", "rule_type": "hard", "refusal_code": "br033_unknown_money_as_success", "evidence_absent": false}] (pd_rule_refused)
+  [1] W17-S10
+      fn_phase_d_effect_produce: step W17-S10 is accountable to risk_and_governance_manager and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W21-S04
+      fn_phase_d_effect_produce: step W21-S04 is accountable to general_counsel and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W22-S06
+      fn_phase_d_effect_produce: step W22-S06 is accountable to test_automation_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W23-S05
+      fn_phase_d_effect_produce: step W23-S05 is accountable to product_optimization_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W23-S07
+      fn_phase_d_effect_produce: step W23-S07 is accountable to ai_quality_reviewer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W24-S02
+      fn_phase_d_effect_produce: step W24-S02 is accountable to test_automation_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W24-S03
+      fn_phase_d_effect_produce: step W24-S03 is accountable to cybersecurity_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W24-S04
+      fn_phase_d_effect_produce: step W24-S04 is accountable to ai_quality_reviewer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W24-S05
+      fn_phase_d_effect_produce: step W24-S05 is accountable to it_operations_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W24-S08
+      fn_phase_d_effect_produce: step W24-S08 is accountable to test_automation_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W27-S03
+      fn_phase_d_effect_produce: step W27-S03 is accountable to billing_operations and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W27-S04
+      fn_phase_d_effect_produce: step W27-S04 is accountable to accounts_payable and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W27-S05
+      fn_phase_d_effect_produce: step W27-S05 is accountable to collections_and_revenue_assurance and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W27-S07
+      fn_phase_d_effect_produce: step W27-S07 is accountable to financial_controller and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W29-S04
+      fn_phase_d_effect_produce: step W29-S04 is accountable to cybersecurity_engineer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W29-S06
+      fn_phase_d_effect_produce: step W29-S06 is accountable to quality_and_release_director and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W30-S02
+      fn_phase_d_effect_produce: step W30-S02 is accountable to ai_quality_reviewer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+  [1] W30-S06
+      fn_phase_d_effect_produce: step W30-S06 is accountable to ai_quality_reviewer and names (none) as reviewer; those resolve to one effective identity (BR-<n>). (pd_rule_refused)
+
+===== k3_reviewer_verdict_missing (17)
+  [1] W01-S06
+      fn_kernel_step_complete: step W01-S06 names founder as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W02-S06
+      fn_kernel_step_complete: step W02-S06 names strategy_director as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W04-S07
+      fn_kernel_step_complete: step W04-S07 names customer_success_director as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W06-S05
+      fn_kernel_step_complete: step W06-S05 names inquiry_quality_analyst as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W08-S06
+      fn_kernel_step_complete: step W08-S06 names compliance_and_privacy_officer as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W10-S05
+      fn_kernel_step_complete: step W10-S05 names risk_and_governance_manager as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W12-S09
+      fn_kernel_step_complete: step W12-S09 names marketplace_content_privacy_reviewer as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W19-S07
+      fn_kernel_step_complete: step W19-S07 names marketplace_director as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W20-S09
+      fn_kernel_step_complete: step W20-S09 names corporate_performance_director as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W21-S05
+      fn_kernel_step_complete: step W21-S05 names ceo as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W23-S08
+      fn_kernel_step_complete: step W23-S08 names quality_and_release_director as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W24-S06
+      fn_kernel_step_complete: step W24-S06 names risk_and_governance_manager as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W24-S09
+      fn_kernel_step_complete: step W24-S09 names quality_and_release_director as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W27-S09
+      fn_kernel_step_complete: step W27-S09 names risk_and_governance_manager as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W29-S10
+      fn_kernel_step_complete: step W29-S10 names risk_and_governance_manager as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W30-S03
+      fn_kernel_step_complete: step W30-S03 names risk_and_governance_manager as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+  [1] W30-S07
+      fn_kernel_step_complete: step W30-S07 names risk_and_governance_manager as its independent reviewer and no approved, independent verdict from that role exists on task <n>. Record it with fn_kernel_review_decide first. (k3_reviewer_verdict_missing)
+
+===== pd_evidence_absent (14)
+  [1] W03-S06
+      fn_phase_d_handler_execute: step W03-S06 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W03-S07
+      fn_phase_d_handler_execute: step W03-S07 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W03-S08
+      fn_phase_d_handler_execute: step W03-S08 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W03-S09
+      fn_phase_d_handler_execute: step W03-S09 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W20-S04
+      fn_phase_d_handler_execute: step W20-S04 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W20-S05
+      fn_phase_d_handler_execute: step W20-S05 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W20-S06
+      fn_phase_d_handler_execute: step W20-S06 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W20-S07
+      fn_phase_d_handler_execute: step W20-S07 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W20-S08
+      fn_phase_d_handler_execute: step W20-S08 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Marketing artifact approval) requires [reviewer_role_id] and the call names none of it. Declared evidence: Exact final asset passes brand and independent artifact review.", "gate_id": "GATE-<n>", "refusal_code": "gate021_artifact_unapproved", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W26-S05
+      fn_phase_d_handler_execute: step W26-S05 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Knowledge validation) requires [reviewer_role_id] and the call names none of it. Declared evidence: Independent source/freshness/contradiction review passes.", "gate_id": "GATE-<n>", "refusal_code": "gate026_knowledge_unvalidated", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W26-S06
+      fn_phase_d_handler_execute: step W26-S06 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Knowledge validation) requires [reviewer_role_id] and the call names none of it. Declared evidence: Independent source/freshness/contradiction review passes.", "gate_id": "GATE-<n>", "refusal_code": "gate026_knowledge_unvalidated", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W26-S07
+      fn_phase_d_handler_execute: step W26-S07 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Knowledge validation) requires [reviewer_role_id] and the call names none of it. Declared evidence: Independent source/freshness/contradiction review passes.", "gate_id": "GATE-<n>", "refusal_code": "gate026_knowledge_unvalidated", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W26-S08
+      fn_phase_d_handler_execute: step W26-S08 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Knowledge validation) requires [reviewer_role_id] and the call names none of it. Declared evidence: Independent source/freshness/contradiction review passes.", "gate_id": "GATE-<n>", "refusal_code": "gate026_knowledge_unvalidated", "evidence_absent": true}] (pd_evidence_absent)
+  [1] W26-S09
+      fn_phase_d_handler_execute: step W26-S09 blocked by 1 hard gate(s), every one of them for evidence the call did not name rather than for a condition the gate judged and rejected: [{"state": "BLOCKED", "reason": "gate GATE-<n> (Knowledge validation) requires [reviewer_role_id] and the call names none of it. Declared evidence: Independent source/freshness/contradiction review passes.", "gate_id": "GATE-<n>", "refusal_code": "gate026_knowledge_unvalidated", "evidence_absent": true}] (pd_evidence_absent)
+
+===== pd_gate_refused (10)
+  [1] W05-S04
+      fn_phase_d_handler_execute: step W05-S04 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "GATE-<n>: inquiry <uuid> is not quote-ready or does not exist", "gate_id": "GATE-<n>", "refusal_code": "gate011_inquiry_not_ready", "evidence_absent": false}] (pd_gate_refused)
+  [1] W05-S05
+      fn_phase_d_handler_execute: step W05-S05 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "GATE-<n>: inquiry <uuid> is not quote-ready or does not exist", "gate_id": "GATE-<n>", "refusal_code": "gate011_inquiry_not_ready", "evidence_absent": false}] (pd_gate_refused)
+  [1] W05-S06
+      fn_phase_d_handler_execute: step W05-S06 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "GATE-<n>: inquiry <uuid> is not quote-ready or does not exist", "gate_id": "GATE-<n>", "refusal_code": "gate011_inquiry_not_ready", "evidence_absent": false}] (pd_gate_refused)
+  [1] W05-S07
+      fn_phase_d_handler_execute: step W05-S07 refused by 2 hard gate(s): [{"state": "BLOCKED", "reason": "gate GATE-<n> (Founder boundary) requires [founder_authority_ref] and the call names none of it. Declared evidence: Decision is within delegated authority or founder approval exists.", "gate_id": "GATE-<n>", "refusal_code": "gate005_founder_boundary", "evidence_absent": true}, {"state": "BLOCKED", "reason": "GATE-<n>: inquiry <uuid> is not quote-ready or does not exist", "gate_id": "GATE-<n>", "refusal_code": "gate011_inquiry_not_ready", "evidence_absent": false}] (pd_gate_refused)
+  [1] W05-S08
+      fn_phase_d_handler_execute: step W05-S08 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "GATE-<n>: inquiry <uuid> is not quote-ready or does not exist", "gate_id": "GATE-<n>", "refusal_code": "gate011_inquiry_not_ready", "evidence_absent": false}] (pd_gate_refused)
+  [1] W05-S09
+      fn_phase_d_handler_execute: step W05-S09 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "GATE-<n>: inquiry <uuid> is not quote-ready or does not exist", "gate_id": "GATE-<n>", "refusal_code": "gate011_inquiry_not_ready", "evidence_absent": false}] (pd_gate_refused)
+  [1] W16-S03
+      fn_phase_d_handler_execute: step W16-S03 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "BR-<n>: fee_status open is not a declared payment state. Refusing rather than guessing which rung it means.", "gate_id": "GATE-<n>", "refusal_code": "gate019_payment_unreconciled", "evidence_absent": false}] (pd_gate_refused)
+  [1] W16-S04
+      fn_phase_d_handler_execute: step W16-S04 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "BR-<n>: fee_status open is not a declared payment state. Refusing rather than guessing which rung it means.", "gate_id": "GATE-<n>", "refusal_code": "gate019_payment_unreconciled", "evidence_absent": false}] (pd_gate_refused)
+  [1] W16-S05
+      fn_phase_d_handler_execute: step W16-S05 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "BR-<n>: fee_status open is not a declared payment state. Refusing rather than guessing which rung it means.", "gate_id": "GATE-<n>", "refusal_code": "gate019_payment_unreconciled", "evidence_absent": false}] (pd_gate_refused)
+  [1] W17-S07
+      fn_phase_d_handler_execute: step W17-S07 refused by 1 hard gate(s): [{"state": "BLOCKED", "reason": "GATE-<n>: refund <n> has no recorded founder decision, financial action key PHASE_D_FIXTURE_DO_NOT_PUBLISH refund_decision", "gate_id": "GATE-<n>", "refusal_code": "gate020_refund_unauthorised", "evidence_absent": false}] (pd_gate_refused)
+
+===== pd_effect_check_violated (7)
+  [1] W01-S03
+      new row for relation "department_objective" violates check constraint "department_objective_status_check"
+  [1] W01-S07
+      new row for relation "org_tasks" violates check constraint "org_tasks_status_check"
+  [5] W17-S01 W17-S02 W17-S03 W17-S06 W17-S08
+      new row for relation "refunds" violates check constraint "refunds_status_check"
+
+===== pd_object_no_state_change (4)
+  [4] W04-S01 W04-S03 W04-S04 W04-S05
+      fn_phase_d_object_write: customer_account exists as <uuid> and the payload moves no column. A write that changes nothing is not a state transition. (pd_object_no_state_change)
+
+===== pd_effect_payload_incomplete (3)
+  [3] W15-S02 W15-S06 W15-S08
+      null value in column "inquiry_id" of relation "quote_comparisons" violates not-null constraint
+
+===== pd_object_payload_unmapped (3)
+  [3] W28-S01 W28-S02 W28-S07
+      fn_phase_d_object_write: legal_risk_review supplied no column the write map for public.legal_reviews can use. Payload keys were applicable_policy, business_key, owner_ref, prior_accepted_outputs, state, workflow_record. (pd_object_payload_unmapped)
+
+===== pd_effect_identity_collision (2)
+  [2] W07-S04 W07-S05
+      duplicate key value violates unique constraint "documents_bucket_path_key"
+
+===== pd_object_append_only (2)
+  [1] W15-S05
+      fn_phase_d_object_write: customer_selection is APPEND_ONLY (append_only_decision) and business key <uuid> already holds record <n>. A correction is a NEW key, never a second version of this one. (pd_object_append_only)
+  [1] W30-S10
+      fn_phase_d_object_write: organization_change_request is APPEND_ONLY (append_only_decision) and business key <uuid> already holds record <n>. A correction is a NEW key, never a second version of this one. (pd_object_append_only)
+
+===== pd_effect_value_malformed (1)
+  [1] W12-S06
+      invalid input syntax for type bigint: "<uuid>"
+
+===== pd_output_schema_invalid (1)
+  [1] W25-S06
+      fn_phase_d_handler_execute: step W25-S06 produced an output its own contract rejects: schema schema_output_w25_s06: required keys missing [verdict] (pd_output_schema_invalid)

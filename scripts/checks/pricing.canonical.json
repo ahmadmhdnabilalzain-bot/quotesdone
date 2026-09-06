@@ -3,7 +3,8 @@
   "annual_fee": 1000,
   "currency": "AED",
   "period": "yearly",
-  "paid_period_starts": "2027-08-01",
+  "paid_period_starts": null,
+  "_paid_period_starts": "Founder, 6 Sep 2026: NO calendar start date and never one. Charging begins with registration free_registrations + 1, whenever that happens. Nothing may state a date; pricing_config.supplier_charging_starts is NULL and every reader treats NULL as this rule.",
   "free_registrations": 1000,
   "supplier_commission": 0,
   "sources": {
@@ -11,7 +12,7 @@
       "public.pricing_config (supplier_reg_fee, supplier_reg_currency, supplier_reg_period, supplier_free_count) - CHECK-constrained",
       "public.fn_supplier_subscription() - the single resolver every biller reads",
       "public.v_supplier_billing, public.fn_subscription_billing_run, public.v_supplier_pricing",
-      "app_secrets.supplier_subscription_start - the only fact not held in pricing_config"
+      "pricing_config.supplier_charging_starts is NULL (no date); app_secrets.supplier_subscription_start is blank and no longer consulted"
     ],
     "stripe_checkout": "supabase/functions/supplier_api/index.ts action pay_registration (currency aed, amount from leads.registration_fee_due, written by fn_subscription_billing_run)",
     "supplier_agreement": "src/content/legal.json",
