@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T14:23:45.083Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T14:29:51.191Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -79645,7 +79645,7 @@ declare
   FREE constant text[] := array['gmail.com','googlemail.com','yahoo.com','ymail.com','yahoo.co.uk','hotmail.com','hotmail.co.uk','hotmail.fr',
                                 'outlook.com','outlook.sa','live.com','msn.com','icloud.com','me.com','mac.com','aol.com','mail.com','gmx.com',
                                 'gmx.net','protonmail.com','proton.me','yandex.com','zoho.com','rediffmail.com'];
-  r record; v_dom text; v_label text; v_n int := 0; v_cand int := 0; v_refused int := 0;
+  r record; v_dom text; v_label text; v_n int := 0; v_cand int := 0; v_refused int := 0; v_dup int := 0;
   v_staged int; v_inq int; v_quotes int;
 begin
   if not public.fn_supplier_outreach_golive() then
@@ -79661,7 +79661,9 @@ begin
      where m.from_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$'
        and lower(coalesce(m.to_email, '')) not like 'expenses@%'
        and lower(split_part(m.from_email, '@', 2)) <> all(FREE)
-       and case when v_reh then m.from_email ilike '%@example.invalid' else m.from_email not ilike '%@example.invalid' end
+       and case when v_reh then m.from_email ilike '%@example.invalid'
+                else m.from_email not ilike '%@example.invalid'
+                     and not exists (select 1 from public.email_block_pattern p where p.active and lower(m.from_email) ~ p.pattern) end
        and not exists (select 1 from public.leads l
                         where lower(l.email) = lower(m.from_email)
                            or lower(coalesce(l.claimed_by, '')) = lower(m.from_email)
@@ -79673,6 +79675,10 @@ begin
     v_cand := v_cand + 1;
     v_dom   := lower(split_part(r.from_email, '@', 2));
     v_label := initcap(replace(split_part(v_dom, '.', 1), '-', ' '));
+    -- one lead per domain, also within a run (the loop's query was planned before the first insert)
+    if exists (select 1 from public.leads l where l.email_domain is not null and lower(l.email_domain) = v_dom) then
+      v_dup := v_dup + 1; continue;
+    end if;
     begin
       insert into public.leads (company_name, email, email_domain, domain, website, source, notes, scraped_at)
       values (case when v_reh then 'ZZ DEMO — ' || v_label else v_label end, lower(r.from_email), v_dom, v_dom, 'https://' || v_dom,
@@ -79691,14 +79697,14 @@ begin
   select count(*) into v_quotes from public.quotes;
   insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
   values ('supplier_lead_sourcing', 'ok',
-          jsonb_build_object('held', false, 'harvested', v_n, 'candidates', v_cand, 'refused', v_refused,
+          jsonb_build_object('held', false, 'harvested', v_n, 'candidates', v_cand, 'refused', v_refused, 'duplicate_domain', v_dup,
                              'staged_directory_profiled_left', v_staged, 'inquiries', v_inq, 'quotes', v_quotes, 'rehearsal', v_reh),
           'Lead sourcing: ' || v_n || ' new lead(s) from ' || v_cand || ' inbound business-domain sender(s) with no lead (' || v_refused
-          || ' refused by a guard). Other estate sources: the staged directory is promoted daily by supplier_discovery_daily (cron 322; '
+          || ' refused by a guard, ' || v_dup || ' same-domain duplicate(s)). Other estate sources: the staged directory is promoted daily by supplier_discovery_daily (cron 322; '
           || v_staged || ' profiled rows without an email remain); RFQ and quote supplier mentions need an inquiry to exist (' || v_inq
           || ' inquiries, ' || v_quotes || ' quotes). No scraping, no paid inference.'
           || case when v_reh then ' [rehearsal ' || p_rehearsal_tag || ']' else '' end, now(), now());
-  return jsonb_build_object('held', false, 'harvested', v_n, 'candidates', v_cand, 'refused', v_refused, 'staged_directory_profiled_left', v_staged);
+  return jsonb_build_object('held', false, 'harvested', v_n, 'candidates', v_cand, 'refused', v_refused, 'duplicate_domain', v_dup, 'staged_directory_profiled_left', v_staged);
 end $function$
 
 
