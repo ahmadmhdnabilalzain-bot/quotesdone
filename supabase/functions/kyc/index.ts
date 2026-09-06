@@ -223,16 +223,6 @@ Deno.serve(async (req) => {
       const custV = (await sec('customer_terms_version')) || 'v3';
       if (kind === 'supplier') await admin.from('leads').update({ accepted_terms_at: nowIso, accepted_terms_version: supV, accepted_terms_ip: ip }).eq('claimed_by', email);
       else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
-      // AND WRITE THE ACCEPTANCE RECORD THE KERNEL CAN REFERENCE (6 Sep 2026). The tos_* columns above
-      // are the product's fast path; BR-025/BR-026 read public.phase_d_object_record, so without a
-      // customer_terms_acceptance record W04-S01 refused forever. fn_customer_terms_accept writes the
-      // append-only record from the CURRENTLY PUBLISHED legal_documents version+hash and re-dispatches
-      // the open W04-S01 through the canonical door so it reaches EXECUTED. Best-effort: acceptance is
-      // already recorded on customers.tos_*, so a kernel hiccup must not fail the customer's accept.
-      if (kind === 'customer' && cust?.id) {
-        try { await admin.rpc('fn_customer_terms_accept', { p_customer_id: cust.id, p_ip: ip }); }
-        catch (e) { await logRun('error', { action, kind, kernel_record: false }, 'tos recorded; kernel acceptance record/redispatch failed: ' + String((e as Error)?.message || e).slice(0, 200)); }
-      }
       let signed_url = null; let signErr = '';
       try { const secret = await sec('cred_fn_kyc'); const r = await fetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
       // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing

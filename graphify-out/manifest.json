@@ -750,8 +750,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/kyc/index.ts": {
-    "mtime": 1788705627.6996658,
-    "ast_hash": "497de45b33120d336d2a055266f3c6f8",
+    "mtime": 1788721296.8572848,
+    "ast_hash": "a2dae2f462b3e0b220137de7f6056d78",
     "semantic_hash": ""
   },
   "supabase/functions/learn_gaps/index.ts": {
@@ -14985,8 +14985,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788704972.6049032,
-    "ast_hash": "6a1dc613c2aa5566cddea86af2b0e810",
+    "mtime": 1788721654.971907,
+    "ast_hash": "e81410266cf2dc1ff37065558aa0084a",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -20042,6 +20042,16 @@
   "scripts/sql/the_internal_registries_that_leaked_to_authenticated.sql": {
     "mtime": 1788705448.7439983,
     "ast_hash": "f301e133f2fd4f0328d62a1c2c3c968d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_acceptance_the_product_writes_reaches_the_kernel.sql": {
+    "mtime": 1788721318.1335735,
+    "ast_hash": "a39f0e94eedc538df060eb88b7a2e57c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_onboarding_specialist_checks_every_registration.sql": {
+    "mtime": 1788721795.5777571,
+    "ast_hash": "7fb3eb28e33372d60578d81e8cc004f6",
     "semantic_hash": ""
   }
 }
