@@ -1664,3 +1664,5 @@ scripts/sql/one_definition_of_an_open_task.sql
 scripts/sql/strategy_simulations_carry_their_question.sql
 scripts/sql/status_is_a_brief_not_a_clarification.sql
 scripts/sql/report_types_resume_under_the_kernel.sql
+scripts/sql/the_resilience_watch_pages_a_condition_once.sql
+scripts/sql/the_smart_engine_and_strategy_ledger_rows.sql

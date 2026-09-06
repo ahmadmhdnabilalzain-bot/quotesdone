@@ -152,7 +152,9 @@ test('os_api refuses an unclassified action rather than defaulting to read-only'
     'os_api does not return action_classification_required');
   // And it happens before any handler runs.
   const refusalAt = src.indexOf('action_classification_required');
-  const firstHandlerAt = src.indexOf("if (action === 'control_mode_status')");
+  // 6 Sep 2026: the control_mode_* handlers left os_api with the Observe/Control Mode drawer the
+  // founder rejected on 10 Aug; the first handler is now `ping`.
+  const firstHandlerAt = src.indexOf("if (action === 'ping')");
   assert.ok(refusalAt > 0 && refusalAt < firstHandlerAt,
     'the classification refusal must come before the first action handler');
 });
@@ -166,19 +168,20 @@ test('the Control Mode gate fails closed when the database cannot answer', () =>
     'the old fall-through comment is still present, so the old behaviour probably is too');
 });
 
-test('Control Mode MFA is purpose-bound, not a generic phone verification', () => {
-  // phone_verifications is written by login_otp and kyc. Control Mode must not read it.
+// 6 SEP 2026. The two tests that used to sit here asserted the SHAPE of the Control Mode phone
+// challenge (purpose-bound challenge, CSPRNG code). The founder rejected Observe/Control Mode on
+// 10 Aug 2026 ("no need for that observe mode ... Remove the gate") and the drawer, its four
+// os_api handlers and their control_mode_action rows were removed on 6 Sep. What must stay true
+// instead: os_api never brings a phone challenge back through the front door, and never reads the
+// login/KYC phone_verifications table for anything.
+test('the Observe/Control Mode phone challenge is gone from os_api and does not come back', () => {
+  assert.doesNotMatch(src, /if \(action === 'control_mode_(status|challenge|open|close)'\)/,
+    'a control_mode_* handler is back in os_api; the founder rejected that gate on 10 Aug 2026');
   assert.doesNotMatch(src, /p_phone:\s*String\(body\?\.phone/,
-    'os_api still passes a caller-supplied phone into Control Mode');
-  assert.match(src, /fn_control_mode_challenge_start/,
-    'os_api does not use the purpose-bound challenge');
-  assert.match(src, /p_challenge_id/, 'control_mode_open no longer takes a challenge id');
-  assert.match(src, /p_nonce/, 'control_mode_open no longer takes a nonce');
-});
-
-test('the Control Mode code is generated from a CSPRNG', () => {
-  assert.match(src, /crypto\.getRandomValues/, 'the Control Mode code must not come from Math.random');
-  assert.doesNotMatch(src, /Math\.random\(\)/, 'Math.random is not acceptable for a credential');
+    'os_api passes a caller-supplied phone into a verification path');
+  assert.doesNotMatch(src, /phone_verifications/,
+    'os_api reads phone_verifications, which belongs to login_otp and kyc');
+  assert.doesNotMatch(src, /Math\.random\(\)/, 'Math.random is not acceptable anywhere a code or token is minted');
 });
 
 test('the authenticated user id is read from a hoisted variable, not an out-of-scope one', () => {
