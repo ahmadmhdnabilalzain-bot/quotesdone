@@ -15,11 +15,35 @@
 // the moment a report row is written) and os_api's report_pdf_url action (on demand from the OS).
 // Both present a scoped internal credential; there is no JWT path.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'npm:pdf-lib@1.17.1';
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from 'npm:pdf-lib@1.17.1';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { BRAND, hex01 } from '../_shared/brand.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const BUCKET = 'reports';
+
+// THE BRAND ON EVERY PAGE (6 Sep 2026). The founder's brand kit is on file (public.company_brand,
+// brand bucket kit/). The header and cover carry the real lockup artwork, read once per instance from
+// this project's own storage (not an external fetch) and cached; if the bytes cannot be read the header
+// falls back to the text wordmark rather than failing the report. The footer carries the trade licence
+// line from company_registration. Fonts stay Helvetica on purpose: the CI check reads the text back with
+// a plain parser, which an embedded TTF subset would defeat.
+let logoBytes: Promise<Uint8Array | null> | null = null;
+function loadLogo(): Promise<Uint8Array | null> {
+  if (!logoBytes) {
+    logoBytes = admin.storage.from(BRAND.bucket).download(BRAND.lockupDark)
+      .then(async (r: { data: Blob | null; error: unknown }) => (r.error || !r.data) ? null : new Uint8Array(await r.data.arrayBuffer()))
+      .catch(() => null);
+  }
+  return logoBytes;
+}
+async function licenceLine(): Promise<string> {
+  try {
+    const { data } = await admin.from('company_registration').select('trade_name,authority,license_type,license_no').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
+    if (data?.license_no) return `${data.trade_name} · ${/DET/.test(String(data.authority)) ? 'DET' : String(data.authority)} ${data.license_type} no. ${data.license_no} · Dubai, UAE`;
+  } catch (_e) { /* fall through */ }
+  return 'QuotesDone · Dubai, UAE';
+}
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 
 // ---------------------------------------------------------------------------------------------------
@@ -169,7 +193,7 @@ async function financeStatements(): Promise<Section[]> {
 // Row -> Doc
 // ---------------------------------------------------------------------------------------------------
 type Row = { source: 'board' | 'exec' | 'finance'; id: number; row: Record<string, any> };
-const PREPARED: Record<string, string> = { board: 'Reporting & Analytics (reporting_ai)', exec: 'Executive Office', finance: 'Finance Department (finance_ai)' };
+const PREPARED: Record<string, string> = { board: 'Reporting & Analytics (reporting_ai)', exec: 'Executive Office', finance: 'Finance Department (finance_ai)', brand: 'Growth Department (brand_and_creative)' };
 
 async function buildDoc(r: Row): Promise<Doc> {
   const generatedAt = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
@@ -188,7 +212,7 @@ async function buildDoc(r: Row): Promise<Doc> {
     if (kind === 'finance') sections.push(...await financeStatements());
     // The cover summary: the EXECUTIVE SUMMARY paragraph when the body has one, else its first paragraph.
     const summary = (sections.find((s) => /summary/i.test(s.title)) || sections[0])?.blocks.find((x) => x.t === 'p');
-    return { title: String(b.title || titleCase(kind) + ' report'), kind, period, preparedBy: kind === 'finance' ? PREPARED.finance : PREPARED.board, generatedAt, summary: summary && summary.t === 'p' ? summary.text : '', sections };
+    return { title: String(b.title || titleCase(kind) + ' report'), kind, period, preparedBy: PREPARED[kind] || PREPARED.board, generatedAt, summary: summary && summary.t === 'p' ? summary.text : '', sections };
   }
   if (r.source === 'finance') {
     const f = r.row; const kind = 'finance_' + String(f.kind || 'report'); const period = String(f.period_start || String(f.created_at || '').slice(0, 10));
@@ -254,7 +278,8 @@ async function buildDoc(r: Row): Promise<Doc> {
 // ---------------------------------------------------------------------------------------------------
 // Renderer (pdf-lib, standard fonts, WinAnsi)
 // ---------------------------------------------------------------------------------------------------
-const NAVY = rgb(0.047, 0.137, 0.188), TEAL = rgb(0.078, 0.722, 0.651), INK = rgb(0.08, 0.094, 0.11), MUT = rgb(0.4, 0.44, 0.52), LINE = rgb(0.86, 0.88, 0.9), ZEBRA = rgb(0.965, 0.97, 0.975), WHITE = rgb(1, 1, 1), GOLD = rgb(0.906, 0.71, 0.235);
+// Palette = the brand kit (navy #0C2330, teal #14B8A6, gold #E3C065, ink #0A0A0A); the gold used to be #E7B53C.
+const NAVY = rgb(...hex01(BRAND.navy)), TEAL = rgb(...hex01(BRAND.teal)), INK = rgb(...hex01(BRAND.ink)), MUT = rgb(0.4, 0.44, 0.52), LINE = rgb(0.86, 0.88, 0.9), ZEBRA = rgb(0.965, 0.97, 0.975), WHITE = rgb(1, 1, 1), GOLD = rgb(...hex01(BRAND.gold));
 const PW = 595.28, PH = 841.89, M = 48, HEADER_H = 40, FOOTER_H = 36;
 const SUBS: Record<string, string> = { '→': '->', '←': '<-', '…': '...', '✓': 'v', '✔': 'v', '✗': 'x', '⚠': '!', '≥': '>=', '≤': '<=', '≠': '!=', '−': '-', '‑': '-', ' ': ' ', '\t': '  ' };
 function clean(s: unknown): string {
@@ -268,6 +293,8 @@ async function render(doc: Doc): Promise<{ bytes: Uint8Array; pages: number }> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(doc.title); pdf.setAuthor('QuotesDone'); pdf.setSubject(doc.kind + ' ' + doc.period); pdf.setProducer('QuotesDone report_pdf'); pdf.setCreator('QuotesDone OS');
   const F = await pdf.embedFont(StandardFonts.Helvetica), B = await pdf.embedFont(StandardFonts.HelveticaBold);
+  let logo: PDFImage | null = null; try { const b = await loadLogo(); if (b) logo = await pdf.embedPng(b); } catch (_e) { logo = null; }
+  const licence = clean(await licenceLine());
   const pages: PDFPage[] = []; let page!: PDFPage; let y = 0;
   const w = (s: string, size: number, font: PDFFont = F) => font.widthOfTextAtSize(s, size);
   const wrap = (s: string, size: number, maxW: number, font: PDFFont = F): string[] => {
@@ -284,16 +311,26 @@ async function render(doc: Doc): Promise<{ bytes: Uint8Array; pages: number }> {
     }
     return out.length ? out : [''];
   };
-  const chrome = (p: PDFPage) => {
-    p.drawRectangle({ x: 0, y: PH - HEADER_H, width: PW, height: HEADER_H, color: NAVY });
-    p.drawText('QUOTESDONE', { x: M, y: PH - 25, size: 12, font: B, color: WHITE });
-    p.drawRectangle({ x: M + w('QUOTESDONE', 12, B) + 6, y: PH - 27, width: 3, height: 12, color: TEAL });
-    const hl = clean(doc.title); let s = hl; while (w(s, 9) > PW - 2 * M - 120 && s.length > 4) s = s.slice(0, -4) + '...';
-    p.drawText(s, { x: PW - M - w(s, 9), y: PH - 24, size: 9, font: F, color: rgb(0.82, 0.87, 0.9) });
+  // The lockup on a navy ground (white wordmark, teal ring, gold check); text wordmark only if the PNG failed.
+  const wordmark = (p: PDFPage, x: number, yTop: number, h: number) => {
+    if (logo) { p.drawImage(logo, { x, y: yTop - h, width: h * BRAND.lockupAspect, height: h }); return h * BRAND.lockupAspect; }
+    const size = h * 0.55; p.drawText('QUOTESDONE', { x, y: yTop - h * 0.78, size, font: B, color: WHITE });
+    p.drawRectangle({ x: x + w('QUOTESDONE', size, B) + 6, y: yTop - h * 0.85, width: 3, height: size, color: TEAL });
+    return w('QUOTESDONE', size, B) + 9;
+  };
+  const footer = (p: PDFPage) => {
     p.drawLine({ start: { x: M, y: FOOTER_H }, end: { x: PW - M, y: FOOTER_H }, thickness: 0.6, color: LINE });
     p.drawText('Confidential — QuotesDone', { x: M, y: FOOTER_H - 14, size: 8, font: F, color: MUT });
     const mid = clean(doc.kind + ' · ' + doc.period + ' · generated ' + doc.generatedAt);
     p.drawText(mid, { x: (PW - w(mid, 8)) / 2, y: FOOTER_H - 14, size: 8, font: F, color: MUT });
+    p.drawText(licence, { x: (PW - w(licence, 7)) / 2, y: FOOTER_H - 25, size: 7, font: F, color: MUT });
+  };
+  const chrome = (p: PDFPage) => {
+    p.drawRectangle({ x: 0, y: PH - HEADER_H, width: PW, height: HEADER_H, color: NAVY });
+    wordmark(p, M, PH - 9, 22);
+    const hl = clean(doc.title); let s = hl; while (w(s, 9) > PW - 2 * M - 120 && s.length > 4) s = s.slice(0, -4) + '...';
+    p.drawText(s, { x: PW - M - w(s, 9), y: PH - 24, size: 9, font: F, color: rgb(0.82, 0.87, 0.9) });
+    footer(p);
   };
   const newPage = () => { page = pdf.addPage([PW, PH]); pages.push(page); chrome(page); y = PH - HEADER_H - 30; return page; };
   const ensure = (h: number) => { if (y - h < FOOTER_H + 12) newPage(); };
@@ -316,7 +353,17 @@ async function render(doc: Doc): Promise<{ bytes: Uint8Array; pages: number }> {
       let x = M;
       cells.forEach((c, i) => {
         const lines = wrap(clean(String(c ?? '')), size, widths[i] - 2 * pad, font); let ly = y - pad - size;
-        for (const ln of lines) { const tx = align[i] === 'r' ? x + widths[i] - pad - w(ln, size, font) : x + pad; page.drawText(ln, { x: tx, y: ly, size, font, color }); ly -= size * 1.35; }
+        // A cell that starts with a hex colour (#RRGGBB) gets a swatch of that colour beside it — the brand
+        // guide's palette tables show the colour, not only its number.
+        const sw = /^#[0-9a-f]{6}\b/i.exec(String(c ?? ''));
+        lines.forEach((ln, li) => {
+          let tx = align[i] === 'r' ? x + widths[i] - pad - w(ln, size, font) : x + pad;
+          if (sw && li === 0) {
+            const swX = align[i] === 'r' ? tx - 11 : tx; if (align[i] !== 'r') tx += 11;
+            page.drawRectangle({ x: swX, y: ly - 1, width: 7.5, height: 7.5, color: rgb(...hex01(sw[0])), borderColor: LINE, borderWidth: 0.4 });
+          }
+          page.drawText(ln, { x: tx, y: ly, size, font, color }); ly -= size * 1.35;
+        });
         x += widths[i];
       });
       y -= h;
@@ -354,9 +401,9 @@ async function render(doc: Doc): Promise<{ bytes: Uint8Array; pages: number }> {
   // ---- cover ------------------------------------------------------------------------------------
   const cover = pdf.addPage([PW, PH]); pages.push(cover); page = cover;
   cover.drawRectangle({ x: 0, y: PH - 260, width: PW, height: 260, color: NAVY });
-  cover.drawText('QUOTESDONE', { x: M, y: PH - 80, size: 26, font: B, color: WHITE });
-  cover.drawRectangle({ x: M, y: PH - 92, width: 70, height: 3, color: TEAL });
-  cover.drawText('Corporate report', { x: M, y: PH - 116, size: 11, font: F, color: rgb(0.82, 0.87, 0.9) });
+  wordmark(cover, M, PH - 52, 46);
+  cover.drawRectangle({ x: M, y: PH - 108, width: 70, height: 2, color: GOLD });
+  cover.drawText('Corporate report', { x: M, y: PH - 124, size: 11, font: F, color: rgb(0.82, 0.87, 0.9) });
   y = PH - 160;
   for (const ln of wrap(clean(doc.title), 22, PW - 2 * M, B)) { cover.drawText(ln, { x: M, y, size: 22, font: B, color: WHITE }); y -= 30; }
   y = PH - 300;
@@ -366,7 +413,7 @@ async function render(doc: Doc): Promise<{ bytes: Uint8Array; pages: number }> {
     y -= 10; cover.drawRectangle({ x: M, y: y - 4, width: 3, height: 14, color: TEAL }); cover.drawText('SUMMARY', { x: M + 10, y, size: 8, font: B, color: MUT }); y -= 18;
     for (const ln of wrap(clean(doc.summary), 10.5, PW - 2 * M, F).slice(0, 14)) { cover.drawText(ln, { x: M, y, size: 10.5, font: F, color: INK }); y -= 15; }
   }
-  cover.drawText('Confidential — QuotesDone', { x: M, y: FOOTER_H - 14, size: 8, font: F, color: MUT });
+  footer(cover);
 
   // ---- table of contents (reserved page, filled after layout) -------------------------------------
   const wantToc = doc.sections.length >= 3;

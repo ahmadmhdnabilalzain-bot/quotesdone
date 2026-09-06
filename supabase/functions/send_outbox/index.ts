@@ -18,7 +18,11 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function tmplRow(n: string) { try { const { data } = await admin.from('templates').select('content').eq('name', n).maybeSingle(); return (data?.content as string) || ''; } catch { return ''; } }
 function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#0d9488">$1</a>'); }
+// BRAND (6 Sep 2026): the founder's kit is on file (public.company_brand). Wordmark = navy "Quotes" + teal
+// "Done" as in the on-white lockup; links and headings use teal-deep #0B8276, the shade that passes WCAG AA
+// on white (brand teal #14B8A6 is 2.5:1 there — an accent, never text). The old #0d9488 was Tailwind's, not ours.
+const LINK = '#0B8276';
+function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + LINK + '">$1</a>'); }
 
 // Observability -------------------------------------------------------------
 const T0 = Date.now();
@@ -51,7 +55,7 @@ function renderBody(raw: string) {
     if (/^[=\-_]{3,}$/.test(t)) { continue; }
     if (/^\s*[-•*]\s+/.test(t)) { if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0">'; inList = true; } html += '<li style="margin:3px 0;font-size:15px;line-height:1.55">' + linkify(esc(t.replace(/^\s*[-•*]\s+/, ''))) + '</li>'; continue; }
     closeList();
-    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:#0d9488;text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
+    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:' + LINK + ';text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
     html += '<p style="margin:0 0 9px;font-size:15px;line-height:1.6;color:#1f2937">' + linkify(esc(t)) + '</p>';
   }
   closeList();
@@ -64,10 +68,10 @@ function tmpl(opts: { body: string; logo: string; name: string; title: string; c
   if (wrapper && wrapper.indexOf('{{BODY}}') >= 0) {
     return wrapper.split('{{LOGO}}').join(logoTag).split('{{BODY}}').join(esc(body)).split('{{NAME}}').join(esc(name)).split('{{TITLE}}').join(esc(title)).split('{{REPLY}}').join(esc(channelEmail)).split('{{UNSUB}}').join(unsubLine);
   }
-  const header = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${logoTag}<div style="font-weight:800;font-size:18px;color:#0d9488">Quotes<span style="color:#111827">Done</span></div>${internal ? '<div style="margin-left:auto;font-size:11px;font-weight:700;color:#6b7280;background:#f1f5f4;border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px">INTERNAL</div>' : ''}</div>`;
+  const header = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${logoTag}<div style="font-weight:800;font-size:18px;color:#0C2330">Quotes<span style="color:#14B8A6">Done</span></div>${internal ? '<div style="margin-left:auto;font-size:11px;font-weight:700;color:#6b7280;background:#f1f5f4;border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px">INTERNAL</div>' : ''}</div>`;
   const titleBlock = (internal && subject) ? `<h2 style="margin:14px 0 12px;font-size:19px;line-height:1.3;color:#0f172a">${esc(subject)}</h2>` : '';
   const content = internal ? renderBody(body) : `<div style="font-size:15px;line-height:1.6;white-space:pre-wrap">${esc(body)}</div>`;
-  const sig = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eef0f2;font-size:13px;color:#374151;line-height:1.55"><div style="font-weight:700;color:#111827">${esc(name)}</div><div>${esc(title)}, QuotesDone</div><div style="color:#6b7280;margin-top:2px">${esc(channelEmail)} &middot; <a href="https://quotesdone.com" style="color:#0d9488;text-decoration:none">quotesdone.com</a></div></div>`;
+  const sig = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eef0f2;font-size:13px;color:#374151;line-height:1.55"><div style="font-weight:700;color:#0C2330">${esc(name)}</div><div>${esc(title)}, QuotesDone</div><div style="color:#6b7280;margin-top:2px">${esc(channelEmail)} &middot; <a href="https://quotesdone.com" style="color:${LINK};text-decoration:none">quotesdone.com</a></div></div>`;
   const footer = internal
     ? `<div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:14px">QuotesDone OS &middot; internal operations report &middot; Dubai, UAE<br>You're receiving this because you're an administrator of QuotesDone.</div>`
     : `<div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:14px">QuotesDone &middot; Dubai, UAE<br>You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.${unsubLine}</div>`;
