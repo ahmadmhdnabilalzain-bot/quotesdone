@@ -1642,17 +1642,6 @@ scripts/sql/fn_org_task_assign_rehomes_a_merged_department.sql
 scripts/sql/founder_command_retired_ritual_reply.sql
 scripts/sql/held_rows_go_to_their_owners_data.sql
 scripts/sql/the_action_sweep_is_registered_for_the_scenario_door.sql
-$p
-;
-};
-done;
-tail
--8
-scripts/sql/MANIFEST.txt
--s
-true
--e
-0
 scripts/sql/fn_ws_agent_ops_queue_names_its_holder.sql
 scripts/sql/fn_exec_meeting_requests_name_the_holding_role.sql
 scripts/sql/fn_agent_context_workload_names_the_holding_role.sql
