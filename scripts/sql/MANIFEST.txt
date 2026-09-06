@@ -1679,3 +1679,4 @@ scripts/sql/knowledge_review_dates_follow_source_freshness.sql
 scripts/sql/decay_opens_a_task_for_its_own_quarantine_only.sql
 scripts/sql/governance_stale_counts_employees_not_personas.sql
 scripts/sql/fn_agent_context_both_overloads_are_canonical.sql
+scripts/sql/decay_opens_a_task_for_its_own_quarantine_only_ownership_ledger.sql
