@@ -245,9 +245,12 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   return { matches: landedIds.length, routing };
 }
 
-type Cfg = { promo_until: string | null; promo_reveal_rate: number; promo_reveal_cap: number; standard_reveal_rate: number; standard_reveal_cap: number; refund_window_working_days: number };
-async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { promo_until: null, promo_reveal_rate: 0.02, promo_reveal_cap: 250, standard_reveal_rate: 0.02, standard_reveal_cap: 250, refund_window_working_days: 3 }; }
-function revealFee(amount: number, cfg: Cfg, at: Date = new Date()): number { if (!amount || amount <= 0) return 0; const promo = !!cfg.promo_until && at <= new Date(cfg.promo_until); const rate = Number(promo ? cfg.promo_reveal_rate : cfg.standard_reveal_rate); const cap = Number(promo ? cfg.promo_reveal_cap : cfg.standard_reveal_cap); return Math.min(Math.round(amount * rate * 100) / 100, cap); }
+type Cfg = { standard_reveal_rate: number; refund_window_working_days: number };
+async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { standard_reveal_rate: 0.03, refund_window_working_days: 3 }; }
+// 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
+// and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
+// pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
+function revealFee(amount: number, cfg: Cfg): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
 function ratingOf(l: Record<string, any>) { const appN = Number(l.app_reviews || 0); if (appN > 0) return { value: l.app_rating != null ? Number(l.app_rating) : null, count: appN, source: 'QuotesDone' }; const g = l.rating ?? l.rating_maps; const gn = l.reviews ?? l.reviews_maps; return { value: g != null ? Number(g) : null, count: gn != null ? Number(gn) : 0, source: 'Google' }; }
 function band(n: number) { n = Number(n || 0); if (n < 1000) return '< AED 1k'; if (n < 5000) return 'AED 1–5k'; if (n < 20000) return 'AED 5–20k'; if (n < 50000) return 'AED 20–50k'; return 'AED 50k+'; }
 // PRE-REVEAL FINGERPRINT (27 Jul 2026). my_inquiries used to return the supplier's exact rating,
@@ -921,7 +924,8 @@ Deno.serve(async (req) => {
       // the wire only where nothing was listening, and CustomerPortal fell back to
       // localStorage['qd-lang'] and the NEXT_LOCALE cookie. A customer who set Arabic on one device
       // got English on the next, and the Arabic journey exercised a path the portal could not reach.
-      return J({ inquiries: out, locale: cust.locale || null, promo: !!cfg.promo_until && new Date() <= new Date(cfg.promo_until) });
+      // promo is always false: there is no promotional reveal rate (founder, 6 Sep 2026); the key stays so no reader breaks.
+      return J({ inquiries: out, locale: cust.locale || null, promo: false });
     }
 
     if (action === 'compare_pdf') {
