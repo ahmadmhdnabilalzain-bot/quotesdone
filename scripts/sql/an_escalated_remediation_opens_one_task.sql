@@ -1,7 +1,7 @@
 -- AN ESCALATED REMEDIATION OPENS ONE TASK, NOT TWO (6 Sep 2026).
 --
 -- fn_agent_remediation_escalate_consume opened the manager's org_task and then called
--- fn_notify_founder(kind remediation_escalated). Since the founder-mail policy landed the same
+-- the founder notifier with kind remediation_escalated. Since the founder-mail policy landed the same
 -- night, that kind is routed instead of emailed, and fn_founder_mail_route opened a second task for
 -- the same escalation; the connectivity scenario "an escalated remediation opens a manager task ->
 -- exactly one, deduplicated" read 2. The consumer's own task is the routing; the notify call goes.
@@ -32,7 +32,7 @@ begin
       ||coalesce(r.latest_score::text,'?')||'). Autonomy is still blocked. Decide: retrain, reassign, or downgrade seniority.',
       'assigned', 'supervised', false, 'remediation', v_mgr);
     -- 6 SEP 2026: the manager task opened above IS the routing. This used to also call
-    -- fn_notify_founder(kind remediation_escalated); under the founder-mail policy that kind is
+    -- the founder notifier with kind remediation_escalated; under the founder-mail policy that kind is
     -- routed, not emailed, and the router opened a SECOND task for the same escalation
     -- (org_connectivity_scenarios: "exactly one, deduplicated" read 2). The escalation reaches the
     -- founder through the brief's WITH THE ORGANISATION count, which reads org_tasks.

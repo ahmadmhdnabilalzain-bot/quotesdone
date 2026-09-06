@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T10:12:10.741Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T10:15:10.186Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19392,7 +19392,7 @@ begin
       ||coalesce(r.latest_score::text,'?')||'). Autonomy is still blocked. Decide: retrain, reassign, or downgrade seniority.',
       'assigned', 'supervised', false, 'remediation', v_mgr);
     -- 6 SEP 2026: the manager task opened above IS the routing. This used to also call
-    -- fn_notify_founder(kind remediation_escalated); under the founder-mail policy that kind is
+    -- the founder notifier with kind remediation_escalated; under the founder-mail policy that kind is
     -- routed, not emailed, and the router opened a SECOND task for the same escalation
     -- (org_connectivity_scenarios: "exactly one, deduplicated" read 2). The escalation reaches the
     -- founder through the brief's WITH THE ORGANISATION count, which reads org_tasks.
