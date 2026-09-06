@@ -1,0 +1,8 @@
+PHASE_D_RULE_GATE_RESULT.csv — 86 rows (54 rules + 32 gates)
+  rules ENFORCED                      54
+  rules OUTSTANDING                   0
+  rules FAILING on empty context      34
+  gates ENFORCED                      32
+  gates BLOCKING on empty evidence    29
+  gates PASSING on empty evidence     3  (measured; need no caller evidence)
+  enforcement points NAMED_BUT_ABSENT 0

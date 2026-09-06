@@ -1,0 +1,5 @@
+import { sql } from '../phase_b/lib/db.mjs';
+const q=async(l,s)=>{try{console.log('\n=== '+l);console.log(JSON.stringify(await sql(s),null,1));}catch(e){console.log('\n=== '+l+' ERR '+e.message);}};
+await q('fn_phase_c_founder_subject_bind', `select p.oid::regprocedure::text sig, pg_get_functiondef(p.oid) def from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like '%founder_subject_bind%'`);
+await q('refunds rows + decision rows', `select (select count(*) from public.refunds) refunds, (select count(*) from public.phase_c_refund_decision) decisions, (select count(*) from public.phase_c_founder_approval) approvals`);
+await q('grants on fn_phase_c_founder_subject_bind', `select p.proname, array_agg(distinct a.grantee) as grantees from pg_proc p join pg_namespace n on n.oid=p.pronamespace, lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) g, lateral (select pg_get_userbyid(g.grantee) as grantee) a where n.nspname='public' and p.proname in ('fn_phase_c_founder_subject_bind','fn_phase_c_require_founder') group by 1`);

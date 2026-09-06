@@ -1,0 +1,14 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_fixture_output(p_step_id text, p_field_key text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+AS $function$
+  select c.value
+    from public.phase_d_fixture_catalogue c
+   where c.scope = 'HANDLER_OUTPUT'
+     and c.field_key = p_field_key
+     and (c.step_id = p_step_id or c.step_id is null)
+   order by (c.step_id is null), c.fixture_version desc, c.fixture_id
+   limit 1;
+$function$

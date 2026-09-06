@@ -1,0 +1,209 @@
+
+DEPLOY PARITY — 202 function(s), every function in the repo
+checking: production htdblwldjkcgjvmqkbeh
+
+about                    sigs= 2  production=LIVE
+action_worker            sigs=25  production=LIVE
+agent_act                sigs=25  production=LIVE
+agent_autogen            sigs=25  production=LIVE
+agent_brain              sigs=25  production=LIVE
+agent_learnings_report   sigs=25  production=LIVE
+agent_train              sigs=25  production=LIVE
+agents                   sigs=25  production=LIVE
+ai_gateway               sigs=25  production=LIVE
+ai_health                sigs=25  production=LIVE
+alert_founder            sigs= 9  production=LIVE
+analytics_recommend      sigs=15  production=LIVE
+apify_scrape             sigs= 8  production=LIVE
+archive_rfq              sigs=25  production=LIVE
+artifact_review          sigs=25  production=LIVE
+asset_delete             sigs= 3  production=LIVE
+assets_ingest            sigs=19  production=LIVE
+attach_photos            sigs= 4  production=LIVE
+auth_api                 sigs= 1  production=LIVE
+backup                   sigs=14  production=LIVE
+blog_weekly              sigs=12  production=LIVE
+boost_recommend          sigs=21  production=LIVE
+boq_fixture_check        sigs=17  production=LIVE
+brand_upload             sigs= 1  production=LIVE
+cad_convert              sigs=12  production=LIVE
+canon_eval               sigs=15  production=LIVE
+capability_agent         sigs=25  production=LIVE
+category_provision       sigs=22  production=LIVE
+category_reqs            sigs=12  production=LIVE
+claim_lookup             sigs=18  production=LIVE
+collections_legal        sigs=25  production=LIVE
+compliance_archive       sigs=25  production=LIVE
+contact_submit           sigs=17  production=LIVE
+content_revise           sigs=17  production=LIVE
+copilot                  sigs=18  production=LIVE
+cos_execute              sigs=25  production=LIVE
+cost_snapshot            sigs=25  production=LIVE
+customer_api             sigs=25  production=LIVE
+customer_documents       sigs=25  production=LIVE
+customer_intelligence    sigs=18  production=LIVE
+customer_portal          sigs=25  production=LIVE
+deploy_next_preview      sigs=11  production=LIVE
+dept_learn               sigs=23  production=LIVE
+dept_plan                sigs=25  production=LIVE
+designer                 sigs=22  production=LIVE
+dev_login                sigs= 1  production=LIVE
+dir_ingest               sigs= 5  production=LIVE
+dispatch_inquiry         sigs=25  production=LIVE
+doc_extract              sigs=25  production=LIVE
+doc_reminder             sigs=15  production=LIVE
+doc_render               sigs=17  production=LIVE
+dr_drill                 sigs=25  production=LIVE
+drawing_boq              sigs=10  production=LIVE
+drawing_redact           sigs=22  production=LIVE
+dropbox_backup           sigs=25  production=LIVE
+dropbox_oauth            sigs=25  production=LIVE
+dropbox_sync             sigs=24  production=LIVE
+ea_meeting_summary       sigs= 8  production=LIVE
+email_cron               sigs=19  production=LIVE
+email_fix                sigs= 5  production=LIVE
+email_triage             sigs= 8  production=LIVE
+embed_leads              sigs=17  production=LIVE
+enrich_capability        sigs=25  production=LIVE
+exec_agents              sigs=25  production=LIVE
+export_all_knowledge     sigs=22  production=LIVE
+export_cat_knowledge     sigs=15  production=LIVE
+export_leads_csv         sigs=11  production=LIVE
+extract_text             sigs=12  production=LIVE
+faq                      sigs=21  production=LIVE
+finance_doc              sigs=13  production=LIVE
+finance_ingest           sigs=16  production=LIVE
+gen_category_knowledge   sigs=25  production=LIVE
+gen_category_personas    sigs=24  production=LIVE
+github_sync              sigs=17  production=LIVE
+home                     sigs= 2  production=LIVE
+home-ar                  sigs= 2  production=LIVE
+i18n_get                 sigs= 3  production=LIVE
+inbound_email            sigs=23  production=LIVE
+inquiry_ai               sigs=25  production=LIVE
+inquiry_dedup_check      sigs= 5  production=LIVE
+inquiry_intake           sigs=25  production=LIVE
+inquiry_parse            sigs=25  production=LIVE
+intent_router            sigs=19  production=LIVE
+kb_autofill_gaps         sigs=21  production=LIVE
+kb_corpus_import         sigs=22  production=LIVE
+kb_deepen                sigs=24  production=LIVE
+kb_embed                 sigs=14  production=LIVE
+kb_fill_gap              sigs=14  production=LIVE
+kb_import                sigs= 9  production=LIVE
+kb_ingest                sigs=25  production=LIVE
+kb_ingest_text           sigs= 5  production=LIVE
+kb_research_test         sigs=10  production=LIVE
+kb_retrieve              sigs= 1  production=LIVE
+kb_search                sigs= 4  production=LIVE
+knowledge_exam           sigs=25  production=LIVE
+kyc                      sigs=25  production=LIVE
+learn_gaps               sigs=25  production=LIVE
+legal                    sigs=22  production=LIVE
+legal_ingest             sigs= 3  production=LIVE
+legal_review             sigs=14  production=LIVE
+licence_reminder         sigs= 1  production=LIVE
+license_extract          sigs=10  production=LIVE
+login_otp                sigs=25  production=LIVE
+make_pdf                 sigs= 8  production=LIVE
+make_xlsx                sigs= 6  production=LIVE
+marketing_draft          sigs=22  production=LIVE
+marketing_image          sigs=12  production=LIVE
+match                    sigs=23  production=LIVE
+match_eval               sigs=25  production=LIVE
+messages_api             sigs=25  production=LIVE
+meta_ads                 sigs=15  production=LIVE
+meta_sync                sigs=25  production=LIVE
+mobile_otp               sigs=13  production=LIVE
+money_tests              sigs=25  production=LIVE
+negotiation_assistant    sigs=17  production=LIVE
+orchestrate              sigs= 1  production=LIVE
+os_api                   sigs=25  production=LIVE
+os_automation            sigs=12  production=LIVE
+os_catalog               sigs=14  production=LIVE
+os_health                sigs= 9  production=LIVE
+os_incidents             sigs=11  production=LIVE
+os_ops                   sigs=25  production=LIVE
+os_pages                 sigs=25  production=LIVE
+os_settings              sigs=11  production=LIVE
+pdf_native               sigs=25  production=LIVE
+pdpl_erase               sigs=16  production=LIVE
+pdpl_request             sigs= 9  production=LIVE
+pending_digest           sigs=10  production=LIVE
+portal                   sigs= 2  production=LIVE
+postiz_publish           sigs=14  production=LIVE
+procurement_api          sigs=20  production=LIVE
+profile_ai               sigs=12  production=LIVE
+project_api              sigs=15  production=LIVE
+project_consultant       sigs=16  production=LIVE
+prompt_gate              sigs=19  production=LIVE
+prompt_improve           sigs=18  production=LIVE
+public_stats             sigs= 5  production=LIVE
+push_src_to_github       sigs=18  production=LIVE
+put_src                  sigs= 4  production=LIVE
+qa_api                   sigs=22  production=LIVE
+qa_login                 sigs= 1  production=LIVE
+qa_mint                  sigs= 4  production=LIVE
+qa_suite                 sigs=25  production=LIVE
+quote_compare            sigs=25  production=LIVE
+quote_extract            sigs=17  production=LIVE
+quote_pdf                sigs=15  production=LIVE
+quote_quality            sigs= 5  production=LIVE
+quote_review             sigs=11  production=LIVE
+rate_dims                sigs=12  production=LIVE
+reflect                  sigs= 9  production=LIVE
+refund_flow              sigs= 8  production=LIVE
+refunds_api              sigs=25  production=LIVE
+reg_fetch                sigs=10  production=LIVE
+report_body              sigs= 8  production=LIVE
+resend_inbound           sigs=25  production=LIVE
+resend_webhook           sigs=25  production=LIVE
+resilience_ping          sigs= 9  production=LIVE
+retention_purge          sigs=14  production=LIVE
+reveal_invoice           sigs=25  production=LIVE
+rfq_flag                 sigs=18  production=LIVE
+role_guard               sigs=12  production=LIVE
+route_inquiry            sigs=25  production=LIVE
+secretary_act            sigs=25  production=LIVE
+send_outbox              sigs=25  production=LIVE
+send_sms                 sigs=16  production=LIVE
+send_whatsapp            sigs=25  production=LIVE
+seo_gen                  sigs= 8  production=LIVE
+site_assistant           sigs=24  production=LIVE
+site_deploy              sigs=25  production=LIVE
+social_stage             sigs=25  production=LIVE
+src_io                   sigs= 1  production=LIVE
+stripe_checkout          sigs=25  production=LIVE
+stripe_confirm           sigs=25  production=LIVE
+stripe_setup             sigs=25  production=LIVE
+stripe_setup_page        sigs= 6  production=LIVE
+stripe_webhook           sigs=25  production=LIVE
+sup_dob                  sigs= 4  production=LIVE
+supplier_ack             sigs=14  production=LIVE
+supplier_api             sigs=25  production=LIVE
+supplier_catalog_ingest  sigs=23  production=LIVE
+supplier_onboard         sigs=20  production=LIVE
+supplier_pay             sigs=25  production=LIVE
+supplier_portal          sigs=25  production=LIVE
+supplier_review          sigs=22  production=LIVE
+support_ai               sigs= 1  production=LIVE
+sync_src_from_github     sigs=16  production=LIVE
+transcribe               sigs=10  production=LIVE
+translate_html           sigs= 5  production=LIVE
+translate_page           sigs=10  production=LIVE
+unsubscribe              sigs=14  production=LIVE
+uptime_check             sigs=18  production=LIVE
+vercel_status            sigs= 5  production=LIVE
+video_produce            sigs=23  production=LIVE
+voice_otp                sigs= 1  production=LIVE
+voice_otp_capture        sigs= 4  production=LIVE
+vt_scan                  sigs=15  production=LIVE
+wa_inbound               sigs=25  production=LIVE
+wa_optin_set             sigs= 5  production=LIVE
+wa_template_setup        sigs=18  production=LIVE
+wa_templates_watch       sigs=25  production=LIVE
+workflow_dispatch        sigs=25  production=LIVE
+yello_scrape             sigs=15  production=LIVE
+
+================================================================================================
+DEPLOY PARITY OK — 202 function(s) carry the repo's current code on production

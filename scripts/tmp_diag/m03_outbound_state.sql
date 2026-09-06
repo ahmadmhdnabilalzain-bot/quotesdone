@@ -1,0 +1,172 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_outbound_state()
+ RETURNS TABLE(check_name text, expected text, actual text, state text, detail text)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with recursive pd_rel as (
+  select distinct b.canonical_relation as relation
+    from public.phase_d_business_object_binding b
+   where b.relation_kind = 'EXISTING_TABLE'
+),
+-- M03. THE SCAN WAS DIRECT-ONLY, SO A DOOR ONE CALL DEEP WAS INVISIBLE TO ITS OWN DENOMINATOR.
+-- This matched net.http_post in the TRIGGER FUNCTION's own body. public.leads carries
+-- trg_self_reg_category, whose body posts nothing and calls fn_provision_category_call, which
+-- posts to /functions/v1/category_provision. The board reported 4 of 4 registered and green while
+-- a fifth door existed that it could not see -- an instrument reporting on a narrower subject than
+-- its name claims. Measured 23 Aug 2026 across all 345 public triggers. Reachability is now the
+-- transitive closure over public routines, so a helper, and a helper's helper, counts as the door
+-- it is.
+poster as (
+  select p.oid, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosrc ~* 'net[.]http_(post|get)'
+),
+reach as (
+  select p.oid, p.proname from poster p
+  union
+  select q.oid, q.proname
+    from pg_proc q
+    join pg_namespace nq on nq.oid = q.pronamespace
+    join reach r on q.prosrc ~ ('m' || r.proname || '[[:space:]]*[(]')
+   where nq.nspname = 'public' and q.oid <> r.oid
+),
+scanned as (
+  select 'public.' || c.relname as relation, tg.tgname as trigger_name, p.proname as function_name,
+         pg_get_triggerdef(tg.oid) as triggerdef
+    from pg_trigger tg
+    join pg_proc  p on p.oid = tg.tgfoid
+    join pg_class c on c.oid = tg.tgrelid
+    join pg_namespace n on n.oid = c.relnamespace
+   where not tg.tgisinternal and n.nspname = 'public'
+     and p.oid in (select oid from reach)
+     and ('public.' || c.relname) in (select relation from pd_rel)
+),
+sup as (select * from public.phase_d_outbound_door where disposition = 'SUPPRESSED_BY_ITS_OWN_GUARD'),
+unr as (select * from public.phase_d_outbound_door where disposition = 'NOT_REACHED_BY_ANY_PHASE_D_WRITE_MAP')
+
+-- 1. THE DENOMINATOR. Every outbound trigger the live scan finds on a Phase D canonical relation
+--    must be registered. A new one appearing turns this red instead of quietly re-opening the door.
+select 'every_outbound_trigger_on_a_phase_d_relation_is_registered',
+       (select count(*)::text from scanned),
+       (select count(*)::text from scanned s
+         join public.phase_d_outbound_door d
+           on d.relation = s.relation and d.trigger_name = s.trigger_name),
+       case when (select count(*) from scanned)
+               = (select count(*) from scanned s join public.phase_d_outbound_door d
+                    on d.relation = s.relation and d.trigger_name = s.trigger_name)
+            then 'GREEN' else 'RED' end,
+       coalesce((select string_agg(s.relation || '.' || s.trigger_name, ', ')
+                   from scanned s
+                  where not exists (select 1 from public.phase_d_outbound_door d
+                                     where d.relation = s.relation and d.trigger_name = s.trigger_name)),
+                'every scanned outbound trigger is registered')
+
+union all
+select 'no_registered_door_names_a_trigger_that_does_not_exist',
+       '0',
+       (select count(*)::text from public.phase_d_outbound_door d
+         where not exists (select 1 from scanned s
+                            where s.relation = d.relation and s.trigger_name = d.trigger_name)),
+       case when exists (select 1 from public.phase_d_outbound_door d
+                          where not exists (select 1 from scanned s
+                                             where s.relation = d.relation and s.trigger_name = d.trigger_name))
+            then 'RED' else 'GREEN' end,
+       'a registry row for a trigger that is gone would suppress a column for no reason'
+
+-- 2. SUPPRESSED DOORS. The guard column must be real and must be declared in the write map, or the
+--    writer cannot set it and the suppression is a comment rather than a mechanism.
+union all
+select 'every_guard_column_exists_on_its_relation',
+       (select count(*)::text from sup),
+       (select count(*)::text from sup d
+         join pg_attribute a on a.attrelid = d.relation::regclass
+                            and a.attname = d.guard_column and a.attnum > 0 and not a.attisdropped),
+       case when (select count(*) from sup)
+               = (select count(*) from sup d
+                    join pg_attribute a on a.attrelid = d.relation::regclass
+                                       and a.attname = d.guard_column and a.attnum > 0 and not a.attisdropped)
+            then 'GREEN' else 'RED' end,
+       'a guard column the relation does not have cannot suppress anything'
+
+union all
+select 'every_guard_column_is_declared_in_the_write_map',
+       (select count(*)::text from sup),
+       (select count(*)::text
+          from sup d
+          join public.phase_d_object_write_map wm on wm.target_relation = d.relation
+         where wm.column_map ? d.guard_column),
+       case when (select count(*) from sup)
+               = (select count(*) from sup d
+                    join public.phase_d_object_write_map wm on wm.target_relation = d.relation
+                   where wm.column_map ? d.guard_column)
+            then 'GREEN' else 'RED' end,
+       'the writer may only touch a column the map declares; a suppression behind the map''s back is the defect this check exists for'
+
+union all
+select 'suppression_expression_is_evaluated_not_a_literal',
+       (select count(*)::text from sup),
+       (select count(*)::text from sup d where d.suppression_sql ~ '^[a-z_]+\('),
+       case when (select count(*) from sup)
+               = (select count(*) from sup d where d.suppression_sql ~ '^[a-z_]+\(')
+            then 'GREEN' else 'RED' end,
+       'each suppression is a function call the writer evaluates at write time, so now() is the write''s own clock'
+
+-- 3. UNREACHABLE DOORS. "No Phase D write can reach this" is a claim, and these two checks are what
+--    make it checkable. The named column must actually appear in the trigger's own definition, and
+--    it must NOT be declared in the relation's write map. Add that column to a write map and this
+--    goes red on the next board run rather than silently opening a door.
+union all
+select 'every_unreachable_reason_names_a_column_its_trigger_actually_tests',
+       (select count(*)::text from unr),
+       (select count(*)::text from unr d join scanned s
+          on s.relation = d.relation and s.trigger_name = d.trigger_name
+         where s.triggerdef ilike '%' || d.unreachable_because_column || '%'),
+       case when (select count(*) from unr)
+               = (select count(*) from unr d join scanned s
+                    on s.relation = d.relation and s.trigger_name = d.trigger_name
+                   where s.triggerdef ilike '%' || d.unreachable_because_column || '%')
+            then 'GREEN' else 'RED' end,
+       'a reason that quotes a column the trigger never mentions is not a reason'
+
+union all
+select 'no_unreachable_door_has_become_reachable_through_the_write_map',
+       '0',
+       (select count(*)::text
+          from unr d join public.phase_d_object_write_map wm on wm.target_relation = d.relation
+         where wm.column_map ? d.unreachable_because_column),
+       case when exists (select 1 from unr d
+                           join public.phase_d_object_write_map wm on wm.target_relation = d.relation
+                          where wm.column_map ? d.unreachable_because_column)
+            then 'RED' else 'GREEN' end,
+       coalesce((select string_agg(d.relation || '.' || d.trigger_name || ' via ' || d.unreachable_because_column, ', ')
+                   from unr d join public.phase_d_object_write_map wm on wm.target_relation = d.relation
+                  where wm.column_map ? d.unreachable_because_column),
+                'no write map declares a column that would arm a door recorded as unreachable')
+
+-- 4. THE BACKSTOP IS STILL IN THE WRITER. If this goes red the suppression registry is decoration.
+union all
+select 'the_canonical_writer_still_counts_the_outbound_queue',
+       '1',
+       (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = 'fn_phase_d_object_write'
+           and p.prosrc like '%pd_object_outbound_request_produced%'
+           and p.prosrc like '%fn_phase_d_outbound_requests_by_this_transaction%'),
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                          where n.nspname = 'public' and p.proname = 'fn_phase_d_object_write'
+                            and p.prosrc like '%pd_object_outbound_request_produced%'
+                            and p.prosrc like '%fn_phase_d_outbound_requests_by_this_transaction%')
+            then 'GREEN' else 'RED' end,
+       'the registry closes the two doors that fire; the writer''s count is what catches a door nobody registered'
+
+union all
+select 'the_fixture_scenario_aborts_rather_than_recording_a_blocked_stage',
+       '1',
+       (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = 'fn_phase_d_fixture_scenario'
+           and p.prosrc like '%pd_object_outbound_request_produced%'),
+       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                          where n.nspname = 'public' and p.proname = 'fn_phase_d_fixture_scenario'
+                            and p.prosrc like '%pd_object_outbound_request_produced%')
+            then 'GREEN' else 'RED' end,
+       'the per-stage handler catches everything; without this the refusal is swallowed into a blocked stage and error and empty return the same value'
+$function$

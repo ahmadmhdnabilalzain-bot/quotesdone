@@ -1,0 +1,4 @@
+success the Phase D handler gate, against production
+success every declared component is in the committed crosswalk (no credential needed)
+success the Phase C kernel gate, against production
+success the database is running what this repository says

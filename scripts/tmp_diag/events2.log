@@ -1,0 +1,97 @@
+-- 1/30 W02
+-- 2/30 W03
+-- 3/30 W04
+-- 4/30 W01
+-- 5/30 W05
+-- 6/30 W06
+-- 7/30 W07
+-- 8/30 W08
+-- 9/30 W09
+-- 10/30 W10
+-- 11/30 W11
+-- 12/30 W12
+-- 13/30 W13
+-- 14/30 W14
+-- 15/30 W15
+-- 16/30 W16
+-- 17/30 W17
+-- 18/30 W18
+-- 19/30 W19
+-- 20/30 W20
+-- 21/30 W21
+-- 22/30 W22
+-- 23/30 W23
+-- 24/30 W24
+-- 25/30 W25
+-- 26/30 W26
+-- 27/30 W27
+-- 28/30 W28
+-- 29/30 W29
+-- 30/30 W30
+
+frozen events in the register        347
+observed in the outbox, this run     347
+observed in the outbox, cumulative   347 of 347
+emitted ids not in the register      0
+
+per arm:
+  W02 PASS completed
+  W03 PASS completed
+  W02 FAIL blocked
+  W01 PASS completed
+  W03 FAIL blocked
+  W04 PASS completed
+  W04 FAIL blocked
+  W05 PASS completed
+  W01 FAIL blocked
+  W05 FAIL blocked
+  W06 PASS completed
+  W07 PASS completed
+  W08 PASS completed
+  W06 FAIL blocked
+  W07 FAIL blocked
+  W08 FAIL blocked
+  W09 PASS completed
+  W10 PASS completed
+  W11 PASS completed
+  W09 FAIL blocked
+  W10 FAIL blocked
+  W11 FAIL blocked
+  W12 PASS completed
+  W13 PASS completed
+  W12 FAIL blocked
+  W13 FAIL blocked
+  W14 PASS completed
+  W15 PASS completed
+  W16 PASS completed
+  W14 FAIL blocked
+  W15 FAIL blocked
+  W16 FAIL blocked
+  W17 PASS completed
+  W18 PASS completed
+  W17 FAIL blocked
+  W19 PASS completed
+  W18 FAIL blocked
+  W20 PASS completed
+  W19 FAIL blocked
+  W21 PASS completed
+  W20 FAIL blocked
+  W22 PASS completed
+  W21 FAIL blocked
+  W23 PASS completed
+  W22 FAIL blocked
+  W24 PASS completed
+  W23 FAIL blocked
+  W25 PASS completed
+  W24 FAIL blocked
+  W26 PASS completed
+  W25 FAIL blocked
+  W27 PASS completed
+  W26 FAIL blocked
+  W28 PASS completed
+  W29 PASS completed
+  W27 FAIL blocked
+  W28 FAIL blocked
+  W29 FAIL blocked
+  W30 PASS completed
+  W30 FAIL blocked

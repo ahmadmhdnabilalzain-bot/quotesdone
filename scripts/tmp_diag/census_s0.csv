@@ -1,0 +1,309 @@
+workflow_id,step_id,outcome,refusal_code,ids,reason
+W01,W01-S01,REFUSED,pd_rule_refused,BR-003,fn_phase_d_handler_execute: step W01-S01 refused by 1 hard business ru
+W01,W01-S01,EXECUTED,,,
+W01,W01-S02,EXECUTED,,,
+W01,W01-S03,REFUSED,pd_effect_check_violated,,"new row for relation ""department_objective"" violates check constraint "
+W01,W01-S04,EXECUTED,,,
+W01,W01-S05,EXECUTED,,,
+W01,W01-S06,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W01-S06 names founder as its independent
+W01,W01-S07,REFUSED,pd_effect_check_violated,,"new row for relation ""org_tasks"" violates check constraint ""org_tasks_"
+W01,W01-S08,EXECUTED,,,
+W02,W02-S01,EXECUTED,,,
+W02,W02-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W02-S02 is a review step and no inter
+W02,W02-S02,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W02-S02 is accountable to data_intelli
+W02,W02-S03,EXECUTED,,,
+W02,W02-S04,EXECUTED,,,
+W02,W02-S05,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W02-S05 depends on capability REASONI
+W02,W02-S05,EXECUTED,,,
+W02,W02-S06,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W02-S06 names strategy_director as its i
+W02,W02-S07,EXECUTED,,,
+W02,W02-S08,EXECUTED,,,
+W02,W02-S09,EXECUTED,,,
+W03,W03-S01,EXECUTED,,,
+W03,W03-S02,EXECUTED,,,
+W03,W03-S03,EXECUTED,,,
+W03,W03-S04,EXECUTED,,,
+W03,W03-S05,EXECUTED,,,
+W03,W03-S06,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W03-S06 blocked by 1 hard gate(s), ev"
+W03,W03-S07,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W03-S07 blocked by 1 hard gate(s), ev"
+W03,W03-S08,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W03-S08 blocked by 1 hard gate(s), ev"
+W03,W03-S09,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W03-S09 blocked by 1 hard gate(s), ev"
+W04,W04-S01,REFUSED,pd_object_no_state_change,,fn_phase_d_object_write: customer_account exists as 1c424ed1-f859-31a4
+W04,W04-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W04-S02 is a review step and no inter
+W04,W04-S02,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W04-S02 is accountable to customer_onb
+W04,W04-S03,REFUSED,pd_object_no_state_change,,fn_phase_d_object_write: customer_account exists as 1c424ed1-f859-31a4
+W04,W04-S04,REFUSED,pd_object_no_state_change,,fn_phase_d_object_write: customer_account exists as 1c424ed1-f859-31a4
+W04,W04-S05,REFUSED,pd_object_no_state_change,,fn_phase_d_object_write: customer_account exists as 1c424ed1-f859-31a4
+W04,W04-S07,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W04-S07 names customer_success_director 
+W04,W04-S06,EXECUTED,,,
+W05,W05-S01,EXECUTED,,,
+W05,W05-S02,EXECUTED,,,
+W05,W05-S03,EXECUTED,,,
+W05,W05-S04,REFUSED,pd_gate_refused,GATE-011,fn_phase_d_handler_execute: step W05-S04 refused by 1 hard gate(s): [{
+W05,W05-S05,REFUSED,pd_gate_refused,GATE-011,fn_phase_d_handler_execute: step W05-S05 refused by 1 hard gate(s): [{
+W05,W05-S06,REFUSED,pd_gate_refused,GATE-011,fn_phase_d_handler_execute: step W05-S06 refused by 1 hard gate(s): [{
+W05,W05-S07,REFUSED,pd_gate_refused,GATE-005 GATE-011,fn_phase_d_handler_execute: step W05-S07 refused by 2 hard gate(s): [{
+W05,W05-S08,REFUSED,pd_gate_refused,GATE-011,fn_phase_d_handler_execute: step W05-S08 refused by 1 hard gate(s): [{
+W05,W05-S09,REFUSED,pd_gate_refused,GATE-011,fn_phase_d_handler_execute: step W05-S09 refused by 1 hard gate(s): [{
+W06,W06-S03,EXECUTED,,,
+W06,W06-S02,EXECUTED,,,
+W06,W06-S01,EXECUTED,,,
+W06,W06-S04,EXECUTED,,,
+W06,W06-S05,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W06-S05 names inquiry_quality_analyst as
+W06,W06-S06,EXECUTED,,,
+W06,W06-S07,EXECUTED,,,
+W07,W07-S02,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W07-S02 depends on capability REASONI
+W07,W07-S01,EXECUTED,,,
+W07,W07-S03,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W07-S03 is a review step and no inter
+W07,W07-S02,EXECUTED,,,
+W07,W07-S03,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W07-S03 is accountable to document_int
+W07,W07-S04,REFUSED,pd_effect_identity_collision,,"duplicate key value violates unique constraint ""documents_bucket_path_"
+W07,W07-S05,REFUSED,pd_effect_identity_collision,,"duplicate key value violates unique constraint ""documents_bucket_path_"
+W07,W07-S06,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W07-S06 is a review step and no inter
+W07,W07-S06,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W07-S06 is accountable to document_int
+W07,W07-S08,EXECUTED,,,
+W07,W07-S07,EXECUTED,,,
+W09,W09-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W09-S02 is a review step and no inter
+W09,W09-S01,EXECUTED,,,
+W09,W09-S02,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W09-S02 is accountable to supplier_onb
+W09,W09-S03,REFUSED,pd_rule_refused,BR-025,fn_phase_d_handler_execute: step W09-S03 refused by 1 hard business ru
+W09,W09-S05,REFUSED,pd_rule_refused,BR-025,fn_phase_d_handler_execute: step W09-S05 refused by 1 hard business ru
+W09,W09-S04,EXECUTED,,,
+W09,W09-S06,REFUSED,pd_rule_refused,BR-025,fn_phase_d_handler_execute: step W09-S06 refused by 1 hard business ru
+W09,W09-S07,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W09-S07 is a review step and no inter
+W09,W09-S07,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W09-S07 is accountable to supplier_onb
+W09,W09-S09,EXECUTED,,,
+W09,W09-S08,EXECUTED,,,
+W10,W10-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W10-S02 is a review step and no inter
+W10,W10-S01,EXECUTED,,,
+W10,W10-S02,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W10-S02 is accountable to supplier_ver
+W10,W10-S03,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W10-S03 is a review step and no inter
+W10,W10-S03,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W10-S03 is accountable to supplier_ver
+W10,W10-S04,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W10-S04 depends on capability REASONI
+W10,W10-S04,EXECUTED,,,
+W10,W10-S05,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W10-S05 names risk_and_governance_manage
+W10,W10-S06,EXECUTED,,,
+W10,W10-S07,EXECUTED,,,
+W10,W10-S08,EXECUTED,,,
+W11,W11-S01,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W11-S01 depends on capability REASONI
+W11,W11-S01,EXECUTED,,,
+W11,W11-S02,EXECUTED,,,
+W11,W11-S03,EXECUTED,,,
+W11,W11-S04,EXECUTED,,,
+W11,W11-S05,EXECUTED,,,
+W11,W11-S06,EXECUTED,,,
+W11,W11-S07,EXECUTED,,,
+W12,W12-S03,EXECUTED,,,
+W12,W12-S02,EXECUTED,,,
+W12,W12-S01,EXECUTED,,,
+W12,W12-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W12-S04 is a review step and no inter
+W12,W12-S04,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W12-S04 is accountable to marketplace_
+W12,W12-S05,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W12-S05 is a review step and no inter
+W12,W12-S05,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W12-S05 is accountable to supplier_mat
+W12,W12-S06,REFUSED,pd_effect_value_malformed,,"invalid input syntax for type bigint: ""82fb7c8d-f5ac-bb84-a791-5d5f5b4"
+W12,W12-S09,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W12-S09 names marketplace_content_privac
+W12,W12-S08,EXECUTED,,,
+W12,W12-S07,EXECUTED,,,
+W13,W13-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W13-S02 is a review step and no inter
+W13,W13-S01,EXECUTED,,,
+W13,W13-S02,EXECUTED,,,
+W13,W13-S03,EXECUTED,,,
+W13,W13-S05,EXECUTED,,,
+W13,W13-S04,EXECUTED,,,
+W13,W13-S06,EXECUTED,,,
+W13,W13-S07,EXECUTED,,,
+W14,W14-S01,REFUSED,pd_rule_refused,BR-018 BR-019,fn_phase_d_handler_execute: step W14-S01 refused by 2 hard business ru
+W14,W14-S02,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S02 refused by 1 hard business ru
+W14,W14-S03,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S03 refused by 1 hard business ru
+W14,W14-S04,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S04 refused by 1 hard business ru
+W14,W14-S05,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S05 refused by 1 hard business ru
+W14,W14-S06,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S06 refused by 1 hard business ru
+W14,W14-S07,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S07 refused by 1 hard business ru
+W14,W14-S08,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S08 refused by 1 hard business ru
+W14,W14-S09,REFUSED,pd_rule_refused,BR-027,fn_phase_d_handler_execute: step W14-S09 refused by 1 hard business ru
+W15,W15-S01,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W15-S01 is a review step and no inter
+W15,W15-S01,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W15-S01 is accountable to rfq_success 
+W15,W15-S02,REFUSED,pd_effect_payload_incomplete,,"null value in column ""inquiry_id"" of relation ""quote_comparisons"" viol"
+W15,W15-S03,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W15-S03 is a review step and no inter
+W15,W15-S03,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W15-S03 is accountable to compliance_a
+W15,W15-S05,REFUSED,pd_object_append_only,,fn_phase_d_object_write: customer_selection is APPEND_ONLY (append_onl
+W15,W15-S04,EXECUTED,,,
+W15,W15-S06,REFUSED,pd_effect_payload_incomplete,,"null value in column ""inquiry_id"" of relation ""quote_comparisons"" viol"
+W15,W15-S07,EXECUTED,,,
+W15,W15-S08,REFUSED,pd_effect_payload_incomplete,,"null value in column ""inquiry_id"" of relation ""quote_comparisons"" viol"
+W15,W15-S09,EXECUTED,,,
+W16,W16-S01,REFUSED,pd_rule_refused,BR-032,fn_phase_d_handler_execute: step W16-S01 refused by 1 hard business ru
+W16,W16-S02,REFUSED,pd_rule_refused,BR-033,fn_phase_d_handler_execute: step W16-S02 refused by 1 hard business ru
+W16,W16-S01,EXECUTED,,,
+W16,W16-S03,REFUSED,pd_gate_refused,BR-020 GATE-019,fn_phase_d_handler_execute: step W16-S03 refused by 1 hard gate(s): [{
+W16,W16-S04,REFUSED,pd_gate_refused,BR-020 GATE-019,fn_phase_d_handler_execute: step W16-S04 refused by 1 hard gate(s): [{
+W16,W16-S05,REFUSED,pd_gate_refused,BR-020 GATE-019,fn_phase_d_handler_execute: step W16-S05 refused by 1 hard gate(s): [{
+W16,W16-S06,REFUSED,pd_rule_refused,BR-033,fn_phase_d_handler_execute: step W16-S06 refused by 1 hard business ru
+W16,W16-S07,REFUSED,pd_rule_refused,BR-033,fn_phase_d_handler_execute: step W16-S07 refused by 1 hard business ru
+W16,W16-S08,REFUSED,pd_rule_refused,BR-033,fn_phase_d_handler_execute: step W16-S08 refused by 1 hard business ru
+W16,W16-S09,REFUSED,pd_rule_refused,BR-033,fn_phase_d_handler_execute: step W16-S09 refused by 1 hard business ru
+W17,W17-S01,REFUSED,pd_effect_check_violated,,"new row for relation ""refunds"" violates check constraint ""refunds_stat"
+W17,W17-S02,REFUSED,pd_effect_check_violated,,"new row for relation ""refunds"" violates check constraint ""refunds_stat"
+W17,W17-S03,REFUSED,pd_effect_check_violated,,"new row for relation ""refunds"" violates check constraint ""refunds_stat"
+W17,W17-S04,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W17-S04 depends on capability REASONI
+W17,W17-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W17-S04 is a review step and no inter
+W17,W17-S04,EXECUTED,,,
+W17,W17-S05,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W17-S05 depends on capability REASONI
+W17,W17-S05,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W17-S05 is a review step and no inter
+W17,W17-S05,EXECUTED,,,
+W17,W17-S06,REFUSED,pd_effect_check_violated,,"new row for relation ""refunds"" violates check constraint ""refunds_stat"
+W17,W17-S07,REFUSED,pd_gate_refused,GATE-020,fn_phase_d_handler_execute: step W17-S07 refused by 1 hard gate(s): [{
+W17,W17-S08,REFUSED,pd_effect_check_violated,,"new row for relation ""refunds"" violates check constraint ""refunds_stat"
+W17,W17-S09,EXECUTED,,,
+W17,W17-S10,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W17-S10 is a review step and no inter
+W17,W17-S10,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W17-S10 is accountable to risk_and_gov
+W17
+W18,W18-S03,EXECUTED,,,
+W18,W18-S02,EXECUTED,,,
+W18,W18-S01,EXECUTED,,,
+W18,W18-S04,EXECUTED,,,
+W18,W18-S05,EXECUTED,,,
+W18,W18-S06,EXECUTED,,,
+W18,W18-S07,EXECUTED,,,
+W19,W19-S01,EXECUTED,,,
+W19,W19-S02,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W19-S02 depends on capability REASONI
+W19,W19-S02,EXECUTED,,,
+W19,W19-S03,EXECUTED,,,
+W19,W19-S04,EXECUTED,,,
+W19,W19-S05,EXECUTED,,,
+W19,W19-S06,EXECUTED,,,
+W19,W19-S07,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W19-S07 names marketplace_director as it
+W20,W20-S01,EXECUTED,,,
+W20,W20-S02,EXECUTED,,,
+W20,W20-S03,EXECUTED,,,
+W20,W20-S04,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W20-S04 blocked by 1 hard gate(s), ev"
+W20,W20-S05,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W20-S05 blocked by 1 hard gate(s), ev"
+W20,W20-S06,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W20-S06 blocked by 1 hard gate(s), ev"
+W20,W20-S07,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W20-S07 blocked by 1 hard gate(s), ev"
+W20,W20-S08,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-021,"fn_phase_d_handler_execute: step W20-S08 blocked by 1 hard gate(s), ev"
+W20,W20-S09,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W20-S09 names corporate_performance_dire
+W21,W21-S01,EXECUTED,,,
+W21,W21-S02,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W21-S02 depends on capability REASONI
+W21,W21-S02,EXECUTED,,,
+W21,W21-S03,EXECUTED,,,
+W21,W21-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W21-S04 is a review step and no inter
+W21,W21-S04,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W21-S04 is accountable to general_coun
+W21,W21-S05,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W21-S05 names ceo as its independent rev
+W21,W21-S06,EXECUTED,,,
+W21,W21-S07,EXECUTED,,,
+W21,W21-S08,EXECUTED,,,
+W22,W22-S01,EXECUTED,,,
+W22,W22-S02,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W22-S02 depends on capability REASONI
+W22,W22-S02,EXECUTED,,,
+W22,W22-S03,EXECUTED,,,
+W22,W22-S04,EXECUTED,,,
+W22,W22-S05,EXECUTED,,,
+W22,W22-S06,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W22-S06 is a review step and no inter
+W22,W22-S06,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W22-S06 is accountable to test_automat
+W22,W22-S07,EXECUTED,,,
+W23,W23-S02,EXECUTED,,,
+W23,W23-S01,EXECUTED,,,
+W23,W23-S03,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W23-S03 depends on capability REASONI
+W23,W23-S03,EXECUTED,,,
+W23,W23-S04,EXECUTED,,,
+W23,W23-S05,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W23-S05 is a review step and no inter
+W23,W23-S05,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W23-S05 is accountable to product_opti
+W23,W23-S06,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W23-S06 depends on capability REASONI
+W23,W23-S06,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W23-S06 is a review step and no inter
+W23,W23-S06,EXECUTED,,,
+W23,W23-S07,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W23-S07 is a review step and no inter
+W23,W23-S07,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W23-S07 is accountable to ai_quality_r
+W23,W23-S08,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W23-S08 names quality_and_release_direct
+W23,W23-S09,EXECUTED,,,
+W24,W24-S01,EXECUTED,,,
+W24,W24-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W24-S02 is a review step and no inter
+W24,W24-S02,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W24-S02 is accountable to test_automat
+W24,W24-S03,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W24-S03 is a review step and no inter
+W24,W24-S03,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W24-S03 is accountable to cybersecurit
+W24,W24-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W24-S04 is a review step and no inter
+W24,W24-S04,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W24-S04 is accountable to ai_quality_r
+W24,W24-S05,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W24-S05 is a review step and no inter
+W24,W24-S05,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W24-S05 is accountable to it_operation
+W24,W24-S06,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W24-S06 names risk_and_governance_manage
+W24,W24-S07,EXECUTED,,,
+W24,W24-S08,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W24-S08 is a review step and no inter
+W24,W24-S08,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W24-S08 is accountable to test_automat
+W24,W24-S09,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W24-S09 names quality_and_release_direct
+W24,W24-S10,EXECUTE
+W25,W25-S01,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W25-S01 depends on capability REASONI
+W25,W25-S02,EXECUTED,,,
+W25,W25-S01,EXECUTED,,,
+W25,W25-S03,EXECUTED,,,
+W25,W25-S04,EXECUTED,,,
+W25,W25-S05,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W25-S05 depends on capability REASONI
+W25,W25-S05,EXECUTED,,,
+W25,W25-S06,REFUSED,pd_output_schema_invalid,,fn_phase_d_handler_execute: step W25-S06 produced an output its own co
+W25,W25-S08,EXECUTED,,,
+W25,W25-S07,EXECUTED,,,
+W26,W26-S02,EXECUTED,,,
+W26,W26-S01,EXECUTED,,,
+W26,W26-S04,EXECUTED,,,
+W26,W26-S03,EXECUTED,,,
+W26,W26-S05,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-026,"fn_phase_d_handler_execute: step W26-S05 blocked by 1 hard gate(s), ev"
+W26,W26-S06,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-026,"fn_phase_d_handler_execute: step W26-S06 blocked by 1 hard gate(s), ev"
+W26,W26-S07,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-026,"fn_phase_d_handler_execute: step W26-S07 blocked by 1 hard gate(s), ev"
+W26,W26-S08,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-026,"fn_phase_d_handler_execute: step W26-S08 blocked by 1 hard gate(s), ev"
+W26,W26-S09,REFUSED_EVIDENCE_ABSENT,pd_evidence_absent,GATE-026,"fn_phase_d_handler_execute: step W26-S09 blocked by 1 hard gate(s), ev"
+W27,W27-S01,EXECUTED,,,
+W27,W27-S02,EXECUTED,,,
+W27,W27-S03,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W27-S03 is a review step and no inter
+W27,W27-S03,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W27-S03 is accountable to billing_oper
+W27,W27-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W27-S04 is a review step and no inter
+W27,W27-S04,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W27-S04 is accountable to accounts_pay
+W27,W27-S05,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W27-S05 is a review step and no inter
+W27,W27-S05,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W27-S05 is accountable to collections_
+W27,W27-S07,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W27-S07 is a review step and no inter
+W27,W27-S06,EXECUTED,,,
+W27,W27-S07,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W27-S07 is accountable to financial_co
+W27,W27-S08,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W27-S08 depends on capability REASONI
+W27,W27-S08,EXECUTED,,,
+W27,W27-S09,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W27-S09 depends on capability REASONI
+W27,W27-S09,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W27-S09 names risk_and_governance_manage
+W27,W27-S10,EXECUTED,,,
+W28,W28-S01,REFUSED,pd_object_payload_unmapped,,fn_phase_d_object_write: legal_risk_review supplied no column the writ
+W28,W28-S02,REFUSED,pd_object_payload_unmapped,,fn_phase_d_object_write: legal_risk_review supplied no column the writ
+W28,W28-S03,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W28-S03 depends on capability REASONI
+W28,W28-S03,EXECUTED,,,
+W28,W28-S04,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W28-S04 depends on capability REASONI
+W28,W28-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W28-S04 is a review step and no inter
+W28,W28-S04,EXECUTED,,,
+W28,W28-S05,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W28-S05 depends on capability REASONI
+W28,W28-S05,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W28-S05 is a review step and no inter
+W28,W28-S05,EXECUTED,,,
+W28,W28-S06,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W28-S06 depends on capability REASONI
+W28,W28-S06,EXECUTED,,,
+W28,W28-S07,REFUSED,pd_object_payload_unmapped,,fn_phase_d_object_write: legal_risk_review supplied no column the writ
+W28,W28-S08,EXECUTED,,,
+W28,W28-S09,EXECUTED,,,
+W29,W29-S02,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W29-S02 depends on capability REASONI
+W29,W29-S01,EXECUTED,,,
+W29,W29-S03,EXECUTED,,,
+W29,W29-S02,EXECUTED,,,
+W29,W29-S04,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W29-S04 is a review step and no inter
+W29,W29-S04,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W29-S04 is accountable to cybersecurit
+W29,W29-S05,EXECUTED,,,
+W29,W29-S06,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W29-S06 is a review step and no inter
+W29,W29-S06,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W29-S06 is accountable to quality_and_
+W29,W29-S07,EXECUTED,,,
+W29,W29-S08,EXECUTED,,,
+W29,W29-S09,EXECUTED,,,
+W29,W29-S10,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W29-S10 names risk_and_governance_manage
+W30,W30-S01,EXECUTED,,,
+W30,W30-S02,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W30-S02 is a review step and no inter
+W30,W30-S02,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W30-S02 is accountable to ai_quality_r
+W30,W30-S03,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W30-S03 names risk_and_governance_manage
+W30,W30-S04,EXECUTED,,,
+W30,W30-S05,EXECUTED,,,
+W30,W30-S06,REFUSED,pd_review_not_recorded,,fn_phase_d_handler_execute: step W30-S06 is a review step and no inter
+W30,W30-S06,REFUSED,pd_rule_refused,BR-002,fn_phase_d_effect_produce: step W30-S06 is accountable to ai_quality_r
+W30,W30-S07,REFUSED,k3_reviewer_verdict_missing,k3_reviewer_verdict_missing,fn_kernel_step_complete: step W30-S07 names risk_and_governance_manage
+W30,W30-S08,REFUSED,pd_capability_unavailable,,fn_phase_d_handler_execute: step W30-S08 depends on capability REASONI
+W30,W30-S08,EXECUTED,,,
+W30,W30-S09,EXECUTED,,,
+W30,W30-S10,REFUSED,pd_object_append_only,,fn_phase_d_object_write: organization_change_request is APPEND_ONLY (a
+W30,W30-S11,EXECUTED,,,

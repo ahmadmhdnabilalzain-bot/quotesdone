@@ -1,0 +1,123 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_schema_validate(p_schema_id text, p_payload jsonb)
+ RETURNS TABLE(valid boolean, reason text, missing text[])
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  sc public.phase_d_handler_schema%rowtype;
+  v_missing text[];
+  v_empty   text[];
+  v_untyped text[];
+  v_wrong   text[];
+  v_badenum text[];
+  v_unknown text[];
+  v_known   text[];
+begin
+  select * into sc from public.phase_d_handler_schema where schema_id = p_schema_id;
+  if not found then
+    valid := false;
+    reason := format('unknown schema %L — fail closed', p_schema_id);
+    missing := '{}'; return next; return;
+  end if;
+
+  -- An absent payload is a refusal, never an empty pass. pct(got, 0) returning 100 is the shape
+  -- of defect this avoids: no evidence is not full evidence.
+  if p_payload is null or jsonb_typeof(p_payload) <> 'object' then
+    valid := false;
+    reason := format('schema %s expects an object, got %s',
+                     p_schema_id, coalesce(jsonb_typeof(p_payload),'null'));
+    missing := sc.required_keys; return next; return;
+  end if;
+
+  select array_agg(k order by k) into v_missing
+    from unnest(sc.required_keys) k where not (p_payload ? k);
+  if v_missing is not null then
+    valid := false;
+    reason := format('schema %s: required keys missing [%s]',
+                     p_schema_id, array_to_string(v_missing, ', '));
+    missing := v_missing; return next; return;
+  end if;
+
+  -- A key present and empty is the same absence wearing a different hat.
+  select array_agg(k order by k) into v_empty
+    from unnest(sc.required_keys) k
+   where jsonb_typeof(p_payload->k) = 'null'
+      or (jsonb_typeof(p_payload->k) = 'string' and btrim(p_payload->>k) = '')
+      or (jsonb_typeof(p_payload->k) = 'array'  and jsonb_array_length(p_payload->k) = 0)
+      or (jsonb_typeof(p_payload->k) = 'object' and p_payload->k = '{}'::jsonb);
+  if v_empty is not null then
+    valid := false;
+    reason := format('schema %s: required keys present but empty [%s]',
+                     p_schema_id, array_to_string(v_empty, ', '));
+    missing := v_empty; return next; return;
+  end if;
+
+  -- ---- D46 (a) A KEY WITH NO RECORDED TYPE IS A BROKEN SCHEMA, NOT A PERMITTED ONE --------------
+  -- If field_types does not mention a key the schema requires, the schema itself is refused. The
+  -- alternative — treating an unstated type as "anything goes" — is how a missing declaration reads
+  -- as a satisfied one.
+  select array_agg(k order by k) into v_untyped
+    from unnest(sc.required_keys) k where not (sc.field_types ? k);
+  if v_untyped is not null then
+    valid := false;
+    reason := format('schema %s is incomplete: no declared type for [%s]. An unstated type is not an unconstrained one.',
+                     p_schema_id, array_to_string(v_untyped, ', '));
+    missing := v_untyped; return next; return;
+  end if;
+
+  -- ---- D46 (b) DECLARED TYPES ------------------------------------------------------------------
+  select array_agg(format('%s expected %s got %s', k, sc.field_types->>k, jsonb_typeof(p_payload->k))
+                   order by k)
+    into v_wrong
+    from unnest(sc.required_keys || coalesce(sc.optional_keys,'{}')) k
+   where p_payload ? k
+     and coalesce(sc.field_types->>k,'unconstrained') <> 'unconstrained'
+     and jsonb_typeof(p_payload->k) is distinct from (sc.field_types->>k);
+  if v_wrong is not null then
+    valid := false;
+    reason := format('schema %s: wrong types [%s]', p_schema_id, array_to_string(v_wrong, '; '));
+    missing := '{}'; return next; return;
+  end if;
+
+  -- ---- D46 (c) DECLARED DOMAINS ----------------------------------------------------------------
+  select array_agg(format('%s=%L is not one of [%s]', k, p_payload->>k,
+                          (select string_agg(d, ', ')
+                             from jsonb_array_elements_text(sc.enum_domains->k) d))
+                   order by k)
+    into v_badenum
+    from jsonb_object_keys(sc.enum_domains) k
+   where p_payload ? k
+     and not (sc.enum_domains->k @> to_jsonb(p_payload->>k));
+  if v_badenum is not null then
+    valid := false;
+    reason := format('schema %s: outside the declared domain [%s]',
+                     p_schema_id, array_to_string(v_badenum, '; '));
+    missing := '{}'; return next; return;
+  end if;
+
+  -- ---- D46 (d) UNKNOWN KEYS, WHERE THE CONTRACT IS CLOSED --------------------------------------
+  if not coalesce(sc.additional_properties, true) then
+    v_known := sc.required_keys || coalesce(sc.optional_keys, '{}');
+    select array_agg(k order by k) into v_unknown
+      from jsonb_object_keys(p_payload) k where not (k = any (v_known));
+    if v_unknown is not null then
+      valid := false;
+      reason := format('schema %s declares a closed contract and the payload carries [%s]',
+                       p_schema_id, array_to_string(v_unknown, ', '));
+      missing := '{}'; return next; return;
+    end if;
+  end if;
+
+  valid := true;
+  reason := format('payload satisfies %s v%s (%s keys, %s typed, %s domain(s), %s, source digest %s)',
+                   p_schema_id, sc.schema_version, cardinality(sc.required_keys),
+                   (select count(*) from jsonb_each_text(sc.field_types) t
+                     where t.value <> 'unconstrained'),
+                   (select count(*) from jsonb_object_keys(sc.enum_domains)),
+                   case when coalesce(sc.additional_properties,true)
+                        then 'open to further keys' else 'closed' end,
+                   left(sc.source_digest,12));
+  missing := '{}'; return next;
+end
+$function$

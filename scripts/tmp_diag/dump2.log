@@ -1,0 +1,18 @@
+fn_phase_d_fixture_effect_payload: 1 def(s), 4551 chars
+fn_phase_d_recorded_review: 1 def(s), 1138 chars
+fn_phase_d_gate_evaluate: 1 def(s), 13054 chars
+fn_phase_d_gate_applies: 1 def(s), 8115 chars
+fn_phase_d_rule_applies: 1 def(s), 4982 chars
+fn_phase_d_capability_answer: 1 def(s), 742 chars
+fn_phase_d_schema_validate: 1 def(s), 5623 chars
+fn_phase_d_capability_request_open: 1 def(s), 2527 chars
+fn_phase_d_external_deliver: 1 def(s), 8247 chars
+fn_phase_d_event_state: 1 def(s), 6200 chars
+fn_phase_d_handler_state: 1 def(s), 4878 chars
+fn_phase_d_rule_state: 1 def(s), 4617 chars
+fn_phase_d_object_identity_state: 1 def(s), 5183 chars
+fn_phase_d_effect_reachability: 1 def(s), 5870 chars
+fn_kernel_handoff_accept: 1 def(s), 6623 chars
+fn_kernel_workflow_start: 1 def(s), 16205 chars
+fn_phase_d_object_reference_state: no such function
+fn_phase_d_founder_authority_fixture: 1 def(s), 5379 chars

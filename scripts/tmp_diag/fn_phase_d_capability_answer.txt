@@ -1,0 +1,16 @@
+CREATE OR REPLACE FUNCTION public.fn_phase_d_capability_answer(p_step_run_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+           'result_id', r.result_id, 'request_id', r.request_id, 'provider_mode', r.provider_mode,
+           'fixture_id', r.fixture_id, 'fixture_version', r.fixture_version,
+           'fixture_hash', r.fixture_hash, 'payload', r.payload,
+           'payload_digest', r.payload_digest, 'evidence', r.evidence)
+    from public.phase_d_capability_result r
+    join public.phase_d_capability_request q on q.request_id = r.request_id
+   where q.step_run_id = p_step_run_id
+   order by r.result_id desc limit 1;
+$function$

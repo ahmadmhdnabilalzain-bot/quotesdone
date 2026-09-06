@@ -1,0 +1,11 @@
+supplier_account CREATED public.leads:id=36115 
+supplier_terms_acceptance CREATED public.phase_d_object_record:record_id=90839 
+supplier_capability CREATED public.supplier_capabilities:supplier_id=36115 
+supplier_verification_case CREATED public.phase_d_object_record:record_id=90840 
+supplier_assignment CREATED public.inquiry_matches:id=5697 
+quotation CREATED public.quotes:id=322e45c3-4be8-a8f0-2bac-fd23dff129c0 
+quotation_revision CREATED public.phase_d_object_record:record_id=90841 
+refs.supplier_id=36115 leads_max=36115
+kernel dispatch unresolved={comparison_id,founder_authority_ref,quote_revision_ref,reviewer_role_id}
+probe redispatch=EXECUTED: unresolved={}
+quotes.supplier_id=36115 scn supplier_account=36115

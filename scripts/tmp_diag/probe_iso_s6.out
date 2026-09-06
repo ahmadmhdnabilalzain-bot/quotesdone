@@ -1,0 +1,5 @@
+after_factory: ds_entry[step_run=128863 kind=autonomous] ; sc_entry[step_run=128863 ctx=3202] ; ds_ctx[step_run=128863 unresolved=["founder_authority_ref", "review] ; ds_entry[step_run=128864 kind=autonomous] ; ds_entry[step_run=128865 kind=autonomous] ; ds_entry[step_run=128866 kind=autonomous]
+after_start: 
+dispatch rows for sr: 116100:REFUSED:pd_rule_refused:autonomous
+
+live routines unchanged after probe: true
