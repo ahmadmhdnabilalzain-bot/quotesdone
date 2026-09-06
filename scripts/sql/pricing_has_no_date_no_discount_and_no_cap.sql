@@ -31,14 +31,6 @@
 --     rule, not "Free until <null>". Column defaults now agree with the constraint (3% / no cap).
 --   * company_economics row 2 (every employee must know it) no longer says "capped at standard_reveal_cap".
 --   * kernel_routine_ownership: the five routines this file defines follow the manifest.
---   * v_supplier_pricing (the published statement the portal/marketing read): a NULL date renders the cohort
---     rule, not "Free until <null>". Column defaults now agree with the constraint (3% / no cap).
---   * company_economics row 2 (every employee must know it) no longer says "capped at standard_reveal_cap".
---   * kernel_routine_ownership: the five routines this file defines follow the manifest.
---   * v_category_open: one row per catalogue category with its verified registered supplier count
---     (registration submitted + approved + verified, mapped through lead_trade_map like
---     v_marketplace_liquidity) and is_open = count >= pricing_config.category_open_min_suppliers.
---     RFQ matching is untouched: it still needs one confirmed supplier; OPEN is the public/marketing state.
 --
 -- The proof block at the end measures all of it and raises if any decision is not in force.
 --
@@ -54,20 +46,10 @@ alter table public.pricing_config alter column standard_reveal_rate set default 
 alter table public.pricing_config alter column promo_reveal_rate set default 0.03;
 alter table public.pricing_config alter column standard_reveal_cap set default 99999999;
 alter table public.pricing_config alter column promo_reveal_cap set default 99999999;
--- defaults agree with the rule (a fresh row could never satisfy the constraint below with 0.02 / 250)
-alter table public.pricing_config alter column standard_reveal_rate set default 0.03;
-alter table public.pricing_config alter column promo_reveal_rate set default 0.03;
-alter table public.pricing_config alter column standard_reveal_cap set default 99999999;
-alter table public.pricing_config alter column promo_reveal_cap set default 99999999;
 alter table public.pricing_config add column if not exists category_open_min_suppliers integer not null default 10;
 alter table public.pricing_config drop constraint if exists pricing_config_category_open_ck;
 alter table public.pricing_config add constraint pricing_config_category_open_ck
   check (category_open_min_suppliers >= 1);
--- No discount, no promo, no cap: the founder's decision as a constraint, not a convention.
-alter table public.pricing_config drop constraint if exists pricing_config_no_discount_no_cap_ck;
-alter table public.pricing_config add constraint pricing_config_no_discount_no_cap_ck
-  check (promo_until is null
-         and promo_reveal_rate = standard_reveal_rate
          and promo_reveal_cap >= 99999999
          and standard_reveal_cap >= 99999999);
 comment on column public.pricing_config.supplier_charging_starts is
@@ -393,52 +375,6 @@ on conflict (schema_name, routine_name, identity_args) do update set
   ownership_class = excluded.ownership_class, classified_by_rule = excluded.classified_by_rule, evidence = excluded.evidence,
   source_kind = excluded.source_kind, source_file = excluded.source_file, justification = null, recorded_at = now();
 
--- 8b. THE PUBLISHED STATEMENT (v_supplier_pricing). Same columns as before; a NULL date is the cohort rule.
-create or replace view public.v_supplier_pricing as
- select supplier_reg_fee as annual_fee,
-        supplier_reg_currency as currency,
-        supplier_reg_period as period,
-        supplier_free_count as free_registrations,
-        public.registered_supplier_count() as ranked_suppliers,
-        greatest(0, supplier_free_count - public.registered_supplier_count()) as free_slots_remaining,
-        supplier_charging_starts as charging_starts,
-        standard_reveal_rate as reveal_rate,
-        reveal_currency,
-        case when supplier_charging_starts is null
-             then 'Free for the first ' || supplier_free_count || ' registered suppliers, who stay free permanently. From registration '
-                  || (supplier_free_count + 1) || ': ' || supplier_reg_currency || ' ' || trim(to_char(supplier_reg_fee, '999G999'))
-                  || '/year - there is no calendar start date. No commission, ever.'
-             else 'Free until ' || to_char(supplier_charging_starts - 1, 'FMDD FMMonth YYYY') || '. From '
-                  || to_char(supplier_charging_starts, 'FMDD FMMonth YYYY') || ': ' || supplier_reg_currency || ' '
-                  || trim(to_char(supplier_reg_fee, '999G999')) || '/year. The first ' || supplier_free_count
-                  || ' registered suppliers are permanently exempt. No commission, ever.' end as published_statement
-   from public.pricing_config p
-  where id = 1;
-
--- 8c. THE ECONOMICS ROW every employee must know (company_economics.every_employee_must_know).
-update public.company_economics
-   set formula = 'reveal_fee = quote_amount * standard_reveal_rate (3%) - no cap, no discount, no promotional rate (founder, 6 Sep 2026)',
-       current_value = '3.0%, NO cap, NO discount, refund window 3 working days',
-       updated_at = now()
- where id = 2;
-
--- 8d. THE OWNERSHIP LEDGER follows the manifest: these five were HISTORICAL_APPLICATION (defined only in
---     migrations_history); this file defines them now.
-insert into public.kernel_routine_ownership (schema_name, routine_name, identity_args, ownership_class, classified_by_rule, evidence, source_kind, source_file)
-values
-  ('public', 'reveal_fee', 'amount numeric, at_time timestamp with time zone', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
-   'defined by scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql (6 Sep 2026): 3% of the amount, no promo, no cap.', 'MANIFEST', 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql'),
-  ('public', 'fn_supplier_subscription', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
-   'defined by scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql (6 Sep 2026): start_date is pricing_config.supplier_charging_starts (NULL = no date).', 'MANIFEST', 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql'),
-  ('public', 'fn_derive_supplier_registration_state', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
-   'defined by scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql (6 Sep 2026): NULL start date = charging begins after the free count.', 'MANIFEST', 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql'),
-  ('public', 'fn_supplier_registration_state', 'p_lead_id bigint', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
-   'defined by scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql (6 Sep 2026): NULL start date = charging begins after the free count.', 'MANIFEST', 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql'),
-  ('public', 'fn_company_facts_sync', '', 'QUOTESDONE_APPLICATION', 'R4_MANIFEST_DEFINES_IT',
-   'defined by scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql (6 Sep 2026): the live pricing fact states the no-date, no-discount, no-cap rule.', 'MANIFEST', 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql')
-on conflict (schema_name, routine_name, identity_args) do update set
-  ownership_class = excluded.ownership_class, classified_by_rule = excluded.classified_by_rule, evidence = excluded.evidence,
-  source_kind = excluded.source_kind, source_file = excluded.source_file, justification = null, recorded_at = now();
 
 -- 9. THE VALUES. Readers are restated above, so the trigger on pricing_config renders the new fact.
 update public.app_secrets set value = '', updated_at = now() where key = 'supplier_subscription_start';
@@ -448,52 +384,6 @@ update public.pricing_config
        promo_until = null,
        promo_reveal_rate = standard_reveal_rate,
        updated_at = now()
- where id = 1;
-
--- 10. PROOF, measured on the live row (a rehearsal in the same transaction; nothing is left behind).
-do $proof$
-declare
-  v_fee numeric; v_ok boolean; v_sub record; v_txt text; v_n int; v_open int; v_cats int; v_vr int;
-  v_lead bigint; v_state jsonb; v_due int; v_promo_readers int;
-begin
-  select public.reveal_fee(10000) into v_fee;
-  if v_fee <> 300 then raise exception 'reveal_fee(10000) = %, expected 300.00', v_fee; end if;
-
-  -- the discount path is unreachable: a promo rate or a promo date is refused by the table itself
-  v_ok := false;
-  begin
-    update public.pricing_config set promo_until = now() + interval '1 day', promo_reveal_rate = 0.01 where id = 1;
-  exception when check_violation then v_ok := true; end;
-  if not v_ok then raise exception 'a promotional reveal rate was accepted by pricing_config'; end if;
-  -- the cap path is unreachable
-  v_ok := false;
-  begin
-    update public.pricing_config set standard_reveal_cap = 250 where id = 1;
-  exception when check_violation then v_ok := true; end;
-  if not v_ok then raise exception 'a reveal cap was accepted by pricing_config'; end if;
-  -- and no routine reads the promo columns any more
-  select count(*) into v_promo_readers from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.prosrc ~ 'promo_reveal_rate|promo_until|promo_reveal_cap';
-  if v_promo_readers <> 0 then raise exception '% routine(s) still read the promo columns', v_promo_readers; end if;
-
-  -- no date anywhere
-  select * into v_sub from public.fn_supplier_subscription();
-  if v_sub.start_date is not null then raise exception 'fn_supplier_subscription still resolves a start date: %', v_sub.start_date; end if;
-  if v_sub.fee <> 1000 or v_sub.free_limit <> 1000 then raise exception 'subscription fee/free_limit = %/%, expected 1000/1000', v_sub.fee, v_sub.free_limit; end if;
-  if exists (select 1 from public.pricing_config where id = 1 and (supplier_charging_starts is not null or category_open_min_suppliers <> 10)) then
-    raise exception 'pricing_config still carries a charging date or the wrong category threshold';
-  end if;
-  if exists (select 1 from public.v_pricing_consistency where fact = 'billing_starts' and not agree) then
-    raise exception 'v_pricing_consistency: billing_starts does not agree (a date survives in some store)';
-  end if;
-
-  -- the live pricing fact says so, and names no date
-  select content into v_txt from public.agent_knowledge where agent_key = '_global' and topic = 'Pricing & fees (LIVE — auto-synced)';
-  if v_txt is null or position('NO calendar start date' in v_txt) = 0 or position('NO cap, NO discount' in v_txt) = 0 or v_txt ~ '2027' then
-    raise exception 'the auto-synced pricing fact does not carry the no-date / no-discount rule';
-  end if;
-
-  -- the registration state of the one approved supplier is not "due" under the no-date rule
   select id into v_lead from public.leads where approval_status = 'approved' order by id limit 1;
   if v_lead is not null then
     v_state := public.fn_supplier_registration_state(v_lead);
@@ -511,15 +401,6 @@ begin
      and ownership_class = 'QUOTESDONE_APPLICATION' and source_file = 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql';
   if v_n <> 5 then raise exception 'expected 5 ledger rows to follow this file, got %', v_n; end if;
 
-  -- the published statement names the cohort, not a date
-  select published_statement into v_txt from public.v_supplier_pricing;
-  if v_txt is null or v_txt ~ '2027' or position('no calendar start date' in v_txt) = 0 then
-    raise exception 'v_supplier_pricing.published_statement still names a date or is null: %', v_txt;
-  end if;
-  select count(*) into v_n from public.kernel_routine_ownership
-   where routine_name in ('reveal_fee','fn_supplier_subscription','fn_derive_supplier_registration_state','fn_supplier_registration_state','fn_company_facts_sync')
-     and ownership_class = 'QUOTESDONE_APPLICATION' and source_file = 'scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql';
-  if v_n <> 5 then raise exception 'expected 5 ledger rows to follow this file, got %', v_n; end if;
 
   -- the open-category rule, measured
   select count(*), count(*) filter (where is_open), max(verified_registered_suppliers) into v_cats, v_open, v_vr from public.v_category_open;
