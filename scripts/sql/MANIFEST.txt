@@ -1709,4 +1709,5 @@ scripts/sql/only_a_refund_waits_on_the_founder.sql
 scripts/sql/the_assistant_counts_only_refund_decisions_as_his_approvals.sql
 scripts/sql/a_pipeline_self_test_is_not_a_draft_post.sql
 scripts/sql/every_document_row_can_be_opened.sql
+scripts/sql/the_welcome_states_the_ladder_from_pricing_config.sql
 scripts/sql/the_company_renderers_carry_every_record_of_6_sep.sql
