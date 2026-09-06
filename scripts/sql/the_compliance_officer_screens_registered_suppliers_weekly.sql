@@ -40,7 +40,8 @@
 --                                           with a credential scoped to that one callee.
 --   sanctions_screen_weekly                 pg_cron Mondays 03:00 UTC (07:00 Dubai), wrapped and traced by the
 --                                           kernel under compliance_and_privacy_officer / legal; registered for
---                                           the Phase D door; edge:sanctions_screen declared as a component.
+--                                           the Phase D door; edge:sanctions_screen declared as a component in
+--                                           SYSTEM_SCOPE (no phase_b workflow step), like the cron row.
 -- This loop is NOT behind supplier_outreach_golive: it sends nothing and removes nobody by itself, and the
 -- founder asked for the weekly check as such; the acquisition switch governs outreach.
 --
@@ -337,19 +338,23 @@ begin
     schedule_or_trigger, mutates_state, current_actor, canonical_system_actor, accountable_role_id, department_id,
     workflow_id, step_id, authority_class, trace_policy_id, idempotency_strategy, retry_policy,
     activation_state, classification, gap, repair_or_keep_action, evidence, measured_at)
-  select
+  values (
     'edge:sanctions_screen', 'edge_function', 'supabase/functions/sanctions_screen/index.ts',
     'invoked by repo/database/cron caller', 'fn_sanctions_screen_tick (cron sanctions_screen_weekly) with credential context cron.compliance',
     'internal_credential_only', 'weekly, Mondays 03:00 UTC via cron sanctions_screen_weekly',
     true, 'service_role', 'system.scheduler', 'compliance_and_privacy_officer', 'legal',
-    c.workflow_id, c.step_id, 'routine_operational_decision', 'TRACE-SYSTEM-EXECUTION', 'request:source:sha256',
+    -- SYSTEM_SCOPE / '' like its cron sibling: the weekly screen is a scheduled system routine owned by the
+    -- compliance officer, not a step of a phase_b workflow. (The first cut copied workflow_id/step_id from
+    -- edge:uptime_check, which bound it to W29 'Security incident and reliability recovery' / W29-S01 'Open
+    -- incident' under it_operations_engineer — measured wrong 6 Sep 2026 and corrected here.)
+    'SYSTEM_SCOPE', '', 'routine_operational_decision', 'TRACE-SYSTEM-EXECUTION', 'request:source:sha256',
     'next_scheduled_tick', 'deployed', 'WIRE_TO_CANONICAL', '',
     'keep; downloads the UN consolidated list (XML) and the UAE local terrorist list (.xls), stores screening_run/screening_entry, then screens registered suppliers through fn_supplier_sanctions_screen (no model, no removal)',
-    'built 6 Sep 2026 (scripts/sql/the_compliance_officer_screens_registered_suppliers_weekly.sql)', now()
-  from public.phase_c_component c where c.component_id = 'edge:uptime_check'
+    'built 6 Sep 2026 (scripts/sql/the_compliance_officer_screens_registered_suppliers_weekly.sql)', now())
   on conflict (component_id) do update set
     activation_state = excluded.activation_state, classification = excluded.classification, accountable_role_id = excluded.accountable_role_id,
-    department_id = excluded.department_id, current_callers = excluded.current_callers, evidence = excluded.evidence, measured_at = excluded.measured_at;
+    department_id = excluded.department_id, workflow_id = excluded.workflow_id, step_id = excluded.step_id,
+    current_callers = excluded.current_callers, evidence = excluded.evidence, measured_at = excluded.measured_at;
 
   select jobid into v_job from cron.job where jobname = 'sanctions_screen_weekly';
   if v_job is null then
@@ -396,8 +401,9 @@ begin
   if n <> 1 then raise exception 'cred_cron_compliance was not issued'; end if;
   select jobid into v_job from cron.job where jobname = 'sanctions_screen_weekly' and active and command ilike '%fn_kernel_cron_exec%';
   if v_job is null then raise exception 'sanctions_screen_weekly is not wrapped and active'; end if;
-  select count(*) into n from public.phase_c_component where component_id in ('edge:sanctions_screen', 'cron:sanctions_screen_weekly');
-  if n <> 2 then raise exception 'components missing (% of 2)', n; end if;
+  select count(*) into n from public.phase_c_component
+   where component_id in ('edge:sanctions_screen', 'cron:sanctions_screen_weekly') and workflow_id = 'SYSTEM_SCOPE' and step_id = '';
+  if n <> 2 then raise exception 'components missing or bound to a workflow step (% of 2 in SYSTEM_SCOPE)', n; end if;
   raise notice 'proof: normaliser and tokens right, credential issued, cron % wrapped and active, 2 components declared', v_job;
 end $proof$;
 

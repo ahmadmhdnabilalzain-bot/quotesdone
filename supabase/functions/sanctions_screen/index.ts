@@ -124,9 +124,15 @@ Deno.serve(async (req) => {
   if (!auth.ok) return J({ error: auth.error, message: auth.message }, auth.status);
   const runTag: string | null = typeof body?.run_tag === 'string' && body.run_tag ? body.run_tag : null;
 
-  // IDEMPOTENT PER TICK (measured 6 Sep 2026: pg_net delivered each weekly tick twice, ~20 s apart, and
-  // two identical fetch-and-screen passes ran). A real run whose two sources both succeeded in the last
-  // ten minutes is the run; a second delivery records 'skipped' and does nothing else.
+  // IDEMPOTENT PER TICK. Measured 6 Sep 2026: manual ticks (`select public.fn_kernel_cron_exec(345)`) arrived
+  // in PAIRS — two kernel traces 8-48 s apart, each with its own causation_id (9523103/9523107, 9534479/9534493),
+  // each POSTing here once (pg_net request ids 380860/380864, 381477/381489). So the duplicate is a SECOND
+  // fn_kernel_cron_exec call, not pg_net delivering one tick twice; fn_kernel_cron_exec neither retries nor
+  // re-invokes itself. The second call was not pg_cron (no cron.job_run_details row), not fn_os_automation_run
+  // (no os_audit_log row) and not a trigger; it came from another SQL session while several sessions shared
+  // production that evening (the caller's own issue returned in 0.3 s with no retry). The scheduled Monday
+  // 03:00 UTC run is one pg_cron invocation. The guard stays: a real run whose two sources both succeeded in
+  // the last ten minutes is the run; any further delivery records 'skipped' and does nothing else.
   if (!runTag) {
     const { data: recent } = await admin.from('screening_run').select('id, source').is('run_tag', null).eq('status', 'ok')
       .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString());
