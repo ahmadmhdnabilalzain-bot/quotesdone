@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "src/components/osx/OsxShell.tsx": {
-    "mtime": 1788653363.7393124,
-    "ast_hash": "41d88cdf8d42b530d3fb15a31fde9f0d",
+    "mtime": 1788657948.8640943,
+    "ast_hash": "9de71621874f54fec3d860aa6eff8ce9",
     "semantic_hash": ""
   },
   "src/components/portal/SupplierPortal.tsx": {
@@ -295,9 +295,9 @@
     "semantic_hash": "7d27b6bc8d29391eaca8a582e2c1fcdf"
   },
   "src/components/ui/command.tsx": {
-    "mtime": 1784656201.6473472,
-    "ast_hash": "1277497cd3267d91759ab4b2a955f4bf",
-    "semantic_hash": "1277497cd3267d91759ab4b2a955f4bf"
+    "mtime": 1788657948.8640943,
+    "ast_hash": "a6913d46080ba1d16552686b56dad2e2",
+    "semantic_hash": ""
   },
   "src/components/ui/dialog.tsx": {
     "mtime": 1784656201.6473472,
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "src/lib/osClient.ts": {
-    "mtime": 1786945492.6712668,
-    "ast_hash": "5f671c40ba760a758019410997137cdd",
+    "mtime": 1788657948.8655455,
+    "ast_hash": "2120de32c861341c01f27d725c80ae8a",
     "semantic_hash": ""
   },
   "src/lib/seo.ts": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/os_api/index.ts": {
-    "mtime": 1787419472.8284798,
-    "ast_hash": "90b852851380adbb264c3f7dfc268956",
+    "mtime": 1788657948.866553,
+    "ast_hash": "1b5ce654c33870eeaea261fc82b3a34a",
     "semantic_hash": ""
   },
   "supabase/functions/os_ops/index.ts": {
@@ -880,8 +880,8 @@
     "semantic_hash": "b43f55aab0fc3f2e3d899ab5da90e65a"
   },
   "supabase/functions/postiz_publish/index.ts": {
-    "mtime": 1786700472.6806712,
-    "ast_hash": "caf0cf1ea8dcca9418b092e823a4015e",
+    "mtime": 1788656411.8088155,
+    "ast_hash": "7e6764c7cf14f5047af74763c256fbaf",
     "semantic_hash": ""
   },
   "supabase/functions/profile_ai/index.ts": {
@@ -990,7 +990,7 @@
     "semantic_hash": ""
   },
   "supabase/functions/resend_inbound/index.ts": {
-    "mtime": 1788653364.731171,
+    "mtime": 1788654825.7576897,
     "ast_hash": "67040b535b752599737f89ddbaec5c75",
     "semantic_hash": ""
   },
@@ -1060,8 +1060,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/social_stage/index.ts": {
-    "mtime": 1785798173.9289749,
-    "ast_hash": "435e9c9beb6d3c03ccef091ec68ed7bc",
+    "mtime": 1788656411.8098183,
+    "ast_hash": "c2439217e7db2e91b0bc3eebb7feab97",
     "semantic_hash": ""
   },
   "supabase/functions/src_io/index.ts": {
@@ -1590,8 +1590,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/os_action_classification.test.mjs": {
-    "mtime": 1786878694.4962852,
-    "ast_hash": "ddf5378d413a2a855909ca5046d77460",
+    "mtime": 1788658589.1577666,
+    "ast_hash": "bfad28c83c418d415e2066bd9618ffdb",
     "semantic_hash": ""
   },
   "scripts/checks/pricing.canonical.json": {
@@ -2354,11 +2354,6 @@
     "ast_hash": "ad999d99d9009823747759a3f8487dd8",
     "semantic_hash": ""
   },
-  "src/components/osx/ControlMode.tsx": {
-    "mtime": 1786859791.2224646,
-    "ast_hash": "cb5c4be6ee1d5d394987a27c62981e58",
-    "semantic_hash": ""
-  },
   "src/lib/supaEnv.ts": {
     "mtime": 1788480519.1225405,
     "ast_hash": "b810268ed3044bd373db6f3d51c06b89",
@@ -2605,8 +2600,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1788654106.694034,
-    "ast_hash": "46a9bf5f07f64be9c0d207ef5127e508",
+    "mtime": 1788658619.053684,
+    "ast_hash": "4bfe43321f0b15d83078cf0620c02e26",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -10705,7 +10700,7 @@
     "semantic_hash": ""
   },
   ".github/workflows/project-parity.yml": {
-    "mtime": 1788653364.7224097,
+    "mtime": 1788654825.5788634,
     "ast_hash": "a2fea033869b666fb2f30d49175c526e",
     "semantic_hash": ""
   },
@@ -12605,8 +12600,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/kernel-boards.json": {
-    "mtime": 1788645146.2425897,
-    "ast_hash": "929d98b86d7de320008400e467285ed2",
+    "mtime": 1788658626.0744536,
+    "ast_hash": "fba840e06ee4a0169b2b74111c76c9ec",
     "semantic_hash": ""
   },
   "scripts/checks/kernel_boards_are_green.test.mjs": {
@@ -14990,8 +14985,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1788654082.1188722,
-    "ast_hash": "bf76cc90e24477fb7dd054f44f23082b",
+    "mtime": 1788658593.7315536,
+    "ast_hash": "d9570d9150682dcd5537037e57f19b6b",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -19624,9 +19619,179 @@
     "ast_hash": "c50b88da232c6997103ef16758af8143",
     "semantic_hash": ""
   },
+  "scripts/checks/founder_approval_is_refunds_only.test.mjs": {
+    "mtime": 1788651727.7353852,
+    "ast_hash": "675e58314914fc117cdb5a7747d469d5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/credentials_expire_and_rotate_themselves.sql": {
+    "mtime": 1788648247.85021,
+    "ast_hash": "f173b032463fa7c79d2a7e8a7451dc7f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_founder_brief_decisions_needed_are_refunds_only.sql": {
+    "mtime": 1788651727.7405696,
+    "ast_hash": "4d03e528ebf11ba45d2c9deed2d19094",
+    "semantic_hash": ""
+  },
+  "scripts/sql/founder_surfaces_read_the_refund_queue.sql": {
+    "mtime": 1788651727.743575,
+    "ast_hash": "fdc8490ae98ee19373df20d2ea2b20a9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_alerter_reads_credential_expiry.sql": {
+    "mtime": 1788648247.85021,
+    "ast_hash": "42194061da85a24142f3976c391390cc",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_inbound_classifier_uses_the_one_door.sql": {
+    "mtime": 1788648247.8512154,
+    "ast_hash": "30492c50ff6921c6fbc8bba8724a1a95",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_retire_routine_has_a_caller.sql": {
+    "mtime": 1788648247.8522108,
+    "ast_hash": "5209428a6067c3048d29424bc25a15e5",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_signal_intake_loses_its_rc4_block.sql": {
+    "mtime": 1788648247.8522108,
+    "ast_hash": "310028d1b52c6769bf82adf1cc88fbc8",
+    "semantic_hash": ""
+  },
+  "scripts/backfill_unbooked_receipts.ts": {
+    "mtime": 1788654825.740391,
+    "ast_hash": "7f29630ae33590f1756a2f3e061db6c7",
+    "semantic_hash": ""
+  },
+  "scripts/checks/receipts_never_wait_on_the_founder.test.mjs": {
+    "mtime": 1788654825.7413864,
+    "ast_hash": "39a210bf09d29afe699a0109b4c6280c",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_agent_context_workload_names_the_holding_role.sql": {
+    "mtime": 1788654825.744508,
+    "ast_hash": "6f516b67bc7a75c97513bf83b8ca0e81",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_ai_trainer_prompt_is_held_with_its_role.sql": {
+    "mtime": 1788654825.745755,
+    "ast_hash": "0f59063f7adf1b639b19de2759d41fab",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_exec_meeting_requests_name_the_holding_role.sql": {
+    "mtime": 1788654825.7468772,
+    "ast_hash": "663ca98af5c64178ca6ac1eb9d415d78",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_knowledge_curator_regulation_is_held_with_its_role.sql": {
+    "mtime": 1788654825.7468772,
+    "ast_hash": "00399865672446d61ac520b4d01324be",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_operations_ai_approval_backlog_is_held_with_roles.sql": {
+    "mtime": 1788654825.7478833,
+    "ast_hash": "acc4a00a408cf2b714e2b6d25fa7c123",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_task_approve_ceiling_is_not_a_founder_decision.sql": {
+    "mtime": 1788654825.7488842,
+    "ast_hash": "c7501989eae80b23554145e6817d7615",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_ws_agent_ops_queue_names_its_holder.sql": {
+    "mtime": 1788654825.7488842,
+    "ast_hash": "c3b33c79657257bb866d695c89fa2ae8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/receipts_book_themselves_2026_09_06.sql": {
+    "mtime": 1788654825.7498853,
+    "ast_hash": "1878450916b90c96a3a68877787e578b",
+    "semantic_hash": ""
+  },
+  "scripts/sql/receipts_book_themselves_ownership_ledger.sql": {
+    "mtime": 1788654825.7508924,
+    "ast_hash": "2b4a04b657895691434803ef8b988886",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_action_sweep_is_registered_for_the_scenario_door.sql": {
+    "mtime": 1788651727.7457316,
+    "ast_hash": "42508666e38548cd81e55abf498fa043",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_automation_list_ownership_ledger.sql": {
+    "mtime": 1788654825.7514434,
+    "ast_hash": "9b19b517197f3ef8a78f8858f839cb45",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_automation_page_answers_in_under_a_second.sql": {
+    "mtime": 1788654825.7524512,
+    "ast_hash": "648ba3bcfce01855a0f5d9b598c2de8f",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/receipt_parse.test.ts": {
+    "mtime": 1788654825.7566898,
+    "ast_hash": "7f7e0b54271f6d6b3a905d3cca1b6422",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/receipt_parse.ts": {
+    "mtime": 1788654825.7566898,
+    "ast_hash": "5c9c25a1ef9438cf25a6869cad443bea",
+    "semantic_hash": ""
+  },
+  "scripts/checks/reports_have_a_pdf.test.mjs": {
+    "mtime": 1788657296.297291,
+    "ast_hash": "b6ca4b8721eb64055593a653965cb752",
+    "semantic_hash": ""
+  },
+  "scripts/sql/fn_founder_brief_carries_the_report_pdf_link.sql": {
+    "mtime": 1788657296.3002968,
+    "ast_hash": "9497761241c3d13e0463ff19ed157744",
+    "semantic_hash": ""
+  },
+  "scripts/sql/reports_are_corporate_pdfs.sql": {
+    "mtime": 1788657296.3012936,
+    "ast_hash": "ad4b39c3ee619aadf1ea5976305a38b4",
+    "semantic_hash": ""
+  },
+  "supabase/functions/report_pdf/index.ts": {
+    "mtime": 1788657296.3084362,
+    "ast_hash": "254a74dad4124289e9abd9302e950ccd",
+    "semantic_hash": ""
+  },
   "$S/c5.sql": {
     "mtime": 1788649082.7499046,
     "ast_hash": "ac6ee9cda4a20e51d35535f851f22522",
+    "semantic_hash": ""
+  },
+  "$S/q11.sql": {
+    "mtime": 1788657055.8509157,
+    "ast_hash": "f2393b774e9c548f39b9c4d515672404",
+    "semantic_hash": ""
+  },
+  "$S/q12.sql": {
+    "mtime": 1788657191.5170705,
+    "ast_hash": "f2393b774e9c548f39b9c4d515672404",
+    "semantic_hash": ""
+  },
+  "$S/q13.sql": {
+    "mtime": 1788657320.0175586,
+    "ast_hash": "f2393b774e9c548f39b9c4d515672404",
+    "semantic_hash": ""
+  },
+  "$S/q6.sql": {
+    "mtime": 1788656688.9101598,
+    "ast_hash": "f2393b774e9c548f39b9c4d515672404",
+    "semantic_hash": ""
+  },
+  "$S/q7.sql": {
+    "mtime": 1788656706.9222164,
+    "ast_hash": "f2393b774e9c548f39b9c4d515672404",
+    "semantic_hash": ""
+  },
+  "$S/q8.sql": {
+    "mtime": 1788657012.9032958,
+    "ast_hash": "f2393b774e9c548f39b9c4d515672404",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
@@ -20329,44 +20494,69 @@
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": ""
   },
-  "scripts/checks/founder_approval_is_refunds_only.test.mjs": {
-    "mtime": 1788651727.7353852,
-    "ast_hash": "675e58314914fc117cdb5a7747d469d5",
+  "scripts/checks/os_shell_button_audit.test.mjs": {
+    "mtime": 1788657948.858092,
+    "ast_hash": "ed13ec9f5169feb803650ecbed7ce578",
     "semantic_hash": ""
   },
-  "scripts/sql/credentials_expire_and_rotate_themselves.sql": {
-    "mtime": 1788648247.85021,
-    "ast_hash": "f173b032463fa7c79d2a7e8a7451dc7f",
+  "scripts/checks/social_posts_are_clickable.test.mjs": {
+    "mtime": 1788656411.7965662,
+    "ast_hash": "60fe5a40ad31983b5d656c075f4c5a92",
     "semantic_hash": ""
   },
-  "scripts/sql/fn_founder_brief_decisions_needed_are_refunds_only.sql": {
-    "mtime": 1788651727.7405696,
-    "ast_hash": "4d03e528ebf11ba45d2c9deed2d19094",
+  "scripts/sql/observe_mode_drawer_removed.sql": {
+    "mtime": 1788657948.8590918,
+    "ast_hash": "b0c6668d050719b86e618f7c19191d97",
     "semantic_hash": ""
   },
-  "scripts/sql/founder_surfaces_read_the_refund_queue.sql": {
-    "mtime": 1788651727.743575,
-    "ast_hash": "fdc8490ae98ee19373df20d2ea2b20a9",
+  "scripts/sql/one_definition_of_an_open_task.sql": {
+    "mtime": 1788657948.8590918,
+    "ast_hash": "3941ca9df284b82763bbd2dc0d3dac83",
     "semantic_hash": ""
   },
-  "scripts/sql/the_alerter_reads_credential_expiry.sql": {
-    "mtime": 1788648247.85021,
-    "ast_hash": "42194061da85a24142f3976c391390cc",
+  "scripts/sql/report_types_resume_under_the_kernel.sql": {
+    "mtime": 1788657948.8600917,
+    "ast_hash": "a99852113665ba4f6ed96c9628a9eeb7",
     "semantic_hash": ""
   },
-  "scripts/sql/the_inbound_classifier_uses_the_one_door.sql": {
-    "mtime": 1788648247.8512154,
-    "ast_hash": "30492c50ff6921c6fbc8bba8724a1a95",
+  "scripts/sql/smart_engine_lists_staff_not_the_parked.sql": {
+    "mtime": 1788657948.861093,
+    "ast_hash": "7426a1a708e99ef49a397795b452430a",
     "semantic_hash": ""
   },
-  "scripts/sql/the_retire_routine_has_a_caller.sql": {
-    "mtime": 1788648247.8522108,
-    "ast_hash": "5209428a6067c3048d29424bc25a15e5",
+  "scripts/sql/social_posts_are_clickable.sql": {
+    "mtime": 1788656411.799523,
+    "ast_hash": "67c677592f373bd8eaa8639eedcd8f37",
     "semantic_hash": ""
   },
-  "scripts/sql/the_signal_intake_loses_its_rc4_block.sql": {
-    "mtime": 1788648247.8522108,
-    "ast_hash": "310028d1b52c6769bf82adf1cc88fbc8",
+  "scripts/sql/social_posts_ownership_ledger.sql": {
+    "mtime": 1788656411.8015563,
+    "ast_hash": "be08eae3b6b0b15afa4ed1ba84d1979d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/status_is_a_brief_not_a_clarification.sql": {
+    "mtime": 1788657948.861093,
+    "ast_hash": "1eb715f5d22b8c89210406b00afda892",
+    "semantic_hash": ""
+  },
+  "scripts/sql/strategy_simulations_carry_their_question.sql": {
+    "mtime": 1788657948.861093,
+    "ast_hash": "1e50e7e68b7d120a3700e67c3f196877",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_knowledge_page_answers_in_under_a_second.sql": {
+    "mtime": 1788656409.8724644,
+    "ast_hash": "c05eb7f2b631e458a5ef92cb13de3a58",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_resilience_watch_pages_a_condition_once.sql": {
+    "mtime": 1788655282.026698,
+    "ast_hash": "4245e5a9454e106db9b2b878e55d1f97",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_smart_engine_and_strategy_ledger_rows.sql": {
+    "mtime": 1788658566.5819366,
+    "ast_hash": "2d56381488da132c0f0bf190186968cf",
     "semantic_hash": ""
   },
   "scripts/tmp_diag/LIVE_fn_phase_d_run_injected_defects.sql": {
@@ -25367,86 +25557,6 @@
   "os-top.png": {
     "mtime": 1788298923.6809363,
     "ast_hash": "11979248eff1eab2cbbbe1ea9d7857ba",
-    "semantic_hash": ""
-  },
-  "scripts/backfill_unbooked_receipts.ts": {
-    "mtime": 1788653364.7224097,
-    "ast_hash": "7f29630ae33590f1756a2f3e061db6c7",
-    "semantic_hash": ""
-  },
-  "scripts/checks/receipts_never_wait_on_the_founder.test.mjs": {
-    "mtime": 1788653364.7224097,
-    "ast_hash": "39a210bf09d29afe699a0109b4c6280c",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_agent_context_workload_names_the_holding_role.sql": {
-    "mtime": 1788653363.731512,
-    "ast_hash": "6f516b67bc7a75c97513bf83b8ca0e81",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_ai_trainer_prompt_is_held_with_its_role.sql": {
-    "mtime": 1788653363.731512,
-    "ast_hash": "0f59063f7adf1b639b19de2759d41fab",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_exec_meeting_requests_name_the_holding_role.sql": {
-    "mtime": 1788653363.7388096,
-    "ast_hash": "663ca98af5c64178ca6ac1eb9d415d78",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_knowledge_curator_regulation_is_held_with_its_role.sql": {
-    "mtime": 1788653363.7393124,
-    "ast_hash": "00399865672446d61ac520b4d01324be",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_operations_ai_approval_backlog_is_held_with_roles.sql": {
-    "mtime": 1788653363.7393124,
-    "ast_hash": "acc4a00a408cf2b714e2b6d25fa7c123",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_task_approve_ceiling_is_not_a_founder_decision.sql": {
-    "mtime": 1788653363.7393124,
-    "ast_hash": "c7501989eae80b23554145e6817d7615",
-    "semantic_hash": ""
-  },
-  "scripts/sql/fn_ws_agent_ops_queue_names_its_holder.sql": {
-    "mtime": 1788653363.7393124,
-    "ast_hash": "c3b33c79657257bb866d695c89fa2ae8",
-    "semantic_hash": ""
-  },
-  "scripts/sql/receipts_book_themselves_2026_09_06.sql": {
-    "mtime": 1788653364.7224097,
-    "ast_hash": "1878450916b90c96a3a68877787e578b",
-    "semantic_hash": ""
-  },
-  "scripts/sql/receipts_book_themselves_ownership_ledger.sql": {
-    "mtime": 1788653364.7224097,
-    "ast_hash": "2b4a04b657895691434803ef8b988886",
-    "semantic_hash": ""
-  },
-  "scripts/sql/the_action_sweep_is_registered_for_the_scenario_door.sql": {
-    "mtime": 1788651727.7457316,
-    "ast_hash": "42508666e38548cd81e55abf498fa043",
-    "semantic_hash": ""
-  },
-  "scripts/sql/the_automation_list_ownership_ledger.sql": {
-    "mtime": 1788653955.637966,
-    "ast_hash": "9b19b517197f3ef8a78f8858f839cb45",
-    "semantic_hash": ""
-  },
-  "scripts/sql/the_automation_page_answers_in_under_a_second.sql": {
-    "mtime": 1788654061.8177612,
-    "ast_hash": "648ba3bcfce01855a0f5d9b598c2de8f",
-    "semantic_hash": ""
-  },
-  "supabase/functions/_shared/receipt_parse.test.ts": {
-    "mtime": 1788653364.730207,
-    "ast_hash": "7f7e0b54271f6d6b3a905d3cca1b6422",
-    "semantic_hash": ""
-  },
-  "supabase/functions/_shared/receipt_parse.ts": {
-    "mtime": 1788653364.731171,
-    "ast_hash": "5c9c25a1ef9438cf25a6869cad443bea",
     "semantic_hash": ""
   }
 }

@@ -1653,3 +1653,17 @@ scripts/sql/receipts_book_themselves_2026_09_06.sql
 scripts/sql/receipts_book_themselves_ownership_ledger.sql
 scripts/sql/the_automation_page_answers_in_under_a_second.sql
 scripts/sql/the_automation_list_ownership_ledger.sql
+scripts/sql/the_knowledge_page_answers_in_under_a_second.sql
+scripts/sql/social_posts_are_clickable.sql
+scripts/sql/social_posts_ownership_ledger.sql
+scripts/sql/reports_are_corporate_pdfs.sql
+scripts/sql/fn_founder_brief_carries_the_report_pdf_link.sql
+scripts/sql/observe_mode_drawer_removed.sql
+scripts/sql/smart_engine_lists_staff_not_the_parked.sql
+scripts/sql/one_definition_of_an_open_task.sql
+scripts/sql/strategy_simulations_carry_their_question.sql
+scripts/sql/status_is_a_brief_not_a_clarification.sql
+scripts/sql/report_types_resume_under_the_kernel.sql
+scripts/sql/the_resilience_watch_pages_a_condition_once.sql
+scripts/sql/the_smart_engine_and_strategy_ledger_rows.sql
+scripts/sql/the_report_pdf_function_is_a_component.sql

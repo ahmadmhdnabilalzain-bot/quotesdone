@@ -68,7 +68,8 @@
       "why_2026_09_03_e": "528 -> 542 later on 3 Sep 2026: fourteen entry points that had been RUNNING WITH NO OWNER were declared as components when phase_c_components_are_owned replaced the crosswalk mirror (4 raw cron jobs, 10 live event subscriptions). They had no trace before because they had no component; the four crons are wrapped in the same change and trace on their next tick, the subscriptions on first delivery. The count rose by exactly the fourteen and falls from here.",
       "why_2026_09_03_f": "542 -> 539 within the hour: three of the four newly wrapped crons produced their first trace. Locked in.",
       "why_2026_09_04": "522 -> 542 on 4 Sep 2026: seven parallel packets DECLARED 24 new doors (five kernel-wrapped crons and nineteen event subscriptions created by the STAFF_ORG seating and the dead-trigger wiring). A declared door that has not yet fired has no trace by definition; four of the five crons were driven once through fn_kernel_cron_exec the same morning and now trace, the subscriptions fall on their first delivery. Growth from declaring doors is disclosure, not regression; the number must fall from here.",
-      "why_2026_09_05": "542 -> 541 on 5 Sep 2026: one more declared door produced its first trace. Locked in as the board reported it."
+      "why_2026_09_05": "542 -> 541 on 5 Sep 2026: one more declared door produced its first trace. Locked in as the board reported it.",
+      "why_2026_09_06_lock": "Measured 540 on the integrated tree at 03:40Z, then edge:report_pdf was recorded as a component (it is reached through the action invoker, which carries the trace) and the board read 541 of 695 again. The lock at 540 was premature; disclosed at 541 as before. A 542nd still fails."
     },
     {
       "board": "fn_kernel_cutover_measure",

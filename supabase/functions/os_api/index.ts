@@ -68,8 +68,9 @@ const WS: Record<string, string> = {
 // database pins the class to the two founder-command actions so it cannot spread.
 type ActionClass = 'read_only' | 'mutating' | 'mode_control' | 'founder_gated';
 const ACTION_CLASS: Record<string, ActionClass> = {
-  control_mode_status: 'mode_control', control_mode_open: 'mode_control',
-  control_mode_close: 'mode_control', control_mode_challenge: 'mode_control',
+  // control_mode_status / _challenge / _open / _close were removed 6 Sep 2026 with the Observe/Control
+  // Mode drawer they served (founder, 10 Aug 2026: "Remove the gate"). The classification gate below
+  // stays: an unclassified action is still refused.
 
   inbox_send: 'mutating', fraud_resolve: 'mutating', refund_resolve: 'mutating',
   prompt_approve: 'mutating', prompt_rollback: 'mutating', prompt_gate: 'mutating',
@@ -84,7 +85,7 @@ const ACTION_CLASS: Record<string, ActionClass> = {
   memory: 'read_only', drilldown: 'read_only', report_recommend_approve: 'mutating',
   simulate: 'mutating', simulation_approve: 'mutating',
   marketing_studio: 'read_only', knowledge_gaps: 'read_only', exam_summary: 'read_only',
-  knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only',
+  knowledge_export: 'read_only', extract_doc: 'read_only', report_pdf: 'read_only', report_pdf_url: 'read_only',
   'ws.suppliers': 'read_only', 'ws.supplier': 'read_only', 'ws.customer': 'read_only',
   'ws.agent': 'read_only', 'ws.rfq': 'read_only', 'ws.exec': 'read_only',
   'ws.marketplace': 'read_only', 'ws.customers': 'read_only', 'ws.operations': 'read_only',
@@ -140,12 +141,12 @@ const OSAPI_MUTATIONS = new Set(
 );
 // What the x-os-key preview bypass may reach. Narrower than read_only on purpose: two actions read
 // before they do anything, but still cost something a static string should not be able to spend.
-//   report_pdf   - renders and stores a PDF object in the finance-reports bucket
+//   report_pdf / report_pdf_url - render and store a PDF object in the private reports bucket
 //   extract_doc  - hands caller-supplied bytes to extract_text, which is a paid OCR call
 // Everything else classified read_only is allowed; anything mutating, mode_control or unclassified
 // is not, so the bypass cannot reach a handler added later without someone classifying it first.
 //   transcribe   - hands caller-supplied audio to the transcribe function, a paid speech-to-text call
-const BYPASS_DENY = new Set(['report_pdf', 'extract_doc', 'transcribe']);
+const BYPASS_DENY = new Set(['report_pdf', 'report_pdf_url', 'extract_doc', 'transcribe']);
 const READONLY = new Set(
   Object.keys(ACTION_CLASS).filter((a) => ACTION_CLASS[a] === 'read_only' && !BYPASS_DENY.has(a)),
 );
@@ -236,92 +237,10 @@ Deno.serve(async (req) => {
     // Deliberately after the audit insert, for the reason given above.
     if (viaBypass && !READONLY.has(action)) return J({ error: 'forbidden', hint: 'the x-os-key preview key is read-only — sign in with an admin account to make changes' }, 403);
 
-    // ---- OBSERVE MODE / CONTROL MODE (2 Aug 2026, Phase 1.4) ----------------------------------
-    // The founder's stated architecture is "monitor and issue rare high-level instructions". This
-    // function exposes 14 actions that approve suppliers, resolve refunds and fraud, publish public
-    // content, change agent prompts and send mail as the company - with, until now, no distinction
-    // between looking and acting. One stolen session or one mis-tap on a phone was enough.
-    //
-    // Observe Mode is not a setting; it is the ABSENCE of a Control Mode session, so it is where you
-    // are unless you did something deliberate. Control Mode is short-lived (15 min), needs a fresh
-    // phone code that cannot be replayed, and needs a written reason stored beside whatever you then
-    // change. Both the grant and every refusal go into control_mode_audit.
-    if (action === 'control_mode_status') {
-      const { data, error } = await admin.rpc('fn_control_mode_status', { p_actor_email: email });
-      if (error) return J({ error: error.message }, 500);
-      return J({ ok: true, user: email, data });
-    }
-    // Step one of two. The code is minted here, hashed before it is stored, and sent to the number
-    // registered against this admin identity in app_secrets - it is not taken from the request, so a
-    // caller cannot nominate the phone their own code goes to. What comes back to the browser is a
-    // challenge id, a one-time nonce and the last four digits: never the number, never the code.
-    if (action === 'control_mode_challenge') {
-      const buf = new Uint32Array(1);
-      crypto.getRandomValues(buf);                       // not Math.random - this is a credential
-      const code = String(100000 + (buf[0] % 900000));
-      const { data: h, error: herr } = await admin.rpc('fn_otp_hash', { p_code: code });
-      if (herr) return J({ error: herr.message }, 500);
-      const { data, error } = await admin.rpc('fn_control_mode_challenge_start', {
-        p_actor_email: email, p_code_hash: String(h || ''),
-        p_ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
-      });
-      if (error) return J({ error: error.message }, 500);
-      // deno-lint-ignore no-explicit-any
-      const r = data as any;
-      if (!r?.ok) return J({ error: r?.error || 'challenge_failed', hint: r?.message }, 403);
-      let delivered = false; let via = ''; let why = '';
-      try {
-        const sent = await fetch(`${BASE}/send_whatsapp`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          // 4 Aug 2026: this sent the code as freeform text only. WhatsApp refuses freeform
-          // business-initiated messages outside the 24-hour window the recipient opens by messaging
-          // us (Twilio 63016), and the Control Mode phone has never messaged this number - so the
-          // code has never been deliverable, and `delivered:false` below was the only trace. The
-          // approved authentication template is now tried first; the freeform text remains as the
-          // in-session fallback and is what still arrives while a template awaits Meta approval.
-          body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), to: r.phone,
-            templateKey: 'control_mode_code', vars: { '1': code },
-            body: `QuotesDone Control Mode code: ${code}\nValid for ${r.minutes} minutes. If you did not ask for this, someone else is signed in to your console.` }),
-        });
-        // deno-lint-ignore no-explicit-any
-        const sr = (await sent.json().catch(() => ({}))) as any;
-        delivered = !!sr?.ok; via = String(sr?.via || ''); why = String(sr?.error || '');
-      } catch (e) { why = String((e as Error)?.message || 'send_whatsapp unreachable'); }
-      return J({ ok: true, user: email, data: {
-        challenge_id: r.challenge_id, nonce: r.nonce, phone_tail: r.phone_tail,
-        expires_at: r.expires_at, delivered, via, why,
-        // "Could not deliver" with no reason is what let this sit unexplained: Twilio 63016 means
-        // the freeform code was sent outside WhatsApp's 24-hour window, which is a different
-        // problem from a wrong number or a dead credential and needs a different fix.
-        message: delivered ? `Code sent to the number ending ${r.phone_tail}${via ? ' (' + via + ')' : ''}.`
-                           : `Could not deliver the code to the number ending ${r.phone_tail}.` +
-                             (/63016/.test(why)
-                               ? ' WhatsApp only accepts a plain-text message within 24 hours of that phone messaging us. Send any WhatsApp message to the QuotesDone number from that handset, then request the code again.'
-                               : why ? ` Twilio said: ${why.slice(0, 160)}` : ' Check WhatsApp sending before retrying.'),
-      } }, 200);
-    }
-    // Step two. Challenge id + nonce + code, all three, all bound to this admin identity and to the
-    // purpose 'control_mode'. A sign-in code or a customer verification code is not accepted here -
-    // that was the whole defect in the first version.
-    if (action === 'control_mode_open') {
-      const { data, error } = await admin.rpc('fn_control_mode_open', {
-        p_actor_email: email, p_reason: String(body?.reason || ''),
-        p_challenge_id: String(body?.challenge_id || '') || null,
-        p_nonce: String(body?.nonce || ''), p_code: String(body?.code || ''),
-        p_user_id: userId,
-        p_ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
-        p_ua: req.headers.get('user-agent') || null,
-      });
-      if (error) return J({ error: error.message }, 500);
-      // deno-lint-ignore no-explicit-any
-      const r = data as any;
-      return J(r?.ok ? { ok: true, user: email, data: r } : { error: r?.error || 'control_mode_denied', hint: r?.message, attempts_left: r?.attempts_left }, r?.ok ? 200 : 403);
-    }
-    if (action === 'control_mode_close') {
-      const { data, error } = await admin.rpc('fn_control_mode_close', { p_actor_email: email });
-      if (error) return J({ error: error.message }, 500);
-      return J({ ok: true, user: email, data });
-    }
+    // ---- ACTION CLASSIFICATION GATE (2 Aug 2026, Phase 1.4; drawer removed 6 Sep 2026) --------
+    // The four control_mode_* handlers (status, phone-code challenge, open, close) that used to sit
+    // here served only the Observe/Control Mode drawer in the OS shell. The founder rejected that
+    // drawer on 10 Aug 2026 and it was removed from OsxShell on 6 Sep 2026; his login is the gate.
     // The gate itself. public.control_mode_action decides; an action it does not know is refused
     // there too, independently of the ACTION_CLASS check above.
     //
@@ -426,14 +345,24 @@ Deno.serve(async (req) => {
 
     if (action === 'files') { const { data, error } = await admin.rpc('fn_entity_files', { p_entity: String(body?.entity || ''), p_id: String(body?.id || '') }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'file') { const bucket = String(body?.bucket || 'supplier-docs'); const path = String(body?.path || '').replace(/^\/+/, ''); if (!path) return J({ error: 'path_required' }, 400); const { data, error } = await admin.storage.from(bucket).createSignedUrl(path, 300); if (error || !data?.signedUrl) return J({ error: error?.message || 'could_not_sign' }, 500); return J({ ok: true, data: { url: data.signedUrl } }); }
-    if (action === 'report_pdf') {
-      const id = Number(body?.id); const src = String(body?.src || 'board'); let title = 'Report'; let text = '';
-      if (src === 'exec') { const { data } = await admin.from('exec_reports').select('officer,period,summary,findings,recommendations').eq('id', id).maybeSingle(); if (!data) return J({ error: 'not_found' }, 404); title = `${(data as any).officer} — ${(data as any).period}`; text = String((data as any).summary || ''); if ((data as any).findings) text += '\n\nFINDINGS\n' + JSON.stringify((data as any).findings, null, 2); if ((data as any).recommendations) text += '\n\nRECOMMENDATIONS\n' + JSON.stringify((data as any).recommendations, null, 2); }
-      else { const { data } = await admin.from('board_reports').select('title,body').eq('id', id).maybeSingle(); if (!data) return J({ error: 'not_found' }, 404); title = String((data as any).title || 'Report'); text = String((data as any).body || ''); }
-      let hb = ''; for (const raw of text.split('\n')) { const t = raw.replace(/\s+$/, ''); if (!t) { hb += '<div style="height:6px"></div>'; continue; } if (/^[=\-_]{3,}$/.test(t)) continue; if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length < 64) hb += `<h3>${esc(t)}</h3>`; else hb += `<p>${esc(t)}</p>`; }
-      const html = `<html><head><title>${esc(title)}</title></head><body><h1>${esc(title)}</h1>${hb}</body></html>`;
-      const r = await fetch(`${BASE}/make_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), html, title, name: 'report-' + id, bucket: 'finance-reports', folder: 'reports' }) });
-      const jd = await r.json().catch(() => ({})); if (!jd?.url) return J({ error: jd?.error || 'render_failed' }, 500); return J({ ok: true, data: { url: jd.url, path: jd.path } });
+    // REPORTS ARE CORPORATE PDFS (6 Sep 2026). Both actions resolve to the report_pdf edge function,
+    // which renders the row deterministically (pdf-lib, no model call) into the private reports bucket,
+    // stamps pdf_path/pdf_generated_at on the row and answers with a short-lived signed URL. A row that
+    // already carries a PDF is signed without re-rendering; { force: true } re-renders. Accepts
+    // { source, id } (source board|exec|finance), { kind, period? }, or { latest_finance: true }.
+    // 'report_pdf' stays as the older name of the same door (it used to build HTML for make_pdf).
+    if (action === 'report_pdf' || action === 'report_pdf_url') {
+      const payload: Record<string, unknown> = { __secret: await sec('cred_fn_os_api'), ttl_seconds: 900 };
+      if (body?.latest_finance) payload.latest_finance = true;
+      if (body?.id != null) payload.id = Number(body.id);
+      if (body?.source || body?.src) payload.source = String(body.source || body.src);
+      if (body?.kind) payload.kind = String(body.kind);
+      if (body?.period) payload.period = String(body.period);
+      if (body?.force) payload.force = true;
+      const r = await fetch(`${BASE}/report_pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const jd = await r.json().catch(() => ({} as any));
+      if (!r.ok || !jd?.ok || !jd?.url) return J({ error: jd?.error || jd?.message || ('report_pdf ' + r.status), detail: jd?.detail }, r.status === 404 ? 404 : 502);
+      return J({ ok: true, data: { url: jd.url, path: jd.path, bucket: jd.bucket, source: jd.source, id: jd.id, pages: jd.pages, bytes: jd.bytes, rendered: jd.rendered, expires_in: jd.expires_in } });
     }
 
     if (action === 'prompt_view') {
@@ -448,7 +377,13 @@ Deno.serve(async (req) => {
     if (action === 'prompt_approve') { const { data, error } = await admin.rpc('fn_prompt_approve_draft', { p_key: String(body?.key || ''), p_version: Number(body?.version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'prompt_rollback') { const { data, error } = await admin.rpc('fn_prompt_rollback', { p_key: String(body?.key || ''), p_to_version: Number(body?.to_version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
 
-    if (action === 'marketing_studio') { const { data, error } = await admin.rpc('fn_marketing_studio'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'marketing_studio') {
+      // The founder opening this page is the reader who needs Postiz's release URLs fresh: run
+      // postiz_publish action=sync at most once an hour (its own agent_runs row is the throttle memory).
+      const { data: lastSync } = await admin.from('agent_runs').select('id').eq('agent', 'postiz_publish').eq('counts->>signal', 'sync').gte('started_at', new Date(Date.now() - 3600000).toISOString()).limit(1);
+      if (!lastSync?.length) { try { await fetch(`${BASE}/postiz_publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), action: 'sync', days: 120 }), signal: AbortSignal.timeout(15000) }); } catch (_e) { /* the list still renders with the honest permalink_missing */ } }
+      const { data, error } = await admin.rpc('fn_marketing_studio'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data });
+    }
     if (action === 'review_decide') { const { data, error } = await admin.rpc('fn_review_decide', { p_kind: String(body?.kind || ''), p_ref_id: Number(body?.ref_id), p_decision: String(body?.decision || ''), p_comment: String(body?.comment || ''), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'blog_publish') { const { data, error } = await admin.rpc('fn_marketing_blog_publish', { p_id: String(body?.id || ''), p_published: Boolean(body?.published), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
 

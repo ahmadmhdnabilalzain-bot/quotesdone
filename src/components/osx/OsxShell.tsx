@@ -2,6 +2,14 @@
 import * as React from 'react';
 import { supa, osApi, osOps, osReportBody, osSettings, osAutomation, osCatalog, osPages, osHealth, osIncidents, SUPA_URL, founderCommand, founderCommandThread, founderCommandClarify, founderCommandControl } from '@/lib/osClient';
 import { cn } from '@/lib/utils';
+// REPORTS ARE CORPORATE PDFS (6 Sep 2026). One door for every PDF button: os_api report_pdf_url
+// mints (or re-signs) the report's PDF and answers a 15-minute signed URL. The tab is opened
+// synchronously on the click so a popup blocker does not eat the URL that arrives a second later.
+async function openReportPdf(req: Record<string, any>, w?: Window | null): Promise<string> {
+  const tab = w === undefined && typeof window !== 'undefined' ? window.open('', '_blank') : w;
+  try { const r: any = await osApi('report_pdf_url', req); const url = r && r.url; if (!url) throw new Error('no url'); if (tab) tab.location.href = url; else if (typeof window !== 'undefined') window.location.href = url; return url; }
+  catch (e: any) { if (tab) tab.close(); throw e; }
+}
 function ReportViewer({ id }: { id: number }) {
   const [st, setSt] = React.useState<'idle' | 'load' | 'done' | 'err'>('load');
   const [rep, setRep] = React.useState<any>(null);
@@ -9,6 +17,7 @@ function ReportViewer({ id }: { id: number }) {
   // contributed — the three things the requirement names.
   const [drillData, setDrillData] = React.useState<any>(null);
   const [approving, setApproving] = React.useState<number | null>(null); const [approved, setApproved] = React.useState<number[]>([]);
+  const [pdfBusy, setPdfBusy] = React.useState(false);
   // Approve a recommended action from inside the report, which is where the founder is reading it.
   const approveRec = async (i: number) => { setApproving(i); try { await osApi('report_recommend_approve', { report_id: id, index: i, source: rep?.report_type === 'exec_reports' ? 'exec_reports' : 'exec_reports' }); setApproved((a) => [...a, i]); } catch (_e) {} setApproving(null); };
   const drill = async (metric: string) => { try { setDrillData(await osApi('drilldown', { metric, days: 60 })); } catch (_e) { setDrillData(null); } };
@@ -26,7 +35,7 @@ function ReportViewer({ id }: { id: number }) {
     w.document.close(); w.focus(); setTimeout(() => { try { w.print(); } catch (_e) {} }, 300);
   };
   return (<div className='mt-4'>
-    {st === 'done' && rep ? <button onClick={printIt} className='inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 mb-2'>Print / Save as PDF</button> : null}
+    {st === 'done' && rep ? <div className='flex gap-2 mb-2'><button onClick={() => { setPdfBusy(true); openReportPdf({ source: rep.report_type === 'exec_reports' ? 'exec' : 'board', id }).catch(() => {}).finally(() => setPdfBusy(false)); }} disabled={pdfBusy} className='inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60'>{pdfBusy ? 'Preparing PDF…' : 'Download PDF'}</button><button onClick={printIt} className='inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-medium hover:bg-foreground/5'>Print</button></div> : null}
     {st === 'load' ? <div className='text-sm text-muted-foreground'>Loading report…</div> : null}
     {st === 'err' ? <div className='text-sm text-amber-400'>{err}</div> : null}
     {st === 'done' && rep ? <div className='space-y-3'>
@@ -47,7 +56,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check, Brain, Network } from 'lucide-react';
 import { CompanyGraphField } from '@/components/NodeField';
-import { ControlModeProvider, ControlModeIndicator } from '@/components/osx/ControlMode';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -192,10 +200,23 @@ function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, o
 }
 
 function WindowLayer({ wins, focus, close, min, max, move, size, snap }: { wins: WinState[]; focus: (id: string) => void; close: (id: string) => void; min: (id: string) => void; max: (id: string) => void; move: (id: string, x: number, y: number) => void; size: (id: string, w: number, h: number) => void; snap: (id: string, s: 'l' | 'r' | null) => void }) {
+  // Escape closes the top-most visible window (highest z), the way every other overlay closes.
+  React.useEffect(() => {
+    if (!wins.length) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const top = wins.filter((w) => !w.min).sort((a, b) => b.z - a.z)[0];
+      if (top) { e.preventDefault(); close(top.id); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [wins, close]);
   if (!wins.length) return null;
   return (<>
     {wins.map((w) => <FloatingWindow key={w.id} win={w} onFocus={() => focus(w.id)} onClose={() => close(w.id)} onMin={() => min(w.id)} onMax={() => max(w.id)} onMove={(x, y) => move(w.id, x, y)} onSize={(ww, hh) => size(w.id, ww, hh)} onSnap={(s) => snap(w.id, s)} />)}
-    <div className='fixed bottom-0 left-0 right-0 h-9 z-[60] flex items-center gap-1 px-2 border-t border-border bg-card/95 backdrop-blur overflow-x-auto'>
+    {/* The taskbar used to be a full-width fixed strip (left-0 right-0) at z-60: every click in the
+        bottom 36px of the page, anywhere, landed on it. It is now only as wide as its buttons. */}
+    <div className='fixed bottom-2 left-2 z-[60] inline-flex max-w-[calc(100vw-1rem)] items-center gap-1 px-2 h-9 rounded-lg border border-border bg-card/95 backdrop-blur overflow-x-auto shadow-lg'>
       <SquareStack className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
       {wins.map((w) => { const Ic = w.icon; return (
         <button key={w.id} onClick={() => (w.min ? min(w.id) : focus(w.id))} className={cn('flex items-center gap-1.5 h-6 px-2.5 rounded text-xs shrink-0 transition-colors', w.min ? 'bg-foreground/5 text-muted-foreground hover:bg-foreground/10' : 'bg-primary/15 text-primary')}>
@@ -208,6 +229,15 @@ function WindowLayer({ wins, focus, close, min, max, move, size, snap }: { wins:
 
 export default function OsxShell() {
   const [ready, setReady] = React.useState(false);
+  // The founder brief email links the weekly/monthly report as /os?report_pdf=<source>:<id>. Once the
+  // session is ready the OS mints the signed URL and goes straight to the PDF in this tab (the link IS
+  // the click, so no popup is involved); a failure leaves the founder on the OS with the param cleared.
+  React.useEffect(() => {
+    if (!ready || typeof window === 'undefined') return;
+    const q = new URLSearchParams(window.location.search); const want = q.get('report_pdf'); if (!want) return;
+    const [source, id] = want.split(':'); q.delete('report_pdf'); window.history.replaceState(null, '', window.location.pathname + (q.toString() ? '?' + q.toString() : ''));
+    if (source && id) openReportPdf({ source, id: Number(id) }, null).catch(() => {});
+  }, [ready]);
   const [email, setEmail] = React.useState('');
   const [cur, setCur] = React.useState('console');
   const [tabs, setTabs] = React.useState<string[]>(['console']);
@@ -231,10 +261,18 @@ export default function OsxShell() {
     return () => { alive = false; clearTimeout(t); };
   }, [paletteQ, paletteOpen]);
   const [live, setLive] = React.useState(0);
-  // A twin that refreshes is not a counter that ticks. Bumping this key remounts the open
-  // workspace, so every panel re-fetches when the database pushes a change.
+  // A twin that refreshes is not a counter that ticks. Bumping this key remounts the OPEN panel
+  // (only the active tab is mounted — see <main>), so it re-fetches when the database pushes a
+  // change. Two guards, both measured on 6 Sep 2026: never while a dialog/sheet is open (a remount
+  // closed the Finance "New journal entry" sheet the instant it opened), and at most once per 15 s
+  // (14 subscribed tables can bump several times a second and each bump was a full remount).
   const [twinKey, setTwinKey] = React.useState(0);
-  const reload = React.useCallback(() => setTwinKey((k) => k + 1), []);
+  const lastRemount = React.useRef(0);
+  const reload = React.useCallback(() => {
+    if (typeof document !== 'undefined' && document.querySelector('[role="dialog"][data-state="open"]')) return;
+    const t = Date.now(); if (t - lastRemount.current < 15000) return; lastRemount.current = t;
+    setTwinKey((k) => k + 1);
+  }, []);
   const [wins, setWins] = React.useState<WinState[]>([]);
   const openWindow = React.useCallback((s: WinSpec) => {
     setWins((w) => { const ex = w.find((x) => x.id === s.id); if (ex) return bringToTop(w, s.id, { min: false }); const n = w.length; const withNew = [...w, { ...s, x: 90 + (n % 6) * 30, y: 96 + (n % 6) * 30, w: 760, h: 500, z: 0, min: false, max: false, snap: null }]; return bringToTop(withNew, s.id); });
@@ -307,10 +345,9 @@ export default function OsxShell() {
   const closeTab = (id: string) => { setTabs((t) => { const nt = t.filter((x) => x !== id); if (!nt.length) return ['console']; if (id === cur) setCur(nt[nt.length - 1]); return nt; }); };
   const popOut = (id: string) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; openWindow({ id: 'mod:' + id, title: m.label, icon: m.icon, render: () => renderModule(id, go) }); };
   return (
-    // ControlModeProvider wraps the whole shell, not just the header. It listens for the gate
-    // refusal that osClient fires from ANY module, so pressing a blocked button anywhere brings up
-    // the panel that unblocks it. Before this, Phase 1.4's gate had no UI at all.
-    <ControlModeProvider>
+    // The Observe/Control Mode provider and header pill were removed 6 Sep 2026 at the founder's
+    // instruction (10 Aug 2026: "no need for that observe mode … Remove the gate"). His login is the
+    // only gate; os_api's action classification still refuses unclassified actions.
     <WinCtx.Provider value={{ open: openWindow }}>
     <div className='osx dark min-h-screen flex text-foreground'>
       <aside className='w-60 shrink-0 border-r border-border bg-card/40 hidden md:flex md:flex-col'>
@@ -336,7 +373,6 @@ export default function OsxShell() {
           <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-foreground/5'>
             <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-foreground/10 rounded px-1.5 py-0.5'>⌘K</kbd>
           </button>
-          <ControlModeIndicator />
           <AgentStatus onOpen={() => go('agents')} />
           <NotificationsBell pulse={live} onNav={go} />
           <div className='flex items-center gap-1.5 text-xs text-muted-foreground' title='Live activity'><Circle className={cn('h-2.5 w-2.5', live ? 'fill-emerald-400 text-emerald-400' : 'fill-muted text-muted')} />{live > 0 ? live + ' live' : 'idle'}</div>
@@ -351,11 +387,12 @@ export default function OsxShell() {
           ); })}
         </div>
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
-          {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
-            <div key={id + ':' + twinKey} className={id === cur ? '' : 'hidden'}>
-              {renderModule(id, go)}
-            </div>
-          ); })}
+          {/* ONE mounted panel. Background tabs are bookmarks, not live components: a tab that is
+              not on screen is unmounted, so it does not poll, does not hold state and does not
+              appear in the accessibility tree of the tab that is (the Console composer showed up
+              "inside" Assistant, the Marketing tab strip "inside" Intelligence). Switching back
+              remounts and refetches — ten tabs cost the same as one. */}
+          <div key={cur + ':' + twinKey} data-module={cur}>{renderModule(cur, go)}</div>
         </main>
       </div>
 
@@ -364,27 +401,26 @@ export default function OsxShell() {
         <CommandList>
           <CommandEmpty>No matches.</CommandEmpty>
           <CommandGroup heading='Modules'>
-            {MODULES.map((m) => (<CommandItem key={m.id} onSelect={() => { setCur(m.id); setPaletteOpen(false); }}><m.icon className='h-4 w-4' />{m.label}</CommandItem>))}
+            {MODULES.map((m) => (<CommandItem key={m.id} onSelect={() => { go(m.id); setPaletteOpen(false); }}><m.icon className='h-4 w-4' />{m.label}</CommandItem>))}
           </CommandGroup>
           {/* Entities, searched live across all nine corpora rather than listed. */}
           {paletteHits.length ? <CommandGroup heading='Entities'>
-            {paletteHits.map((h: any, i: number) => (<CommandItem key={'e' + i} onSelect={() => { setCur(h.mod); setPaletteOpen(false); }}><Search className='h-4 w-4' />{h.name}<span className='ml-2 text-[11px] text-muted-foreground'>{h.group}</span></CommandItem>))}
+            {paletteHits.map((h: any, i: number) => (<CommandItem key={'e' + i} onSelect={() => { go(h.mod); setPaletteOpen(false); }}><Search className='h-4 w-4' />{h.name}<span className='ml-2 text-[11px] text-muted-foreground'>{h.group}</span></CommandItem>))}
           </CommandGroup> : null}
           <CommandGroup heading='Actions'>
             <CommandItem onSelect={() => { osApi('search', { q: paletteQ }).then((d: any) => setPaletteHits(((d && d.suppliers) || []).map((r: any) => ({ name: r.name, group: 'Supplier', mod: 'suppliers' })))).catch(() => {}); }}><Search className='h-4 w-4' />Search everything the company knows</CommandItem>
-            <CommandItem onSelect={() => { setCur('console'); setPaletteOpen(false); }}><MessageSquare className='h-4 w-4' />Ask the Secretary for status</CommandItem>
-            <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><Sparkles className='h-4 w-4' />Show matching / agent activity</CommandItem>
-            <CommandItem onSelect={() => { setCur('operations'); setPaletteOpen(false); }}><Check className='h-4 w-4' />Approve a pending decision</CommandItem>
-            <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><RotateCcw className='h-4 w-4' />Restart AI agents</CommandItem>
-            <CommandItem onSelect={() => { setCur('intelligence'); setPaletteOpen(false); }}><BarChart3 className='h-4 w-4' />Forecast</CommandItem>
-            <CommandItem onSelect={() => { setCur('finance'); setPaletteOpen(false); }}><DollarSign className='h-4 w-4' />Cash Flow</CommandItem>
+            <CommandItem onSelect={() => { go('console'); setPaletteOpen(false); }}><MessageSquare className='h-4 w-4' />Ask the Secretary for status</CommandItem>
+            <CommandItem onSelect={() => { go('agents'); setPaletteOpen(false); }}><Sparkles className='h-4 w-4' />Show matching / agent activity</CommandItem>
+            <CommandItem onSelect={() => { go('operations'); setPaletteOpen(false); }}><Check className='h-4 w-4' />Approve a pending decision</CommandItem>
+            <CommandItem onSelect={() => { go('agents'); setPaletteOpen(false); }}><RotateCcw className='h-4 w-4' />Restart AI agents</CommandItem>
+            <CommandItem onSelect={() => { go('intelligence'); setPaletteOpen(false); }}><BarChart3 className='h-4 w-4' />Forecast</CommandItem>
+            <CommandItem onSelect={() => { go('finance'); setPaletteOpen(false); }}><DollarSign className='h-4 w-4' />Cash Flow</CommandItem>
           </CommandGroup>
         </CommandList>
       </CommandDialog>
       <WindowLayer wins={wins} focus={focusWin} close={closeWin} min={minWin} max={maxWin} move={moveWin} size={sizeWin} snap={snapWin} />
     </div>
     </WinCtx.Provider>
-    </ControlModeProvider>
   );
 }
 
@@ -1474,10 +1510,9 @@ function Console() {
       setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || 'Done.' }]);
       if (d?.needs_confirmation && d?.confirm_token) setConfirm({ token: d.confirm_token, reply: d.reply || '' });
     } catch (e: any) {
-      // A Control Mode refusal already opens the panel via the window event in osClient; the text
-      // here has to say what to do rather than read as "your account is wrong".
+      // An action-gate refusal carries the API's own hint; say that rather than "your account is wrong".
       const msg = e?.name === 'ControlModeError'
-        ? 'Giving an order changes something, so it needs Control Mode open. The panel is on screen — open it and send this again.'
+        ? 'The action gate refused this order: ' + (e?.hint || e?.message || 'unclassified action') + '.'
         : 'Error: ' + (e?.message || 'could not reach the Command Center');
       setMsgs((m) => [...m, { role: 'assistant', content: msg }]);
     }
@@ -1531,7 +1566,7 @@ function Console() {
     setSpeak(true);
     try {
       const d: any = await osApi('ws.exec_home');
-      const brief = 'Good morning. Company health ' + (d?.health_index ?? 'unknown') + ', mood ' + (d?.mood ?? 'unknown') + '. '
+      const brief = d?.brief_text ? String(d.brief_text) : 'Good morning. Company health ' + (d?.health_index ?? 'unknown') + ', mood ' + (d?.mood ?? 'unknown') + '. '
         + 'Revenue today ' + (d?.revenue_today ?? 0) + ' dirhams, ' + (d?.revenue_30d ?? 0) + ' over thirty days. '
         + (d?.suppliers_active ?? 0) + ' active suppliers, ' + (d?.customers_active ?? 0) + ' active customers. '
         + (d?.employees_working ?? 0) + ' of ' + (d?.employees ?? 0) + ' AI employees worked overnight. '
@@ -2518,25 +2553,34 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
 }
 function AgentsApp() {
   const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [sel, setSel] = React.useState<any>(null);
+  // STAFF, NOT THE PARKED (6 Sep 2026). The page listed all 96 org_agents rows while its header said
+  // "54 agents": 42 parked personas (active=false, 0 runs, a stale last_status of "error") sat
+  // among the staff. fn_agents_board now returns the 54 active by default and the parked in a
+  // separate list; this toggle shows them greyed and labelled "parked", never "error".
+  const [showParked, setShowParked] = React.useState(false);
   React.useEffect(() => { osApi('agents_board').then(setD).catch((e: any) => setErr(e.message)); }, []);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Smart Engine: {err}</Card>;
-  const card = (c: any) => (<><div className='flex items-center gap-1.5'><span className={cn('h-2 w-2 rounded-full', c.active ? 'bg-emerald-500' : 'bg-muted')} /><span className='text-sm font-semibold capitalize'>{titleCase(String(c.agent_key))}</span></div>{c.role ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.role}</div> : null}<div className='flex items-center gap-2 mt-2 flex-wrap'><span className='text-[11px] text-muted-foreground'>{c.runs24} runs/24h</span>{c.last_status ? <Badge variant='outline' className='text-[10px]'>{c.last_status}</Badge> : null}{c.fails24 > 0 ? <Badge variant='destructive' className='text-[10px]'>{c.fails24} failed</Badge> : null}</div></>);
-  const columns = [{ key: 'agent_key', label: 'Agent', render: (r: any) => <span className='font-medium capitalize'>{titleCase(String(r.agent_key))}</span> }, { key: 'department', label: 'Dept', render: (r: any) => <span className='capitalize'>{r.department}</span> }, { key: 'role', label: 'Role', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.role || '—'}</span> }, { key: 'runs24', label: 'Runs 24h', render: (r: any) => r.runs24 }, { key: 'last_status', label: 'Last', render: (r: any) => r.last_status || '—' }];
+  const parked: any[] = d?.parked || [];
+  const rows: any[] = showParked ? [...(d?.rows || []), ...parked] : (d?.rows || []);
+  const stages = showParked ? (d?.departments || []).map((dep: any) => ({ ...dep, cards: [...(dep.cards || []), ...parked.filter((p: any) => p.department === dep.key)] })) : (d?.departments || []);
+  const card = (c: any) => (<div className={c.active ? '' : 'opacity-50'}><div className='flex items-center gap-1.5'><span className={cn('h-2 w-2 rounded-full', c.active ? 'bg-emerald-500' : 'bg-muted')} /><span className='text-sm font-semibold capitalize'>{titleCase(String(c.agent_key))}</span></div>{c.role ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.role}</div> : null}<div className='flex items-center gap-2 mt-2 flex-wrap'>{c.active ? <><span className='text-[11px] text-muted-foreground'>{c.runs24} runs/24h</span>{c.last_status ? <Badge variant='outline' className='text-[10px]'>{c.last_status}</Badge> : null}{c.fails24 > 0 ? <Badge variant='destructive' className='text-[10px]'>{c.fails24} failed</Badge> : null}</> : <Badge variant='outline' className='text-[10px]'>parked</Badge>}</div></div>);
+  const columns = [{ key: 'agent_key', label: 'Agent', render: (r: any) => <span className={cn('font-medium capitalize', r.active ? '' : 'opacity-50')}>{titleCase(String(r.agent_key))}</span> }, { key: 'department', label: 'Dept', render: (r: any) => <span className='capitalize'>{r.department}</span> }, { key: 'role', label: 'Role', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.role || '—'}</span> }, { key: 'runs24', label: 'Runs 24h', render: (r: any) => r.active ? r.runs24 : '—' }, { key: 'last_status', label: 'Last', render: (r: any) => r.active ? (r.last_status || '—') : 'parked' }];
   return (<div className='space-y-4'>
     <BoardHeader icon={Sparkles} title='Smart Engine' total={d?.total} sub={d ? (Number(d.runs24 || 0).toLocaleString() + ' runs/24h') : ''} view={view} setView={setView} />
-    {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={d.departments || []} onCard={setSel} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setSel} />}
+    {d && parked.length ? <div className='flex items-center gap-2 text-xs text-muted-foreground'><button type='button' onClick={() => setShowParked((v) => !v)} className={cn('rounded-md border border-border px-2 py-1 hover:bg-foreground/5', showParked ? 'bg-foreground/10 text-foreground' : '')}>{showParked ? 'Hide parked' : 'Parked (' + parked.length + ')'}</button><span>{d.total} staff on the roster{showParked ? ' · parked personas shown greyed' : ''}</span></div> : null}
+    {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={stages} onCard={setSel} renderCard={card} /> : <RichList rows={rows} columns={columns} onRow={setSel} />}
     {/* ── THE ORG CHART ────────────────────────────────────────────────────────────────────
         A real reporting hierarchy drawn as nodes, and clicking a person opens their workspace.
         The kanban and the list both open the drawer already; neither is a chart, and "clicking
         any PERSON on the chart" is what screen 4 asks for. */}
-    {d ? <SectionCard title='Org chart' count={(d.rows || []).length}
+    {d ? <SectionCard title='Org chart' count={rows.length}
       right={<span className='text-[11px] text-muted-foreground'>click a person to open their workspace</span>}>
       <div className='p-4 overflow-auto'>
         <svg viewBox={'0 0 900 ' + Math.max(220, 60 + (d.departments || []).length * 74)} className='w-full' style={{ minWidth: 720 }}>
           <text x={20} y={26} className='fill-muted-foreground' fontSize={12}>Company</text>
           {(d.departments || []).map((dep: any, di: number) => {
             const y = 60 + di * 74;
-            const people = ((d.rows || []) as any[]).filter((r: any) => r.department === dep.key).slice(0, 9);
+            const people = rows.filter((r: any) => r.department === dep.key).slice(0, 9);
             return (<g key={dep.key}>
               <line x1={30} y1={30} x2={30} y2={y} stroke='currentColor' strokeOpacity={0.2} />
               <line x1={30} y1={y} x2={64} y2={y} stroke='currentColor' strokeOpacity={0.2} />
@@ -2575,6 +2619,7 @@ function FinanceApp() {
   const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
   const [glOpen, setGlOpen] = React.useState(false); const [glLines, setGlLines] = React.useState<any[]>([{ account: '', debit: '', credit: '', memo: '' }, { account: '', debit: '', credit: '', memo: '' }]); const [glMemo, setGlMemo] = React.useState(''); const [glDate, setGlDate] = React.useState(''); const [glMsg, setGlMsg] = React.useState(''); const [glBusy, setGlBusy] = React.useState(false);
   const [invOpen, setInvOpen] = React.useState(false); const [invBusy, setInvBusy] = React.useState(false); const [invMsg, setInvMsg] = React.useState('');
+  const [finPdfBusy, setFinPdfBusy] = React.useState(false);
   const load = React.useCallback(() => { setBusy(true); setErr(''); osApi('ws.finance').then(setD).catch((e: any) => setErr(e.message)).finally(() => setBusy(false)); }, []);
   React.useEffect(() => { load(); }, [load]);
   const glTotals = () => glLines.reduce((a: any, l: any) => ({ dr: a.dr + (Number(l.debit) || 0), cr: a.cr + (Number(l.credit) || 0) }), { dr: 0, cr: 0 });
@@ -2590,6 +2635,7 @@ function FinanceApp() {
         <Badge className={cn('border-0', (d?.ai?.health ?? 0) >= 60 ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600')}>Health {Math.round(Number(d?.ai?.health || 0))}/100</Badge>
         <div className='ml-auto flex gap-2'>
           <Button className='h-8 text-xs' variant='outline' disabled={busy} onClick={load}>{busy ? 'Refreshing…' : 'Refresh'}</Button>
+          <Button className='h-8 text-xs' variant='outline' disabled={finPdfBusy} onClick={() => { setFinPdfBusy(true); openReportPdf({ latest_finance: true }).catch((e: any) => setErr(String(e?.message || 'Could not prepare the finance PDF'))).finally(() => setFinPdfBusy(false)); }}>{finPdfBusy ? 'Preparing PDF…' : 'Download finance report (PDF)'}</Button>
           <Button className='h-8 text-xs' variant='outline' onClick={() => { setInvOpen(true); setInvMsg(''); }}>Log invoice (PDF)</Button>
           <Button className='h-8 text-xs' onClick={() => { setGlOpen(true); setGlMsg(''); }}>New journal entry</Button>
         </div>
@@ -2653,25 +2699,41 @@ function ChannelPills({ channels }: { channels: any }) {
   if (!list.length) return null;
   return (<div className='flex flex-wrap gap-1'>{list.map((c, i) => (<span key={i} className='inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-foreground/[0.06] text-foreground/70 capitalize'>{CH_LABEL[String(c).toLowerCase()] || c}</span>))}</div>);
 }
-function PostThumb({ url, className }: { url?: string; className?: string }) {
-  if (!url) return (<div className={cn('grid place-items-center bg-foreground/[0.05] text-muted-foreground', className)}><Megaphone className='h-6 w-6 opacity-30' /></div>);
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt='' loading='lazy' className={cn('object-cover bg-foreground/[0.05]', className)} onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />;
+// Founder's order (6 Sep 2026): a designed post's media is CLICKABLE — the thumbnail is a link that opens the
+// asset — and a post with no media says so instead of showing a blank tile.
+function PostThumb({ url, className, missing }: { url?: string; className?: string; missing?: string }) {
+  if (!url) return (<div className={cn('grid place-items-center bg-foreground/[0.05] text-muted-foreground', className)}><div className='text-center'><Megaphone className='h-6 w-6 opacity-30 mx-auto' /><div className='text-[11px] mt-1'>{missing || 'no media designed yet'}</div></div></div>);
+  return (<a href={url} target='_blank' rel='noopener noreferrer' title='Open media' onClick={(e) => e.stopPropagation()} className={cn('block', className)}>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={url} alt='' loading='lazy' className='object-cover bg-foreground/[0.05] w-full h-full' onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+  </a>);
+}
+// A published post's channel badge links to the post on that network (permalinks[channel]); a draft's
+// badge is just the badge — there is nothing on the network yet.
+function ChannelLinks({ channels, permalinks }: { channels: any; permalinks?: Record<string, string> | null }) {
+  const list: string[] = Array.isArray(channels) ? channels : (channels ? [String(channels)] : []);
+  if (!list.length) return null;
+  return (<div className='flex flex-wrap gap-1'>{list.map((c, i) => { const k = String(c).toLowerCase(); const href = permalinks?.[k]; const cls = 'inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded capitalize';
+    return href ? <a key={i} href={href} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className={cn(cls, 'bg-primary/10 text-primary hover:underline')}>{CH_LABEL[k] || c}<ExternalLink className='h-2.5 w-2.5' /></a>
+      : <span key={i} className={cn(cls, 'bg-foreground/[0.06] text-foreground/70')}>{CH_LABEL[k] || c}</span>; })}</div>);
 }
 
 function SocialPostDrawer({ post, onClose }: { post: any; onClose: () => void }) {
   const chan = Array.isArray(post.channels) ? post.channels : [];
-  const live = String(post.status || '').toLowerCase() === 'sent' || String(post.status || '').toLowerCase() === 'published';
+  const live = post.live === true || (String(post.mode || '') === 'now' && /sent|published/i.test(String(post.status || '')));
+  const links: Record<string, string> = post.permalinks || {};
   return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
     <SheetHeader>
       <SheetTitle className='flex items-center gap-2'>Social post{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />}</SheetTitle>
       <SheetDescription>{post.created_at ? 'Created ' + fmt(post.created_at) : ''}</SheetDescription>
     </SheetHeader>
     <div className='mt-4 space-y-4'>
-      {post.image_url ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={post.image_url} className='w-full max-h-96' /></div> : null}
+      <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={post.image_url} missing={post.media_missing} className='w-full h-64' /></div>
+      {live ? <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>On the network</div>{Object.keys(links).length ? <div className='space-y-1'>{Object.entries(links).map(([c, u]) => <a key={c} href={String(u)} target='_blank' rel='noopener noreferrer' className='flex items-center gap-1 text-sm text-primary hover:underline'><span className='capitalize'>{CH_LABEL[c] || c}</span><ExternalLink className='h-3 w-3' /><span className='text-xs text-muted-foreground truncate'>{String(u)}</span></a>)}</div> : <div className='text-xs text-amber-600'>No permalink yet — {post.permalink_missing || 'reason not recorded'}</div>}</Card>
+        : <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Draft</div><div className='text-xs text-muted-foreground'>{post.permalink_missing || 'not published to a network'}</div>{post.preview_url ? <a href={post.preview_url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1'>Open the draft in Postiz<ExternalLink className='h-3 w-3' /></a> : null}</Card>}
       <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Caption</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{post.text || <span className='text-muted-foreground'>No caption.</span>}</div></Card>
       <div className='grid grid-cols-2 gap-3'>
-        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Channels</div>{chan.length ? <ChannelPills channels={chan} /> : <span className='text-sm text-muted-foreground'>—</span>}</Card>
+        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Channels</div>{chan.length ? <ChannelLinks channels={chan} permalinks={links} /> : <span className='text-sm text-muted-foreground'>—</span>}</Card>
         <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Status</div><Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />{post.error ? <div className='text-[11px] text-red-600 mt-1.5 whitespace-pre-wrap'>{post.error}</div> : null}</Card>
       </div>
       {post.image_url ? <a href={post.image_url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-xs text-primary hover:underline'>Open full image<ExternalLink className='h-3 w-3' /></a> : null}
@@ -2709,7 +2771,7 @@ function ReviewDrawer({ item, onDone, onClose }: { item: any; onDone: () => void
   return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
     <SheetHeader><SheetTitle className='flex items-center gap-2'>Review draft<Chip label='Pending' tone='amber' /></SheetTitle><SheetDescription>{titleCase(String(item.__kind || 'marketing post'))}{item.channel ? ' · ' + item.channel : ''}</SheetDescription></SheetHeader>
     <div className='mt-4 space-y-4'>
-      {img ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={img} className='w-full max-h-96' /></div> : null}
+      <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={img} missing={item.media_missing} className='w-full h-64' /></div>
       {item.title ? <div className='text-base font-semibold'>{item.title}</div> : null}
       {(item.body || item.text) ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Content</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{item.body || item.text}</div></Card> : null}
       {item.channels ? <ChannelPills channels={item.channels} /> : null}
@@ -2759,7 +2821,7 @@ function MarketingApp() {
       <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
         <StatTile label='Total leads' value={k.leads_total} onClick={() => setTab('insights')} />
         <StatTile label='Blog published' value={k.blog_published} hint={(k.blog_total || 0) + ' total'} onClick={() => setTab('blog')} />
-        <StatTile label='Social live' value={k.social_published} hint={socials.length + ' posts'} onClick={() => setTab('social')} />
+        <StatTile label='Social live' value={k.social_published} hint={(Number(k.social_staged) || 0) + ' drafts · ' + socials.length + ' posts'} onClick={() => setTab('social')} />
         <StatTile label='SEO pages' value={k.seo_pages} />
         <StatTile label='Outreach sent' value={k.outreach_sent} />
         <StatTile label='Awaiting review' value={reviewItems.length} onClick={() => setTab('review')} />
@@ -2774,18 +2836,23 @@ function MarketingApp() {
       </div>
     </div>) : tab === 'review' ? (<div className='space-y-3'>
       {reviewItems.length ? <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>{reviewItems.map((it: any, i: number) => (
-        <button key={i} onClick={() => setReview(it)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all'>
-          {(it.image_url || it.image) ? <PostThumb url={it.image_url || it.image} className='w-full h-40' /> : null}
+        <div key={i} role='button' tabIndex={0} onClick={() => setReview(it)} onKeyDown={(e) => { if (e.key === 'Enter') setReview(it); }} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all cursor-pointer'>
+          <PostThumb url={it.image_url || it.image} missing={it.media_missing} className='w-full h-40' />
           <div className='p-3'><div className='flex items-center gap-2 mb-1'><Chip label={titleCase(String(it.__kind))} tone='amber' />{it.channel ? <span className='text-[11px] text-muted-foreground'>{it.channel}</span> : null}</div><div className='text-sm font-medium line-clamp-1'>{it.title || 'Draft'}</div><div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{it.body || it.text || '—'}</div></div>
-        </button>))}</div> : (
+        </div>))}</div> : (
         <Card className='p-10 text-center'><Check className='h-8 w-8 text-emerald-500/50 mx-auto mb-2' /><div className='text-sm font-medium'>Nothing awaiting review</div><div className='text-xs text-muted-foreground mt-1'>Draft posts created by the team appear here. Open one to see its image and copy, then approve to publish or reject.</div></Card>
       )}
     </div>) : tab === 'social' ? (<div>
-      {socials.length ? <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>{socials.map((s: any) => { const live = /sent|published/i.test(String(s.status || '')); return (
-        <button key={s.id} onClick={() => setSocial(s)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all group'>
-          <div className='relative'><PostThumb url={s.image_url} className='w-full h-44 group-hover:brightness-105 transition-all' /><div className='absolute top-2 right-2'>{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(s.status || s.mode || 'draft'))} tone={statusTone(String(s.status || s.mode || 'draft'))} />}</div></div>
-          <div className='p-3'><div className='text-sm line-clamp-2 leading-snug'>{s.text || <span className='text-muted-foreground'>No caption</span>}</div><div className='flex items-center justify-between mt-2 gap-2'><ChannelPills channels={s.channels} /><span className='text-[10px] text-muted-foreground whitespace-nowrap'>{s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span></div></div>
-        </button>); })}</div> : (
+      {socials.length ? <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>{socials.map((s: any) => { const live = s.live === true; const links: Record<string, string> = s.permalinks || {}; const firstLink = Object.values(links)[0]; return (
+        <div key={s.id} role='button' tabIndex={0} onClick={() => setSocial(s)} onKeyDown={(e) => { if (e.key === 'Enter') setSocial(s); }} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all group cursor-pointer'>
+          <div className='relative'><PostThumb url={s.image_url} missing={s.media_missing} className='w-full h-44 group-hover:brightness-105 transition-all' /><div className='absolute top-2 right-2 pointer-events-none'>{live ? <Chip label='Live' tone='green' /> : <Chip label='Draft' tone='amber' />}</div></div>
+          <div className='p-3'>
+            {live ? (firstLink ? <a href={String(firstLink)} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className='text-sm line-clamp-2 leading-snug text-primary hover:underline'>{s.text || 'Open post'}</a> : <div className='text-sm line-clamp-2 leading-snug'>{s.text}<div className='text-[11px] text-amber-600 mt-0.5'>No permalink yet — {s.permalink_missing || 'reason not recorded'}</div></div>)
+              : <div className='text-sm line-clamp-2 leading-snug'>{s.text || <span className='text-muted-foreground'>No caption</span>}</div>}
+            <div className='flex items-center justify-between mt-2 gap-2'><ChannelLinks channels={s.channels} permalinks={links} /><span className='text-[10px] text-muted-foreground whitespace-nowrap'>{s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span></div>
+            {!live && s.preview_url ? <a href={s.preview_url} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className='inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1.5'>Draft in Postiz<ExternalLink className='h-3 w-3' /></a> : null}
+          </div>
+        </div>); })}</div> : (
         <Card className='p-10 text-center'><Megaphone className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No social posts yet</div><div className='text-xs text-muted-foreground mt-1'>Posts published through Postiz appear here with their image and copy.</div></Card>
       )}
     </div>) : (<div className='space-y-3'>
@@ -2794,12 +2861,12 @@ function MarketingApp() {
         <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{([['all', 'All ' + blogs.length], ['published', 'Published ' + publishedCount], ['draft', 'Drafts ' + (blogs.length - publishedCount)]] as [any, string][]).map(([f, lbl]) => (<button key={f} onClick={() => setBlogFilter(f)} className={cn('h-9 px-3 border-l first:border-l-0 border-border', blogFilter === f ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
       </div>
       {visibleBlogs.length ? <Card className='overflow-hidden'><div className='divide-y divide-border'>{visibleBlogs.map((b: any) => (
-        <button key={b.id} onClick={() => setBlog(b)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
-          <div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{b.title}</div><div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{b.excerpt || b.slug}</div></div>
+        <div key={b.id} role='button' tabIndex={0} onClick={() => setBlog(b)} onKeyDown={(e) => { if (e.key === 'Enter') setBlog(b); }} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3 cursor-pointer'>
+          <div className='min-w-0 flex-1'>{b.url ? <a href={b.url} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className='text-sm font-medium line-clamp-1 text-primary hover:underline inline-flex items-center gap-1'>{b.title}<ExternalLink className='h-3 w-3 shrink-0' /></a> : <div className='text-sm font-medium line-clamp-1'>{b.title}</div>}<div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{b.url || b.excerpt || b.slug}</div></div>
           {b.category ? <span className='hidden sm:inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize shrink-0'>{b.category}</span> : null}
           <Chip label={b.published ? 'Published' : 'Draft'} tone={b.published ? 'green' : 'amber'} />
           <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
-        </button>))}</div></Card> : <Card className='p-8 text-center text-sm text-muted-foreground'>No posts match.</Card>}
+        </div>))}</div></Card> : <Card className='p-8 text-center text-sm text-muted-foreground'>No posts match.</Card>}
     </div>)}
 
     {social ? <SocialPostDrawer post={social} onClose={() => setSocial(null)} /> : null}
@@ -2952,7 +3019,9 @@ function OperationsApp() {
     <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Refund approvals (yours)', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held with departments', k.held_with_roles ?? held.length]]} />
     {approvals.length ? <SectionCard title='Refund approvals waiting on you' count={approvals.length}><div className='divide-y divide-border'>{approvals.map((a: any) => (<div key={String(a.id)} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{a.kind_label || 'Refund decision'}<span className='text-muted-foreground text-xs'>{a.from}</span></div><div className='text-xs text-muted-foreground'>{a.title} · {fmt(a.raised)}</div></div><div className='flex gap-1.5 shrink-0'>{a.source === 'agent_actions' ? <><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></> : <span className='text-[11px] text-muted-foreground'>decide it in Refunds</span>}</div></div>))}</div></SectionCard> : null}
     {held.length ? <SectionCard title='Held with departments — not yours to approve' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} onClick={() => setRow({ id: a.id, title: String(a.title || 'Action'), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-foreground/5'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{(a.kind_label || titleCase(String(a.kind || 'decision')))}<span className='text-muted-foreground text-xs'>{a.agent}</span>{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}</div><div className='text-xs text-muted-foreground'>{a.title} · held with <b className='text-foreground'>{a.holder}</b> · {fmt(a.created_at)}</div></div></div>))}</div></SectionCard> : null}
-    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    {/* ONE definition of "open task" (public.v_org_open_tasks): the same number Overview shows. These are
+        the departments' org_tasks, closed by the agent that owns each — no Done button here. */}
+    <SectionCard title='Open tasks' count={k.tasks_open ?? tasks.length} right={<span className='text-[11px] text-muted-foreground'>across every department · newest 20</span>}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.created_at ? ' · ' + fmt(t.created_at) : ''}</div></div>{t.entity === 'org_task' ? <Chip label={String(t.status || 'open')} tone={statusTone(String(t.status || 'open'))} /> : <Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button>}</div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
     {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {Object.keys(sec).length ? <SectionCard title='Security posture'><div className='p-4'><ReadableObject data={sec} /></div></SectionCard> : null}
   </div>);
@@ -3811,12 +3880,12 @@ function AssistantApp() {
   const tasks = d?.open_tasks || []; const today = d?.today_events || []; const upcoming = d?.upcoming_events || []; const reminders = d?.reminders_due || []; const approvals = d?.approvals_top || []; const meetings = d?.recent_meetings || [];
   return (<div className='space-y-4'>
     <AppHeader icon={Calendar} title='Assistant' onRefresh={load} busy={busy} badge={d?.overdue_tasks ? <Badge className='bg-red-500/15 text-red-600 border-0'>{d.overdue_tasks} overdue</Badge> : null} />
-    <KpiRow items={[['Open tasks', tasks.length], ['Overdue', d?.overdue_tasks], ['Approvals', d?.approvals_total], ['High-risk approvals', d?.approvals_high_risk], ['Today', today.length], ['Reminders due', reminders.length]]} />
+    <KpiRow items={[['Your tasks', tasks.length], ['Overdue', d?.overdue_tasks], ['Approvals', d?.approvals_total], ['High-risk approvals', d?.approvals_high_risk], ['Today', today.length], ['Reminders due', reminders.length]]} />
     {(today.length || upcoming.length) ? <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
       <SectionCard title='Today' count={today.length}>{today.length ? <div className='divide-y divide-border'>{today.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing today.</div>}</SectionCard>
       <SectionCard title='Upcoming' count={upcoming.length}>{upcoming.length ? <div className='divide-y divide-border'>{upcoming.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing scheduled.</div>}</SectionCard>
     </div> : null}
-    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    <SectionCard title='Your tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing on your list.</div>}</SectionCard>
     {approvals.length ? <SectionCard title='Approvals awaiting you' count={d?.approvals_total ?? approvals.length}><div className='p-4'><div className='mb-2 flex flex-wrap gap-1.5'>{(approvals as any[]).map((a: any, i: number) => (<button key={i} onClick={() => setRow({ id: a.id ?? i, title: String(a.title || 'Action'), row: a })} className='text-[11px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>Open #{a.id ?? i}</button>))}</div><ReadableObject data={approvals} /></div></SectionCard> : null}
     {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {reminders.length ? <SectionCard title='Reminders due' count={reminders.length}><div className='p-4'><ReadableObject data={reminders} /></div></SectionCard> : null}
@@ -3874,6 +3943,12 @@ function MeetingReplay({ meeting }: { meeting: any }) {
     {challenges.length ? <div className='px-4 py-3 border-t border-border'><div className='text-xs font-semibold mb-2'>Challenged in the meeting</div><div className='space-y-1.5'>{challenges.map((ch: any, i: number) => (<div key={i} className='text-xs flex items-start gap-2'><Chip label={String(ch.stance || '')} tone={stanceTone(String(ch.stance || ''))} /><span className='flex-1'><span className='text-muted-foreground'>{String(ch.by || '')} on {String(ch.of || '')}: </span>{String(ch.reasoning || '')}</span></div>))}</div></div> : null}
   </SectionCard>);
 }
+// The PDF control on a report row. It sits inside the row's own button, so the click must not open the
+// drawer as well; the report row's src is board | exec | finance, exactly what report_pdf resolves.
+function PdfButton({ src, id }: { src: string; id: number }) {
+  const [busy, setBusy] = React.useState(false);
+  return <span role='button' tabIndex={0} title='Open the corporate PDF' onClick={(e) => { e.stopPropagation(); if (busy) return; setBusy(true); openReportPdf({ source: src || 'board', id }).catch(() => {}).finally(() => setBusy(false)); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).click(); } }} className={cn('inline-flex h-6 items-center rounded-md border border-border px-2 text-[11px] font-medium shrink-0 hover:bg-primary hover:text-primary-foreground transition-colors', busy && 'opacity-60')}>{busy ? '…' : 'PDF'}</span>;
+}
 function ReportsApp() {
   const { d, err, busy, load } = useWs('ws.reports'); const [sel, setSel] = React.useState<any>(null);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Reports: {err}</Card>;
@@ -3886,8 +3961,8 @@ function ReportsApp() {
     {meeting ? <MeetingReplay meeting={meeting} /> : null}
     {fresh.length ? <SectionCard title='Report freshness'><div className='p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2'>{fresh.map((f) => (<div key={f.type} className={cn('rounded-md border p-2.5', f.fresh ? 'border-emerald-500/30 bg-emerald-500/[0.03]' : 'border-amber-500/30 bg-amber-500/[0.03]')}><div className='flex items-center justify-between'><span className='text-xs font-medium capitalize'>{f.type}</span>{f.fresh ? <Check className='h-3.5 w-3.5 text-emerald-500' /> : <AlertTriangle className='h-3.5 w-3.5 text-amber-500' />}</div><div className='text-[10px] text-muted-foreground mt-1'>{fmt(f.at)}</div></div>))}</div></SectionCard> : null}
     {flags.length ? <SectionCard title='Report flags' count={flags.length}><div className='divide-y divide-border'>{flags.map((f: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm flex items-center gap-2'><Chip label={titleCase(String(f.risk))} tone={riskTone(String(f.risk))} /><span className='flex-1'>{f.title}</span>{f.status ? <Chip label={titleCase(String(f.status))} tone={statusTone(String(f.status))} /> : null}</div>))}</div></SectionCard> : null}
-    <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
-    {byType.length ? <SectionCard title='Latest by type' count={byType.length}><div className='divide-y divide-border'>{byType.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='flex-1 text-sm line-clamp-1'>{r.title}</span><Chip label={titleCase(String(r.report_type))} tone='blue' /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div></SectionCard> : null}
+    <SectionCard title='Recent reports' count={recent.length}>{recent.length ? <div className='divide-y divide-border'>{recent.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'><div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{r.title}</div><div className='text-[11px] text-muted-foreground'>{r.source ? titleCase(String(r.source)) + ' · ' : ''}{fmt(r.created)}</div></div>{r.report_type ? <Chip label={titleCase(String(r.report_type))} tone='blue' /> : null}<PdfButton src={r.src} id={r.id} /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No reports yet.</div>}</SectionCard>
+    {byType.length ? <SectionCard title='Latest by type' count={byType.length}><div className='divide-y divide-border'>{byType.map((r: any) => (<button key={r.id} onClick={() => setSel(r)} className='w-full text-left px-4 py-2.5 hover:bg-foreground/5 transition-colors flex items-center gap-2'><span className='flex-1 text-sm line-clamp-1'>{r.title}</span><Chip label={titleCase(String(r.report_type))} tone='blue' /><PdfButton src={r.src} id={r.id} /><ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' /></button>))}</div></SectionCard> : null}
     {sel ? <ReportViewerDrawer report={sel} onClose={() => setSel(null)} /> : null}
   </div>);
 }

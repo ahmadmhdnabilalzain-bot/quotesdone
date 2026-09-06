@@ -3,13 +3,13 @@ import * as React from 'react';
 import { Command as CommandPrimitive } from 'cmdk';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 const Command = React.forwardRef<React.ElementRef<typeof CommandPrimitive>, React.ComponentPropsWithoutRef<typeof CommandPrimitive>>(({ className, ...props }, ref) => (
   <CommandPrimitive ref={ref} className={cn('flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground', className)} {...props} />
 ));
 Command.displayName = CommandPrimitive.displayName;
 const CommandDialog = ({ children, ...props }: React.ComponentProps<typeof Dialog>) => (
-  <Dialog {...props}><DialogContent className='overflow-hidden p-0 max-w-xl'><Command className='[&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-border'>{children}</Command></DialogContent></Dialog>
+  <Dialog {...props}><DialogContent className='overflow-hidden p-0 max-w-xl'><DialogTitle className='sr-only'>Command palette</DialogTitle><Command className='[&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-border'>{children}</Command></DialogContent></Dialog>
 );
 const CommandInput = React.forwardRef<React.ElementRef<typeof CommandPrimitive.Input>, React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>>(({ className, ...props }, ref) => (
   <div className='flex items-center border-b border-border px-3' cmdk-input-wrapper=''>
