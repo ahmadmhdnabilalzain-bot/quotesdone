@@ -1691,3 +1691,4 @@ scripts/sql/every_head_carries_the_licence_and_tax_status.sql
 scripts/sql/the_embedding_picker_reads_a_partial_index.sql
 scripts/sql/the_embedding_crons_stop_stampeding.sql
 scripts/sql/the_boost_ticks_every_ten_seconds.sql
+scripts/sql/the_boost_embeds_three_at_a_time.sql
