@@ -120,15 +120,25 @@ Deno.serve(async (req) => {
     const cats = Array.isArray(body.categories)
       ? body.categories.map((s: unknown) => String(s)).filter(Boolean).slice(0, 20) : null;
     const newest = body.newest === true;
-    let sel = admin.from(tgt.table).select(tgt.cols).is('embedding_gte', null);
-    if (kinds && kinds.length && tgt.table === 'kb_chunks') sel = sel.in('source_kind', kinds);
-    if (cats && cats.length && tgt.table === 'kb_chunks') sel = sel.in('category', cats);
-    const { data, error: qerr } = await sel
-      .order(tgt.orderby, { ascending: !newest })
-      .limit(lim);
+    // CLAIMED, NOT SELECTED, for kb_chunks (6 Sep 2026). Thirteen invocations a minute all picking the
+    // same five oldest rows embedded the same rows, queued on the same row locks past the 8 s wall and
+    // moved the frontier eleven seconds in three minutes. fn_kb_embed_claim takes the oldest UNCLAIMED
+    // rows FOR UPDATE SKIP LOCKED and stamps embed_claimed_at (free again after 3 minutes), so
+    // concurrent workers drain disjoint slices. The two small targets keep the plain select.
+    let data: Record<string, unknown>[] | null = null; let qerr: unknown = null;
+    if (tgt.table === 'kb_chunks') {
+      const r = await admin.rpc('fn_kb_embed_claim', {
+        p_limit: lim, p_source_kinds: kinds && kinds.length ? kinds : null,
+        p_categories: cats && cats.length ? cats : null, p_newest: newest });
+      data = (r.data ?? null) as Record<string, unknown>[] | null; qerr = r.error;
+    } else {
+      const r = await admin.from(tgt.table).select(tgt.cols).is('embedding_gte', null)
+        .order(tgt.orderby, { ascending: !newest }).limit(lim);
+      data = (r.data ?? null) as Record<string, unknown>[] | null; qerr = r.error;
+    }
 
     if (!data || data.length === 0) {
-      if (qerr) await logThrottled('query_failed', 60, 'error', { stage: 'select' }, 'kb_embed could not read its target table, so it reported "done" while unembedded chunks may still exist; the embedding backfill has silently stalled and new knowledge-base content will not appear in semantic search. ' + String(qerr?.message || qerr).slice(0, 160));
+      if (qerr) await logThrottled('query_failed', 60, 'error', { stage: 'select' }, 'kb_embed could not read its target table, so it reported "done" while unembedded chunks may still exist; the embedding backfill has silently stalled and new knowledge-base content will not appear in semantic search. ' + String((qerr as { message?: string })?.message || qerr).slice(0, 160));
       return J({ ok: true, done: true, embedded: 0 });
     }
 

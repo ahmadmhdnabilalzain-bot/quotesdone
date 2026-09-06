@@ -156,8 +156,12 @@ Deno.serve(async (req: Request) => {
       let brain = '';
       if (!isTaskLane) {
         try {
+          // THE RUN REFERENCE IS PART OF THE QUERY (6 Sep 2026). fn_agent_context's 3-arg overload derives
+          // the category key from `run:<uuid>` (workflow_run -> trigger event -> inquiry.category) and
+          // renders LAYER 2e, the route's category pack, for a category-scoped step. Without it v3 got a
+          // NULL category on every call and the 1,204 category records reached no run-time prompt.
           const { data } = await admin.rpc('fn_agent_context_capped',
-            { p_agent_key: employee, p_max_chars: 6000, p_query: (wfName + ' ' + stepText).slice(0, 400) });
+            { p_agent_key: employee, p_max_chars: 6000, p_query: (wfName + ' ' + stepText).slice(0, 400) + ' run:' + String(s.run_id ?? '') });
           brain = data ? String(data) : '';
         } catch (_e) { /* an employee with no context still has to answer */ }
       }

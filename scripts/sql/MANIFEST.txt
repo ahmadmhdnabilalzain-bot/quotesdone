@@ -1671,3 +1671,5 @@ scripts/sql/every_agent_receives_its_profession.sql
 scripts/sql/supply_has_a_live_state_layer.sql
 scripts/sql/layer_2c_scopes_like_the_playbook_binder.sql
 scripts/sql/the_embedding_backfill_runs_again_under_the_kernel.sql
+scripts/sql/a_category_scoped_task_gets_its_pack.sql
+scripts/sql/the_embedding_picker_claims_its_rows.sql
