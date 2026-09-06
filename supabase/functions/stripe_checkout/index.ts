@@ -3,7 +3,10 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
-function revealFee(amount: number, cfg: any, at: Date = new Date()): number { if (!amount || amount <= 0) return 0; const promo = !!cfg.promo_until && at <= new Date(cfg.promo_until); const rate = Number(promo ? cfg.promo_reveal_rate : cfg.standard_reveal_rate); const cap = Number(promo ? cfg.promo_reveal_cap : cfg.standard_reveal_cap); return Math.min(Math.round(amount * rate * 100) / 100, cap); }
+// 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
+// and NO cap. This is the amount Stripe charges, so it computes the standard rate and nothing else, the
+// same as public.reveal_fee(); pricing_config forbids a promo or a cap by constraint.
+function revealFee(amount: number, cfg: any): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg?.standard_reveal_rate) * 100) / 100; }
 
 // Observability: a customer who cannot reach Stripe checkout is lost revenue with no trace.
 // Config and Stripe-side failures are logged as errors; auth rejections are not (normal traffic).

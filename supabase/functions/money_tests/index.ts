@@ -20,7 +20,10 @@ async function sec(k:string){ const {data}=await admin.from('app_secrets').selec
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-function revealFee(amount:number,cfg:any,at=new Date()){ if(!amount||amount<=0) return 0; const promo=!!cfg.promo_until&&at<=new Date(cfg.promo_until); const rate=Number(promo?cfg.promo_reveal_rate:cfg.standard_reveal_rate); const cap=Number(promo?cfg.promo_reveal_cap:cfg.standard_reveal_cap); return Math.min(Math.round(amount*rate*100)/100, cap); }
+// 6 Sep 2026 (founder): 3% of the amount, NO discount, NO promotional rate, NO cap - the same maths as
+// public.reveal_fee(), customer_api and stripe_checkout. A promo or a cap in pricing_config is refused by
+// constraint, and the assertions below check the row carries neither.
+function revealFee(amount:number,cfg:any){ if(!amount||amount<=0) return 0; return Math.round(amount*Number(cfg.standard_reveal_rate)*100)/100; }
 async function restGet(path:string){ const r=await fetch(`${BASE}/rest/v1/${path}`,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
 async function rpc(name:string,body:any){ const r=await fetch(`${BASE}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json'},body:JSON.stringify(body)}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
 async function fn(slug:string,body:any,auth:string|null){ const h:any={'Content-Type':'application/json'}; if(auth) h['Authorization']='Bearer '+auth; const r=await fetch(`${BASE}/functions/v1/${slug}`,{method:'POST',headers:h,body:JSON.stringify(body)}); let b:any=null; try{b=await r.json();}catch(_e){} return {status:r.status, body:b}; }
@@ -61,7 +64,10 @@ Deno.serve(async (req)=>{
       T('fee(10000)=3%', revealFee(10000,cfg)===Math.round(10000*Number(cfg.standard_reveal_rate)*100)/100, 'got '+revealFee(10000,cfg));
       T('fee(0)=0', revealFee(0,cfg)===0);
       T('fee is monotonic', revealFee(50000,cfg) >= revealFee(10000,cfg));
-      T('fee never exceeds cap', revealFee(1e12,cfg) <= Number(cfg.standard_reveal_cap));
+      // 6 Sep 2026 (founder): no cap and no discount. A very large amount pays the full 3%, and the row
+      // carries no promo window, no promo rate below the standard rate and no cap below AED 99,999,999.
+      T('fee has no cap: fee(1e9)=3% of 1e9', revealFee(1e9,cfg)===Math.round(1e9*Number(cfg.standard_reveal_rate)*100)/100, 'got '+revealFee(1e9,cfg));
+      T('no discount path in pricing_config', cfg.promo_until==null && Number(cfg.promo_reveal_rate)===Number(cfg.standard_reveal_rate) && Number(cfg.standard_reveal_cap)>=99999999 && Number(cfg.promo_reveal_cap)>=99999999, 'promo_until='+cfg.promo_until+' promo_rate='+cfg.promo_reveal_rate+' caps='+cfg.standard_reveal_cap+'/'+cfg.promo_reveal_cap);
     }
     // 2) stripe config
     const sk=await sec('stripe_secret_key');

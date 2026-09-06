@@ -1692,3 +1692,6 @@ scripts/sql/the_embedding_picker_reads_a_partial_index.sql
 scripts/sql/the_embedding_crons_stop_stampeding.sql
 scripts/sql/the_boost_ticks_every_ten_seconds.sql
 scripts/sql/the_boost_embeds_three_at_a_time.sql
+scripts/sql/pricing_has_no_date_no_discount_and_no_cap.sql
+scripts/sql/the_company_records_the_founders_decisions_of_6_sep_2026.sql
+scripts/sql/ads_have_a_30_aed_daily_cap_and_no_founder_cpl_target.sql

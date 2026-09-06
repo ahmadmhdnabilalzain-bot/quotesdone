@@ -626,7 +626,10 @@ Deno.serve(async (req) => {
       const reg = regSt as any;
       if (reg.status === 'paid') return J({ ok: true, already_paid: true, paid_until: reg.paid_until });
       if (reg.status === 'exempt') return J({ ok: true, exempt: true, founding_rank: reg.founding_rank, message: 'Your registration is permanently free - you are supplier number ' + reg.founding_rank + ', inside the founding cohort. There is no fee to pay, now or in future.' });
-      if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, message: 'There is nothing to pay yet. The yearly registration fee starts on ' + reg.charging_starts + '.' });
+      // 6 Sep 2026 (founder): there is no calendar start date - charging_starts is NULL and stays NULL; the
+      // yearly fee begins with the registration after the free count. The sentence comes from the single
+      // source of truth (fn_supplier_registration_state.reason), which states the cohort rule, never a date.
+      if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, message: 'There is nothing to pay yet. ' + (reg.charging_starts ? 'The yearly registration fee starts on ' + reg.charging_starts + '.' : (reg.reason ? reg.reason.charAt(0).toUpperCase() + reg.reason.slice(1) + '.' : 'The yearly registration fee applies from the registration after the free count; there is no calendar start date.')) });
       const fee = Number(reg.fee_due || 0);
       if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true });
       const sk = await secretVal('stripe_secret_key');

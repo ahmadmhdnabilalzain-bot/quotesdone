@@ -22,32 +22,37 @@ const CHECKOUT = 'supabase/functions/supplier_api/index.ts';
 
 // 1,000 written any of the ways a human writes it.
 const feeRe = new RegExp(`${C.currency}\\s*1[,. ]?000\\b`, 'i');
-const startRe = /1 August 2027|1 Aug 2027|2027-08-01/i;
+// 6 Sep 2026 (founder): "dont use a deadline with dates". paid_period_starts is null in the canonical
+// file and pricing_config.supplier_charging_starts is NULL: charging begins with registration
+// free_registrations + 1, whenever that happens. The retired calendar start must therefore be ABSENT from
+// the Agreement and the public pages; it was asserted PRESENT until this ruling.
+const retiredStartRe = /1 August 2027|1 Aug 2027|2027-08-01|31 July 2027|31 Jul 2027/i;
 const freeRe = /first (?:one thousand \(1,000\)|1[,. ]?000)/i;
 const noCommissionRe = /no commission|does not charge Suppliers any commission|not charged commission/i;
 
-test('the Supplier Agreement states all four pricing facts', () => {
+test('the Supplier Agreement states the pricing facts and no calendar start date', () => {
   const s = read(AGREEMENT);
   assert.match(s, feeRe, `${AGREEMENT} does not state ${C.currency} ${C.annual_fee}`);
-  assert.match(s, startRe, `${AGREEMENT} does not state the 1 August 2027 start`);
+  assert.doesNotMatch(s, retiredStartRe, `${AGREEMENT} still states the retired 1 August 2027 start (founder, 6 Sep 2026: no calendar date - charging begins with registration ${C.free_registrations + 1})`);
   assert.match(s, freeRe, `${AGREEMENT} does not state the first ${C.free_registrations} exemption`);
   assert.match(s, noCommissionRe, `${AGREEMENT} does not state that suppliers pay no commission`);
 });
 
-test('the public supplier pages state all four pricing facts', () => {
+test('the public supplier pages state the pricing facts and no calendar start date', () => {
   const s = read(PUBLIC_PAGES);
   assert.match(s, feeRe);
-  assert.match(s, startRe);
+  assert.doesNotMatch(s, retiredStartRe, `${PUBLIC_PAGES} still states the retired 1 August 2027 start (founder, 6 Sep 2026: no calendar date)`);
   assert.match(s, freeRe);
   assert.match(s, noCommissionRe);
 });
 
 test('the supplier portal states the exemption and the no-commission rule', () => {
-  // The portal is not a pricing page, so it is not required to restate the fee or the date - but
-  // what it does say has to be true.
+  // The portal is not a pricing page, so it is not required to restate the fee - but what it does
+  // say has to be true, and a calendar start date is no longer true.
   const s = read(PORTAL);
   assert.match(s, /first 1[,. ]?000/i);
   assert.match(s, noCommissionRe);
+  assert.doesNotMatch(s, retiredStartRe, `${PORTAL} still states the retired 31 July 2027 / 1 August 2027 start (founder, 6 Sep 2026: no calendar date)`);
 });
 
 test('the Stripe supplier checkout charges in the canonical currency', () => {
@@ -118,7 +123,8 @@ test('the canonical file itself is internally coherent', () => {
   assert.equal(C.supplier_commission, 0);
   assert.equal(C.annual_fee, 1000);
   assert.equal(C.free_registrations, 1000);
-  assert.match(C.paid_period_starts, /^2027-08-01$/);
+  // founder, 6 Sep 2026: no calendar start date, ever
+  assert.equal(C.paid_period_starts, null, 'paid_period_starts must be null - the founder retired the calendar start on 6 Sep 2026');
 });
 
 test('the guard would catch a wrong price if one were introduced', () => {
