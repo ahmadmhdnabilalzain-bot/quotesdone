@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T14:29:30.848Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T14:29:51.191Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -24404,14 +24404,13 @@ declare
   v_state jsonb := public.fn_company_state();
   v_snap  jsonb := public.fn_company_snapshot();
   v_brief text  := public.fn_company_brief(6000);
-  v_fee   numeric; v_sup_fee numeric; v_charge date; v_refund_wd int; v_cur text; v_free_n int; v_cat_min int;
+  v_fee   numeric; v_sup_fee numeric; v_charge date; v_refund_wd int; v_cur text;
   v_chase_wd int; v_bank_min int; v_bank_max int; v_admin numeric; v_pct numeric; v_founder_words text;
   v_target text; v_deadline text;
   v_social text; v_social_at text; v_blog text; v_blog_at text;
   v_funnel text;
   v_founder text;
   v_rev numeric; v_exp numeric; v_pnl text;
-  v_stance record; v_decisions text; v_cat_open text;
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
   reg public.company_registration%rowtype;
 begin
@@ -24424,25 +24423,13 @@ begin
          string_agg(case when amount <> 0 then '  - '||type||': '||name||' = AED '||amount::text else null end, E'\n' order by type, code)
     into v_rev, v_exp, v_pnl from public.gl_pnl;
   select standard_reveal_rate, supplier_reg_fee, supplier_charging_starts, refund_window_working_days,
-         coalesce(reveal_currency,'AED'), chase_after_working_days, bank_settlement_working_days_min, bank_settlement_working_days_max,
-         coalesce(supplier_free_count,1000), coalesce(category_open_min_suppliers,10)
-    into v_fee, v_sup_fee, v_charge, v_refund_wd, v_cur, v_chase_wd, v_bank_min, v_bank_max, v_free_n, v_cat_min
+         coalesce(reveal_currency,'AED'), chase_after_working_days, bank_settlement_working_days_min, bank_settlement_working_days_max
+    into v_fee, v_sup_fee, v_charge, v_refund_wd, v_cur, v_chase_wd, v_bank_min, v_bank_max
     from public.pricing_config order by id limit 1;
   -- 6 SEP 2026: the refund ladder's money side and the founder's own words, from decision_policy
   v_admin := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'refund_admin_fee_aed'), 250);
   v_pct   := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'refund_late_fee_annual_pct'), 9);
   v_founder_words := (select d.value #>> '{}' from public.decision_policy d where d.key = 'refund_policy_founder_decision_2026_09_06');
-  -- 6 SEP 2026: the founder's budget stance and his decisions on record (company_financial_stance,
-  -- company_policy_decision), and the category-open count (v_category_open)
-  select * into v_stance from public.company_financial_stance where id = 1;
-  select string_agg('- ' || upper(decision_key) || ' (decided ' || to_char(decided_on,'DD Mon YYYY') || ' by the ' || decided_by
-                    || case when never_ask_again then '; NEVER ask about it again' else '' end || '): ' || decision_text
-                    || case when cardinality(applies_to) > 0 then ' [applies to: ' || array_to_string(applies_to, ', ') || ']' else '' end,
-                    E'\n' order by decision_key)
-    into v_decisions from public.company_policy_decision;
-  select count(*) filter (where is_open) || ' of ' || count(*) || ' categories are OPEN today (' ||
-         coalesce(max(verified_registered_suppliers),0) || ' is the highest verified-registered count in any category)'
-    into v_cat_open from public.v_category_open;
 
   select coalesce(target_value::text,'1000000'), coalesce(to_char(deadline,'DD Mon YYYY'),'31 Aug 2027')
     into v_target, v_deadline
@@ -24463,14 +24450,12 @@ begin
   v_records := jsonb_build_array(
 
     -- 6 SEP 2026: the company's registration and tax status, from company_registration (the founder
-    -- supplied the trade licence and ruled on VAT, Corporate Tax and the auditor that day; all are
-    -- closed facts, never questions).
+    -- supplied the trade licence and ruled on VAT that day; both are closed facts, never questions).
     jsonb_build_object('rid','registration','module','company_registration',
       'title','QuotesDone — Trade licence, registration and tax status',
       'kw', to_jsonb(array['trade licence','trade license','licence number','license number','DET','department of economy and tourism',
         'issuing authority','licence expiry','renewal','activity code','portal','software design','trader licence','e-trader',
         'VAT','vat registered','TRN','tax registration number','FTA','federal tax authority','threshold','375,000','corporate tax',
-        'corporate tax registration','CT registration','small business relief','auditor','external auditor','audit firm','who audits us',
         'are we vat registered','do we charge vat','company registration','legal entity','owner','who owns the licence']),
       'content',
         case when reg.license_no is null then 'REGISTRATION: not recorded.' else
@@ -24482,8 +24467,7 @@ begin
         'TAX STATUS: ' || case when reg.vat_registered then 'VAT-registered, TRN ' || coalesce(reg.trn,'?') else
           'NOT VAT-registered (founder ruling ' || to_char(reg.vat_ruling_on,'DD Mon YYYY') || '): no VAT is charged or shown on any QuotesDone invoice until taxable supplies reach the FTA mandatory registration threshold of AED ' ||
           to_char(reg.vat_threshold_aed,'FM999,999,999') || ' in a rolling 12 months. Do not ask the founder about VAT or the TRN; when revenue approaches the threshold the CFO opens a registration task.' end || E'\n' ||
-        'CORPORATE TAX: ' || coalesce(reg.corporate_tax_note,'registration status not recorded.') || E'\n' ||
-        'AUDITOR: ' || coalesce(reg.auditor,'not recorded.')
+        'CORPORATE TAX: ' || coalesce(reg.corporate_tax_note,'registration status not recorded.')
         end),
 
     jsonb_build_object('rid','identity','module','company_identity',
@@ -24504,21 +24488,15 @@ begin
         'The AI departments run everything else on their own.'),
 
     jsonb_build_object('rid','financials','module','financials',
-      'title','QuotesDone — Our Financials (live P&L) and the Budget Policy',
-      'kw', to_jsonb(array['financials','finance','p&l','profit and loss','expenses','costs','revenue','how much did we spend','what were our expenses','net','burn','money','accounting','are we profitable',
-        'budget','budget limit','budget policy','do we have a budget','budget variance','over budget','spending limit','when do we set budgets','profitable']),
+      'title','QuotesDone — Our Financials (live P&L)',
+      'kw', to_jsonb(array['financials','finance','p&l','profit and loss','expenses','costs','revenue','how much did we spend','what were our expenses','net','burn','money','accounting','are we profitable']),
       'content',
         'LIVE FINANCIAL STATE (from the general ledger; refreshes):' || E'\n' ||
         '  Total revenue: AED ' || round(coalesce(v_rev,0),2)::text || '  ·  Total expenses: AED ' || round(coalesce(v_exp,0),2)::text ||
         '  ·  Net: AED ' || round(coalesce(v_rev,0)-coalesce(v_exp,0),2)::text || E'\n' ||
         'By account (non-zero lines):' || E'\n' || coalesce(v_pnl,'  (no posted amounts yet)') || E'\n' ||
         'Read it honestly: revenue is ' || case when coalesce(v_rev,0)=0 then 'AED 0 because the marketplace is pre-launch' else 'as above' end ||
-        '; the spend so far is mostly software and AI infrastructure while the company is being built.' || E'\n' ||
-        'BUDGET POLICY (founder, ' || coalesce(to_char(v_stance.decided_on,'DD Mon YYYY'),'6 Sep 2026') || '): ' ||
-          coalesce(v_stance.policy_text, 'No budget limit while costs are subscriptions; budgets come with profitability.') ||
-          ' Current stance: ' || case when coalesce(v_stance.is_profitable,false) then 'PROFITABLE - budgets apply and budget-variance alerts are live.'
-                                     else 'NOT YET PROFITABLE - budget_mode ' || coalesce(v_stance.budget_mode,'unlimited_until_profitable') ||
-                                          '; there is no budget limit, and budget-variance alerts and budget-limit checks are inert. Do not ask the founder for a budget.' end),
+        '; the spend so far is mostly software and AI infrastructure while the company is being built.'),
 
     jsonb_build_object('rid','operating-model','module','operating_model',
       'title','QuotesDone — How the Marketplace Works, End to End',
@@ -24536,20 +24514,12 @@ begin
 
     jsonb_build_object('rid','commercials','module','commercials',
       'title','QuotesDone — Fees, Pricing and Refund Terms (live)',
-      'kw', to_jsonb(array['fee','reveal fee','review fee','pricing','how much','commission','refund','supplier fee','registration fee','late fee','cost','price','supplier charging','when does supplier charging start','how much do suppliers pay','are suppliers charged','supplier registration','supplier pays',
-        'discount','promo','promotion','coupon','free reveal','cap','fee cap','maximum fee','first 1000','first 1,000','open category','category open','when is a category open','how many suppliers to open a category']),
+      'kw', to_jsonb(array['fee','reveal fee','review fee','pricing','how much','commission','refund','supplier fee','registration fee','late fee','cost','price','supplier charging','when does supplier charging start','how much do suppliers pay','are suppliers charged','supplier registration','supplier pays']),
       'content',
         'REVEAL FEE (what the customer pays to unlock a supplier): ' || round(v_fee*100,2) || '% of the deal, in ' || v_cur ||
-          ' — read live from pricing_config, so this figure is always the current one. NO cap, NO discount, NO promotional rate, '
-          'NO coupon and NO free reveal exist or may be offered (founder, 6 Sep 2026; pricing_config forbids them by constraint).' || E'\n' ||
-        'SUPPLIERS: ' || case when v_charge is null
-          then 'registration is FREE for the first ' || v_free_n || ' registrations (those suppliers are exempt permanently); every registration after them pays ' ||
-               coalesce(v_sup_fee::text,'1000') || ' ' || v_cur || ' per year. There is NO calendar start date and never will be: charging begins with registration ' ||
-               (v_free_n + 1) || ', whenever that happens (founder, 6 Sep 2026). Never state a date; never ask the founder for one.'
-          else 'registration is FREE until ' || to_char(v_charge,'DD Mon YYYY') || ', then ' || coalesce(v_sup_fee::text,'1000') || ' ' || v_cur || ' per year.' end ||
-          ' Suppliers are auto-approved on a verified file.' || E'\n' ||
-        'CATEGORY OPENING: a category is OPEN once it has ' || v_cat_min || ' verified registered suppliers (public.v_category_open); ' ||
-          coalesce(v_cat_open, '') || '. Matching an RFQ still needs at least one confirmed supplier.' || E'\n' ||
+          ' — read live from pricing_config, so this figure is always the current one.' || E'\n' ||
+        'SUPPLIERS: registration is FREE until ' || coalesce(to_char(v_charge,'DD Mon YYYY'),'01 Aug 2027') ||
+          ', then ' || coalesce(v_sup_fee::text,'1000') || ' ' || v_cur || ' per year. Suppliers are auto-approved on a verified file.' || E'\n' ||
         'REFUNDS: the supplier has ' || coalesce(v_refund_wd::text,'5') || ' UAE working days from the customer''s payment (Mon-Fri; Sat+Sun off; public holidays excluded). '
         'No response by working day ' || coalesce(v_chase_wd::text,'3') || ': the Customer Success Director chases the supplier, customer copied. Still silent on working day ' || coalesce(v_refund_wd::text,'5') ||
         ': the founder is notified for his final call. No response to that: the customer is refunded the FULL reveal fee (the 3% paid, no deduction) - EVERY refund of any amount is the founder''s approval - and told banks take '
@@ -24679,20 +24649,7 @@ begin
                                     upper(cb."group") || ':' || E'\n'
                                     || string_agg('  - ' || cb.key || ': ' || cb.value || coalesce(' — ' || cb.note, ''), E'\n' order by cb.sort) as block
                                from public.company_brand cb group by cb."group") g),
-                    '  (company_brand is empty)')),
-
-    -- 6 SEP 2026: the founder's decisions, verbatim in substance, from company_policy_decision. Added at the
-    -- END on purpose: the renderer is code-driven and sibling packets (the refund ladder and the brand kit
-    -- above, messaging) add their records before it. Whichever packet lands last keeps its record last;
-    -- order carries no meaning here.
-    jsonb_build_object('rid','decisions','module','founder_decisions',
-      'title','QuotesDone — The Founder''s Standing Decisions (never ask about these again)',
-      'kw', to_jsonb(array['founder decision','founder decisions','standing decision','ruling','policy decision','what did the founder decide','never ask again',
-        'corporate tax','auditor','meta token','daily budget cap','30 aed','cost per lead target','cpl target','openrouter','open router credit','recharge','receipts','expenses email',
-        'discount','no discounts','reveal cap','category open','10 suppliers','finance budget','budget limit','profitable','supplier registration fee','first 1000','1000 aed per year','no deadline','no date']),
-      'content',
-        'THE FOUNDER''S STANDING DECISIONS. Each line is final. None is a question; none is asked again; every table, document and agent head is kept in sync with them.' || E'\n' ||
-        coalesce(v_decisions, '(none recorded)'))
+                    '  (company_brand is empty)'))
   );
 
   for r in select * from jsonb_array_elements(v_records) loop
