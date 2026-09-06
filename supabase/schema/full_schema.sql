@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T11:07:22.441Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T14:09:19.515Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (615) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (616) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -4172,6 +4172,22 @@ CREATE TABLE IF NOT EXISTS public.messages (
   project_id uuid,
   attachment_path text,
   document_id bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.messaging_template (
+  sid text NOT NULL,
+  channel text DEFAULT 'whatsapp'::text NOT NULL,
+  template_key text NOT NULL,
+  lang text DEFAULT 'en'::text NOT NULL,
+  name text,
+  category text,
+  status text DEFAULT 'unknown'::text NOT NULL,
+  submitted_at timestamp with time zone,
+  approved_at timestamp with time zone,
+  rejection_reason text,
+  last_checked_at timestamp with time zone,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.meta_insights (
@@ -8451,6 +8467,7 @@ ALTER TABLE public.mep_trade ADD CONSTRAINT mep_trade_pkey PRIMARY KEY (trade_ke
 ALTER TABLE public.mep_trade_pattern ADD CONSTRAINT mep_trade_pattern_pkey PRIMARY KEY (id);
 ALTER TABLE public.mep_trade_route ADD CONSTRAINT mep_trade_route_pkey PRIMARY KEY (trade_key, catalog_num);
 ALTER TABLE public.messages ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
+ALTER TABLE public.messaging_template ADD CONSTRAINT messaging_template_pkey PRIMARY KEY (sid);
 ALTER TABLE public.meta_insights ADD CONSTRAINT meta_insights_pkey PRIMARY KEY (id);
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_pkey PRIMARY KEY (metric_key);
 ALTER TABLE public.metric_snapshot ADD CONSTRAINT metric_snapshot_pkey PRIMARY KEY (id);
@@ -9968,6 +9985,7 @@ CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DE
 CREATE UNIQUE INDEX marketing_snap_day ON public.marketing_snapshots USING btree (snapshot_date);
 CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
+CREATE INDEX messaging_template_key_idx ON public.messaging_template USING btree (channel, template_key, lang);
 CREATE INDEX metric_snapshot_key_time_idx ON public.metric_snapshot USING btree (metric_key, taken_at DESC);
 CREATE INDEX model_outcome_class_idx ON public.model_outcome USING btree (task_class, model_used, occurred_at DESC);
 CREATE INDEX notifications_status_idx ON public.notifications USING btree (status, created_at);
@@ -24167,6 +24185,7 @@ declare
   v_social text; v_social_at text; v_blog text; v_blog_at text;
   v_funnel text;
   v_founder text;
+  v_tmpl text;
   v_rev numeric; v_exp numeric; v_pnl text;
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
   reg public.company_registration%rowtype;
@@ -24195,6 +24214,14 @@ begin
     into v_social, v_social_at from public.social_posts order by created_at desc limit 1;
   select title, to_char(coalesce(published_at, updated_at),'DD Mon YYYY')
     into v_blog, v_blog_at from public.blog_posts where published order by published_at desc nulls last limit 1;
+
+  -- 6 SEP 2026: the WhatsApp template ledger (messaging_template), one line per template, live.
+  select coalesce(string_agg('  - ' || template_key || ' [' || lang || ']: ' || upper(status) || ' (' || sid
+           || coalesce(', ' || category, '') || coalesce(', submitted ' || to_char(submitted_at, 'DD Mon YYYY'), '')
+           || coalesce(', approved (first seen ' || to_char(approved_at, 'DD Mon YYYY') || ')', '')
+           || coalesce(', reason: ' || left(rejection_reason, 90), '') || coalesce(', ' || note, '') || ')',
+           E'\n' order by template_key, lang), '  (no templates recorded)')
+    into v_tmpl from public.messaging_template where channel = 'whatsapp';
 
   select string_agg('  ' || workflow_id || ' — ' || workflow_name, E'\n' order by workflow_id)
     into v_funnel from public.phase_b_workflow
@@ -24354,7 +24381,30 @@ begin
         '10 departments and ' || coalesce(v_snap->>'employees','90') || ' AI agents, 30 workflows, 86 supplier categories, '
         'the knowledge base and ' || coalesce(v_snap->>'approved_suppliers','1') || ' approved supplier(s). What is still pending before real '
         'operation: the marketplace go-live, real customer inquiries arriving, and funded AI inference so the agents can reason. '
-        'NEVER claim customers, revenue, or results the numbers above do not show — we are building toward AED 1,000,000 by 31 Aug 2027, not there yet.')
+        'NEVER claim customers, revenue, or results the numbers above do not show — we are building toward AED 1,000,000 by 31 Aug 2027, not there yet.'),
+
+    -- 6 SEP 2026 (added at the END of the array on purpose: sibling files of the same day restate this
+    -- function too, and a record appended last merges without touching theirs): the WhatsApp templates
+    -- and their Meta approval status, from messaging_template (the founder said "fix the template
+    -- yourself"; the status is company knowledge, never his question).
+    jsonb_build_object('rid','messaging-templates','module','messaging_templates',
+      'title','QuotesDone — WhatsApp templates and their Meta approval status (live)',
+      'kw', to_jsonb(array['whatsapp template','whatsapp templates','template approval','meta approval','twilio','content sid','contentsid',
+        'founder alert whatsapp','whatsapp alert','whatsapp alerts to the founder','is the whatsapp template approved','pending template',
+        'template pending','template rejected','63016','utility template','messaging template','messaging_template','wa_template_sids',
+        'can we send whatsapp','why did the whatsapp not arrive','send_whatsapp','wa_template_setup','business-initiated message','24-hour session']),
+      'content',
+        'WHATSAPP TEMPLATES (Twilio Content API, approved by Meta; live from messaging_template):' || E'\n' || v_tmpl || E'\n' ||
+        'THE RULES. A business-initiated WhatsApp (an alert to the founder, a job / quote / reveal / document notice to a supplier or '
+        'customer) is deliverable ONLY through a Meta-APPROVED template sent by ContentSid; a freeform body is delivered only inside the '
+        '24-hour session the recipient opened by messaging us first (Twilio error 63016 otherwise). A template still pending approval is a '
+        'HELD message, never a failed one: send_whatsapp keeps supplier and customer rows queued until the template lands, marks founder-alert '
+        'rows skipped with the reason (the email already carried the alert), and refuses a direct send with the reason instead of erroring. '
+        'Templates are created and submitted by the wa_template_setup function (category UTILITY, language en/ar, the body opens AND closes '
+        'with literal text because Meta rejects a variable at the start or end); the sender refreshes each pending status from Twilio at most '
+        'every ten minutes and only ever sends with a status of APPROVED. The sender number is registered with Meta as "QuotesDone" '
+        '(quality rating and messaging tier are read from Twilio, not assumed). Nobody asks the founder about WhatsApp templates: the '
+        'status above is the answer, and a pending line means Meta has not answered yet.')
   );
 
   for r in select * from jsonb_array_elements(v_records) loop
@@ -45891,10 +45941,14 @@ begin
   values ('founder_alert', v_kind, v_email, 'founder', '[Attention] ' || p_event, p_detail, 'queued', 'email');
 
   -- WhatsApp for severe levels (send_whatsapp / Twilio); trg_wa_fanout does NOT fan out founder rows.
+  -- 6 SEP 2026: the detail rides in the body after the first line. send_whatsapp fills the founder_alert
+  -- template ("QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act.") from exactly this shape:
+  -- {{1}} is the first line without the "QuotesDone " prefix, {{2}} is what follows.
   if v_phone is not null and lower(v_level) in ('critical', 'urgent', 'high', 'danger') then
     insert into public.notifications (type, kind, to_phone, to_role, subject, body, status, channel)
     values ('founder_alert', v_kind, v_phone, 'founder', p_event,
-            'QuotesDone [' || v_level || ']: ' || p_event, 'queued', 'whatsapp');
+            'QuotesDone [' || v_level || ']: ' || p_event
+              || coalesce(E'\n' || nullif(btrim(p_detail), ''), ''), 'queued', 'whatsapp');
   end if;
   return jsonb_build_object('mode', 'email', 'emailed', true, 'kind', v_kind);
 end $function$
@@ -50710,11 +50764,13 @@ AS $function$
          where b.q <> '' and (c.full_name ilike '%'||b.q||'%' or c.email ilike '%'||b.q||'%') limit 6) c),'[]'::jsonb),
 
     -- ── WHAT THE COMPANY KNOWS ───────────────────────────────────────────────────────────────
+    -- 2.69M chunks: the generated `fts` column and its GIN index are the only way through this
+    -- table inside the 8 s request budget. First eight hits, unordered — an ORDER BY here makes
+    -- Postgres collect every match before it can return one (measured 8 s+ for "fit").
     'knowledge', coalesce((select jsonb_agg(jsonb_build_object('id',id,'name',title,'sub',citation,'at',effective_date)) from (
         select k.id, k.title, k.citation, k.effective_date from public.kb_chunks k, b
-         where b.q <> '' and (k.title ilike '%'||b.q||'%' or k.content ilike '%'||b.q||'%'
-                              or k.category ilike '%'||b.q||'%')
-         order by k.effective_date desc nulls last limit 8) k),'[]'::jsonb),
+         where b.q <> '' and k.fts @@ plainto_tsquery('english', b.q)
+         limit 8) k),'[]'::jsonb),
 
     'documents', coalesce((select jsonb_agg(jsonb_build_object('id',id,'name',file_name,'sub',kind,'at',created_at)) from (
         select d.id, d.file_name, d.kind, d.created_at from public.documents d, b
@@ -90393,6 +90449,7 @@ ALTER TABLE public.mep_trade ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mep_trade_pattern ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mep_trade_route ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messaging_template ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meta_insights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.metric_definition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.metric_snapshot ENABLE ROW LEVEL SECURITY;
@@ -91067,7 +91124,7 @@ select cron.schedule('tool_readiness_daily','55 3 * * *',$CRON$select public.fn_
 select cron.schedule('action_invoke_dispatch_5min','2,7,12,17,22,27,32,37,42,47,52,57 * * * *',$CRON$select public.fn_kernel_cron_exec(230);$CRON$);
 select cron.schedule('action_invoke_collect_5min','4,9,14,19,24,29,34,39,44,49,54,59 * * * *',$CRON$select public.fn_kernel_cron_exec(231);$CRON$);
 select cron.schedule('org_task_execute_sweep_hourly','45 * * * *',$CRON$select public.fn_org_task_execute_sweep(5);$CRON$);
-select cron.schedule('kb_embed_backfill_boost','* * * * *',$CRON$select public.fn_kernel_cron_exec(242);$CRON$);
+select cron.schedule('kb_embed_backfill_boost','6 seconds',$CRON$select public.fn_kernel_cron_exec(242);$CRON$);
 select cron.schedule('agent_action_work_sweep_hourly','35 * * * *',$CRON$select public.fn_kernel_cron_exec(243);$CRON$);
 select cron.schedule('workflow_step_sweep_10min','6,16,26,36,46,56 * * * *',$CRON$select public.fn_kernel_cron_exec(247);$CRON$);
 select cron.schedule('runner_silence_watch_daily','10 7 * * *',$CRON$select public.fn_kernel_cron_exec(248);$CRON$);
