@@ -26,9 +26,12 @@ export async function sql(query, { ref = PROJECT_REF } = {}) {
     // half-built deliverable is exactly what this file's header says the backoff exists to prevent.
     // A dropped connection reads like a broken query too.
     //
-    // Every caller of this helper either reads, or writes inside a transaction that ends in
-    // `raise exception`, so re-issuing the statement cannot double-apply anything. The retry is
-    // loud, so a run that needed it says so.
+    // Callers of this helper mostly read, or write inside a transaction that ends in
+    // `raise exception`, and for those re-issuing the statement cannot double-apply anything. A
+    // statement whose effect commits on its own (`select public.fn_kernel_cron_exec(<jobid>)`, a
+    // tick that POSTs) is the exception: if the first issue ran and only the answer was lost, the
+    // retry runs it again, so such a callee must be idempotent per tick (sanctions_screen guards
+    // ten minutes). The retry is loud, so a run that needed it says so.
     let res;
     try {
       res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
