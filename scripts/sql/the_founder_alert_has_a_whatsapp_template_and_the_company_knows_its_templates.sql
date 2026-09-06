@@ -414,7 +414,7 @@ end $function$
 do $cron$
 declare r jsonb;
 begin
-  r := public.fn_kernel_wrap_and_enable_cron(34, 'it_operations_engineer', 'assurance');
+  r := public.fn_kernel_wrap_and_enable_cron(34, 'it_operations_engineer', 'product_eng');
   if not coalesce((r ->> 'ok')::boolean, false) then
     raise exception 'wa_flush (cron 34) could not be re-enabled: %', r;
   end if;
