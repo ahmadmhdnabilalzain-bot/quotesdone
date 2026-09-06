@@ -1653,3 +1653,10 @@ scripts/sql/MANIFEST.txt
 true
 -e
 0
+scripts/sql/fn_ws_agent_ops_queue_names_its_holder.sql
+scripts/sql/fn_exec_meeting_requests_name_the_holding_role.sql
+scripts/sql/fn_agent_context_workload_names_the_holding_role.sql
+scripts/sql/fn_ai_trainer_prompt_is_held_with_its_role.sql
+scripts/sql/fn_knowledge_curator_regulation_is_held_with_its_role.sql
+scripts/sql/fn_operations_ai_approval_backlog_is_held_with_roles.sql
+scripts/sql/fn_task_approve_ceiling_is_not_a_founder_decision.sql

@@ -2424,7 +2424,7 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
       {(tasks.rows || []).length ? <Card className='mt-4 overflow-hidden'>{sub('Tasks assigned to ' + titleCase(String(tasks.department || 'this team')), <Badge variant='secondary'>{tasks.department_open}</Badge>)}
         <div className='divide-y divide-border'>{(tasks.rows as any[]).map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center gap-2 text-sm'>
           <div className='min-w-0 flex-1'><div className='truncate'>{t.title}</div>
-            <div className='text-[11px] text-muted-foreground'>{titleCase(String(t.status))}{t.tier ? ' · ' + t.tier : ''}{t.needs_founder ? ' · needs founder' : ''}</div></div>
+            <div className='text-[11px] text-muted-foreground'>{titleCase(String(t.status))}{t.tier ? ' · ' + t.tier : ''}{t.needs_founder ? ' · held for review' : ''}</div></div>
           <span className='text-[11px] text-muted-foreground shrink-0'>{fmt(t.created_at)}</span>
         </div>))}</div></Card> : null}
 
@@ -2495,10 +2495,16 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
             <span className='flex items-center gap-1.5 shrink-0'>{r.layer != null ? <span className='text-[10px] text-muted-foreground tabular-nums'>layer {r.layer}</span> : null}<Chip label={String(r.depth || '—')} tone={r.depth === 'expert' ? 'green' : r.depth === 'working' ? 'amber' : 'slate'} /></span>
           </div>))}</div>
       </Card> : null}
-      {queue.length ? <Card className='mt-4 overflow-hidden'>{sub('Decisions held for review', <Badge variant='secondary'>{queue.length}</Badge>)}
+      {/* NOT HIS. Each open agent_action here is held with the role fn_ws_agent_ops names in
+          `holder`; only a row whose kind policy is 'founder' (a refund, `yours === true`) gets
+          Approve/Reject — the same rule the Operations page applies. Before 6 Sep 2026 every row
+          carried his buttons, which is the defect he found walking the drawer. */}
+      {queue.length ? <Card className='mt-4 overflow-hidden'>{sub(queue.some((a: any) => a.yours === true) ? 'Decisions held for review' : 'Held with departments — not yours to approve', <Badge variant='secondary'>{queue.length}</Badge>)}
         <div className='divide-y divide-border'>{queue.map((a: any) => (<div key={a.id} className='px-4 py-3'>
           <div className='flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{titleCase(String(a.title || a.kind || 'decision'))}{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}<Chip label={titleCase(String(a.status))} tone={statusTone(String(a.status))} /></div>{a.recommendation ? <div className='text-xs text-muted-foreground mt-0.5 line-clamp-2'>{a.recommendation}</div> : null}</div></div>
-          <div className='flex gap-1.5 mt-2'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button></div>
+          {a.yours === true
+            ? <div className='flex gap-1.5 mt-2'><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>{dbusy === String(a.id) + 'approve' ? '…' : 'Approve'}</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>{dbusy === String(a.id) + 'reject' ? '…' : 'Reject'}</Button></div>
+            : <div className='text-xs text-muted-foreground mt-1.5'>Held with <b className='text-foreground'>{a.holder || 'its department'}</b> — not yours to approve</div>}
         </div>))}</div></Card> : null}
       {recs.length ? <Card className='mt-4 overflow-hidden'>{sub('Recommendations')}<div className='divide-y divide-border'>{recs.map((r: any, i: number) => (<div key={i} className='px-4 py-2.5'><div className='text-sm font-medium flex items-center gap-1.5'>{r.title}{r.risk ? <Chip label={String(r.risk)} tone={riskTone(String(r.risk))} /> : null}</div>{r.recommendation ? <div className='text-xs text-muted-foreground mt-0.5'>{r.recommendation}</div> : null}<div className='text-[11px] text-muted-foreground mt-0.5'>{fmt(r.at)}</div></div>))}</div></Card> : null}
       {runs.length ? <Card className='mt-4 overflow-hidden'>{sub('Recent runs')}<div className='divide-y divide-border'>{runs.map((r: any) => (<div key={r.id} className='px-4 py-2 flex items-center justify-between gap-2'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><Chip label={titleCase(String(r.status))} tone={statusTone(String(r.status))} />{r.note ? <span className='text-muted-foreground line-clamp-1'>{r.note}</span> : null}</div></div><span className='text-[11px] text-muted-foreground whitespace-nowrap'>{fmt(r.started_at)}</span></div>))}</div></Card> : null}
