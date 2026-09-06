@@ -20,6 +20,8 @@ async function sec(k: string): Promise<string | undefined> { const { data } = aw
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 const NEEDS_MEDIA = new Set(['instagram']);
+// Postiz provider identifier -> the channel name the ledger and the OS use ('instagram-standalone' -> 'instagram', 'linkedin-page' -> 'linkedin', 'twitter' -> 'x').
+const channelOf = (ident: string): string => { const i = ident.toLowerCase(); if (i === 'twitter') return 'x'; return i.split('-')[0]; };
 async function base(): Promise<string> { return (await sec('postiz_api_url')) || 'https://api.postiz.com/public/v1'; }
 
 // Upload an image (by URL) to Postiz; returns the Postiz media object {id, path, ...} or null.
@@ -98,6 +100,12 @@ Deno.serve(async (req) => {
         const obj = await uploadToPostiz(key, B, src);
         if (obj && !obj.error && obj.id) image = [{ id: obj.id, path: obj.path || obj.url }];
       }
+      // THE FOUNDER'S SWITCH IS AT THE DOOR (6 Sep 2026). social_stage read marketing_golive; agent_act and
+      // secretary_act reach this function with type='now' and never did. A live post goes out only when the
+      // switch is 'true', whoever asks.
+      if (type === 'now' && String((await sec('marketing_golive')) || 'false').toLowerCase() !== 'true') {
+        return J({ ok: false, paused: true, error: 'marketing_golive_false', message: 'live publishing is paused until the founder flips marketing_golive to true; send type=draft to stage it in Postiz' }, 200);
+      }
       const wanted = (Array.isArray(body.channels) ? body.channels : []).map((c: any) => String(c).toLowerCase());
       const ir = await fetch(B + '/integrations', { headers: { 'Authorization': key } });
       const integ = await ir.json().catch(() => []);
@@ -123,7 +131,85 @@ Deno.serve(async (req) => {
       await admin.from('agent_runs').insert({ agent: 'postiz_publish', started_at: started, finished_at: new Date().toISOString(), status: r.ok ? 'ok' : 'error', counts: { channels: posts.length, skipped: skipped.length, type, image: image.length }, note: r.ok ? null : String(txt).slice(0, 200) });
       if (!r.ok) return J({ ok: false, status: r.status, error: j?.message || j?.error || txt, skipped }, 200);
       const postId = j?.[0]?.postId || j?.postId || j?.id || (Array.isArray(j) ? j[0]?.id : null);
-      return J({ ok: true, type, published_to: posts.length, post_id: postId, skipped, image: image.length, result: j });
+      // THE LEDGER ROW IS WRITTEN HERE, once, by the function that posted (6 Sep 2026). It used to be
+      // social_stage's job alone, so the 24 Postiz drafts created through agent_act/secretary_act had no
+      // row and the OS never showed them. A draft carries its media and its Postiz preview; a live post
+      // carries 'awaiting release URL' until action=sync reads Postiz's releaseURL into permalinks —
+      // social_posts_clickable refuses a live row with neither.
+      const sentTo = posts.map((p) => channelOf(String(p.settings.__type)));
+      const imageUrl = image[0]?.path ? String(image[0].path) : (body.image_url ? String(body.image_url) : null);
+      const { data: ledger, error: lerr } = await admin.from('social_posts').insert({
+        source: String(body.source || 'postiz_publish'),
+        content: { all: text, title: body.title || null, draft_id: body.draft_id ?? null },
+        image_url: imageUrl, channels: sentTo, schedule_at: date, mode: type, status: 'sent',
+        postiz_ids: Array.isArray(j) ? j : [j],
+        preview_url: postId ? 'https://platform.postiz.com/p/' + postId + '?share=true' : null,
+        permalink_missing: type === 'now' ? 'awaiting release URL from Postiz (action=sync fills permalinks)' : 'Postiz ' + type + ' — not published to a network yet',
+        media_missing: imageUrl ? null : 'no media designed yet',
+      }).select('id').maybeSingle();
+      if (lerr) await admin.from('agent_runs').insert({ agent: 'postiz_publish', started_at: started, finished_at: new Date().toISOString(), status: 'error', counts: { ledger_failed: 1, type }, note: ('posted to Postiz but the social_posts ledger row failed: ' + lerr.message).slice(0, 250) });
+      return J({ ok: true, type, published_to: posts.length, post_id: postId, ledger_id: ledger?.id || null, ledger_error: lerr?.message || null, skipped, image: image.length, result: j });
+    }
+
+    // sync — read Postiz back into the ledger. (1) every ledger row whose postiz_ids Postiz now reports
+    // with a releaseURL gets permalinks {channel: url} and its permalink_missing cleared; (2) Postiz posts
+    // the ledger has never seen (the Jul–Aug 2026 drafts) become rows, one per publish instant, with the
+    // image read off the Postiz preview page. Read-only against Postiz; idempotent against the ledger.
+    if (action === 'sync') {
+      const days = Math.min(400, Math.max(1, Number(body.days) || 120));
+      const start = new Date(Date.now() - days * 86400000).toISOString();
+      const end = new Date(Date.now() + 30 * 86400000).toISOString();
+      const lr = await fetch(B + '/posts?startDate=' + encodeURIComponent(start) + '&endDate=' + encodeURIComponent(end), { headers: { 'Authorization': key } });
+      const lj = await lr.json().catch(() => ({}));
+      const remote: any[] = Array.isArray(lj?.posts) ? lj.posts : [];
+      if (!lr.ok) return J({ ok: false, error: 'postiz_list_failed', status: lr.status }, 200);
+      const byId = new Map<string, any>(remote.map((p) => [String(p.id), p]));
+      const { data: rows } = await admin.from('social_posts').select('id,postiz_ids,permalinks,permalink_missing,mode,status').not('postiz_ids', 'is', null);
+      const known = new Set<string>();
+      let linked = 0, imported = 0;
+      for (const row of rows || []) {
+        const ids: string[] = (Array.isArray(row.postiz_ids) ? row.postiz_ids : []).map((x: any) => String(x?.postId || x?.id || x)).filter(Boolean);
+        ids.forEach((i) => known.add(i));
+        const links: Record<string, string> = { ...(row.permalinks || {}) };
+        for (const i of ids) { const p = byId.get(i); if (p?.releaseURL) links[channelOf(String(p.integration?.providerIdentifier || ''))] = String(p.releaseURL); }
+        if (Object.keys(links).length && JSON.stringify(links) !== JSON.stringify(row.permalinks || {})) {
+          const { error } = await admin.from('social_posts').update({ permalinks: links, permalink_missing: null }).eq('id', row.id);
+          if (!error) linked++;
+        }
+      }
+      // Unknown Postiz posts, grouped by their publish instant (one API call fans out to one post per channel).
+      const groups = new Map<string, any[]>();
+      for (const p of remote) { if (known.has(String(p.id))) continue; const k = String(p.publishDate); (groups.get(k) || groups.set(k, []).get(k)!).push(p); }
+      for (const [when, ps] of groups) {
+        const first = ps[0];
+        const live = ps.some((p) => p.releaseURL);
+        const links: Record<string, string> = {};
+        for (const p of ps) if (p.releaseURL) links[channelOf(String(p.integration?.providerIdentifier || ''))] = String(p.releaseURL);
+        const previewUrl = 'https://platform.postiz.com/p/' + first.id + '?share=true';
+        // ponytail: the public API returns no media; the preview page embeds the post image as an
+        // uploads.postiz.com URL that is not the integration avatar. Swap for a media endpoint if Postiz adds one.
+        let imageUrl: string | null = null;
+        try {
+          const html = await (await fetch(previewUrl)).text();
+          const avatars = new Set(ps.map((p) => String(p.integration?.picture || '')));
+          const m = [...html.matchAll(/https:\/\/uploads\.postiz\.com\/[A-Za-z0-9]+\.(?:png|jpe?g|webp|gif)/g)].map((x) => x[0]).find((u) => !avatars.has(u));
+          if (m && (await fetch(m, { method: 'HEAD' })).ok) imageUrl = m;
+        } catch (_e) { /* no media recoverable */ }
+        const { error } = await admin.from('social_posts').insert({
+          source: 'postiz_sync', content: { all: String(first.content || ''), postiz_group: first.group },
+          image_url: imageUrl, channels: ps.map((p) => channelOf(String(p.integration?.providerIdentifier || ''))),
+          schedule_at: when, mode: live ? 'now' : 'draft', status: 'sent',
+          postiz_ids: ps.map((p) => ({ postId: p.id, integration: p.integration?.id })),
+          preview_url: previewUrl,
+          permalinks: Object.keys(links).length ? links : null,
+          permalink_missing: Object.keys(links).length ? null : (live ? 'awaiting release URL from Postiz' : 'Postiz draft (state ' + String(first.state) + ') — not published to a network'),
+          media_missing: imageUrl ? null : 'no media designed yet (none recoverable from Postiz)',
+          created_at: when,
+        });
+        if (!error) imported++;
+      }
+      await admin.from('agent_runs').insert({ agent: 'postiz_publish', started_at: started, finished_at: new Date().toISOString(), status: 'ok', counts: { signal: 'sync', remote: remote.length, linked, imported } });
+      return J({ ok: true, remote: remote.length, linked, imported });
     }
 
     if (action === 'delete') {

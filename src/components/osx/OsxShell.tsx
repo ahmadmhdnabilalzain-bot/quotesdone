@@ -2653,25 +2653,41 @@ function ChannelPills({ channels }: { channels: any }) {
   if (!list.length) return null;
   return (<div className='flex flex-wrap gap-1'>{list.map((c, i) => (<span key={i} className='inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-foreground/[0.06] text-foreground/70 capitalize'>{CH_LABEL[String(c).toLowerCase()] || c}</span>))}</div>);
 }
-function PostThumb({ url, className }: { url?: string; className?: string }) {
-  if (!url) return (<div className={cn('grid place-items-center bg-foreground/[0.05] text-muted-foreground', className)}><Megaphone className='h-6 w-6 opacity-30' /></div>);
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt='' loading='lazy' className={cn('object-cover bg-foreground/[0.05]', className)} onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />;
+// Founder's order (6 Sep 2026): a designed post's media is CLICKABLE — the thumbnail is a link that opens the
+// asset — and a post with no media says so instead of showing a blank tile.
+function PostThumb({ url, className, missing }: { url?: string; className?: string; missing?: string }) {
+  if (!url) return (<div className={cn('grid place-items-center bg-foreground/[0.05] text-muted-foreground', className)}><div className='text-center'><Megaphone className='h-6 w-6 opacity-30 mx-auto' /><div className='text-[11px] mt-1'>{missing || 'no media designed yet'}</div></div></div>);
+  return (<a href={url} target='_blank' rel='noopener noreferrer' title='Open media' onClick={(e) => e.stopPropagation()} className={cn('block', className)}>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={url} alt='' loading='lazy' className='object-cover bg-foreground/[0.05] w-full h-full' onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+  </a>);
+}
+// A published post's channel badge links to the post on that network (permalinks[channel]); a draft's
+// badge is just the badge — there is nothing on the network yet.
+function ChannelLinks({ channels, permalinks }: { channels: any; permalinks?: Record<string, string> | null }) {
+  const list: string[] = Array.isArray(channels) ? channels : (channels ? [String(channels)] : []);
+  if (!list.length) return null;
+  return (<div className='flex flex-wrap gap-1'>{list.map((c, i) => { const k = String(c).toLowerCase(); const href = permalinks?.[k]; const cls = 'inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded capitalize';
+    return href ? <a key={i} href={href} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className={cn(cls, 'bg-primary/10 text-primary hover:underline')}>{CH_LABEL[k] || c}<ExternalLink className='h-2.5 w-2.5' /></a>
+      : <span key={i} className={cn(cls, 'bg-foreground/[0.06] text-foreground/70')}>{CH_LABEL[k] || c}</span>; })}</div>);
 }
 
 function SocialPostDrawer({ post, onClose }: { post: any; onClose: () => void }) {
   const chan = Array.isArray(post.channels) ? post.channels : [];
-  const live = String(post.status || '').toLowerCase() === 'sent' || String(post.status || '').toLowerCase() === 'published';
+  const live = post.live === true || (String(post.mode || '') === 'now' && /sent|published/i.test(String(post.status || '')));
+  const links: Record<string, string> = post.permalinks || {};
   return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
     <SheetHeader>
       <SheetTitle className='flex items-center gap-2'>Social post{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />}</SheetTitle>
       <SheetDescription>{post.created_at ? 'Created ' + fmt(post.created_at) : ''}</SheetDescription>
     </SheetHeader>
     <div className='mt-4 space-y-4'>
-      {post.image_url ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={post.image_url} className='w-full max-h-96' /></div> : null}
+      <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={post.image_url} missing={post.media_missing} className='w-full h-64' /></div>
+      {live ? <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>On the network</div>{Object.keys(links).length ? <div className='space-y-1'>{Object.entries(links).map(([c, u]) => <a key={c} href={String(u)} target='_blank' rel='noopener noreferrer' className='flex items-center gap-1 text-sm text-primary hover:underline'><span className='capitalize'>{CH_LABEL[c] || c}</span><ExternalLink className='h-3 w-3' /><span className='text-xs text-muted-foreground truncate'>{String(u)}</span></a>)}</div> : <div className='text-xs text-amber-600'>No permalink yet — {post.permalink_missing || 'reason not recorded'}</div>}</Card>
+        : <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Draft</div><div className='text-xs text-muted-foreground'>{post.permalink_missing || 'not published to a network'}</div>{post.preview_url ? <a href={post.preview_url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1'>Open the draft in Postiz<ExternalLink className='h-3 w-3' /></a> : null}</Card>}
       <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Caption</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{post.text || <span className='text-muted-foreground'>No caption.</span>}</div></Card>
       <div className='grid grid-cols-2 gap-3'>
-        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Channels</div>{chan.length ? <ChannelPills channels={chan} /> : <span className='text-sm text-muted-foreground'>—</span>}</Card>
+        <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Channels</div>{chan.length ? <ChannelLinks channels={chan} permalinks={links} /> : <span className='text-sm text-muted-foreground'>—</span>}</Card>
         <Card className='p-3'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Status</div><Chip label={titleCase(String(post.status || post.mode || 'draft'))} tone={statusTone(String(post.status || post.mode || 'draft'))} />{post.error ? <div className='text-[11px] text-red-600 mt-1.5 whitespace-pre-wrap'>{post.error}</div> : null}</Card>
       </div>
       {post.image_url ? <a href={post.image_url} target='_blank' rel='noopener noreferrer' className='inline-flex items-center gap-1 text-xs text-primary hover:underline'>Open full image<ExternalLink className='h-3 w-3' /></a> : null}
@@ -2709,7 +2725,7 @@ function ReviewDrawer({ item, onDone, onClose }: { item: any; onDone: () => void
   return (<Sheet open={true} onOpenChange={(o) => { if (!o) onClose(); }}><SheetContent side='right' className='w-full sm:max-w-xl overflow-y-auto'>
     <SheetHeader><SheetTitle className='flex items-center gap-2'>Review draft<Chip label='Pending' tone='amber' /></SheetTitle><SheetDescription>{titleCase(String(item.__kind || 'marketing post'))}{item.channel ? ' · ' + item.channel : ''}</SheetDescription></SheetHeader>
     <div className='mt-4 space-y-4'>
-      {img ? <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={img} className='w-full max-h-96' /></div> : null}
+      <div className='rounded-lg overflow-hidden border border-border'><PostThumb url={img} missing={item.media_missing} className='w-full h-64' /></div>
       {item.title ? <div className='text-base font-semibold'>{item.title}</div> : null}
       {(item.body || item.text) ? <Card className='p-4'><div className='text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5'>Content</div><div className='text-sm whitespace-pre-wrap leading-relaxed'>{item.body || item.text}</div></Card> : null}
       {item.channels ? <ChannelPills channels={item.channels} /> : null}
@@ -2759,7 +2775,7 @@ function MarketingApp() {
       <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3'>
         <StatTile label='Total leads' value={k.leads_total} onClick={() => setTab('insights')} />
         <StatTile label='Blog published' value={k.blog_published} hint={(k.blog_total || 0) + ' total'} onClick={() => setTab('blog')} />
-        <StatTile label='Social live' value={k.social_published} hint={socials.length + ' posts'} onClick={() => setTab('social')} />
+        <StatTile label='Social live' value={k.social_published} hint={(Number(k.social_staged) || 0) + ' drafts · ' + socials.length + ' posts'} onClick={() => setTab('social')} />
         <StatTile label='SEO pages' value={k.seo_pages} />
         <StatTile label='Outreach sent' value={k.outreach_sent} />
         <StatTile label='Awaiting review' value={reviewItems.length} onClick={() => setTab('review')} />
@@ -2774,18 +2790,23 @@ function MarketingApp() {
       </div>
     </div>) : tab === 'review' ? (<div className='space-y-3'>
       {reviewItems.length ? <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>{reviewItems.map((it: any, i: number) => (
-        <button key={i} onClick={() => setReview(it)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all'>
-          {(it.image_url || it.image) ? <PostThumb url={it.image_url || it.image} className='w-full h-40' /> : null}
+        <div key={i} role='button' tabIndex={0} onClick={() => setReview(it)} onKeyDown={(e) => { if (e.key === 'Enter') setReview(it); }} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all cursor-pointer'>
+          <PostThumb url={it.image_url || it.image} missing={it.media_missing} className='w-full h-40' />
           <div className='p-3'><div className='flex items-center gap-2 mb-1'><Chip label={titleCase(String(it.__kind))} tone='amber' />{it.channel ? <span className='text-[11px] text-muted-foreground'>{it.channel}</span> : null}</div><div className='text-sm font-medium line-clamp-1'>{it.title || 'Draft'}</div><div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{it.body || it.text || '—'}</div></div>
-        </button>))}</div> : (
+        </div>))}</div> : (
         <Card className='p-10 text-center'><Check className='h-8 w-8 text-emerald-500/50 mx-auto mb-2' /><div className='text-sm font-medium'>Nothing awaiting review</div><div className='text-xs text-muted-foreground mt-1'>Draft posts created by the team appear here. Open one to see its image and copy, then approve to publish or reject.</div></Card>
       )}
     </div>) : tab === 'social' ? (<div>
-      {socials.length ? <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>{socials.map((s: any) => { const live = /sent|published/i.test(String(s.status || '')); return (
-        <button key={s.id} onClick={() => setSocial(s)} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all group'>
-          <div className='relative'><PostThumb url={s.image_url} className='w-full h-44 group-hover:brightness-105 transition-all' /><div className='absolute top-2 right-2'>{live ? <Chip label='Live' tone='green' /> : <Chip label={titleCase(String(s.status || s.mode || 'draft'))} tone={statusTone(String(s.status || s.mode || 'draft'))} />}</div></div>
-          <div className='p-3'><div className='text-sm line-clamp-2 leading-snug'>{s.text || <span className='text-muted-foreground'>No caption</span>}</div><div className='flex items-center justify-between mt-2 gap-2'><ChannelPills channels={s.channels} /><span className='text-[10px] text-muted-foreground whitespace-nowrap'>{s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span></div></div>
-        </button>); })}</div> : (
+      {socials.length ? <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>{socials.map((s: any) => { const live = s.live === true; const links: Record<string, string> = s.permalinks || {}; const firstLink = Object.values(links)[0]; return (
+        <div key={s.id} role='button' tabIndex={0} onClick={() => setSocial(s)} onKeyDown={(e) => { if (e.key === 'Enter') setSocial(s); }} className='text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md hover:border-primary/40 transition-all group cursor-pointer'>
+          <div className='relative'><PostThumb url={s.image_url} missing={s.media_missing} className='w-full h-44 group-hover:brightness-105 transition-all' /><div className='absolute top-2 right-2 pointer-events-none'>{live ? <Chip label='Live' tone='green' /> : <Chip label='Draft' tone='amber' />}</div></div>
+          <div className='p-3'>
+            {live ? (firstLink ? <a href={String(firstLink)} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className='text-sm line-clamp-2 leading-snug text-primary hover:underline'>{s.text || 'Open post'}</a> : <div className='text-sm line-clamp-2 leading-snug'>{s.text}<div className='text-[11px] text-amber-600 mt-0.5'>No permalink yet — {s.permalink_missing || 'reason not recorded'}</div></div>)
+              : <div className='text-sm line-clamp-2 leading-snug'>{s.text || <span className='text-muted-foreground'>No caption</span>}</div>}
+            <div className='flex items-center justify-between mt-2 gap-2'><ChannelLinks channels={s.channels} permalinks={links} /><span className='text-[10px] text-muted-foreground whitespace-nowrap'>{s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}</span></div>
+            {!live && s.preview_url ? <a href={s.preview_url} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className='inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1.5'>Draft in Postiz<ExternalLink className='h-3 w-3' /></a> : null}
+          </div>
+        </div>); })}</div> : (
         <Card className='p-10 text-center'><Megaphone className='h-8 w-8 text-muted-foreground/40 mx-auto mb-2' /><div className='text-sm font-medium'>No social posts yet</div><div className='text-xs text-muted-foreground mt-1'>Posts published through Postiz appear here with their image and copy.</div></Card>
       )}
     </div>) : (<div className='space-y-3'>
@@ -2794,12 +2815,12 @@ function MarketingApp() {
         <div className='inline-flex rounded-md border border-border overflow-hidden text-xs'>{([['all', 'All ' + blogs.length], ['published', 'Published ' + publishedCount], ['draft', 'Drafts ' + (blogs.length - publishedCount)]] as [any, string][]).map(([f, lbl]) => (<button key={f} onClick={() => setBlogFilter(f)} className={cn('h-9 px-3 border-l first:border-l-0 border-border', blogFilter === f ? 'bg-primary text-primary-foreground' : 'hover:bg-foreground/5')}>{lbl}</button>))}</div>
       </div>
       {visibleBlogs.length ? <Card className='overflow-hidden'><div className='divide-y divide-border'>{visibleBlogs.map((b: any) => (
-        <button key={b.id} onClick={() => setBlog(b)} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3'>
-          <div className='min-w-0 flex-1'><div className='text-sm font-medium line-clamp-1'>{b.title}</div><div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{b.excerpt || b.slug}</div></div>
+        <div key={b.id} role='button' tabIndex={0} onClick={() => setBlog(b)} onKeyDown={(e) => { if (e.key === 'Enter') setBlog(b); }} className='w-full text-left px-4 py-3 hover:bg-foreground/5 transition-colors flex items-center gap-3 cursor-pointer'>
+          <div className='min-w-0 flex-1'>{b.url ? <a href={b.url} target='_blank' rel='noopener noreferrer' onClick={(e) => e.stopPropagation()} className='text-sm font-medium line-clamp-1 text-primary hover:underline inline-flex items-center gap-1'>{b.title}<ExternalLink className='h-3 w-3 shrink-0' /></a> : <div className='text-sm font-medium line-clamp-1'>{b.title}</div>}<div className='text-xs text-muted-foreground line-clamp-1 mt-0.5'>{b.url || b.excerpt || b.slug}</div></div>
           {b.category ? <span className='hidden sm:inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/70 capitalize shrink-0'>{b.category}</span> : null}
           <Chip label={b.published ? 'Published' : 'Draft'} tone={b.published ? 'green' : 'amber'} />
           <ChevronRight className='h-4 w-4 text-muted-foreground shrink-0' />
-        </button>))}</div></Card> : <Card className='p-8 text-center text-sm text-muted-foreground'>No posts match.</Card>}
+        </div>))}</div></Card> : <Card className='p-8 text-center text-sm text-muted-foreground'>No posts match.</Card>}
     </div>)}
 
     {social ? <SocialPostDrawer post={social} onClose={() => setSocial(null)} /> : null}
