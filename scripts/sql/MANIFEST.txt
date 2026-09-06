@@ -1665,3 +1665,5 @@ scripts/deploy_functions.mjs
 report_pdf
 "scripts/sql/the_resilience_watch_pages_a_condition_once.sql" ; tail -2 scripts/sql/MANIFEST.txt; node scripts/apply_sql.mjs scripts/sql/the_resilience_watch_pages_a_condition_once.sql --apply --ddl  
 scripts/sql/the_knowledge_page_answers_in_under_a_second.sql
+scripts/sql/social_posts_are_clickable.sql
+scripts/sql/social_posts_ownership_ledger.sql

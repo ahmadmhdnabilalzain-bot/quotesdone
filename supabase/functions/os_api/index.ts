@@ -448,7 +448,13 @@ Deno.serve(async (req) => {
     if (action === 'prompt_approve') { const { data, error } = await admin.rpc('fn_prompt_approve_draft', { p_key: String(body?.key || ''), p_version: Number(body?.version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'prompt_rollback') { const { data, error } = await admin.rpc('fn_prompt_rollback', { p_key: String(body?.key || ''), p_to_version: Number(body?.to_version), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
 
-    if (action === 'marketing_studio') { const { data, error } = await admin.rpc('fn_marketing_studio'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data }); }
+    if (action === 'marketing_studio') {
+      // The founder opening this page is the reader who needs Postiz's release URLs fresh: run
+      // postiz_publish action=sync at most once an hour (its own agent_runs row is the throttle memory).
+      const { data: lastSync } = await admin.from('agent_runs').select('id').eq('agent', 'postiz_publish').eq('counts->>signal', 'sync').gte('started_at', new Date(Date.now() - 3600000).toISOString()).limit(1);
+      if (!lastSync?.length) { try { await fetch(`${BASE}/postiz_publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_os_api'), action: 'sync', days: 120 }), signal: AbortSignal.timeout(15000) }); } catch (_e) { /* the list still renders with the honest permalink_missing */ } }
+      const { data, error } = await admin.rpc('fn_marketing_studio'); if (error) return J({ error: error.message }, 500); return J({ ok: true, user: email, data });
+    }
     if (action === 'review_decide') { const { data, error } = await admin.rpc('fn_review_decide', { p_kind: String(body?.kind || ''), p_ref_id: Number(body?.ref_id), p_decision: String(body?.decision || ''), p_comment: String(body?.comment || ''), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
     if (action === 'blog_publish') { const { data, error } = await admin.rpc('fn_marketing_blog_publish', { p_id: String(body?.id || ''), p_published: Boolean(body?.published), p_by: email }); if (error) return J({ error: error.message }, 500); return J({ ok: true, data }); }
 

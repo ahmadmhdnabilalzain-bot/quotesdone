@@ -76,27 +76,9 @@ async function publishedLastWeek(): Promise<number | null> {
   } catch (_e) { return null; }
 }
 
-// Record a live publish in social_posts. This row IS the cap's memory, so a failure here is fatal to
-// the rest of the run (see caller).
-async function recordPublished(draftId: number, text: string, imageUrl: string | undefined, postizId: unknown): Promise<boolean> {
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/social_posts`, {
-      method: "POST",
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-      body: JSON.stringify({
-        source: "social_stage",
-        content: { text, draft_id: draftId },
-        image_url: imageUrl || null,
-        channels: CHANNELS,
-        schedule_at: new Date().toISOString(),
-        mode: "now",
-        status: "sent",
-        postiz_ids: postizId ? [postizId] : null,
-      }),
-    });
-    return r.ok;
-  } catch (_e) { return false; }
-}
+// The ledger row (social_posts) is written by postiz_publish itself since 6 Sep 2026 — one writer, so
+// drafts staged through agent_act/secretary_act get a row too. This function only checks it came back
+// (pj.ledger_id): that row IS the cap's memory, so a missing one halts the rest of the run (see caller).
 
 Deno.serve(async (req) => {
   try {
@@ -115,6 +97,14 @@ Deno.serve(async (req) => {
       await logThrottled("auth_refused", 60, "error", { stage: "auth", rejected: 1 }, "Rejected a call that presented no accepted internal credential; no approved posts were published this cycle");
       return json({ error: "unauthorized" }, 403);
     }
+
+    // PERMALINKS FIRST (6 Sep 2026): read Postiz's releaseURL for every ledger row still 'awaiting
+    // release URL' so a published post shows its network link. A read, so it runs whether or not the
+    // go-live switch is on.
+    try {
+      await fetch(`${SB_URL}/functions/v1/postiz_publish`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ __secret: await secret("cred_fn_social_stage"), action: "sync", days: 120 }), signal: AbortSignal.timeout(20000) });
+    } catch (_e) { /* the next run retries; the row keeps its honest permalink_missing until then */ }
 
     // GO-LIVE GATE: do nothing until the founder flips marketing_golive to 'true'
     // (intentional pause = idle run that did no work, so it is deliberately NOT logged)
@@ -168,7 +158,7 @@ Deno.serve(async (req) => {
       const pr = await fetch(`${SB_URL}/functions/v1/postiz_publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ __secret: inbound, action: "post", text: content, channels: CHANNELS, type: "now", image_url: imageUrl, source: "marketing_agent" }),
+        body: JSON.stringify({ __secret: inbound, action: "post", text: content, title: row.title, channels: CHANNELS, type: "now", image_url: imageUrl, source: "social_stage", draft_id: row.id }),
       });
       const pj = await pr.json();
       const ok = pr.status >= 200 && pr.status < 300 && pj?.ok;
@@ -176,8 +166,7 @@ Deno.serve(async (req) => {
         // Spend the budget first, then record it. social_posts is the cap's only memory across runs,
         // so if the ledger write fails we stop publishing for the rest of this run.
         remaining--;
-        const logged = await recordPublished(row.id, content, imageUrl, pj?.post_id);
-        if (!logged) { ledgerFails.push(row.id); remaining = 0; }
+        if (!pj?.ledger_id) { ledgerFails.push(row.id); remaining = 0; }
         const patchRes = await fetch(`${SB_URL}/rest/v1/content_drafts?id=eq.${row.id}`, {
           method: "PATCH",
           headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" },
