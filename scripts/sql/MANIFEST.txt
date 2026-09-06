@@ -1673,3 +1673,5 @@ scripts/sql/layer_2c_scopes_like_the_playbook_binder.sql
 scripts/sql/the_embedding_backfill_runs_again_under_the_kernel.sql
 scripts/sql/a_category_scoped_task_gets_its_pack.sql
 scripts/sql/the_embedding_picker_claims_its_rows.sql
+scripts/sql/the_exam_samples_its_own_scope_and_never_writes_a_wrong_verdict.sql
+scripts/sql/the_embedding_picker_orders_on_the_index.sql
