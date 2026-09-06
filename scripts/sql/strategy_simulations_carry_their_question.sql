@@ -1,0 +1,34 @@
+-- "RECENT SIMULATIONS" ROWS WERE ALL TITLED "scenario".
+--
+-- simulations.scenario is jsonb {question, change, confidence}; it has never carried a 'type' key, so
+-- coalesce(scenario->>'type','scenario') produced the literal word "scenario" for every one of the six
+-- rows the founder saw on 6 Sep 2026. The title is the question that was asked.
+--
+--   node scripts/apply_sql.mjs scripts/sql/strategy_simulations_carry_their_question.sql --apply --ddl
+CREATE OR REPLACE FUNCTION public.fn_ws_strategy()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select jsonb_build_object(
+    'kpis', (select to_jsonb(k) from public.strategy_kpis k),
+    'risks', (select coalesce(jsonb_agg(r),'[]'::jsonb) from (
+        select title, category, score, likelihood, impact, status
+        from public.strategy_risks where status<>'closed' order by score desc limit 20) r),
+    'recommendations', (select coalesce(jsonb_agg(x),'[]'::jsonb) from (
+        select title, risk, to_char(created_at,'YYYY-MM-DD') as created
+        from public.agent_actions where agent='strategy_ai' and kind='strategy_rec'
+          and status in ('pending','needs_review') order by array_position(array['high','medium','low']::text[],risk)) x),
+    'under_supplied', coalesce(fn_strategy_metrics()->'under_supplied','[]'::jsonb),
+    'market_intel', (select coalesce(jsonb_agg(m),'[]'::jsonb) from (
+        select kind, title, impact, status, coalesce(source,'—') as source
+        from public.market_intel where status<>'dismissed' order by created_at desc limit 20) m),
+    'recent_simulations', (select coalesce(jsonb_agg(s),'[]'::jsonb) from (
+        select coalesce(nullif(scenario->>'question',''), nullif(scenario->>'title',''), nullif(scenario->>'type',''), 'Scenario #' || id) as title,
+               (scenario->>'confidence')::numeric as confidence,
+               to_char(created_at,'YYYY-MM-DD HH24:MI') as created
+        from public.simulations order by created_at desc limit 8) s)
+  );
+$function$
+;

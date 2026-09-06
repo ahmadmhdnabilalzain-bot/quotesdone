@@ -47,7 +47,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { MessageSquare, LayoutDashboard, ArrowLeftRight, Hammer, Users, DollarSign, Sparkles, Settings2, Scale, LogOut, Search, Paperclip, Send, Circle, AlertTriangle, Bell, BookOpen, Calendar, BarChart3, Megaphone, Compass, FileText, Building2, FileBarChart, ShieldAlert, RotateCcw, ScrollText, AudioLines, SlidersHorizontal, Workflow, ListChecks, Newspaper, Activity, LifeBuoy, ArrowUpRight, Minus, Maximize2, Minimize2, ExternalLink, SquareStack, X, ChevronRight, Check, Brain, Network } from 'lucide-react';
 import { CompanyGraphField } from '@/components/NodeField';
-import { ControlModeProvider, ControlModeIndicator } from '@/components/osx/ControlMode';
 
 type Mod = { id: string; label: string; icon: any; kind?: string; ws?: string };
 const MODULES: Mod[] = [
@@ -192,10 +191,23 @@ function FloatingWindow({ win, onFocus, onClose, onMin, onMax, onMove, onSize, o
 }
 
 function WindowLayer({ wins, focus, close, min, max, move, size, snap }: { wins: WinState[]; focus: (id: string) => void; close: (id: string) => void; min: (id: string) => void; max: (id: string) => void; move: (id: string, x: number, y: number) => void; size: (id: string, w: number, h: number) => void; snap: (id: string, s: 'l' | 'r' | null) => void }) {
+  // Escape closes the top-most visible window (highest z), the way every other overlay closes.
+  React.useEffect(() => {
+    if (!wins.length) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const top = wins.filter((w) => !w.min).sort((a, b) => b.z - a.z)[0];
+      if (top) { e.preventDefault(); close(top.id); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [wins, close]);
   if (!wins.length) return null;
   return (<>
     {wins.map((w) => <FloatingWindow key={w.id} win={w} onFocus={() => focus(w.id)} onClose={() => close(w.id)} onMin={() => min(w.id)} onMax={() => max(w.id)} onMove={(x, y) => move(w.id, x, y)} onSize={(ww, hh) => size(w.id, ww, hh)} onSnap={(s) => snap(w.id, s)} />)}
-    <div className='fixed bottom-0 left-0 right-0 h-9 z-[60] flex items-center gap-1 px-2 border-t border-border bg-card/95 backdrop-blur overflow-x-auto'>
+    {/* The taskbar used to be a full-width fixed strip (left-0 right-0) at z-60: every click in the
+        bottom 36px of the page, anywhere, landed on it. It is now only as wide as its buttons. */}
+    <div className='fixed bottom-2 left-2 z-[60] inline-flex max-w-[calc(100vw-1rem)] items-center gap-1 px-2 h-9 rounded-lg border border-border bg-card/95 backdrop-blur overflow-x-auto shadow-lg'>
       <SquareStack className='h-3.5 w-3.5 text-muted-foreground shrink-0' />
       {wins.map((w) => { const Ic = w.icon; return (
         <button key={w.id} onClick={() => (w.min ? min(w.id) : focus(w.id))} className={cn('flex items-center gap-1.5 h-6 px-2.5 rounded text-xs shrink-0 transition-colors', w.min ? 'bg-foreground/5 text-muted-foreground hover:bg-foreground/10' : 'bg-primary/15 text-primary')}>
@@ -231,10 +243,18 @@ export default function OsxShell() {
     return () => { alive = false; clearTimeout(t); };
   }, [paletteQ, paletteOpen]);
   const [live, setLive] = React.useState(0);
-  // A twin that refreshes is not a counter that ticks. Bumping this key remounts the open
-  // workspace, so every panel re-fetches when the database pushes a change.
+  // A twin that refreshes is not a counter that ticks. Bumping this key remounts the OPEN panel
+  // (only the active tab is mounted — see <main>), so it re-fetches when the database pushes a
+  // change. Two guards, both measured on 6 Sep 2026: never while a dialog/sheet is open (a remount
+  // closed the Finance "New journal entry" sheet the instant it opened), and at most once per 15 s
+  // (14 subscribed tables can bump several times a second and each bump was a full remount).
   const [twinKey, setTwinKey] = React.useState(0);
-  const reload = React.useCallback(() => setTwinKey((k) => k + 1), []);
+  const lastRemount = React.useRef(0);
+  const reload = React.useCallback(() => {
+    if (typeof document !== 'undefined' && document.querySelector('[role="dialog"][data-state="open"]')) return;
+    const t = Date.now(); if (t - lastRemount.current < 15000) return; lastRemount.current = t;
+    setTwinKey((k) => k + 1);
+  }, []);
   const [wins, setWins] = React.useState<WinState[]>([]);
   const openWindow = React.useCallback((s: WinSpec) => {
     setWins((w) => { const ex = w.find((x) => x.id === s.id); if (ex) return bringToTop(w, s.id, { min: false }); const n = w.length; const withNew = [...w, { ...s, x: 90 + (n % 6) * 30, y: 96 + (n % 6) * 30, w: 760, h: 500, z: 0, min: false, max: false, snap: null }]; return bringToTop(withNew, s.id); });
@@ -307,10 +327,9 @@ export default function OsxShell() {
   const closeTab = (id: string) => { setTabs((t) => { const nt = t.filter((x) => x !== id); if (!nt.length) return ['console']; if (id === cur) setCur(nt[nt.length - 1]); return nt; }); };
   const popOut = (id: string) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; openWindow({ id: 'mod:' + id, title: m.label, icon: m.icon, render: () => renderModule(id, go) }); };
   return (
-    // ControlModeProvider wraps the whole shell, not just the header. It listens for the gate
-    // refusal that osClient fires from ANY module, so pressing a blocked button anywhere brings up
-    // the panel that unblocks it. Before this, Phase 1.4's gate had no UI at all.
-    <ControlModeProvider>
+    // The Observe/Control Mode provider and header pill were removed 6 Sep 2026 at the founder's
+    // instruction (10 Aug 2026: "no need for that observe mode … Remove the gate"). His login is the
+    // only gate; os_api's action classification still refuses unclassified actions.
     <WinCtx.Provider value={{ open: openWindow }}>
     <div className='osx dark min-h-screen flex text-foreground'>
       <aside className='w-60 shrink-0 border-r border-border bg-card/40 hidden md:flex md:flex-col'>
@@ -336,7 +355,6 @@ export default function OsxShell() {
           <button onClick={() => setPaletteOpen(true)} className='ml-auto flex items-center gap-2 rounded-md border border-border px-3 h-9 text-sm text-muted-foreground hover:bg-foreground/5'>
             <Search className='h-4 w-4' /><span className='hidden sm:inline'>Search or run a command</span><kbd className='hidden sm:inline text-[10px] bg-foreground/10 rounded px-1.5 py-0.5'>⌘K</kbd>
           </button>
-          <ControlModeIndicator />
           <AgentStatus onOpen={() => go('agents')} />
           <NotificationsBell pulse={live} onNav={go} />
           <div className='flex items-center gap-1.5 text-xs text-muted-foreground' title='Live activity'><Circle className={cn('h-2.5 w-2.5', live ? 'fill-emerald-400 text-emerald-400' : 'fill-muted text-muted')} />{live > 0 ? live + ' live' : 'idle'}</div>
@@ -351,11 +369,12 @@ export default function OsxShell() {
           ); })}
         </div>
         <main className='flex-1 min-h-0 overflow-y-scroll p-4 md:p-6'>
-          {tabs.map((id) => { const m = MODULES.find((x) => x.id === id) || MODULES[0]; return (
-            <div key={id + ':' + twinKey} className={id === cur ? '' : 'hidden'}>
-              {renderModule(id, go)}
-            </div>
-          ); })}
+          {/* ONE mounted panel. Background tabs are bookmarks, not live components: a tab that is
+              not on screen is unmounted, so it does not poll, does not hold state and does not
+              appear in the accessibility tree of the tab that is (the Console composer showed up
+              "inside" Assistant, the Marketing tab strip "inside" Intelligence). Switching back
+              remounts and refetches — ten tabs cost the same as one. */}
+          <div key={cur + ':' + twinKey} data-module={cur}>{renderModule(cur, go)}</div>
         </main>
       </div>
 
@@ -364,27 +383,26 @@ export default function OsxShell() {
         <CommandList>
           <CommandEmpty>No matches.</CommandEmpty>
           <CommandGroup heading='Modules'>
-            {MODULES.map((m) => (<CommandItem key={m.id} onSelect={() => { setCur(m.id); setPaletteOpen(false); }}><m.icon className='h-4 w-4' />{m.label}</CommandItem>))}
+            {MODULES.map((m) => (<CommandItem key={m.id} onSelect={() => { go(m.id); setPaletteOpen(false); }}><m.icon className='h-4 w-4' />{m.label}</CommandItem>))}
           </CommandGroup>
           {/* Entities, searched live across all nine corpora rather than listed. */}
           {paletteHits.length ? <CommandGroup heading='Entities'>
-            {paletteHits.map((h: any, i: number) => (<CommandItem key={'e' + i} onSelect={() => { setCur(h.mod); setPaletteOpen(false); }}><Search className='h-4 w-4' />{h.name}<span className='ml-2 text-[11px] text-muted-foreground'>{h.group}</span></CommandItem>))}
+            {paletteHits.map((h: any, i: number) => (<CommandItem key={'e' + i} onSelect={() => { go(h.mod); setPaletteOpen(false); }}><Search className='h-4 w-4' />{h.name}<span className='ml-2 text-[11px] text-muted-foreground'>{h.group}</span></CommandItem>))}
           </CommandGroup> : null}
           <CommandGroup heading='Actions'>
             <CommandItem onSelect={() => { osApi('search', { q: paletteQ }).then((d: any) => setPaletteHits(((d && d.suppliers) || []).map((r: any) => ({ name: r.name, group: 'Supplier', mod: 'suppliers' })))).catch(() => {}); }}><Search className='h-4 w-4' />Search everything the company knows</CommandItem>
-            <CommandItem onSelect={() => { setCur('console'); setPaletteOpen(false); }}><MessageSquare className='h-4 w-4' />Ask the Secretary for status</CommandItem>
-            <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><Sparkles className='h-4 w-4' />Show matching / agent activity</CommandItem>
-            <CommandItem onSelect={() => { setCur('operations'); setPaletteOpen(false); }}><Check className='h-4 w-4' />Approve a pending decision</CommandItem>
-            <CommandItem onSelect={() => { setCur('agents'); setPaletteOpen(false); }}><RotateCcw className='h-4 w-4' />Restart AI agents</CommandItem>
-            <CommandItem onSelect={() => { setCur('intelligence'); setPaletteOpen(false); }}><BarChart3 className='h-4 w-4' />Forecast</CommandItem>
-            <CommandItem onSelect={() => { setCur('finance'); setPaletteOpen(false); }}><DollarSign className='h-4 w-4' />Cash Flow</CommandItem>
+            <CommandItem onSelect={() => { go('console'); setPaletteOpen(false); }}><MessageSquare className='h-4 w-4' />Ask the Secretary for status</CommandItem>
+            <CommandItem onSelect={() => { go('agents'); setPaletteOpen(false); }}><Sparkles className='h-4 w-4' />Show matching / agent activity</CommandItem>
+            <CommandItem onSelect={() => { go('operations'); setPaletteOpen(false); }}><Check className='h-4 w-4' />Approve a pending decision</CommandItem>
+            <CommandItem onSelect={() => { go('agents'); setPaletteOpen(false); }}><RotateCcw className='h-4 w-4' />Restart AI agents</CommandItem>
+            <CommandItem onSelect={() => { go('intelligence'); setPaletteOpen(false); }}><BarChart3 className='h-4 w-4' />Forecast</CommandItem>
+            <CommandItem onSelect={() => { go('finance'); setPaletteOpen(false); }}><DollarSign className='h-4 w-4' />Cash Flow</CommandItem>
           </CommandGroup>
         </CommandList>
       </CommandDialog>
       <WindowLayer wins={wins} focus={focusWin} close={closeWin} min={minWin} max={maxWin} move={moveWin} size={sizeWin} snap={snapWin} />
     </div>
     </WinCtx.Provider>
-    </ControlModeProvider>
   );
 }
 
@@ -1474,10 +1492,9 @@ function Console() {
       setMsgs((m) => [...m, { role: 'assistant', content: d?.reply || 'Done.' }]);
       if (d?.needs_confirmation && d?.confirm_token) setConfirm({ token: d.confirm_token, reply: d.reply || '' });
     } catch (e: any) {
-      // A Control Mode refusal already opens the panel via the window event in osClient; the text
-      // here has to say what to do rather than read as "your account is wrong".
+      // An action-gate refusal carries the API's own hint; say that rather than "your account is wrong".
       const msg = e?.name === 'ControlModeError'
-        ? 'Giving an order changes something, so it needs Control Mode open. The panel is on screen — open it and send this again.'
+        ? 'The action gate refused this order: ' + (e?.hint || e?.message || 'unclassified action') + '.'
         : 'Error: ' + (e?.message || 'could not reach the Command Center');
       setMsgs((m) => [...m, { role: 'assistant', content: msg }]);
     }
@@ -1531,7 +1548,7 @@ function Console() {
     setSpeak(true);
     try {
       const d: any = await osApi('ws.exec_home');
-      const brief = 'Good morning. Company health ' + (d?.health_index ?? 'unknown') + ', mood ' + (d?.mood ?? 'unknown') + '. '
+      const brief = d?.brief_text ? String(d.brief_text) : 'Good morning. Company health ' + (d?.health_index ?? 'unknown') + ', mood ' + (d?.mood ?? 'unknown') + '. '
         + 'Revenue today ' + (d?.revenue_today ?? 0) + ' dirhams, ' + (d?.revenue_30d ?? 0) + ' over thirty days. '
         + (d?.suppliers_active ?? 0) + ' active suppliers, ' + (d?.customers_active ?? 0) + ' active customers. '
         + (d?.employees_working ?? 0) + ' of ' + (d?.employees ?? 0) + ' AI employees worked overnight. '
@@ -2518,25 +2535,34 @@ function AgentDrawer({ agent, onClose }: { agent: any; onClose: () => void }) {
 }
 function AgentsApp() {
   const [view, setView] = React.useState<'kanban' | 'list'>('kanban'); const [d, setD] = React.useState<any>(null); const [err, setErr] = React.useState(''); const [sel, setSel] = React.useState<any>(null);
+  // STAFF, NOT THE PARKED (6 Sep 2026). The page listed all 96 org_agents rows while its header said
+  // "54 agents": 42 parked personas (active=false, 0 runs, a stale last_status of "error") sat
+  // among the staff. fn_agents_board now returns the 54 active by default and the parked in a
+  // separate list; this toggle shows them greyed and labelled "parked", never "error".
+  const [showParked, setShowParked] = React.useState(false);
   React.useEffect(() => { osApi('agents_board').then(setD).catch((e: any) => setErr(e.message)); }, []);
   if (err && !d) return <Card className='p-6 text-sm text-destructive'>Could not load Smart Engine: {err}</Card>;
-  const card = (c: any) => (<><div className='flex items-center gap-1.5'><span className={cn('h-2 w-2 rounded-full', c.active ? 'bg-emerald-500' : 'bg-muted')} /><span className='text-sm font-semibold capitalize'>{titleCase(String(c.agent_key))}</span></div>{c.role ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.role}</div> : null}<div className='flex items-center gap-2 mt-2 flex-wrap'><span className='text-[11px] text-muted-foreground'>{c.runs24} runs/24h</span>{c.last_status ? <Badge variant='outline' className='text-[10px]'>{c.last_status}</Badge> : null}{c.fails24 > 0 ? <Badge variant='destructive' className='text-[10px]'>{c.fails24} failed</Badge> : null}</div></>);
-  const columns = [{ key: 'agent_key', label: 'Agent', render: (r: any) => <span className='font-medium capitalize'>{titleCase(String(r.agent_key))}</span> }, { key: 'department', label: 'Dept', render: (r: any) => <span className='capitalize'>{r.department}</span> }, { key: 'role', label: 'Role', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.role || '—'}</span> }, { key: 'runs24', label: 'Runs 24h', render: (r: any) => r.runs24 }, { key: 'last_status', label: 'Last', render: (r: any) => r.last_status || '—' }];
+  const parked: any[] = d?.parked || [];
+  const rows: any[] = showParked ? [...(d?.rows || []), ...parked] : (d?.rows || []);
+  const stages = showParked ? (d?.departments || []).map((dep: any) => ({ ...dep, cards: [...(dep.cards || []), ...parked.filter((p: any) => p.department === dep.key)] })) : (d?.departments || []);
+  const card = (c: any) => (<div className={c.active ? '' : 'opacity-50'}><div className='flex items-center gap-1.5'><span className={cn('h-2 w-2 rounded-full', c.active ? 'bg-emerald-500' : 'bg-muted')} /><span className='text-sm font-semibold capitalize'>{titleCase(String(c.agent_key))}</span></div>{c.role ? <div className='text-xs text-muted-foreground line-clamp-2 mt-0.5'>{c.role}</div> : null}<div className='flex items-center gap-2 mt-2 flex-wrap'>{c.active ? <><span className='text-[11px] text-muted-foreground'>{c.runs24} runs/24h</span>{c.last_status ? <Badge variant='outline' className='text-[10px]'>{c.last_status}</Badge> : null}{c.fails24 > 0 ? <Badge variant='destructive' className='text-[10px]'>{c.fails24} failed</Badge> : null}</> : <Badge variant='outline' className='text-[10px]'>parked</Badge>}</div></div>);
+  const columns = [{ key: 'agent_key', label: 'Agent', render: (r: any) => <span className={cn('font-medium capitalize', r.active ? '' : 'opacity-50')}>{titleCase(String(r.agent_key))}</span> }, { key: 'department', label: 'Dept', render: (r: any) => <span className='capitalize'>{r.department}</span> }, { key: 'role', label: 'Role', render: (r: any) => <span className='text-muted-foreground line-clamp-1'>{r.role || '—'}</span> }, { key: 'runs24', label: 'Runs 24h', render: (r: any) => r.active ? r.runs24 : '—' }, { key: 'last_status', label: 'Last', render: (r: any) => r.active ? (r.last_status || '—') : 'parked' }];
   return (<div className='space-y-4'>
     <BoardHeader icon={Sparkles} title='Smart Engine' total={d?.total} sub={d ? (Number(d.runs24 || 0).toLocaleString() + ' runs/24h') : ''} view={view} setView={setView} />
-    {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={d.departments || []} onCard={setSel} renderCard={card} /> : <RichList rows={d.rows || []} columns={columns} onRow={setSel} />}
+    {d && parked.length ? <div className='flex items-center gap-2 text-xs text-muted-foreground'><button type='button' onClick={() => setShowParked((v) => !v)} className={cn('rounded-md border border-border px-2 py-1 hover:bg-foreground/5', showParked ? 'bg-foreground/10 text-foreground' : '')}>{showParked ? 'Hide parked' : 'Parked (' + parked.length + ')'}</button><span>{d.total} staff on the roster{showParked ? ' · parked personas shown greyed' : ''}</span></div> : null}
+    {!d ? <div className='text-sm text-muted-foreground'>Loading agents…</div> : view === 'kanban' ? <KanbanBoard stages={stages} onCard={setSel} renderCard={card} /> : <RichList rows={rows} columns={columns} onRow={setSel} />}
     {/* ── THE ORG CHART ────────────────────────────────────────────────────────────────────
         A real reporting hierarchy drawn as nodes, and clicking a person opens their workspace.
         The kanban and the list both open the drawer already; neither is a chart, and "clicking
         any PERSON on the chart" is what screen 4 asks for. */}
-    {d ? <SectionCard title='Org chart' count={(d.rows || []).length}
+    {d ? <SectionCard title='Org chart' count={rows.length}
       right={<span className='text-[11px] text-muted-foreground'>click a person to open their workspace</span>}>
       <div className='p-4 overflow-auto'>
         <svg viewBox={'0 0 900 ' + Math.max(220, 60 + (d.departments || []).length * 74)} className='w-full' style={{ minWidth: 720 }}>
           <text x={20} y={26} className='fill-muted-foreground' fontSize={12}>Company</text>
           {(d.departments || []).map((dep: any, di: number) => {
             const y = 60 + di * 74;
-            const people = ((d.rows || []) as any[]).filter((r: any) => r.department === dep.key).slice(0, 9);
+            const people = rows.filter((r: any) => r.department === dep.key).slice(0, 9);
             return (<g key={dep.key}>
               <line x1={30} y1={30} x2={30} y2={y} stroke='currentColor' strokeOpacity={0.2} />
               <line x1={30} y1={y} x2={64} y2={y} stroke='currentColor' strokeOpacity={0.2} />
@@ -2952,7 +2978,9 @@ function OperationsApp() {
     <KpiRow items={[['Open tasks', k.tasks_open], ['Decisions 24h', k.decisions_24h], ['Refund approvals (yours)', k.approvals_pending], ['Disputes', k.disputes], ['High risk', k.high_risk], ['Held with departments', k.held_with_roles ?? held.length]]} />
     {approvals.length ? <SectionCard title='Refund approvals waiting on you' count={approvals.length}><div className='divide-y divide-border'>{approvals.map((a: any) => (<div key={String(a.id)} className='px-4 py-3 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{a.kind_label || 'Refund decision'}<span className='text-muted-foreground text-xs'>{a.from}</span></div><div className='text-xs text-muted-foreground'>{a.title} · {fmt(a.raised)}</div></div><div className='flex gap-1.5 shrink-0'>{a.source === 'agent_actions' ? <><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'approve'} onClick={() => decide(a.id, 'approve')}>Approve</Button><Button className='h-7 text-xs' variant='outline' disabled={dbusy === String(a.id) + 'reject'} onClick={() => decide(a.id, 'reject')}>Reject</Button></> : <span className='text-[11px] text-muted-foreground'>decide it in Refunds</span>}</div></div>))}</div></SectionCard> : null}
     {held.length ? <SectionCard title='Held with departments — not yours to approve' count={held.length}><div className='divide-y divide-border'>{held.map((a: any) => (<div key={a.id} onClick={() => setRow({ id: a.id, title: String(a.title || 'Action'), row: a })} className='px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-foreground/5'><div className='min-w-0'><div className='text-sm font-medium flex items-center gap-1.5 flex-wrap'>{(a.kind_label || titleCase(String(a.kind || 'decision')))}<span className='text-muted-foreground text-xs'>{a.agent}</span>{a.risk ? <Chip label={String(a.risk)} tone={riskTone(String(a.risk))} /> : null}</div><div className='text-xs text-muted-foreground'>{a.title} · held with <b className='text-foreground'>{a.holder}</b> · {fmt(a.created_at)}</div></div></div>))}</div></SectionCard> : null}
-    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    {/* ONE definition of "open task" (public.v_org_open_tasks): the same number Overview shows. These are
+        the departments' org_tasks, closed by the agent that owns each — no Done button here. */}
+    <SectionCard title='Open tasks' count={k.tasks_open ?? tasks.length} right={<span className='text-[11px] text-muted-foreground'>across every department · newest 20</span>}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'><span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.created_at ? ' · ' + fmt(t.created_at) : ''}</div></div>{t.entity === 'org_task' ? <Chip label={String(t.status || 'open')} tone={statusTone(String(t.status || 'open'))} /> : <Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button>}</div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
     {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {Object.keys(sec).length ? <SectionCard title='Security posture'><div className='p-4'><ReadableObject data={sec} /></div></SectionCard> : null}
   </div>);
@@ -3811,12 +3839,12 @@ function AssistantApp() {
   const tasks = d?.open_tasks || []; const today = d?.today_events || []; const upcoming = d?.upcoming_events || []; const reminders = d?.reminders_due || []; const approvals = d?.approvals_top || []; const meetings = d?.recent_meetings || [];
   return (<div className='space-y-4'>
     <AppHeader icon={Calendar} title='Assistant' onRefresh={load} busy={busy} badge={d?.overdue_tasks ? <Badge className='bg-red-500/15 text-red-600 border-0'>{d.overdue_tasks} overdue</Badge> : null} />
-    <KpiRow items={[['Open tasks', tasks.length], ['Overdue', d?.overdue_tasks], ['Approvals', d?.approvals_total], ['High-risk approvals', d?.approvals_high_risk], ['Today', today.length], ['Reminders due', reminders.length]]} />
+    <KpiRow items={[['Your tasks', tasks.length], ['Overdue', d?.overdue_tasks], ['Approvals', d?.approvals_total], ['High-risk approvals', d?.approvals_high_risk], ['Today', today.length], ['Reminders due', reminders.length]]} />
     {(today.length || upcoming.length) ? <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
       <SectionCard title='Today' count={today.length}>{today.length ? <div className='divide-y divide-border'>{today.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing today.</div>}</SectionCard>
       <SectionCard title='Upcoming' count={upcoming.length}>{upcoming.length ? <div className='divide-y divide-border'>{upcoming.map((e: any, i: number) => (<div key={i} className='px-4 py-2.5 text-sm'><div className='font-medium'>{e.title || e.summary}</div><div className='text-[11px] text-muted-foreground'>{fmt(e.start || e.at || e.when)}</div></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing scheduled.</div>}</SectionCard>
     </div> : null}
-    <SectionCard title='Open tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>No open tasks.</div>}</SectionCard>
+    <SectionCard title='Your tasks' count={tasks.length}>{tasks.length ? <div className='divide-y divide-border'>{tasks.map((t: any) => (<div key={t.id} className='px-4 py-2.5 flex items-center justify-between gap-3'><div className='min-w-0'><div className='text-sm flex items-center gap-1.5'>{t.priority ? <Chip label={String(t.priority)} tone={priorityTone(String(t.priority))} /> : null}<span className='line-clamp-1'>{t.title}</span></div><div className='text-[11px] text-muted-foreground'>{t.source}{t.due ? ' · due ' + fmt(t.due) : ''}</div></div><Button className='h-7 text-xs shrink-0' variant='outline' disabled={dbusy === 't' + t.id} onClick={() => taskDone(t.id)}>{dbusy === 't' + t.id ? '…' : 'Done'}</Button></div>))}</div> : <div className='px-4 py-6 text-center text-sm text-muted-foreground'>Nothing on your list.</div>}</SectionCard>
     {approvals.length ? <SectionCard title='Approvals awaiting you' count={d?.approvals_total ?? approvals.length}><div className='p-4'><div className='mb-2 flex flex-wrap gap-1.5'>{(approvals as any[]).map((a: any, i: number) => (<button key={i} onClick={() => setRow({ id: a.id ?? i, title: String(a.title || 'Action'), row: a })} className='text-[11px] rounded border border-border px-1.5 py-0.5 hover:bg-foreground/5'>Open #{a.id ?? i}</button>))}</div><ReadableObject data={approvals} /></div></SectionCard> : null}
     {row ? <RecordDrawer frame0={{ entity: 'agent_action', id: row.id, title: row.title, row: row.row }} onClose={() => setRow(null)} /> : null}
     {reminders.length ? <SectionCard title='Reminders due' count={reminders.length}><div className='p-4'><ReadableObject data={reminders} /></div></SectionCard> : null}
