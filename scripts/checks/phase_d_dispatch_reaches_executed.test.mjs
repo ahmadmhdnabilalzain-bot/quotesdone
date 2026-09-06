@@ -71,9 +71,18 @@ declare
   v jsonb; run bigint; sr record; hnd bigint; recv text; i int; v_wf text;
   v_rev text; tsk bigint;
   n_before_cost bigint; n_before_cron bigint;
+  n_before_cust bigint; n_before_inq bigint; n_before_quo bigint; n_before_tx bigint;
 begin
   select count(*) into n_before_cost from public.ai_cost_log;
   select count(*) into n_before_cron from cron.job where active;
+  -- 6 SEP 2026: the business tables are snapshotted BEFORE the drive and reported as deltas, the
+  -- same way ai_cost_log and cron.job are. Until today these four were asserted at an absolute
+  -- zero, which measured whether the company had any customers, not whether the drive wrote one:
+  -- a real person registered on the site at 07:38 UTC that morning and the gate went red on him.
+  select count(*) into n_before_cust from public.customers;
+  select count(*) into n_before_inq from public.inquiries;
+  select count(*) into n_before_quo from public.quotes;
+  select count(*) into n_before_tx from public.transactions;
 
   for v_wf in select workflow_id from public.phase_b_workflow order by workflow_id loop
     begin
@@ -150,10 +159,10 @@ begin
                           join public.phase_d_effect_ledger el on el.step_run_id = d.step_run_id
                          where d.outcome = 'EXECUTED'),
     'residue',         (select count(*) from public.fn_phase_d_fixture_residue()),
-    'customers',       (select count(*) from public.customers),
-    'inquiries',       (select count(*) from public.inquiries),
-    'quotes',          (select count(*) from public.quotes),
-    'transactions',    (select count(*) from public.transactions),
+    'customers',       (select count(*) from public.customers) - n_before_cust,
+    'inquiries',       (select count(*) from public.inquiries) - n_before_inq,
+    'quotes',          (select count(*) from public.quotes) - n_before_quo,
+    'transactions',    (select count(*) from public.transactions) - n_before_tx,
     'cost_rows_delta', (select count(*) from public.ai_cost_log) - n_before_cost,
     'active_cron_delta', (select count(*) from cron.job where active) - n_before_cron
   ));
@@ -186,10 +195,12 @@ test('the drive leaves no residue and touches no business table or paid provider
     'fn_phase_d_fixture_residue() is non-zero INSIDE the drive: the probe wrote a fixture into a ' +
     'business relation. It would have rolled back, but the write path is wrong.');
 
+  // Deltas since 6 Sep 2026 (see the drive's preamble): the assertion is that the drive wrote
+  // nothing into these tables, not that the company has no customers.
   for (const t of ['customers', 'inquiries', 'quotes', 'transactions']) {
     assert.equal(Number(r[t]), 0,
-      `public.${t} holds ${r[t]} rows during the drive; the zero-residue business tables must stay ` +
-      'at zero, including inside an aborted transaction');
+      `public.${t} gained ${r[t]} row(s) during the drive; the drive must write nothing into the ` +
+      'business tables, including inside an aborted transaction');
   }
 
   assert.equal(Number(r.cost_rows_delta), 0,
