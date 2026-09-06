@@ -1642,3 +1642,5 @@ scripts/sql/fn_org_task_assign_rehomes_a_merged_department.sql
 scripts/sql/founder_command_retired_ritual_reply.sql
 scripts/sql/held_rows_go_to_their_owners_data.sql
 scripts/sql/the_action_sweep_is_registered_for_the_scenario_door.sql
+scripts/sql/receipts_book_themselves_2026_09_06.sql
+scripts/sql/receipts_book_themselves_ownership_ledger.sql

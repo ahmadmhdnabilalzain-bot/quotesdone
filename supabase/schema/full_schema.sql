@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-05T23:20:15.403Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-06T00:05:42.764Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1914,7 +1914,8 @@ CREATE TABLE IF NOT EXISTS public.doc_reviews (
   decided_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now(),
   auto_applied boolean DEFAULT false,
-  extracted jsonb
+  extracted jsonb,
+  owner_role text
 );
 
 CREATE TABLE IF NOT EXISTS public.doc_versions (
@@ -2885,7 +2886,8 @@ CREATE TABLE IF NOT EXISTS public.inbound_messages (
   ai_summary text,
   triaged_at timestamp with time zone,
   replied_at timestamp with time zone,
-  replied_by text
+  replied_by text,
+  owner_role text
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiries (
@@ -18061,6 +18063,126 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  end if;
+
+  for r2 in
+    select title, content, record_type, authority_tier, implementation_status, rank
+      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+     order by rank desc
+  loop
+    exit when length(ops) > 2400;
+    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+  end loop;
+  if ops <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+      E'\n\n' || ops;
+  end if;
+
+  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
+  -- the path every agent already calls; a second assembler would have been a corpus no runtime
+  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
+'
+            || left(coalesce(itm->>'content',''), 700) || E'
+
+';
+      end loop;
+      if sec <> '' then
+        out := out || E'
+' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'
+
+' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'
+
+' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'
+';
+    end loop;
+    if sec <> '' then
+      out := out || E'
+' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'
+
+' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -18245,7 +18367,9 @@ begin
            ||count(*) filter (where t.status='assigned')||' assigned, '
            ||count(*) filter (where t.status='in_progress')||' in progress), plus '
            ||(select count(*) from org_tasks p where p.dept_key = v_dept and p.status='proposed')
-           ||' awaiting a founder decision. Your personal cap is '||coalesce(v_cap_tasks,0)||' open task(s).'
+           ||' proposed (held for review with '
+           ||coalesce((select d.lead_agent from org_departments d where d.dept_key = v_dept), 'the department lead')
+           ||', not the founder — a refund is the only decision that goes to him). Your personal cap is '||coalesce(v_cap_tasks,0)||' open task(s).'
       into v_line
       from org_tasks t where t.dept_key = v_dept and t.status in ('assigned','in_progress');
     if v_line is not null then
@@ -18609,126 +18733,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  end if;
-
-  for r2 in
-    select title, content, record_type, authority_tier, implementation_status, rank
-      from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-     order by rank desc
-  loop
-    exit when length(ops) > 2400;
-    ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-           coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-           coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-  end loop;
-  if ops <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-      'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-      'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-      'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-      E'\n\n' || ops;
-  end if;
-
-  -- LAYER 2d/2e/2f: the V3 delivery. Added here rather than in a new function because this is
-  -- the path every agent already calls; a second assembler would have been a corpus no runtime
-  -- function reads. fn_agent_context_v3 does the deterministic filtering and the budgeting.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, null, 9000);
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'
-'
-            || left(coalesce(itm->>'content',''), 700) || E'
-
-';
-      end loop;
-      if sec <> '' then
-        out := out || E'
-' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'
-
-' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'
-
-' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'
-';
-    end loop;
-    if sec <> '' then
-      out := out || E'
-' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'
-
-' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -20260,13 +20264,13 @@ begin
     'Model spend to re-benchmark after a change, plus engineering time. The costly mistake is rewriting a prompt for an agent whose real problem is the knowledge it retrieves.');
 
   perform ai_rec('low_quote_quality', coalesce(v_quote_q,100) < 60, 'medium', 'Quote-review quality is low',
-    'Structured quote quality is averaging '||coalesce(v_quote_q,0)||'/100. The Trainer is drafting an improved quote_review prompt for your approval; also strengthening category knowledge helps.',
+    'Structured quote quality is averaging '||coalesce(v_quote_q,0)||'/100. The Trainer is drafting an improved quote_review prompt, held with '||public.fn_action_holder('prompt_approval','ai_trainer')||' for review before rollout; also strengthening category knowledge helps.',
     jsonb_build_array(
       'The score measures the QUOTES suppliers submit, not the reviewer reading them. A low average can mean suppliers are quoting thinly, and rewriting the review prompt would not move it.',
       'coalesce(v_quote_q,100) treats "never measured" as a perfect 100, so this rule stays silent when there is no evidence at all rather than raising a false alarm — silence here is not a pass.',
       'The average comes from the newest agent_evals snapshot only, so a single bad day moves it.'),
     'Quote quality is what the customer compares. Every point of it is the difference between a buyer who can decide and a buyer who asks all three suppliers to re-quote.',
-    'Model spend on the drafted prompt plus a benchmark run. Rollout stays founder-approved, so nothing changes on the strength of this alert alone.');
+    'Model spend on the drafted prompt plus a benchmark run. Rollout stays held with the prompt_approval holder, so nothing changes on the strength of this alert alone.');
 
   perform ai_rec('thin_benchmarks', coalesce(v_qa_total,0) < 20, 'low', 'Add more test benchmarks',
     'The QA suite has only '||coalesce(v_qa_total,0)||' cases. Add benchmark cases (quotes, RFQ qualification, compliance answers) so regressions are caught automatically.',
@@ -20294,7 +20298,7 @@ begin
     'No spend to review. Model spend only if a prompt is redrafted afterwards.');
 
   -- CLOSED LOOP: when quote quality is low and no draft is already awaiting approval, ask the LLM to author an improved
-  -- quote_review prompt DRAFT (founder still approves before rollout). De-duped so it drafts once per open cycle.
+  -- quote_review prompt DRAFT (the prompt_approval holder approves before rollout; never the founder). De-duped so it drafts once per open cycle.
   if coalesce(v_quote_q,100) < 60
      and not exists (select 1 from agent_actions where kind='prompt_approval' and detail->>'key'='quote_review.system' and status in ('pending','needs_review'))
      and not exists (select 1 from prompt_versions where prompt_key='quote_review.system' and status='draft') then
@@ -29836,12 +29840,16 @@ begin
               order by op.value_score desc nulls last limit 3) x), '')
       ||'; '||v_opp_all||' open company-wide.';
 
+    -- HELD WITH THE ROLE, NOT THE FOUNDER. needs_founder on an org_task is a review hold owned by the
+    -- department lead; the only decision that reaches the founder is a refund, and
+    -- fn_founder_refund_approvals_open() is the one count for that. A cancelled task is not held.
     v_reqs := (select count(*) from org_tasks
-                where needs_founder and status <> 'done' and dept_key = v_dept)
-      ||' item(s) awaiting a founder decision'
+                where needs_founder and status not in ('done','cancelled') and dept_key = v_dept)
+      ||' item(s) held with '||coalesce((select d.lead_agent from org_departments d where d.dept_key = v_dept), v_dept, 'the department lead')
       || coalesce(': '||(select string_agg(q.title, '; ') from (
-             select title from org_tasks where needs_founder and status <> 'done'
-              and dept_key = v_dept order by created_at desc limit 3) q), '')||'.';
+             select title from org_tasks where needs_founder and status not in ('done','cancelled')
+              and dept_key = v_dept order by created_at desc limit 3) q), '')
+      ||'; '||public.fn_founder_refund_approvals_open()||' refund decision(s) with the founder.';
 
     -- THE QUANTIFIED ASK. The three drivers the owner can move this week, with where they stand
     -- and where they must be, in the same sentence and again as numbers. A green OS is asked to
@@ -29910,8 +29918,9 @@ begin
     'risks', (select count(*) from risk_register where coalesce(status,'open') <> 'closed')
              ||' open risk(s) on the company register.',
     'opportunities', v_opp_all||' open opportunit(ies) company-wide.',
-    'requests', (select count(*) from org_tasks where needs_founder and status <> 'done')
-                ||' item(s) awaiting a founder decision company-wide.');
+    'requests', (select count(*) from org_tasks where needs_founder and status not in ('done','cancelled'))
+                ||' item(s) held with department leads company-wide; '
+                ||public.fn_founder_refund_approvals_open()||' refund decision(s) with the founder.');
   select coalesce(jsonb_agg(case when f ? 'wins' then f else f || v_co end order by ord), '[]'::jsonb)
     into findings from jsonb_array_elements(findings) with ordinality as t(f, ord);
 
@@ -30033,7 +30042,7 @@ begin
     'Executive meeting '||v_period||': '||v_green||' green / '||v_amber||' amber / '||v_red||' red across all active operating systems, '||actions||' actions assigned, '
     ||jsonb_array_length(recs)||' ranked priorities, '
     ||case when v_ch < 0 then 'the challenge round failed' else v_ch||' challenge(s) put to a second officer' end
-    ||', '||case when v_raised < 0 then 'raising priorities for approval failed' else v_raised||' priority(ies) raised for founder approval' end
+    ||', '||case when v_raised < 0 then 'raising priorities for approval failed' else v_raised||' priority(ies) raised as decisions held with their owners' end
     ||'. Finance '||v_fin_health||' (runway '||coalesce(v_runway::text,'—')||'mo).');
 
   return jsonb_build_object('week',v_period,'green',v_green,'amber',v_amber,'red',v_red,
@@ -34411,11 +34420,12 @@ CREATE OR REPLACE FUNCTION public.fn_inbox_list()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
+  -- owner_role is null: a row a department owns is that department's work, never the founder's inbox (6 Sep 2026)
   select jsonb_build_object(
     'kpis', jsonb_build_object(
-      'needs_review', (select count(*) from public.inbound_messages where needs_review=true and replied_at is null
+      'needs_review', (select count(*) from public.inbound_messages where needs_review=true and replied_at is null and owner_role is null
                         and created_at >= public.fn_os_fresh_start_at()),
-      'untriaged', (select count(*) from public.inbound_messages where needs_review=true and triaged_at is null and replied_at is null
+      'untriaged', (select count(*) from public.inbound_messages where needs_review=true and triaged_at is null and replied_at is null and owner_role is null
                      and created_at >= public.fn_os_fresh_start_at()),
       'replied_7d', (select count(*) from public.inbound_messages where replied_at > now()-interval '7 days')),
     'rows', coalesce((select jsonb_agg(jsonb_build_object(
@@ -34423,7 +34433,7 @@ AS $function$
         'category',ai_category,'summary',ai_summary,'draft',ai_draft_reply,
         'triaged_at',triaged_at,'created_at',created_at) order by created_at desc)
       from (select * from public.inbound_messages
-             where needs_review=true and replied_at is null
+             where needs_review=true and replied_at is null and owner_role is null
                and created_at >= public.fn_os_fresh_start_at()
              order by created_at desc limit 50) m),'[]'::jsonb)
   );
@@ -42823,7 +42833,7 @@ begin
       insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table,target_id,assumptions,expected_impact,cost)
       values ('knowledge_curator','knowledge_approval','pending','high',
         'Approve regulation: '||coalesce(rec.title,'#'||rec.rid),
-        'A new/updated high-stakes regulation ('||coalesce(rec.authority,'')||') is awaiting your approval before it publishes to the knowledge base.',
+        'A new/updated high-stakes regulation ('||coalesce(rec.authority,'')||') is held with '||public.fn_action_holder('knowledge_approval','knowledge_curator')||' for approval before it publishes to the knowledge base.',
         jsonb_build_object('kind','regulation','ref',rec.rid,'authority',rec.authority),'regulations', rec.rid,
         jsonb_build_array(
           'The text was captured faithfully from '||coalesce(rec.authority,'the authority')||'. Nothing between capture and here has verified it against the authority''s own wording.',
@@ -45557,11 +45567,11 @@ begin
     'No spend. Supplier enablement is outreach time; improving matching is engineering time against fn_match_capability.');
 
   perform ops_rec('approvals_backlog', coalesce(k.pending_approvals,0) > 15, 'low', 'Approval queue building up',
-    k.pending_approvals||' items are awaiting your decision ('||coalesce(k.high_risk_pending,0)||' high-risk). Clear the queue so the agents can proceed.',
+    k.pending_approvals||' open agent decision(s) are held with their department roles ('||coalesce(k.high_risk_pending,0)||' high-risk); '||public.fn_founder_refund_approvals_open()||' refund decision(s) with the founder. The holders clear the queue so the agents can proceed.',
     jsonb_build_array(
-      'Every pending item is genuinely blocked on a human. An item left pending because nothing consumes that kind would look identical and would not move if you decided it.',
+      'Every pending item is genuinely blocked on a human. An item left pending because nothing consumes that kind would look identical and would not move if its holder decided it.',
       'The '||coalesce(k.high_risk_pending,0)||' high-risk item(s) carry a risk level set by the routine that raised them, which is a self-assessment and not an audit.',
-      'The queue is a founder queue: none of these can be cleared by another agent, or they would already have been.'),
+      'Each item is held with the role fn_action_holder names for its kind; only a refund decision reaches the founder.'),
     'Each decision unblocks whatever the raising agent wanted to do next. A queue this size is the company waiting on one person, which is the thing the whole design is meant to avoid.',
     'No spend. Founder attention, which is the scarcest resource here and the reason the queue is worth keeping short.');
 
@@ -48438,6 +48448,14 @@ CREATE OR REPLACE FUNCTION public.fn_os_automation_list()
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
+  -- 6 SEP 2026: ONE pass over the last 8 days of run details (distinct on jobid), joined to the jobs,
+  -- instead of a per-job LATERAL over the whole 250k-row table. 10.9 s -> well under the 8 s wall.
+  with latest as (
+    select distinct on (d.jobid) d.jobid, d.status, d.start_time, d.end_time, d.return_message
+      from cron.job_run_details d
+     where d.start_time > now() - interval '8 days'
+     order by d.jobid, d.start_time desc nulls last
+  )
   select coalesce(jsonb_agg(x order by x->>'category', x->>'human_name'), '[]'::jsonb) from (
     select jsonb_build_object(
       'jobid', j.jobid, 'jobname', j.jobname,
@@ -48449,11 +48467,7 @@ AS $function$
     ) as x
     from cron.job j
     left join public.cron_registry r on r.jobname = j.jobname
-    left join lateral (
-      select status, start_time, end_time, return_message
-      from cron.job_run_details d where d.jobid = j.jobid
-      order by d.start_time desc nulls last limit 1
-    ) lr on true
+    left join latest lr on lr.jobid = j.jobid
   ) q;
 $function$
 
@@ -71659,6 +71673,52 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_receipt_hand_to_bookkeeper(p_inbound_id bigint, p_review_ids bigint[], p_reason text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m record; v_owner text := 'bookkeeper'; v_task bigint;
+begin
+  select * into m from public.inbound_messages where id = p_inbound_id;
+  if not found then return null; end if;
+
+  -- one task per inbound email, however many times the email is redelivered
+  select t.id into v_task from public.org_tasks t
+   where t.detail like '[inbound_message:' || p_inbound_id || ']%'
+     and t.status not in ('done', 'cancelled')
+   order by t.id limit 1;
+
+  if v_task is null then
+    if not exists (select 1 from public.org_agents o where o.agent_key = v_owner and o.active and coalesce(o.available, true)) then
+      v_owner := null;   -- a05_org_task_fill_ownership picks the least-loaded finance colleague
+    end if;
+    insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, decided_by,
+                                  action_class, assigned_agent, priority, result)
+    values ('finance',
+            left('Book a forwarded receipt the parser could not read: ' || coalesce(m.subject, '(no subject)'), 200),
+            '[inbound_message:' || p_inbound_id || '] ' || coalesce(p_reason, 'no amount could be read from the text')
+              || E'\n\nFrom ' || coalesce(m.from_email, '?') || ' to ' || coalesce(m.to_email, '?') || ' at ' || m.created_at
+              || '. Stored documents: doc_reviews ' || coalesce(array_to_string(p_review_ids, ', '), '(none)')
+              || '. Read the document, book the expense in expense_entries (source ''receipt''), close the doc_reviews rows '
+              || 'as auto_applied and the inbound row as replied. Only a Stripe refund reaches the founder.',
+            'assigned', 'advisory', false, 'fn_receipt_hand_to_bookkeeper',
+            'analysis', v_owner, 1,
+            jsonb_build_object('source', jsonb_build_object('inbound_message_id', p_inbound_id,
+                               'doc_review_ids', to_jsonb(coalesce(p_review_ids, '{}'::bigint[])),
+                               'reason', p_reason, 'handed_at', now())))
+    returning id into v_task;
+  end if;
+
+  update public.inbound_messages set owner_role = 'bookkeeper' where id = p_inbound_id and owner_role is null;
+  update public.doc_reviews set owner_role = 'bookkeeper'
+   where id = any(coalesce(p_review_ids, '{}'::bigint[])) and owner_role is null;
+  return v_task;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_recert_rotate()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -80160,7 +80220,7 @@ begin
       elsif fn_authority_rank(v_granted) > fn_authority_rank(v_ceiling) then
         v_why := 'org_authority grants "' || v_granted || '" but "' || r.action_class
               || '" sits outside AUTONOMOUS_CEILING, so it is clamped to "gated". Widening that set '
-              || 'is a founder decision, not an edit';
+              || 'is a change to this routine''s AUTONOMOUS_CEILING constant, not an edit to the task';
       else
         v_why := 'the task was written with needs_founder=true by ' || r.decided_by
               || ', and needs_founder can only tighten';
@@ -83988,7 +84048,10 @@ begin
     'memory', jsonb_build_object('count',mem_count,
        'recent', coalesce((select jsonb_agg(jsonb_build_object('kind',kind,'content',left(content,140),'importance',importance,'at',created_at) order by created_at desc)
                     from (select * from public.agent_memory where agent_key=p_agent order by created_at desc limit 6) x),'[]'::jsonb)),
-    'queue', coalesce((select jsonb_agg(jsonb_build_object('id',id,'kind',kind,'title',title,'risk',risk,'status',status,'recommendation',recommendation,'created_at',created_at) order by created_at desc)
+    'queue', coalesce((select jsonb_agg(jsonb_build_object('id',id,'kind',kind,'title',title,'risk',risk,'status',status,'recommendation',recommendation,'created_at',created_at,
+                   -- NOT HIS unless the kind's policy is 'founder' (a refund). The holder is the role that decides it.
+                   'holder', public.fn_action_holder(x.kind, x.agent),
+                   'yours', exists (select 1 from public.agent_action_kind_policy kp where kp.kind = x.kind and kp.policy = 'founder')) order by created_at desc)
                  from (select * from public.agent_actions where agent=p_agent and status in ('pending','held_for_review','proposed','open') order by created_at desc limit 12) x),'[]'::jsonb),
     'conversations', coalesce((select jsonb_agg(jsonb_build_object('role',role,'content',left(content,160),'at',created_at) order by created_at desc)
                  from (select * from public.agent_chats where agent_key=p_agent order by created_at desc limit 8) x),'[]'::jsonb),
@@ -84682,7 +84745,8 @@ AS $function$
       'inventory_total',(select count(*) from document_inventory),
       'dropbox_files',(select count(*) from dropbox_files where not is_folder),
       'indexed',(select count(*) from documents where indexed is true),
-      'reviews_pending',(select count(*) from doc_reviews where coalesce(status,'')='pending'),
+      -- a review a department owns is not pending for the founder (6 Sep 2026)
+      'reviews_pending',(select count(*) from doc_reviews where coalesce(status,'')='pending' and owner_role is null),
       'versions',(select count(*) from doc_versions)
     ),
     'controller', jsonb_build_object(
@@ -84703,7 +84767,8 @@ AS $function$
       'tasks', coalesce((select jsonb_agg(jsonb_build_object('title',title,'risk',risk,'reco',recommendation)) from agent_actions where agent='document_controller' and status in ('pending','needs_review')),'[]'::jsonb)
     ),
     'documents', coalesce((select jsonb_agg(jsonb_build_object('id',id,'file_name',file_name,'kind',kind,'ref_table',ref_table,'ref_id',ref_id,'status',status,'indexed',indexed,'created_at',created_at)) from (select * from documents order by created_at desc limit 40) d),'[]'::jsonb),
-    'reviews', coalesce((select jsonb_agg(jsonb_build_object('id',id,'file_name',file_name,'ai_category',ai_category,'ai_summary',ai_summary,'ai_confidence',ai_confidence,'status',status,'created_at',created_at)) from (select * from doc_reviews order by created_at desc limit 20) r),'[]'::jsonb),
+    -- the section is titled "Reviews pending" and carries Approve/Reject: it lists pending, unowned rows only
+    'reviews', coalesce((select jsonb_agg(jsonb_build_object('id',id,'file_name',file_name,'ai_category',ai_category,'ai_summary',ai_summary,'ai_confidence',ai_confidence,'status',status,'created_at',created_at)) from (select * from doc_reviews where coalesce(status,'')='pending' and owner_role is null order by created_at desc limit 20) r),'[]'::jsonb),
     'kinds', coalesce((select jsonb_agg(jsonb_build_object('key',k,'count',c) order by c desc) from (select coalesce(nullif(kind,''),'other') k, count(*) c from documents group by 1) kk),'[]'::jsonb)
   );
 $function$

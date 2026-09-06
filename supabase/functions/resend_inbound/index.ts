@@ -6,6 +6,9 @@
 // v14: DUPLICATE-EXPENSE FIX (see DEDUP below).
 // v15: RECEIPT ARCHIVE RETRY + BACKFILL (see v15 FIX below). v14's dedup guard returned before any
 //      upload was attempted, which silently made "re-forward the email to retry" impossible.
+// v16 (6 Sep 2026): DETERMINISTIC RECEIPT EXTRACTION FIRST (_shared/receipt_parse.ts); the model is the
+//      fallback. A receipt nobody could book is handed to the BOOKKEEPER (fn_receipt_hand_to_bookkeeper)
+//      and its rows carry owner_role, so the founder's Inbox and Reviews never show his own receipts.
 //
 // v13 SECURITY FIX 19 Jul 2026 -----------------------------------------------------------------
 // v12 authenticated ONLY on a shared token in the QUERY STRING (?s=...). The full URL including
@@ -22,6 +25,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
+import { parseReceipt } from '../_shared/receipt_parse.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -135,11 +139,41 @@ Deno.serve(async (req) => {
     const owner = adminList[0] || 'management@quotesdone.com';
 
     // ---- Forwarded receipt / subscription -> finance ----
-    if (inbSecret && isReceiptish(toLocal, subject, from)) {
+    // 6 SEP 2026: DETERMINISTIC FIRST. The model call below was the ONLY way a receipt got booked, and
+    // under the paid hold (15 Aug) it returns nothing, so four of the founder's own forwarded receipts
+    // fell through to the supplier-document path and were shown to him as his work. A receipt is a
+    // fixed-shape document: _shared/receipt_parse.ts reads vendor/amount/currency/date/period from the
+    // forwarded header block and the text. The model is the fallback when no amount can be read, and
+    // when the fallback returns nothing the email goes to the BOOKKEEPER (handToBookkeeper), never to him.
+    const receiptish = isReceiptish(toLocal, subject, from);
+    let receiptReason = '';
+    const handToBookkeeper = async (inboundId: number | null | undefined, reviewIds: number[], reason: string) => {
+      if (!inboundId) return null;
+      const { data, error } = await admin.rpc('fn_receipt_hand_to_bookkeeper', { p_inbound_id: inboundId, p_review_ids: reviewIds, p_reason: reason.slice(0, 600) });
+      if (error) await logRun('error', { inbound_id: inboundId, reviews: reviewIds }, 'fn_receipt_hand_to_bookkeeper failed: ' + String(error.message || '').slice(0, 200) + ' - the receipt row is held with no owner');
+      return data as number | null;
+    };
+    if (receiptish) {
       try {
-        const r = await fetch(`${SUPA_URL}/functions/v1/ai_gateway`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:inbSecret,fn:'resend_inbound',sys:RECEIPT_SYS,input:`From: ${from}\nSubject: ${subject}\nBody:\n${text}`,max:400,temperature:0})});
-        const jd = await r.json(); const ex:any = r.ok ? parseJson(jd?.content||'{}') : {};
-        if (!r.ok) await logRun('error', { from, subject }, 'receipt extraction LLM call failed (http ' + r.status + ') - this email looked like a receipt but no expense was booked');
+        let ex: any = {};
+        let det = parseReceipt({ from, subject, body: text });
+        if (det && det.period === 'one_off') {
+          // the subscription register already knows this vendor's cadence
+          const { data: known } = await admin.from('expenses').select('cadence').ilike('vendor', det.vendor).eq('active', true).limit(1);
+          const cad0 = String(known?.[0]?.cadence || '');
+          if (cad0 === 'monthly' || cad0 === 'annual') det = parseReceipt({ from, subject, body: text, knownCadence: cad0 }) || det;
+        }
+        if (det) {
+          ex = { is_receipt: true, vendor: det.vendor, amount: det.amount, currency: det.currency, date: det.date, period: det.period, recurring: det.recurring, note: subject + ' [deterministic: ' + det.basis + ']' };
+        } else if (inbSecret) {
+          const r = await fetch(`${SUPA_URL}/functions/v1/ai_gateway`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:inbSecret,fn:'resend_inbound',sys:RECEIPT_SYS,input:`From: ${from}\nSubject: ${subject}\nBody:\n${text}`,max:400,temperature:0})});
+          const jd = await r.json(); ex = r.ok ? parseJson(jd?.content||'{}') : {};
+          // a refused call is the hold doing its job, not a failure; only a broken gateway is an error
+          if (!r.ok) await logRun(r.status >= 500 ? 'error' : 'ok', { from, subject, gateway_status: r.status }, 'deterministic parser read no amount; receipt extraction model call returned http ' + r.status + ' - handing the email to the bookkeeper');
+          receiptReason = 'The deterministic parser read no amount from the text and the model fallback returned ' + (r.ok ? 'no receipt.' : 'http ' + r.status + ' (paid inference is held).');
+        } else {
+          receiptReason = 'The deterministic parser read no amount from the text and no model fallback is configured.';
+        }
         if (ex && ex.is_receipt === true && ex.vendor && Number(ex.amount) > 0) {
           const amount = Number(ex.amount);
           const currency = String(ex.currency||'USD').toUpperCase().replace(/[^A-Z]/g,'').slice(0,3) || 'USD';
@@ -148,8 +182,9 @@ Deno.serve(async (req) => {
           const cad = String(ex.period)==='annual' ? 'annual' : (String(ex.period)==='one_off' ? 'one_off' : 'monthly');
           const recurring = ex.recurring === true || cad === 'monthly' || cad === 'annual';
           if (!expenseSenderOk) {
-            await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt received but NOT booked — sender not allowlisted] ${vendor} ${amount} ${currency}`, attachments_count: 0, matched_existing: false, needs_review: true });
-            try{ await admin.from('notifications').insert({ type:'expense_review', to_email: owner, to_role:'admin', channel:'email', subject:'A forwarded receipt needs review', body:`A receipt from ${from} for ${vendor} (${amount} ${currency}) arrived at ${to} but was NOT auto-booked because the sender is not on your allowlist.` }); }catch(_e){}
+            const { data: heldRow } = await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt received but NOT booked — sender not allowlisted] ${vendor} ${amount} ${currency}`, attachments_count: 0, matched_existing: false, needs_review: true }).select('id').maybeSingle();
+            // 6 Sep 2026: the bookkeeper decides whether an unknown sender's receipt is ours; the founder is not paged
+            await handToBookkeeper(heldRow?.id, [], `Receipt from ${from} for ${vendor} ${amount} ${currency} was NOT booked: the sender is not on app_secrets.expense_forwarders. Decide whether it is a company expense; if so add the sender to the allowlist and book it.`);
             await logRun('ok', { receipt: true, booked: false, vendor, amount, currency }, 'receipt not booked: sender ' + from + ' is not on the expense allowlist');
             return J({ ok:true, receipt:true, booked:false, reason:'sender_not_allowlisted' });
           }
@@ -179,10 +214,9 @@ Deno.serve(async (req) => {
           const gapRow: any = (sameDay || []).find((x:any) => !x.doc_path && Number(x.amount) === amount && String(x.currency||'').toUpperCase() === currency) || null;
           if (sameDay && sameDay.length && !gapRow) {
             const exact = sameDay.some((x:any) => Number(x.amount) === amount && String(x.currency||'').toUpperCase() === currency);
-            if (!exact) {
-              try{ await admin.from('notifications').insert({ type:'expense_review', to_email: owner, to_role:'admin', channel:'email', subject:'Possible duplicate expense was NOT booked', body:`A receipt for ${vendor} dated ${charged} showing ${amount} ${currency} was not booked, because an expense from that vendor already exists on that date (${sameDay.map((x:any)=>x.amount+' '+x.currency).join(', ')}).\n\nThis is usually the same receipt arriving twice and being read slightly differently. If it is genuinely a SECOND charge on the same day, add it manually.` }); }catch(_e){}
-            }
-            await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt dup] ${vendor} ${amount} ${currency} ${charged}${exact?'':' (amount differs from existing entry - flagged)'}`, attachments_count: 0, matched_existing: false, needs_review: !exact });
+            const { data: dupRow } = await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt dup] ${vendor} ${amount} ${currency} ${charged}${exact?'':' (amount differs from existing entry - flagged)'}`, attachments_count: 0, matched_existing: false, needs_review: !exact }).select('id').maybeSingle();
+            // 6 Sep 2026: a same-day different-amount receipt is the bookkeeper's call (second charge or re-read), not the founder's
+            if (!exact) await handToBookkeeper(dupRow?.id, [], `A receipt for ${vendor} dated ${charged} showing ${amount} ${currency} was NOT booked: an expense from that vendor already exists on that date (${sameDay.map((x:any)=>x.amount+' '+x.currency).join(', ')}). Usually the same receipt read twice; if it is a genuine second charge, book it.`);
             await logRun('ok', { receipt: true, deduped: true, vendor, amount, currency, exact_match: exact }, exact ? 'duplicate receipt ignored - an identical expense was already booked for this vendor and date.' : ('receipt NOT booked: an expense from ' + vendor + ' already exists on ' + charged + ' with a DIFFERENT amount (' + sameDay.map((x:any)=>x.amount+' '+x.currency).join(', ') + ' vs ' + amount + ' ' + currency + '). Flagged for review - most likely a redelivery read differently by the extractor, but could be a real second charge.'));
             return J({ ok:true, receipt:true, deduped:true, vendor, amount, currency });
           }
@@ -321,7 +355,10 @@ Deno.serve(async (req) => {
       const { data: rev } = await admin.from('doc_reviews').insert({ lead_id: lead?.id||null, from_email: from, subject, file_name: fname, file_path: path, mime, ai_relevant: ai.relevant, ai_category: ai.category, ai_summary: String(ai.summary||'').slice(0,1000), ai_suggested_field: ai.suggested_field, ai_confidence: ai.confidence, status: 'pending', auto_applied: fields.length>0, extracted: extracted }).select('id').maybeSingle();
       if (rev?.id) reviews.push(rev.id);
     }
-    await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: (text||'').slice(0,20000), attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 });
+    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: (text||'').slice(0,20000), attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 }).select('id').maybeSingle();
+    // 6 Sep 2026: a receipt-ish email that reached this path was NOT booked. It is finance's work from here —
+    // one org_task for the bookkeeper, and the rows carry that owner so neither OS surface shows them to the founder.
+    if (receiptish && !lead) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
     if (lead && appliedSummary.length) {
       try{ await admin.from('notifications').insert({ type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
