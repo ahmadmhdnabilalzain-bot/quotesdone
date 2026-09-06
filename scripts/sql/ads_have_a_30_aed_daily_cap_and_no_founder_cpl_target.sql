@@ -10,14 +10,20 @@
 -- 100; fn_ads_manage killed at kill_multiplier x target_cpl_aed and scaled at <= target_cpl_aed, so a NULL
 -- target would have made both rules silently inert (NULL comparisons) rather than derived; the
 -- reallocation ledger text in fn_ad_decision_mark_executed printed "target CPL  AED" for a NULL target.
--- meta_autospend_golive = 'false'; meta_access_token present (length only measured). No knowledge record
+-- meta_autospend_golive = 'false'; app_secrets holds NO meta_access_token row (0 rows by key;
+-- fn_ads_autospend_state token_present = false) - the founder says the token is with us, the store says it is
+-- not, and company_policy_decision.meta_token_and_daily_cap records the absence. No knowledge record
 -- outside the category packs states "AED 150" (ops_knowledge, agent_knowledge, pages, company_faq: 0 rows).
+-- Measured after the first apply (the adversarial verifier, 6 Sep 2026): target_cpl_aed had lost NOT NULL and
+-- its value, but kept column DEFAULT '150' - a fresh policy row would have re-acquired the never-founder's
+-- target. The default is dropped below and the proof asserts information_schema says so.
 --
 -- WHAT THIS FILE DOES, BY MECHANISM.
 --   * app_secrets.meta_daily_budget_cap_aed = '30' (the founder's cap). meta_autospend_golive is NOT touched:
 --     it stays 'false' until he switches it on, so live spend is still refused by fn_ads_autospend_state.
 --   * ad_spend_policy.default: daily_cap_aed 30 (the same cap for the demo arm), target_cpl_aed NULL (no
---     founder target), max_daily_per_campaign_aed 30 (one campaign can never exceed the daily cap).
+--     founder target; the column is nullable with NO default, so no future row inherits 150),
+--     max_daily_per_campaign_aed 30 (one campaign can never exceed the daily cap).
 --   * fn_ads_manage(): with target_cpl_aed NULL the target is DERIVED - the median measured cost per lead of
 --     the active campaigns that have results - and every decision names its source. With no measured leads
 --     there is no target: spend with no leads past learning is still killed; nothing is scaled.
@@ -34,6 +40,9 @@ select 'meta_daily_budget_cap_aed', '30' where not exists (select 1 from public.
 
 -- measured on the first apply: the column was NOT NULL (23502 rolled the file back); NULL is the rule now
 alter table public.ad_spend_policy alter column target_cpl_aed drop not null;
+-- measured after the first apply: column_default was still '150' - a new policy row would re-acquire the
+-- target the founder never gave. No default: a fresh row has no target until measured data derives one.
+alter table public.ad_spend_policy alter column target_cpl_aed drop default;
 update public.ad_spend_policy
    set daily_cap_aed = 30,
        target_cpl_aed = null,
@@ -341,6 +350,17 @@ begin
   if v_pol.daily_cap_aed <> 30 or v_pol.target_cpl_aed is not null or v_pol.max_daily_per_campaign_aed > 30 then
     raise exception 'ad_spend_policy: daily_cap=% target_cpl=% max_per_campaign=%', v_pol.daily_cap_aed, v_pol.target_cpl_aed, v_pol.max_daily_per_campaign_aed;
   end if;
+  -- the column itself carries no target: nullable, and no default a new row could inherit
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'ad_spend_policy' and column_name = 'target_cpl_aed'
+                and (is_nullable <> 'YES' or column_default is not null)) then
+    raise exception 'ad_spend_policy.target_cpl_aed still carries a NOT NULL or a column default: %',
+      (select is_nullable || ' / ' || coalesce(column_default, 'NULL') from information_schema.columns
+        where table_schema = 'public' and table_name = 'ad_spend_policy' and column_name = 'target_cpl_aed');
+  end if;
+  if exists (select 1 from public.app_secrets where key = 'meta_access_token') then
+    raise notice 'a meta_access_token row exists now (header measured none on 6 Sep 2026); the decision record may be updated by hand';
+  end if;
   if public.fn_ad_spend_daily_ceiling(true) <> 30 then raise exception 'demo ceiling is % not 30', public.fn_ad_spend_daily_ceiling(true); end if;
   if public.fn_ad_spend_daily_ceiling(false) <> 0 then raise exception 'live ceiling is % while go-live is false', public.fn_ad_spend_daily_ceiling(false); end if;
 
@@ -374,7 +394,7 @@ begin
   if exists (select 1 from public.ad_campaign_state where campaign_id like 'zz-demo-%') or exists (select 1 from public.ad_decision where run_tag = 'wf9d-proof') then
     raise exception 'the rehearsal left rows behind';
   end if;
-  raise notice 'proof: meta_daily_budget_cap_aed=30 (read back as a boolean); meta_autospend_golive=false untouched; fn_ads_autospend_state cap_aed=% live_allowed=% (%); ad_spend_policy daily_cap=% target_cpl=NULL max_per_campaign=%; demo ceiling 30, live ceiling 0; rehearsal (rolled back): kills=% scales=% target derived as the median 20 AED - "%"',
+  raise notice 'proof: meta_daily_budget_cap_aed=30 (read back as a boolean); meta_autospend_golive=false untouched; fn_ads_autospend_state cap_aed=% live_allowed=% (%); ad_spend_policy daily_cap=% target_cpl=NULL (column nullable, column_default NULL) max_per_campaign=%; demo ceiling 30, live ceiling 0; rehearsal (rolled back): kills=% scales=% target derived as the median 20 AED - "%"',
     v_state->>'cap_aed', v_state->>'live_allowed', v_state->>'reason', v_pol.daily_cap_aed, v_pol.max_daily_per_campaign_aed, v_kill, v_scale, v_reason;
 end $proof$;
 
