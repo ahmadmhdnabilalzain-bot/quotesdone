@@ -1014,7 +1014,9 @@ Deno.serve(async (req) => {
       const { data: tx } = await admin.from('transactions').select('id,customer_id,refund_deadline,refund_status,fee_status').eq('quote_id', qid).maybeSingle();
       if (!tx || tx.customer_id !== cust.id) return J({ error: 'Transaction not found' }, 404);
       if (tx.refund_status) return J({ ok: true, refund_status: tx.refund_status });
-      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) return J({ error: 'The 3 working-day refund window has passed.' }, 400);
+      // 6 Sep 2026: the ladder is pricing_config.refund_window_working_days (5) from payment, a chase at 3,
+      // the founder's final call at 5; the sweep files the refund itself once the window has elapsed.
+      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) { const cfgR = await getCfg(); return J({ error: `The ${cfgR.refund_window_working_days} working-day window has elapsed; the case has gone to our founder for the final call and the refund is issued if the supplier does not respond.` }, 400); }
       const { data: q2 } = await admin.from('quotes').select('inquiry_id,supplier_id').eq('id', qid).maybeSingle();
       if (q2) {
         const { data: inq2 } = await admin.from('inquiries').select('status,outcome,hired_supplier_id').eq('id', q2.inquiry_id).maybeSingle();
