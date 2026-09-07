@@ -62,9 +62,18 @@ const REGISTER = {
   // resend_inbound left this register on 6 Sep 2026 (MASTER_PLAN A6): its classifier now goes through
   // _shared/llm.ts with a `messages` array, image parts included — the gateway had accepted those
   // since 11 Aug and the comment that kept the direct POST alive was stale.
-  'designer': { kind: 'INFERENCE', why: 'DISCLOSED BYPASS: posts api.openai.com image generations directly. K12 gated it on 16 Aug after it was found calling a paid provider with no gate at all, because a grep for "openrouter" could not see a different host. Gated is not routed' },
-  'ai_health': { kind: 'METADATA', why: 'GETs /api/v1/key as a liveness probe — metadata, not inference — and consults the provider hold before calling' },
-  'cost_snapshot': { kind: 'METADATA', why: 'GETs /api/v1/credits for the billing balance — metadata, not inference — gated on paidOk' },
+  //
+  // AND ON 8 SEP 2026 THE OTHER THREE LEFT BY DELETION, not by migration. designer (image
+  // generation on api.openai.com), ai_health (/api/v1/key liveness) and cost_snapshot
+  // (/api/v1/credits balance) were deleted under the founder's rule that a function belonging to
+  // neither the CEO, the customer-support agent nor the website does not exist.
+  //
+  // Their entries come out because this check demands it in as many words — "a register entry for a
+  // bypass that no longer exists is a reason nobody re-read". A register listing three absent files
+  // is how the next person concludes a bypass was approved when it was actually buried.
+  //
+  // The ratchet is turning the right way and that is worth saying plainly: the register is now one
+  // entry, the door itself. Nothing in this estate reaches a paid provider except ai_gateway.
 };
 
 function walk(dir) {
@@ -131,15 +140,17 @@ test('no edge function reaches a paid provider except the gateway and the disclo
   assert.deepEqual(problems, [], '\n  ' + problems.join('\n  ') + '\n');
 });
 
-test('the disclosed inference bypass is still exactly one, and still disclosed', () => {
+test('there is no disclosed inference bypass left — every paid call goes through the door', () => {
   const inference = Object.entries(REGISTER)
     .filter(([fn, r]) => r.kind === 'INFERENCE' && fn !== 'ai_gateway')
     .map(([fn]) => fn).sort();
   // THE RATCHET. This is the number the founder is owed: how many paid-inference calls do not go
   // through the one door. It was 2 until 6 Sep 2026; resend_inbound now goes through the gateway,
-  // so it is 1 (designer: an image-generation host the gateway does not front). A second is a
-  // regression even if it is added to the register above.
-  assert.deepEqual(inference, ['designer'],
+  // so it was 1 (designer — an image-generation host the gateway does not front), and it is 0 from
+  // 8 Sep 2026, when designer was deleted. A FIRST one is a regression from here, even if it is
+  // added to the register above: the assertion is on the SET, so growing it fails whatever the
+  // reason given. That is the point of a ratchet.
+  assert.deepEqual(inference, [],
     'the set of edge functions doing paid inference outside the gateway changed. That is an '
     + 'architectural change, not a refactor: say so out loud and record why.');
 });
