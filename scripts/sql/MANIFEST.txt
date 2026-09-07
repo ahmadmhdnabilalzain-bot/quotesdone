@@ -1601,3 +1601,7 @@ scripts/sql/the_refund_decision_belongs_to_the_ceo_and_the_states_are_kept_apart
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/an_attached_copy_is_a_different_promise_from_a_link.sql
+scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql
+scripts/sql/an_attached_copy_is_a_different_promise_from_a_link.sql
+scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql
