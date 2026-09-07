@@ -249,6 +249,45 @@ Before the one line — or before an honest hand-over:
    the organisation's validity is asserted by `fn_phase_a_organization_violations()` = 0 inside the boards)*
 9. *(retired with 8)*
 
+**AND AS OF 7 SEPTEMBER 2026 THERE IS NO ORGANISATION, NO WORKFLOW AND NO KERNEL GATE EITHER.**
+
+The founder dismantled the structure in four rulings that day, in his words: *"actually remove the
+whole organization chart that you made cause its trash"*; *"so no departments from now"* and *"no
+tasks excepts what i confirm"*; *"dont link everything to CEO. i didnt say that. keep them unlinked
+now till we come up with the new structure"*; and *"remove everything except the company knowledge,
+terms and conditions and website related stuff and my decisions which i shared earlier. i dont want
+any pre programmed workflow as things will totally be different"*, then *"i said remove the kernel
+gates"*. When I archived the chart before deleting it he said *"not archive. remove totally"*.
+
+**What the company is now:** two seats — `ceo` and `customer_support` (the WhatsApp agent) — with no
+departments, no tasks, no workflows, no handoffs, no subscriptions, no executors and no kernel
+write/trace gates. 1,664 components are deliberately UNOWNED and stay that way until he sets the new
+structure.
+
+**Do not** invent a third agent, write a department into anything, create a task he has not
+confirmed, rebuild a workflow registry, or re-attach a kernel gate. If work fits neither seat, that
+is the finding — say it and stop. See `.claude/skills/quotesdone-work-is-assigned/SKILL.md`.
+
+**Two guards survived on purpose and must stay:** the TRUNCATE guard on 100+ tables (a whole-table
+wipe is never a workflow, always a mistake), and `anon_cannot_execute_security_definer` in CI —
+that one is security, not structure.
+
+**Thirteen checks were RETIRED**, not weakened, because every noun they asserted was deliberately
+deleted: the kernel positive controls, the Phase C injected-defect guards, the write guard, active
+signal types, company_is_fully_wired, application_source_of_truth, three Phase D checks, the kernel
+boards, the failed-scheduled-run reader, and both org-connectivity checks. Each is
+`scripts/checks/<name>.RETIRED.mjs` with a header saying what it checked and why it is gone. **Do
+not resurrect them.** When the new structure exists, write new checks against THAT structure.
+A check edited until it goes green against an empty schema asserts nothing while still looking like
+a guard — which is worse than no check.
+
+Still green and still guarding: `kernel_invariants`, `cancellation_reaches_the_kernel`,
+`every_discharge_claim_reaches_its_table`, `anon_cannot_execute_security_definer`,
+`phase_c_components_are_owned` (rewritten: a component that NAMES an owner names a live one, and no
+component names a department), `canonical_routine_manifest`,
+`export_from_either_source_is_identical`, `receipts_never_wait_on_the_founder`.
+
+---
 **THERE ARE NO PHASE FREEZES. THERE ARE NO PHASE GATES.** Founder ruling, 7 Sep 2026, in his
 own words: *"phase A to D where steps to make sure the structure was fine. their freezes or implied
 limits should be removed totally. i dont want any limits in the workflow"* and *"the only thing on
