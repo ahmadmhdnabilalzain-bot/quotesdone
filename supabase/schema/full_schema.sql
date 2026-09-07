@@ -182,11 +182,12 @@ CREATE SEQUENCE IF NOT EXISTS public.target_verdict_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_answer_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_conversation_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.wa_document_intake_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (639) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (640) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -8400,6 +8401,23 @@ CREATE TABLE IF NOT EXISTS public.wa_conversation (
   handed_to text
 );
 
+CREATE TABLE IF NOT EXISTS public.wa_document_intake (
+  id bigint DEFAULT nextval('wa_document_intake_id_seq'::regclass) NOT NULL,
+  received_at timestamp with time zone DEFAULT now() NOT NULL,
+  phone_e164 text NOT NULL,
+  lead_id bigint,
+  turn_id bigint,
+  media_url text,
+  storage_path text,
+  media_kind text,
+  caption text,
+  classified_as text,
+  classified_by text,
+  confidence text,
+  attached boolean DEFAULT false NOT NULL,
+  attach_note text
+);
+
 CREATE TABLE IF NOT EXISTS public.wa_inbound_seen (
   message_sid text NOT NULL,
   wa_from text,
@@ -9165,6 +9183,7 @@ ALTER TABLE public.vision_horizon ADD CONSTRAINT vision_horizon_pkey PRIMARY KEY
 ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_answer_log ADD CONSTRAINT wa_answer_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_pkey PRIMARY KEY (id);
+ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_inbound_seen ADD CONSTRAINT wa_inbound_seen_pkey PRIMARY KEY (message_sid);
 ALTER TABLE public.wa_messages ADD CONSTRAINT wa_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_pkey PRIMARY KEY (intent_key);
@@ -9797,6 +9816,9 @@ ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_detector_status_chec
 ALTER TABLE public.unsafe_class ADD CONSTRAINT unsafe_class_severity_check CHECK ((severity = ANY (ARRAY['critical'::text, 'high'::text, 'medium'::text])));
 ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_party_kind_check CHECK ((party_kind = ANY (ARRAY['lead'::text, 'customer'::text, 'unknown'::text])));
 ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_thread_state_check CHECK ((thread_state = ANY (ARRAY['open'::text, 'awaiting_reply'::text, 'awaiting_document'::text, 'resolved'::text, 'handed_to_human'::text])));
+ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_classified_as_check CHECK ((classified_as = ANY (ARRAY['licence'::text, 'profile'::text, 'signed_terms'::text, 'unknown'::text])));
+ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_classified_by_check CHECK ((classified_by = ANY (ARRAY['caption'::text, 'filename'::text, 'model'::text, 'human'::text])));
+ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_confidence_check CHECK ((confidence = ANY (ARRAY['high'::text, 'low'::text])));
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_scope_check CHECK ((scope = ANY (ARRAY['company'::text, 'own_records'::text, 'by_id'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_answered_by_check CHECK ((answered_by = ANY (ARRAY['deterministic'::text, 'model'::text, 'human'::text, 'template'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
@@ -10172,6 +10194,8 @@ ALTER TABLE public.transactions ADD CONSTRAINT transactions_supplier_id_fkey FOR
 ALTER TABLE public.unsafe_block ADD CONSTRAINT unsafe_block_class_key_fkey FOREIGN KEY (class_key) REFERENCES unsafe_class(class_key);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.wa_answer_log ADD CONSTRAINT wa_answer_log_intent_key_fkey FOREIGN KEY (intent_key) REFERENCES wa_reply_intent(intent_key);
+ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
+ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_turn_id_fkey FOREIGN KEY (turn_id) REFERENCES wa_turn(id);
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES wa_conversation(id) ON DELETE CASCADE;
 ALTER TABLE public.workflow ADD CONSTRAINT workflow_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_trigger_event_id_fkey FOREIGN KEY (trigger_event_id) REFERENCES company_event(id);
@@ -10581,6 +10605,7 @@ CREATE UNIQUE INDEX uq_leads_email_lower ON public.leads USING btree (lower(emai
 CREATE UNIQUE INDEX ux_company_event_dedupe ON public.company_event USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
 CREATE INDEX wa_answer_log_unmatched ON public.wa_answer_log USING btree (received_at DESC) WHERE (NOT matched);
 CREATE INDEX wa_conversation_open ON public.wa_conversation USING btree (last_seen_at DESC) WHERE (thread_state <> 'resolved'::text);
+CREATE INDEX wa_document_intake_lead ON public.wa_document_intake USING btree (lead_id, received_at DESC);
 CREATE INDEX wa_inbound_seen_first_seen_idx ON public.wa_inbound_seen USING btree (first_seen_at DESC);
 CREATE INDEX wa_turn_conv ON public.wa_turn USING btree (conversation_id, at DESC);
 CREATE INDEX yello_email_idx ON public.yello_staging USING btree (email);
@@ -17842,6 +17867,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17867,16 +17902,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -85936,6 +85961,102 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_attach_document(p_phone text, p_storage_path text, p_caption text DEFAULT NULL::text, p_media_kind text DEFAULT NULL::text, p_turn_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_lead   bigint;
+  v_cap    text := lower(coalesce(p_caption, '') || ' ' || coalesce(p_storage_path, ''));
+  v_kind   text := 'unknown';
+  v_by     text := 'caption';
+  v_conf   text := 'low';
+  v_intake bigint;
+  v_before jsonb;
+  v_after  jsonb;
+  v_reply  text;
+begin
+  v_lead := public.fn_wa_lead_id(p_phone);
+
+  -- Classify from the caption and the filename. Deliberately conservative: an unrecognised document
+  -- is recorded as unknown and waits, rather than being filed as a trade licence on a guess.
+  if v_cap ~ '(trade|licence|license|رخصة|رخصه)' then
+    v_kind := 'licence'; v_conf := 'high';
+  elsif v_cap ~ '(profile|company profile|brochure|ملف|بروفايل)' then
+    v_kind := 'profile'; v_conf := 'high';
+  elsif v_cap ~ '(terms|t&c|agreement|signed|شروط|اتفاقية)' then
+    v_kind := 'signed_terms'; v_conf := 'high';
+  end if;
+
+  if v_lead is not null then
+    v_before := public.fn_supplier_mandatory_check(v_lead);
+  end if;
+
+  insert into public.wa_document_intake
+    (phone_e164, lead_id, turn_id, storage_path, media_kind, caption,
+     classified_as, classified_by, confidence, attached, attach_note)
+  values (regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g'), v_lead, p_turn_id,
+          p_storage_path, p_media_kind, p_caption, v_kind, v_by, v_conf, false, null)
+  returning id into v_intake;
+
+  -- Attach ONLY when we know whose file it is and what it is. Anything else waits for a person.
+  if v_lead is null then
+    v_reply := 'Thank you. I could not match this number to a registered company yet, so I have kept '
+            || 'your file and someone will match it to your account. If you reply with the email '
+            || 'address you registered with, I can do it straight away.';
+    update public.wa_document_intake set attach_note = 'No lead matches this number.' where id = v_intake;
+
+  elsif v_kind = 'unknown' then
+    v_reply := 'Thank you, I have saved that to your file. I could not tell which document it is, so '
+            || 'to file it correctly please tell me: is it your trade licence, your company profile, '
+            || 'or the signed terms?';
+    update public.wa_document_intake set attach_note = 'Received but unclassified; asked the sender.' where id = v_intake;
+
+  else
+    if v_kind = 'licence' then
+      update public.leads set license_doc_path = p_storage_path where id = v_lead;
+    elsif v_kind = 'profile' then
+      update public.leads set company_profile_doc_path = p_storage_path where id = v_lead;
+    elsif v_kind = 'signed_terms' then
+      update public.leads set signed_terms_path = p_storage_path where id = v_lead;
+    end if;
+
+    update public.wa_document_intake
+       set attached = true,
+           attach_note = format('Attached as %s to lead %s.', v_kind, v_lead)
+     where id = v_intake;
+
+    v_after := public.fn_supplier_mandatory_check(v_lead);
+
+    -- Tell them what changed and what is left. This is the difference between a receipt and a service.
+    if coalesce((v_after->>'complete')::boolean, false) then
+      v_reply := 'Got it, that is your ' || replace(v_kind,'_',' ') || ' saved. Your file is now '
+              || 'complete and it goes to our team for verification. I will message you here when it '
+              || 'is approved.';
+    else
+      v_reply := 'Got it, that is your ' || replace(v_kind,'_',' ') || ' saved. Still needed: '
+              || (select string_agg(value #>> '{}', ', ') from jsonb_array_elements(v_after->'missing'))
+              || '. You can send them here the same way.';
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'intake_id', v_intake,
+    'lead_id', v_lead,
+    'classified_as', v_kind,
+    'confidence', v_conf,
+    'attached', (v_lead is not null and v_kind <> 'unknown'),
+    'mandatory_before', v_before,
+    'mandatory_after', v_after,
+    'reply', v_reply
+  );
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_context(p_audience text, p_phone text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -86282,6 +86403,74 @@ CREATE OR REPLACE FUNCTION public.fn_wa_off_topic_reply()
  IMMUTABLE
 AS $function$
   select 'I am here to assist you with QuotesDone inquiries only. Please let me know how I can help you.'
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_record_turn(p_phone text, p_direction text, p_body text DEFAULT NULL::text, p_media_url text DEFAULT NULL::text, p_media_kind text DEFAULT NULL::text, p_transcript text DEFAULT NULL::text, p_intent text DEFAULT NULL::text, p_answered_by text DEFAULT NULL::text, p_fact_pack jsonb DEFAULT NULL::jsonb, p_model text DEFAULT NULL::text, p_cost_aed numeric DEFAULT NULL::numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_digits text := regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g');
+  v_conv   record;
+  v_lead   bigint;
+  v_cust   uuid;
+  v_kind   text := 'unknown';
+  v_pid    text;
+  v_turn   bigint;
+begin
+  if v_digits = '' then
+    return jsonb_build_object('ok', false, 'reason', 'No usable phone number on the message.');
+  end if;
+
+  v_lead := public.fn_wa_lead_id(p_phone);
+  if v_lead is not null then
+    v_kind := 'lead'; v_pid := v_lead::text;
+  else
+    select id into v_cust from public.customers
+     where regexp_replace(coalesce(phone,''), '[^0-9]', '', 'g') = v_digits limit 1;
+    if v_cust is not null then v_kind := 'customer'; v_pid := v_cust::text; end if;
+  end if;
+
+  insert into public.wa_conversation (phone_e164, party_kind, party_id, message_count,
+                                      window_opened_at, window_expires_at)
+  values (v_digits, v_kind, v_pid, 0,
+          case when p_direction = 'in' then now() else null end,
+          case when p_direction = 'in' then now() + interval '24 hours' else null end)
+  on conflict (phone_e164) do update set
+      last_seen_at   = now(),
+      party_kind     = coalesce(excluded.party_kind, wa_conversation.party_kind),
+      party_id       = coalesce(excluded.party_id,   wa_conversation.party_id),
+      -- An INBOUND message opens or re-opens the 24-hour service window. An outbound one never does,
+      -- which is the whole point of the rule: we cannot extend our own permission to keep talking.
+      window_opened_at  = case when p_direction = 'in' then now() else wa_conversation.window_opened_at end,
+      window_expires_at = case when p_direction = 'in' then now() + interval '24 hours'
+                               else wa_conversation.window_expires_at end
+  returning * into v_conv;
+
+  update public.wa_conversation
+     set message_count = message_count + 1,
+         last_intent   = coalesce(p_intent, last_intent)
+   where id = v_conv.id
+  returning * into v_conv;
+
+  insert into public.wa_turn (conversation_id, direction, body, media_url, media_kind, transcript,
+                              transcript_source, intent_key, answered_by, fact_pack, model_id, cost_aed)
+  values (v_conv.id, p_direction, p_body, p_media_url, p_media_kind, p_transcript,
+          case when p_transcript is not null then 'model' else 'none' end,
+          p_intent, p_answered_by, p_fact_pack, p_model, p_cost_aed)
+  returning id into v_turn;
+
+  return jsonb_build_object(
+    'ok', true, 'conversation_id', v_conv.id, 'turn_id', v_turn,
+    'party_kind', v_conv.party_kind, 'party_id', v_conv.party_id,
+    'message_count', v_conv.message_count,
+    'window_expires_at', v_conv.window_expires_at,
+    'window_open', (v_conv.window_expires_at is not null and v_conv.window_expires_at > now())
+  );
+end;
 $function$
 
 
@@ -94481,6 +94670,7 @@ ALTER TABLE public.vision_horizon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vt_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_answer_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_conversation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wa_document_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_inbound_seen ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_reply_intent ENABLE ROW LEVEL SECURITY;
