@@ -124,8 +124,13 @@ jobs:
       # directory that a fresh checkout does not have. Without the flag it fails resolving
       # npm:@supabase/realtime-js - an environment error that says nothing about the code, which is
       # the worst kind of red build: it trains people to ignore the gate.
+      # supplier_api was deleted on 8 Sep 2026 under the founder's rule -- it belonged to neither
+      # the CEO nor the customer-support agent. The gate is narrowed to what still exists rather
+      # than the list being softened: a named function that is gone must come OFF the list, because
+      # leaving it makes the step fail for a reason that has nothing to do with type safety, and the
+      # usual repair for that is to stop taking the step seriously.
       - name: Check the gated functions
-        run: deno check --no-lock --node-modules-dir=auto supabase/functions/os_api/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_api/index.ts supabase/functions/supplier_pay/index.ts
+        run: deno check --no-lock --node-modules-dir=auto supabase/functions/os_api/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts
       - name: Check every other edge function (advisory)
         continue-on-error: true
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts

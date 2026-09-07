@@ -1,3 +1,17 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: supabase/functions/quote_compare  —  Quote comparison. Part of the RFQ pipeline, which the founder is rebuilding per agent.
+//
+// Deleted under the founder's rule of 8 Sep 2026: "if they dont belong to the CEO nor the
+// customer support agent then delete". Every function this check reads is gone, so it could
+// only ever fail on ENOENT from here.
+//
+// RETIRED RATHER THAN SOFTENED, deliberately. Editing it to pass would leave a check that goes
+// green while the thing it checks does not exist -- which is worse than no check at all,
+// because it converts an absence into confidence. Renaming it out of the .test.mjs glob keeps
+// the reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the paths.
 // A CALLER'S TYPO WAS RECORDED AS A CUSTOMER LEFT UNABLE TO CHOOSE A SUPPLIER.
 //
 // 13 Aug 2026. quote_compare logged status='error' for ANY failure to load the inquiry, with one

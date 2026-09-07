@@ -1,3 +1,17 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: supabase/functions/dr_drill  —  The disaster-recovery drill function. No agent owned it.
+//
+// Deleted under the founder's rule of 8 Sep 2026: "if they dont belong to the CEO nor the
+// customer support agent then delete". Every function this check reads is gone, so it could
+// only ever fail on ENOENT from here.
+//
+// RETIRED RATHER THAN SOFTENED, deliberately. Editing it to pass would leave a check that goes
+// green while the thing it checks does not exist -- which is worse than no check at all,
+// because it converts an absence into confidence. Renaming it out of the .test.mjs glob keeps
+// the reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the paths.
 // THE DRILL COULD NOT CLEAR ITS OWN STAGING TABLE, AND REPORTED THE BACKUPS AS UNPROVEN.
 //
 // 12 Aug 2026, 20:31. dr_drill opened with a single conditional DELETE over public.dr_restore and

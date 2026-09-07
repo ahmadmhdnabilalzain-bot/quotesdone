@@ -1,3 +1,17 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: supabase/functions/customer_api  —  Upload classification on the customer surface.
+//
+// Deleted under the founder's rule of 8 Sep 2026: "if they dont belong to the CEO nor the
+// customer support agent then delete". Every function this check reads is gone, so it could
+// only ever fail on ENOENT from here.
+//
+// RETIRED RATHER THAN SOFTENED, deliberately. Editing it to pass would leave a check that goes
+// green while the thing it checks does not exist -- which is worse than no check at all,
+// because it converts an absence into confidence. Renaming it out of the .test.mjs glob keeps
+// the reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the paths.
 // The upload classifier in customer_api action='analyze_drawing' must keep telling a customer what
 // to do about a file we cannot read.
 //

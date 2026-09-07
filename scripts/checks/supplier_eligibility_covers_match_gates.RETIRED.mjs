@@ -1,3 +1,17 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: supabase/functions/supplier_portal  —  Supplier eligibility against the match gates.
+//
+// Deleted under the founder's rule of 8 Sep 2026: "if they dont belong to the CEO nor the
+// customer support agent then delete". Every function this check reads is gone, so it could
+// only ever fail on ENOENT from here.
+//
+// RETIRED RATHER THAN SOFTENED, deliberately. Editing it to pass would leave a check that goes
+// green while the thing it checks does not exist -- which is worse than no check at all,
+// because it converts an absence into confidence. Renaming it out of the .test.mjs glob keeps
+// the reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the paths.
 // THE SCREEN THAT EXPLAINS WHY YOU ARE NOT MATCHED MUST KNOW EVERY GATE THAT EXCLUDES YOU.
 //
 // 13 Aug 2026. supplier_portal's `eligibility` action powers the "Your reach" panel, whose entire
