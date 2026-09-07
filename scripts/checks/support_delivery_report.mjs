@@ -114,7 +114,12 @@ rows.config = await q(`select k.key,
               when coalesce(s.value,'') = '' then 'NOT SET'
               else 'set' end state
     from (values ('founder_public_phone'),('founder_public_name'),('twilio_wa_from'),
-                 ('public_site_url'),('meta_access_token'),('stripe_secret_key')) k(key)
+                 ('public_site_url'),('meta_access_token'),('stripe_secret_key'),
+                 -- Twilio signs webhooks with the ACCOUNT auth token specifically; the API key
+                 -- secret we hold cannot compute that HMAC. Without it wa_inbound falls back to a
+                 -- REST provenance lookup of the MessageSid -- a real check, but a lookup rather
+                 -- than cryptographic proof, so the difference is named rather than glossed.
+                 ('twilio_auth_token')) k(key)
     left join public.app_secrets s on s.key = k.key
    order by k.key`);
 // THE RUNTIME STATE. An estate with no active scheduled job looks identical to an estate that has
@@ -266,6 +271,12 @@ L.push('  otherwise would be measuring the wrong subject.');
 L.push('- End-to-end delivery through Twilio and the email provider. The outbox is written and');
 L.push('  asserted; the provider leg is blocked by the channel policy above, for the reasons it');
 L.push('  states, and no scenario pretends otherwise.');
+L.push('- Cryptographic proof of webhook origin. `wa_inbound` implements HMAC-SHA1 validation of');
+L.push('  `X-Twilio-Signature` with a constant-time comparison, and it cannot run: Twilio signs with');
+L.push('  the ACCOUNT auth token, and the API key secret we hold cannot compute that HMAC. The');
+L.push('  fallback is a REST provenance lookup of the MessageSid against the account — a real check');
+L.push('  a forger cannot pass, but a lookup, not a proof. Supplying `twilio_auth_token` upgrades it');
+L.push('  with no code change; until then the weaker guarantee is what stands, and it is named.');
 L.push('');
 
 const out = L.join('\n') + '\n';
