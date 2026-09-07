@@ -28,7 +28,10 @@ const FILES = ['knowledge.jsonl', 'worked_cases.jsonl', 'decision_cards.jsonl', 
 // The pack's own fingerprint, so every row can say which build of the pack it came from. Read from
 // the validator output rather than recomputed here: recomputing it would be a second opinion, and a
 // second opinion that disagreed would be indistinguishable from a corrupted download.
-const FINGERPRINT = '73a55921dcf311996552d55d05ed9fe42dc4fc615689091983a2646f362e9471';
+// v1.2 Full Autonomy, from the pack's own validator: 508 records, 278 manifest files verified.
+// The v1.1 value was 73a55921dcf3...9471; it is replaced rather than kept beside, because two
+// fingerprints on one corpus would mean nobody can say which build a record came from.
+const FINGERPRINT = 'ff3f5f9007218e4971158cb87f733ca11191ac2bbf34749d0fcbd8e9f1584e32';
 
 const KNOWN = new Set(['schema_version','record_id','record_version','record_kind','parent_id','title',
   'domain','tags','language','company_scope','audience','created_on','review_status','content_origin',

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T20:03:15.655Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T20:04:34.006Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8473,7 +8473,7 @@ ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_receipt_
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_severity_ck CHECK ((severity = ANY (ARRAY['routine'::text, 'elevated'::text, 'serious'::text, 'critical'::text])));
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_status_ck CHECK ((status = ANY (ARRAY['sent'::text, 'accepted'::text, 'completed'::text, 'failed'::text, 'blocked'::text])));
 ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
-ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_version_ck CHECK ((pack_version = '1.1.0'::text));
+ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_version_ck CHECK ((pack_version = '1.2.0'::text));
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_attachment_ck CHECK (((body !~~* '%is attached%'::text) OR (attachment_ref IS NOT NULL)));
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_channel_ck CHECK ((channel = ANY (ARRAY['whatsapp'::text, 'email'::text])));
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_scanned_ck CHECK (((anonymity_checked_at IS NOT NULL) AND (anonymity_result IS NOT NULL) AND ((anonymity_result ->> 'safe'::text) = 'true'::text)));
