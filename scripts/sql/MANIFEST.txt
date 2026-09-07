@@ -1583,3 +1583,7 @@ scripts/sql/a_licence_about_to_expire_asks_for_itself.sql
 scripts/sql/no_target_may_outrun_the_channel_that_carries_it.sql
 scripts/sql/the_public_contact_is_configured_not_hard_coded.sql
 scripts/sql/the_contact_template_gets_slots_like_every_other_fact.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
+scripts/sql/support_reports_to_the_ceo_and_nowhere_else.sql
