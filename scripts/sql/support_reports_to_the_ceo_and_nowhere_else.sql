@@ -240,3 +240,28 @@ $function$;
 
 comment on function public.fn_support_open_reports() is
   'Everything support has reported and the CEO has not accepted. A report waiting is visible here rather than assumed delivered — the spec requires pending and failed delivery to be exposed honestly, never resolved by inventing an acknowledgement.';
+
+-- ---------------------------------------------------------------------------------------------
+-- 6. THE REVOKE THAT MUST SHIP WITH EVERY SECURITY DEFINER ROUTINE
+-- ---------------------------------------------------------------------------------------------
+-- A plain CREATE grants EXECUTE to PUBLIC. Both routines above were created that way, and
+-- anon_cannot_execute_security_definer caught it within minutes: an unauthenticated caller could
+-- have filed a report to the CEO, or ACCEPTED one on the CEO's behalf with a receipt of their own
+-- choosing. The second is the worse of the two -- it would let a stranger move ownership of a
+-- serious matter away from support and mark it handled.
+--
+-- PUBLIC IS REVOKED FIRST AND THAT ORDER IS LOAD-BEARING. When the grant is held through PUBLIC,
+-- revoking from anon alone is a silent no-op: the revoke succeeds, the check still fails, and it
+-- looks like the fix did not work rather than like it was never applied.
+--
+-- service_role keeps EXECUTE. That is the identity the edge functions and the scheduler use, and
+-- it is the only one that should be reporting to the CEO.
+revoke execute on function public.fn_support_report_to_ceo(text,text,text,jsonb,jsonb,text,text,text,interval) from public;
+revoke execute on function public.fn_support_report_to_ceo(text,text,text,jsonb,jsonb,text,text,text,interval) from anon;
+revoke execute on function public.fn_support_report_to_ceo(text,text,text,jsonb,jsonb,text,text,text,interval) from authenticated;
+revoke execute on function public.fn_ceo_accept_support_report(bigint,text,text) from public;
+revoke execute on function public.fn_ceo_accept_support_report(bigint,text,text) from anon;
+revoke execute on function public.fn_ceo_accept_support_report(bigint,text,text) from authenticated;
+
+-- fn_support_open_reports is SECURITY INVOKER and reads only support_ceo_report, which anon cannot
+-- select from. It is left as it is: revoking it would be tidiness, not security.

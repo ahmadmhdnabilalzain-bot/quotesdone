@@ -1587,3 +1587,6 @@ scripts/sql/the_contact_template_gets_slots_like_every_other_fact.sql
 
 [OK] Command outcome recorded
 scripts/sql/support_reports_to_the_ceo_and_nowhere_else.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
