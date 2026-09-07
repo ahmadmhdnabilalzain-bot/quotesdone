@@ -25,6 +25,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { G8 } from './support_acceptance_group_licence_expiry.mjs';
 import { G9, G10 } from './support_acceptance_group_org_and_channels.mjs';
+import { G11 } from './support_acceptance_group_founder_absent.mjs';
 
 const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
@@ -490,7 +491,7 @@ end $p$;`,
 
 // Group 8 lives in its own module: its SQL is dollar-quoted, and this repository has a standing
 // hazard with shell-generated files mangling $p$ into nothing.
-const GROUPS = [G1, G2, G3, G4, G5, G6, G7, G8, G9, G10];
+const GROUPS = [G1, G2, G3, G4, G5, G6, G7, G8, G9, G10, G11];
 
 // ----------------------------------------------------------------------------------------------
 const only = process.argv.includes('--group')
