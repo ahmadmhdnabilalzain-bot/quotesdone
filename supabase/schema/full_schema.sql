@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T20:07:29.835Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T20:29:08.213Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -166,8 +166,11 @@ CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_screening_hit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.support_artifact_artifact_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_case_case_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_ceo_report_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.support_document_intake_intake_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.support_identity_challenge_challenge_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_notification_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_contract_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_driver_id_seq;
@@ -179,7 +182,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (536) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (539) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -2390,7 +2393,11 @@ CREATE TABLE IF NOT EXISTS public.founder_command (
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   closed_at timestamp with time zone,
   trace_id bigint,
-  superseded_by bigint
+  superseded_by bigint,
+  authenticated boolean DEFAULT false NOT NULL,
+  auth_basis text,
+  command_scope text,
+  command_seq bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.founder_command_clarification (
@@ -6336,7 +6343,12 @@ CREATE TABLE IF NOT EXISTS public.refund_case (
   reconciled_at timestamp with time zone,
   communicated_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  destination_basis text,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_attempt_at timestamp with time zone,
+  status_reported_at timestamp with time zone,
+  status_reported_state text
 );
 
 CREATE TABLE IF NOT EXISTS public.refund_event_quarantine (
@@ -6995,6 +7007,22 @@ CREATE TABLE IF NOT EXISTS public.supply_health_snapshots (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.support_artifact (
+  artifact_id bigint DEFAULT nextval('support_artifact_artifact_id_seq'::regclass) NOT NULL,
+  artifact_kind text NOT NULL,
+  subject_ref text NOT NULL,
+  owner_party_id text,
+  version text,
+  checksum text,
+  storage_path text,
+  byte_size bigint,
+  privacy_state text DEFAULT 'unchecked'::text NOT NULL,
+  privacy_result jsonb,
+  approved_at timestamp with time zone,
+  obsolete_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.support_case (
   case_id bigint DEFAULT nextval('support_case_case_id_seq'::regclass) NOT NULL,
   case_ref text NOT NULL,
@@ -7033,6 +7061,38 @@ CREATE TABLE IF NOT EXISTS public.support_ceo_report (
   delivery_attempts integer DEFAULT 0 NOT NULL,
   last_delivery_error text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.support_document_intake (
+  intake_id bigint DEFAULT nextval('support_document_intake_intake_id_seq'::regclass) NOT NULL,
+  received_at timestamp with time zone DEFAULT now() NOT NULL,
+  channel text NOT NULL,
+  sender_ref text NOT NULL,
+  lead_id bigint,
+  case_id bigint,
+  storage_path text NOT NULL,
+  media_kind text,
+  caption text,
+  classified_as text NOT NULL,
+  classified_by text NOT NULL,
+  confidence text NOT NULL,
+  attached boolean DEFAULT false NOT NULL,
+  attach_note text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.support_identity_challenge (
+  challenge_id bigint DEFAULT nextval('support_identity_challenge_challenge_id_seq'::regclass) NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  channel text NOT NULL,
+  sender_ref text NOT NULL,
+  claimed_email text,
+  lead_id bigint,
+  sent_to text,
+  code_hash text NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  consumed_at timestamp with time zone,
+  outcome text
 );
 
 CREATE TABLE IF NOT EXISTS public.support_knowledge (
@@ -7972,8 +8032,11 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_pkey PRIMARY KEY (artifact_id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_pkey PRIMARY KEY (case_id);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_pkey PRIMARY KEY (id);
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_pkey PRIMARY KEY (intake_id);
+ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_challenge_pkey PRIMARY KEY (challenge_id);
 ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_pkey PRIMARY KEY (id);
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_pkey PRIMARY KEY (id);
@@ -8185,7 +8248,9 @@ ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_review_statu
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check CHECK ((scope = ANY (ARRAY['shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
 ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_refund_only_ck CHECK ((action_class = 'refund_decision'::text));
 ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_state_ck CHECK ((state = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'withdrawn'::text])));
+ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_auth_basis_ck CHECK (((NOT authenticated) OR (COALESCE(auth_basis, ''::text) <> ''::text)));
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_owner_ck CHECK ((command_owner_role_id = 'ceo'::text));
+ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_scope_seq_ck CHECK (((command_scope IS NULL) = (command_seq IS NULL)));
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_answer_hash_shape CHECK (((answer_hash IS NULL) OR (answer_hash ~ '^[0-9a-f]{64}$'::text)));
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_hash_accompanies_answer CHECK (((NULLIF(btrim(answer_text), ''::text) IS NULL) = (answer_hash IS NULL)));
 ALTER TABLE public.founder_command_plan ADD CONSTRAINT founder_command_plan_state_ck CHECK ((state = ANY (ARRAY['active'::text, 'cancelled'::text, 'superseded'::text, 'completed'::text])));
@@ -8466,8 +8531,10 @@ ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_publicatio
 ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_published_is_stamped CHECK (((publication_state <> 'PUBLISHED'::text) OR (published_at IS NOT NULL)));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_amount_ck CHECK ((amount_aed > (0)::numeric));
+ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_attempts_ck CHECK (((attempts >= 0) AND (attempts <= 5)));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_authoriser_ck CHECK (((state <> 'ceo_authorized'::text) OR ((decided_by = 'ceo'::text) AND (decided_at IS NOT NULL) AND (decision_rationale IS NOT NULL))));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_decline_ck CHECK (((state <> 'ceo_declined'::text) OR ((decided_at IS NOT NULL) AND (decision_rationale IS NOT NULL))));
+ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_destination_basis_ck CHECK (((destination_ref IS NULL) OR (COALESCE(destination_basis, ''::text) <> ''::text)));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_execution_ck CHECK (((state <> ALL (ARRAY['submitted'::text, 'provider_pending'::text, 'succeeded'::text, 'reconciled'::text])) OR ((decided_by = 'ceo'::text) AND (decided_at IS NOT NULL))));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_state_ck CHECK ((state = ANY (ARRAY['requested'::text, 'investigating'::text, 'eligible'::text, 'ineligible'::text, 'ceo_authorized'::text, 'ceo_declined'::text, 'submitted'::text, 'provider_pending'::text, 'succeeded'::text, 'failed'::text, 'canceled'::text, 'reconciled'::text, 'communicated'::text])));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_fils_check CHECK (((amount_fils IS NULL) OR (amount_fils > 0)));
@@ -8497,6 +8564,9 @@ ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHE
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_intent_check CHECK ((intent = ANY (ARRAY['register'::text, 'question'::text, 'document'::text, 'decline'::text, 'bounce'::text, 'other'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
+ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_approved_ck CHECK (((privacy_state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (privacy_result IS NOT NULL) AND (checksum IS NOT NULL))));
+ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_kind_ck CHECK ((artifact_kind = ANY (ARRAY['comparison_report'::text, 'reveal_invoice'::text])));
+ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_privacy_ck CHECK ((privacy_state = ANY (ARRAY['unchecked'::text, 'approved'::text, 'refused'::text])));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_close_ck CHECK (((state <> 'closed'::text) OR ((closed_at IS NOT NULL) AND (close_reason IS NOT NULL))));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_party_ck CHECK ((party_kind = ANY (ARRAY['customer'::text, 'supplier'::text, 'unknown'::text])));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_state_ck CHECK ((state = ANY (ARRAY['open'::text, 'waiting_customer'::text, 'waiting_service'::text, 'blocked'::text, 'closed'::text])));
@@ -8507,6 +8577,14 @@ ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_evidence
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_receipt_ck CHECK (((status <> 'accepted'::text) OR (acceptance_receipt IS NOT NULL)));
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_severity_ck CHECK ((severity = ANY (ARRAY['routine'::text, 'elevated'::text, 'serious'::text, 'critical'::text])));
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_status_ck CHECK ((status = ANY (ARRAY['sent'::text, 'accepted'::text, 'completed'::text, 'failed'::text, 'blocked'::text])));
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_attached_ck CHECK (((NOT attached) OR ((lead_id IS NOT NULL) AND (classified_as <> 'unknown'::text))));
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_by_ck CHECK ((classified_by = ANY (ARRAY['caption'::text, 'filename'::text, 'declared'::text, 'model'::text, 'human'::text])));
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_channel_ck CHECK ((channel = ANY (ARRAY['email'::text, 'portal'::text])));
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_class_ck CHECK ((classified_as = ANY (ARRAY['licence'::text, 'profile'::text, 'signed_terms'::text, 'unknown'::text])));
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_conf_ck CHECK ((confidence = ANY (ARRAY['high'::text, 'low'::text])));
+ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_challenge_attempts_ck CHECK (((attempts >= 0) AND (attempts <= 5)));
+ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_challenge_hash_ck CHECK ((code_hash ~ '^[0-9a-f]{64}$'::text));
+ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_challenge_outcome_ck CHECK (((outcome IS NULL) OR (outcome = ANY (ARRAY['verified'::text, 'expired'::text, 'exhausted'::text, 'abandoned'::text]))));
 ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_version_ck CHECK ((pack_version = '1.2.0'::text));
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_attachment_ck CHECK (((body !~~* '%is attached%'::text) OR (attachment_ref IS NOT NULL)));
@@ -8850,6 +8928,9 @@ ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_fkey FOREIGN KEY (product_id) REFERENCES supplier_product(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
+ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
+ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_challenge_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_accountable_owner_fkey FOREIGN KEY (accountable_owner) REFERENCES org_agents(agent_key);
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_goal_key_fkey FOREIGN KEY (goal_key) REFERENCES company_goals(key);
@@ -8948,6 +9029,7 @@ CREATE UNIQUE INDEX founder_command_overlay_invocation_uk ON public.founder_comm
 CREATE INDEX founder_command_plan_item_command_ix ON public.founder_command_plan_item USING btree (command_id);
 CREATE UNIQUE INDEX founder_command_plan_uk ON public.founder_command_plan USING btree (command_id);
 CREATE INDEX founder_command_progress_note_cmd_ix ON public.founder_command_progress_note USING btree (command_id, created_at DESC);
+CREATE UNIQUE INDEX founder_command_scope_seq_uk ON public.founder_command USING btree (command_scope, command_seq) WHERE ((command_scope IS NOT NULL) AND (state <> ALL (ARRAY['superseded'::text, 'cancelled'::text, 'refused'::text, 'failed'::text])));
 CREATE INDEX founder_directive_received_idx ON public.founder_directive USING btree (received_at DESC);
 CREATE INDEX graph_edges_dst ON public.graph_edges USING btree (dst_kind, dst_ref, rel);
 CREATE INDEX graph_edges_rel ON public.graph_edges USING btree (rel);
@@ -9237,6 +9319,9 @@ CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USI
 CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX supplier_negotiation_policy_supplier_key ON public.supplier_negotiation_policy USING btree (supplier_id) WHERE (supplier_id IS NOT NULL);
 CREATE INDEX support_ceo_report_open_idx ON public.support_ceo_report USING btree (status, next_review_at) WHERE (status = ANY (ARRAY['sent'::text, 'failed'::text, 'blocked'::text]));
+CREATE INDEX support_document_intake_lead_idx ON public.support_document_intake USING btree (lead_id, received_at DESC);
+CREATE INDEX support_document_intake_unattached_idx ON public.support_document_intake USING btree (received_at DESC) WHERE (NOT attached);
+CREATE INDEX support_identity_challenge_open_idx ON public.support_identity_challenge USING btree (sender_ref, created_at DESC) WHERE (consumed_at IS NULL);
 CREATE INDEX support_knowledge_kind_idx ON public.support_knowledge USING btree (record_kind);
 CREATE INDEX support_knowledge_search_idx ON public.support_knowledge USING gin (search);
 CREATE INDEX support_notification_pending_idx ON public.support_notification USING btree (state, queued_at) WHERE (state = ANY (ARRAY['queued'::text, 'failed'::text]));
@@ -12920,16 +13005,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -12955,6 +13030,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -13695,6 +13780,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -14210,135 +14424,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -16463,6 +16548,51 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_case_record_verified_resolution(p_case_id bigint, p_resolution text, p_verified_by jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c record; v_open int;
+begin
+  select * into c from public.support_case where case_id = p_case_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such case'); end if;
+  if c.state = 'closed' then
+    return jsonb_build_object('ok', true, 'already_closed', true, 'reason', c.close_reason);
+  end if;
+  if coalesce(btrim(p_resolution), '') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'a close needs a reason; a close that records facts and decides nothing is the defect this estate has already paid for.');
+  end if;
+  -- VERIFICATION IS A READING OF STATE, not a claim that work happened. "Do not mark a case resolved
+  -- on CEO receipt or service task acceptance": both of those are receipts, and a receipt is an
+  -- acknowledgement that something was HANDED OVER, not evidence that it landed.
+  if p_verified_by is null or coalesce(p_verified_by->>'observed', '') = '' then
+    return jsonb_build_object('ok', false, 'reason',
+      'p_verified_by must name what was OBSERVED (the row, the provider state, the delivered message). A CEO receipt or an accepted service task is an acknowledgement of handover, not evidence of an outcome.');
+  end if;
+
+  -- AND THE CASE CANNOT CLOSE OVER LIVE WORK. A refund still moving is an open case whatever the
+  -- conversation felt like.
+  select count(*) into v_open from public.refund_case
+   where case_id = p_case_id
+     and state in ('requested','investigating','eligible','ceo_authorized','submitted','provider_pending');
+  if v_open > 0 then
+    return jsonb_build_object('ok', false, 'reason',
+      format('%s refund(s) on this case are still moving. Closing now would report a resolution the money has not reached yet.', v_open));
+  end if;
+
+  update public.support_case
+     set state = 'closed', closed_at = now(), last_activity_at = now(),
+         close_reason = p_resolution || ' || verified by: ' || (p_verified_by->>'observed')
+   where case_id = p_case_id;
+
+  return jsonb_build_object('ok', true, 'case_id', p_case_id, 'state', 'closed',
+    'verified_by', p_verified_by,
+    'note', 'Closed against an observed outcome, not against a receipt.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_category_checklist(p_category text, p_label text DEFAULT NULL::text, p_text text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -16973,6 +17103,35 @@ begin
    || setweight(to_tsvector('english'::regconfig, coalesce(array_to_string(new.tags,' '),'')), 'B')
    || setweight(to_tsvector('english'::regconfig, coalesce(new.body,'')), 'C');
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_request_decision(p_case_id bigint, p_subject text, p_evidence jsonb, p_recommendation text, p_idempotency_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_r jsonb;
+begin
+  if coalesce(btrim(p_recommendation), '') = '' then
+    return jsonb_build_object('ok', false, 'reason',
+      'a recommendation is required. Handing the CEO a question with no view is support declining to do its own work, and it is how a decision queue fills with items nobody has thought about.');
+  end if;
+  if p_evidence is null or p_evidence = '{}'::jsonb then
+    return jsonb_build_object('ok', false, 'reason',
+      'evidence is required. A decision asked for without the facts behind it cannot be made well, only quickly.');
+  end if;
+
+  v_r := public.fn_support_report_to_ceo(
+    p_idempotency_key, 'elevated', p_subject, p_evidence,
+    to_jsonb(array['investigated the case', 'checked the standing grant', 'formed a recommendation']),
+    p_recommendation);
+
+  return jsonb_build_object('ok', coalesce((v_r->>'ok')::boolean, false), 'report', v_r,
+    'case_id', p_case_id,
+    -- The case does NOT move to a resolved state here. That is the explicit v1.2 rule.
+    'note', 'Routed to the CEO with evidence and a recommendation. The case stays open: it is not resolved by the CEO receiving it.');
 end $function$
 
 
@@ -20719,6 +20878,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_document_classify(p_caption text, p_path text, p_declared text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_cap text := lower(coalesce(p_caption, '') || ' ' || coalesce(p_path, ''));
+begin
+  -- A DECLARED TYPE BEATS A GUESS. The portal has a dropdown; when the uploader has told us what the
+  -- file is, reading the filename instead would be replacing knowledge with inference.
+  if p_declared in ('licence','profile','signed_terms') then
+    return jsonb_build_object('kind', p_declared, 'by', 'declared', 'confidence', 'high');
+  end if;
+  if v_cap ~ '(trade|licence|license|رخصة|رخصه)' then
+    return jsonb_build_object('kind', 'licence', 'by', 'caption', 'confidence', 'high');
+  elsif v_cap ~ '(profile|company profile|brochure|ملف|بروفايل)' then
+    return jsonb_build_object('kind', 'profile', 'by', 'caption', 'confidence', 'high');
+  elsif v_cap ~ '(terms|t&c|agreement|signed|شروط|اتفاقية)' then
+    return jsonb_build_object('kind', 'signed_terms', 'by', 'caption', 'confidence', 'high');
+  end if;
+  return jsonb_build_object('kind', 'unknown', 'by', 'caption', 'confidence', 'low');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dr_restore_clear(p_before timestamp with time zone DEFAULT NULL::timestamp with time zone, p_run_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 20000)
  RETURNS integer
  LANGUAGE plpgsql
@@ -23393,6 +23576,109 @@ begin
 
   update agent_runs set finished_at=now(), status='ok', counts=jsonb_build_object('approvals',v_pend,'hot',v_hot,'gaps',v_gap,'bd_queued',v_bd_q,'kyc',v_kyc,'health',(v_health->>'index'),'decisions',v_dn,'auto_cleared_24h',v_auto_cleared,'objectives_open',v_obj_open) where id=v_run;
 end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_founder_command_admit(p_message_id bigint, p_channel text, p_sender_ref text, p_scope text, p_seq bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a jsonb; v_prior record; v_existing record; v_id bigint; v_key text;
+begin
+  -- IDEMPOTENCY FIRST, before anything is judged or locked. A provider retry is the same
+  -- instruction, and answering it from the first admission is not a shortcut -- re-running the
+  -- judgement would produce a second command_id for one thing he said once.
+  select client_idempotency_key into v_key
+    from public.founder_command_message where message_id = p_message_id;
+  if v_key is null then
+    return jsonb_build_object('ok', false, 'reason',
+      'the message carries no idempotency key, so a retry could not be told from a second instruction.');
+  end if;
+
+  select c.* into v_existing from public.founder_command c
+    join public.founder_command_message m on m.message_id = c.message_id
+   where m.client_idempotency_key = v_key
+   order by c.command_id limit 1;
+  if found then
+    return jsonb_build_object('ok', true, 'command_id', v_existing.command_id, 'state', v_existing.state,
+      'duplicate', true,
+      'note', 'the same instruction arriving twice. Answered from the first admission rather than admitted again.');
+  end if;
+
+  a := public.fn_founder_command_authenticate(p_channel, p_sender_ref);
+
+  -- SEQUENCE, before admission. A command older than one already live on the same scope is stale,
+  -- and admitting it would let it execute after the instruction that replaced it.
+  if (a->>'authenticated') = 'true' and p_scope is not null and p_seq is not null then
+    select * into v_prior from public.founder_command
+     where command_scope = p_scope and command_seq is not null
+       and state not in ('superseded','cancelled','refused','failed')
+     order by command_seq desc limit 1;
+    if found and v_prior.command_seq >= p_seq then
+      insert into public.founder_command
+        (message_id, command_owner_role_id, state, intent_id, outcome, authenticated, auth_basis, command_scope, command_seq, superseded_by)
+      values (p_message_id, 'ceo', 'received', 'UNINTERPRETED', 'PENDING_INTERPRETATION', true, a->>'basis', p_scope, p_seq, null)
+      returning command_id into v_id;
+      update public.founder_command
+         set state = 'superseded', superseded_by = v_prior.command_id where command_id = v_id;
+      return jsonb_build_object('ok', true, 'command_id', v_id, 'state', 'superseded',
+        'superseded_by', v_prior.command_id,
+        'reason', format('a later instruction on %L (sequence %s) is already live. Running this one now would reinstate something he has since changed.', p_scope, v_prior.command_seq));
+    end if;
+  end if;
+
+  insert into public.founder_command
+    (message_id, command_owner_role_id, state, intent_id, outcome, authenticated, auth_basis, command_scope, command_seq)
+  values (p_message_id, 'ceo', 'received', 'UNINTERPRETED', 'PENDING_INTERPRETATION',
+          (a->>'authenticated') = 'true',
+          case when (a->>'authenticated') = 'true' then a->>'basis' else null end,
+          p_scope, p_seq)
+  returning command_id into v_id;
+
+  return jsonb_build_object('ok', true, 'command_id', v_id, 'state', 'received',
+    'authenticated', (a->>'authenticated')::boolean, 'auth_basis', a->>'basis', 'why', a->>'why',
+    'scope', p_scope, 'seq', p_seq,
+    -- The sentence that replaces the old habit. Not "shall I?" -- there is no route that produces one.
+    'note', case when (a->>'authenticated') = 'true'
+      then 'Admitted on his authority. It is interpreted and acted on; nothing goes back to him for reconfirmation.'
+      else 'Not from him. Answered as an ordinary message; it commands nothing.' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_founder_command_authenticate(p_channel text, p_sender_ref text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_his text;
+begin
+  select regexp_replace(coalesce(value,''), '[^0-9]', '', 'g') into v_his
+    from public.app_secrets where key = 'founder_public_phone';
+
+  if coalesce(v_his,'') = '' then
+    -- A MISSING CONFIGURATION IS NOT A PASS. With no number on file, a comparison that "did not
+    -- find a mismatch" would authenticate every sender alive. That is a guard that lets everything
+    -- through because the thing it compares against is absent, and it refuses instead.
+    return jsonb_build_object('authenticated', false, 'basis', 'none',
+      'why', 'no founder number is configured, so no sender can be shown to be him. This refuses rather than assumes.');
+  end if;
+
+  if p_channel <> 'whatsapp' then
+    return jsonb_build_object('authenticated', false, 'basis', 'none',
+      'why', format('%L is not the founder command channel; WhatsApp is. A command arriving elsewhere is a message, and it is answered rather than executed.', p_channel));
+  end if;
+
+  if regexp_replace(coalesce(p_sender_ref,''), '[^0-9]', '', 'g') = v_his then
+    return jsonb_build_object('authenticated', true, 'basis', 'registered_mobile_on_whatsapp',
+      'why', 'the message came from the number on file for the founder, on his command channel.');
+  end if;
+
+  return jsonb_build_object('authenticated', false, 'basis', 'none',
+    'why', 'this sender is not the founder. An imperative sentence from a member of the public is a message, not a command.');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_founder_command_clarification_answer_is_sealed()
@@ -49254,6 +49540,81 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_refund_execute_authorized(p_refund_id bigint, p_expect_amount numeric, p_expect_currency text, p_provider_ref text, p_provider_outcome text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; t record; v_dest text; v_basis text; v_state text;
+begin
+  select * into r from public.refund_case where refund_id = p_refund_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such refund case'); end if;
+
+  -- THE SERVER-SIDE DECISION, read here rather than accepted from the caller. There is no parameter
+  -- for "the CEO approved this", so a model cannot supply one.
+  if r.state <> 'ceo_authorized' then
+    return jsonb_build_object('ok', false, 'reason',
+      format('this refund is %L, not ceo_authorized. Execution reads the decision from the record; it is not something a caller can assert.', r.state));
+  end if;
+
+  -- EXACT RESOURCE, AMOUNT AND CURRENCY. A mismatch is refused rather than rounded to the nearer of
+  -- the two: "close enough" on money is the whole class of defect.
+  if p_expect_amount is distinct from r.amount_aed then
+    return jsonb_build_object('ok', false, 'reason',
+      format('amount mismatch: the authorised refund is %s, the caller expected %s. Refusing rather than paying the difference in either direction.', r.amount_aed, p_expect_amount));
+  end if;
+  if upper(coalesce(p_expect_currency,'')) <> upper(r.currency) then
+    return jsonb_build_object('ok', false, 'reason',
+      format('currency mismatch: authorised in %s, caller expected %s.', r.currency, coalesce(p_expect_currency,'(none)')));
+  end if;
+
+  if r.attempts >= 5 then
+    return jsonb_build_object('ok', false, 'reason',
+      'retry policy exhausted at 5 attempts. The refund stays authorised and unpaid, which is a visible blocked state -- not a silent success and not an infinite retry against a provider that is down.');
+  end if;
+
+  -- THE DESTINATION IS DERIVED, NEVER PASSED. "Do not refund to an arbitrary new destination."
+  select id, fee_status, reveal_fee, payment_ref into t
+    from public.transactions where id = r.transaction_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'the settled payment behind this refund no longer exists; there is no destination of record to return money to.');
+  end if;
+  v_dest := t.payment_ref;
+  v_basis := 'the original settled payment on transaction ' || r.transaction_id::text
+          || '. Money returns the way it came; this function has no parameter for anywhere else.';
+  if coalesce(v_dest,'') = '' then
+    update public.refund_case set attempts = r.attempts + 1, last_attempt_at = now(),
+      failure_reason = 'no payment reference on the settled transaction, so no destination of record.', updated_at = now()
+     where refund_id = p_refund_id;
+    return jsonb_build_object('ok', false, 'reason',
+      'the settled payment carries no reference, so there is no destination of record. Held as authorised-and-blocked rather than sent somewhere plausible.');
+  end if;
+
+  v_state := case lower(coalesce(p_provider_outcome,''))
+    when 'succeeded' then 'succeeded'
+    when 'pending'   then 'provider_pending'
+    when 'failed'    then 'failed'
+    else 'submitted' end;
+
+  update public.refund_case
+     set state = v_state, destination_ref = v_dest, destination_basis = v_basis,
+         provider_ref = p_provider_ref, provider_status = p_provider_outcome,
+         submitted_at = coalesce(submitted_at, now()),
+         settled_at = case when v_state = 'succeeded' then now() else settled_at end,
+         failure_reason = case when v_state = 'failed' then coalesce(p_provider_outcome,'provider reported failure') else failure_reason end,
+         attempts = r.attempts + 1, last_attempt_at = now(), updated_at = now()
+   where refund_id = p_refund_id;
+
+  return jsonb_build_object('ok', true, 'refund_id', p_refund_id, 'state', v_state,
+    'destination_ref', v_dest, 'destination_basis', v_basis, 'attempt', r.attempts + 1,
+    'note', case v_state
+      when 'succeeded' then 'Settled at the provider. The customer still has to be TOLD -- succeeded is not communicated.'
+      when 'failed' then 'The provider refused it. This stays visible and retriable within policy; it is not a closed case.'
+      else 'Submitted. Submitted is not settled, and the status tool reads the provider, not this row''s optimism.' end);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_refund_founder_decision_only()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -49420,6 +49781,51 @@ AS $function$
           p_event_type, p_reason, p_payload)
   returning id;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_refund_read_status(p_refund_id bigint, p_mark_reported boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_say text;
+begin
+  select * into r from public.refund_case where refund_id = p_refund_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such refund case'); end if;
+
+  -- THE CUSTOMER-FACING SENTENCE IS DERIVED FROM THE STATE, not composed. "Support sends accurate
+  -- pending/failed/succeeded updates" -- accurate meaning the words cannot drift from the row.
+  v_say := case r.state
+    when 'requested'      then 'I have your refund request and I am looking into it now.'
+    when 'investigating'  then 'I am still checking the payment and the delivery on your inquiry.'
+    when 'eligible'       then 'I have finished checking and your request is going for a decision.'
+    when 'ineligible'     then 'I have checked this and it is not eligible for a refund. ' || coalesce(r.eligibility_reason,'')
+    when 'ceo_authorized' then 'Your refund has been approved. It has not left us yet -- I will tell you the moment it is sent.'
+    when 'ceo_declined'   then 'Your refund was not approved. ' || coalesce(r.decision_rationale,'')
+    when 'submitted'      then 'Your refund has been sent to the payment provider. It is not settled yet.'
+    when 'provider_pending' then 'Your refund is with the payment provider and is still processing.'
+    when 'succeeded'      then 'Your refund has been paid back to the card or account you originally paid from.'
+    when 'failed'         then 'The refund did not go through at the payment provider. It is not lost -- I am on it and will come back to you.'
+    when 'canceled'       then 'This refund was cancelled before it was sent.'
+    when 'reconciled'     then 'Your refund is complete and reconciled on our side.'
+    when 'communicated'   then 'Your refund is complete and you have been notified.'
+    else 'I am checking the current state of your refund.' end;
+
+  if p_mark_reported then
+    update public.refund_case
+       set status_reported_at = now(), status_reported_state = r.state, updated_at = now()
+     where refund_id = p_refund_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'refund_id', p_refund_id, 'state', r.state,
+    'amount_aed', r.amount_aed, 'currency', r.currency, 'attempts', r.attempts,
+    'provider_status', r.provider_status, 'destination_basis', r.destination_basis,
+    'customer_message', v_say,
+    -- A SUCCEEDED REFUND THE CUSTOMER HAS NOT BEEN TOLD ABOUT is an unfinished case, and this names it.
+    'follow_through_owed', r.state in ('succeeded','failed','ceo_declined')
+                           and (r.status_reported_state is distinct from r.state));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_refund_request(p_amount_fils bigint, p_reason_code text, p_requested_by text, p_inquiry_id uuid DEFAULT NULL::uuid, p_customer_id uuid DEFAULT NULL::uuid, p_supplier_lead_id bigint DEFAULT NULL::bigint, p_quote_id uuid DEFAULT NULL::uuid, p_payment_intent text DEFAULT NULL::text, p_charge_id text DEFAULT NULL::text, p_note text DEFAULT NULL::text, p_transaction_id uuid DEFAULT NULL::uuid)
@@ -53821,6 +54227,116 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_answer_identity_challenge(p_sender_ref text, p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare ch record; v_filed int := 0;
+begin
+  select * into ch from public.support_identity_challenge
+   where sender_ref = p_sender_ref and consumed_at is null
+   order by created_at desc limit 1 for update;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'verified', false, 'reason', 'no_open_challenge',
+      'message', 'I do not have a code outstanding for you. Send me the email address you registered with and I will start again.');
+  end if;
+
+  if ch.expires_at <= now() then
+    update public.support_identity_challenge
+       set consumed_at = now(), outcome = 'expired' where challenge_id = ch.challenge_id;
+    return jsonb_build_object('ok', true, 'verified', false, 'reason', 'expired',
+      'message', 'That code has expired. Send me the email address again and I will issue a fresh one.');
+  end if;
+
+  if ch.attempts >= 4 then
+    update public.support_identity_challenge
+       set attempts = ch.attempts + 1, consumed_at = now(), outcome = 'exhausted'
+     where challenge_id = ch.challenge_id;
+    return jsonb_build_object('ok', true, 'verified', false, 'reason', 'exhausted',
+      'message', 'Too many attempts on that code, so I have cancelled it. Send me the email address again for a new one.');
+  end if;
+
+  if encode(sha256(convert_to(btrim(p_code) || '|' || ch.lead_id::text, 'UTF8')), 'hex') <> ch.code_hash then
+    update public.support_identity_challenge
+       set attempts = ch.attempts + 1 where challenge_id = ch.challenge_id;
+    return jsonb_build_object('ok', true, 'verified', false, 'reason', 'wrong_code',
+      'attempts_left', 4 - ch.attempts,
+      'message', 'That code does not match. Please check the email and try again.');
+  end if;
+
+  update public.support_identity_challenge
+     set consumed_at = now(), outcome = 'verified' where challenge_id = ch.challenge_id;
+
+  -- NOTE ON THE ORDERING BELOW: received_at alone is not a tie-break. Two documents that arrive in
+  -- the SAME transaction carry the same now(), so "the latest licence" was decided by whichever row
+  -- the planner returned first. The intake_id settles it, and the probe that caught this is the
+  -- reason the tie-break is here rather than a comment saying it cannot happen.
+  -- NOW the held documents may be filed -- and only the ones this sender actually sent, on this
+  -- channel. Verifying an identity does not adopt every orphan document in the table.
+  update public.support_document_intake i
+     set lead_id = ch.lead_id, attached = classified_as <> 'unknown',
+         attach_note = case when classified_as = 'unknown'
+           then 'Owner confirmed by identity challenge; type still unknown, so still held.'
+           else format('Attached as %s to lead %s after identity challenge %s.', classified_as, ch.lead_id, ch.challenge_id) end
+   where i.sender_ref = p_sender_ref and i.lead_id is null;
+  get diagnostics v_filed = row_count;
+
+  update public.leads l set
+    license_doc_path = coalesce((select storage_path from public.support_document_intake
+      where lead_id = ch.lead_id and classified_as = 'licence' order by received_at desc, intake_id desc limit 1), l.license_doc_path),
+    company_profile_doc_path = coalesce((select storage_path from public.support_document_intake
+      where lead_id = ch.lead_id and classified_as = 'profile' order by received_at desc, intake_id desc limit 1), l.company_profile_doc_path),
+    signed_terms_path = coalesce((select storage_path from public.support_document_intake
+      where lead_id = ch.lead_id and classified_as = 'signed_terms' order by received_at desc, intake_id desc limit 1), l.signed_terms_path)
+  where l.id = ch.lead_id;
+
+  return jsonb_build_object('ok', true, 'verified', true, 'lead_id', ch.lead_id,
+    'documents_released', v_filed,
+    'mandatory', public.fn_supplier_mandatory_check(ch.lead_id),
+    'message', 'Confirmed, thank you. I have filed the document you sent against your account.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_artifact_attachable(p_artifact_id bigint, p_for_party_id text, p_max_bytes bigint DEFAULT 15000000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a record;
+begin
+  select * into a from public.support_artifact where artifact_id = p_artifact_id;
+  if not found then
+    return jsonb_build_object('attachable', false, 'reason', 'unavailable',
+      'note', 'no such artifact. Send the portal route and open a repair; do not describe a file that does not exist.');
+  end if;
+  if a.obsolete_at is not null then
+    return jsonb_build_object('attachable', false, 'reason', 'obsolete',
+      'note', 'this export was superseded. Attaching it would deliver an answer the company has already replaced.');
+  end if;
+  if a.privacy_state <> 'approved' then
+    return jsonb_build_object('attachable', false, 'reason', 'unsafe',
+      'note', format('privacy_state is %L. Only an artifact whose check RAN and passed may be attached.', a.privacy_state));
+  end if;
+  -- PER-PARTY ENTITLEMENT. "A payment for one supplier never reveals all suppliers; use
+  -- per-customer, per-inquiry, per-supplier entitlements."
+  if a.owner_party_id is not null and p_for_party_id is not null and a.owner_party_id <> p_for_party_id then
+    return jsonb_build_object('attachable', false, 'reason', 'not_entitled',
+      'note', 'this artifact belongs to a different party. Ownership is checked per artifact, not per payment.');
+  end if;
+  if a.byte_size is not null and a.byte_size > p_max_bytes then
+    return jsonb_build_object('attachable', false, 'reason', 'oversized',
+      'note', format('%s bytes exceeds the channel limit of %s. A link is the honest fallback and must be described as one.', a.byte_size, p_max_bytes));
+  end if;
+  return jsonb_build_object('attachable', true, 'checksum', a.checksum, 'version', a.version,
+    'storage_path', a.storage_path,
+    'note', 'Attachable. The message may say "attached" only because a file is genuinely going with it.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_context(p_query text, p_max_chars integer DEFAULT 12000, p_limit integer DEFAULT 5)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -53864,6 +54380,88 @@ begin
     'signal', case when v_n = 0
                    then 'NO ADVISORY COVERAGE for this query. Answer from company policy and live account facts, or say you will check. Do not improvise from these records.'
                    else 'Advisory guidance only. Account facts come from the database.' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_deliver_artifact(p_artifact_id bigint, p_case_id bigint, p_recipient_party_id text, p_whatsapp text, p_email text, p_inquiry_ref text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a record; e jsonb; v_portal text; v_body text; v_subject text; v_attach text;
+  v_out jsonb := '[]'::jsonb; v_dedupe text; v_id bigint; v_grant jsonb;
+begin
+  v_grant := public.fn_support_may_act('notification');
+  if (v_grant->>'may_act') <> 'true' then
+    return jsonb_build_object('ok', false, 'reason', v_grant->>'reason');
+  end if;
+
+  select * into a from public.support_artifact where artifact_id = p_artifact_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such artifact'); end if;
+
+  e := public.fn_support_artifact_attachable(p_artifact_id, p_recipient_party_id);
+  v_portal := coalesce((select value from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com') || '/portal';
+
+  if (e->>'attachable') = 'true' then
+    v_attach := a.storage_path;
+    v_body := case a.artifact_kind
+      when 'comparison_report' then
+        'Your comparison report for inquiry ' || p_inquiry_ref || ' is ready. A copy is attached, and you can view it in your portal: '
+        || v_portal || '. Individual quotations are available in the portal.'
+      else
+        'Your reveal-fee payment for inquiry ' || p_inquiry_ref || ' has been confirmed. Your invoice ' || coalesce(a.subject_ref,'')
+        || ' is attached. You can also access it in your portal: ' || v_portal || '.' end;
+  else
+    -- THE WORDING CHANGES BECAUSE THE FACT CHANGED. Not a softened version of the same sentence: the
+    -- word "attached" is absent, the reason is stated, and the message says where the file is.
+    v_attach := null;
+    v_body := case a.artifact_kind
+      when 'comparison_report' then
+        'Your comparison report for inquiry ' || p_inquiry_ref || ' is ready. I could not include a copy with this message ('
+        || (e->>'reason') || '), so please open it in your portal: ' || v_portal || '.'
+      else
+        'Your reveal-fee payment for inquiry ' || p_inquiry_ref || ' has been confirmed. I could not include the invoice with this message ('
+        || (e->>'reason') || '), so please open it in your portal: ' || v_portal || '.' end;
+  end if;
+  v_subject := case a.artifact_kind when 'comparison_report'
+                 then 'Your comparison report for inquiry ' || p_inquiry_ref
+                 else 'Your invoice for inquiry ' || p_inquiry_ref end;
+
+  -- THE DEDUPE KEY IS THE ARTIFACT PLUS ITS CHECKSUM. A re-send of the same file to the same person
+  -- is silently absorbed; a REGENERATED file has a different checksum and is therefore a different
+  -- delivery rather than a duplicate.
+  if coalesce(btrim(p_whatsapp),'') <> '' then
+    insert into public.support_notification (dedupe_key, case_id, purpose, channel, recipient,
+      inquiry_ref, publication_version, subject, body, attachment_ref, anonymity_checked_at, anonymity_result)
+    values ('artifact|' || p_artifact_id::text || '|' || coalesce(a.checksum,'nocs') || '|whatsapp|' || p_whatsapp,
+            p_case_id, a.artifact_kind, 'whatsapp', p_whatsapp, p_inquiry_ref, a.version,
+            null, v_body, v_attach, now(),
+            jsonb_build_object('safe', true, 'note', 'deterministic artifact delivery; the artifact itself carries its own privacy result', 'artifact_privacy', a.privacy_result))
+    on conflict (dedupe_key) do nothing returning id into v_id;
+    v_out := v_out || jsonb_build_object('channel','whatsapp','queued', v_id is not null, 'attached', v_attach is not null);
+  end if;
+
+  if coalesce(btrim(p_email),'') <> '' then
+    insert into public.support_notification (dedupe_key, case_id, purpose, channel, recipient,
+      inquiry_ref, publication_version, subject, body, attachment_ref, anonymity_checked_at, anonymity_result)
+    values ('artifact|' || p_artifact_id::text || '|' || coalesce(a.checksum,'nocs') || '|email|' || p_email,
+            p_case_id, a.artifact_kind, 'email', p_email, p_inquiry_ref, a.version,
+            v_subject, v_body, v_attach, now(),
+            jsonb_build_object('safe', true, 'note', 'deterministic artifact delivery; the artifact itself carries its own privacy result', 'artifact_privacy', a.privacy_result))
+    on conflict (dedupe_key) do nothing returning id into v_id;
+    v_out := v_out || jsonb_build_object('channel','email','queued', v_id is not null, 'attached', v_attach is not null);
+  end if;
+
+  return jsonb_build_object(
+    'ok', true, 'artifact_id', p_artifact_id, 'attachable', e->>'attachable',
+    'refusal_reason', e->>'reason', 'queued', v_out,
+    -- THE COUNT THE SPEC ASKS FOR. "Do not count a portal link as a delivered attachment."
+    'file_copy_delivered', (e->>'attachable') = 'true',
+    'note', case when (e->>'attachable') = 'true'
+                 then 'A copy is attached and the message says so because it is true.'
+                 else 'NOT a file-copy delivery. A link was sent instead, the reason was stated to the customer, and this must not be counted as an attachment.' end);
 end $function$
 
 
@@ -54144,6 +54742,59 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_open_identity_challenge(p_channel text, p_sender_ref text, p_claimed_email text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_lead bigint; v_to text; v_code text; v_id bigint; v_grant jsonb; v_open int;
+begin
+  v_grant := public.fn_support_may_act('document');
+  if (v_grant->>'may_act') <> 'true' then
+    return jsonb_build_object('ok', false, 'reason', v_grant->>'reason');
+  end if;
+
+  -- RATE LIMIT PER SENDER, not per account. Limiting per account would let a stranger lock a real
+  -- supplier out of their own verification by spamming challenges at them.
+  select count(*) into v_open from public.support_identity_challenge
+   where sender_ref = p_sender_ref and created_at > now() - interval '1 hour';
+  if v_open >= 5 then
+    return jsonb_build_object('ok', true, 'challenge_opened', false, 'reason', 'rate_limited',
+      'message', 'I have sent several codes to this account recently. Please use the most recent one, or try again in an hour.');
+  end if;
+
+  select id, email into v_lead, v_to from public.leads
+   where lower(email) = lower(btrim(p_claimed_email)) order by id limit 1;
+
+  v_code := lpad((floor(random() * 1000000))::int::text, 6, '0');
+
+  if v_lead is not null then
+    insert into public.support_identity_challenge
+      (channel, sender_ref, claimed_email, lead_id, sent_to, code_hash, expires_at)
+    values (p_channel, p_sender_ref, p_claimed_email, v_lead, v_to,
+            encode(sha256(convert_to(v_code || '|' || v_lead::text, 'UTF8')), 'hex'), now() + interval '15 minutes')
+    returning challenge_id into v_id;
+
+    insert into public.support_notification (dedupe_key, case_id, purpose, channel, recipient,
+      subject, body, anonymity_checked_at, anonymity_result)
+    values ('idchallenge|' || v_id::text, null, 'identity_challenge', 'email', v_to,
+            'Your QuotesDone confirmation code',
+            'Your confirmation code is ' || v_code || '. It expires in 15 minutes. If you did not ask '
+            || 'to confirm a document upload, you can ignore this message and nothing will be filed.',
+            now(), jsonb_build_object('safe', true, 'note', 'code to the address of record; no counterparty data'));
+  end if;
+
+  -- THE SAME ANSWER EITHER WAY. Whether or not that account exists, the sender is told a code was
+  -- sent to the address they named. Saying "no account with that email" would turn this into a
+  -- free tool for discovering who is registered with us.
+  return jsonb_build_object('ok', true, 'challenge_opened', v_lead is not null,
+    'message', 'I have sent a 6-digit code to ' || p_claimed_email || '. Reply with the code and I '
+            || 'will file your document against that account. The code expires in 15 minutes.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_open_reports()
  RETURNS TABLE(report_id bigint, severity text, subject text, status text, owner_role_id text, age interval, next_review_at timestamp with time zone, attempts integer)
  LANGUAGE sql
@@ -54158,6 +54809,96 @@ AS $function$
                             when 'elevated' then 2 else 3 end,
             r.created_at;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_receive_document(p_channel text, p_sender_ref text, p_storage_path text, p_caption text DEFAULT NULL::text, p_media_kind text DEFAULT NULL::text, p_declared text DEFAULT NULL::text, p_lead_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c jsonb; v_lead bigint; v_id bigint; v_note text; v_reply text;
+  v_before jsonb; v_after jsonb; v_grant jsonb; v_missing text;
+begin
+  v_grant := public.fn_support_may_act('document');
+  if (v_grant->>'may_act') <> 'true' then
+    return jsonb_build_object('ok', false, 'reason', v_grant->>'reason');
+  end if;
+  if p_channel not in ('email','portal') then
+    return jsonb_build_object('ok', false, 'reason',
+      'this function serves the email and portal paths; WhatsApp has fn_wa_attach_document.');
+  end if;
+  if coalesce(btrim(p_storage_path), '') = '' then
+    return jsonb_build_object('ok', false, 'reason',
+      'no stored file. A receipt for a document that was never stored is the lost-document failure with a friendlier message.');
+  end if;
+
+  -- WHO SENT IT. The portal already knows -- the session is the identity, which is why it may pass a
+  -- lead directly. Email has only the From address, so it is matched against the address of record.
+  if p_channel = 'portal' then
+    v_lead := p_lead_id;
+  else
+    select id into v_lead from public.leads
+     where lower(email) = lower(btrim(p_sender_ref)) order by id limit 1;
+  end if;
+
+  c := public.fn_document_classify(p_caption, p_storage_path, p_declared);
+
+  if v_lead is not null then v_before := public.fn_supplier_mandatory_check(v_lead); end if;
+
+  if v_lead is null then
+    v_note := 'No account matches this sender. Held, and an identity challenge is the only route to attaching it.';
+    v_reply := 'Thank you -- I have your file safely. I could not match it to a registered account '
+            || 'from this address, so I have not filed it yet. Reply with the email address you '
+            || 'registered with and I will send a short code to that address to confirm it is you.';
+  elsif (c->>'kind') = 'unknown' then
+    v_note := 'Owner known, type not. Held rather than filed on a guess.';
+    v_reply := 'Thank you, I have saved that to your file. I could not tell which document it is, so '
+            || 'to file it correctly please tell me: is it your trade licence, your company profile, '
+            || 'or the signed terms?';
+  else
+    v_note := format('Attached as %s to lead %s.', c->>'kind', v_lead);
+  end if;
+
+  insert into public.support_document_intake
+    (channel, sender_ref, lead_id, storage_path, media_kind, caption,
+     classified_as, classified_by, confidence, attached, attach_note)
+  values (p_channel, p_sender_ref, v_lead, p_storage_path, p_media_kind, p_caption,
+          c->>'kind', c->>'by', c->>'confidence',
+          v_lead is not null and (c->>'kind') <> 'unknown', coalesce(v_note, ''))
+  returning intake_id into v_id;
+
+  if v_lead is not null and (c->>'kind') <> 'unknown' then
+    if (c->>'kind') = 'licence' then
+      update public.leads set license_doc_path = p_storage_path where id = v_lead;
+    elsif (c->>'kind') = 'profile' then
+      update public.leads set company_profile_doc_path = p_storage_path where id = v_lead;
+    else
+      update public.leads set signed_terms_path = p_storage_path where id = v_lead;
+    end if;
+
+    v_after := public.fn_supplier_mandatory_check(v_lead);
+    -- THE RECEIPT SAYS WHAT IS STILL MISSING, the same as the WhatsApp path. A receipt that only
+    -- confirms arrival leaves the supplier believing they are finished when they are not, which is
+    -- how 81 invitations became 0 registrations.
+    if coalesce((v_after->>'complete')::boolean, false) then
+      v_reply := 'Got it -- your ' || replace(c->>'kind','_',' ') || ' is saved. Your file is now '
+              || 'complete and goes for verification. I will let you know when it is approved.';
+    else
+      select string_agg(value #>> '{}', ', ') into v_missing
+        from jsonb_array_elements(v_after->'missing');
+      v_reply := 'Got it -- your ' || replace(c->>'kind','_',' ') || ' is saved. Still needed: '
+              || coalesce(v_missing, '(nothing listed)') || '. You can send them the same way.';
+    end if;
+  end if;
+
+  return jsonb_build_object('ok', true, 'intake_id', v_id, 'channel', p_channel,
+    'lead_id', v_lead, 'classified_as', c->>'kind', 'confidence', c->>'confidence',
+    'attached', v_lead is not null and (c->>'kind') <> 'unknown',
+    'needs_identity_challenge', v_lead is null,
+    'mandatory_before', v_before, 'mandatory_after', v_after, 'reply', v_reply);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_support_report_to_ceo(p_idempotency_key text, p_severity text, p_subject text, p_evidence jsonb, p_attempted jsonb, p_requested text, p_case_ref text DEFAULT NULL::text, p_task_ref text DEFAULT NULL::text, p_review_in interval DEFAULT '1 day'::interval)
@@ -62531,8 +63272,8 @@ CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EAC
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
+CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
@@ -62566,8 +63307,8 @@ CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_appro
 CREATE TRIGGER a00_founder_approval_names_a_real_refund BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_names_a_real_refund();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z20_founder_command_state_guard BEFORE UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_state_guard();
-CREATE TRIGGER a00_founder_command_clarification_answer_is_sealed BEFORE INSERT OR DELETE OR UPDATE ON public.founder_command_clarification FOR EACH ROW EXECUTE FUNCTION fn_founder_command_clarification_answer_is_sealed();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_clarification FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_founder_command_clarification_answer_is_sealed BEFORE INSERT OR DELETE OR UPDATE ON public.founder_command_clarification FOR EACH ROW EXECUTE FUNCTION fn_founder_command_clarification_answer_is_sealed();
 CREATE TRIGGER z10_founder_command_message_immutable BEFORE DELETE OR UPDATE ON public.founder_command_message FOR EACH ROW EXECUTE FUNCTION fn_founder_command_message_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_message FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_release_approval FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
@@ -63296,8 +64037,11 @@ ALTER TABLE public.supplier_product_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_health_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_artifact ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_case ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_ceo_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_document_intake ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_identity_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_notification ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_contract ENABLE ROW LEVEL SECURITY;

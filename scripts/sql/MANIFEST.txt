@@ -7,7 +7,6 @@
 #   TIME. On that tie it had no third fact to break with, compared production against the UNFIXED
 #   phase_c_31 body, and printed "439 routines, 0 not present, 0 drifted". The phase_c_39 correction
 #   was in the repository and NOT on production, and no instrument could see it.
-#
 # THE RULE:
 #   * Position in THIS FILE is the apply order. For a routine defined in more than one file, the
 #     LAST file listed here is CANONICAL. Git commit time is not consulted and cannot break a tie.
@@ -15,19 +14,16 @@
 #     Appending is what "scripts/sql is append-only" actually means once two files collide.
 #   * scripts/checks/canonical_routines.test.mjs reads this file. A file on disk that is not listed
 #     here, or a line here whose file is gone, is a FAILURE - not a warning.
-#
 # HOW THE EXISTING ORDER WAS DERIVED (files that pre-date this manifest):
 #   (a) git commit order of each file's FIRST appearance, oldest first, then
 #   (b) within one commit, ascending numeric prefix, then
 #   (c) filename.
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
-#
 # 852 files, matching 852 on disk. Count re-measured 2026-08-21 after E12-E40; it read 657 for
 # long enough to be 137 short, because nothing recomputed it when a file was appended.
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
-#
 # --- 54bc4eb 2026-08-02 ---
 scripts/sql/coverage_both_ways.sql
 scripts/sql/replay_verify.sql
@@ -1549,47 +1545,20 @@ scripts/sql/the_last_phase_b_guards_come_off_because_the_founder_removed_every_l
 
 [OK] Command outcome recorded
 scripts/sql/the_word_the_caller_uses_and_the_word_the_column_allows.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/the_routines_that_still_addressed_a_seat_nobody_holds.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/every_routine_that_still_addressed_a_seat_nobody_holds.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/an_unassigned_component_is_not_a_stale_one.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/the_kernel_gates_come_off.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/the_ceo_holds_a_target_a_decision_register_and_an_authority.sql
 scripts/sql/the_four_targets_the_founder_set.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/the_ceo_knowledge_pack_becomes_retrievable.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/a_long_question_must_not_require_every_word_to_match.sql
 scripts/sql/the_ceo_decision_register_and_its_authority.sql
 scripts/sql/a_licence_about_to_expire_asks_for_itself.sql
 scripts/sql/no_target_may_outrun_the_channel_that_carries_it.sql
 scripts/sql/the_public_contact_is_configured_not_hard_coded.sql
 scripts/sql/the_contact_template_gets_slots_like_every_other_fact.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/support_reports_to_the_ceo_and_nowhere_else.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
 scripts/sql/the_support_knowledge_pack_becomes_retrievable.sql
 scripts/sql/a_new_quotation_is_announced_without_announcing_the_supplier.sql
 scripts/sql/the_quotation_alert_reads_the_committed_state_and_nothing_else.sql
@@ -1598,11 +1567,7 @@ scripts/sql/and_the_last_one_next_docver.sql
 scripts/sql/the_quote_leak_guard_reunited_with_its_implementation.sql
 scripts/sql/the_ceo_is_the_final_internal_authority_and_nothing_waits_for_the_founder.sql
 scripts/sql/the_refund_decision_belongs_to_the_ceo_and_the_states_are_kept_apart.sql
-[INFO] Recording command outcome: printf
-
-[OK] Command outcome recorded
-scripts/sql/an_attached_copy_is_a_different_promise_from_a_link.sql
-scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql
 scripts/sql/an_attached_copy_is_a_different_promise_from_a_link.sql
 scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql
 scripts/sql/he_gives_an_instruction_and_nothing_asks_him_to_confirm_it_again.sql
+scripts/sql/the_refund_tools_are_typed_so_the_model_never_names_the_account.sql
