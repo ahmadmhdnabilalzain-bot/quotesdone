@@ -129,6 +129,9 @@ Support functions executable by `anon` or `authenticated`: **0** (must be 0).
 
 ## 9. Scenario results
 
+**112 scenarios defined across eleven groups, of which 81 are marked critical.**
+This file counts them; it does not run them, so it reports none of them as passing.
+
 Run `node scripts/checks/support_acceptance_scenarios.mjs`. It drives the live functions,
 constraints and triggers inside transactions that end in a RAISE, so nothing survives the
 run. A group that fails to RUN counts as a failure of every scenario in it, rather than

@@ -257,6 +257,25 @@ L.push(`Support functions executable by \`anon\` or \`authenticated\`: **${rows.
 L.push('');
 L.push('## 9. Scenario results');
 L.push('');
+// Counted from the harness source rather than typed, so the number cannot drift from the suite —
+// and counted as DEFINED scenarios, never reported as passing. This file does not run the harness,
+// so it must not imply a result it has not seen.
+{
+  let defined = 0, critical = 0;
+  for (const f of ['support_acceptance_scenarios.mjs', 'support_acceptance_group_licence_expiry.mjs',
+                   'support_acceptance_group_org_and_channels.mjs', 'support_acceptance_group_founder_absent.mjs']) {
+    const p = join('scripts', 'checks', f);
+    if (!existsSync(p)) continue;
+    const src = readFileSync(p, 'utf8');
+    for (const m of src.matchAll(/^\s*S\('([a-z0-9_]+)'\s*,\s*'[^']*'\s*(,\s*true)?\s*\),\s*$/gm)) {
+      defined++;
+      if (m[2]) critical++;
+    }
+  }
+  L.push(`**${defined} scenarios defined across eleven groups, of which ${critical} are marked critical.**`);
+  L.push('This file counts them; it does not run them, so it reports none of them as passing.');
+  L.push('');
+}
 L.push('Run `node scripts/checks/support_acceptance_scenarios.mjs`. It drives the live functions,');
 L.push('constraints and triggers inside transactions that end in a RAISE, so nothing survives the');
 L.push('run. A group that fails to RUN counts as a failure of every scenario in it, rather than');
