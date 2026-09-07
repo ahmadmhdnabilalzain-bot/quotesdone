@@ -104,10 +104,10 @@ injection route the spec names, and it is measured here rather than promised.
 | `meta_access_token` | ABSENT — no row at all |
 | `public_site_url` | set |
 | `stripe_secret_key` | set |
-| `twilio_auth_token` | ABSENT — no row at all |
+| `twilio_auth_token` | set |
 | `twilio_wa_from` | set |
 
-**Remaining setup values held only by the founder: `meta_access_token`, `twilio_auth_token`.** These are recorded as capability limitations, not converted into an approval workflow.
+**Remaining setup values held only by the founder: `meta_access_token`.** These are recorded as capability limitations, not converted into an approval workflow.
 
 ### An MCP connection is not a runtime credential
 
@@ -165,10 +165,10 @@ being quietly skipped — a harness that skips is a harness that always passes.
 - End-to-end delivery through Twilio and the email provider. The outbox is written and
   asserted; the provider leg is blocked by the channel policy above, for the reasons it
   states, and no scenario pretends otherwise.
-- Cryptographic proof of webhook origin. `wa_inbound` implements HMAC-SHA1 validation of
-  `X-Twilio-Signature` with a constant-time comparison, and it cannot run: Twilio signs with
-  the ACCOUNT auth token, and the API key secret we hold cannot compute that HMAC. The
-  fallback is a REST provenance lookup of the MessageSid against the account — a real check
-  a forger cannot pass, but a lookup, not a proof. Supplying `twilio_auth_token` upgrades it
-  with no code change; until then the weaker guarantee is what stands, and it is named.
+- ~~Cryptographic proof of webhook origin~~ — RESOLVED. `twilio_auth_token` is stored, so
+  `wa_inbound` now validates `X-Twilio-Signature` by HMAC-SHA1 with a constant-time
+  comparison instead of falling back to the REST provenance lookup. A forged webhook now
+  fails on proof rather than on a lookup. No code changed; the credential was the whole
+  difference. Note it was supplied through a channel that saw the value, so rotating it
+  (Console → API keys & tokens → request a secondary token → promote) is worth doing.
 
