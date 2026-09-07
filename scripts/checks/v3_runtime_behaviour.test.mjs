@@ -213,18 +213,26 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
       begin
         select kind into v_kind from agent_action_kind_policy limit 1;
         select agent_key into v_agent from org_agents where active order by agent_key limit 1;
-        select count(*) into v_before from decision_trace;
+        -- No before/after count: live agents write decision_trace while this runs, so a delta is a
+        -- measurement of the whole company rather than of this probe.
         perform fn_record_context_retrieval(v_agent, 'behaviour_test', null,
                 array['probe-a','probe-b'], 24000, 1000);
         insert into agent_actions (agent, kind, status, risk, title, detail, confidence, escalated)
           values (v_agent, v_kind, 'proposed', 'low', 'behaviour test', '{}'::jsonb, 0.7, false)
           returning id into v_id;
         update agent_actions set decided_at = now(), decided_by = 'test', status = 'approved' where id = v_id;
-        select count(*) into v_after from decision_trace;
+        -- Traces FOR THIS ACTION only. entity_id is this probe's own id, so the count is exact
+        -- whatever else the company is doing at the same moment.
+        select count(*) into v_after from decision_trace where entity_id = v_id::text;
         select knowledge_refs into v_refs from decision_trace where entity_id = v_id::text limit 1;
-        raise exception 'traces=% shape=% ids=%', v_after - v_before,
+        raise exception 'traces=% shape=% ids=%', v_after,
           coalesce(jsonb_typeof(v_refs),'absent'),
-          case when jsonb_typeof(v_refs) = 'array' then jsonb_array_length(v_refs) else -1 end;
+          -- Count the ids THIS probe supplied, not the array length: a trace may legitimately carry
+          -- other records, and asserting a bare length makes an unrelated addition look like a defect.
+          case when jsonb_typeof(v_refs) = 'array'
+               then (select count(*) from jsonb_array_elements_text(v_refs) e
+                      where e in ('probe-a','probe-b'))
+               else -1 end;
       end;`);
     // 20 AUG 2026 — THIS READ `v_refs->>'knowledge_count'` AND HAD ALWAYS RETURNED NULL, because
     // decision_trace.knowledge_refs is a JSON ARRAY of ids, not an object with a count.
@@ -238,7 +246,7 @@ for (const [name, ref] of Object.entries(PROJECTS)) {
     // than silently returning null again.
     const m = /traces=(\d+) shape=(\w+) ids=(-?\d+)/.exec(raised);
     assert.ok(m, raised);
-    assert.equal(m[1], '1', 'a decided action must leave exactly one trace');
+    assert.equal(m[1], '1', 'a decided action must leave exactly one trace FOR THAT ACTION');
     assert.equal(m[2], 'array',
       `decision_trace.knowledge_refs must be a JSON array of ids, got ${m[2]} — six readers call jsonb_array_length on it`);
     assert.equal(m[3], '2', 'the trace must carry the knowledge ids the assembly recorded');
