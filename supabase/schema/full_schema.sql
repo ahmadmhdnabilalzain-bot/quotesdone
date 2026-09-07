@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T12:03:58.876Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T12:10:20.624Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -155,6 +155,7 @@ CREATE SEQUENCE IF NOT EXISTS public.phase1_rollback_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase_c_founder_auth_event_event_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase_c_governance_decision_decision_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase_c_historical_repair_repair_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.phase_c_reporting_authority_history_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase_d_capability_request_request_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase_d_capability_result_result_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase_d_committed_scenario_scenario_id_seq;
@@ -201,7 +202,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (642) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (645) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -5467,6 +5468,15 @@ CREATE TABLE IF NOT EXISTS public.phase_c_action_class (
   notes text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.phase_c_approved_consolidation (
+  live_role_id text NOT NULL,
+  canonical_count integer NOT NULL,
+  canonical_roles text NOT NULL,
+  approved_by text NOT NULL,
+  approved_at timestamp with time zone DEFAULT now() NOT NULL,
+  note text
+);
+
 CREATE TABLE IF NOT EXISTS public.phase_c_change_request (
   change_request_ref text NOT NULL,
   document_path text NOT NULL,
@@ -5764,6 +5774,14 @@ CREATE TABLE IF NOT EXISTS public.phase_c_governance_decision (
   txid bigint NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.phase_c_governance_owner (
+  responsibility text NOT NULL,
+  owner_role_id text NOT NULL,
+  recorded_by text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  note text
+);
+
 CREATE TABLE IF NOT EXISTS public.phase_c_handoff_binding (
   handoff_id text NOT NULL,
   workflow_id text NOT NULL,
@@ -5882,6 +5900,22 @@ CREATE TABLE IF NOT EXISTS public.phase_c_reporting_authority (
   reporting_path text NOT NULL,
   source_package text DEFAULT 'QuotesDone_PHASE_C_REPORTING_AND_CHAIN_OF_COMMAND_MAP_v2026.08.16'::text NOT NULL,
   recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.phase_c_reporting_authority_history (
+  id bigint DEFAULT nextval('phase_c_reporting_authority_history_id_seq'::regclass) NOT NULL,
+  superseded_at timestamp with time zone DEFAULT now() NOT NULL,
+  superseded_by text NOT NULL,
+  canonical_role_id text NOT NULL,
+  live_role_id text,
+  department_id text,
+  manager_role_id text,
+  role_class text,
+  runtime_mode text,
+  department_head_role_id text,
+  reporting_path text,
+  source_package text,
+  recorded_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.phase_c_role_binding (
@@ -9012,6 +9046,7 @@ ALTER TABLE public.phase_b_workflow_state ADD CONSTRAINT phase_b_workflow_state_
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_workflow_step_pkey PRIMARY KEY (step_id);
 ALTER TABLE public.phase_b_workflow_transition ADD CONSTRAINT phase_b_workflow_transition_pkey PRIMARY KEY (from_state, to_state);
 ALTER TABLE public.phase_c_action_class ADD CONSTRAINT phase_c_action_class_pkey PRIMARY KEY (action_class);
+ALTER TABLE public.phase_c_approved_consolidation ADD CONSTRAINT phase_c_approved_consolidation_pkey PRIMARY KEY (live_role_id);
 ALTER TABLE public.phase_c_change_request ADD CONSTRAINT phase_c_change_request_pkey PRIMARY KEY (change_request_ref);
 ALTER TABLE public.phase_c_command_intent ADD CONSTRAINT phase_c_command_intent_pkey PRIMARY KEY (intent_id);
 ALTER TABLE public.phase_c_command_rule ADD CONSTRAINT phase_c_command_rule_pkey PRIMARY KEY (rule_id);
@@ -9033,6 +9068,7 @@ ALTER TABLE public.phase_c_freeze_amendment ADD CONSTRAINT phase_c_freeze_amendm
 ALTER TABLE public.phase_c_frozen_subject ADD CONSTRAINT phase_c_frozen_subject_pkey PRIMARY KEY (subject, object_identity);
 ALTER TABLE public.phase_c_gate_binding ADD CONSTRAINT phase_c_gate_binding_pkey PRIMARY KEY (gate_id);
 ALTER TABLE public.phase_c_governance_decision ADD CONSTRAINT phase_c_governance_decision_pkey PRIMARY KEY (decision_id);
+ALTER TABLE public.phase_c_governance_owner ADD CONSTRAINT phase_c_governance_owner_pkey PRIMARY KEY (responsibility);
 ALTER TABLE public.phase_c_handoff_binding ADD CONSTRAINT phase_c_handoff_binding_pkey PRIMARY KEY (handoff_id);
 ALTER TABLE public.phase_c_handoff_run ADD CONSTRAINT phase_c_handoff_run_pkey PRIMARY KEY (handoff_run_id);
 ALTER TABLE public.phase_c_historical_repair ADD CONSTRAINT phase_c_historical_repair_pkey PRIMARY KEY (repair_id);
@@ -9041,6 +9077,7 @@ ALTER TABLE public.phase_c_overlay_binding ADD CONSTRAINT phase_c_overlay_bindin
 ALTER TABLE public.phase_c_package_erratum ADD CONSTRAINT phase_c_package_erratum_pkey PRIMARY KEY (erratum_id);
 ALTER TABLE public.phase_c_refund_decision ADD CONSTRAINT phase_c_refund_decision_pkey PRIMARY KEY (decision_id);
 ALTER TABLE public.phase_c_reporting_authority ADD CONSTRAINT phase_c_reporting_authority_pkey PRIMARY KEY (canonical_role_id);
+ALTER TABLE public.phase_c_reporting_authority_history ADD CONSTRAINT phase_c_reporting_authority_history_pkey PRIMARY KEY (id);
 ALTER TABLE public.phase_c_role_binding ADD CONSTRAINT phase_c_role_binding_pkey PRIMARY KEY (canonical_role_id);
 ALTER TABLE public.phase_c_rule_binding ADD CONSTRAINT phase_c_rule_binding_pkey PRIMARY KEY (rule_id);
 ALTER TABLE public.phase_c_source_cutover ADD CONSTRAINT phase_c_source_cutover_pkey PRIMARY KEY (source_component_id);
@@ -9607,6 +9644,7 @@ ALTER TABLE public.phase_b_workflow ADD CONSTRAINT phase_b_workflow_status_known
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_step_actor_kind_known CHECK ((actor_kind = ANY (ARRAY['canonical_role'::text, 'founder'::text, 'category_overlay'::text])));
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_step_creator_not_reviewer CHECK (((independent_reviewer_role_id IS NULL) OR (independent_reviewer_role_id <> accountable_role_id)));
 ALTER TABLE public.phase_b_workflow_step ADD CONSTRAINT phase_b_workflow_step_terminality_consistent CHECK (((next_step_if_pass = 'WORKFLOW_COMPLETE'::text) = COALESCE(is_closure_step, false)));
+ALTER TABLE public.phase_c_approved_consolidation ADD CONSTRAINT phase_c_approved_consolidation_canonical_count_check CHECK ((canonical_count > 1));
 ALTER TABLE public.phase_c_change_request ADD CONSTRAINT phase_c_change_request_approval_is_a_pair CHECK (((approved_by IS NULL) = (approved_at IS NULL)));
 ALTER TABLE public.phase_c_change_request ADD CONSTRAINT phase_c_change_request_approval_is_derived CHECK (((approved_by IS NULL) = (governance_decision_id IS NULL))) NOT VALID;
 ALTER TABLE public.phase_c_change_request ADD CONSTRAINT phase_c_change_request_approval_reason_only_on_approval CHECK (((disposition = 'APPROVED'::text) OR (approval_reason IS NULL)));
@@ -58335,8 +58373,8 @@ AS $function$
   -- with an authority that is no longer there. Absent input must not score as satisfied: the row
   -- count is asserted against the founder-approved shape before anything is compared to it.
   select 'authority_not_recorded', 'phase_c_reporting_authority',
-         '90 standing roles', count(*)::text
-    from public.phase_c_reporting_authority having count(*) <> 90
+         '75 standing roles', count(*)::text
+    from public.phase_c_reporting_authority having count(*) <> 75
   union all
   select 'overlay_authority_not_recorded', 'phase_c_overlay_binding',
          '86 category overlays', count(*)::text
@@ -58410,6 +58448,8 @@ AS $function$
   select 'duplicate_active_identity', x.live_role_id, 'one canonical role', x.n::text
     from (select live_role_id, count(*) n from public.phase_c_reporting_authority
            group by 1 having count(*) > 1) x
+   where not exists (select 1 from public.phase_c_approved_consolidation c
+                      where c.live_role_id = x.live_role_id and c.canonical_count = x.n)
   union all
   select 'self_management', a.canonical_role_id, a.manager_role_id, r.manager_role_id
     from public.phase_c_reporting_authority a
@@ -58478,9 +58518,10 @@ AS $function$
       or not (o.broad_domain_escalation_role_id = any(r.escalation_targets))
   union all
   -- the three governance owners the map names must exist and be able to act
-  select 'overlay_governance_owner', g.who, g.who, 'missing or not active'
-    from (values ('category_curator'),('taxonomy_manager'),('knowledge_validator')) g(who)
-   where not exists (select 1 from public.org_role r where r.role_id = g.who and r.status='active')
+  select 'overlay_governance_owner', g.responsibility, g.owner_role_id, 'missing or not active'
+    from public.phase_c_governance_owner g
+   where not exists (select 1 from public.org_role r
+                      where r.role_id = g.owner_role_id and r.status='active')
   union all
   -- an overlay that could decide something the map forbids it
   select 'overlay_authority', o.overlay_id, 'advisory, holding no runtime employee',
@@ -94677,6 +94718,7 @@ ALTER TABLE public.phase_b_workflow_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_workflow_step ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_b_workflow_transition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_action_class ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phase_c_approved_consolidation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_change_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_command_intent ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_command_rule ENABLE ROW LEVEL SECURITY;
@@ -94698,6 +94740,7 @@ ALTER TABLE public.phase_c_freeze_amendment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_frozen_subject ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_gate_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_governance_decision ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phase_c_governance_owner ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_handoff_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_handoff_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_historical_repair ENABLE ROW LEVEL SECURITY;
@@ -94706,6 +94749,7 @@ ALTER TABLE public.phase_c_overlay_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_package_erratum ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_refund_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_reporting_authority ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phase_c_reporting_authority_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_role_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_rule_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase_c_source_cutover ENABLE ROW LEVEL SECURITY;
