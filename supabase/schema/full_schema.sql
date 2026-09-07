@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T18:51:43.398Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T19:06:05.995Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -123,6 +123,7 @@ CREATE SEQUENCE IF NOT EXISTS public.kernel_signal_inbox_signal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kernel_trigger_inbox_inbox_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_results_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.licence_renewal_ask_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.llm_calls_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.marketing_library_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_brands_id_seq;
@@ -173,7 +174,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (525) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (526) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -3619,6 +3620,21 @@ CREATE TABLE IF NOT EXISTS public.legal_reviews (
   needs_licensed_review boolean DEFAULT true,
   reviewed_at timestamp with time zone DEFAULT now() NOT NULL,
   reviewed_by text DEFAULT 'legal_ai'::text
+);
+
+CREATE TABLE IF NOT EXISTS public.licence_renewal_ask (
+  id bigint DEFAULT nextval('licence_renewal_ask_id_seq'::regclass) NOT NULL,
+  lead_id bigint NOT NULL,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  band text NOT NULL,
+  expiry_date date NOT NULL,
+  days_to_expiry integer NOT NULL,
+  channel text NOT NULL,
+  sent boolean DEFAULT false NOT NULL,
+  blocked_reason text,
+  notification_id bigint,
+  answered_at timestamp with time zone,
+  answered_by_intake bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.llm_attempt (
@@ -7541,6 +7557,7 @@ ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_pkey PRIMARY K
 ALTER TABLE public.legal_documents ADD CONSTRAINT legal_documents_pkey PRIMARY KEY (slug);
 ALTER TABLE public.legal_kpi_snapshots ADD CONSTRAINT legal_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.legal_reviews ADD CONSTRAINT legal_reviews_pkey PRIMARY KEY (id);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_pkey PRIMARY KEY (id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_pkey PRIMARY KEY (attempt_id);
 ALTER TABLE public.llm_cache ADD CONSTRAINT llm_cache_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.llm_calls ADD CONSTRAINT llm_calls_pkey PRIMARY KEY (id);
@@ -7845,6 +7862,7 @@ ALTER TABLE public.kernel_signal_inbox ADD CONSTRAINT kernel_signal_inbox_idempo
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_idem_uk UNIQUE (idempotency_key);
 ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
@@ -8041,6 +8059,8 @@ ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_u
 ALTER TABLE public.leads ADD CONSTRAINT leads_approved_implies_verified CHECK (((COALESCE(approval_status, ''::text) <> 'approved'::text) OR (COALESCE(verified, false) = true)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_status_check CHECK (((registration_status IS NULL) OR (registration_status = ANY (ARRAY['exempt'::text, 'paid'::text, 'not_due'::text, 'due'::text]))));
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_band_check CHECK ((band = ANY (ARRAY['t_minus_30'::text, 't_minus_14'::text, 't_minus_7'::text, 'expired'::text])));
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text])));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_attempt_no_check CHECK ((attempt_no >= 1));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_matches_ok CHECK (((ok AND (class_key IS NULL)) OR ((NOT ok) AND (class_key IS NOT NULL))));
 ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_layer_check CHECK ((layer = ANY (ARRAY['provider'::text, 'transport'::text, 'contract'::text, 'tool'::text, 'retrieval'::text, 'database'::text, 'orchestration'::text, 'test_runner'::text, 'unknown'::text])));
@@ -8445,6 +8465,8 @@ ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN 
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answered_by_intake_fkey FOREIGN KEY (answered_by_intake) REFERENCES wa_document_intake(id);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
@@ -8892,6 +8914,7 @@ CREATE INDEX leads_lifecycle_stage_idx ON public.leads USING btree (lifecycle_st
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);
 CREATE INDEX leads_sector_idx ON public.leads USING btree (sector);
 CREATE UNIQUE INDEX legal_kpi_snap_day ON public.legal_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX licence_renewal_ask_open ON public.licence_renewal_ask USING btree (lead_id, asked_at DESC) WHERE (answered_at IS NULL);
 CREATE INDEX llm_attempt_agent_idx ON public.llm_attempt USING btree (agent_key, created_at DESC);
 CREATE INDEX llm_attempt_first_idx ON public.llm_attempt USING btree (created_at DESC) WHERE (attempt_no = 1);
 CREATE INDEX llm_attempt_route_idx ON public.llm_attempt USING btree (model_route, created_at DESC);
@@ -16528,6 +16551,118 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_context(p_query text, p_max_chars integer DEFAULT 18000, p_limit integer DEFAULT 8)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+  v_out jsonb := '[]'::jsonb;
+  v_used int := 0;
+  v_n int := 0;
+  v_how text := null;
+begin
+  for r in select * from public.fn_ceo_knowledge_search(p_query, p_limit) loop
+    exit when v_used + length(r.body) > greatest(2000, p_max_chars);
+    v_how := coalesce(v_how, r.matched_how);
+    v_out := v_out || jsonb_build_object(
+      'record_id', r.record_id, 'record_kind', r.record_kind, 'title', r.title,
+      'domain', r.domain, 'body', r.body, 'body_sha256', r.body_sha256,
+      'source_ids', to_jsonb(r.source_ids), 'source_path', r.source_path,
+      'review_status', r.review_status, 'authority_effect', r.authority_effect,
+      'relevance', r.relevance, 'matched_how', r.matched_how, 'warning', r.warning);
+    v_used := v_used + length(r.body);
+    v_n := v_n + 1;
+  end loop;
+
+  return jsonb_build_object(
+    'query', p_query,
+    'records', v_out,
+    'record_count', v_n,
+    'chars_used', v_used,
+    'matched_how', v_how,
+    'sufficient', v_n > 0,
+    'signal', case when v_n = 0
+                   then 'INSUFFICIENT CONTEXT -- nothing in the CEO knowledge pack matched this query. Say so rather than answering from memory.'
+                   when v_how = 'best_terms'
+                   then 'Advisory context, matched on the best terms rather than all of them. Read each title before relying on it. Company facts, targets, budgets and permissions must be read from the application, not from these records.'
+                   else 'Advisory context only. Company facts, targets, budgets and permissions must be read from the application, not from these records.' end,
+    'pack_fingerprint', (select max(pack_fingerprint) from public.ceo_knowledge));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_knowledge_search(p_query text, p_limit integer DEFAULT 8, p_kind text DEFAULT NULL::text, p_domain text DEFAULT NULL::text)
+ RETURNS TABLE(record_id text, record_version text, record_kind text, title text, domain text, body text, body_sha256 text, source_ids text[], source_path text, review_status text, authority_effect text, contains_synthetic_example boolean, requires_current_verification boolean, relevance real, matched_how text, warning text)
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_q     tsquery;
+  v_lex   text[];
+  v_found boolean := false;
+  v_how   text := 'all_terms';
+begin
+  if coalesce(btrim(p_query), '') = '' then
+    return;  -- an empty query retrieves nothing rather than everything
+  end if;
+
+  -- PASS 1: every term. Precise, and unchanged from before.
+  v_q := websearch_to_tsquery('english', p_query);
+  if v_q is not null then
+    select exists (select 1 from public.ceo_knowledge k
+                    where k.runtime_index_eligible and k.search @@ v_q
+                      and (p_kind is null or k.record_kind = p_kind)
+                      and (p_domain is null or k.domain = p_domain))
+      into v_found;
+  end if;
+
+  -- PASS 2: the best terms. Only when pass 1 found nothing, so precision is never traded away --
+  -- it is only used where the alternative is an empty answer.
+  if not v_found then
+    v_lex := tsvector_to_array(to_tsvector('english'::regconfig, p_query));
+    if v_lex is null or array_length(v_lex, 1) is null then
+      return;
+    end if;
+    -- Lexemes are already normalised and stripped of stop words by to_tsvector. Quoting each one
+    -- keeps a lexeme containing punctuation from being parsed as an operator.
+    begin
+      v_q := to_tsquery('english'::regconfig,
+                        array_to_string(array(select '''' || replace(x, '''', '''''') || '''' from unnest(v_lex) x), ' | '));
+    exception when others then
+      return;  -- an unparseable query returns nothing rather than an error the caller cannot act on
+    end;
+    v_how := 'best_terms';
+  end if;
+
+  return query
+  select k.record_id, k.record_version, k.record_kind, k.title, k.domain,
+         k.body, k.body_sha256, k.source_ids, k.source_path,
+         k.review_status, k.authority_effect, k.contains_synthetic_example,
+         k.requires_current_verification,
+         ts_rank(k.search, v_q) as relevance,
+         v_how as matched_how,
+         'Advisory only. authority_effect=none: this may not approve an action, change a target or '
+         || 'become policy. review_status=' || k.review_status || '. '
+         || case when v_how = 'best_terms'
+                 then 'MATCHED ON BEST TERMS, not all of them -- read the title before relying on it. ' else '' end
+         || case when k.contains_synthetic_example
+                 then 'CONTAINS A SYNTHETIC EXAMPLE -- it is authored, not QuotesDone experience. ' else '' end
+         || case when k.requires_current_verification
+                 then 'REQUIRES CURRENT VERIFICATION against an authoritative company source. ' else '' end
+         || 'Current company facts come from the application, never from this record.' as warning
+    from public.ceo_knowledge k
+   where k.runtime_index_eligible
+     and k.search @@ v_q
+     and (p_kind is null or k.record_kind = p_kind)
+     and (p_domain is null or k.domain = p_domain)
+   order by ts_rank(k.search, v_q) desc, k.record_id
+   limit greatest(1, least(coalesce(p_limit, 8), 50));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_knowledge_search_vector()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -16539,6 +16674,41 @@ begin
    || setweight(to_tsvector('english'::regconfig, coalesce(array_to_string(new.tags,' '),'')), 'B')
    || setweight(to_tsvector('english'::regconfig, coalesce(new.body,'')), 'C');
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_standing()
+ RETURNS TABLE(domain text, decision_key text, authority text, reading text, reading_kind text)
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+  v text;
+begin
+  for r in select d.domain, d.decision_key, d.authority, d.measure, d.measure_sql
+             from public.ceo_decision d
+            where d.active
+            order by d.domain, d.decision_key
+  loop
+    domain := r.domain; decision_key := r.decision_key; authority := r.authority;
+    if r.measure_sql is null then
+      reading := 'NOT INSTRUMENTED -- ' || r.measure;
+      reading_kind := 'not_instrumented';
+    else
+      begin
+        execute r.measure_sql into v;
+        reading := coalesce(v, '(null)');
+        reading_kind := 'measured';
+      exception when others then
+        -- An instrument that throws is not a zero either. It is a broken instrument, and it says so.
+        reading := 'INSTRUMENT FAILED -- ' || sqlerrm;
+        reading_kind := 'instrument_failed';
+      end;
+    end if;
+    return next;
+  end loop;
 end $function$
 
 
@@ -16870,6 +17040,79 @@ begin
 
   raise exception 'fn_change_deployment_execute: step % of change_deployment has no deterministic determination here (steps 1, 8, 9 only)', v_step_no;
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_channel_safe_volume(p_channel_key text, p_required numeric, p_days integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  p record;
+  v_safe numeric;
+  v_weeks numeric;
+begin
+  if p_channel_key is null then
+    return jsonb_build_object('applies', false);
+  end if;
+
+  select * into p from public.outreach_channel_policy where channel_key = p_channel_key;
+  if not found then
+    -- An unknown channel is not an unlimited one.
+    return jsonb_build_object(
+      'applies', true, 'ok', false, 'safe_max', 0,
+      'reason', format('Channel %s has no policy. An unknown channel carries zero until someone declares its limit.', p_channel_key));
+  end if;
+
+  if p.status = 'blocked' then
+    return jsonb_build_object(
+      'applies', true, 'ok', false, 'safe_max', 0, 'status', p.status,
+      'reason', format('Channel %s is BLOCKED. %s', p.channel_label, p.status_reason));
+  end if;
+
+  -- A warming channel does not get max_per_day times days. It gets the ramp, which compounds weekly
+  -- from a small start. Treating a warming channel as if it were at full throughput on day one is
+  -- how a domain gets burned in week one.
+  if p.status = 'warming' and p.ramp_start_per_day is not null then
+    v_weeks := ceil(p_days / 7.0);
+    -- sum of a geometric ramp: start*7 * ((1+g)^weeks - 1) / g
+    if coalesce(p.ramp_weekly_growth, 0) > 0 then
+      v_safe := p.ramp_start_per_day * 7 *
+                ((power(1 + p.ramp_weekly_growth, v_weeks) - 1) / p.ramp_weekly_growth);
+    else
+      v_safe := p.ramp_start_per_day * p_days;
+    end if;
+    if p.max_per_day is not null then
+      v_safe := least(v_safe, p.max_per_day * p_days);
+    end if;
+  else
+    v_safe := coalesce(p.max_per_day, 0) * greatest(p_days, 0);
+    if p.max_per_week is not null then
+      v_safe := least(v_safe, p.max_per_week * ceil(p_days / 7.0));
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'applies', true,
+    'ok', p_required <= v_safe,
+    'status', p.status,
+    'channel_label', p.channel_label,
+    'safe_max', round(v_safe, 0),
+    'required', round(coalesce(p_required, 0), 0),
+    'shares_transactional_reputation', p.shares_transactional_reputation,
+    'requires_opt_in', p.requires_opt_in,
+    'reason', case
+      when p_required <= v_safe then format('%s can safely carry %s over %s days.', p.channel_label, round(v_safe,0), p_days)
+      else format('%s can safely carry %s over %s days, but the plan needs %s. %s',
+                  p.channel_label, round(v_safe,0), p_days, round(p_required,0),
+                  case when p.shares_transactional_reputation
+                       then 'This channel shares a reputation with transactional mail, so exceeding it risks sign-in codes and receipts, not just the campaign.'
+                       else 'Exceeding a channel''s safe throughput risks the channel itself.' end)
+    end
+  );
+end;
 $function$
 
 
@@ -30139,6 +30382,157 @@ begin
 
   return jsonb_build_object('reviews_run', n_rev, 'lessons_written', n_les, 'failed', n_err);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_ask_close_on_intake(p_intake_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_i record; v_closed int;
+begin
+  select * into v_i from public.wa_document_intake where id = p_intake_id;
+  if not found or v_i.lead_id is null or v_i.classified_as <> 'licence' or not v_i.attached then
+    return jsonb_build_object('ok', true, 'closed', 0,
+      'reason', 'Not an attached licence for a known lead, so no renewal ask is answered by it.');
+  end if;
+
+  update public.licence_renewal_ask
+     set answered_at = now(), answered_by_intake = p_intake_id
+   where lead_id = v_i.lead_id and answered_at is null;
+  get diagnostics v_closed = row_count;
+
+  return jsonb_build_object('ok', true, 'closed', v_closed, 'lead_id', v_i.lead_id,
+    'note', 'Every open renewal ask for this supplier is answered by the document that arrived.');
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_expiry_sweep(p_dry_run boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  r          record;
+  v_band     text;
+  v_days     int;
+  v_planned  int := 0;
+  v_email    int := 0;
+  v_wa       int := 0;
+  v_blocked  int := 0;
+  v_wa_ok    boolean;
+  v_wa_why   text;
+  v_rows     jsonb := '[]'::jsonb;
+  v_subject  text;
+  v_body     text;
+  v_note     bigint;
+begin
+  -- Ask the channel policy rather than assuming. Today WhatsApp is blocked for want of a template
+  -- and any opt-in, and this must say so instead of quietly sending nothing.
+  select (status = 'open'), status_reason
+    into v_wa_ok, v_wa_why
+    from public.outreach_channel_policy where channel_key = 'whatsapp';
+  v_wa_ok := coalesce(v_wa_ok, false);
+
+  for r in
+    select l.id, l.company_name, l.email, l.phone_e164, l.license_expiry, l.license_doc_path,
+           (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
+      from public.leads l
+     where l.license_expiry is not null
+       and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 30
+       and coalesce(l.banned, false) = false
+     order by l.license_expiry
+     limit 500
+  loop
+    v_days := r.days_left;
+    v_band := case
+      when v_days < 0   then 'expired'
+      when v_days <= 7  then 't_minus_7'
+      when v_days <= 14 then 't_minus_14'
+      else                   't_minus_30' end;
+
+    v_planned := v_planned + 1;
+
+    v_subject := case when v_days < 0
+      then 'Your trade licence has expired - QuotesDone'
+      else 'Your trade licence expires in ' || v_days || ' days - QuotesDone' end;
+
+    v_body := 'Dear ' || coalesce(r.company_name, 'Supplier') || ',' || chr(10) || chr(10)
+           || case when v_days < 0
+                then 'The trade licence we hold for you expired on ' || to_char(r.license_expiry, 'DD Mon YYYY')
+                  || '. Until we have a valid one we cannot include you in new requests.'
+                else 'The trade licence we hold for you expires on ' || to_char(r.license_expiry, 'DD Mon YYYY')
+                  || ', which is ' || v_days || ' days from now.' end
+           || chr(10) || chr(10)
+           || 'Please send us the renewed copy. A clear photograph is fine, a PDF is better. '
+           || 'You can reply to this email with it attached, or send it on WhatsApp and it will go '
+           || 'straight onto your file.' || chr(10) || chr(10)
+           || 'Nothing else is needed and there is no charge.' || chr(10) || chr(10)
+           || 'QuotesDone';
+
+    -- EMAIL. Always attempted when we hold an address.
+    if coalesce(btrim(r.email), '') <> '' then
+      if not p_dry_run then
+        insert into public.licence_renewal_ask
+          (lead_id, band, expiry_date, days_to_expiry, channel, sent)
+        values (r.id, v_band, r.license_expiry, v_days, 'email', false)
+        on conflict (lead_id, expiry_date, band, channel) do nothing;
+
+        if found then
+          insert into public.notifications (type, kind, to_email, subject, body, status, channel, lead_id)
+          values ('licence_renewal', 'licence_expiry', r.email, v_subject, v_body, 'queued', 'email', r.id)
+          returning id into v_note;
+
+          update public.licence_renewal_ask
+             set sent = true, notification_id = v_note
+           where lead_id = r.id and expiry_date = r.license_expiry and band = v_band and channel = 'email';
+        end if;
+      end if;
+      v_email := v_email + 1;
+    end if;
+
+    -- WHATSAPP. Planned either way, and the block is recorded rather than the ask vanishing.
+    if coalesce(btrim(r.phone_e164), '') <> '' then
+      if v_wa_ok then
+        v_wa := v_wa + 1;
+      else
+        v_blocked := v_blocked + 1;
+        if not p_dry_run then
+          insert into public.licence_renewal_ask
+            (lead_id, band, expiry_date, days_to_expiry, channel, sent, blocked_reason)
+          values (r.id, v_band, r.license_expiry, v_days, 'whatsapp', false, v_wa_why)
+          on conflict (lead_id, expiry_date, band, channel) do nothing;
+        end if;
+      end if;
+    end if;
+
+    if jsonb_array_length(v_rows) < 10 then
+      v_rows := v_rows || jsonb_build_object(
+        'lead_id', r.id, 'company', r.company_name, 'expiry', r.license_expiry,
+        'days_left', v_days, 'band', v_band,
+        'email', case when coalesce(btrim(r.email),'')<>'' then 'queued' else 'no address held' end,
+        'whatsapp', case when v_wa_ok then 'queued' else 'BLOCKED' end);
+    end if;
+  end loop;
+
+  return jsonb_build_object(
+    'ok', true,
+    'dry_run', p_dry_run,
+    'licences_within_30_days', v_planned,
+    'email_asks', v_email,
+    'whatsapp_asks_sent', v_wa,
+    'whatsapp_asks_blocked', v_blocked,
+    'whatsapp_status', case when v_wa_ok then 'open' else 'BLOCKED: ' || coalesce(v_wa_why,'no policy row') end,
+    'sample', v_rows,
+    'note', case when p_dry_run
+      then 'Dry run. Nothing was queued and nothing was written. Call with p_dry_run => false to act.'
+      else 'Asks queued. Each is closed only when a replacement document actually arrives, never when a message is sent.' end
+  );
+end;
 $function$
 
 
@@ -53082,6 +53476,333 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_target_baseline(p_contract_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  c record;
+  v_val numeric;
+  v_state text;
+  v_note text;
+begin
+  select * into c from public.target_contract where id = p_contract_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'No such contract.');
+  end if;
+
+  if coalesce(btrim(c.measure_sql), '') = '' then
+    v_state := 'not_instrumented';
+    v_note  := 'NO INSTRUMENT EXISTS. The contract names an authoritative source but carries no measure. '
+            || 'This needs an instrument built before it needs a number, and that is not a SQL task.';
+    v_val   := null;
+  else
+    begin
+      execute c.measure_sql into v_val;
+      if v_val is null then
+        v_state := 'unknown';
+        v_note  := 'The measure ran and returned NULL. That is an unknown, not a zero.';
+      else
+        v_state := 'measured';
+        v_note  := 'Measured live from the contract''s own measure_sql.';
+      end if;
+    exception when others then
+      -- An error is never a zero. This is the distinction the estate got wrong once already.
+      v_state := 'unknown';
+      v_val   := null;
+      v_note  := 'The measure FAILED and the baseline is therefore unknown, not zero. Error: '
+              || left(sqlerrm, 200);
+    end;
+  end if;
+
+  update public.target_contract
+     set baseline_value = v_val,
+         baseline_state = v_state,
+         baseline_at    = now(),
+         baseline_note  = v_note
+   where id = p_contract_id;
+
+  return jsonb_build_object(
+    'ok', true,
+    'contract_id', p_contract_id,
+    'baseline_value', v_val,
+    'baseline_state', v_state,
+    'baseline_at', now(),
+    'note', v_note
+  );
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_target_feasibility(p_contract_id bigint, p_record boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  c            record;
+  d            record;
+  v_days       int;
+  v_remaining  numeric;
+  v_cum_rate   numeric := 1.0;
+  v_down_rate  numeric := 1.0;
+  v_up_rate    numeric := 1.0;
+  v_total_lag  int := 0;
+  v_measured   int := 0;
+  v_assumed    int := 0;
+  v_stages     int := 0;
+  v_top        numeric;
+  v_top_down   numeric;
+  v_top_up     numeric;
+  v_binding    text := null;
+  v_binding_why text := null;
+  v_cap_limit  numeric;
+  v_cost       numeric := 0;
+  v_headroom   numeric;
+  v_verdict    text;
+  v_reason     text;
+  v_changes    text[] := '{}';
+  v_run_rate   numeric;
+  v_required   numeric;
+  v_eta        date;
+  v_chain      jsonb := '[]'::jsonb;
+  -- Stages that declare NO capacity ceiling. Treating an undeclared capacity as an infinite one is
+  -- how this function first blessed 16,129 invitations in 30 days from a list of 19,896 addresses on
+  -- a domain already bouncing at 10%. Silence about a ceiling is not evidence of headroom.
+  v_undeclared text[] := '{}';
+  -- THE SAFETY ENVELOPE. A channel's safe throughput is a property of the channel, not of how badly
+  -- we want the target. Budget and internal capacity are negotiable; sender reputation is not, because
+  -- losing it costs every sign-in code and receipt that shares the domain. So this overrides.
+  v_chan       jsonb;
+  v_chan_block text := null;
+  v_chan_why   text := null;
+  v_chan_safe  numeric;
+begin
+  select * into c from public.target_contract where id = p_contract_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'No such contract.');
+  end if;
+
+  v_days := greatest(0, (c.deadline - (now() at time zone c.timezone)::date));
+
+  -- Remaining outcome. For an incremental target the baseline does not subtract.
+  if c.desired_basis = 'incremental' then
+    v_remaining := c.desired_value;
+  else
+    v_remaining := c.desired_value - coalesce(c.baseline_value, 0);
+  end if;
+
+  -- Walk the chain. cum_rate is the product of every stage's conversion, so the top of funnel
+  -- required is remaining / cum_rate.
+  for d in
+    select * from public.target_driver where contract_id = p_contract_id order by stage_order
+  loop
+    v_stages := v_stages + 1;
+    v_cum_rate := v_cum_rate * d.rate;
+
+    -- Downside and upside bracket an assumed rate by half and double, bounded at 1. A measured rate
+    -- is bracketed far more tightly, because we actually know it.
+    if d.rate_source = 'measured' then
+      v_measured := v_measured + 1;
+      v_down_rate := v_down_rate * greatest(d.rate * 0.75, 0.0001);
+      v_up_rate   := v_up_rate   * least(d.rate * 1.25, 1.0);
+    else
+      v_assumed := v_assumed + 1;
+      v_down_rate := v_down_rate * greatest(d.rate * 0.5, 0.0001);
+      v_up_rate   := v_up_rate   * least(d.rate * 2.0, 1.0);
+    end if;
+
+    v_total_lag := v_total_lag + d.lag_days;
+
+    v_chain := v_chain || jsonb_build_object(
+      'stage', d.stage_key,
+      'label', d.stage_label,
+      'rate', d.rate,
+      'rate_source', d.rate_source,
+      'lag_days', d.lag_days,
+      'capacity_per_day', d.capacity_per_day,
+      'unit_cost', d.unit_cost
+    );
+  end loop;
+
+  -- No chain means no model. Say so rather than inventing one.
+  if v_stages = 0 then
+    v_verdict := 'CANNOT_ASSESS';
+    v_reason  := 'No driver model exists for this contract. Without a causal chain there is no way to '
+              || 'say what volume of activity produces the outcome, and any number would be invented.';
+    v_changes := array['Build the driver model: name each stage from controllable activity to outcome, with its rate and whether that rate was measured or assumed.'];
+  elsif c.baseline_state <> 'measured' then
+    v_verdict := 'CANNOT_ASSESS';
+    v_reason  := 'The baseline is ' || c.baseline_state || '. A gap cannot be computed from an unknown '
+              || 'starting point, and treating it as zero is the error this column exists to prevent.';
+    v_changes := array['Instrument the baseline, or record explicitly that it is a measured zero.'];
+  end if;
+
+  v_top      := case when v_cum_rate  > 0 then v_remaining / v_cum_rate  else null end;
+  v_top_down := case when v_down_rate > 0 then v_remaining / v_down_rate else null end;
+  v_top_up   := case when v_up_rate   > 0 then v_remaining / v_up_rate   else null end;
+
+  -- Cost: sum the unit cost of every stage against the volume that stage must carry.
+  declare
+    v_vol numeric := v_top;
+  begin
+    for d in select * from public.target_driver where contract_id = p_contract_id order by stage_order loop
+      if d.unit_cost is not null and v_vol is not null then
+        v_cost := v_cost + (v_vol * d.unit_cost);
+      end if;
+      if v_vol is not null then v_vol := v_vol * d.rate; end if;
+    end loop;
+  end;
+
+  -- Capacity: the first stage whose per-day ceiling cannot carry its required volume in the time left
+  -- is the binding constraint. Lag is subtracted, because a stage that takes 7 days to convert does
+  -- not get all 30 days of runway.
+  declare
+    v_vol numeric := v_top;
+    v_usable_days int;
+  begin
+    for d in select * from public.target_driver where contract_id = p_contract_id order by stage_order loop
+      v_usable_days := greatest(1, v_days - v_total_lag);
+      if d.capacity_per_day is not null and v_vol is not null then
+        v_cap_limit := d.capacity_per_day * v_usable_days;
+        if v_vol > v_cap_limit and v_binding is null then
+          v_binding := d.stage_key;
+          v_binding_why := format(
+            'Stage %s must carry %s units but its ceiling is %s per day over %s usable days, which is %s.',
+            d.stage_key, round(v_vol, 1), d.capacity_per_day, v_usable_days, round(v_cap_limit, 1));
+        end if;
+      elsif d.capacity_per_day is null and d.channel_key is null then
+        v_undeclared := array_append(v_undeclared,
+          format('%s (must carry %s over %s usable days)', d.stage_key, round(coalesce(v_vol,0),0), v_usable_days));
+      end if;
+
+      -- The channel check. A stage that names a channel is capped by that channel's policy no matter
+      -- what the budget or the internal capacity allows.
+      if d.channel_key is not null and v_vol is not null then
+        v_chan := public.fn_channel_safe_volume(d.channel_key, v_vol, v_usable_days);
+        if coalesce((v_chan->>'ok')::boolean, false) = false and v_chan_block is null then
+          v_chan_block := d.stage_key;
+          v_chan_safe  := (v_chan->>'safe_max')::numeric;
+          v_chan_why   := v_chan->>'reason';
+        end if;
+      end if;
+      if v_vol is not null then v_vol := v_vol * d.rate; end if;
+    end loop;
+  end;
+
+  v_headroom := case when c.budget_amount is null then null else c.budget_amount - v_cost end;
+
+  -- Run rate so far, and the pace required from here.
+  v_run_rate := case when c.baseline_at is not null and c.activated_at is not null
+                       and c.baseline_at > c.activated_at
+                     then coalesce(c.baseline_value,0) / greatest(1, extract(day from c.baseline_at - c.activated_at))
+                     else null end;
+  v_required := case when v_days > 0 then v_remaining / v_days else null end;
+  v_eta := case when v_run_rate is not null and v_run_rate > 0
+                then (now() at time zone c.timezone)::date + ceil(v_remaining / v_run_rate)::int
+                else null end;
+
+  -- The verdict, if the two hard refusals above did not already set it.
+  if v_verdict is null then
+    -- THE SAFETY ENVELOPE IS CHECKED FIRST, because it is the only constraint that cannot be bought
+    -- out of. A cheaper plan, a longer deadline or more staff do not restore a blacklisted domain.
+    if v_chan_block is not null then
+      v_verdict := 'NOT_ACHIEVABLE';
+      v_reason  := 'The channel that carries this plan cannot carry it safely. ' || v_chan_why;
+      v_changes := array_append(v_changes, format(
+        'Cap stage %s at %s, which is what the channel can safely carry, and make up the difference on '
+        || 'another channel or renegotiate the target. Raising the volume is not an option here: budget '
+        || 'and capacity are negotiable, sender reputation is not.',
+        v_chan_block, round(coalesce(v_chan_safe,0),0)));
+      v_changes := array_append(v_changes,
+        'Open a separate outreach domain and warm it, so cold volume never shares a reputation with sign-in codes and receipts.');
+    elsif v_binding is not null then
+      v_verdict := 'NOT_ACHIEVABLE';
+      v_reason  := 'A capacity ceiling binds before the deadline. ' || v_binding_why;
+      v_changes := array_append(v_changes, format('Raise capacity at stage %s, extend the deadline, or reduce the desired value.', v_binding));
+    elsif c.budget_amount is not null and v_cost > c.budget_amount then
+      v_verdict := 'NOT_ACHIEVABLE';
+      v_reason  := format('The plan costs %s against a budget of %s, so it cannot be funded as designed.',
+                          round(v_cost,2), c.budget_amount);
+      v_changes := array_append(v_changes, format('Raise the budget to %s, improve a conversion rate, or reduce the desired value.', round(v_cost,2)));
+    elsif array_length(v_undeclared, 1) > 0 then
+      -- An undeclared ceiling is not headroom. Say the volume out loud and make someone declare it.
+      v_verdict := 'AT_RISK';
+      v_reason  := format('The arithmetic is fundable, but %s stage(s) declare no capacity ceiling: %s. '
+                       || 'An undeclared ceiling is an unchecked assumption, not evidence of headroom, and it is '
+                       || 'exactly how a plan that looks affordable turns out to be physically impossible.',
+                          array_length(v_undeclared,1), array_to_string(v_undeclared, '; '));
+      v_changes := array_append(v_changes,
+        format('Declare a real capacity_per_day for: %s. If the true ceiling cannot carry the volume, the target changes, not the ceiling.',
+               array_to_string(v_undeclared, ', ')));
+    elsif v_measured = 0 then
+      v_verdict := 'AT_RISK';
+      v_reason  := format('The chain is arithmetically fundable and within capacity, but every one of its %s '
+                       || 'rates is assumed rather than measured here. The plan is a hypothesis, not a forecast.', v_stages);
+      v_changes := array_append(v_changes, 'Measure at least the first conversion rate on a small controlled batch before scaling.');
+    elsif v_assumed > v_measured then
+      v_verdict := 'AT_RISK';
+      v_reason  := format('%s of %s rates are assumed rather than measured, so the downside case (%s at top of funnel) '
+                       || 'is far from the base case (%s).', v_assumed, v_stages, round(coalesce(v_top_down,0),0), round(coalesce(v_top,0),0));
+      v_changes := array_append(v_changes, 'Convert the largest assumed rate into a measured one before committing the full budget.');
+    else
+      v_verdict := 'ACHIEVABLE';
+      v_reason  := format('Requires %s at the top of the funnel over %s days, within capacity and budget, '
+                       || 'on %s measured rates of %s.', round(coalesce(v_top,0),0), v_days, v_measured, v_stages);
+    end if;
+  end if;
+
+  if p_record then
+    insert into public.target_verdict (
+      contract_id, remaining_outcome, days_remaining, current_run_rate, required_run_rate,
+      expected_completion, scenario_downside, scenario_base, scenario_upside,
+      binding_stage, binding_reason, required_top_of_funnel, projected_cost, budget_headroom,
+      verdict, verdict_reason, what_must_change, measured_rate_count, assumed_rate_count
+    ) values (
+      p_contract_id, v_remaining, v_days, v_run_rate, v_required,
+      v_eta, v_top_down, v_top, v_top_up,
+      v_binding, v_binding_why, v_top, nullif(v_cost,0), v_headroom,
+      v_verdict, v_reason, v_changes, v_measured, v_assumed
+    );
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'contract', c.contract_key,
+    'version', c.version,
+    'objective', c.objective,
+    'baseline', jsonb_build_object('value', c.baseline_value, 'state', c.baseline_state, 'at', c.baseline_at),
+    'remaining_outcome', v_remaining,
+    'days_remaining', v_days,
+    'total_lag_days', v_total_lag,
+    'required_run_rate_per_day', round(coalesce(v_required,0), 2),
+    'chain', v_chain,
+    'cumulative_rate', v_cum_rate,
+    'required_top_of_funnel', jsonb_build_object(
+       'downside', round(coalesce(v_top_down,0),0),
+       'base',     round(coalesce(v_top,0),0),
+       'upside',   round(coalesce(v_top_up,0),0)),
+    'projected_cost', round(v_cost, 2),
+    'budget_amount', c.budget_amount,
+    'budget_headroom', round(coalesce(v_headroom,0), 2),
+    'binding_stage', v_binding,
+    'binding_reason', v_binding_why,
+    'channel_blocked_stage', v_chan_block,
+    'channel_safe_max', v_chan_safe,
+    'channel_reason', v_chan_why,
+    'rates_measured', v_measured,
+    'rates_assumed', v_assumed,
+    'verdict', v_verdict,
+    'verdict_reason', v_reason,
+    'what_must_change', to_jsonb(v_changes)
+  );
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_task_approve(p_dry_run boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -53911,6 +54632,102 @@ begin
     'ok', true, 'matched', true, 'intent', v_intent.intent_key,
     'identity_kind', v_ident_k, 'identity_id', v_ident_id,
     'reply', v_reply, 'log_id', v_log, 'answered_by', 'deterministic'
+  );
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_attach_document(p_phone text, p_storage_path text, p_caption text DEFAULT NULL::text, p_media_kind text DEFAULT NULL::text, p_turn_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_lead   bigint;
+  v_cap    text := lower(coalesce(p_caption, '') || ' ' || coalesce(p_storage_path, ''));
+  v_kind   text := 'unknown';
+  v_by     text := 'caption';
+  v_conf   text := 'low';
+  v_intake bigint;
+  v_before jsonb;
+  v_after  jsonb;
+  v_reply  text;
+begin
+  v_lead := public.fn_wa_lead_id(p_phone);
+
+  -- Classify from the caption and the filename. Deliberately conservative: an unrecognised document
+  -- is recorded as unknown and waits, rather than being filed as a trade licence on a guess.
+  if v_cap ~ '(trade|licence|license|رخصة|رخصه)' then
+    v_kind := 'licence'; v_conf := 'high';
+  elsif v_cap ~ '(profile|company profile|brochure|ملف|بروفايل)' then
+    v_kind := 'profile'; v_conf := 'high';
+  elsif v_cap ~ '(terms|t&c|agreement|signed|شروط|اتفاقية)' then
+    v_kind := 'signed_terms'; v_conf := 'high';
+  end if;
+
+  if v_lead is not null then
+    v_before := public.fn_supplier_mandatory_check(v_lead);
+  end if;
+
+  insert into public.wa_document_intake
+    (phone_e164, lead_id, turn_id, storage_path, media_kind, caption,
+     classified_as, classified_by, confidence, attached, attach_note)
+  values (regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g'), v_lead, p_turn_id,
+          p_storage_path, p_media_kind, p_caption, v_kind, v_by, v_conf, false, null)
+  returning id into v_intake;
+
+  -- Attach ONLY when we know whose file it is and what it is. Anything else waits for a person.
+  if v_lead is null then
+    v_reply := 'Thank you. I could not match this number to a registered company yet, so I have kept '
+            || 'your file and someone will match it to your account. If you reply with the email '
+            || 'address you registered with, I can do it straight away.';
+    update public.wa_document_intake set attach_note = 'No lead matches this number.' where id = v_intake;
+
+  elsif v_kind = 'unknown' then
+    v_reply := 'Thank you, I have saved that to your file. I could not tell which document it is, so '
+            || 'to file it correctly please tell me: is it your trade licence, your company profile, '
+            || 'or the signed terms?';
+    update public.wa_document_intake set attach_note = 'Received but unclassified; asked the sender.' where id = v_intake;
+
+  else
+    if v_kind = 'licence' then
+      update public.leads set license_doc_path = p_storage_path where id = v_lead;
+    elsif v_kind = 'profile' then
+      update public.leads set company_profile_doc_path = p_storage_path where id = v_lead;
+    elsif v_kind = 'signed_terms' then
+      update public.leads set signed_terms_path = p_storage_path where id = v_lead;
+    end if;
+
+    update public.wa_document_intake
+       set attached = true,
+           attach_note = format('Attached as %s to lead %s.', v_kind, v_lead)
+     where id = v_intake;
+
+    v_after := public.fn_supplier_mandatory_check(v_lead);
+
+    -- Tell them what changed and what is left. This is the difference between a receipt and a service.
+    if coalesce((v_after->>'complete')::boolean, false) then
+      v_reply := 'Got it, that is your ' || replace(v_kind,'_',' ') || ' saved. Your file is now '
+              || 'complete and it goes to our team for verification. I will message you here when it '
+              || 'is approved.';
+    else
+      v_reply := 'Got it, that is your ' || replace(v_kind,'_',' ') || ' saved. Still needed: '
+              || (select string_agg(value #>> '{}', ', ') from jsonb_array_elements(v_after->'missing'))
+              || '. You can send them here the same way.';
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'intake_id', v_intake,
+    'lead_id', v_lead,
+    'classified_as', v_kind,
+    'confidence', v_conf,
+    'attached', (v_lead is not null and v_kind <> 'unknown'),
+    'mandatory_before', v_before,
+    'mandatory_after', v_after,
+    'reply', v_reply
   );
 end;
 $function$
@@ -61466,6 +62283,7 @@ ALTER TABLE public.legal_checklist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.licence_renewal_ask ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_attempt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;

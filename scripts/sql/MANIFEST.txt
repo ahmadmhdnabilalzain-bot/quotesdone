@@ -1577,3 +1577,7 @@ scripts/sql/the_ceo_knowledge_pack_becomes_retrievable.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/a_long_question_must_not_require_every_word_to_match.sql
+scripts/sql/the_ceo_decision_register_and_its_authority.sql
+scripts/sql/a_licence_about_to_expire_asks_for_itself.sql
+scripts/sql/no_target_may_outrun_the_channel_that_carries_it.sql
