@@ -1737,6 +1737,7 @@ scripts/sql/certifications_legal_privacy.sql
 scripts/sql/certifications_trust_partnerships.sql
 scripts/sql/certifications_customer_experience.sql
 scripts/sql/certifications_growth.sql
+scripts/sql/certifications_cloud_architecture.sql
 scripts/sql/the_company_renderers_carry_every_record_of_6_sep.sql
 scripts/sql/certifications_credit_treasury.sql
 scripts/sql/the_head_budget_is_split_after_the_mandatory_pieces.sql
