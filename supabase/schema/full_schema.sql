@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-06T21:50:42.892Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T06:36:04.717Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -54,6 +54,9 @@ CREATE SEQUENCE IF NOT EXISTS public.canon_eval_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.canon_eval_runs_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.category_keyword_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.category_quote_specs_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.certification_exam_question_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.certification_exam_result_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.certification_knowledge_gap_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.challenge_heuristic_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.challenge_record_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.channel_directive_id_seq;
@@ -172,6 +175,7 @@ CREATE SEQUENCE IF NOT EXISTS public.review_chain_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.review_queue_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.rfq_archives_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.risk_register_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.role_certification_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.scenario_expectation_annotation_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.scenario_expectation_change_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.scope_marker_id_seq;
@@ -188,7 +192,7 @@ CREATE SEQUENCE IF NOT EXISTS public.unsafe_block_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (623) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (627) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -1087,6 +1091,51 @@ CREATE TABLE IF NOT EXISTS public.category_specs (
   supplier_requirements jsonb,
   compliance_checklist jsonb,
   reqs_updated_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.certification_exam_question (
+  id bigint DEFAULT nextval('certification_exam_question_id_seq'::regclass) NOT NULL,
+  certification text NOT NULL,
+  syllabus_area text NOT NULL,
+  difficulty text DEFAULT 'exam'::text NOT NULL,
+  question text NOT NULL,
+  option_a text NOT NULL,
+  option_b text NOT NULL,
+  option_c text NOT NULL,
+  option_d text NOT NULL,
+  correct_option character(1) NOT NULL,
+  rationale text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.certification_exam_result (
+  id bigint DEFAULT nextval('certification_exam_result_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  certification text NOT NULL,
+  sat_at timestamp with time zone DEFAULT now() NOT NULL,
+  questions integer NOT NULL,
+  correct integer NOT NULL,
+  score_pct numeric(5,2) NOT NULL,
+  pass_mark_pct numeric(5,2) NOT NULL,
+  passed boolean NOT NULL,
+  weakest_areas jsonb DEFAULT '[]'::jsonb NOT NULL,
+  answers jsonb DEFAULT '[]'::jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.certification_knowledge_gap (
+  id bigint DEFAULT nextval('certification_knowledge_gap_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  certification text NOT NULL,
+  syllabus_area text NOT NULL,
+  asked integer NOT NULL,
+  correct integer NOT NULL,
+  score_pct numeric NOT NULL,
+  missed_question_ids bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  first_seen timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen timestamp with time zone DEFAULT now() NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  ingested_at timestamp with time zone,
+  closed_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.challenge_heuristic (
@@ -7424,6 +7473,18 @@ CREATE TABLE IF NOT EXISTS public.rl_hits (
   _pk bigint GENERATED ALWAYS AS IDENTITY NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.role_certification (
+  id bigint DEFAULT nextval('role_certification_id_seq'::regclass) NOT NULL,
+  agent_key text NOT NULL,
+  certification text NOT NULL,
+  issuing_body text NOT NULL,
+  pass_mark_pct numeric(5,2) NOT NULL,
+  rank smallint DEFAULT 1 NOT NULL,
+  why text NOT NULL,
+  syllabus_areas text[] DEFAULT '{}'::text[] NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.role_isolation_decision (
   agent_key text NOT NULL,
   packaged_role_id text NOT NULL,
@@ -8329,6 +8390,9 @@ ALTER TABLE public.category_licence_activity ADD CONSTRAINT category_licence_act
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_pkey PRIMARY KEY (id);
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_pkey PRIMARY KEY (category);
 ALTER TABLE public.category_specs ADD CONSTRAINT category_specs_pkey PRIMARY KEY (category);
+ALTER TABLE public.certification_exam_question ADD CONSTRAINT certification_exam_question_pkey PRIMARY KEY (id);
+ALTER TABLE public.certification_exam_result ADD CONSTRAINT certification_exam_result_pkey PRIMARY KEY (id);
+ALTER TABLE public.certification_knowledge_gap ADD CONSTRAINT certification_knowledge_gap_pkey PRIMARY KEY (id);
 ALTER TABLE public.challenge_heuristic ADD CONSTRAINT challenge_heuristic_pkey PRIMARY KEY (id);
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_pkey PRIMARY KEY (id);
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_pkey PRIMARY KEY (id);
@@ -8808,6 +8872,7 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_pkey PRIMARY KEY (id);
 ALTER TABLE public.risk_register ADD CONSTRAINT risk_register_pkey PRIMARY KEY (id);
 ALTER TABLE public.rl_hits ADD CONSTRAINT rl_hits_pkey PRIMARY KEY (_pk);
+ALTER TABLE public.role_certification ADD CONSTRAINT role_certification_pkey PRIMARY KEY (id);
 ALTER TABLE public.role_isolation_decision ADD CONSTRAINT role_isolation_decision_pkey PRIMARY KEY (agent_key, packaged_role_id);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_pkey PRIMARY KEY (role, action);
 ALTER TABLE public.roles ADD CONSTRAINT roles_pkey PRIMARY KEY (name);
@@ -8886,6 +8951,7 @@ ALTER TABLE public.canary_records ADD CONSTRAINT canary_records_fingerprint_key 
 ALTER TABLE public.career_level ADD CONSTRAINT career_level_level_name_key UNIQUE (level_name);
 ALTER TABLE public.catalog_subcategories ADD CONSTRAINT catalog_subcategories_slug_key UNIQUE (slug);
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_spec_group_aspect_key UNIQUE (spec_group, aspect);
+ALTER TABLE public.certification_knowledge_gap ADD CONSTRAINT certification_knowledge_gap_agent_key_certification_syllabu_key UNIQUE (agent_key, certification, syllabus_area);
 ALTER TABLE public.collaboration_rule ADD CONSTRAINT collaboration_rule_situation_key UNIQUE (situation);
 ALTER TABLE public.company_economics ADD CONSTRAINT company_economics_topic_key UNIQUE (topic);
 ALTER TABLE public.company_index ADD CONSTRAINT company_index_measured_on_index_name_key UNIQUE (measured_on, index_name);
@@ -8979,6 +9045,7 @@ ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_authority_code_name_ke
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_resource_key UNIQUE (resource);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_key UNIQUE (transaction_id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_rfq_id_key UNIQUE (rfq_id);
+ALTER TABLE public.role_certification ADD CONSTRAINT role_certification_agent_key_certification_key UNIQUE (agent_key, certification);
 ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_marker_type_pattern_lang_key UNIQUE (marker_type, pattern, lang);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_category_title_key UNIQUE (category, title);
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_source_hash_key UNIQUE (supplier_id, source_hash);
@@ -9040,6 +9107,9 @@ ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_signal_type_check CH
 ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_status_check CHECK ((status = ANY (ARRAY['open'::text, 'investigating'::text, 'confirmed'::text, 'dismissed'::text, 'actioned'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
+ALTER TABLE public.certification_exam_question ADD CONSTRAINT certification_exam_question_correct_option_check CHECK ((correct_option = ANY (ARRAY['A'::bpchar, 'B'::bpchar, 'C'::bpchar, 'D'::bpchar])));
+ALTER TABLE public.certification_exam_question ADD CONSTRAINT certification_exam_question_difficulty_check CHECK ((difficulty = ANY (ARRAY['exam'::text, 'hard'::text])));
+ALTER TABLE public.certification_knowledge_gap ADD CONSTRAINT certification_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'ingested'::text, 'closed'::text])));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_stance_check CHECK ((stance = ANY (ARRAY['support'::text, 'concern'::text, 'recommend_against'::text])));
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_actor_type_check CHECK ((actor_type = ANY (ARRAY['supplier'::text, 'customer'::text])));
@@ -9498,6 +9568,7 @@ ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_agent_sl
 ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_keyword ADD CONSTRAINT category_keyword_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
+ALTER TABLE public.certification_exam_result ADD CONSTRAINT certification_exam_result_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key);
 ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_owner_dept_fkey FOREIGN KEY (owner_dept) REFERENCES org_departments(dept_key);
 ALTER TABLE public.comparison_candidate_v2 ADD CONSTRAINT comparison_candidate_v2_comparison_run_id_fkey FOREIGN KEY (comparison_run_id) REFERENCES comparison_run_v2(id) ON DELETE CASCADE;
@@ -9802,6 +9873,7 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+ALTER TABLE public.role_certification ADD CONSTRAINT role_certification_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key);
 ALTER TABLE public.role_permissions ADD CONSTRAINT role_permissions_role_fkey FOREIGN KEY (role) REFERENCES roles(name);
 ALTER TABLE public.scenario_expectation_annotation ADD CONSTRAINT scenario_expectation_annotation_change_id_fkey FOREIGN KEY (change_id) REFERENCES scenario_expectation_change(id);
 ALTER TABLE public.scope_marker ADD CONSTRAINT scope_marker_component_fkey FOREIGN KEY (component) REFERENCES scope_component(component);
@@ -9874,6 +9946,9 @@ CREATE INDEX brand_signal_open_idx ON public.brand_signal USING btree (status, s
 CREATE INDEX category_keyword_slug_idx ON public.category_keyword USING btree (slug);
 CREATE UNIQUE INDEX category_keyword_uidx ON public.category_keyword USING btree (slug, pattern);
 CREATE INDEX ce_type_idx ON public.company_event USING btree (event_type, occurred_at DESC);
+CREATE INDEX certification_exam_question_cert_idx ON public.certification_exam_question USING btree (certification);
+CREATE INDEX certification_exam_result_agent_idx ON public.certification_exam_result USING btree (agent_key, sat_at DESC);
+CREATE INDEX certification_knowledge_gap_open_idx ON public.certification_knowledge_gap USING btree (status, agent_key);
 CREATE INDEX channel_directive_actor_idx ON public.channel_directive USING btree (actor_type, actor_id, created_at DESC);
 CREATE INDEX company_faq_emb_idx ON public.company_faq USING ivfflat (embedding_gte vector_cosine_ops) WITH (lists='20');
 CREATE INDEX content_drafts_status_idx ON public.content_drafts USING btree (status, id DESC);
@@ -18400,135 +18475,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19044,6 +18990,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -23079,6 +23154,412 @@ begin
   values ('ceo_questions',now(),now(),'ok',jsonb_build_object('asked',n),
           'CEO self-questioning: '||n||' strategic question(s) raised from live company data.');
   return jsonb_build_object('asked',n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_exam_sit(p_agent text, p_certification text)
+ RETURNS certification_exam_result
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_min_support constant real := 0.25;   -- see the header: bounded rank, about three distinctive hits
+  c_min_margin  constant real := 0.15;   -- relative: the winner must clear the runner-up by 15%
+  v_dept text; v_pass numeric; v_head text; v_head_tsv tsvector;
+  v_q record; v_best record; v_terms text; v_stem tsquery;
+  v_chosen char(1); v_ok boolean;
+  v_answers jsonb := '[]'::jsonb;
+  v_areas jsonb; v_n int; v_correct int; v_score numeric;
+  v_row public.certification_exam_result;
+begin
+  select a.department into v_dept from public.org_agents a where a.agent_key = p_agent and a.active;
+  if v_dept is null then
+    raise exception 'fn_certification_exam_sit: % is not an active employee', p_agent;
+  end if;
+  select rc.pass_mark_pct into v_pass from public.role_certification rc
+   where rc.agent_key = p_agent and rc.certification = p_certification;
+  if v_pass is null then
+    raise exception 'fn_certification_exam_sit: % does not hold % in role_certification', p_agent, p_certification;
+  end if;
+  if not exists (select 1 from public.certification_exam_question q where q.certification = p_certification) then
+    raise exception 'fn_certification_exam_sit: no question bank for %', p_certification;
+  end if;
+
+  v_head := coalesce(public.fn_agent_context(p_agent, 19500), '');
+  -- 7 SEP 2026: the head is the same 23,000 characters for all 40 questions, so its search vector is
+  -- built ONCE. Building it inside the loop cost a to_tsvector over 23 kB per question, and the
+  -- trigram tiebreak below ran over the same 23 kB four times per question on top of it.
+  v_head_tsv := to_tsvector('english', left(v_head, 900000));
+
+  for v_q in
+    select * from public.certification_exam_question q where q.certification = p_certification order by q.id
+  loop
+    v_terms := concat_ws(' ', v_q.question, v_q.option_a, v_q.option_b, v_q.option_c, v_q.option_d);
+    v_stem  := plainto_tsquery('english', v_q.question);
+
+    with ev as (
+      select k.record_id, concat_ws(' ', k.title, k.content) as content
+        from public.fn_ops_knowledge_search(v_dept, v_terms, 20) k
+      union all
+      select 'agent_knowledge:' || x.id, concat_ws(' ', x.topic, x.content)
+        from (select ak.id, ak.topic, ak.content
+                from public.agent_knowledge ak
+               where ak.agent_key = p_agent
+               order by ak.priority desc nulls last, ak.id
+               limit 12) x
+      union all
+      select 'kb_chunks:' || y.id, concat_ws(' ', y.title, y.content)
+        from (select c.id, c.title, c.content
+                from public.kb_chunks c
+               where v_stem is not null and c.fts @@ v_stem
+               limit 5) y
+    ), evt as (
+      select ('head:' || p_agent)::text as record_id, v_head_tsv as tsv, v_head as content
+      union all
+      select record_id, to_tsvector('english', content), content from ev where content is not null
+    ), opt(letter, txt) as (
+      values ('A', v_q.option_a), ('B', v_q.option_b), ('C', v_q.option_c), ('D', v_q.option_d)
+    ), oq as (
+      select letter, txt, public.fn_exam_or_tsquery(txt, v_q.question) as q from opt
+    ), sc as (
+      select o.letter, e.record_id,
+             -- normalisation 32 bounds ts_rank_cd into [0,1) as rank/(rank+1), so a 23,000-character
+             -- head and a 400-character knowledge record sit on one scale and an absolute support
+             -- threshold means the same thing against either.
+             -- the 0.02 trigram tiebreak applies to short records only: over a 23 kB head it is both
+             -- meaningless (every option matches somewhere) and the single most expensive term here.
+             (ts_rank_cd(e.tsv, o.q, 32)
+              + case when length(e.content) <= 2000 then 0.02 * word_similarity(o.txt, e.content) else 0 end)::real as s
+        from oq o join evt e on true
+       where o.q is not null
+    ), per as (
+      select distinct on (letter) letter, record_id, s from sc order by letter, s desc, record_id
+    ), rk as (
+      select letter, record_id, s, row_number() over (order by s desc, letter) as rn from per
+    )
+    select (select letter    from rk where rn = 1) as letter,
+           (select record_id from rk where rn = 1) as record_id,
+           coalesce((select s from rk where rn = 1), 0)::real as s1,
+           coalesce((select s from rk where rn = 2), 0)::real as s2
+      into v_best;
+
+    if v_best.letter is null
+       or v_best.s1 < c_min_support
+       or (v_best.s1 - v_best.s2) < c_min_margin * v_best.s1 then
+      v_chosen := null;                                  -- abstained: counts as wrong
+    else
+      v_chosen := v_best.letter;
+    end if;
+    v_ok := (v_chosen is not null and v_chosen = v_q.correct_option);
+
+    v_answers := v_answers || jsonb_build_object(
+      'question_id',     v_q.id,
+      'syllabus_area',   v_q.syllabus_area,
+      'chosen',          v_chosen,
+      'key',             v_q.correct_option,
+      'correct',         v_ok,
+      'abstained',       (v_chosen is null),
+      'score',           round(v_best.s1::numeric, 4),
+      'margin',          round((v_best.s1 - v_best.s2)::numeric, 4),
+      'evidence_record', case when v_chosen is null then null else v_best.record_id end);
+  end loop;
+
+  v_n := jsonb_array_length(v_answers);
+  select count(*) filter (where (e->>'correct')::boolean) into v_correct
+    from jsonb_array_elements(v_answers) e;
+  v_score := round(100.0 * v_correct / greatest(v_n,1), 2);
+
+  select coalesce(jsonb_agg(jsonb_build_object('syllabus_area', area, 'asked', asked, 'correct', ok)
+                            order by (ok::numeric / asked), area), '[]'::jsonb)
+    into v_areas
+    from (select coalesce(e->>'syllabus_area','(unstated)') as area,
+                 count(*) as asked,
+                 count(*) filter (where (e->>'correct')::boolean) as ok
+            from jsonb_array_elements(v_answers) e group by 1) t;
+
+  insert into public.certification_exam_result
+    (agent_key, certification, questions, correct, score_pct, pass_mark_pct, passed, weakest_areas, answers)
+  values
+    (p_agent, p_certification, v_n, v_correct, v_score, v_pass, v_score >= v_pass, v_areas, v_answers)
+  returning * into v_row;
+
+  return v_row;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_exam_sit_all()
+ RETURNS TABLE(agent_key text, certification text, questions integer, score_pct numeric, pass_mark_pct numeric, passed boolean)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p record; r public.certification_exam_result;
+begin
+  for p in
+    select rc.agent_key, rc.certification
+      from public.role_certification rc
+      join public.org_agents a on a.agent_key = rc.agent_key and a.active
+     where (select count(*) from public.certification_exam_question q
+             where q.certification = rc.certification) >= 40
+     order by rc.agent_key, rc.rank, rc.certification
+  loop
+    r := public.fn_certification_exam_sit(p.agent_key, p.certification);
+    agent_key := r.agent_key; certification := r.certification; questions := r.questions;
+    score_pct := r.score_pct; pass_mark_pct := r.pass_mark_pct; passed := r.passed;
+    return next;
+  end loop;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_exam_summary()
+ RETURNS TABLE(agent_key text, department text, assigned integer, sat integer, passed integer, failed integer, worst_areas text[])
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with latest as (
+    select distinct on (r.agent_key, r.certification) r.*
+      from public.certification_exam_result r
+     order by r.agent_key, r.certification, r.sat_at desc, r.id desc
+  ), weak as (
+    select l.agent_key, w->>'syllabus_area' as area,
+           sum((w->>'asked')::int) as asked,
+           sum((w->>'correct')::int) as ok
+      from latest l, jsonb_array_elements(l.weakest_areas) w
+     where not l.passed
+     group by 1,2
+  )
+  select a.agent_key, a.department,
+         (select count(*)::int from public.role_certification rc where rc.agent_key = a.agent_key),
+         (select count(*)::int from latest l where l.agent_key = a.agent_key),
+         (select count(*)::int from latest l where l.agent_key = a.agent_key and l.passed),
+         (select count(*)::int from latest l where l.agent_key = a.agent_key and not l.passed),
+         (select array_agg(x.area order by (x.ok::numeric / x.asked), x.area)
+            from (select * from weak w where w.agent_key = a.agent_key
+                   order by (w.ok::numeric / w.asked), w.area limit 5) x)
+    from public.org_agents a
+   where a.active
+   order by a.department, a.agent_key;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_gap_ingest(p_agent text, p_certification text, p_area text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_gap public.certification_knowledge_gap; v_body text; v_ids text[]; v_id bigint;
+begin
+  select * into v_gap from public.certification_knowledge_gap
+   where agent_key = p_agent and certification = p_certification and syllabus_area = p_area;
+  if v_gap.id is null then
+    raise exception 'fn_certification_gap_ingest: no gap for % / % / %', p_agent, p_certification, p_area;
+  end if;
+
+  select string_agg('• ' || coalesce(s.title,'(untitled)') || ' [' || s.source_kind || ':' || s.source_id || '] — '
+                    || left(regexp_replace(coalesce(s.content,''), '\s+', ' ', 'g'), 1200),
+                    E'\n' order by s.source_kind, s.source_id),
+         array_agg(s.source_kind || ':' || s.source_id order by s.source_kind, s.source_id)
+    into v_body, v_ids
+    from public.fn_certification_gap_sources(p_agent, p_certification, p_area) s;
+
+  if v_ids is null or array_length(v_ids,1) = 0 then
+    -- the honest refusal: the estate holds nothing that teaches this area, and an exam is never
+    -- passed by inventing the material.
+    raise exception 'fn_certification_gap_ingest: nothing in the estate teaches % / % for % — buy or write it',
+      p_certification, p_area, p_agent;
+  end if;
+
+  insert into public.agent_knowledge
+    (agent_key, topic, content, priority, layer, source_ref, owner_agent, confidence, validation_status)
+  values
+    (p_agent,
+     'certification gap: ' || p_certification || ' — ' || p_area,
+     format('%s syllabus area "%s". The employee missed %s of %s questions here. What the company already holds:%s%s',
+            p_certification, p_area, v_gap.asked - v_gap.correct, v_gap.asked, E'\n', v_body),
+     90, 'profession', array_to_string(v_ids, ','), p_agent, 0.80, 'ingested_from_estate')
+  returning id into v_id;
+
+  update public.certification_knowledge_gap
+     set status = 'ingested', ingested_at = now()
+   where id = v_gap.id;
+
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_gap_sources(p_agent text, p_certification text, p_area text)
+ RETURNS TABLE(source_kind text, source_id text, title text, content text)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_dept text; v_area tsquery;
+begin
+  select a.department into v_dept from public.org_agents a where a.agent_key = p_agent and a.active;
+  begin v_area := plainto_tsquery('english', coalesce(p_area,'')); exception when others then return; end;
+  if v_area is null or v_area::text = '' then return; end if;   -- no terms to corroborate against
+
+  return query
+  with ops as (
+    select 'ops_knowledge'::text as sk, k.record_id::text as sid, k.title as ti, k.content as co
+      from public.fn_ops_knowledge_search(v_dept, concat_ws(' ', p_area, p_certification), 20) k
+     where to_tsvector('english', concat_ws(' ', k.title, k.content)) @@ v_area
+  ), own as (
+    select 'agent_knowledge'::text, ak.id::text, ak.topic, ak.content
+      from public.agent_knowledge ak
+     where ak.agent_key = p_agent
+       and coalesce(ak.topic,'') not like 'certification gap:%'   -- never feed on its own ingestion
+       and to_tsvector('english', concat_ws(' ', ak.topic, ak.content)) @@ v_area
+     order by ak.priority desc nulls last, ak.id
+     limit 5
+  ), kb as (
+    select 'kb_chunks'::text, c.id::text, c.title, c.content
+      from public.kb_chunks c
+     where c.fts @@ v_area
+     order by c.id
+     limit 5
+  )
+  select * from ops union all select * from own union all select * from kb;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_gaps_refresh()
+ RETURNS TABLE(opened integer, updated integer, closed integer, open_total integer)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_opened int := 0; v_updated int := 0; v_closed int := 0;
+begin
+  -- the newest sitting per (agent, certification), one row per syllabus area it measured
+  drop table if exists _cert_area;
+  create temporary table _cert_area on commit drop as
+  with latest as (
+    select distinct on (r.agent_key, r.certification) r.*
+      from public.certification_exam_result r
+     order by r.agent_key, r.certification, r.sat_at desc, r.id desc
+  )
+  select l.agent_key, l.certification,
+         coalesce(e->>'syllabus_area','(unstated)')            as syllabus_area,
+         count(*)::int                                          as asked,
+         count(*) filter (where (e->>'correct')::boolean)::int  as correct,
+         array_remove(array_agg(case when not (e->>'correct')::boolean
+                                     then (e->>'question_id')::bigint end
+                                order by (e->>'question_id')::bigint), null) as missed
+    from latest l, jsonb_array_elements(l.answers) e
+   group by 1,2,3;
+
+  with up as (
+    insert into public.certification_knowledge_gap
+      (agent_key, certification, syllabus_area, asked, correct, score_pct, missed_question_ids, status, last_seen)
+    select a.agent_key, a.certification, a.syllabus_area, a.asked, a.correct,
+           round(100.0 * a.correct / greatest(a.asked,1), 2), a.missed, 'open', now()
+      from _cert_area a
+     where a.correct < a.asked                       -- failed or abstained: measured, never invented
+    on conflict (agent_key, certification, syllabus_area) do update set
+      asked = excluded.asked, correct = excluded.correct, score_pct = excluded.score_pct,
+      missed_question_ids = excluded.missed_question_ids, last_seen = now(),
+      status = 'open',                               -- still missed: it re-opens, history is kept
+      closed_at = null
+    returning (xmax = 0) as inserted
+  )
+  select coalesce(count(*) filter (where inserted),0)::int,
+         coalesce(count(*) filter (where not inserted),0)::int
+    into v_opened, v_updated from up;
+
+  with cl as (
+    update public.certification_knowledge_gap g
+       set status = 'closed', closed_at = now(), last_seen = now(),
+           asked = a.asked, correct = a.correct,
+           score_pct = round(100.0 * a.correct / greatest(a.asked,1), 2),
+           missed_question_ids = '{}'
+      from _cert_area a
+     where a.agent_key = g.agent_key and a.certification = g.certification
+       and a.syllabus_area = g.syllabus_area
+       and a.correct = a.asked and g.status <> 'closed'
+    returning 1
+  )
+  select coalesce(count(*),0)::int into v_closed from cl;
+
+  return query
+    select v_opened, v_updated, v_closed,
+           (select count(*)::int from public.certification_knowledge_gap where status = 'open');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_ingestion_plan()
+ RETURNS TABLE(agent_key text, department text, certification text, cert_rank smallint, pass_mark_pct numeric, score_pct numeric, syllabus_area text, asked integer, missed integer, source_count integer, source_ids text[], finding text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with latest as (
+    select distinct on (r.agent_key, r.certification) r.*
+      from public.certification_exam_result r
+     order by r.agent_key, r.certification, r.sat_at desc, r.id desc
+  ), g as (
+    select gg.*, rc.rank as cert_rank, rc.pass_mark_pct as pass_mark, l.score_pct as exam_score,
+           a.department as dept
+      from public.certification_knowledge_gap gg
+      join public.role_certification rc
+        on rc.agent_key = gg.agent_key and rc.certification = gg.certification
+      join public.org_agents a on a.agent_key = gg.agent_key and a.active
+      left join latest l on l.agent_key = gg.agent_key and l.certification = gg.certification
+     where gg.status = 'open'
+  ), s as (
+    select g.*, src.sid
+      from g
+      left join lateral (
+        select array_agg(x.source_kind || ':' || x.source_id order by x.source_kind, x.source_id) as sid
+          from public.fn_certification_gap_sources(g.agent_key, g.certification, g.syllabus_area) x
+      ) src on true
+  )
+  select s.agent_key, s.dept, s.certification, s.cert_rank, s.pass_mark, s.exam_score,
+         s.syllabus_area, s.asked, (s.asked - s.correct)::int,
+         coalesce(array_length(s.sid,1),0)::int, coalesce(s.sid,'{}'::text[]),
+         case when coalesce(array_length(s.sid,1),0) = 0
+              then 'nothing here teaches this — buy or write it'
+              else 'ingestible from the estate' end
+    from s
+   order by s.cert_rank, (s.asked - s.correct) desc, s.agent_key, s.certification, s.syllabus_area;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_certification_resit(p_agent text, p_certification text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_before public.certification_exam_result; v_after public.certification_exam_result; v_moved jsonb;
+begin
+  select * into v_before from public.certification_exam_result
+   where agent_key = p_agent and certification = p_certification
+   order by sat_at desc, id desc limit 1;
+
+  v_after := public.fn_certification_exam_sit(p_agent, p_certification);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'syllabus_area', a.area, 'asked', a.asked,
+           'correct_before', b.ok, 'correct_after', a.ok, 'moved', a.ok - coalesce(b.ok, a.ok))
+           order by (a.ok - coalesce(b.ok, a.ok)) desc, a.area), '[]'::jsonb)
+    into v_moved
+    from (select w->>'syllabus_area' as area, (w->>'asked')::int asked, (w->>'correct')::int ok
+            from jsonb_array_elements(v_after.weakest_areas) w) a
+    left join (select w->>'syllabus_area' as area, (w->>'correct')::int ok
+                 from jsonb_array_elements(coalesce(v_before.weakest_areas,'[]'::jsonb)) w) b
+      on b.area = a.area
+   where a.ok is distinct from b.ok;
+
+  return jsonb_build_object(
+    'agent_key', p_agent, 'certification', p_certification,
+    'pass_mark_pct', v_after.pass_mark_pct,
+    'score_before', v_before.score_pct, 'passed_before', v_before.passed,
+    'score_after',  v_after.score_pct,  'passed_after',  v_after.passed,
+    'areas_moved', v_moved);
 end $function$
 
 
@@ -30703,6 +31184,28 @@ begin
 
   return (select count(*) from evolution_proposal where status='proposed');
 end; $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_exam_or_tsquery(p_text text, p_exclude text DEFAULT NULL::text)
+ RETURNS tsquery
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_words text[]; v_stop text[]; v_q tsquery;
+begin
+  v_stop := array(select w from unnest(regexp_split_to_array(
+                    lower(regexp_replace(coalesce(p_exclude,''),'[^a-z0-9 ]',' ','g')),'\s+')) w);
+  v_words := array(select distinct w from unnest(regexp_split_to_array(
+                     lower(regexp_replace(coalesce(p_text,''),'[^a-z0-9 ]',' ','g')),'\s+')) w
+                   where length(w) > 2 and not (w = any(v_stop)));
+  if array_length(v_words,1) is null then return null; end if;
+  begin
+    v_q := to_tsquery('english', array_to_string(v_words,' | '));
+  exception when others then return null; end;
+  if v_q::text = '' then return null; end if;
+  return v_q;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_exam_pick_agent()
@@ -91956,6 +92459,9 @@ ALTER TABLE public.category_licence_activity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_quote_specs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_route_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_specs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certification_exam_question ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certification_exam_result ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certification_knowledge_gap ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_heuristic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.channel_directive ENABLE ROW LEVEL SECURITY;
@@ -92436,6 +92942,7 @@ ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rfq_archives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.risk_register ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rl_hits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.role_certification ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.role_isolation_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
