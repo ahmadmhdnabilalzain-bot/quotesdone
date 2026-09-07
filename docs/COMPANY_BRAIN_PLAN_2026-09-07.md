@@ -172,6 +172,88 @@ work becomes the binding constraint for the company.
 Delivered as one file per department, , written after that department's
 taxonomy and models exist, because a task list written before the models is a wish list.
 
+## 5c. Every plan has a Plan B, and the agent executes the branch itself
+
+A plan that only describes success is a wish. Every position's plan is therefore a **state machine with dated
+checkpoints**, stored as rows the agent runs, not prose it reads:
+
+| Part | What it is |
+|---|---|
+| **Target** | an exact number, for an exact week, in the seat's own unit |
+| **Mechanism** | the specific action that is supposed to produce it, with volume and cost |
+| **Measurement** | the query that reads the actual, run automatically at the checkpoint |
+| **Trigger** | the threshold that decides pass, warn or fail, set before the week starts |
+| **Plan B** | the named alternative the agent switches to on failure, with its own target and its own checkpoint |
+| **Plan C** | the second alternative, tried only when B has failed on measurement |
+| **Escalation** | what reaches the founder when the ladder is exhausted, and the exact decision he is being asked for |
+
+Two rules keep it honest. A branch is taken on **measurement**, never on a feeling that it is going badly. And no
+branch may be taken twice without changing something, because repeating a failed action is how a company spends a
+quarter learning nothing.
+
+### Worked in full: supplier registration, the company's binding constraint
+
+**What is measured today.** 22,265 leads, of which 19,896 carry a distinct email address. 161 invitations have been
+sent. 10 bounced. **Zero registered.** That is the entire evidence base for supplier acquisition.
+
+**What zero out of 161 actually tells us.** It does not mean the true conversion rate is zero. With 161 trials and no
+successes, the rate is below roughly **1.9%** with 95% confidence, and that upper bound is the number the plan must be
+built against until a better one is measured.
+
+**The arithmetic that follows, and it is uncomfortable.** The founder's target is 300 registrations a month. At the
+best rate still consistent with the evidence, 1.9%, that requires about **15,800 invitations every month**. The entire
+list holds 19,896 addresses. So the list supports **roughly five weeks** of the target and would produce at most about
+**380 registrations in total**, against a twelve-month need of 3,600.
+
+**Therefore the plan cannot be "send invitations".** It has to be, in this order: measure the real conversion on a
+small batch before burning the list, then either fix the conversion or change the channel, and in parallel replace the
+list faster than it is consumed.
+
+### The ladder the business development seat actually executes
+
+**Plan A — measure before scaling.** Week 1: send 200 invitations to the highest-quality segment, one message
+variant. Target: 4 registrations, which is 2%. Checkpoint Friday. Cost: nothing but the sending.
+
+- **Pass (4 or more):** scale to 1,000 in week 2, then 2,500 in week 3, holding the message constant, and recompute the
+  list runway at the measured rate every week.
+- **Warn (1 to 3):** hold volume at 200 and run a second variant against a fresh 200 in week 2, changing exactly one
+  thing: the subject line. One variable at a time or the result teaches nothing.
+- **Fail (0):** do not send a third email batch. Go to Plan B. Sending more of a message that produced nothing is the
+  most common way a list is destroyed.
+
+**Plan B — the channel, not the message.** Two variants at 200 each produced under 1%. The hypothesis changes from
+"wrong words" to "wrong medium". Week 3 to 4: WhatsApp to 200 leads whose mobile numbers we hold, and 50 direct calls
+by the seat that owns supplier onboarding. Target: 5 registrations from 250 touches, which is 2%. Same checkpoint
+discipline.
+
+**Plan C — the offer, not the medium.** Both channels under 1%. The hypothesis changes again: suppliers do not believe
+the offer. Week 5 to 6: change what is being offered rather than how it is said. Lead with a live customer request in
+their category, so the first contact carries a job rather than an invitation, and register them to answer it. This
+requires demand to exist in that category, which is why the marketplace seats' week-4 milestone is to have at least one
+live request per target category.
+
+**Plan D — borrow the audience.** All three failed on measurement. Week 7 to 8: approach trade associations, category
+distributors and the two largest suppliers already known, offering a partnership rather than a signup, since a
+credible introducer converts where a cold approach does not.
+
+**Escalation, with the exact decision requested.** If, by the end of week 8, cumulative registrations are under 20 and
+the measured conversion across all four routes is under 1%, the acquisition assumption is broken and this is not a
+question the company may answer by itself. What reaches the founder is one page: the four routes tried, the number of
+touches and registrations for each, the resulting cost per registration, and three costed options, which are paid
+acquisition at a stated budget, a field agent paid per registration, or a reduced target with the revenue consequence
+stated in dirhams. He picks one. Nothing restarts until he does.
+
+### The same shape, everywhere
+
+Every one of the fifty-four positions gets this structure, in its own units. The collections seat's ladder runs from
+reminder to call to formal notice to the founder's write-off decision. The marketing seat's runs from organic to a
+thirty dirham test to a changed hook to a changed audience to the honest report that the channel does not work for
+this product. The compliance seat's runs from automatic screening to manual review to suspension to legal advice. In
+every case the target is a number on a date, the branch is taken on a measurement, and the last rung is a page for the
+founder with the decision named.
+
+---
+
 ## 6. Sequence of work
 
 | Phase | What is built | How you will know it worked |
