@@ -1,3 +1,14 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: the workflow system
+//
+// It fails with "no step runs exist at all, so this proves nothing" and "roles no workflow calls: ceo, customer_support" — both true and both expected: every pre-programmed workflow was removed on 7 Sep 2026 at the founder's instruction, and the two seats that remain do not run on workflow steps.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the
+// thing it checks does not exist, which converts an absence into confidence. Renaming it out of
+// the .test.mjs glob keeps the reasoning on disk and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename back to .test.mjs.
 // THE THIRTEEN WORKFLOWS, PROVED WITHOUT SPENDING ANYTHING.
 //
 // Free verification first. Everything in this file is a deterministic query or a guard forced to

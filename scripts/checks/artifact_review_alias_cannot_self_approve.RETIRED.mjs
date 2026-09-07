@@ -1,3 +1,14 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: artifact_review + the visual_design/marketing_design role aliases
+//
+// Its own assertion says it: "visual_design and marketing_design no longer resolve to the same employee — this file is testing a case that has stopped existing". Those roles went with the organisation chart on 7 Sep 2026, and the edge function went on 8 Sep.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the
+// thing it checks does not exist, which converts an absence into confidence. Renaming it out of
+// the .test.mjs glob keeps the reasoning on disk and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename back to .test.mjs.
 // THE DESIGNER WAS THE DEFAULT REVIEWER OF ITS OWN ARTIFACT.
 //
 // 15 Aug 2026. The Visual Design Director's role_id is `visual_design`; its runtime agent_key is
