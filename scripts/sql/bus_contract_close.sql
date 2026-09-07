@@ -747,8 +747,11 @@ create trigger trg_org_task_cross_os_guard
 -- nine metrics are OFF_TARGET and three OSes subscribe to kpi.missed, so a daily run would put
 -- ~30 tasks a day into the queue for facts that change on a weekly cadence. It runs an hour
 -- before fn_kpi_review's Monday slot so the events exist when the review reads them.
-select cron.schedule('emit_metric_alerts', '0 3 * * 1', 'select public.fn_emit_metric_alerts();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- Hourly, four times the dispatcher's cadence, so a delivery closed at 07:05 is consolidated the
 -- same morning rather than the next day.
-select cron.schedule('event_consolidate', '25 * * * *', 'select public.fn_event_consolidate();');

@@ -248,7 +248,11 @@ declare v_job bigint;
 begin
   select jobid into v_job from cron.job where jobname = 'red_view_alert_15min';
   if v_job is null then
-    v_job := cron.schedule('red_view_alert_15min', '7,22,37,52 * * * *', 'select public.fn_red_view_alert();');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled red_view_alert_15min, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: red_view_alert_15min is not recreated';
   end if;
   -- Platform & Reliability owns it: it_operations_engineer sits in product_eng (org_role, verified).
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'it_operations_engineer', 'product_eng', 'routine_operational_decision');

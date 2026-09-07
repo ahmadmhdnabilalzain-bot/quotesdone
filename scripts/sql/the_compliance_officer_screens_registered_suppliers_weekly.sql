@@ -358,7 +358,11 @@ begin
 
   select jobid into v_job from cron.job where jobname = 'sanctions_screen_weekly';
   if v_job is null then
-    v_job := cron.schedule('sanctions_screen_weekly', '0 3 * * 1', 'select public.fn_sanctions_screen_tick();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
   end if;
   v := public.fn_kernel_wrap_and_enable_cron(v_job, 'compliance_and_privacy_officer', 'legal', 'routine_operational_decision');
   if coalesce((v ->> 'ok')::boolean, false) is not true then raise exception 'fn_kernel_wrap_and_enable_cron(%) refused: %', v_job, v; end if;

@@ -197,7 +197,11 @@ declare v_job bigint;
 begin
   select jobid into v_job from cron.job where jobname = 'knowledge_exam_retrieval_daily';
   if v_job is null then
-    v_job := cron.schedule('knowledge_exam_retrieval_daily', '23 3 * * *', 'select public.fn_knowledge_exam_retrieval();');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled knowledge_exam_retrieval_daily, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: knowledge_exam_retrieval_daily is not recreated';
   end if;
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'knowledge_director', 'data_intel', 'knowledge_publish');
   update public.phase_c_component

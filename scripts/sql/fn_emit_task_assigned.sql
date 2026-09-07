@@ -86,8 +86,11 @@ end $function$;
 
 -- Every 15 minutes, on the same tick as the workflow catcher, with an hour of overlap so a slow or
 -- skipped tick loses nothing (the idempotency check above makes the overlap free).
-select cron.schedule('emit_task_assigned', '*/15 * * * *',
-                     'select public.fn_emit_task_assigned(60);');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- Announce the assignments already standing today. 1440 = the last day, NOT 0: an event carries
 -- occurred_at = now(), so announcing a task assigned three days ago would date it wrongly. The

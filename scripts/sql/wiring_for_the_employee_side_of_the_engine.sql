@@ -125,15 +125,10 @@ REVOKE ALL ON FUNCTION public.fn_workflow_step_claim(integer) FROM PUBLIC;
 --    applied byte-identically to both projects; a literal production ref would give staging a cron
 --    job that POSTs to production every ten minutes. Four active staging jobs already do exactly
 --    that and this one is not going to be the fifth.
-select cron.unschedule('workflow_dispatch_10min')
- where exists (select 1 from cron.job where jobname = 'workflow_dispatch_10min');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
-select cron.schedule('workflow_dispatch_10min', '1,11,21,31,41,51 * * * *', $cron$
-  select net.http_post(
-    url := 'https://' || (select value from app_secrets where key = 'project_ref')
-                      || '.supabase.co/functions/v1/workflow_dispatch',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_agents'),
-                               'limit', 2),
-    timeout_milliseconds := 150000);
 $cron$);

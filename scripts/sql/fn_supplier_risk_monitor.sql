@@ -98,9 +98,8 @@ $function$;
 
 -- THE SCHEDULES. Each command names the concern it watches, so `cron.job` is readable as a list of
 -- what this platform actually monitors rather than a list of function calls.
-select cron.schedule('supplier_risk_complaints',        '20 * * * *', $$select public.fn_supplier_risk_monitor('complaints');$$)
- where not exists (select 1 from cron.job where jobname = 'supplier_risk_complaints');
-select cron.schedule('supplier_risk_response_delays',   '35 4 * * *', $$select public.fn_supplier_risk_monitor('response_delays');$$)
- where not exists (select 1 from cron.job where jobname = 'supplier_risk_response_delays');
-select cron.schedule('supplier_risk_performance_drops', '50 4 * * *', $$select public.fn_supplier_risk_monitor('performance_drops');$$)
- where not exists (select 1 from cron.job where jobname = 'supplier_risk_performance_drops');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

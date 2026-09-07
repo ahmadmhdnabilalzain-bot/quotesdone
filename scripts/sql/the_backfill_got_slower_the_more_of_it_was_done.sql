@@ -137,5 +137,8 @@ comment on function public.fn_leads_retrade_stale(integer) is
 revoke execute on function public.fn_leads_retrade_stale(integer) from public;
 grant execute on function public.fn_leads_retrade_stale(integer) to service_role;
 
-select cron.schedule('backfill_invite_trades', '15 4 * * *',
-  $cron$select public.fn_leads_retrade_stale(3000);$cron$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

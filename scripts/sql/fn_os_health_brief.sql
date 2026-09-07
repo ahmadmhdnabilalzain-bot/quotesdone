@@ -163,8 +163,11 @@ update public.resource_pool set os_key = 'marketplace', updated_at = now()
 
 -- Weekly, five minutes after os_review_weekly (45 4 * * 1) writes the figures and ten minutes
 -- before exec_meeting_weekly, so the owner reads this week's numbers, not last week's.
-select cron.schedule('os_health_brief_weekly', '50 4 * * 1',
-                     'select public.fn_os_health_brief();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- Seed the first run on both projects. Waiting for Monday would mean deploying a reader and
 -- verifying nothing, and the figures for 2026-W32 already exist. The function replaces its own

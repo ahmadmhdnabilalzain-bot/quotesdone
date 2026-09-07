@@ -132,5 +132,9 @@ begin
     raise notice 'pg_cron not installed; monthly_report not rescheduled';
     return;
   end if;
-  perform cron.schedule('monthly_report', '0 7 1 * *', 'select public.fn_period_report(''monthly'');');
+  -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+  -- This scheduled monthly_report, which was deleted from cron.job in the same change.
+  -- The notice replaces the call so this routine still runs and still reports, rather
+  -- than silently doing nothing or quietly recreating a job nobody asked for.
+  raise notice 'cron scheduling removed on 7 Sep 2026: monthly_report is not recreated';
 end $$;

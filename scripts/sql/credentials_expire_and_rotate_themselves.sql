@@ -67,7 +67,11 @@ declare v_job bigint;
 begin
   select jobid into v_job from cron.job where jobname = 'credential_rotate_daily';
   if v_job is null then
-    v_job := cron.schedule('credential_rotate_daily', '15 2 * * *', 'select public.fn_internal_credential_rotate_due();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
   end if;
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'it_operations_engineer', 'product_eng', 'routine_operational_decision');
 

@@ -107,12 +107,12 @@ end $function$;
 -- ── SCHEDULES ────────────────────────────────────────────────────────────────────────────────
 -- Weekly, on the same Monday-morning rhythm the three existing governance monitors already use,
 -- staggered so they do not contend. Unscheduled first so re-running this file is idempotent.
-select cron.unschedule(j.jobname) from cron.job j
- where j.jobname in ('approval_trace_audit_weekly','decision_conflict_scan_weekly','regulation_watch_weekly');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
-select cron.schedule('approval_trace_audit_weekly', '10 6 * * 1', $$select public.fn_approval_trace_audit();$$);
-select cron.schedule('decision_conflict_scan_weekly', '20 6 * * 1', $$select public.fn_decision_conflict_scan();$$);
-select cron.schedule('regulation_watch_weekly', '40 6 * * 1', $$select public.fn_regulation_watch();$$);
 
 insert into public.cron_registry (jobname, human_name, category, purpose) values
   ('approval_trace_audit_weekly', 'Approval Trace Audit', 'Governance',

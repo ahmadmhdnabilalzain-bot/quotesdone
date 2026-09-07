@@ -158,12 +158,9 @@ revoke all on function public.fn_employee_kpi_measure() from public;
 -- 4. ON CRON, beside the objective measure that already runs at 03:20
 -- ---------------------------------------------------------------------------------------------
 
-select cron.unschedule('dept_objective_measure_daily')
- where exists (select 1 from cron.job where jobname='dept_objective_measure_daily');
-select cron.unschedule('employee_kpi_measure_daily')
- where exists (select 1 from cron.job where jobname='employee_kpi_measure_daily');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
-select cron.schedule('dept_objective_measure_daily', '25 3 * * *',
-                     $$select public.fn_dept_objective_measure();$$);
-select cron.schedule('employee_kpi_measure_daily',   '30 3 * * *',
-                     $$select public.fn_employee_kpi_measure();$$);

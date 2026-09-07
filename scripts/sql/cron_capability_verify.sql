@@ -5,15 +5,11 @@
 -- writes carries a THIRTY-day staleness window: a weekly job that misses four Mondays would let a
 -- capability go quietly unverified, and the whole point of the table is that nothing goes quietly.
 --
--- cron.schedule() UPSERTS on the job name, so re-applying this file cannot create a second job.
--- The guard is a pg_proc lookup rather than to_regproc('cron.schedule'), which returns NULL on an
--- overloaded name and would make the guard silently always-false — see cron_improvement_handover.sql.
-do $$
-begin
-  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                  where n.nspname = 'cron' and p.proname = 'schedule') then
-    raise notice 'pg_cron not installed; capability_verify_daily not scheduled';
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
     return;
   end if;
-  perform cron.schedule('capability_verify_daily', '15 2 * * *', 'select public.fn_capability_verify();');
 end $$;

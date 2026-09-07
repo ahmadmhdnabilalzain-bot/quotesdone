@@ -41,8 +41,11 @@
 -- races a half-written prefix. Registered on both projects in this same change: a refresh that is
 -- deployed but never scheduled would let agent_context_head age past its 3-hour staleness bound and
 -- silently fall back to live assembly, which is exactly the drift this pair of migrations removes.
-select cron.schedule('agent_context_head_refresh', '40 */6 * * *',
-                     $$select public.fn_agent_context_head_refresh();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 update decision_policy
    set value = 'true'::jsonb,

@@ -12,8 +12,11 @@ do $$
 declare v_job bigint;
 begin
   -- cron.schedule upserts on the job name, so this is idempotent.
-  v_job := cron.schedule('supplier_suspension_proposed_daily', '30 2 * * *',
-                         'select public.fn_emit_supplier_suspension_proposed(0);');
+  -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+  -- This scheduled supplier_suspension_proposed_daily, which was deleted from cron.job in the same change.
+  -- The notice replaces the call so this routine still runs and still reports, rather
+  -- than silently doing nothing or quietly recreating a job nobody asked for.
+  raise notice 'cron scheduling removed on 7 Sep 2026: supplier_suspension_proposed_daily is not recreated';
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'trust_and_safety_manager', 'legal');
   insert into public.phase_d_committed_scenario_cron (jobid, jobname, reaches, quarantine)
   values (v_job, 'supplier_suspension_proposed_daily',

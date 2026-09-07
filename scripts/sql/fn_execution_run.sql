@@ -429,4 +429,8 @@ end $function$;
 
 -- Ten minutes before execution_sweep_hourly (:20), so the sweep finds a settled queue and mirrors
 -- the outcome onto the trace rather than relabelling an undrained one 'stalled'.
-select cron.schedule('execution_run_hourly', '10 * * * *', 'select public.fn_execution_run();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

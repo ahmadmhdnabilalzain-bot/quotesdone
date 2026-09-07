@@ -100,7 +100,8 @@ revoke all on function public.fn_spend_concentration_check() from anon;
 
 -- Mondays 03:40, after the KPI measures at 03:25/03:30 and before the KPI review at 04:00, so the
 -- finding is on the table in the same cycle that reviews everything else.
-select cron.unschedule('spend_concentration_weekly')
- where exists (select 1 from cron.job where jobname='spend_concentration_weekly');
-select cron.schedule('spend_concentration_weekly', '40 3 * * 1',
-                     $$select public.fn_spend_concentration_check();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

@@ -42,7 +42,11 @@ update public.employee_kpi k
 -- daily 04:40 UTC, before the objective/KPI measures. DISABLED (writes work-adjacent rows while the
 -- workforce is down); enable-ready on resume. cron.schedule re-activates on re-apply, so the disable
 -- runs last.
-select cron.schedule('employee_kpi_assign_daily', '40 4 * * *', $$select public.fn_employee_kpi_assign();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 select cron.alter_job((select jobid from cron.job where jobname='employee_kpi_assign_daily'), active := false);
 insert into public.cron_registry (jobname, human_name, category, purpose)
 values ('employee_kpi_assign_daily', 'Keep every employee KPI linked to an objective', 'strategy',

@@ -240,7 +240,11 @@ do $$
 declare v_job bigint;
 begin
   -- daily at 04:20 UTC: after backup_daily (03:30), the suites (03:30-03:37) and graph_rebuild (04:05)
-  v_job := cron.schedule('resilience_drill_daily', '20 4 * * *', 'select public.fn_dr_drill();');
+  -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+  -- This scheduled resilience_drill_daily, which was deleted from cron.job in the same change.
+  -- The notice replaces the call so this routine still runs and still reports, rather
+  -- than silently doing nothing or quietly recreating a job nobody asked for.
+  raise notice 'cron scheduling removed on 7 Sep 2026: resilience_drill_daily is not recreated';
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'it_operations_engineer', 'product_eng');
   insert into public.cron_registry (jobname, human_name, category, purpose)
   values ('resilience_drill_daily', 'Resilience Drill Daily', 'Health & monitoring',

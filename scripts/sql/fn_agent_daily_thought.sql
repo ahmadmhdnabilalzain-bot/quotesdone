@@ -100,7 +100,11 @@ declare v_job bigint;
 begin
   select jobid into v_job from cron.job where jobname = 'agent_daily_thought';
   if v_job is null then
-    v_job := cron.schedule('agent_daily_thought', '15 4 * * *', 'select public.fn_agent_daily_thought();');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled agent_daily_thought, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: agent_daily_thought is not recreated';
   end if;
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'agent_workforce_capability_director', 'people_ops', 'routine_operational_decision');
   update public.phase_c_component

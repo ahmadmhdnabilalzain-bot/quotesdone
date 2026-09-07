@@ -156,8 +156,11 @@ begin
 end $function$;
 
 -- Every 15 minutes. Batch-capped at 200 per run so a backlog drains rather than arriving at once.
-select cron.schedule('workflow_start_due', '*/15 * * * *',
-                     'select public.fn_workflow_start_due(1440);');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- Drain the existing backlog on BOTH projects: goal.at_risk and kpi.missed have fired 15 times
 -- between them and started nothing. 0 = every event ever, not just the last day.

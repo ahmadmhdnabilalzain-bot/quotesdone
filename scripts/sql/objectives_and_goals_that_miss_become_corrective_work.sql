@@ -87,7 +87,11 @@ revoke execute on function public.fn_objective_review() from public;
 -- Scheduled DISABLED: it opens corrective work while the workforce is stood down, and it self-pauses on
 -- the hold regardless; the founder enables it on resume. cron.schedule re-activates on re-apply, so the
 -- alter_job disable runs last and the committed state is inactive.
-select cron.schedule('objective_review_weekly', '30 5 * * 1', $$select public.fn_objective_review();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 select cron.alter_job((select jobid from cron.job where jobname='objective_review_weekly'), active := false);
 insert into public.cron_registry (jobname, human_name, category, purpose)
 values ('objective_review_weekly', 'Review objectives and goals for misses', 'strategy',

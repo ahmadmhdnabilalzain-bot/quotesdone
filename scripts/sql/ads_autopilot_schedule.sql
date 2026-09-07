@@ -72,7 +72,11 @@ begin
   -- 2. the daily tick
   select jobid into v_job from cron.job where jobname = 'ads_autopilot_daily';
   if v_job is null then
-    v_job := cron.schedule('ads_autopilot_daily', '20 4 * * *', 'select public.fn_ads_autopilot_tick();');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled ads_autopilot_daily, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: ads_autopilot_daily is not recreated';
   end if;
   perform public.fn_kernel_wrap_and_enable_cron(v_job, 'marketing_director', 'growth');
   insert into public.phase_d_committed_scenario_cron (jobid, jobname, reaches, quarantine)

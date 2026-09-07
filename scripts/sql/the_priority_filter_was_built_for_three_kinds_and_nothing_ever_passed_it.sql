@@ -38,16 +38,10 @@
 --   production  https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/kb_embed
 --   staging     https://pglpqrhvozwepymcuunn.supabase.co/functions/v1/kb_embed
 
-select cron.schedule(
-  'kb_embed_priority_kinds',
-  '* * * * *',
-  $cron$
-  select net.http_post(
-    url := 'https://PROJECT_REF.supabase.co/functions/v1/kb_embed',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_knowledge'),
-                               'limit', 5,
-                               'source_kinds', jsonb_build_array('trade','regulation','material')))
-  from generate_series(1, 6);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
   $cron$
 );

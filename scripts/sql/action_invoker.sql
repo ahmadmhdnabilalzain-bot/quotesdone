@@ -261,7 +261,8 @@ revoke execute on function public.fn_action_invoke_collect() from public;
 revoke execute on function public.fn_action_invoke_collect() from anon;
 revoke execute on function public.fn_action_invoke_collect() from authenticated;
 
-select cron.schedule('action_invoke_dispatch_5min', '2,7,12,17,22,27,32,37,42,47,52,57 * * * *',
-                     $$select public.fn_action_invoke_dispatch(5);$$);
-select cron.schedule('action_invoke_collect_5min',  '4,9,14,19,24,29,34,39,44,49,54,59 * * * *',
-                     $$select public.fn_action_invoke_collect();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

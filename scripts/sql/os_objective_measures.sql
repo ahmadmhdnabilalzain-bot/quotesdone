@@ -350,8 +350,11 @@ end $function$;
 
 -- Daily at 03:20, before the 04:45 os_review_weekly reads the OS layer. A measure refreshed once
 -- by hand is a screenshot; the objective is only "measured" if the number keeps up with the rows.
-select cron.schedule('os_objective_measure_daily', '20 3 * * *',
-                     'select public.fn_os_objective_measure();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- Seed the first run on BOTH projects. Deploying a resolver and leaving actual_value null would be
 -- shipping the same empty column the file opens by describing.

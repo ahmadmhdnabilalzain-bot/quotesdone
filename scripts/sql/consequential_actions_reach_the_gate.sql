@@ -86,7 +86,11 @@ end $fn$;
 revoke execute on function public.fn_action_queue_consequential_sweep(integer) from public;
 
 -- Hourly, DISABLED (queues work-creating rows into a watched relation; self-pauses regardless).
-select cron.schedule('action_queue_consequential_sweep_hourly','40 * * * *',$$select public.fn_action_queue_consequential_sweep(5);$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 select cron.alter_job((select jobid from cron.job where jobname='action_queue_consequential_sweep_hourly'), active := false);
 insert into public.cron_registry(jobname,human_name,category,purpose)
 values ('action_queue_consequential_sweep_hourly','Queue consequential actions for approval','operations',

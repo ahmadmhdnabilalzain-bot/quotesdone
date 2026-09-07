@@ -67,7 +67,11 @@ begin
   return jsonb_build_object('ok', true, 'handled', v_handled);
 end $fn$;
 revoke execute on function public.fn_agent_remediation_escalate_consume() from public;
-select cron.schedule('remediation_escalate_consume_daily', '15 5 * * *', 'select public.fn_agent_remediation_escalate_consume();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- D8.2/D8.3/D9.1 — the dispatcher, with a spend check, a forced second approval, and an autonomy block.
 CREATE OR REPLACE FUNCTION public.fn_action_invoke_dispatch(p_limit integer DEFAULT 5)

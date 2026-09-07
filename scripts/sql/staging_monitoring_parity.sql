@@ -17,12 +17,24 @@
 do $$
 begin
   if not exists (select 1 from cron.job where jobname = 'control_mode_sweep_5min') then
-    perform cron.schedule('control_mode_sweep_5min', '*/5 * * * *', 'select public.fn_control_mode_sweep()');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled control_mode_sweep_5min, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: control_mode_sweep_5min is not recreated';
   end if;
   if not exists (select 1 from cron.job where jobname = 'smoke_test_30min') then
-    perform cron.schedule('smoke_test_30min', '*/30 * * * *', 'select public.fn_smoke()');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled smoke_test_30min, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: smoke_test_30min is not recreated';
   end if;
   if not exists (select 1 from cron.job where jobname = 'watch_failed_runs_hourly') then
-    perform cron.schedule('watch_failed_runs_hourly', '15 * * * *', 'select public.fn_watch_failed_runs();');
+    -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+    -- This scheduled watch_failed_runs_hourly, which was deleted from cron.job in the same change.
+    -- The notice replaces the call so this routine still runs and still reports, rather
+    -- than silently doing nothing or quietly recreating a job nobody asked for.
+    raise notice 'cron scheduling removed on 7 Sep 2026: watch_failed_runs_hourly is not recreated';
   end if;
 end $$;

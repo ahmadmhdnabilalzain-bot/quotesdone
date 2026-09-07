@@ -85,8 +85,11 @@ select cron.alter_job((select jobid from cron.job where jobname='action_invoke_c
 
 -- 4. Schedule the head-approval driver between dispatch runs (:03,:08,...). It self-gates on the parked
 --    queue (does nothing when nothing is parked), so it is safe to leave running.
-select cron.schedule('action_head_drive_5min','3,8,13,18,23,28,33,38,43,48,53,58 * * * *',
-                     $$select public.fn_action_head_drive(20);$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- 5. Register the two re-enabled/new crons that reach a watched relation (collect touches action_execution;
 --    the head driver writes an agent_runs heartbeat), so fn_phase_d_committed_scenario_guards passes.

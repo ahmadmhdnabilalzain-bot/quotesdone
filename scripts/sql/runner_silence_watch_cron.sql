@@ -3,7 +3,11 @@
 -- together: one says whether the SCHEDULE fired, the other says whether the runner DID anything.
 -- Registered in cron_registry as well, because the OS manual's own check counts an active cron with
 -- no registry row as undocumented.
-select cron.schedule('runner_silence_watch_daily', '10 7 * * *', $$select public.fn_runner_silence_watch();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 insert into public.cron_registry (jobname, human_name, category, purpose)
 values ('runner_silence_watch_daily',

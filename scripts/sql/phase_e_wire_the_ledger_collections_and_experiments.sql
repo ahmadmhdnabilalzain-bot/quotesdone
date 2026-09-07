@@ -116,7 +116,11 @@ begin
     ) t(jobname, sched, cmd, role_id, dept) loop
     select jobid into v_job from cron.job where jobname = r.jobname;
     if v_job is null then
-      v_job := cron.schedule(r.jobname, r.sched, r.cmd);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
     end if;
     v := public.fn_kernel_wrap_and_enable_cron(v_job, r.role_id, r.dept, 'routine_operational_decision');
     if coalesce((v->>'ok')::boolean, false) is not true then raise exception '% wrap failed: %', r.jobname, v; end if;

@@ -118,6 +118,10 @@ grant execute on function public.fn_it_security_live_posture() to service_role;
 
 -- 4. Keep it current — refresh the live posture hourly. It reaches no watched relation (verified against
 --    fn_phase_d_committed_scenario_guards), so it needs no committed-scenario registration.
-select cron.schedule('it_security_live_posture_hourly', '7 * * * *', $$select public.fn_it_security_live_posture();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 commit;
