@@ -9,12 +9,16 @@
 -- company that has never registered is sent to the website. WhatsApp carries documents for suppliers
 -- who ALREADY exist: renewals, replacements, and completing a file after the website took the rest.
 --
+-- THE WINDOW IS 30 DAYS, BY FOUNDER RULING 7 Sep 2026: "30 days not 60". So the first ask lands a
+-- month out, then at fourteen days, seven days, and on expiry. Four asks in total across the life of
+-- a licence, which is enough to be heard and few enough not to be muted.
+--
 -- THIS IS THE PROACTIVE HALF. fn_wa_attach_document already takes the document and updates the record;
 -- verified end to end, a supplier going from three missing to a complete file. What was missing is the
 -- company noticing first. A supplier does not know his licence expires in three weeks; we do, and
 -- telling him before it lapses is the difference between a renewal and a suspension.
 --
--- WHY IT ASKS TWICE, ON TWO CHANNELS, AND NOT MORE. Email reaches a company address that may be read
+-- WHY BOTH CHANNELS AT EACH BAND, AND NOT MORE OFTEN. Email reaches a company address that may be read
 -- weekly. WhatsApp reaches a person. Both is right for something with a deadline. But a system that
 -- chases daily becomes noise and gets muted, so this asks at fixed distances from the expiry and
 -- records each ask, and it never asks the same thing twice in the same window.
@@ -31,7 +35,7 @@ create table if not exists public.licence_renewal_ask (
   asked_at      timestamptz not null default now(),
 
   -- Which distance from expiry this ask represents. One ask per band per licence, ever.
-  band          text        not null check (band in ('t_minus_60','t_minus_30','t_minus_14','t_minus_7','expired')),
+  band          text        not null check (band in ('t_minus_30','t_minus_14','t_minus_7','expired')),
   expiry_date   date        not null,
   days_to_expiry int        not null,
 
@@ -97,7 +101,7 @@ begin
            (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
       from public.leads l
      where l.license_expiry is not null
-       and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 60
+       and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 30
        and coalesce(l.banned, false) = false
      order by l.license_expiry
      limit 500
@@ -107,8 +111,7 @@ begin
       when v_days < 0   then 'expired'
       when v_days <= 7  then 't_minus_7'
       when v_days <= 14 then 't_minus_14'
-      when v_days <= 30 then 't_minus_30'
-      else                   't_minus_60' end;
+      else                   't_minus_30' end;
 
     v_planned := v_planned + 1;
 
@@ -177,7 +180,7 @@ begin
   return jsonb_build_object(
     'ok', true,
     'dry_run', p_dry_run,
-    'licences_within_60_days', v_planned,
+    'licences_within_30_days', v_planned,
     'email_asks', v_email,
     'whatsapp_asks_sent', v_wa,
     'whatsapp_asks_blocked', v_blocked,
@@ -193,7 +196,7 @@ $fn$;
 revoke execute on function public.fn_licence_expiry_sweep(boolean) from public;
 
 comment on function public.fn_licence_expiry_sweep(boolean) is
-  'Finds licences expiring within 60 days and asks for a renewal by email and WhatsApp. One ask per band per channel, ever. A blocked channel is recorded, never silently skipped.';
+  'Finds licences expiring within 30 days and asks for a renewal by email and WhatsApp. One ask per band per channel, ever. A blocked channel is recorded, never silently skipped.';
 
 -- ---------------------------------------------------------------------------------------------
 -- CLOSING THE LOOP

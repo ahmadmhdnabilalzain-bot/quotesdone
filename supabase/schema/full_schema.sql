@@ -46669,7 +46669,7 @@ begin
            (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
       from public.leads l
      where l.license_expiry is not null
-       and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 60
+       and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 30
        and coalesce(l.banned, false) = false
      order by l.license_expiry
      limit 500
@@ -46679,8 +46679,7 @@ begin
       when v_days < 0   then 'expired'
       when v_days <= 7  then 't_minus_7'
       when v_days <= 14 then 't_minus_14'
-      when v_days <= 30 then 't_minus_30'
-      else                   't_minus_60' end;
+      else                   't_minus_30' end;
 
     v_planned := v_planned + 1;
 
@@ -46749,7 +46748,7 @@ begin
   return jsonb_build_object(
     'ok', true,
     'dry_run', p_dry_run,
-    'licences_within_60_days', v_planned,
+    'licences_within_30_days', v_planned,
     'email_asks', v_email,
     'whatsapp_asks_sent', v_wa,
     'whatsapp_asks_blocked', v_blocked,
