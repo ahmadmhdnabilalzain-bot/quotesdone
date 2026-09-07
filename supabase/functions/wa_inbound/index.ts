@@ -929,7 +929,12 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     const out = await llm(sys, (await (async () => { const { data: prev } = await admin.from('wa_messages').select('inbound,reply').eq('wa_from', From).order('created_at', { ascending: false }).limit(3); const h = (prev || []).reverse().map((m: any) => `Them: ${m.inbound}\nUs: ${m.reply}`).join('\n'); return h ? ('Earlier in this chat:\n' + h + '\n\n') : ''; })()) + 'Latest message from ' + (Profile || 'a contact') + ':\n' + Body.slice(0, 1500), Body, 'wa:' + From);
     const llmFailed = !out;
     let reply = out?.reply ? String(out.reply).slice(0, 1200) : '';
-    const escalate = !!out?.escalate;
+    // A COMPLAINT THAT REACHES THE MODEL STILL REACHES HIM. fn_wa_route decides whether a message
+    // needs a person from the message itself -- a complaint, a dispute, an accusation, or an
+    // outright request for one -- and that judgement does not stop applying just because the
+    // answer had to be composed rather than looked up. Left to the model alone, a complaint in
+    // Arabic would have been answered politely and he would never have heard about it.
+    const escalate = !!out?.escalate || route?.needs_a_person === true;
     const lang = out?.lang === 'ar' ? 'ar' : 'en';
     const audienceFinal = audience !== 'unknown' ? audience : (['customer', 'supplier'].includes(out?.audience) ? out.audience : 'unknown');
     if (!reply) reply = 'Thanks for your message. I can help with how QuotesDone works, posting a job, or registering as a supplier. To speak with someone directly, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.';
@@ -940,7 +945,7 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
 
     let rowSaved = true;
-    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
     const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
 
