@@ -254,6 +254,76 @@ founder with the decision named.
 
 ---
 
+## 5d. Every plan bottoms out in dated work items, specified to the field
+
+A plan that stops at "run supplier outreach" or "post on social" is not executable. Every role's plan therefore ends
+in **work items**: dated, fully specified objects the seat can execute without asking anyone anything. Each role has
+one or two unit types, and each unit type has a fixed field set.
+
+| Department | Unit of work | Every item carries |
+|---|---|---|
+| growth | a post, an ad set, a landing page test | date, audience segment, objective metric, content type, hook (exact words), visual specification, call to action and destination, language, budget, the single variable under test, expected result with its basis, success and failure thresholds, fallback |
+| supply | an invitation batch, a follow-up, a verification review | segment and size, channel, message variant, send window, expected registrations with basis, checkpoint date, fallback rung |
+| marketplace | an RFQ qualification, a matching run, a quote comparison | inputs required, completeness gate, supplier set and why, top-three rule applied, escalation trigger |
+| finance | a reconciliation, a dunning action, a close task | period, source of truth, tolerance, exception rule, escalation amount |
+| customer_experience | a lifecycle message, a support resolution, a save attempt | trigger event, channel, template and version, timing rule, success metric, next rung |
+| legal | a document review, a screening run, a policy update | scope, source of law, the clause tested, verdict, retention rule |
+| product_eng | a change, a release, an incident response | risk class, gate battery, rollback, evidence recorded |
+| data_intel | an experiment, a measurement, a report | hypothesis, sample size required, power, stopping rule, decision it informs |
+| people_ops | an ingestion batch, an exam sitting, a calibration review | seat, syllabus area, source, before and after score |
+| exec | a decision memo, a plan revision, an allocation | constraint named, options with scores, rejected with reasons, flip condition, review date |
+
+### Worked in full: the first four weeks of social posts
+
+Audience is **suppliers**, not customers, because supply is the binding constraint and every customer-side impression
+multiplies by a reveal rate that is structurally zero until categories open. Budget is the founder's AED 30 per day,
+so AED 210 a week, and the design spends it as two tests plus a scale-up rather than spreading it thin.
+
+**The experimental discipline: one variable per week.** Week 1 tests the hook. Week 2 takes the winning hook and tests
+the format. Week 3 takes both winners and tests the audience segment. Week 4 tests the offer framing. Changing two
+things at once means the result teaches nothing, which is how a year of posting produces no knowledge.
+
+| # | Date | Variable under test | Content type | Hook (exact words) | Budget | Expected |
+|---|---|---|---|---|---|---|
+| 1 | Mon 14 Sep, 09:00 | hook A | animated video, 12 s, 9:16 | "Dubai contractors: stop paying for leads." | AED 60 over 2 days | ~2,000 impressions, 15-25 likes, 20-40 profile visits |
+| 2 | Wed 16 Sep, 09:00 | hook B | identical animation, hook swapped | "You keep 100% of every job you win." | AED 60 over 2 days | same, and the comparison is the point |
+| 3 | Sun 20 Sep, 09:00 | scale the winner | winning hook, unchanged | winner | AED 90 over 3 days | ~3,000 impressions |
+| 4 | Mon 21 Sep, 09:00 | format | static carousel, 5 frames, winning hook | winner | AED 60 | tests whether motion is worth its production cost |
+| 5 | Wed 23 Sep, 09:00 | format control | animation, winning hook | winner | AED 60 | the control for post 4 |
+| 6 | Mon 28 Sep, 09:00 | segment | winning hook and format | winner | AED 60 | audience narrowed to MEP and fit-out contractors |
+| 7 | Wed 30 Sep, 09:00 | segment control | winning hook and format | winner | AED 60 | audience narrowed to trading and supply companies |
+| 8 | Mon 5 Oct, 09:00 | offer framing | winning everything | "A customer in your category is asking for quotes today." | AED 60 | tests demand-led framing against feature-led |
+
+**What every one of those items carries in full, using post 1 as the example.**
+
+- **Objective metric**: profile visits and link clicks, not likes. Likes are the founder's stated target and are
+  recorded, but the metric that predicts registrations is the click.
+- **Audience**: UAE, business interests in construction, MEP, fit-out, trading and manufacturing, ages 25-55, English
+  and Arabic.
+- **Content**: twelve seconds, four beats. Hook, 1.5 s. The mechanism in three shots, 6 s: a customer posts a request,
+  you quote anonymously, they pay to reveal you. The offer, 2.5 s: free for the first 1,000 suppliers, no commission.
+  The call to action, 2 s: register in three minutes, with the link.
+- **Visual specification**: 1080 x 1920, navy ground from the brand kit, teal for motion accents, gold used only on the
+  call to action so the eye has one landing place, display face at no less than the equivalent of 24 px, contrast
+  measured at or above 4.5 to 1, all text outside the bottom fifth and top sixth where the platform's interface sits,
+  first frame legible as a still because that is the thumbnail, captions burned in because the feed is watched muted.
+- **Language**: English master, Arabic cut with the layout mirrored right to left and numerals localised, not a
+  translated caption over an English composition.
+- **Expected result and its basis**: at AED 60 and a UAE B2B video CPM of roughly 20 to 40 dirhams, about 1,500 to
+  3,000 impressions; at a like rate of 1 to 2 percent of viewers, 15 to 25 likes; at a click rate of 0.5 to 1 percent,
+  10 to 20 clicks. **Every one of those rates is an industry prior, not our measurement, because the account has ten
+  posts and zero recorded engagement metrics.** They are labelled as priors in the plan and replaced by our own numbers
+  after week 1.
+- **Success and failure**: success is 10 or more link clicks and at least 1 registration started. Failure is fewer
+  than 3 clicks, which means the audience or the offer is wrong rather than the wording.
+- **The statistical honesty**: 2,000 impressions per variant can detect a doubling of the click rate, not a twenty
+  percent improvement. So week 1 answers "is one hook much better", not "which hook is slightly better", and the plan
+  says so rather than over-reading the winner.
+- **Fallback**: if both hooks fail at under 3 clicks each, the seat does not write a third hook. It moves to the
+  channel rung of the ladder, because two failures on the same axis mean the axis is wrong.
+
+---
+
 ## 6. Sequence of work
 
 | Phase | What is built | How you will know it worked |
