@@ -1769,3 +1769,8 @@ scripts/sql/a_failed_exam_becomes_ingested_knowledge_or_an_honest_gap.sql
 scripts/sql/the_two_exam_routines_that_were_live_with_no_file.sql
 scripts/sql/the_company_renderers_carry_every_record_of_6_sep.sql
 scripts/sql/the_head_budget_is_split_after_the_mandatory_pieces.sql
+scripts/sql/a_merged_role_alias_is_unreachable_while_the_retired_row_still_exists.sql
+scripts/sql/the_last_phase_b_guards_come_off_because_the_founder_removed_every_limit.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
