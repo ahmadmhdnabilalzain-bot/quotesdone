@@ -1,3 +1,34 @@
+// RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN.
+//
+// This asserted that every Phase D handler input schema is typed and closed.
+//
+// On 7 September 2026 the founder removed, in his own words: the organisation chart ("remove the
+// whole organization chart that you made cause its trash"), every pre-programmed workflow ("i dont
+// want any pre programmed workflow as things will totally be different"), and finally the kernel
+// gates themselves ("i said remove the kernel gates").
+//
+// What is gone: 30 workflows, 257 steps, 8 handoffs, 347 events, 56 business objects, 54 rules, 32
+// gates, every Phase C binding, every Phase D handler schema and fixture, 41 event subscriptions,
+// 94 action executors, and the 36 kernel write/trace/parent-delete gate triggers.
+//
+// So this file is not red because the estate regressed. It is red because every noun in it was
+// deliberately deleted. It is RETIRED rather than edited down to something that passes: a check
+// rewritten until it goes green against an empty schema asserts nothing while still looking like a
+// guard, and that is worse than no check at all.
+//
+// WHAT REPLACES IT: nothing yet, and that is said plainly rather than hidden. When the new
+// structure exists it deserves checks written fresh against THAT structure. Do not recover this
+// file; write the new one from what the company then is.
+//
+// WHAT STILL GUARDS THE ESTATE TODAY, all green: kernel_invariants,
+// cancellation_reaches_the_kernel, every_discharge_claim_reaches_its_table,
+// anon_cannot_execute_security_definer (security, and it never depended on the org),
+// phase_c_components_are_owned, canonical_routine_manifest, export_from_either_source_is_identical
+// and receipts_never_wait_on_the_founder.
+//
+// Removed from .github/workflows/project-parity.yml in the same commit. Do not re-add this file.
+
+/* eslint-disable */
 // THE NEGATIVE CONTROLS THE ACCEPTANCE AUDIT ASKED FOR, COMMITTED.
 //
 // Measured 2026-08-20, before E16: all 769 input keys across all 257 input schemas were declared
