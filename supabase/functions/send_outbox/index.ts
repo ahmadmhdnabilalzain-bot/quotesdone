@@ -6,6 +6,7 @@
 //      2-minute cadence cannot bury the signal; idle runs with no work are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { BRAND, lockupImg } from '../_shared/brand.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
@@ -18,11 +19,16 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function tmplRow(n: string) { try { const { data } = await admin.from('templates').select('content').eq('name', n).maybeSingle(); return (data?.content as string) || ''; } catch { return ''; } }
 function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-// BRAND (6 Sep 2026): the founder's kit is on file (public.company_brand). Wordmark = navy "Quotes" + teal
-// "Done" as in the on-white lockup; links and headings use teal-deep #0B8276, the shade that passes WCAG AA
-// on white (brand teal #14B8A6 is 2.5:1 there — an accent, never text). The old #0d9488 was Tailwind's, not ours.
-const LINK = '#0B8276';
-function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + LINK + '">$1</a>'); }
+// BRAND: the founder's kit is on file (public.company_brand). Every colour below is one of its
+// rows, and this file now renders on NAVY, so it uses the on-navy pair throughout. The on-white
+// link (teal-deep #0B8276) is gone from here -- it was correct when the mail was white and is
+// near-invisible on #123041. Brand teal #14B8A6 remains an accent that never carries text.
+// v18 (8 Sep 2026): renderBody's output is placed on the DARK internal card, so it needs the
+// on-navy pair, not the on-white one. company_brand.contrast.links states it outright -- "On navy:
+// teal-light #6EE7D4" -- and teal-deep #0B8276 is the on-WHITE link, near-invisible on #123041.
+// The body colour had the same fault: #1f2937 is dark grey, which on navy is grey on black.
+const DARK_LINK = '#6EE7D4', DARK_INK = '#EAF4F2';
+function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + DARK_LINK + '">$1</a>'); }
 
 // Observability -------------------------------------------------------------
 const T0 = Date.now();
@@ -53,26 +59,30 @@ function renderBody(raw: string) {
     const t = line.replace(/\s+$/, '');
     if (!t) { closeList(); html += '<div style="height:8px"></div>'; continue; }
     if (/^[=\-_]{3,}$/.test(t)) { continue; }
-    if (/^\s*[-•*]\s+/.test(t)) { if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0">'; inList = true; } html += '<li style="margin:3px 0;font-size:15px;line-height:1.55">' + linkify(esc(t.replace(/^\s*[-•*]\s+/, ''))) + '</li>'; continue; }
+    if (/^\s*[-•*]\s+/.test(t)) { if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0">'; inList = true; } html += '<li style="margin:3px 0;font-size:15px;line-height:1.55;color:' + DARK_INK + '">' + linkify(esc(t.replace(/^\s*[-•*]\s+/, ''))) + '</li>'; continue; }
     closeList();
-    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:' + LINK + ';text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
-    html += '<p style="margin:0 0 9px;font-size:15px;line-height:1.6;color:#1f2937">' + linkify(esc(t)) + '</p>';
+    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:' + DARK_LINK + ';text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
+    html += '<p style="margin:0 0 9px;font-size:15px;line-height:1.6;color:' + DARK_INK + '">' + linkify(esc(t)) + '</p>';
   }
   closeList();
   return html;
 }
 function tmpl(opts: { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string }) {
   const { body, logo, name, title, channelEmail, unsub, wrapper, internal, subject } = opts;
-  // v17 (8 Sep 2026): the logo is now the horizontal OnDark lockup, not the 192px PWA app tile, so
-  // 34x34 with a border-radius would squash a wordmark into a square and round its corners off. The
-  // brand kit's own rule is that the horizontal lockup never goes below 120px wide; 170 clears it
-  // with room. height is left to the client so the aspect ratio cannot be distorted -- "never
-  // stretch" is in company_brand.logo.dont.
+  // v17 (8 Sep 2026): the logo is the horizontal OnDark lockup, not the 192px PWA app tile, so
+  // 34x34 with a border-radius would squash a wordmark into a square and round its corners off.
   //
-  // The alt text is load-bearing rather than decorative: most clients block images on first open,
-  // and the OnDark lockup CONTAINS the wordmark, so a blocked image with no alt is a nameless
-  // email. This is the only place the company's name appears in the header.
-  const logoTag = logo ? `<img src="${logo}" width="170" alt="QuotesDone" style="display:block;border:0;max-width:170px;height:auto"/>` : '';
+  // v18 (8 Sep 2026, founder: "make the logo a bit bigger... everywhere from now it should [be
+  // sized] in terms of the height"). Measured rather than nudged: the supplied lockup is a
+  // 1859x460 box holding 1608x176 of artwork, so 62% of its height is empty alpha. At width 170
+  // the box came out 42px tall and the visible wordmark 16px -- the same height as the 15px body
+  // text beneath it, which is precisely what he was looking at. Widening the box would have spent
+  // 62% of every added pixel on nothing.
+  //
+  // So the size now comes from lockupImg() in _shared/brand.ts, which uses the TRIMMED lockup and
+  // takes a HEIGHT. One helper, so email, UI and PDF cannot drift apart, and one unit, because a
+  // width means something different for every asset depending on the padding it was drawn inside.
+  const logoTag = logo ? lockupImg({ ground: 'dark', height: BRAND.logoHeight.email }) : '';
   const unsubLine = unsub ? `<br><a href="${unsub}" style="color:#9ca3af">Unsubscribe</a> &middot; or reply to this email to be removed.` : '';
   if (wrapper && wrapper.indexOf('{{BODY}}') >= 0) {
     return wrapper.split('{{LOGO}}').join(logoTag).split('{{BODY}}').join(esc(body)).split('{{NAME}}').join(esc(name)).split('{{TITLE}}').join(esc(title)).split('{{REPLY}}').join(esc(channelEmail)).split('{{UNSUB}}').join(unsubLine);
