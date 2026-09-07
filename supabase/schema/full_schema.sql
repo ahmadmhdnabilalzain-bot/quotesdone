@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T11:47:29.339Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T12:03:58.876Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -58361,7 +58361,26 @@ AS $function$
   select 'role_class', a.canonical_role_id, a.role_class||'/'||a.runtime_mode, r.runtime_mode
     from public.phase_c_reporting_authority a
     join public.org_role r on r.role_id = a.live_role_id
+    join (select live_role_id, count(*) canonical_count
+            from public.phase_c_reporting_authority group by 1) f
+      on f.live_role_id = a.live_role_id
    where r.runtime_mode is distinct from a.runtime_mode
+     -- COMPARED ONLY WHERE THE COMPARISON MEANS SOMETHING. Thirteen live roles absorbed 34 canonical
+     -- ones; comparing an absorbed specialist's approved class against the absorbing director's
+     -- runtime_mode reported 18 mismatches, every one of them a false positive.
+     and f.canonical_count = 1
+
+  union all
+  -- and the absorbed ones stay VISIBLE under their own subject rather than vanishing
+  select 'role_class_not_comparable', a.canonical_role_id, a.role_class||'/'||a.runtime_mode,
+         format('absorbed into %s, which carries %s canonical roles', a.live_role_id, f.canonical_count)
+    from public.phase_c_reporting_authority a
+    join public.org_role r on r.role_id = a.live_role_id
+    join (select live_role_id, count(*) canonical_count
+            from public.phase_c_reporting_authority group by 1) f
+      on f.live_role_id = a.live_role_id
+   where r.runtime_mode is distinct from a.runtime_mode
+     and f.canonical_count > 1
   union all
   -- the department head the map names must be the head the department records
   select 'department_head', a.canonical_role_id, a.department_head_role_id, coalesce(d.lead_agent,'(none)')
@@ -95290,7 +95309,7 @@ select cron.schedule('action_invoke_rpc_5min','0,5,10,15,20,25,30,35,40,45,50,55
 select cron.schedule('founder_habits_daily','20 4 * * *',$CRON$select public.fn_founder_habits_learn();$CRON$);
 select cron.schedule('scenario_rehearsal_weekly','10 3 * * 0',$CRON$select public.fn_scenario_rehearse_all();$CRON$);
 select cron.schedule('agent_context_head_refresh','40 */6 * * *',$CRON$select public.fn_kernel_cron_exec(269);$CRON$);
-select cron.schedule('kb_embed_priority_kinds','* * * * *',$CRON$select public.fn_kernel_cron_exec(271);$CRON$);
+select cron.schedule('kb_embed_priority_kinds','*/5 * * * *',$CRON$select public.fn_kernel_cron_exec(271);$CRON$);
 select cron.schedule('v3_knowledge_freshness_daily','25 1 * * *',$CRON$select public.fn_kernel_cron_exec(272);$CRON$);
 select cron.schedule('v3_role_readiness_daily','30 1 * * *',$CRON$select public.fn_kernel_cron_exec(273);$CRON$);
 select cron.schedule('v3_category_readiness_daily','35 1 * * *',$CRON$select public.fn_kernel_cron_exec(274);$CRON$);
@@ -95310,7 +95329,7 @@ select cron.schedule('it_security_live_posture_hourly','7 * * * *',$CRON$select 
 select cron.schedule('action_head_drive_5min','3,8,13,18,23,28,33,38,43,48,53,58 * * * *',$CRON$select public.fn_action_head_drive(20);$CRON$);
 select cron.schedule('dept_ops_heartbeat_hourly','23 * * * *',$CRON$select public.fn_dept_ops_heartbeat();$CRON$);
 select cron.schedule('supplier_suspension_proposed_daily','30 2 * * *',$CRON$select public.fn_kernel_cron_exec(313);$CRON$);
-select cron.schedule('kb_embed_ops_knowledge','* * * * *',$CRON$select public.fn_kernel_cron_exec(315);$CRON$);
+select cron.schedule('kb_embed_ops_knowledge','*/15 * * * *',$CRON$select public.fn_kernel_cron_exec(315);$CRON$);
 select cron.schedule('ads_autopilot_daily','20 4 * * *',$CRON$select public.fn_kernel_cron_exec(316);$CRON$);
 select cron.schedule('agent_daily_thought','15 4 * * *',$CRON$select public.fn_kernel_cron_exec(319);$CRON$);
 select cron.schedule('knowledge_exam_retrieval_daily','23 3 * * *',$CRON$select public.fn_kernel_cron_exec(320);$CRON$);
