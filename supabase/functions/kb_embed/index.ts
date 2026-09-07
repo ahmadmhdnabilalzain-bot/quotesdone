@@ -99,6 +99,24 @@ Deno.serve(async (req) => {
       return J({ ok: true, dims: emb.length, embedding: emb });
     }
 
+    // BATCH QUERY MODE (7 Sep 2026). The semantic examiner needs a vector for every exam option and
+    // stem — 10,400 texts for the 2,080-question bank, plus the employees' own agent_knowledge — and
+    // the single-`query` mode above costs one HTTPS round trip per text. Same credential gate, same
+    // free in-region gte-small, same 1,200-char truncation, same 384 dims, still no write: the ONLY
+    // difference is that N texts share one warm session. Capped at 16 per call (measured 7 Sep 2026: 16 -> 200, 32 -> 546 WORKER_RESOURCE_LIMIT) and cut off at the
+    // same wall-clock budget as the backfill loop, so a large batch returns the prefix it finished
+    // (`embeddings.length < texts.length`) instead of walking into the edge CPU ceiling.
+    if (Array.isArray(body.texts)) {
+      const texts = body.texts.slice(0, 16).map((t: unknown) => String(t ?? '').slice(0, 1200));
+      const model = embedder();
+      const out: number[][] = [];
+      for (const t of texts) {
+        if (Date.now() - T0 > BUDGET_MS) break;
+        out.push(await model.run(t, { mean_pool: true, normalize: true }) as number[]);
+      }
+      return J({ ok: true, dims: out.length ? out[0].length : 0, count: out.length, asked: texts.length, embeddings: out });
+    }
+
     // OLDEST-FIRST IS FAIR AND IT PUT THE MOST AUTHORITATIVE KNOWLEDGE LAST (11 Aug 2026).
     // Measured on production: kb_chunks is 42.6% embedded and rising ~1,240/hour, but `trade`
     // (1,993 rows) and `regulation` (45) are at 0% and `material` (3) at 0% — they arrived AFTER
