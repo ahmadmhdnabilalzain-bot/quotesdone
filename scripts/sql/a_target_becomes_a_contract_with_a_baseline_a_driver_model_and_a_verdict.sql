@@ -346,6 +346,13 @@ declare
   -- how this function first blessed 16,129 invitations in 30 days from a list of 19,896 addresses on
   -- a domain already bouncing at 10%. Silence about a ceiling is not evidence of headroom.
   v_undeclared text[] := '{}';
+  -- THE SAFETY ENVELOPE. A channel's safe throughput is a property of the channel, not of how badly
+  -- we want the target. Budget and internal capacity are negotiable; sender reputation is not, because
+  -- losing it costs every sign-in code and receipt that shares the domain. So this overrides.
+  v_chan       jsonb;
+  v_chan_block text := null;
+  v_chan_why   text := null;
+  v_chan_safe  numeric;
 begin
   select * into c from public.target_contract where id = p_contract_id;
   if not found then
@@ -440,9 +447,20 @@ begin
             'Stage %s must carry %s units but its ceiling is %s per day over %s usable days, which is %s.',
             d.stage_key, round(v_vol, 1), d.capacity_per_day, v_usable_days, round(v_cap_limit, 1));
         end if;
-      elsif d.capacity_per_day is null then
+      elsif d.capacity_per_day is null and d.channel_key is null then
         v_undeclared := array_append(v_undeclared,
           format('%s (must carry %s over %s usable days)', d.stage_key, round(coalesce(v_vol,0),0), v_usable_days));
+      end if;
+
+      -- The channel check. A stage that names a channel is capped by that channel's policy no matter
+      -- what the budget or the internal capacity allows.
+      if d.channel_key is not null and v_vol is not null then
+        v_chan := public.fn_channel_safe_volume(d.channel_key, v_vol, v_usable_days);
+        if coalesce((v_chan->>'ok')::boolean, false) = false and v_chan_block is null then
+          v_chan_block := d.stage_key;
+          v_chan_safe  := (v_chan->>'safe_max')::numeric;
+          v_chan_why   := v_chan->>'reason';
+        end if;
       end if;
       if v_vol is not null then v_vol := v_vol * d.rate; end if;
     end loop;
@@ -462,7 +480,19 @@ begin
 
   -- The verdict, if the two hard refusals above did not already set it.
   if v_verdict is null then
-    if v_binding is not null then
+    -- THE SAFETY ENVELOPE IS CHECKED FIRST, because it is the only constraint that cannot be bought
+    -- out of. A cheaper plan, a longer deadline or more staff do not restore a blacklisted domain.
+    if v_chan_block is not null then
+      v_verdict := 'NOT_ACHIEVABLE';
+      v_reason  := 'The channel that carries this plan cannot carry it safely. ' || v_chan_why;
+      v_changes := array_append(v_changes, format(
+        'Cap stage %s at %s, which is what the channel can safely carry, and make up the difference on '
+        || 'another channel or renegotiate the target. Raising the volume is not an option here: budget '
+        || 'and capacity are negotiable, sender reputation is not.',
+        v_chan_block, round(coalesce(v_chan_safe,0),0)));
+      v_changes := array_append(v_changes,
+        'Open a separate outreach domain and warm it, so cold volume never shares a reputation with sign-in codes and receipts.');
+    elsif v_binding is not null then
       v_verdict := 'NOT_ACHIEVABLE';
       v_reason  := 'A capacity ceiling binds before the deadline. ' || v_binding_why;
       v_changes := array_append(v_changes, format('Raise capacity at stage %s, extend the deadline, or reduce the desired value.', v_binding));
@@ -533,6 +563,9 @@ begin
     'budget_headroom', round(coalesce(v_headroom,0), 2),
     'binding_stage', v_binding,
     'binding_reason', v_binding_why,
+    'channel_blocked_stage', v_chan_block,
+    'channel_safe_max', v_chan_safe,
+    'channel_reason', v_chan_why,
     'rates_measured', v_measured,
     'rates_assumed', v_assumed,
     'verdict', v_verdict,
