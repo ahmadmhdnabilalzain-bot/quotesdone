@@ -1,3 +1,16 @@
+-- ================================================================================================
+-- QuotesDone — FULL SCHEMA EXPORT
+-- Captured 2026-09-07T11:47:29.339Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+--
+-- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
+-- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
+-- replaying scripts/sql in order is not one either — those files are records of changes that
+-- were applied, not a schema.
+--
+-- Regenerate with: node scripts/checks/export_from_either_source_is_identical.mjs --write
+-- Verify with the same command and no flag: it fails if the database and this file disagree.
+-- ================================================================================================
+-- ===== END BANNER — the schema export begins below, and IS compared byte for byte =====
 -- QuotesDone — FULL SCHEMA EXPORT (generated from the live database)
 -- Excludes: secret VALUES (key names listed below), and table ROW DATA (PII).
 -- Order is best-effort; this is a faithful reference mirror, not a guaranteed one-click restore.
