@@ -136,6 +136,42 @@ department's section states its own slice and whether it is achievable.
 
 ---
 
+## 5b. Layer 8 in full: a year of targets and tasks, per department and per position
+
+The founder's instruction: **targets and detailed tasks for every agent and every department, for a year, to
+1 October 2027.** The planning horizon is therefore **7 September 2026 to 30 September 2027, thirteen months**, with
+the recorded revenue milestone falling inside it on 31 August 2027.
+
+### What every one of the 54 positions gets
+
+| Part | Content |
+|---|---|
+| Objective | one measurable sentence for the thirteen months |
+| Owned metrics | two or three, each with its baseline **measured today** and its target at 30 Sep 2027; a baseline that does not exist is written as unmeasured, never guessed |
+| Month-by-month plan | thirteen rows: what this seat does that month, what it must produce, and what it needs from other seats first |
+| Quarterly gates | at 31 Dec 2026, 31 Mar 2027, 30 Jun 2027 and 30 Sep 2027: what must be true, and what changes in the plan if it is not |
+| Capacity check | the volume of work implied against what this seat can actually process, stated in the seat's own unit (invitations, quotes reviewed, screenings, reports) |
+| Dependencies | the named seats it waits on and the named seats waiting on it |
+| Change conditions | what would make this plan wrong, and what replaces it |
+
+### What every one of the 10 departments gets
+
+Its aggregate targets by quarter, its slice of the revenue identity, the sequencing across its own seats so two of
+them are not blocked on each other, the single number the department is accountable for, and the month at which its
+work becomes the binding constraint for the company.
+
+### The three ordering facts every plan must obey
+
+1. **Supply precedes demand.** No category transacts below ten verified suppliers, so every demand-side month before
+   that threshold produces zero revenue by arithmetic, not by opinion.
+2. **The constraint moves.** After supplier count comes quote quality, then response time, then category coverage.
+   Each department's plan must name the month its own constraint arrives and pre-position for it.
+3. **Nothing runs until the founder releases it.** Supplier outreach is held behind his switch. The plans are written
+   to start on release, and every month-one task is a preparation task that costs nothing if the release slips.
+
+Delivered as one file per department, , written after that department's
+taxonomy and models exist, because a task list written before the models is a wish list.
+
 ## 6. Sequence of work
 
 | Phase | What is built | How you will know it worked |
@@ -144,7 +180,7 @@ department's section states its own slice and whether it is achievable.
 | **B** | One position end to end, all eight layers, chosen for the question you already asked: the social media seat and the first three posts | you read its answer and judge it against a senior human's |
 | **C** | Layers 2, 3, 4 for all 54: the taxonomies, models, resolvers and judgement rules from the department sections | coverage measured: what share of real questions match a type |
 | **D** | Layers 1, 5, 6: the knowledge ingestion from lawful primary sources, driven by the failed certification areas | certification re-sits show movement, per position |
-| **E** | Layer 8 for all 54, and the calibration loop | every seat has a slice of the target with a capacity check |
+| **E** | Layer 8 for all 54 and all 10 departments: thirteen months of targets and tasks to 30 Sep 2027, with quarterly gates and capacity checks | every seat and every department has a dated plan whose arithmetic reaches the target, or says plainly that it does not |
 | **F** | The evaluation set of fifty real decisions, and the weekly coverage and calibration report | one page per week: coverage, correctness, calibration, refusals |
 
 Phases A and B are the ones that decide whether this works. I would rather be judged on B before building C.
