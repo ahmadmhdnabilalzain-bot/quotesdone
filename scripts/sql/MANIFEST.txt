@@ -1801,3 +1801,8 @@ scripts/sql/the_four_targets_the_founder_set.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/the_ceo_knowledge_pack_becomes_retrievable.sql
+scripts/sql/a_long_question_must_not_require_every_word_to_match.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded
