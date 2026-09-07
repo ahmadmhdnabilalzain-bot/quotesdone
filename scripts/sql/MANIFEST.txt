@@ -1744,5 +1744,6 @@ scripts/sql/certifications_data_analytics.sql
 scripts/sql/certifications_people_delivery.sql
 scripts/sql/certifications_credit_treasury.sql
 scripts/sql/the_examiner_reads_the_head_once.sql
+scripts/sql/knowledge_written_from_an_exams_own_answer_is_marked_unsourced.sql
 scripts/sql/the_company_renderers_carry_every_record_of_6_sep.sql
 scripts/sql/the_head_budget_is_split_after_the_mandatory_pieces.sql
