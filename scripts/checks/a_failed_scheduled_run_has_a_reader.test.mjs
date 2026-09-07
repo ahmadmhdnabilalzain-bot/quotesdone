@@ -94,8 +94,9 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
     why: '6 SEP 2026, 19:30-20:50Z, one every ten minutes: the watch found "20 internal credential(s) REFUSED in 24h, worst wa_template_setup (8)" — this afternoon\'s hand-wiring of the WhatsApp templates presenting the wrong scoped credential (the guard doing its job; none after 19:00Z) — and its rule made any issue status=error, so a day-old count kept calling the platform unhealthy every ten minutes. FIXED (the_resilience_watch_counts_refusals_still_arriving.sql): a day\'s refusals are a finding; refusals still arriving this hour (>= 5) are the issue. Run once through fn_kernel_cron_exec(123) after the change: status=ok, has_findings=true, has_issues=false. The nine rows stand as history.' },
   { agent: 'email_cron', errors: 1,
     why: '6 SEP 2026, 21:08:05Z: "email_cron called without the inbound secret" — the local full test run (npm test on the operator machine, 21:05Z) drove the edge functions without their credentials and the guard fail-closed, correctly. Operator diagnostics, not a scheduled failure; the scheduled email_cron presents its credential and runs every two minutes. A second row from this agent still fails this check.' },
-  { agent: 'kb_embed', errors: 52,
-    why: '6 SEP 2026, +1 (21:08:11Z, stage auth, signal forbidden): the same local full test run reached kb_embed without the inbound secret and the guard refused it — the shape of the 29-31 Aug diagnostics below, not the backfill (which presents cred_cron_knowledge and kept embedding, 34 rows a minute). '
+  { agent: 'kb_embed', errors: 60,
+    why: '7 SEP 2026, +8 (latest 08:41Z): the picker fix of 6 Sep helped and did not close it. Read today: 47 of the 60 say kb_embed "could not read its target table, so it reported done while unembedded chunks may still exist" — a SELECT cancelled on the statement timeout — and 7 say it computed embeddings but failed to WRITE 1 of 1 or 1 of 2 back, so those chunks are re-picked every run and the backfill loops without progressing. Same 120s cap as red_view_alert and agent_context_missing; kb_chunks is 2.69 M rows and the reads still cross it under load. NOT fixed. '
+       + '6 SEP 2026, +1 (21:08:11Z, stage auth, signal forbidden): the same local full test run reached kb_embed without the inbound secret and the guard refused it — the shape of the 29-31 Aug diagnostics below, not the backfill (which presents cred_cron_knowledge and kept embedding, 34 rows a minute). '
        + '6 SEP 2026, +11 (select timeouts at 14:49, 15:49, 16:49, 17:49, 18:49, 19:49 and 20:49Z — one every hour at HH:49 — and write timeouts at 14:50, 16:13, 18:06 and 20:50Z): the priority-kinds job (271) asked fn_kb_embed_claim for four source kinds every minute, and with only four such rows left the picker walked the whole un-embedded set in created_at order — EXPLAIN: 2,561,789 rows removed by filter, 370,481 pages read from disk, 23.4 s — through PostgREST it hit the 8 s wall and its reads evicted the cache the other picks and the HNSW writes depend on; pg_stat_activity sampled at 20:49:12Z showed the claim itself as the only active statement, eight seconds into IO DataFileRead. FIXED (the_priority_pick_reads_its_own_index.sql + the_priority_pick_orders_by_kind.sql): a partial index on (source_kind, created_at) where embedding_gte is null and a kind-ordered branch in the claim — the same pick now reads 21 buffers in 2.3 ms and returns its four rows in 245 ms through the function. Why the hour mark specifically was not caught by the sample and is not claimed. '
        + '6 SEP 2026, +9 (11:24Z write timeout ×1; 12:49:03Z select timeouts ×2; 13:49:03Z select timeouts ×6): the four embedding crons fired 1+6+6+6 = 19 kb_embed posts in the same second every minute, and twelve of them were no-ops (ops_knowledge has 0 rows without a vector; the priority kinds have 4 rows left). Six claims in the same second under a busy minute is what timed out. FIXED by cadence, not by code (the_embedding_crons_stop_stampeding.sql, the_boost_ticks_every_ten_seconds.sql, the_boost_embeds_three_at_a_time.sql): the boost is one post of three chunks every six seconds from pg_cron 1.6 interval scheduling (pg_net sends after commit, so spacing inside a transaction was impossible), the two drained jobs one post a minute; measured 34 rows a minute embedded and 0 kb_embed errors in the 20 minutes after the change. Separately, kb_embed answers 546 WORKER_RESOURCE_LIMIT one call in twenty (52 of 1,053 at five chunks, 3 of 60 at three): the edge isolate retiring on its CPU quota, rows re-claimed after three minutes; those never reach agent_runs. '
        + '6 SEP 2026, +1 (10:43Z): the index-ordered picker below still walked the embedded prefix of kb_chunks_created_at_desc_idx (EXPLAIN idle: 99,466 rows removed by filter, 34,280 buffers) and under seven parallel sessions plus a CI kernel gate that walk hit the 8 s wall once. The prefix grows with every row embedded, so the picker was slowing with its own successes. FIXED (the_embedding_picker_reads_a_partial_index.sql): a partial index on created_at where embedding_gte is null — the same pick now reads 14 buffers in 0.2 ms, index valid, 17 MB; the crons kept embedding 5 per call throughout (200 responses, +311 rows in the ten minutes after the build). '
@@ -247,8 +248,9 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'guard fail-closed with 401 and logged it (2026-09-03 03:35Z) — the same shape as the kb_embed '
        + 'diagnostics above. The rehearsal was corrected to present the fn.cos_execute credential, which '
        + 'is scoped to it. Not a defect; a second row still fails this check.' },
-  { agent: 'agent_context_missing', errors: 5,
-    why: '4 SEP 2026, +2 (ceo 06:18Z, cto 06:27Z): the same 8s statement timeout on fn_agent_context_capped, this time under seven parallel agents driving the database. ' + 'fn_agent_context_capped returned no context on three on-demand turns — cto twice on 3 Sep '
+  { agent: 'agent_context_missing', errors: 6,
+    why: '7 SEP 2026, +1 (cto): fn_agent_context_capped hit the statement timeout again and the seat answered with no identity, no company genome, no authority limits and no profession. Third instance of the same cause; the context builder is too slow for the cap under parallel load and has not been made faster. NOT fixed. '
+       + '4 SEP 2026, +2 (ceo 06:18Z, cto 06:27Z): the same 8s statement timeout on fn_agent_context_capped, this time under seven parallel agents driving the database. ' + 'fn_agent_context_capped returned no context on three on-demand turns — cto twice on 3 Sep '
        + '01:06Z/01:50Z and cfo once at 20:54Z during a rehearsal — each time because the statement '
        + 'hit the 8s timeout while five parallel agents and the executive-UI scorer were loading the '
        + 'database; the routine takes 0.7s idle (measured 4 Sep). agent_brain refused to answer from '
@@ -256,6 +258,14 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
        + 'correct, and the load was the session, not the company. A new count still fails this check.' },
   { agent: 'kb_autofill_gaps', errors: 27,
     why: '4 SEP 2026, 05:xx-07:02Z: the revived workflow loop dispatched knowledge_fill steps, whose executor triggers kb_autofill_gaps, which asked kb_fill_gap to generate knowledge for five empty categories; the paid provider is held by the founder, kb_fill_gap answered 502 generation_failed, and the autofill logged status=error 27 times (and posted a founder warning each time). ROOT CAUSE FIXED: kb_fill_gap v14 reports a held provider as a distinct non-error outcome and kb_autofill_gaps v13 records an all-held run as skipped and pages nobody. No knowledge was generated or charged. A new count still fails this check.' },
+  { agent: 'resilience_drill', errors: 1,
+    why: '7 SEP 2026, 04:20Z: the drill itself ran and mostly passed — 10 of 10 capability probes and '
+       + '12 of 13 continuity services, restore drill fresh. The one failure is the RESEND probe, which '
+       + 'returned false. Worth reading rather than dismissing, because Resend carries sign-in codes, '
+       + 'receipts and every supplier email. Bounded, and stated as bounded: the provider itself was '
+       + 'reachable the same day, its API answered a domains and an emails listing, and it has delivered '
+       + '842 emails with the newest on 7 Sep. So the evidence points at the PROBE rather than at an '
+       + 'outage, and which of the two it is has NOT been established. NOT fixed.' },
   { agent: 'dr_drill', errors: 2,
     why: 'Two hand-driven drills on 3 Sep (20:06Z and 20:13Z) ran the PREVIOUS dr_drill code, 40 '
        + 'minutes before the committed version was redeployed: the first could not count live rows in '
@@ -330,7 +340,7 @@ const DISCLOSED_CRON_AFTER_THE_WATERMARK = [
     why: 'the 00:50Z run failed because its component carried accountable_role_id \'brief\', which does '
        + 'not resolve in org_role. Fixed: role set to agent_workforce_capability_director (the crosswalk '
        + 'value); the job traces cleanly now.' },
-  { job: 'red_view_alert_15min', failures: 1,
+  { job: 'red_view_alert_15min', failures: 3,
     why: '5 SEP 2026, 21:22Z: one tick hit the 120s cron statement_timeout inside '
        + 'fn_company_connectivity_register, which the alerter calls on every sweep. Cause: the class C '
        + 'arm added that evening (a trigger on company_event is a named consumer) correlated a LIKE over '
@@ -338,7 +348,15 @@ const DISCLOSED_CRON_AFTER_THE_WATERMARK = [
        + 'and under the lane packet\'s concurrent drive of sixteen dispatcher passes it crossed 120s once. '
        + 'FIXED 6 Sep (the_registers_trigger_arm_is_computed_once.sql): the arm is a membership test '
        + 'against a CTE computed once over the distinct event types. Every later tick succeeded. One '
-       + 'historical row remains until it ages out; a second still fails this check.' },
+       + 'historical row remains until it ages out; a second still fails this check. '
+       + '7 SEP 2026, +2 (06:52Z and 06:54Z): two more ticks hit the same 120s cron statement_timeout, '
+       + 'cancelled inside fn_phase_c_step_event. NOT the same cause and NOT fixed. The cancel point is '
+       + 'misleading: phase_b_workflow_step holds 257 rows and phase_b_event 347, and both were timed '
+       + 'today — fn_phase_c_event_binding_status over EVERY event runs in 1.57 s and '
+       + 'fn_phase_c_resolve_actor over every step in 0.31 s. So no single call is slow; the alerter is '
+       + 'simply doing its whole board battery in one statement and occasionally crossing the cap under '
+       + 'load. 3 failures against 619 successes. The fix is to split the battery, not to raise the '
+       + 'timeout: a guard that passes because it was given longer has stopped checking.' },
   { job: 'action_invoke_rpc_5min', failures: 4,
     why: '4 SEP 2026, 06:15-06:30Z: four ticks hit the 120s statement timeout inside fn_org_exec_knowledge_fill, which ran a full-table category reconcile over 2.65M kb_chunks on every knowledge_fill action once the workflow loop was revived. FIXED the same morning (knowledge_fill_executor_reconciles_recent_chunks_only.sql): the reconcile is scoped to recent chunks; 0 failures since 06:31Z. The four historical rows remain until they age out; a fifth still fails this check.' },
   { job: 'learning_loop_sweep_hourly', failures: 1,
