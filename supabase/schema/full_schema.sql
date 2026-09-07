@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T23:22:20.397Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T23:24:44.519Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -2583,7 +2583,9 @@ CREATE TABLE IF NOT EXISTS public.function_owner (
   function_slug text NOT NULL,
   owner text NOT NULL,
   note text NOT NULL,
-  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  moves_to text,
+  moves_to_note text
 );
 
 CREATE TABLE IF NOT EXISTS public.gl_accounts (
@@ -8266,6 +8268,8 @@ ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_hash_accompanies_answer CHECK (((NULLIF(btrim(answer_text), ''::text) IS NULL) = (answer_hash IS NULL)));
 ALTER TABLE public.founder_command_plan ADD CONSTRAINT founder_command_plan_state_ck CHECK ((state = ANY (ARRAY['active'::text, 'cancelled'::text, 'superseded'::text, 'completed'::text])));
 ALTER TABLE public.founder_command_plan_item ADD CONSTRAINT founder_command_plan_item_kind_ck CHECK ((item_kind = ANY (ARRAY['primary'::text, 'contribution'::text])));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_elsewhere_ck CHECK (((moves_to IS NULL) OR (moves_to <> owner)));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHECK (((moves_to IS NULL) = (moves_to_note IS NULL)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'website'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
