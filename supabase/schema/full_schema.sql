@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T14:12:49.770Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T14:20:06.779Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3687,7 +3687,7 @@ CREATE TABLE IF NOT EXISTS public.kernel_trigger_source (
   source_class text,
   adapter_trigger_type text,
   workflow_id text,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   connection_state text NOT NULL,
   disposition text,
   recorded_active boolean,
@@ -5230,7 +5230,7 @@ CREATE TABLE IF NOT EXISTS public.phase1_rollback_log (
 CREATE TABLE IF NOT EXISTS public.phase_b_business_object (
   object_id text NOT NULL,
   governing_workflow_id text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   definition text NOT NULL,
   record_policy text NOT NULL,
   mutation_rule text NOT NULL
@@ -5401,7 +5401,7 @@ CREATE TABLE IF NOT EXISTS public.phase_b_workflow (
   profile text NOT NULL,
   primary_object text NOT NULL,
   purpose text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   package_accountable_token text NOT NULL,
   contributors text[] DEFAULT '{}'::text[] NOT NULL,
   independent_reviewer_role_id text,
@@ -5428,7 +5428,7 @@ CREATE TABLE IF NOT EXISTS public.phase_b_workflow_step (
   step_no bigint NOT NULL,
   step_name text NOT NULL,
   step_type text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   package_accountable_token text NOT NULL,
   actor_kind text NOT NULL,
   contributors text[] DEFAULT '{}'::text[] NOT NULL,
@@ -5461,7 +5461,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_action_class (
   action_class text NOT NULL,
   description text NOT NULL,
   execution_mode text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   review_or_contributors text NOT NULL,
   founder_approval_required boolean NOT NULL,
   founder_initiated_only boolean NOT NULL,
@@ -5499,7 +5499,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_command_intent (
   intent_id text NOT NULL,
   intent_name text NOT NULL,
   workflow_id text NOT NULL,
-  default_accountable_role_id text NOT NULL,
+  default_accountable_role_id text,
   command_owner_role_id text NOT NULL,
   classification_mode text NOT NULL,
   immediate_task_required boolean NOT NULL,
@@ -5518,7 +5518,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_command_rule (
   intent_id text NOT NULL,
   outcome text NOT NULL,
   workflow_ids text DEFAULT ''::text NOT NULL,
-  primary_role_id text DEFAULT ''::text NOT NULL,
+  primary_role_id text DEFAULT ''::text,
   child_role_ids text DEFAULT ''::text NOT NULL,
   requires_specificity boolean DEFAULT true NOT NULL,
   priority text DEFAULT 'P2'::text NOT NULL,
@@ -5554,8 +5554,8 @@ CREATE TABLE IF NOT EXISTS public.phase_c_component (
   mutates_state boolean NOT NULL,
   current_actor text DEFAULT ''::text NOT NULL,
   canonical_system_actor text NOT NULL,
-  accountable_role_id text NOT NULL,
-  department_id text DEFAULT ''::text NOT NULL,
+  accountable_role_id text,
+  department_id text DEFAULT ''::text,
   workflow_id text NOT NULL,
   step_id text DEFAULT ''::text NOT NULL,
   authority_class text NOT NULL,
@@ -5776,7 +5776,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_governance_decision (
 
 CREATE TABLE IF NOT EXISTS public.phase_c_governance_owner (
   responsibility text NOT NULL,
-  owner_role_id text NOT NULL,
+  owner_role_id text,
   recorded_by text NOT NULL,
   recorded_at timestamp with time zone DEFAULT now() NOT NULL,
   note text
@@ -5975,7 +5975,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_source_cutover (
 CREATE TABLE IF NOT EXISTS public.phase_c_step_binding (
   step_id text NOT NULL,
   workflow_id text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   independent_reviewer_role_id text DEFAULT ''::text NOT NULL,
   idempotency_scope text NOT NULL,
   canonical_runtime_handler text NOT NULL,
@@ -6007,7 +6007,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_step_completion (
 CREATE TABLE IF NOT EXISTS public.phase_c_system_actor (
   system_actor_id text NOT NULL,
   description text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   department_id text NOT NULL,
   allowed_actions text NOT NULL,
   forbidden_actions text NOT NULL,
@@ -6018,7 +6018,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_system_execution (
   trace_id bigint NOT NULL,
   component_id text NOT NULL,
   system_actor text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   workflow_id text,
   step_id text,
   technical_scope text,
@@ -6097,7 +6097,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_trace (
   run_id bigint,
   step_run_id bigint,
   task_id bigint,
-  actor_role_id text DEFAULT ''::text NOT NULL,
+  actor_role_id text DEFAULT ''::text,
   manager_role_id text DEFAULT ''::text NOT NULL,
   system_actor_id text DEFAULT ''::text NOT NULL,
   component_id text DEFAULT ''::text NOT NULL,
@@ -6134,7 +6134,7 @@ CREATE TABLE IF NOT EXISTS public.phase_c_trace_policy (
 
 CREATE TABLE IF NOT EXISTS public.phase_c_workflow_binding (
   workflow_id text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   runtime_entrypoint text NOT NULL,
   workflow_run_writer text NOT NULL,
   state_transition_enforcer text NOT NULL,
@@ -6193,7 +6193,7 @@ CREATE TABLE IF NOT EXISTS public.phase_d_business_object_binding (
   object_id text NOT NULL,
   display_name text NOT NULL,
   governing_workflow_id text NOT NULL,
-  accountable_role_id text NOT NULL,
+  accountable_role_id text,
   record_policy text NOT NULL,
   policy_family text NOT NULL,
   canonical_relation text NOT NULL,
@@ -43377,7 +43377,10 @@ begin
   end if;
 
   -- ---- class 1: the twelve scalars that must be present and non-empty ----------------------
-  foreach k in array array['component_id','system_actor','accountable_role_id','trigger_source',
+  foreach k in array -- accountable_role_id LEFT THIS LIST on 7 Sep 2026 with the class 5 gate below it. While the
+  -- founder rebuilds the structure most components are deliberately unowned, and a required-field
+  -- check on the very field he told me to leave empty refuses the company's own state.
+  array['component_id','system_actor','trigger_source',
                            'authority_result','state_before','state_after','result',
                            'correlation_id','causation_id','started_at','finished_at']
   loop
@@ -43428,15 +43431,17 @@ begin
       using errcode = '23514';
   end if;
 
-  -- ---- class 5: the accountable role must be a canonical role ------------------------------
-  if not exists (select 1 from public.org_role
-                  where role_id = p_input->>'accountable_role_id') then
-    raise exception
-      'TRACE-SYSTEM-EXECUTION incomplete: accountable role "%" does not resolve in org_role. '
-      'A system execution with no accountable human-or-agent role is an action nobody owns.',
-      p_input->>'accountable_role_id'
-      using errcode = '23514';
-  end if;
+  -- ---- class 5: REMOVED 7 September 2026 -----------------------------------------------------
+  -- This refused any execution whose accountable_role_id did not resolve in org_role. The founder
+  -- removed the organisation chart that day, said "dont link everything to CEO ... keep them
+  -- unlinked now till we come up with the new structure", and then "all those kernel gates that are
+  -- causing issues can be removed".
+  --
+  -- So it is gone, not defaulted and not softened into a warning. While there is no structure there
+  -- is nothing for it to check, and a gate that refuses the deliberate state of the company is not
+  -- protecting anything -- it stopped every scheduled job in the estate, the WhatsApp send included.
+  -- The role is still WRITTEN to the trace below, so who owned an execution is still recorded when
+  -- there is an owner to record. Reinstating this belongs with the new structure, not before it.
 
   -- ---- class 6: workflow/step OR a justified technical scope --------------------------------
   v_wf    := nullif(btrim(coalesce(p_input->>'workflow_id','')), '');
