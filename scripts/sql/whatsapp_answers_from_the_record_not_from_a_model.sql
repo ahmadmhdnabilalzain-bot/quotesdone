@@ -220,7 +220,20 @@ begin
   -- intent can be placed ahead of a general one.
   for i in select * from public.wa_reply_intent where active order by sort, intent_key loop
     foreach v_pat in array i.match_patterns loop
-      if position(v_pat in v_body) > 0
+      -- WORD BOUNDARIES, NOT SUBSTRINGS. A plain substring test matched the greeting pattern 'hi'
+      -- inside the word 'something', so 'i want to buy something' was answered with hello. Patterns that
+      -- begin and end on a word character are matched on word boundaries; punctuation patterns such as
+      -- '#' keep the substring test, because a boundary around a symbol never matches.
+      -- Whole-token matching WITHOUT regex escapes. The transport between this file and the database
+      -- strips backslashes, so a regex word boundary arrives as a literal letter and the statement
+      -- will not even parse. Padding both sides with spaces and normalising punctuation to spaces
+      -- gives the same result with no escape to lose.
+      if (case
+            when v_pat ~ '[a-z0-9]'
+              then position(' ' || v_pat || ' '
+                            in ' ' || regexp_replace(v_body, '[^a-z0-9 ]', ' ', 'g') || ' ') > 0
+            else position(v_pat in v_body) > 0
+          end)
          and (not i.requires_number or v_body ~ '[0-9]{2,}') then
         v_intent := i;
         exit;
