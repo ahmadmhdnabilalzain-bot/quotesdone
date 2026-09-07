@@ -1590,3 +1590,9 @@ scripts/sql/support_reports_to_the_ceo_and_nowhere_else.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/the_support_knowledge_pack_becomes_retrievable.sql
+scripts/sql/a_new_quotation_is_announced_without_announcing_the_supplier.sql
+scripts/sql/the_quotation_alert_reads_the_committed_state_and_nothing_else.sql
+scripts/sql/the_functions_three_triggers_still_call.sql
+scripts/sql/and_the_last_one_next_docver.sql
+scripts/sql/the_quote_leak_guard_reunited_with_its_implementation.sql
