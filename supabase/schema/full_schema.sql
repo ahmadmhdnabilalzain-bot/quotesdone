@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T19:06:05.995Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T19:18:19.083Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -54582,6 +54582,20 @@ begin
   v_reply := replace(v_reply, '{{free_count}}',  coalesce(v_cfg.supplier_free_count::text, '1000'));
   v_reply := replace(v_reply, '{{reg_fee}}',     coalesce(round(v_cfg.supplier_reg_fee)::text, '1000'));
 
+  -- THE APPROVED PUBLIC CONTACT, filled the same way. It is read from the settings that say
+  -- publication in their names -- never from founder_mobile, which is a private contact record that
+  -- happens to hold the same digits. Two values matching is not permission to publish either.
+  --
+  -- When the setting is absent the slot renders a sentence that ADMITS it rather than an empty
+  -- string. "You can contact  on  " is worse than saying the contact is not configured, and the
+  -- build spec asks for a blocker reported to the CEO rather than a placeholder shown to a customer.
+  v_reply := replace(v_reply, '{{founder_public_phone}}',
+    coalesce((select value from public.app_secrets where key = 'founder_public_phone'),
+             '(no approved public contact is configured yet)'));
+  v_reply := replace(v_reply, '{{founder_public_name}}',
+    coalesce((select value from public.app_secrets where key = 'founder_public_name'),
+             'the owner'));
+
   -- OWN-RECORD SLOTS, read from this sender's row only.
   if v_lead_id is not null then
     v_reply := replace(v_reply, '{{company_name}}', coalesce(v_lead.company_name, 'your company'));
@@ -54951,7 +54965,8 @@ begin
       'category_opens_at_suppliers', v_cfg.category_open_min_suppliers,
       'refund_window_working_days', v_cfg.refund_window_working_days,
       'supplier_chase_after_working_days', v_cfg.chase_after_working_days,
-      'founder_contact', '+971509319355',
+      'founder_contact', (coalesce((select value from public.app_secrets where key = 'founder_public_phone'),
+                   '(no approved public contact is configured — tell the CEO)')),
       'supplier_mandatory', jsonb_build_array('company name','UAE mobile','email','trade licence','company profile','signed terms'),
       'customer_mandatory', jsonb_build_array('name','mobile','email','signed terms')),
 
@@ -55044,7 +55059,8 @@ AS $function$
   || 'except what fact_pack contains, and you must never fill such a gap from memory or from what '
   || 'seems likely. '
 
-  || 'THE OWNER''S NUMBER IS +971509319355 AND THERE ARE EXACTLY TWO REASONS TO GIVE IT. One: the '
+  || 'THE OWNER''S NUMBER IS ' || (coalesce((select value from public.app_secrets where key = 'founder_public_phone'),
+                   '(no approved public contact is configured — tell the CEO)')) || ' AND THERE ARE EXACTLY TWO REASONS TO GIVE IT. One: the '
   || 'sender asked to speak to a person, an agent or a human, or asked who owns or runs QuotesDone. '
   || 'Two: the message is a complaint, a dispute or an accusation, which needs a person whether they '
   || 'asked or not. In both cases give it plainly and without making them ask twice, because the '
@@ -55259,7 +55275,8 @@ begin
 
     -- One decision. Handing to a person and giving the number are the same act.
     'needs_a_person', v_person,
-    'founder_number', case when v_person then '+971509319355' else null end,
+    'founder_number', case when v_person then (coalesce((select value from public.app_secrets where key = 'founder_public_phone'),
+                   '(no approved public contact is configured — tell the CEO)')) else null end,
     'person_reason', v_reason,
     'opened_by', case when v_asked then 'they asked'
                       when v_trouble then 'complaint or dispute'
@@ -62700,6 +62717,8 @@ select cron.schedule('wa_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron
 --   founder_email
 --   founder_mobile
 --   founder_name
+--   founder_public_name
+--   founder_public_phone
 --   founding_free_limit
 --   github_token
 --   inbound_secret
