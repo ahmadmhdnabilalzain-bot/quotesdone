@@ -1,3 +1,30 @@
+// RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT NO LONGER EXISTS.
+//
+// This asserted the connectivity of a ten-department company: that every department had an active
+// employee, that a non-apex role escalated up to its manager, that a target cascaded into a
+// department objective, that an unowned task could be swept to a real owner, and that a handoff
+// receiver resolved to an active employee of the target department.
+//
+// On 7 September 2026 the founder removed the organisation chart. His words: "actually remove the
+// whole organization chart that you made cause its trash", "so no departments from now", "dont link
+// everything to CEO ... keep them unlinked now till we come up with the new structure". Two seats
+// remain, ceo and customer_support, no departments, no managers, no escalation chain and no tasks.
+//
+// So this file is not failing because the estate regressed. It is failing because it describes a
+// company that was deliberately dismantled, and every one of its assertions is now a statement
+// about something that is not there. It is RETIRED rather than weakened: an assertion edited until
+// it passes against an empty organisation asserts nothing while still looking like a guard.
+//
+// WHAT REPLACES IT: nothing yet, and that is stated rather than hidden. When the new structure
+// exists, the connectivity that matters should be re-asserted against THAT structure — written
+// fresh from what the company then is, not recovered from this file. What survives in the meantime
+// is phase_c_components_are_owned (a component that names an owner names a real one, and no
+// component names a department) and company_is_fully_wired (every step, event, subscription and
+// executor connects to something that exists), both green.
+//
+// Removed from .github/workflows/project-parity.yml in the same commit. Do not re-add this file.
+
+/* eslint-disable */
 // THE ORG CONNECTS LIKE A REAL COMPANY — PROVEN BY EXECUTION, WITH ZERO PAID INFERENCE.
 //
 // Launch Step 1. The founder's requirement (LAUNCH_READINESS_PLAN.md, 27 Aug 2026): the company runs
