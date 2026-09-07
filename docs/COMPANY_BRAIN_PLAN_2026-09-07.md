@@ -1,0 +1,193 @@
+# The company brain — plan for approval
+
+7 September 2026. Written for the founder to check **before** anything is applied.
+
+## 0. What was asked
+
+Per position, at the standard of *a senior human with twenty years in a top international company*:
+
+1. position knowledge, 2. position logic, 3. position reasoning, 4. position judgement rules,
+5. technical knowledge, 6. academic knowledge, 7. corporate knowledge, 8. a one-year plan tied to the revenue target.
+
+**With one hard constraint, stated twice: none of it may depend on a language model at run time. Every position must
+answer with OpenRouter switched off.**
+
+That constraint is the whole design problem, so section 1 is about it. Everything after assumes it.
+
+---
+
+## 1. How a coded position answers an open question
+
+A language model answers anything because it will generate something for any input. A coded system cannot do that, and
+pretending otherwise produces the thing you already rejected: a lookup dressed as thinking. So the honest architecture
+has four parts and one boundary.
+
+**1. A question taxonomy per position.** Each seat has an enumerated set of question and decision types it is
+responsible for. Not infinite. A real senior in a real seat handles perhaps thirty to sixty recurring classes, and the
+rest they escalate. Each department's section lists them explicitly.
+
+**2. Matching, without a model.** An incoming question is matched to a type by lexical search plus embedding
+similarity. The estate already embeds text with a free in-region model, so meaning-matching costs nothing and needs no
+paid provider. Above the threshold, the type resolves. Below it, see the boundary.
+
+**3. A resolver per type.** A coded procedure: gather evidence from named tables, run the domain model (arithmetic),
+apply the judgement rules (thresholds and gates), generate the option set from the lever catalogue, score and rank,
+compute the flip condition. Every number traces to a row with a date.
+
+**4. Composition.** The answer is assembled from a structured template whose slots are computed values and cited rows.
+It reads like a professional memo because its structure is one. This is not a model writing prose; it is a report
+being generated, the way a bank statement is generated.
+
+**The boundary, stated plainly.** When no type matches, the seat says so: what it understood, what it would need, and
+the task it opened. It does not guess. That refusal is a feature, and it is the honest price of the no-model rule. The
+way we make the boundary rare is by enumerating well and by measuring, every week, what fraction of real questions
+fell outside it. Target: under ten percent by the end of the build, and every one of those becomes a new type.
+
+---
+
+## 2. The eight layers, as things that can actually be built
+
+Each layer below is data or code, per position, verifiable.
+
+| # | Layer | What it physically is | Where the content comes from |
+|---|---|---|---|
+| 1 | **Position knowledge** | the seat's own records in `agent_knowledge`, scoped, sourced and dated | primary sources, the certification syllabus areas it failed, the company's own documents |
+| 2 | **Position logic** | named quantitative models: formulas with inputs bound to live tables | written per domain; the shared business models below |
+| 3 | **Position reasoning** | the step-by-step resolver per question type, stored as a procedure | written per type, reusing the eight decision kinds |
+| 4 | **Judgement rules** | testable rows: condition → verdict → reason, including the red lines that override a good score | the seat's discipline, the founder's rulings, the regulator |
+| 5 | **Technical knowledge** | the systems, formats, platform mechanics and specifications the seat must operate | vendor documentation, platform specifications, our own schema |
+| 6 | **Academic knowledge** | the generalising theory, mapped to the certification syllabus | lawful primary sources only: standards bodies, regulators, published frameworks. Never copyrighted study texts |
+| 7 | **Corporate knowledge** | QuotesDone's own facts, rulings, pricing, workflows, history | already largely exists; rendered into every head every fifteen minutes |
+| 8 | **One-year plan** | the seat's objective, its two or three owned metrics, quarterly milestones, capacity check, dependencies | derived from the revenue target by the arithmetic in section 5 |
+
+Layers 1, 5, 6 and 7 are **knowledge**: they are ingested and cited. Layers 2, 3 and 4 are **reasoning**: they are code
+and rows. Layer 8 is **direction**: it is arithmetic against your target.
+
+---
+
+## 3. What "highest standard" means, and how it is proved
+
+"Senior human, twenty years, top international company" has to become a measurement or it is a slogan. Four, all built
+or in build today:
+
+- **Certification.** Every position now holds the certifications a genuine senior in that seat would hold: 105
+  assignments, 52 certifications, 2,080 questions at the real bodies' pass marks. The employee sits them from its own
+  knowledge with no model. First real result: the Financial Controller scored 15% on ACCA against a pass mark of 50,
+  abstaining on 25 of 40 because nothing in its library spoke to the question. That is the baseline we improve from.
+- **Decision evaluation.** Fifty real decisions from this company across the eight decision kinds, each with a
+  reference answer. The coded resolver sits the same set. Measured per position: reached the reference, abstained
+  correctly, or was confidently wrong. Confidently wrong is the only unacceptable outcome.
+- **Calibration.** Every decision registers an expected outcome and a date. When the outcome lands, the error is
+  recorded. A seat whose confidence is not justified by its results is not senior, whatever it scored on an exam.
+- **Coverage.** The fraction of real questions that matched a type rather than being refused. A seat that answers
+  everything but is often wrong, and a seat that refuses everything, are both failures.
+
+---
+
+## 4. The shared spine, built once
+
+Not fifty-four brains. Eight decision kinds, four business models, one composition engine, and per-position data.
+
+**The eight decision kinds**: allocation, gate (accept or reject against a standard), pricing, sequencing under
+dependency, diagnosis, forecast, craft judgement against a rubric, escalation. Every question type in every department
+is one of these. The solver is written once and configured per seat.
+
+**The four business models**, which make an answer specific to QuotesDone rather than generic advice:
+
+- **Marketplace stocks and flows.** Verified suppliers, trust and cash are stocks that fill slowly and drain fast;
+  invitations, registrations, RFQs and reveals are flows with delays between them. This model is what prevents the
+  classic error of pushing demand into an empty marketplace.
+- **Funnel identity.** revenue = customers × RFQs per customer × reveal rate × average quote value × 3%.
+- **Unit economics and payback**, against the cash position and the AED 30 per day cap.
+- **Risk and reversibility**, which decides what escalates to you regardless of score.
+
+**The composition engine** turns a resolved decision into the memo: what was asked, the constraint, the options with
+their scores, the rejected ones with reasons, the evidence with dates, the flip condition, and what would be done next.
+
+---
+
+## 5. Layer 8: the year-one plan, and a conflict in your targets
+
+Your goals as recorded: **AED 1,000,000 annual revenue by 31 August 2027**, and **AED 100,000 revenue in month 12**.
+
+The revenue identity gives the rest. The reveal fee is 3%, so revenue per reveal is 3% of the quote value. Average
+quote value is **unmeasured** — there are zero quotes in the system — so the plan carries it as a range and the first
+job of the marketplace seats is to measure it.
+
+| If the average quote is | Fee per reveal | Reveals needed for AED 1M | Reveals needed for AED 100k in a month |
+|---|---|---|---|
+| AED 10,000 | AED 300 | 3,333 | 333 |
+| AED 25,000 | AED 750 | 1,333 | 133 |
+| AED 50,000 | AED 1,500 | 667 | 67 |
+
+**The conflict.** If "AED 1,000,000 annual" means the sum of twelve months, then a smooth ramp reaching AED 100,000 in
+month 12 sums to roughly AED 600,000, not a million. To sum to a million with a smooth ramp, month 12 must be about
+AED 165,000. If instead it means the annualised run rate at month 12, then AED 100,000 in month 12 is AED 1.2M
+annualised and the two rows agree. I will build to the **run-rate reading**, because it is the common commercial one
+and it makes your two recorded goals consistent. Say the word if you meant the cumulative one, because it is a
+sixty-five percent harder target and it changes every department's slice.
+
+**Where the plan actually binds.** Today: one customer, zero inquiries, zero quotes, zero transactions, 22,265 leads,
+and no category with the ten verified suppliers your rule requires. Every demand-side number above multiplies by a
+reveal rate that is structurally zero until supply exists. So the year-one plan is supply-first by arithmetic, not by
+preference, and the honest capacity statement is this: month 12 at AED 100,000 requires the supplier loop to start
+within roughly two months and the first categories to reach ten verified suppliers by roughly month four. Each
+department's section states its own slice and whether it is achievable.
+
+---
+
+## 6. Sequence of work
+
+| Phase | What is built | How you will know it worked |
+|---|---|---|
+| **A** | The spine: eight solvers, four business models, the composition engine, the refusal path | the CEO answers "what should we do to increase revenue" with numbers, options, rejected alternatives and a flip condition, with the model off |
+| **B** | One position end to end, all eight layers, chosen for the question you already asked: the social media seat and the first three posts | you read its answer and judge it against a senior human's |
+| **C** | Layers 2, 3, 4 for all 54: the taxonomies, models, resolvers and judgement rules from the department sections | coverage measured: what share of real questions match a type |
+| **D** | Layers 1, 5, 6: the knowledge ingestion from lawful primary sources, driven by the failed certification areas | certification re-sits show movement, per position |
+| **E** | Layer 8 for all 54, and the calibration loop | every seat has a slice of the target with a capacity check |
+| **F** | The evaluation set of fifty real decisions, and the weekly coverage and calibration report | one page per week: coverage, correctness, calibration, refusals |
+
+Phases A and B are the ones that decide whether this works. I would rather be judged on B before building C.
+
+---
+
+## 7. Honest limits
+
+- **Novel situations.** Anything genuinely outside the taxonomy is refused, not answered. That is the price of no
+  model, and it is the right price, but you should expect it and see it in the coverage number.
+- **Taste.** The wording of a hook, the judgement that a design is flat, the sense that a supplier is lying. Rubrics
+  get close and do not arrive.
+- **The knowledge is thin today.** Six ACCA areas have nothing in the estate at all. Some layers cannot be filled from
+  what we hold and will need lawful material, which may cost money. Those arrive as a costed list, never bought
+  without you.
+- **This is a large build.** It is fifty-four positions across eight layers. The spine is weeks; the full depth is
+  months. Anyone who tells you otherwise has not counted.
+
+---
+
+## 8. What I need from you
+
+1. **The target reading**: run rate or cumulative (section 5). I will build to run rate unless you say otherwise.
+2. **Approval of this plan's shape** before I apply anything.
+3. Later, and only when it arrives as a costed list: a yes or no on any licensed material.
+
+Nothing else. The rest is engineering.
+
+---
+
+## Appendix — the per-position detail
+
+One file per department, each covering every position in it: the question taxonomy, the domain models, the reasoning
+procedures, the judgement rules, technical and academic knowledge with lawful sources, corporate knowledge, and the
+year-one slice.
+
+- `docs/brain/exec.md`
+- `docs/brain/finance.md`
+- `docs/brain/supply.md`
+- `docs/brain/growth.md`
+- `docs/brain/marketplace.md`
+- `docs/brain/customer_experience.md`
+- `docs/brain/legal.md`
+- `docs/brain/product_eng.md`
+- `docs/brain/data_intel.md`
+- `docs/brain/people_ops.md`
