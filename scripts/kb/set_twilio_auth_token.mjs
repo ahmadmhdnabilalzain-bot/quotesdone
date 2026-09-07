@@ -27,17 +27,27 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { createHmac } from 'node:crypto';
 
-const TOKEN = (process.env.TWILIO_AUTH_TOKEN || '').trim();
+// --from-file is the least error-prone route on Windows. PowerShell has no inline `VAR=x cmd`
+// prefix, so the documented bash form fails outright, and quoting a secret on a command line puts
+// it in the process list and in shell history. A path does neither.
+const argv = process.argv.slice(2);
+const fileAt = argv.indexOf('--from-file');
+const FROM_FILE = fileAt >= 0 ? argv[fileAt + 1] : null;
+const TOKEN = (FROM_FILE
+  ? readFileSync(FROM_FILE, 'utf8')
+  : (process.env.TWILIO_AUTH_TOKEN || '')).trim();
 const APPLY = process.argv.includes('--apply');
 const REF = 'htdblwldjkcgjvmqkbeh';
 const MGMT = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
 
 if (!TOKEN) {
-  console.error('TWILIO_AUTH_TOKEN is not set in the environment.\n');
-  console.error('  TWILIO_AUTH_TOKEN=xxxxx node scripts/kb/set_twilio_auth_token.mjs --apply\n');
-  console.error('It is deliberately not a command-line argument: an argument shows up in the');
-  console.error('process list and in shell history, and this one signs every inbound webhook.');
+  console.error('No token supplied. Either of these works:\n');
+  console.error('  node scripts/kb/set_twilio_auth_token.mjs --from-file C:\\path\\to\\token.txt --apply');
+  console.error('  $env:TWILIO_AUTH_TOKEN=' + "'xxxxx'" + '; node scripts/kb/set_twilio_auth_token.mjs --apply   (PowerShell)');
+  console.error('  TWILIO_AUTH_TOKEN=xxxxx node scripts/kb/set_twilio_auth_token.mjs --apply            (bash)\n');
+  console.error('The value is never taken as a plain argument: an argument shows up in the process');
+  console.error('list and in shell history, and this one signs every inbound webhook.');
   process.exit(2);
 }
 

@@ -309,12 +309,27 @@ L.push('  otherwise would be measuring the wrong subject.');
 L.push('- End-to-end delivery through Twilio and the email provider. The outbox is written and');
 L.push('  asserted; the provider leg is blocked by the channel policy above, for the reasons it');
 L.push('  states, and no scenario pretends otherwise.');
-L.push('- Cryptographic proof of webhook origin. `wa_inbound` implements HMAC-SHA1 validation of');
-L.push('  `X-Twilio-Signature` with a constant-time comparison, and it cannot run: Twilio signs with');
-L.push('  the ACCOUNT auth token, and the API key secret we hold cannot compute that HMAC. The');
-L.push('  fallback is a REST provenance lookup of the MessageSid against the account — a real check');
-L.push('  a forger cannot pass, but a lookup, not a proof. Supplying `twilio_auth_token` upgrades it');
-L.push('  with no code change; until then the weaker guarantee is what stands, and it is named.');
+// THE WEBHOOK GUARANTEE IS READ, NOT ASSERTED. This paragraph described a limitation, and the
+// limitation was lifted the moment the token was stored. A fixed sentence would now be a report
+// contradicting its own configuration table two sections earlier.
+{
+  const hasTwilio = rows.config.find((c) => c.key === 'twilio_auth_token' && c.state === 'set');
+  if (hasTwilio) {
+    L.push('- ~~Cryptographic proof of webhook origin~~ — RESOLVED. `twilio_auth_token` is stored, so');
+    L.push('  `wa_inbound` now validates `X-Twilio-Signature` by HMAC-SHA1 with a constant-time');
+    L.push('  comparison instead of falling back to the REST provenance lookup. A forged webhook now');
+    L.push('  fails on proof rather than on a lookup. No code changed; the credential was the whole');
+    L.push('  difference. Note it was supplied through a channel that saw the value, so rotating it');
+    L.push('  (Console → API keys & tokens → request a secondary token → promote) is worth doing.');
+  } else {
+    L.push('- Cryptographic proof of webhook origin. `wa_inbound` implements HMAC-SHA1 validation of');
+    L.push('  `X-Twilio-Signature` with a constant-time comparison, and it cannot run: Twilio signs');
+    L.push('  with the ACCOUNT auth token, and the API key secret we hold cannot compute that HMAC.');
+    L.push('  The fallback is a REST provenance lookup of the MessageSid against the account — a real');
+    L.push('  check a forger cannot pass, but a lookup, not a proof. Supplying `twilio_auth_token`');
+    L.push('  upgrades it with no code change; until then the weaker guarantee is what stands.');
+  }
+}
 L.push('');
 
 const out = L.join('\n') + '\n';

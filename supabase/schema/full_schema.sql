@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T20:33:25.375Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T22:02:29.873Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -64324,6 +64324,7 @@ select cron.schedule('wa_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron
 --   twilio_account_sid
 --   twilio_api_key_secret
 --   twilio_api_key_sid
+--   twilio_auth_token
 --   twilio_from
 --   twilio_verify_service_sid
 --   twilio_wa_from
