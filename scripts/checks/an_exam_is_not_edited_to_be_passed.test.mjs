@@ -7,7 +7,8 @@
 // production in aborted transactions:
 //
 //   LEG A (asserted, always runs). In one transaction: seed the sitting the loop consumes from the
-//     REAL bank (every syllabus area's first question marked missed), run
+//     REAL bank (in the first two syllabus areas the first question is missed — two gaps, because
+//     each one costs the plan a real corpus search and the transport caps a statement at 120 s), run
 //     fn_certification_gaps_refresh(), fn_certification_ingestion_plan() and
 //     fn_certification_gap_ingest() — the entire write path this loop performs — with the bank
 //     hashed per certification (id, syllabus area, stem, four options, key), every
@@ -129,8 +130,8 @@ declare
 begin
 ${hashes('h1', 'p1', 'x1')}
 
-  -- the sitting the loop consumes, built from the REAL bank: in every syllabus area the first
-  -- question is missed. It never leaves this transaction; it exists so the write path has input.
+  -- the sitting the loop consumes, built from the REAL bank: in the first two syllabus areas the
+  -- first question is missed. It never leaves this transaction; it exists so the write path has input.
   insert into public.certification_exam_result
     (agent_key, certification, questions, correct, score_pct, pass_mark_pct, passed, weakest_areas, answers)
   select ${q(AGENT)}, ${q(CERT)}, count(*)::int, count(*) filter (where a.ok)::int,
@@ -140,14 +141,16 @@ ${hashes('h1', 'p1', 'x1')}
          (select coalesce(jsonb_agg(jsonb_build_object('syllabus_area', z.area, 'asked', z.n, 'correct', z.ok)), '[]'::jsonb)
             from (select a2.area, count(*) n, count(*) filter (where a2.ok) ok
                     from (select coalesce(syllabus_area,'(unstated)') area,
-                                 row_number() over (partition by coalesce(syllabus_area,'(unstated)') order by id) > 1 ok
+                                 (row_number() over (partition by coalesce(syllabus_area,'(unstated)') order by id) > 1
+                                  or dense_rank() over (order by coalesce(syllabus_area,'(unstated)')) > 2) ok
                             from public.certification_exam_question where certification = ${q(CERT)}) a2
                    group by 1) z),
          jsonb_agg(jsonb_build_object('question_id', a.id, 'syllabus_area', a.area,
                                       'chosen', case when a.ok then a.key else null end,
                                       'key', a.key, 'correct', a.ok, 'abstained', not a.ok) order by a.id)
     from (select id, coalesce(syllabus_area,'(unstated)') area, correct_option key,
-                 row_number() over (partition by coalesce(syllabus_area,'(unstated)') order by id) > 1 ok
+                 (row_number() over (partition by coalesce(syllabus_area,'(unstated)') order by id) > 1
+                                  or dense_rank() over (order by coalesce(syllabus_area,'(unstated)')) > 2) ok
             from public.certification_exam_question where certification = ${q(CERT)}) a;
 
   select * into v_ref from public.fn_certification_gaps_refresh();

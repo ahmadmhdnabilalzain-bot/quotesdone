@@ -148,11 +148,18 @@ begin
        and to_tsvector('english', concat_ws(' ', ak.topic, ak.content)) @@ v_area
      order by ak.priority desc nulls last, ak.id
      limit 5
+  ), kbm as materialized (
+    -- kb_chunks holds 2.69 M rows. "where fts @@ q order by id limit 5" invites the planner to walk
+    -- the primary key filtering by the tsquery, which on a common area walks millions of rows and
+    -- blows the statement timeout. Materialising the match set first forces the GIN bitmap scan.
+    -- ponytail: the 2000 cap bounds that scan; an area matching more than 2000 chunks is too
+    -- generic for the first five by id to mean anything, and the ops and agent_knowledge legs still
+    -- carry it. Raise the cap if a real area ever needs it.
+    select c.id, c.title, c.content from public.kb_chunks c where c.fts @@ v_area limit 2000
   ), kb as (
-    select 'kb_chunks'::text, c.id::text, c.title, c.content
-      from public.kb_chunks c
-     where c.fts @@ v_area
-     order by c.id
+    select 'kb_chunks'::text, m.id::text, m.title, m.content
+      from kbm m
+     order by m.id
      limit 5
   )
   select * from ops union all select * from own union all select * from kb;
