@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T22:31:28.566Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T22:38:07.505Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -54710,8 +54710,15 @@ begin
     -- recognised as one instead of being held with the marketing.
     v_kind := coalesce(new.purpose, 'support');
 
+    -- KIND CARRIES THE PURPOSE TOO, and this is not cosmetic. a10_notifications_founder_mail_policy
+    -- governs anything addressed to the founder by KIND, reading it before type. An earlier version
+    -- of this bridge stamped every row 'support_agent', which collapsed every kind of support mail
+    -- into one governance decision: allow the label and he gets all of it, refuse it and he gets
+    -- none -- and the policy table could not tell a refund decision from a licence reminder. The
+    -- provenance that label was carrying is already on the support_notification row it came from,
+    -- so nothing is lost by letting the purpose through.
     insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel)
-    values (v_kind, 'support_agent', btrim(new.recipient), v_role,
+    values (v_kind, v_kind, btrim(new.recipient), v_role,
             coalesce(new.subject, 'QuotesDone'), new.body, 'queued', 'email')
     returning id into v_id;
 
