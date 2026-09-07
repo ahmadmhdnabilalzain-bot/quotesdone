@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T23:15:01.284Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T23:22:20.397Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -182,7 +182,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (539) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (540) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -2577,6 +2577,13 @@ CREATE TABLE IF NOT EXISTS public.fraud_flags (
   status text DEFAULT 'open'::text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.function_owner (
+  function_slug text NOT NULL,
+  owner text NOT NULL,
+  note text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.gl_accounts (
@@ -7722,6 +7729,7 @@ ALTER TABLE public.founder_mail_policy ADD CONSTRAINT founder_mail_policy_pkey P
 ALTER TABLE public.founder_release_approval ADD CONSTRAINT founder_release_approval_pkey PRIMARY KEY (id);
 ALTER TABLE public.founder_reserved_decision ADD CONSTRAINT founder_reserved_decision_pkey PRIMARY KEY (decision_key);
 ALTER TABLE public.fraud_flags ADD CONSTRAINT fraud_flags_pkey PRIMARY KEY (kind, subject_type, subject_id);
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_pkey PRIMARY KEY (function_slug);
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_pkey PRIMARY KEY (code);
 ALTER TABLE public.gl_expense_map ADD CONSTRAINT gl_expense_map_pkey PRIMARY KEY (category);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_pkey PRIMARY KEY (id);
@@ -8258,6 +8266,8 @@ ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_hash_accompanies_answer CHECK (((NULLIF(btrim(answer_text), ''::text) IS NULL) = (answer_hash IS NULL)));
 ALTER TABLE public.founder_command_plan ADD CONSTRAINT founder_command_plan_state_ck CHECK ((state = ANY (ARRAY['active'::text, 'cancelled'::text, 'superseded'::text, 'completed'::text])));
 ALTER TABLE public.founder_command_plan_item ADD CONSTRAINT founder_command_plan_item_kind_ck CHECK ((item_kind = ANY (ARRAY['primary'::text, 'contribution'::text])));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'website'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
@@ -63787,6 +63797,7 @@ ALTER TABLE public.founder_mail_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.founder_release_approval ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.founder_reserved_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fraud_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.function_owner ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gl_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gl_expense_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gl_journal ENABLE ROW LEVEL SECURITY;
