@@ -156,30 +156,18 @@ $$;
 -- The executor for a role. A knowledge_overlay has no standing executor of its own: it is loaded
 -- INTO its invoking manager, so this returns that manager's agent rather than null, which is what
 -- "the customer should not visibly bounce between agents" means at the runtime layer.
-create or replace function public.fn_org_role_agent(p_any text)
-returns text language sql stable as $$
-  with r as (select * from public.org_role where role_id = public.fn_org_role_resolve(p_any))
-  select coalesce(
-    (select runtime_agent_key from r where runtime_mode <> 'knowledge_overlay'),
-    (select m.runtime_agent_key from r join public.org_role m on m.role_id = r.manager_role_id),
-    (select runtime_agent_key from r)
-  );
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_org_role_agent was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- Manager chain to the top, cycle-safe, used by escalation and by the tests.
-create or replace function public.fn_role_manager_chain(p_role text)
-returns table(step int, role_id text, display_name text, department text)
-language sql stable as $$
-  with recursive up as (
-    select 0 as step, r.role_id, r.display_name, r.primary_department_id as department, r.manager_role_id
-      from public.org_role r where r.role_id = public.fn_org_role_resolve(p_role)
-    union all
-    select u.step + 1, m.role_id, m.display_name, m.primary_department_id, m.manager_role_id
-      from up u join public.org_role m on m.role_id = u.manager_role_id
-     where u.step < 32
-  )
-  select step, role_id, display_name, department from up order by step;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_role_manager_chain was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- ---------------------------------------------------------------------------------------------
 -- THE ENFORCEMENT THE BRIEF ASKS FOR, AS A MEASUREMENT RATHER THAN A COMMENT.
@@ -187,93 +175,11 @@ $$;
 -- constraints above. The completeness rules cannot be constraints — a role is seeded before its
 -- KPIs exist — so they are a function that returns every violation, and a test asserts it is empty.
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_org_role_violations()
-returns table(rule text, role_id text, detail text)
-language sql stable as $$
-  -- department must be an ACTIVE department
-  select 'department_inactive', r.role_id, r.primary_department_id
-    from public.org_role r join public.org_departments d on d.dept_key = r.primary_department_id
-   where r.status='active' and not d.active
-  union all
-  -- exactly one primary manager, except the CEO boundary
-  select 'no_manager', r.role_id, 'manager_role_id is null'
-    from public.org_role r
-   where r.status='active' and r.manager_role_id is null and r.role_id <> 'ceo'
-  union all
-  select 'manager_not_active', r.role_id, r.manager_role_id
-    from public.org_role r
-   where r.status='active' and r.manager_role_id is not null
-     and not exists (select 1 from public.org_role m where m.role_id=r.manager_role_id and m.status='active')
-  union all
-  -- an active role must have a runtime executor, unless it is a knowledge overlay
-  select 'no_runtime_agent', r.role_id, 'runtime_agent_key is null'
-    from public.org_role r
-   where r.status='active' and r.runtime_mode <> 'knowledge_overlay' and r.runtime_agent_key is null
-  union all
-  select 'runtime_agent_inactive', r.role_id, r.runtime_agent_key
-    from public.org_role r
-   where r.status='active' and r.runtime_agent_key is not null
-     and not exists (select 1 from public.org_agents a where a.agent_key=r.runtime_agent_key and a.active)
-  union all
-  -- no active role without KPIs / knowledge / authority / evaluations / tools
-  select 'no_kpi', r.role_id, 'employee_kpi has no active row for '||coalesce(r.runtime_agent_key,'-')
-    from public.org_role r
-   where r.status='active' and r.runtime_mode <> 'knowledge_overlay'
-     and not exists (select 1 from public.employee_kpi k where k.agent_key=r.runtime_agent_key and k.active)
-  union all
-  select 'no_knowledge', r.role_id, 'knowledge_scopes is empty and employee_knowledge has no row'
-    from public.org_role r
-   where r.status='active' and cardinality(r.knowledge_scopes)=0
-     and not exists (select 1 from public.employee_knowledge k where k.agent_key=r.runtime_agent_key)
-  union all
-  select 'no_authority', r.role_id, 'authority_level advisory with no employee_authority row'
-    from public.org_role r
-   where r.status='active' and r.runtime_mode <> 'knowledge_overlay'
-     and not exists (select 1 from public.employee_authority k where k.agent_key=r.runtime_agent_key)
-  union all
-  select 'no_tools', r.role_id, 'tools is empty'
-    from public.org_role r
-   where r.status='active' and cardinality(r.tools)=0
-  union all
-  select 'no_evaluation', r.role_id, 'evaluation_suite is null'
-    from public.org_role r
-   where r.status='active' and coalesce(r.evaluation_suite,'')=''
-  union all
-  -- a reviewer that can approve its own department's output is not independent
-  select 'reviewer_not_independent', r.role_id, 'independent_reviewer without stop_authority'
-    from public.org_role r
-   where r.status='active' and r.runtime_mode='independent_reviewer' and r.authority_level <> 'stop_authority'
-  union all
-  -- committee membership must never be modelled as a second role
-  select 'duplicate_role_for_agent', r.role_id, r.runtime_agent_key
-    from public.org_role r
-   where r.status='active' and r.runtime_agent_key is not null
-     and (select count(*) from public.org_role x
-           where x.status='active' and x.runtime_agent_key=r.runtime_agent_key) > 1
-  union all
-  -- every ACTIVE runtime agent must be some canonical role: no unowned employee
-  select 'agent_without_role', a.agent_key, 'active org_agents row maps to no active org_role'
-    from public.org_agents a
-   where a.active and not exists (select 1 from public.org_role r
-          where r.status='active' and r.runtime_agent_key = a.agent_key)
-  union all
-  -- A PACKAGED ROLE HELD ONLY BY A DEACTIVATED EMPLOYEE IS ADDRESSED BY NOBODY.
-  -- fn_agent_context_v3 collects v_role_ids from org_role_identity and retrieves role-scoped
-  -- knowledge with `role_key = any(v_role_ids)`. Merging an employee away moved its address, its
-  -- work and its KPIs, and left its packaged identity behind: 3 of the 96 packaged roles and 80
-  -- runtime-eligible knowledge records stopped reaching anyone on 14 Aug 2026, silently, because
-  -- retrieval that returns fewer rows looks exactly like a quiet system.
-  select 'packaged_role_unreachable', i.packaged_role_id,
-         'held only by inactive employee(s): '||string_agg(distinct i.agent_key, ', ')
-         ||'; '||(select count(*)::text from public.ops_knowledge k
-                   where k.role_key = i.packaged_role_id and k.runtime_eligible)
-         ||' runtime-eligible knowledge record(s) unreachable through the role layer'
-    from public.org_role_identity i
-   where not exists (select 1 from public.org_role_identity x
-                       join public.org_agents a on a.agent_key = x.agent_key and a.active
-                      where x.packaged_role_id = i.packaged_role_id)
-   group by i.packaged_role_id;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_org_role_violations was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 alter function public.fn_org_role_violations() set search_path to 'public';
 
 -- ---------------------------------------------------------------------------------------------

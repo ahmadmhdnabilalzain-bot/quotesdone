@@ -78,36 +78,11 @@
 --    what the Phase D runner reads, so the token in the message and the token in the register can
 --    never drift apart -- there is one source for both.
 -- ---------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.fn_phase_d_owner_admissibility(p_owner text)
- RETURNS TABLE(admissible boolean, refusal_code text, resolved_role_id text, resolved_kind text)
- LANGUAGE plpgsql
- STABLE
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record;
-begin
-  if coalesce(btrim(p_owner),'') = '' then
-    admissible := false; refusal_code := 'pd_owner_absent';
-    resolved_role_id := null; resolved_kind := null; return next; return;
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_owner_admissibility was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select a.kind, a.role_id into r from public.fn_phase_c_resolve_actor(p_owner) a;
-  resolved_role_id := r.role_id;
-  resolved_kind    := r.kind;
-
-  -- A category overlay is the named case, and it is named because it is the one identity that
-  -- RESOLVES to an active role and still may not own work. The others are refused for being
-  -- absent, unknown or not an employee at all, which is a different fact and gets a different code.
-  if r.kind = 'overlay' then
-    admissible := false; refusal_code := 'pd_overlay_cannot_own_task'; return next; return;
-  end if;
-  if r.kind = 'canonical' then
-    admissible := true; refusal_code := null; return next; return;
-  end if;
-
-  admissible := false; refusal_code := 'pd_owner_not_canonical'; return next; return;
-end $function$;
 
 REVOKE ALL ON FUNCTION public.fn_phase_d_owner_admissibility(text) FROM PUBLIC;
 

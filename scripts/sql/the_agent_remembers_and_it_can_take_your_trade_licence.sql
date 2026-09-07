@@ -145,106 +145,11 @@ comment on table public.wa_document_intake is
 
 commit;
 
-create or replace function public.fn_wa_attach_document(
-  p_phone        text,
-  p_storage_path text,
-  p_caption      text default null,
-  p_media_kind   text default null,
-  p_turn_id      bigint default null
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public
-as $fn$
-declare
-  v_lead   bigint;
-  v_cap    text := lower(coalesce(p_caption, '') || ' ' || coalesce(p_storage_path, ''));
-  v_kind   text := 'unknown';
-  v_by     text := 'caption';
-  v_conf   text := 'low';
-  v_intake bigint;
-  v_before jsonb;
-  v_after  jsonb;
-  v_reply  text;
-begin
-  v_lead := public.fn_wa_lead_id(p_phone);
+-- ROUTINE REMOVED 7 September 2026. public.fn_wa_attach_document was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- Classify from the caption and the filename. Deliberately conservative: an unrecognised document
-  -- is recorded as unknown and waits, rather than being filed as a trade licence on a guess.
-  if v_cap ~ '(trade|licence|license|رخصة|رخصه)' then
-    v_kind := 'licence'; v_conf := 'high';
-  elsif v_cap ~ '(profile|company profile|brochure|ملف|بروفايل)' then
-    v_kind := 'profile'; v_conf := 'high';
-  elsif v_cap ~ '(terms|t&c|agreement|signed|شروط|اتفاقية)' then
-    v_kind := 'signed_terms'; v_conf := 'high';
-  end if;
-
-  if v_lead is not null then
-    v_before := public.fn_supplier_mandatory_check(v_lead);
-  end if;
-
-  insert into public.wa_document_intake
-    (phone_e164, lead_id, turn_id, storage_path, media_kind, caption,
-     classified_as, classified_by, confidence, attached, attach_note)
-  values (regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g'), v_lead, p_turn_id,
-          p_storage_path, p_media_kind, p_caption, v_kind, v_by, v_conf, false, null)
-  returning id into v_intake;
-
-  -- Attach ONLY when we know whose file it is and what it is. Anything else waits for a person.
-  if v_lead is null then
-    v_reply := 'Thank you. I could not match this number to a registered company yet, so I have kept '
-            || 'your file and someone will match it to your account. If you reply with the email '
-            || 'address you registered with, I can do it straight away.';
-    update public.wa_document_intake set attach_note = 'No lead matches this number.' where id = v_intake;
-
-  elsif v_kind = 'unknown' then
-    v_reply := 'Thank you, I have saved that to your file. I could not tell which document it is, so '
-            || 'to file it correctly please tell me: is it your trade licence, your company profile, '
-            || 'or the signed terms?';
-    update public.wa_document_intake set attach_note = 'Received but unclassified; asked the sender.' where id = v_intake;
-
-  else
-    if v_kind = 'licence' then
-      update public.leads set license_doc_path = p_storage_path where id = v_lead;
-    elsif v_kind = 'profile' then
-      update public.leads set company_profile_doc_path = p_storage_path where id = v_lead;
-    elsif v_kind = 'signed_terms' then
-      update public.leads set signed_terms_path = p_storage_path where id = v_lead;
-    end if;
-
-    update public.wa_document_intake
-       set attached = true,
-           attach_note = format('Attached as %s to lead %s.', v_kind, v_lead)
-     where id = v_intake;
-
-    v_after := public.fn_supplier_mandatory_check(v_lead);
-
-    -- Tell them what changed and what is left. This is the difference between a receipt and a service.
-    if coalesce((v_after->>'complete')::boolean, false) then
-      v_reply := 'Got it, that is your ' || replace(v_kind,'_',' ') || ' saved. Your file is now '
-              || 'complete and it goes to our team for verification. I will message you here when it '
-              || 'is approved.';
-    else
-      v_reply := 'Got it, that is your ' || replace(v_kind,'_',' ') || ' saved. Still needed: '
-              || (select string_agg(value #>> '{}', ', ') from jsonb_array_elements(v_after->'missing'))
-              || '. You can send them here the same way.';
-    end if;
-  end if;
-
-  return jsonb_build_object(
-    'ok', true,
-    'intake_id', v_intake,
-    'lead_id', v_lead,
-    'classified_as', v_kind,
-    'confidence', v_conf,
-    'attached', (v_lead is not null and v_kind <> 'unknown'),
-    'mandatory_before', v_before,
-    'mandatory_after', v_after,
-    'reply', v_reply
-  );
-end;
-$fn$;
 
 revoke execute on function public.fn_wa_attach_document(text,text,text,text,bigint) from public;
 

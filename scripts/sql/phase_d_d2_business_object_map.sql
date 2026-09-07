@@ -587,58 +587,11 @@ comment on function public.fn_phase_d_object_write(jsonb) is
   'back — a write that produced nothing is reported as a failure, never as a success.';
 
 -- ================================================================ 2. the read service
-create or replace function public.fn_phase_d_object_read(p_input jsonb)
-returns jsonb
-language plpgsql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  b           public.phase_d_business_object_binding%rowtype;
-  v_object    text := nullif(btrim(coalesce(p_input->>'object_id','')),'');
-  v_key       text := nullif(btrim(coalesce(p_input->>'business_key','')),'');
-  v_scope     text := nullif(btrim(coalesce(p_input->>'caller_scope','')),'');
-  v_ref       text := nullif(btrim(coalesce(p_input->>'caller_ref','')),'');
-  v_rows      jsonb;
-begin
-  if v_object is null then
-    raise exception 'fn_phase_d_object_read: object_id is required (pd_object_input_invalid)'
-      using errcode = '22023';
-  end if;
-  select * into b from public.phase_d_business_object_binding where object_id = v_object;
-  if not found then
-    raise exception 'fn_phase_d_object_read: % is not a bound Phase D business object (pd_object_unbound)',
-      v_object using errcode = '23503';
-  end if;
-  if b.relation_kind <> 'PHASE_D_OBJECT_VIEW' then
-    raise exception 'fn_phase_d_object_read: % lives in the existing relation % and is read there. (pd_object_wrong_reader)',
-      v_object, b.canonical_relation using errcode = '23514';
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_object_read was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- CROSS-OWNER ACCESS IS REFUSED HERE, not filtered by the caller. A COMPANY-scoped object is
-  -- readable by an internal caller; a CUSTOMER- or SUPPLIER-scoped one requires the caller to
-  -- name whose record it is asking for, and gets nothing back for anybody else.
-  if b.ownership_scope in ('CUSTOMER','SUPPLIER') then
-    if v_scope is null or v_ref is null then
-      raise exception 'fn_phase_d_object_read: % is %-scoped and the call names no caller_scope/caller_ref. Refusing to answer for an unnamed owner. (pd_object_owner_unstated)',
-        v_object, b.ownership_scope using errcode = '22023';
-    end if;
-    if v_scope <> b.ownership_scope then
-      raise exception 'fn_phase_d_object_read: % is %-scoped and the caller presents scope %. (pd_object_cross_scope)',
-        v_object, b.ownership_scope, v_scope using errcode = '23514';
-    end if;
-  end if;
-
-  select coalesce(jsonb_agg(to_jsonb(r) order by r.version desc), '[]'::jsonb) into v_rows
-    from public.phase_d_object_record r
-   where r.object_id = v_object
-     and (v_key is null or r.business_key = v_key)
-     and (b.ownership_scope = 'COMPANY' or r.owner_ref = v_ref);
-
-  return jsonb_build_object(
-    'ok', true, 'object_id', v_object, 'canonical_relation', b.canonical_relation,
-    'owner_scope', b.ownership_scope, 'caller_ref', v_ref,
-    'count', jsonb_array_length(v_rows), 'records', v_rows);
-end $fn$;
 
 comment on function public.fn_phase_d_object_read(jsonb) is
   'The canonical Phase D business-object read service. A customer- or supplier-scoped object '
@@ -646,60 +599,11 @@ comment on function public.fn_phase_d_object_read(jsonb) is
   'refused rather than filtered.';
 
 -- ================================================================ 3. the board
-create or replace function public.fn_phase_d_object_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language plpgsql stable
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare n_obj int; n_bound int; n_unres int; n_noread int; n_nowrite int; n_noowner int;
-        n_views int; n_needviews int;
-begin
-  select count(*) into n_obj   from public.phase_b_business_object;
-  select count(*) into n_bound from public.phase_d_business_object_binding;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_object_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  check_name := 'every_frozen_object_has_a_binding';
-  expected := n_obj::text; actual := n_bound::text; ok := (n_bound = n_obj); return next;
-
-  -- A named relation that does not exist is prose. Tables and views are both resolved.
-  select count(*) into n_unres
-    from public.phase_d_business_object_binding b
-   where not exists (
-     select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and c.relkind in ('r','v','m','p')
-        and c.relname = replace(b.canonical_relation, 'public.', ''));
-  check_name := 'every_canonical_relation_resolves';
-  expected := '0'; actual := n_unres::text; ok := (n_unres = 0); return next;
-
-  select count(*) into n_noread  from public.phase_d_business_object_binding
-   where coalesce(btrim(canonical_read_service),'') = '';
-  check_name := 'objects_with_no_canonical_read_service';
-  expected := '0'; actual := n_noread::text; ok := (n_noread = 0); return next;
-
-  select count(*) into n_nowrite from public.phase_d_business_object_binding
-   where coalesce(btrim(canonical_write_service),'') = '';
-  check_name := 'mutable_objects_with_no_canonical_write_service';
-  expected := '0'; actual := n_nowrite::text; ok := (n_nowrite = 0); return next;
-
-  select count(*) into n_noowner from public.phase_d_business_object_binding
-   where ownership_scope is null or coalesce(btrim(ownership_scope),'') = '';
-  check_name := 'objects_with_no_ownership_scope';
-  expected := '0'; actual := n_noowner::text; ok := (n_noowner = 0); return next;
-
-  select count(*) into n_needviews from public.phase_d_business_object_binding
-   where relation_kind = 'PHASE_D_OBJECT_VIEW';
-  select count(*) into n_views from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'v' and c.relname like 'v_obj_%';
-  check_name := 'one_view_per_stored_object';
-  expected := n_needviews::text; actual := n_views::text; ok := (n_views = n_needviews); return next;
-
-  -- The store's guard must be attached, or the record policy is a column value and nothing else.
-  check_name := 'record_policy_guard_is_attached';
-  expected := '1'; ok := exists (
-    select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
-     where c.relname = 'phase_d_object_record' and t.tgname = 'a00_phase_d_object_policy_guard'
-       and not t.tgisinternal);
-  actual := case when ok then '1' else '0' end; return next;
-end $fn$;
 
 comment on function public.fn_phase_d_object_state() is
   'Phase D business-object board. Discovered by public.fn_kernel_all_boards() on signature.';

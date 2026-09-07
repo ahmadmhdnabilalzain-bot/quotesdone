@@ -88,132 +88,21 @@
 -- ================================================================================================
 
 -- ---- 1. THE RESOLVER ----------------------------------------------------------------------------
-create or replace function public.fn_kernel_business_subject_resolve(p_business_object_id text)
-returns table(object_id text, canonical_relation text, identity_column text, identity_value text,
-              resolution text, resolved_in text)
-language plpgsql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare b record; v_found boolean; v_tok text; v_tail text; c text; v_obj text; v_pred text;
-begin
-  v_obj := split_part(coalesce(p_business_object_id,''), ':', 1);
-  object_id := v_obj;
-  if p_business_object_id is null or position(':' in p_business_object_id) = 0 then
-    canonical_relation := null; identity_column := null; identity_value := null;
-    resolution := 'UNMAPPED_PREFIX'; resolved_in := null;
-    return next; return;
-  end if;
-  identity_value := substring(p_business_object_id from char_length(v_obj) + 2);
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_business_subject_resolve was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select bo.canonical_relation, bo.primary_identity into b
-    from public.phase_d_business_object_binding bo
-   where bo.object_id = v_obj
-     and coalesce(btrim(bo.canonical_relation),'') <> ''
-     and coalesce(btrim(bo.primary_identity),'') <> ''
-     and to_regclass(bo.canonical_relation) is not null;
-  if not found then
-    canonical_relation := null; identity_column := null;
-    resolution := 'UNMAPPED_PREFIX'; resolved_in := null;
-    return next; return;
-  end if;
-  canonical_relation := b.canonical_relation;
-  identity_column    := b.primary_identity;
-
-  -- The identity is compared AS TEXT on both sides. A uuid column cast to text never raises on a
-  -- value that is not a uuid, and `p.id = 'not-a-uuid'::uuid` does — which would turn a malformed
-  -- business_object_id into an error instead of a finding.
-  execute format('select exists (select 1 from %s p where p.%I::text = $1)',
-                 canonical_relation, identity_column)
-     into v_found using identity_value;
-  if v_found then
-    resolution := 'RESOLVED'; resolved_in := canonical_relation;
-    return next; return;
-  end if;
-
-  -- THE PRIMARY IDENTITY IS NOT HOW EVERY PRODUCER KEYS ITS SUBJECT, and pretending it is turns a
-  -- guard into an outage. Measured 27 Aug 2026 against the estate: W16 writes
-  -- `payment_transaction:<transactions.payment_ref>` and the map says
-  -- `payment_transaction:<transactions.id>`; `payment_ref` is not even unique, so no
-  -- candidate-key rule reaches it. W29 does the same with `incident:agent_action:<id>`. Refusing on
-  -- the primary key alone would have refused every W16 run the estate can produce.
-  --
-  -- So the question the guard actually needs answered is weaker and truer: IS THERE A ROW THIS RUN
-  -- IS ABOUT? The identity is looked for across every comparable column of the canonical relation,
-  -- in one scan, and the column that matched is reported. A run whose subject appears nowhere in its
-  -- own relation is the orphan; a run whose subject appears under a different column is a producer
-  -- keying it differently, which is a real finding and NOT a reason to refuse live work.
-  --
-  -- ponytail: this is a sequential scan of one relation per workflow-run INSERT. 26 runs exist in
-  -- total and the largest bound relation is public.leads at 20,465 rows, so it is not worth an index
-  -- today. If workflow-run creation ever becomes hot, narrow this to the columns each producer
-  -- actually writes by extending phase_d_business_object_binding rather than by dropping the scan.
-  select string_agg(format('p.%I::text = $1', a.attname), ' or ')
-    into v_pred
-    from pg_attribute a
-   where a.attrelid = canonical_relation::regclass and a.attnum > 0 and not a.attisdropped
-     and format_type(a.atttypid, a.atttypmod) in
-         ('text','character varying','uuid','bigint','integer','smallint','numeric');
-  if v_pred is not null then
-    execute format('select exists (select 1 from %s p where %s)', canonical_relation, v_pred)
-       into v_found using identity_value;
-    if v_found then
-      resolution := 'RESOLVED';
-      resolved_in := canonical_relation || ' (under a column other than ' || identity_column || ')';
-      return next; return;
-    end if;
-  end if;
-
-  -- SECOND CHANCE, GENERIC. `incident:agent_action:3833` names its own relation inside the identity.
-  -- Take the leading token and look for a public table called <token> or <token>s carrying that id.
-  -- No allow-list and no per-case exemption: either such a table exists and holds the row, or it
-  -- does not.
-  if position(':' in identity_value) > 0 then
-    v_tok  := split_part(identity_value, ':', 1);
-    v_tail := substring(identity_value from char_length(v_tok) + 2);
-    foreach c in array array['public.' || v_tok, 'public.' || v_tok || 's'] loop
-      if to_regclass(c) is not null
-         and exists (select 1 from information_schema.columns
-                      where table_schema = 'public' and table_name = split_part(c,'.',2)
-                        and column_name = 'id') then
-        execute format('select exists (select 1 from %s p where p.id::text = $1)', c)
-           into v_found using v_tail;
-        if v_found then
-          resolution := 'KEYED_OUTSIDE_ITS_BINDING'; resolved_in := c;
-          return next; return;
-        end if;
-      end if;
-    end loop;
-  end if;
-
-  resolution := 'PARENT_MISSING'; resolved_in := null;
-  return next;
-end
-$function$;
 revoke execute on function public.fn_kernel_business_subject_resolve(text) from public;
 revoke execute on function public.fn_kernel_business_subject_resolve(text) from anon;
 revoke execute on function public.fn_kernel_business_subject_resolve(text) from authenticated;
 
 -- ---- 2. THE DETECTOR ----------------------------------------------------------------------------
-create or replace function public.fn_kernel_business_parent_missing()
-returns table(run_id bigint, workflow_id text, state text, business_object_id text,
-              object_id text, canonical_relation text, identity_column text, identity_value text,
-              resolution text, resolved_in text)
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-  select r.run_id, r.workflow_id, r.state, r.business_object_id,
-         s.object_id, s.canonical_relation, s.identity_column, s.identity_value,
-         s.resolution, s.resolved_in
-    from public.phase_c_workflow_run r
-    cross join lateral public.fn_kernel_business_subject_resolve(r.business_object_id) s
-   where r.state not in ('cancelled','superseded','completed','failed')
-     and s.resolution <> 'RESOLVED'
-   order by r.run_id;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_business_parent_missing was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke execute on function public.fn_kernel_business_parent_missing() from public;
 revoke execute on function public.fn_kernel_business_parent_missing() from anon;
 revoke execute on function public.fn_kernel_business_parent_missing() from authenticated;
@@ -221,121 +110,11 @@ revoke execute on function public.fn_kernel_business_parent_missing() from authe
 -- ---- 3. THE BOARD -------------------------------------------------------------------------------
 -- The six original rows are unchanged, word for word. Seven more are added beside them; none of the
 -- existing expectations moves.
-create or replace function public.fn_kernel_orphaned_work()
-returns TABLE(check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-  with dead as (
-    select c.command_id from public.founder_command c where c.state in ('cancelled','superseded')
-  ), dead_runs as (
-    select r.run_id from public.phase_c_workflow_run r
-     where r.command_id in (select command_id from dead)
-        or r.state in ('cancelled','superseded')
-  ), unresolved as (
-    select * from public.fn_kernel_business_parent_missing()
-  ), orphan as (
-    select * from unresolved where resolution = 'PARENT_MISSING'
-  ), orphan_runs as (
-    select o.run_id from orphan o
-  ), live_runs as (
-    select r.run_id from public.phase_c_workflow_run r
-     where r.state not in ('cancelled','superseded','completed','failed')
-  )
-  select 'live_tasks_of_cancelled_commands',  '0',
-         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked')) = 0
-    from public.phase_c_task t
-   where t.command_id in (select command_id from dead) or t.run_id in (select run_id from dead_runs)
-  union all
-  select 'live_runs_of_cancelled_commands', '0',
-         count(*) filter (where r.state not in ('cancelled','superseded','completed','failed'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where r.state not in ('cancelled','superseded','completed','failed')) = 0
-    from public.phase_c_workflow_run r where r.command_id in (select command_id from dead)
-  union all
-  select 'live_step_runs_of_cancelled_runs', '0',
-         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded')) = 0
-    from public.phase_c_workflow_step_run s where s.run_id in (select run_id from dead_runs)
-  union all
-  select 'open_handoffs_of_cancelled_runs', '0',
-         count(*) filter (where h.status = 'open')::text || ' of ' || count(*)::text,
-         count(*) filter (where h.status = 'open') = 0
-    from public.phase_c_handoff_run h where h.run_id in (select run_id from dead_runs)
-  union all
-  select 'undelivered_outbox_of_cancelled_commands', '0',
-         count(*) filter (where o.status in ('pending','claimed','retry_wait'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where o.status in ('pending','claimed','retry_wait')) = 0
-    from public.phase_c_event_outbox o
-   where (o.payload->>'command_id') in (select command_id::text from dead)
-  union all
-  select 'open_traces_of_cancelled_subjects', '0',
-         count(*) filter (where tr.sealed_at is null)::text || ' of ' || count(*)::text,
-         count(*) filter (where tr.sealed_at is null) = 0
-    from public.phase_c_trace tr
-   where tr.command_id in (select command_id from dead) or tr.run_id in (select run_id from dead_runs)
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_orphaned_work was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- ---- ADDED 27 AUG 2026. A PARENT THAT WAS DELETED LEAVES NO CANCELLED ROW TO ASK ABOUT. ------
-  union all
-  select 'active_runs_whose_business_parent_is_gone', '0',
-         (select count(*) from orphan)::text || ' of '
-           || (select count(*) from live_runs)::text || ' active runs'
-           || case when (select count(*) from orphan) = 0 then ''
-                   else ': ' || (select string_agg(o.run_id || ' ' || o.workflow_id || ' '
-                                                || o.business_object_id || ' (no row in '
-                                                || o.canonical_relation || ')', ', ' order by o.run_id)
-                                   from orphan o) end,
-         (select count(*) from orphan) = 0
-  union all
-  select 'active_step_runs_under_a_missing_parent', '0',
-         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded')) = 0
-    from public.phase_c_workflow_step_run s where s.run_id in (select run_id from orphan_runs)
-  union all
-  select 'live_tasks_under_a_missing_parent', '0',
-         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked')) = 0
-    from public.phase_c_task t where t.run_id in (select run_id from orphan_runs)
-  union all
-  select 'open_handoffs_under_a_missing_parent', '0',
-         count(*) filter (where h.status = 'open')::text || ' of ' || count(*)::text,
-         count(*) filter (where h.status = 'open') = 0
-    from public.phase_c_handoff_run h where h.run_id in (select run_id from orphan_runs)
-  union all
-  select 'undeliverable_outbox_under_a_missing_parent', '0',
-         count(*) filter (where o.status in ('pending','claimed','retry_wait'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where o.status in ('pending','claimed','retry_wait')) = 0
-    from public.phase_c_event_outbox o where o.workflow_run_id in (select run_id from orphan_runs)
-  union all
-  select 'open_traces_whose_run_subject_has_no_parent', '0',
-         count(*) filter (where tr.sealed_at is null)::text || ' of ' || count(*)::text,
-         count(*) filter (where tr.sealed_at is null) = 0
-    from public.phase_c_trace tr where tr.run_id in (select run_id from orphan_runs)
-  union all
-  -- NOT A PASS AND NOT A FAILURE. A live parent under a key the canonical map does not describe, and
-  -- a prefix nobody has bound, are both real disagreements and both are NAMED here rather than
-  -- absorbed. Cancelling live work about a live parent to make a count read zero is not available.
-  select 'active_runs_whose_subject_is_not_keyed_by_its_binding',
-         'informational — each is named, with the row that does back it',
-         (select count(*) from unresolved where resolution <> 'PARENT_MISSING')::text
-           || ' of ' || (select count(*) from live_runs)::text || ' active runs'
-           || case when (select count(*) from unresolved where resolution <> 'PARENT_MISSING') = 0 then ''
-                   else ': ' || (select string_agg(u.run_id || ' ' || u.workflow_id || ' '
-                                                || u.business_object_id || ' [' || u.resolution
-                                                || coalesce(' -> ' || u.resolved_in, '') || ']',
-                                                ', ' order by u.run_id)
-                                   from unresolved u where u.resolution <> 'PARENT_MISSING') end,
-         true;
-$function$;
 
 -- ---- 4. PREVENTION A: A RUN MAY NOT OPEN ON A PARENT THAT IS NOT THERE ---------------------------
 -- fn_kernel_workflow_start is a frozen Phase C subject, so the refusal is attached to the table it
@@ -419,58 +198,11 @@ create trigger a10_kernel_workflow_run_parent_exists
 --
 -- This is also what a PDPL erasure should do. Deleting a customer while their onboarding run stays
 -- open is not privacy; it is a dangling workflow about a person who no longer exists.
-create or replace function public.fn_kernel_business_parent_delete_guard()
-returns trigger
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare b record; v_id text; v_run record; v_left int;
-begin
-  for b in select bo.object_id, bo.primary_identity
-             from public.phase_d_business_object_binding bo
-            where bo.canonical_relation = TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME
-              and coalesce(btrim(bo.primary_identity),'') <> ''
-  loop
-    v_id := to_jsonb(OLD) ->> b.primary_identity;
-    if v_id is null then continue; end if;
-    for v_run in
-      select r.run_id, r.workflow_id, r.state from public.phase_c_workflow_run r
-       where r.business_object_id = b.object_id || ':' || v_id
-         and r.state not in ('cancelled','superseded','completed','failed')
-       order by r.run_id
-    loop
-      raise notice 'kernel: closing % run % before %.% % = % is deleted',
-        v_run.workflow_id, v_run.run_id, TG_TABLE_SCHEMA, TG_TABLE_NAME, b.primary_identity, v_id;
-      perform public.fn_kernel_cancel(jsonb_build_object(
-        'subject_kind','workflow_run', 'subject_ref', v_run.run_id::text, 'op','cancel',
-        'actor','system.workflow_engine',
-        'reason','PARENT_DELETED: ' || TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME || ' '
-              || b.primary_identity || '=' || v_id || ' (business object ' || b.object_id
-              || ') was deleted, so this run has nothing left to be about. Closed by '
-              || 'a00_kernel_parent_delete_guard through the canonical cancellation path, in the '
-              || 'same transaction as the delete, before the parent row went.'));
-    end loop;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_business_parent_delete_guard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-    -- THE POSTCONDITION, ASSERTED RATHER THAN ASSUMED. fn_kernel_cancel refuses its own transaction
-    -- if it leaves queued derived work, but nothing so far has checked that the LOOP covered every
-    -- run: a run opened between the two statements, or a state value this predicate does not know,
-    -- would slip through and become exactly the orphan this file exists to stop.
-    select count(*) into v_left from public.phase_c_workflow_run r
-     where r.business_object_id = b.object_id || ':' || v_id
-       and r.state not in ('cancelled','superseded','completed','failed');
-    if v_left > 0 then
-      raise exception 'public.%: % live workflow run(s) still name business object %:% after the compensation loop, so deleting this row would orphan them. (kernel_parent_delete_has_live_work)',
-        TG_TABLE_NAME, v_left, b.object_id, v_id
-        using errcode = '23503',
-              hint = 'Close them first: select public.fn_kernel_cancel(jsonb_build_object('
-                  || '''subject_kind'',''workflow_run'',''subject_ref'',''<run_id>'',''op'',''cancel'','
-                  || '''actor'',''<who>'',''reason'',''<why>'')); then delete the parent.';
-    end if;
-  end loop;
-  return OLD;
-end
-$function$;
 
 revoke execute on function public.fn_kernel_business_parent_delete_guard() from public;
 revoke execute on function public.fn_kernel_business_parent_delete_guard() from anon;

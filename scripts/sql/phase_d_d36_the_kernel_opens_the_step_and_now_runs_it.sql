@@ -920,43 +920,11 @@ end $function$
 
 -- ---- 5. THE BOARD -------------------------------------------------------------------------------
 
-create or replace function public.fn_phase_d_dispatch_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-as $fn$
-  with d as (select * from public.phase_d_dispatch)
-  select 'dispatch_is_wired_into_both_openers'::text,
-         'true'::text,
-         (select (bool_and(p.prosrc ~ '\mfn_phase_d_dispatch_step\s*\('))::text from pg_proc p
-           where p.pronamespace = 'public'::regnamespace
-             and p.proname in ('fn_kernel_open_step','fn_kernel_workflow_start')),
-         (select bool_and(p.prosrc ~ '\mfn_phase_d_dispatch_step\s*\(') from pg_proc p
-           where p.pronamespace = 'public'::regnamespace
-             and p.proname in ('fn_kernel_open_step','fn_kernel_workflow_start'))
-  union all
-  select 'dispatches_with_an_unexplained_outcome',
-         '0',
-         (select count(*)::text from d where outcome <> 'EXECUTED'
-            and btrim(coalesce(refusal_code,'')) in ('','(none)')),
-         (select count(*) from d where outcome <> 'EXECUTED'
-            and btrim(coalesce(refusal_code,'')) in ('','(none)')) = 0
-  union all
-  select 'dispatches_that_hit_the_depth_limit',
-         '0',
-         (select count(*)::text from d where outcome = 'DEPTH_LIMIT'),
-         (select count(*) from d where outcome = 'DEPTH_LIMIT') = 0
-  union all
-  select 'executed_dispatches_with_no_effect_row',
-         '0',
-         (select count(*)::text from d where outcome = 'EXECUTED' and effect_id is null),
-         (select count(*) from d where outcome = 'EXECUTED' and effect_id is null) = 0
-  union all
-  select 'refusals_classified_as_pd_unclassified',
-         '0',
-         (select count(*)::text from d where refusal_code = 'pd_unclassified'),
-         (select count(*) from d where refusal_code = 'pd_unclassified') = 0;
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_dispatch_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_phase_d_dispatch_state() from public, anon, authenticated;
 grant  execute on function public.fn_phase_d_dispatch_state() to service_role;

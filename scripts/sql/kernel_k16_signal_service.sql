@@ -345,81 +345,11 @@ comment on function public.fn_kernel_signal_submit(jsonb) is
   'cannot create a second workflow. Refusals are recorded as rows with reasons, never as silence.';
 
 -- ------------------------------------------------------------------ 4. the invariant board
-create or replace function public.fn_kernel_signal_state()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $k16_state$
-with
--- The predicate is live: it reads the deployed body, comments stripped, so this check cannot be
--- satisfied by a promise in a comment. Comments are stripped because the body says in prose that
--- it must never call fn_kernel_workflow_start.
-body as (
-  select regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g') src
-    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'fn_kernel_signal_submit'
-),
-sig as (select * from public.kernel_signal_inbox),
-runs_from_signals as (
-  -- A workflow run whose dedupe_key or trace descends from a signal would be the defect this file
-  -- exists to prevent. Measured against the ledger, not against intent.
-  select count(*) n from public.phase_c_workflow_run r
-   where exists (select 1 from sig s where s.correlation_id = 'signal:' || s.idempotency_key
-                   and r.dedupe_key like '%' || s.source_id || '%'
-                   and r.opened_at >= s.received_at)
-)
-select 'signal_service_can_create_a_workflow'::text,
-       '0 — the body must not name fn_kernel_workflow_start',
-       (select case when src ~ '\yfn_kernel_workflow_start\s*\(' then '1 — IT DOES' else '0' end
-          from body),
-       (select src !~ '\yfn_kernel_workflow_start\s*\(' from body)
-union all
-select 'signal_types_registered',
-       'reported, not asserted',
-       (select count(*)::text || ' registered, '
-            || count(*) filter (where activation_state = 'active')::text || ' active, dispositions: '
-            || coalesce(string_agg(distinct disposition, ', '), '(none)')
-          from public.kernel_signal_type),
-       true
-union all
-select 'signals_that_created_a_workflow_run',
-       '0',
-       (select n::text from runs_from_signals),
-       (select n = 0 from runs_from_signals)
-union all
-select 'refused_signals_with_no_stated_reason',
-       '0 of ' || (select count(*)::text from sig where status = 'refused'),
-       (select count(*)::text from sig
-         where status = 'refused' and coalesce(btrim(refusal_reason),'') = '')
-         || ' of ' || (select count(*)::text from sig where status = 'refused'),
-       (select count(*) = 0 from sig where status = 'refused' and coalesce(btrim(refusal_reason),'') = '')
-union all
-select 'signals_attached_to_a_run_that_does_not_exist',
-       '0 of ' || (select count(*)::text from sig where status <> 'refused'),
-       (select count(*)::text from sig s where s.status <> 'refused'
-          and not exists (select 1 from public.phase_c_workflow_run r where r.run_id = s.workflow_run_id))
-         || ' of ' || (select count(*)::text from sig where status <> 'refused'),
-       (select count(*) = 0 from sig s where s.status <> 'refused'
-          and not exists (select 1 from public.phase_c_workflow_run r where r.run_id = s.workflow_run_id))
-union all
-select 'signals_processed_without_a_trace',
-       '0 of ' || (select count(*)::text from sig where status in ('attached','applied')),
-       (select count(*)::text from sig where status in ('attached','applied') and trace_id is null)
-         || ' of ' || (select count(*)::text from sig where status in ('attached','applied')),
-       (select count(*) = 0 from sig where status in ('attached','applied') and trace_id is null)
-union all
-select 'duplicate_signal_delivery_applied_twice',
-       '0',
-       -- idempotency_key is UNIQUE, so this counts what the constraint already makes impossible.
-       -- It stays because a future ALTER that drops the constraint must fail a check, not pass
-       -- silently.
-       (select count(*)::text from (
-          select idempotency_key from sig group by idempotency_key having count(*) > 1) d),
-       (select count(*) = 0 from (
-          select idempotency_key from sig group by idempotency_key having count(*) > 1) d);
-$k16_state$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_signal_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_signal_state() from public, anon, authenticated;
 grant execute on function public.fn_kernel_signal_state() to service_role;

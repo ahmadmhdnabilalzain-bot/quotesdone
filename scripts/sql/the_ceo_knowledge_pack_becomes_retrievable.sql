@@ -110,54 +110,11 @@ comment on column public.ceo_knowledge.contains_synthetic_example is
 -- benefit justifies the cost of embeddings. Every field the retrieval contract lists as a minimum is
 -- returned, and the score is returned as `relevance` rather than anything resembling a probability
 -- that the content is true.
-create or replace function public.fn_ceo_knowledge_search(
-  p_query text,
-  p_limit int default 8,
-  p_kind  text default null,
-  p_domain text default null)
-returns table(
-  record_id text, record_version text, record_kind text, title text, domain text,
-  body text, body_sha256 text, source_ids text[], source_path text,
-  review_status text, authority_effect text, contains_synthetic_example boolean,
-  requires_current_verification boolean, relevance real, warning text)
-language plpgsql
-stable
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  v_q tsquery;
-begin
-  if coalesce(btrim(p_query),'') = '' then
-    return;  -- an empty query retrieves nothing rather than everything
-  end if;
-  -- websearch_to_tsquery tolerates ordinary phrasing without throwing on punctuation, which a raw
-  -- to_tsquery does not.
-  v_q := websearch_to_tsquery('english', p_query);
-  if v_q is null then return; end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_ceo_knowledge_search was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  return query
-  select k.record_id, k.record_version, k.record_kind, k.title, k.domain,
-         k.body, k.body_sha256, k.source_ids, k.source_path,
-         k.review_status, k.authority_effect, k.contains_synthetic_example,
-         k.requires_current_verification,
-         ts_rank(k.search, v_q) as relevance,
-         -- The warning travels WITH the row, because a caller who forgets it is the failure mode
-         -- this whole store is shaped against.
-         'Advisory only. authority_effect=none: this may not approve an action, change a target or '
-         || 'become policy. review_status=' || k.review_status || '. '
-         || case when k.contains_synthetic_example
-                 then 'CONTAINS A SYNTHETIC EXAMPLE -- it is authored, not QuotesDone experience. ' else '' end
-         || case when k.requires_current_verification
-                 then 'REQUIRES CURRENT VERIFICATION against an authoritative company source. ' else '' end
-         || 'Current company facts come from the application, never from this record.' as warning
-    from public.ceo_knowledge k
-   where k.runtime_index_eligible
-     and k.search @@ v_q
-     and (p_kind is null or k.record_kind = p_kind)
-     and (p_domain is null or k.domain = p_domain)
-   order by ts_rank(k.search, v_q) desc, k.record_id
-   limit greatest(1, least(coalesce(p_limit, 8), 50));
-end $function$;
 
 comment on function public.fn_ceo_knowledge_search(text,int,text,text) is
   'Lexical retrieval over the CEO knowledge pack. Returns every field the pack''s retrieval contract lists as a minimum, and a per-row warning stating that the content is advisory, carries no authority, and is not this company''s facts. relevance is a ranking score and NEVER a probability that the content is true.';
@@ -165,44 +122,11 @@ comment on function public.fn_ceo_knowledge_search(text,int,text,text) is
 -- CONTEXT ASSEMBLY, bounded by characters, exactly as the pack's own loader is. It returns an
 -- explicit insufficient-context signal rather than an empty string, because "no answer" and "no
 -- coverage" are different things and a caller must be able to tell them apart.
-create or replace function public.fn_ceo_context(
-  p_query text,
-  p_max_chars int default 18000,
-  p_limit int default 8)
-returns jsonb
-language plpgsql
-stable
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  r record;
-  v_out jsonb := '[]'::jsonb;
-  v_used int := 0;
-  v_n int := 0;
-begin
-  for r in select * from public.fn_ceo_knowledge_search(p_query, p_limit) loop
-    exit when v_used + length(r.body) > greatest(2000, p_max_chars);
-    v_out := v_out || jsonb_build_object(
-      'record_id', r.record_id, 'record_kind', r.record_kind, 'title', r.title,
-      'domain', r.domain, 'body', r.body, 'body_sha256', r.body_sha256,
-      'source_ids', to_jsonb(r.source_ids), 'source_path', r.source_path,
-      'review_status', r.review_status, 'authority_effect', r.authority_effect,
-      'relevance', r.relevance, 'warning', r.warning);
-    v_used := v_used + length(r.body);
-    v_n := v_n + 1;
-  end loop;
+-- ROUTINE REMOVED 7 September 2026. public.fn_ceo_context was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  return jsonb_build_object(
-    'query', p_query,
-    'records', v_out,
-    'record_count', v_n,
-    'chars_used', v_used,
-    'sufficient', v_n > 0,
-    'signal', case when v_n = 0
-                   then 'INSUFFICIENT CONTEXT -- nothing in the CEO knowledge pack matched this query. Say so rather than answering from memory.'
-                   else 'Advisory context only. Company facts, targets, budgets and permissions must be read from the application, not from these records.' end,
-    'pack_fingerprint', (select max(pack_fingerprint) from public.ceo_knowledge));
-end $function$;
 
 comment on function public.fn_ceo_context(text,int,int) is
   'Assembles a character-bounded advisory context for the CEO. Returns sufficient=false with an explicit INSUFFICIENT CONTEXT signal when nothing matches, so that "the pack has no coverage" can never be mistaken for "the pack agrees".';

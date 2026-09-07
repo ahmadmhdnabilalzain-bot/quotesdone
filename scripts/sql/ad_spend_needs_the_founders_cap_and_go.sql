@@ -345,39 +345,11 @@ begin
 end;
 $$;
 
-create or replace function public.fn_ads_autopilot_tick()
-returns jsonb
-language plpgsql
-set search_path to 'public', 'net', 'pg_temp'
-as $$
-declare
-  v_decided int := 0;
-  v_pending int := 0;
-  v_ref     text;
-  v_secret  text;
-  v_req     bigint;
-  v_state   jsonb;
-begin
-  v_state := public.fn_ads_autospend_state() - 'cap_aed';
-  select count(*) into v_decided from public.fn_ads_manage(false, null);
-  select count(*) into v_pending from public.ad_decision where executed_at is null;
-  if v_pending = 0 then
-    return jsonb_build_object('decided', v_decided, 'pending', 0, 'posted', false, 'autospend', v_state);
-  end if;
-  select value into v_ref    from public.app_secrets where key = 'project_ref';
-  select value into v_secret from public.app_secrets where key = 'cred_cron_ads_autopilot';
-  if v_ref is null or v_secret is null then
-    raise exception 'fn_ads_autopilot_tick: % decision(s) are waiting but % is missing from app_secrets, so they cannot be executed',
-      v_pending, case when v_ref is null then 'project_ref' else 'cred_cron_ads_autopilot' end;
-  end if;
-  select net.http_post(
-    url     := 'https://' || v_ref || '.supabase.co/functions/v1/meta_ads',
-    headers := jsonb_build_object('Content-Type', 'application/json'),
-    body    := jsonb_build_object('__secret', v_secret, 'action', 'execute_decisions', 'limit', 50)
-  ) into v_req;
-  return jsonb_build_object('decided', v_decided, 'pending', v_pending, 'posted', true, 'request_id', v_req, 'autospend', v_state);
-end;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_ads_autopilot_tick was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 create or replace function public.fn_ad_decision_mark_executed(p_id bigint, p_mode text, p_response jsonb default '{}'::jsonb)
  returns void

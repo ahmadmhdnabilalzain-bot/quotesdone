@@ -16,29 +16,11 @@
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_terms_version_reads_the_registry_first.sql --apply --ddl
 
-CREATE OR REPLACE FUNCTION public.fn_terms_version(p_kind text)
- RETURNS text
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select coalesce(
-    -- 1. The legal registry: the document the kernel's acceptance object names for this kind, newest
-    --    effective_date first (version is a label, not an order). This is the pair BR-025 judges.
-    (select d.version
-       from public.phase_d_acceptance_document a
-       join public.legal_documents d on d.slug = a.document_slug
-      where a.object_id = case lower(p_kind) when 'supplier' then 'supplier_terms_acceptance'
-                                             when 'customer' then 'customer_terms_acceptance' end
-        and nullif(btrim(d.version), '') is not null
-      order by d.effective_date desc nulls last, d.version desc
-      limit 1),
-    -- 2. The app_secrets label, the only source before the registry existed.
-    nullif((select a.value from public.app_secrets a
-             where a.key = case lower(p_kind) when 'supplier' then 'terms_version'
-                                              when 'customer' then 'customer_terms_version' end), ''),
-    'unversioned');
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_terms_version was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.qd_norm_customer_ver()
  RETURNS trigger

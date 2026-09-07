@@ -17,17 +17,11 @@
 
 begin;
 
-CREATE OR REPLACE FUNCTION public.fn_legal_body_without_labels(p_html text)
- RETURNS text
- LANGUAGE sql
- IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  -- the parts of a legal body that name its own version or date, in either language
-  select regexp_replace(
-           regexp_replace(coalesce(p_html, ''), '(Version|الإصدار)\s*v?[0-9]+(\.[0-9]+)?', '', 'g'),
-           '(Last updated|effective|آخر تحديث|ساري(ة)? من)\s*[0-9]{1,2}\s+[^<·|,.]{3,20}\s+20[0-9]{2}', '', 'g');
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_legal_body_without_labels was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.trg_legal_documents_hash()
  RETURNS trigger

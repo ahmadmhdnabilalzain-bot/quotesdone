@@ -16,33 +16,11 @@
 
 begin;
 
-create or replace function public.fn_terms_pins_sync()
-returns void
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare v_sv text; v_ss text; v_cv text; v_cs text;
-begin
-  select version, content_sha256 into v_sv, v_ss from public.legal_documents where slug = 'supplier-agreement' order by effective_date desc nulls last, version desc limit 1;
-  select version, content_sha256 into v_cv, v_cs from public.legal_documents where slug = 'customer-terms' order by effective_date desc nulls last, version desc limit 1;
-  if v_sv is not null then
-    insert into public.app_secrets (key, value) values ('supplier_terms_version', v_sv), ('terms_version', v_sv)
-      on conflict (key) do update set value = excluded.value, updated_at = now() where app_secrets.value is distinct from excluded.value;
-    if v_ss is not null then
-      insert into public.app_secrets (key, value) values ('terms_sha256_supplier', v_ss)
-        on conflict (key) do update set value = excluded.value, updated_at = now() where app_secrets.value is distinct from excluded.value;
-    end if;
-  end if;
-  if v_cv is not null then
-    insert into public.app_secrets (key, value) values ('customer_terms_version', v_cv)
-      on conflict (key) do update set value = excluded.value, updated_at = now() where app_secrets.value is distinct from excluded.value;
-    if v_cs is not null then
-      insert into public.app_secrets (key, value) values ('terms_sha256_customer', v_cs)
-        on conflict (key) do update set value = excluded.value, updated_at = now() where app_secrets.value is distinct from excluded.value;
-    end if;
-  end if;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_terms_pins_sync was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_terms_pins_sync() from public, anon, authenticated;
 

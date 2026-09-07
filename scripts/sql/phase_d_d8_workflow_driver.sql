@@ -28,26 +28,11 @@
 
 begin;
 
-create or replace function public.fn_phase_d_fixture_value(p_ftype text, p_tcat text, p_label text)
-returns jsonb
-language sql immutable
-set search_path to 'public', 'pg_temp'
-as $fn$
-  -- A fixture value of the right SHAPE for a column, and visibly a fixture. Nothing here is a
-  -- plausible-looking real value: a probe row that reads as production data is how demo rows end up
-  -- being counted as customers.
-  select case
-    when p_ftype in ('jsonb','json')                     then jsonb_build_object('fixture', p_label)
-    when p_tcat = 'A'                                    then jsonb_build_array('ZZ DEMO')
-    when p_ftype = 'uuid'                                then to_jsonb(gen_random_uuid()::text)
-    when p_ftype like '%timestamp%'                      then to_jsonb(now()::text)
-    when p_ftype = 'boolean'                             then to_jsonb(false)
-    when p_ftype in ('numeric','integer','bigint','smallint','double precision','real')
-                                                         then to_jsonb(1)
-    when p_ftype like '%email%'                          then to_jsonb('zz-phase-d-' || p_label || '@example.invalid')
-    else to_jsonb('ZZ DEMO — ' || p_label)
-  end;
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_fixture_value was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 create or replace function public.fn_phase_d_drive_workflow(p_input jsonb)
 returns jsonb

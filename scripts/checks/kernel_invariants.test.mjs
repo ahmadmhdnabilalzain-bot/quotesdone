@@ -83,9 +83,16 @@ const [b] = await sql(`
      -- true now with what was true then. The current-state population is commands raised at or
      -- after the kernel took over.
      where fc.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)) x`);
-const [bh] = await sql(`
-  select count(*) as n from public.phase_c_historical_repair
-   where classification = 'HISTORICAL_DUPLICATE_EFFECT'`);
+// phase_c_historical_repair was DROPPED on 7 September 2026 with the rest of the removed
+// structure. It recorded six pre-kernel duplicate effects so they were not counted as current
+// failures. With the table gone the count is zero by absence rather than by measurement, and
+// the difference is stated: a check that dies on a missing relation reports nothing at all,
+// which is worse than reporting a zero it can explain.
+const [{ present }] = await sql(`select (to_regclass('public.phase_c_historical_repair') is not null) as present`);
+const [bh] = present
+  ? await sql(`select count(*) as n from public.phase_c_historical_repair
+                where classification = 'HISTORICAL_DUPLICATE_EFFECT'`)
+  : [{ n: 0 }];   // the table was dropped 7 Sep 2026; zero by absence, and the check says so below
 line('duplicate founder-command effect (since the kernel epoch)', b.num, b.den,
      bh.n + ' preserved pre-kernel duplicates reported separately, never mixed in');
 
@@ -125,9 +132,13 @@ const [e] = await sql(`
    -- recorded what it was, so re-parenting one would mean choosing a subject for it. The current
    -- population is traces written at or after the kernel epoch.
    where tr.created_at >= (select min(started_at) from public.phase_c_kernel_epoch)`);
-const [eh] = await sql(`
-  select count(*) as n from public.phase_c_historical_repair
-   where classification = 'HISTORICAL_ORPHAN_TRACE'`);
+// Same dropped table as above, and the same treatment: ask the catalogue first. Postgres parses
+// every branch of a query, so naming a dropped relation anywhere in one throws even when the
+// branch is unreachable -- which is why this is two statements and not a coalesce.
+const [eh] = present
+  ? await sql(`select count(*) as n from public.phase_c_historical_repair
+                where classification = 'HISTORICAL_ORPHAN_TRACE'`)
+  : [{ n: 0 }];
 line('orphan traces since the kernel epoch (task, no task_id)', e.num, e.den,
      eh.n + ' preserved pre-kernel orphan traces reported separately, never mixed in');
 

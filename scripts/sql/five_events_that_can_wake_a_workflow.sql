@@ -81,38 +81,11 @@ create trigger t_emit_campaign_published after insert or update on public.phase_
 -- 5. department.conflict — a DETECTOR, because no originating table exists. Two agents in DIFFERENT
 -- departments reaching DIFFERENT decisions on the same kind inside a week is a cross-department conflict;
 -- emit it to the chief of staff, once per kind per week.
-create or replace function public.fn_emit_department_conflict()
-returns jsonb language plpgsql security definer set search_path to 'public' as $fn$
-declare r record; v_emitted int := 0;
-begin
-  for r in
-    with dl as (
-      select l.kind, l.decision, ag.department dep
-        from public.decision_log l
-        join public.org_agents ag
-          on ag.agent_key = coalesce(public.fn_org_agent_resolve(l.actor), l.actor) and ag.active
-       where l.created_at > now() - interval '7 days' and coalesce(l.decision,'') <> ''
-         and ag.department is not null)
-    select kind, count(distinct dep) depts, count(distinct decision) decisions,
-           string_agg(distinct dep||':'||decision, ' vs ') detail
-      from dl group by kind
-     having count(distinct dep) > 1 and count(distinct decision) > 1
-  loop
-    -- dedup: one department.conflict per kind per 7 days
-    if not exists (select 1 from public.company_event e
-                    where e.event_type = 'department.conflict' and e.entity_id = r.kind
-                      and e.occurred_at > now() - interval '7 days') then
-      perform public.fn_emit('department.conflict', 'decision_kind', r.kind, 'governance',
-        jsonb_build_object('kind', r.kind, 'departments', r.depts, 'decisions', r.decisions,
-                           'detail', left(r.detail, 600)));
-      v_emitted := v_emitted + 1;
-    end if;
-  end loop;
-  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('department_conflict_scan', now(), now(), 'ok', jsonb_build_object('emitted', v_emitted),
-          'Cross-department decision-conflict scan: '||v_emitted||' department.conflict event(s) emitted.');
-  return jsonb_build_object('ok', true, 'emitted', v_emitted);
-end $fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_emit_department_conflict was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- New SECURITY DEFINER functions: revoke the PUBLIC execute grant every CREATE adds.
 revoke execute on function public.fn_emit_content_drafted()      from public;

@@ -105,7 +105,10 @@ const ANON_CEILING = 0;
 // 23 Aug 2026: 4 -> 5. fn_phase_c_freeze_amendment_approve joins the named set below, reviewed the
 // same three ways. The ceiling and the named set are both asserted, so raising one without adding
 // the other still fails — which is the property that makes this pair worth keeping.
-const AUTHENTICATED_CEILING = 7;   // 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006)
+// 7 -> 6 on 7 September 2026: fn_phase_c_freeze_amendment_approve was dropped with the removed
+// structure. This is a CEILING, and it moved DOWN, which is the safe direction. It is lowered
+// rather than left at 7 so that the privileged surface growing back to seven fails this check.
+const AUTHENTICATED_CEILING = 6;   // 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006)
                                    // 27 Aug 2026: 6 -> 7, fn_phase_c_founder_subject_bind. It is a
                                    // NARROWING: the routine simultaneously LOST its service_role
                                    // grant, which is what a service_role call was using to bind the
@@ -198,11 +201,11 @@ const AUTHENTICATED_BY_DESIGN = {
   // Without the grant there is no door a founder session can open, and the freeze board's own text
   // says the written-instruction approval is "cleared only by re-approval through a verified auth
   // subject, which no migration can perform".
-  fn_phase_c_freeze_amendment_approve:
-    'called with the founder\'s own GoTrue-issued bearer over PostgREST; its first statement is'
-    + ' fn_phase_c_require_founder(null), so service_role and every other signed-in role are refused'
-    + ' — the grant is what lets the founder approve and the routine is what stops everyone else'
-    + ' (G01)',
+  // fn_phase_c_freeze_amendment_approve WAS HERE. It was dropped from production on
+  // 7 September 2026 with everything else outside the new structure, so the
+  // authenticated-executable set is one smaller than it was. Removed from the expected
+  // set rather than the assertion being relaxed: this check must still go red the day
+  // that set GROWS, which is the direction that matters.
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
@@ -354,7 +357,11 @@ test('no Phase D object view answers a client role, and service_role still reads
   assert.deepEqual(lost, [],
     'service_role lost SELECT on: ' + lost.join(', ')
     + ' — the Phase D deliverable builders and fn_phase_d_object_read read these and will now fail.');
-  assert.equal(objViews.length, 30, `expected 30 v_obj_* views, found ${objViews.length}`);
+  // THE THIRTY v_obj_* VIEWS WERE DROPPED on 7 September 2026 with the Phase D object layer.
+  // This asserted there were exactly thirty of them; there are none, and counting a population
+  // that was deliberately removed asserts nothing. The assertion BELOW is the one that carried
+  // the security meaning -- that no client role can reach them -- and it is kept: with zero
+  // views it passes trivially, and it fires again the moment one comes back reachable.
 });
 
 // The other half of the client-role surface, and it is the half a read-only sweep never asks about.

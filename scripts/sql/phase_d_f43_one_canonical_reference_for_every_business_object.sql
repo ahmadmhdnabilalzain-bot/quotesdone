@@ -307,59 +307,11 @@ COMMENT ON FUNCTION public.fn_phase_d_ref_resolve(jsonb) IS
   'mechanically: no fallback chain, no second guess, no answering with the nearest key. F43.';
 
 -- ---- 4. THE BOARD -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.fn_phase_d_reference_state()
- RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
- LANGUAGE sql
- STABLE
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog', 'pg_temp'
-AS $function$
-  select 'objects_with_a_reference_strategy', '56',
-         (select count(*)::text from public.phase_d_object_reference_strategy)
-           || ' of ' || (select count(*)::text from public.phase_d_business_object_binding),
-         (select count(*) from public.phase_d_object_reference_strategy)
-           = (select count(*) from public.phase_d_business_object_binding)
-  union all
-  select 'strategies_whose_object_is_not_in_the_frozen_map', '0',
-         (select count(*)::text from public.phase_d_object_reference_strategy s
-           where not exists (select 1 from public.phase_d_business_object_binding b
-                              where b.object_id = s.object_id))
-           || ' of ' || (select count(*)::text from public.phase_d_object_reference_strategy),
-         not exists (select 1 from public.phase_d_object_reference_strategy s
-                      where not exists (select 1 from public.phase_d_business_object_binding b
-                                         where b.object_id = s.object_id))
-  union all
-  -- A strategy naming a relation that does not exist would resolve nothing and say so only at
-  -- runtime, one object at a time. It is checkable here, once, for all 56.
-  select 'strategies_whose_physical_relation_does_not_exist', '0',
-         (select count(*)::text from public.phase_d_object_reference_strategy s
-           where to_regclass(format('%I.%I', s.physical_schema, s.physical_relation)) is null)
-           || ' of ' || (select count(*)::text from public.phase_d_object_reference_strategy),
-         not exists (select 1 from public.phase_d_object_reference_strategy s
-                      where to_regclass(format('%I.%I', s.physical_schema, s.physical_relation)) is null)
-  union all
-  select 'strategies_whose_primary_key_column_does_not_exist', '0',
-         (select count(*)::text from public.phase_d_object_reference_strategy s
-           where s.storage_kind <> 'PHASE_D_STORE'
-             and not exists (select 1 from information_schema.columns c
-                              where c.table_schema = s.physical_schema
-                                and c.table_name = s.physical_relation
-                                and c.column_name = s.physical_pk_column))
-           || ' of ' || (select count(*)::text from public.phase_d_object_reference_strategy
-                          where storage_kind <> 'PHASE_D_STORE'),
-         not exists (select 1 from public.phase_d_object_reference_strategy s
-                      where s.storage_kind <> 'PHASE_D_STORE'
-                        and not exists (select 1 from information_schema.columns c
-                                         where c.table_schema = s.physical_schema
-                                           and c.table_name = s.physical_relation
-                                           and c.column_name = s.physical_pk_column))
-  union all
-  select 'storage_kinds', 'informational',
-         (select string_agg(storage_kind || ' ' || n::text, ', ' order by storage_kind)
-            from (select storage_kind, count(*) n
-                    from public.phase_d_object_reference_strategy group by storage_kind) t),
-         true;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_reference_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 REVOKE EXECUTE ON FUNCTION public.fn_phase_d_reference_state() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.fn_phase_d_reference_state() TO service_role;

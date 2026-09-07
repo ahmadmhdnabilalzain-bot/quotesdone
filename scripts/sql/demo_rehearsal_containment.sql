@@ -90,35 +90,11 @@ create trigger zzz_notifications_demo_guard
 -- list is exactly how a teardown proof misses the table the rehearsal added.
 -- =================================================================================================
 
-create or replace function public.fn_demo_marker_scan()
-returns table (rel text, col text, rows bigint)
-language plpgsql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare r record; n bigint;
-begin
-  for r in
-    select c.table_name t, c.column_name k
-      from information_schema.columns c
-      join information_schema.tables tb
-        on tb.table_schema = c.table_schema and tb.table_name = c.table_name
-     where c.table_schema = 'public'
-       and tb.table_type = 'BASE TABLE'
-       and c.data_type in ('text','character varying','character')
-     order by 1, 2
-  loop
-    begin
-      execute format(
-        'select count(*) from public.%I where %I ~* %L', r.t, r.k,
-        'ZZ DEMO|example\.invalid|qd-demo') into n;
-    exception when others then
-      n := -1;   -- an unreadable column is reported, never silently counted as zero
-    end;
-    if n <> 0 then rel := r.t; col := r.k; rows := n; return next; end if;
-  end loop;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_demo_marker_scan was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_demo_marker_scan() from public;
 

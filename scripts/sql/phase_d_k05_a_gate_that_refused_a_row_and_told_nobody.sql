@@ -38,42 +38,11 @@
 --
 -- GENERATED from the live bodies by scripts/tmp_diag/gen_k05.mjs.
 
-CREATE OR REPLACE FUNCTION public.trg_gate_incomplete_match()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare ready boolean; v_found boolean := false; v_verdict text; v_reason text;
-begin
-  if NEW.inquiry_id is null then
-    v_verdict := 'BLOCKED_MISSING_MATCH_EVIDENCE';
-    v_reason  := 'the assignment names no inquiry, so there is nothing whose readiness could be judged';
-  else
-    select true, i.rfq_ready into v_found, ready
-      from public.inquiries i where i.id = NEW.inquiry_id;
-    if not coalesce(v_found, false) then
-      v_verdict := 'BLOCKED_MISSING_MATCH_EVIDENCE';
-      v_reason  := format('inquiry %s does not exist', NEW.inquiry_id);
-    elsif ready is not true then
-      v_verdict := 'BLOCKED_NOT_RFQ_READY';
-      v_reason  := format('inquiry %s is %s; an incomplete RFQ does not qualify for routing',
-                          NEW.inquiry_id,
-                          case when ready is null then 'not scored for readiness' else 'not rfq_ready' end);
-    else
-      v_verdict := 'PASS';
-      v_reason  := format('inquiry %s is rfq_ready', NEW.inquiry_id);
-    end if;
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.trg_gate_incomplete_match was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  perform set_config('app.inquiry_match_gate_verdict', v_verdict, true);
-  perform set_config('app.inquiry_match_gate_reason',  v_reason,  true);
-  if v_verdict = 'PASS' then return NEW; end if;
-
-  raise warning 'gate_incomplete_match: % — %', v_verdict, v_reason;
-  return null;   -- the row is refused; the verdict above is how a caller knows it was refused
-end
-$function$;
 
 CREATE OR REPLACE FUNCTION public.fn_unsafe_match_eligibility_guard()
  RETURNS trigger

@@ -257,53 +257,11 @@ grant execute on function public.fn_kernel_cancel(jsonb) to service_role;
 -- ---------------------------------------------------------------- 3. the invariant that watches it
 -- Denominator over the FULL population, never a filtered one. The Phase C correction added
 -- denominators to four trace checks and left the population filters that hid the failing rows.
-create or replace function public.fn_kernel_orphaned_work()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql stable security definer set search_path to 'public', 'pg_temp' as $q$
-  with dead as (
-    select c.command_id from public.founder_command c where c.state in ('cancelled','superseded')
-  ), dead_runs as (
-    select r.run_id from public.phase_c_workflow_run r
-     where r.command_id in (select command_id from dead)
-        or r.state in ('cancelled','superseded')
-  )
-  select 'live_tasks_of_cancelled_commands',  '0',
-         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where t.state in ('queued','assigned','accepted','in_progress','blocked')) = 0
-    from public.phase_c_task t
-   where t.command_id in (select command_id from dead) or t.run_id in (select run_id from dead_runs)
-  union all
-  select 'live_runs_of_cancelled_commands', '0',
-         count(*) filter (where r.state not in ('cancelled','superseded','completed','failed'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where r.state not in ('cancelled','superseded','completed','failed')) = 0
-    from public.phase_c_workflow_run r where r.command_id in (select command_id from dead)
-  union all
-  select 'live_step_runs_of_cancelled_runs', '0',
-         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where s.state not in ('cancelled','completed','failed','superseded')) = 0
-    from public.phase_c_workflow_step_run s where s.run_id in (select run_id from dead_runs)
-  union all
-  select 'open_handoffs_of_cancelled_runs', '0',
-         count(*) filter (where h.status = 'open')::text || ' of ' || count(*)::text,
-         count(*) filter (where h.status = 'open') = 0
-    from public.phase_c_handoff_run h where h.run_id in (select run_id from dead_runs)
-  union all
-  select 'undelivered_outbox_of_cancelled_commands', '0',
-         count(*) filter (where o.status in ('pending','claimed','retry_wait'))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where o.status in ('pending','claimed','retry_wait')) = 0
-    from public.phase_c_event_outbox o
-   where (o.payload->>'command_id') in (select command_id::text from dead)
-  union all
-  select 'open_traces_of_cancelled_subjects', '0',
-         count(*) filter (where tr.sealed_at is null)::text || ' of ' || count(*)::text,
-         count(*) filter (where tr.sealed_at is null) = 0
-    from public.phase_c_trace tr
-   where tr.command_id in (select command_id from dead) or tr.run_id in (select run_id from dead_runs);
-$q$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_orphaned_work was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_orphaned_work() from public;
 grant execute on function public.fn_kernel_orphaned_work() to service_role;

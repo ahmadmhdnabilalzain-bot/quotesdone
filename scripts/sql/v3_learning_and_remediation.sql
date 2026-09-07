@@ -5,20 +5,11 @@
 -- Silently serving an expired record as current is the failure this guards against; hiding
 -- it would be a different failure, because the agent would then have no knowledge at all
 -- and no reason to say so.
-create or replace function fn_knowledge_freshness_sweep() returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare v_stale int; v_fresh int;
-begin
-  update ops_knowledge set source_freshness = 'stale'
-   where review_after is not null and review_after < current_date
-     and source_freshness <> 'stale';
-  get diagnostics v_stale = row_count;
-  update ops_knowledge set source_freshness = 'stable'
-   where source_freshness = 'stale'
-     and (review_after is null or review_after >= current_date);
-  get diagnostics v_fresh = row_count;
-  return jsonb_build_object('marked_stale', v_stale, 'restored', v_fresh, 'swept_at', now());
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_knowledge_freshness_sweep was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function fn_knowledge_freshness_sweep() from public;
 
 -- ──────────────────────────────────────────────────────── proposed lessons (Stage 10)
@@ -26,95 +17,30 @@ revoke all on function fn_knowledge_freshness_sweep() from public;
 -- itself mean a poor decision. So a proposal must name the evidence it rests on, and it
 -- lands as `proposed` — invisible to retrieval — until someone other than its author
 -- validates it.
-create or replace function fn_propose_lesson(
-  p_agent_key   text,
-  p_topic       text,
-  p_statement   text,
-  p_evidence    jsonb,
-  p_confidence  numeric default 0.5,
-  p_valid_until date default null
-) returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare
-  v_id bigint;
-  v_obs int := coalesce(jsonb_array_length(p_evidence->'observations'), 0);
-begin
-  if p_agent_key is null or not exists (select 1 from org_agents where agent_key = p_agent_key) then
-    raise exception 'unknown agent %', p_agent_key;
-  end if;
-  if coalesce(btrim(p_statement), '') = '' then
-    raise exception 'a lesson needs a statement';
-  end if;
-  -- Two independent observations minimum. One outcome is an anecdote; the loop is allowed
-  -- to record it as evidence but not to call it a lesson.
-  if v_obs < 2 then
-    return jsonb_build_object('accepted', false, 'reason', 'insufficient_evidence',
-      'detail', format('a proposed lesson needs at least 2 observations; %s supplied', v_obs));
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_propose_lesson was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  insert into agent_knowledge
-    (agent_key, topic, content, priority, layer, source_ref, owner_agent, version,
-     confidence, validation_status, review_due, valid_until, supporting_evidence)
-  values (p_agent_key, p_topic, p_statement, 5, 'experience', 'learning_loop', p_agent_key, 1,
-          least(coalesce(p_confidence, 0.5), 0.9), 'proposed',
-          current_date + 30, p_valid_until, p_evidence::text)
-  returning id into v_id;
-
-  return jsonb_build_object('accepted', true, 'lesson_id', v_id, 'validation_status', 'proposed',
-    'note', 'not retrievable until validated by someone other than its author');
-end $$;
 revoke all on function fn_propose_lesson(text, text, text, jsonb, numeric, date) from public;
 grant execute on function fn_propose_lesson(text, text, text, jsonb, numeric, date) to service_role;
 
 -- Validation. The proposer may not validate its own lesson; that is the whole separation.
-create or replace function fn_validate_lesson(
-  p_lesson_id bigint, p_validator text, p_verdict text, p_reason text default null
-) returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare v agent_knowledge; v_mgr text;
-begin
-  select * into v from agent_knowledge where id = p_lesson_id;
-  if v.id is null then raise exception 'unknown lesson %', p_lesson_id; end if;
-  if v.validation_status <> 'proposed' then
-    return jsonb_build_object('ok', false, 'reason', 'not_proposed', 'status', v.validation_status);
-  end if;
-  if p_validator = v.agent_key then
-    return jsonb_build_object('ok', false, 'reason', 'self_validation_refused',
-      'detail', 'the agent that proposed a lesson cannot be the one that validates it');
-  end if;
-  if p_verdict not in ('validated','rejected') then
-    raise exception 'verdict must be validated or rejected, got %', p_verdict;
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_validate_lesson was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select manager_key into v_mgr from org_agents where agent_key = v.agent_key;
-  update agent_knowledge
-     set validation_status = p_verdict,
-         updated_at = now(),
-         supporting_evidence = coalesce(supporting_evidence, '') ||
-           format(E'\n[%s by %s%s] %s', p_verdict, p_validator,
-                  case when p_validator = v_mgr then ' (line manager)' else '' end,
-                  coalesce(p_reason, ''))
-   where id = p_lesson_id;
-  return jsonb_build_object('ok', true, 'lesson_id', p_lesson_id, 'status', p_verdict,
-                            'validator', p_validator, 'was_line_manager', p_validator = v_mgr);
-end $$;
 revoke all on function fn_validate_lesson(bigint, text, text, text) from public;
 grant execute on function fn_validate_lesson(bigint, text, text, text) to service_role;
 
 -- New evidence can retire an old lesson. Supersession is recorded, not overwritten, so the
 -- history of what the company believed and when stays readable.
-create or replace function fn_supersede_lesson(
-  p_old bigint, p_new bigint, p_reason text
-) returns jsonb
-language plpgsql security definer set search_path = public as $$
-begin
-  update agent_knowledge set validation_status = 'superseded', supersedes_id = null,
-         supporting_evidence = coalesce(supporting_evidence,'') || E'\n[superseded by ' || p_new || '] ' || coalesce(p_reason,''),
-         updated_at = now()
-   where id = p_old;
-  update agent_knowledge set supersedes_id = p_old, updated_at = now() where id = p_new;
-  return jsonb_build_object('ok', found, 'old', p_old, 'new', p_new);
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supersede_lesson was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function fn_supersede_lesson(bigint, bigint, text) from public;
 
 -- ─────────────────────────────────────────────── automatic remediation (Stage 11)

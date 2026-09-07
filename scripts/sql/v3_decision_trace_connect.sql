@@ -27,11 +27,11 @@ alter table agent_context_retrieval enable row level security;
 
 -- Keep it from growing without bound: a retrieval is only useful while an action might still
 -- cite it. Anything older than seven days is history the trace already captured.
-create or replace function fn_context_retrieval_prune() returns integer
-language sql security definer set search_path = public as $$
-  with d as (delete from agent_context_retrieval where created_at < now() - interval '7 days' returning 1)
-  select count(*)::int from d;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_context_retrieval_prune was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function fn_context_retrieval_prune() from public;
 
 -- The recorder lived here first and now lives in v3_knowledge_usage_is_visible.sql, which

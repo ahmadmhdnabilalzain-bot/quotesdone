@@ -269,59 +269,11 @@ end $$;
 revoke all on function public.fn_phase_c_handoff_packet_valid(text, jsonb) from public;
 grant execute on function public.fn_phase_c_handoff_packet_valid(text, jsonb) to service_role;
 
-create or replace function public.fn_phase_c_handoff_open(p_run_id bigint, p_handoff_id text, p_packet jsonb)
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $$
-declare h public.phase_b_handoff%rowtype; v_id bigint; v_trace bigint; p record; v_hours numeric;
-begin
-  select * into h from public.phase_b_handoff where handoff_id = p_handoff_id;
-  if not found then
-    return jsonb_build_object('ok', false, 'error','unknown_handoff', 'handoff_id', p_handoff_id);
-  end if;
-  select * into p from public.fn_phase_c_handoff_packet_valid(p_handoff_id, p_packet);
-  if not p.valid then
-    return jsonb_build_object('ok', false, 'error','incomplete_packet', 'missing', p.missing,
-      'return_owner', h.return_owner_role_id,
-      'message','The sender keeps this. An incomplete packet does not become the receiver''s problem.');
-  end if;
-  -- The SLA target is prose ("1 minute", "4 business hours", "30 minutes when inputs are
-  -- complete").  Parse the leading quantity AND its unit; taking the digits alone would turn
-  -- "1 minute" into one hour and "5 minutes" into five, which is the wrong number twice over.
-  select case
-           when m[2] ilike 'minute%' then m[1]::numeric / 60.0
-           when m[2] ilike 'day%'    then m[1]::numeric * 24.0
-           when m[2] ilike 'week%'   then m[1]::numeric * 168.0
-           else m[1]::numeric
-         end
-    into v_hours
-  from public.phase_b_sla_policy p,
-       lateral regexp_match(p.target, '(\d+)\s*(?:business\s+|calendar\s+)?(minute|hour|day|week)') m
-  where p.sla_policy_id = h.sla_policy_id;
-  v_hours := coalesce(v_hours, 24);
-  insert into public.phase_c_handoff_run
-    (handoff_id, run_id, sending_role_id, receiving_role_id, business_object_id, object_version,
-     packet_hash, requested_action, acceptance_criteria, return_owner_role_id, sla_policy_id,
-     due_at, status, accountable_until_accept_role_id)
-  values (p_handoff_id, p_run_id, h.sending_role_id, h.receiving_role_id,
-          coalesce(p_packet->>'business_object_id',''),
-          coalesce((p_packet->>'object_version')::bigint, 1),
-          encode(sha256(convert_to(p_packet::text, 'UTF8')), 'hex'),
-          coalesce(p_packet->>'requested_action',''), h.receiving_acceptance_criteria,
-          h.return_owner_role_id, h.sla_policy_id,
-          now() + make_interval(mins => greatest(1, round(v_hours * 60))::int),
-          'open', h.sending_role_id)
-  returning handoff_run_id into v_id;
-  if v_id is null then
-    raise exception 'fn_phase_c_handoff_open wrote no row for %', p_handoff_id using errcode = '23502';
-  end if;
-  v_trace := public.fn_phase_c_trace_write('TRACE-HANDOFF', jsonb_build_object(
-    'subject_kind','handoff', 'subject_ref', v_id::text, 'run_id', p_run_id,
-    'actor_role_id', h.sending_role_id, 'state_before','', 'state_after','open',
-    'output_hash', encode(sha256(convert_to(p_packet::text, 'UTF8')), 'hex'), 'status','open'));
-  update public.phase_c_handoff_run set trace_id = v_trace where handoff_run_id = v_id;
-  return jsonb_build_object('ok', true, 'handoff_run_id', v_id, 'sender', h.sending_role_id,
-    'receiver', h.receiving_role_id, 'accountable_until_accept', h.sending_role_id,
-    'due_at', now() + make_interval(hours => v_hours::int), 'trace_id', v_trace);
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_handoff_open was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_handoff_open(bigint, text, jsonb) from public;
 grant execute on function public.fn_phase_c_handoff_open(bigint, text, jsonb) to service_role;
 
@@ -436,100 +388,31 @@ create trigger z10_phase_c_overlay_not_accountable before insert or update on pu
 -- ============================================================ 5. context, tools, knowledge
 --
 -- Interfaces only.  No retrieval is performed, no embedding computed, no model called.
-create or replace function public.fn_phase_c_role_context(p_role text)
-returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $$
-declare v_id text; r public.org_role%rowtype;
-begin
-  select role_id into v_id from public.fn_phase_c_resolve_actor(p_role);
-  if v_id is null then
-    return jsonb_build_object('ok', false, 'error','unresolved_identity', 'token', p_role);
-  end if;
-  select * into r from public.org_role where role_id = v_id;
-  return jsonb_build_object(
-    'ok', true, 'role_id', r.role_id, 'display_name', r.display_name,
-    'department_id', r.primary_department_id, 'manager_role_id', r.manager_role_id,
-    'authority_level', r.authority_level,
-    'owned_decisions', to_jsonb(coalesce(r.owned_decisions, '{}')),
-    'forbidden_decisions', to_jsonb(coalesce(r.forbidden_decisions, '{}')),
-    'tools', to_jsonb(coalesce(r.tools, '{}')),
-    'knowledge_scopes', to_jsonb(coalesce(r.knowledge_scopes, '{}')),
-    'workflows_owned', coalesce((select jsonb_agg(w.workflow_id order by w.workflow_id)
-                                 from public.phase_b_workflow w where w.accountable_role_id = r.role_id), '[]'::jsonb),
-    'paid_model_route', 'DISABLED_PHASE_C');
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_role_context was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_role_context(text) from public;
 grant execute on function public.fn_phase_c_role_context(text) to service_role;
 
 -- A role cannot claim a tool result without a stored one.  This answers authorization only;
 -- the result itself lives in agent_tool_call and is referenced by id/hash.
-create or replace function public.fn_phase_c_tool_authorized(p_role text, p_tool text)
-returns table (authorized boolean, reason text, side_effecting boolean)
-language plpgsql stable set search_path to 'public', 'pg_temp' as $$
-declare v_id text; t public.agent_tool%rowtype; v_role_tools text[];
-begin
-  select role_id into v_id from public.fn_phase_c_resolve_actor(p_role);
-  if v_id is null then
-    authorized := false; side_effecting := true;
-    reason := format('actor %L does not resolve to an active canonical role', p_role); return next; return;
-  end if;
-  select * into t from public.agent_tool where tool_id = p_tool;
-  if not found then
-    authorized := false; side_effecting := true;
-    reason := format('tool %L is not in the registry — fail closed', p_tool); return next; return;
-  end if;
-  side_effecting := coalesce(t.kind, '') <> 'read_only';
-  if not coalesce(t.active, false) then
-    authorized := false;
-    reason := format('tool %s is registered but inactive', p_tool); return next; return;
-  end if;
-  select coalesce(tools, '{}') into v_role_tools from public.org_role where role_id = v_id;
-  -- Two independent grants: the tool's own authorised_roles, and the role's tool list.  Either
-  -- is sufficient; neither present is a refusal.  An empty authorised_roles array means "nobody
-  -- yet", not "everybody" — the difference matters and is stated rather than left to a default.
-  authorized := (v_id = any(coalesce(t.authorised_roles, '{}')))
-             or (p_tool = any(v_role_tools));
-  reason := case when authorized
-    then format('%s authorized for %s (agent_tool.authorised_roles or org_role.tools)', v_id, p_tool)
-    else format('%s is not authorized for %s; neither agent_tool.authorised_roles nor org_role.tools grants it', v_id, p_tool) end;
-  return next;
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_tool_authorized was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_tool_authorized(text, text) from public;
 grant execute on function public.fn_phase_c_tool_authorized(text, text) to service_role;
 
 -- role + department + task + workflow + category + jurisdiction + stage -> permitted scopes.
 -- Resolution and boundaries only: this returns WHICH scopes are permitted and which mappings
 -- are missing.  It does not retrieve, embed or rank anything.
-create or replace function public.fn_phase_c_knowledge_scope(
-  p_role text, p_workflow text, p_category text default null)
-returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $$
-declare v_id text; r public.org_role%rowtype; v_overlay text; v_missing text[] := '{}';
-begin
-  select role_id into v_id from public.fn_phase_c_resolve_actor(p_role);
-  if v_id is null then
-    return jsonb_build_object('ok', false, 'error','unresolved_identity', 'token', p_role);
-  end if;
-  select * into r from public.org_role where role_id = v_id;
-  if p_workflow is not null and not exists (select 1 from public.phase_b_workflow where workflow_id = p_workflow) then
-    v_missing := v_missing || ('unknown_workflow:' || p_workflow);
-  end if;
-  if p_category is not null then
-    select role_id into v_overlay from public.fn_phase_c_resolve_actor(p_category);
-    if v_overlay is null then v_missing := v_missing || ('unknown_category_overlay:' || p_category); end if;
-  end if;
-  if coalesce(array_length(r.knowledge_scopes, 1), 0) = 0 then
-    v_missing := v_missing || ('role_has_no_declared_knowledge_scope:' || v_id);
-  end if;
-  return jsonb_build_object(
-    'ok', cardinality(v_missing) = 0, 'role_id', v_id, 'department_id', r.primary_department_id,
-    'workflow_id', p_workflow, 'category_overlay', v_overlay,
-    'company_core_scopes', jsonb_build_array('company_policy','founder_boundaries','authority_matrix'),
-    'department_scopes', jsonb_build_array('dept:' || r.primary_department_id),
-    'role_scopes', to_jsonb(coalesce(r.knowledge_scopes, '{}')),
-    'category_scopes', case when v_overlay is null then '[]'::jsonb else jsonb_build_array('overlay:' || v_overlay) end,
-    'exclusions', jsonb_build_array('other_departments_private_scopes','v3_certification_answer_keys'),
-    'missing_or_orphan', to_jsonb(v_missing),
-    'retrieval_performed', false,
-    'note', 'Phase C connects the scope interface only. No embedding or model call is made here.');
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_knowledge_scope was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_knowledge_scope(text, text, text) from public;
 grant execute on function public.fn_phase_c_knowledge_scope(text, text, text) to service_role;

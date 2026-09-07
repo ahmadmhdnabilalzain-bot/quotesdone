@@ -134,43 +134,11 @@ revoke all on function public.fn_kernel_review_decide(jsonb) from public;
 grant execute on function public.fn_kernel_review_decide(jsonb) to service_role;
 
 -- ------------------------------------------------------------------- 3. the invariant, with both
-create or replace function public.fn_kernel_review_integrity()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql stable security definer set search_path to 'public', 'pg_temp' as $q$
-  select 'phase_b_steps_declaring_a_self_review', '0 of steps with a declared reviewer',
-         count(*) filter (where not public.fn_kernel_reviewer_independent(
-                                   s.accountable_role_id, s.independent_reviewer_role_id))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where not public.fn_kernel_reviewer_independent(
-                                   s.accountable_role_id, s.independent_reviewer_role_id)) = 0
-    from public.phase_b_workflow_step s
-   where coalesce(btrim(s.independent_reviewer_role_id), '') <> ''
-  union all
-  select 'tasks_reviewed_by_their_own_owner', '0 of tasks with a reviewer',
-         count(*) filter (where not public.fn_kernel_reviewer_independent(
-                                   t.accountable_role_id, t.reviewer_role_id))::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where not public.fn_kernel_reviewer_independent(
-                                   t.accountable_role_id, t.reviewer_role_id)) = 0
-    from public.phase_c_task t
-   where coalesce(btrim(t.reviewer_role_id), '') <> ''
-  union all
-  select 'tasks_requiring_review_with_no_reviewer', '0 of tasks requiring review',
-         count(*) filter (where coalesce(btrim(t.reviewer_role_id), '') = '')::text
-           || ' of ' || count(*)::text,
-         count(*) filter (where coalesce(btrim(t.reviewer_role_id), '') = ''
-                            and t.state in ('completed')) = 0
-    from public.phase_c_task t where t.reviewer_required
-  union all
-  -- NOT a pass/fail gate. It is reported because it is the thing that would make the two
-  -- independence answers diverge, and a number nobody prints is a number nobody watches.
-  select 'roles_whose_two_resolvers_disagree', 'reported, not gated',
-         count(*) filter (where public.fn_org_agent_resolve(r.role_id)
-                            is distinct from (select role_id from public.fn_phase_c_resolve_actor(r.role_id)))::text
-           || ' of ' || count(*)::text,
-         true
-    from public.org_role r;
-$q$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_review_integrity was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_review_integrity() from public;
 grant execute on function public.fn_kernel_review_integrity() to service_role;

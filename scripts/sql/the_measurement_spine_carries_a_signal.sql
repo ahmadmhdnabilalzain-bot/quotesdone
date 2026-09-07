@@ -160,61 +160,11 @@ begin
 end $function$;
 
 -- 3. fn_employee_kpi_assign: a new KPI is tied to its operating system's objective too.
-CREATE OR REPLACE FUNCTION public.fn_employee_kpi_assign()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare v_retired int := 0; v_created int := 0; v_uncovered int;
-begin
-  update public.employee_kpi k set active = false
-   where k.active
-     and not exists (select 1 from public.org_agents a where a.agent_key = k.agent_key and a.active);
-  get diagnostics v_retired = row_count;
+-- ROUTINE REMOVED 7 September 2026. public.fn_employee_kpi_assign was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- Every active agent without a KPI gets one tied to its department's primary active objective
-  -- (serves_goal, the upward company-goal link) AND to its operating system's primary objective
-  -- (serves_objective -> os_objective, the OS layer that was left null before B5).
-  insert into public.employee_kpi
-    (agent_key, kpi, metric, target_value, unit, cadence, serves_goal,
-     measure_sql, no_measure_reason, serves_objective, active)
-  select a.agent_key,
-         'Contribute to: ' || left(o.objective, 120),
-         coalesce(nullif(o.objective, ''), 'department objective'),
-         o.target_value, o.unit, 'monthly', o.goal_key,
-         nullif(o.measure_sql, ''),
-         case when coalesce(o.measure_sql, '') = '' then 'department objective carries no measure yet' end,
-         (select oo.id from public.os_objective oo
-            join public.os_department od on od.os_key = oo.os_key
-           where od.dept_key = a.department and oo.active
-           order by (coalesce(oo.measure_sql,'') <> '') desc, oo.id limit 1),
-         true
-    from public.org_agents a
-    join lateral (
-       select dobj.* from public.department_objective dobj
-        where dobj.dept_key = a.department and dobj.active
-        order by (coalesce(dobj.measure_sql, '') <> '') desc, dobj.sort, dobj.id
-        limit 1
-    ) o on true
-   where a.active
-     and not exists (select 1 from public.employee_kpi k where k.agent_key = a.agent_key and k.active);
-  get diagnostics v_created = row_count;
-
-  select count(*) into v_uncovered
-    from public.org_agents a
-   where a.active
-     and not exists (select 1 from public.employee_kpi k where k.agent_key = a.agent_key and k.active);
-
-  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('employee_kpi_assign', now(), now(), 'ok',
-          jsonb_build_object('retired', v_retired, 'created', v_created, 'still_uncovered', v_uncovered),
-          'Retired '||v_retired||' KPI(s) whose owner is no longer active; created '||v_created||
-          ' KPI(s) tying an un-KPI''d active agent to its department''s primary objective and its OS objective. '||
-          v_uncovered||' active agent(s) still without a KPI because their department has no active objective.');
-
-  return jsonb_build_object('retired', v_retired, 'created', v_created, 'still_uncovered', v_uncovered);
-end $function$;
 
 -- 4. BACKFILL the existing spine with the same deterministic logic.
 update public.org_tasks t

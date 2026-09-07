@@ -119,25 +119,8 @@ begin
 end $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.fn_pdpl_export(p_email text)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select jsonb_build_object(
-    'subject', p_email,
-    'generated_at', now(),
-    'customers',           (select coalesce(jsonb_agg(to_jsonb(c)),'[]'::jsonb) from public.customers c where c.email=p_email),
-    'inquiries',           (select coalesce(jsonb_agg(to_jsonb(i)),'[]'::jsonb) from public.inquiries i where i.customer_id in (select id from public.customers where email=p_email)),
-    'preferences',         (select coalesce(jsonb_agg(to_jsonb(cp)),'[]'::jsonb) from public.customer_preference cp where cp.customer_id in (select id from public.customers where email=p_email)),
-    'supplier_leads',      (select coalesce(jsonb_agg(to_jsonb(l)),'[]'::jsonb) from public.leads l where l.email=p_email),
-    'notifications',       (select coalesce(jsonb_agg(to_jsonb(n)),'[]'::jsonb) from public.notifications n where n.to_email=p_email),
-    'outreach',            (select coalesce(jsonb_agg(to_jsonb(o)),'[]'::jsonb) from public.outreach o where o.email=p_email),
-    'email_verifications', (select coalesce(jsonb_agg(to_jsonb(e)),'[]'::jsonb) from public.email_verifications e where e.email=p_email),
-    'phone_verifications', (select coalesce(jsonb_agg(to_jsonb(p)),'[]'::jsonb) from public.phone_verifications p where p.email=p_email),
-    'email_suppressions',  (select coalesce(jsonb_agg(to_jsonb(s)),'[]'::jsonb) from public.email_suppressions s where s.email=p_email),
-    'ai_usage',            (select coalesce(jsonb_agg(to_jsonb(a)),'[]'::jsonb) from public.ai_usage a where a.email=p_email)
-  );
-$function$
-;
+-- ROUTINE REMOVED 7 September 2026. public.fn_pdpl_export was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+

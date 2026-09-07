@@ -33,7 +33,8 @@ That is the whole company. **There are no departments.** `org_departments` and `
 empty and `primary_department_id` is null on both roles. Do not write a department into anything, do
 not reintroduce `dept_key` as a required field, and do not describe work as belonging to one.
 
-**Never invent a third agent.** If work does not fit `ceo` or `customer_support`, that is the
+**Never invent an agent.** Adding a seat is the founder's, and he has said he will add more. Until
+he does, if work does not fit `ceo` or `customer_support`, that is the
 finding — say so and stop. It does not license creating a role to receive it. The founder is
 building this back one piece at a time and each piece is his to add.
 
@@ -51,7 +52,33 @@ Assigned: customer_support
 
 No department line. If a change genuinely spans both seats, name both and say what each owns.
 
-## 3. No task exists unless he confirmed it
+## 3. THE RULE: no job or task exists without an agent
+
+Founder, 7 September 2026: *"the rule is simple, no job/task should exist if it doesnt belong to an
+agent."*
+
+This is the shortest statement of everything that went wrong here. The estate reached **235
+scheduled jobs and 2,489 tasks** while the organisation had drifted to seats that no longer existed,
+and nothing connected the two: jobs ran for departments that had been dissolved, and tasks sat in
+queues nobody held. Neither number was visible as a problem because neither had an owner to notice.
+
+So, before anything is scheduled or queued:
+
+1. **Name the agent it belongs to.** Today that is `ceo` or `customer_support` and there is no
+   third -- but the founder is adding more (7 Sep 2026: *"well we will add more agents for sure.
+   but till those are added, the rule remains"*). So the rule is not "two agents", it is **an agent
+   that actually exists**. Read the live seats rather than trusting this sentence:
+   `select role_id from public.org_role where status = 'active';`
+2. **If neither fits, it does not get created.** That is the finding: say so and stop. Do not invent
+   a seat to receive it, and do not leave it unowned "for now" -- unowned is how 235 happened.
+3. **An agent that is deleted takes its jobs and tasks with it.** They do not survive their owner
+   and get reassigned by default; they are removed with the seat.
+
+**The whole estate today: one job, `wa_flush`, owned by `customer_support`. Zero tasks.** That is
+the baseline. Anything that makes either number grow needs a named owner and, for a task, the
+founder's confirmation.
+
+### And still: no task exists unless he confirmed it
 
 `org_tasks` is empty and stays empty. **Do not create a task, an objective, a goal, a queue item or
 a work item for either agent unless the founder has confirmed that specific piece of work.**

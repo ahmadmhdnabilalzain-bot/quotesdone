@@ -174,46 +174,11 @@ comment on function public.fn_wa_route(text, text, boolean) is
 -- A FALLBACK THAT BECOMES PERMANENT IS AN OUTAGE NOBODY FIXED
 -- ---------------------------------------------------------------------------------------------
 
-create or replace function public.fn_model_fallback_watch(p_hours int default 24)
-returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-declare
-  v_total int; v_fell int; v_pct numeric; v_verdict text;
-begin
-  select count(*), count(*) filter (where fell_back)
-    into v_total, v_fell
-    from public.llm_calls
-   where created_at > now() - make_interval(hours => p_hours);
+-- ROUTINE REMOVED 7 September 2026. public.fn_model_fallback_watch was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  if v_total = 0 then
-    -- Zero cannot tell a healthy primary from a channel nobody used. Say which.
-    return jsonb_build_object('ok', true, 'verdict', 'NO TRAFFIC',
-      'note', format('No model calls at all in %s hours, so this says nothing about whether the '
-                  || 'primary is healthy. It says the channel was idle.', p_hours));
-  end if;
-
-  v_pct := round(100.0 * v_fell / v_total, 1);
-  v_verdict := case
-    when v_pct = 0    then 'PRIMARY HEALTHY'
-    when v_pct < 10   then 'OCCASIONAL FALLBACK'
-    when v_pct < 50   then 'PRIMARY DEGRADED'
-    else                   'PRIMARY EFFECTIVELY DOWN' end;
-
-  return jsonb_build_object(
-    'ok', true, 'window_hours', p_hours,
-    'calls', v_total, 'fell_back', v_fell, 'fallback_pct', v_pct,
-    'verdict', v_verdict,
-    'note', case when v_pct >= 10
-      then format('%s%% of calls fell back. The company is paying the fallback''s price and getting '
-               || 'the fallback''s behaviour. This is an outage to fix, not a setting to accept.', v_pct)
-      else 'Fallback rate is within the range expected from transient provider errors.' end
-  );
-end;
-$$;
 
 revoke execute on function public.fn_model_fallback_watch(int) from public;
 

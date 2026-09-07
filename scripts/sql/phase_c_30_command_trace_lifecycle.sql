@@ -99,52 +99,11 @@ grant execute on function public.fn_phase_c_trace_advance(bigint, text, boolean,
 -- Every creator of a task now gets this for free, including the autonomous path. The audit found
 -- 12 of 12 tasks with a null trace_id and no invariant that could see it, because the only
 -- trace invariant looked at CLOSED tasks and no task had ever closed.
-create or replace function public.fn_phase_c_task_trace_guard()
-returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $$
-declare v_parent bigint; v_trace bigint;
-begin
-  if tg_op = 'INSERT' then
-    if new.trace_id is null then
-      -- The root this task hangs from: its command's trace, or its workflow run's trace.
-      select c.trace_id into v_parent from public.founder_command c where c.command_id = new.command_id;
-      if v_parent is null then
-        select r.trace_id into v_parent from public.phase_c_workflow_run r where r.run_id = new.run_id;
-      end if;
-      v_trace := public.fn_phase_c_trace_write('TRACE-TASK', jsonb_build_object(
-        'subject_kind','task', 'subject_ref', coalesce(new.idempotency_key, ''),
-        'command_id', new.command_id, 'run_id', new.run_id,
-        'actor_role_id', new.accountable_role_id, 'manager_role_id', new.manager_role_id,
-        'system_actor_id', case when new.command_id is not null
-                                then 'system.command_router' else 'system.workflow_engine' end,
-        'authority_result', coalesce(new.authority_class,''),
-        'reviewer_role_id', coalesce(new.reviewer_role_id,''),
-        'input_hash', encode(sha256(convert_to(coalesce(new.objective,''), 'UTF8')), 'hex'),
-        'state_before','', 'state_after', coalesce(new.state,'queued'), 'status','open'));
-      if v_parent is not null then
-        update public.phase_c_trace set parent_trace_id = v_parent where trace_id = v_trace;
-      end if;
-      new.trace_id := v_trace;
-    end if;
-    return new;
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_task_trace_guard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- A task may not become active or terminal with no trace. Absence is refused, not defaulted:
-  -- inventing one here would certify work that was never traced.
-  if new.state in ('assigned','accepted','in_progress','review_required','revision_required',
-                   'completed','failed','cancelled','superseded','blocked')
-     and new.trace_id is null then
-    raise exception 'phase_c_task %: state % requires a trace and trace_id is null',
-      new.task_id, new.state using errcode = '23514';
-  end if;
-  if new.state is distinct from old.state and new.trace_id is not null then
-    perform public.fn_phase_c_trace_advance(
-      new.trace_id, new.state,
-      new.state in ('completed','failed','cancelled','superseded'),
-      jsonb_build_object('evidence_refs', jsonb_build_array(
-        jsonb_build_object('transition', old.state || ' -> ' || new.state, 'at', now()))));
-  end if;
-  return new;
-end $$;
 
 -- a00_ so it runs before the state guard, which is a90_-class work: the trace must exist before
 -- anything decides whether the transition is legal. Postgres fires BEFORE triggers in NAME order.

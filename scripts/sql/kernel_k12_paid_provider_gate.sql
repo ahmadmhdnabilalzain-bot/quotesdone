@@ -118,36 +118,11 @@ revoke all on function public.fn_kernel_paid_provider_gate(text) from public;
 grant execute on function public.fn_kernel_paid_provider_gate(text) to service_role;
 
 -- ------------------------------------------------------------------ the invariant that watches it
-create or replace function public.fn_kernel_paid_provider_state()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql stable security definer set search_path to 'public', 'pg_temp' as $q$
-  select 'gate_denies_a_registered_route', 'false',
-         (public.fn_kernel_paid_provider_gate(
-            coalesce((select model_id from public.model_registry where active order by model_id limit 1),
-                     'anthropic/claude-sonnet-5'))->>'allowed'),
-         (public.fn_kernel_paid_provider_gate(
-            coalesce((select model_id from public.model_registry where active order by model_id limit 1),
-                     'anthropic/claude-sonnet-5'))->>'allowed') = 'false'
-  union all
-  select 'gate_denies_an_unregistered_route', 'false',
-         (public.fn_kernel_paid_provider_gate('zz/not-a-real-model')->>'allowed'),
-         (public.fn_kernel_paid_provider_gate('zz/not-a-real-model')->>'allowed') = 'false'
-  union all
-  select 'gate_allows_the_deterministic_path', 'true',
-         (public.fn_kernel_paid_provider_gate(null)->>'allowed'),
-         (public.fn_kernel_paid_provider_gate(null)->>'allowed') = 'true'
-  union all
-  select 'routes_held_by_the_founder', 'all',
-         count(*) filter (where open_until > now())::text || ' of ' || count(*)::text,
-         count(*) > 0 and count(*) filter (where open_until > now()) = count(*)
-    from public.llm_route_health
-  union all
-  select 'paid_inference_rows_since_the_hold', '0',
-         (select count(*) from public.llm_attempt
-           where created_at > (select min(updated_at) from public.llm_route_health))::text,
-         (select count(*) from public.llm_attempt
-           where created_at > (select min(updated_at) from public.llm_route_health)) = 0;
-$q$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_paid_provider_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_paid_provider_state() from public;
 grant execute on function public.fn_kernel_paid_provider_state() to service_role;

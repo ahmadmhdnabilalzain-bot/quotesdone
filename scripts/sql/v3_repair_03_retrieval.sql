@@ -101,79 +101,33 @@ $function$;
 -- ---------------------------------------------------------------------------------------------
 -- Returns, per layer, whether the task's own query actually matched anything. A layer that is
 -- entirely 'fallback' means: this agent has NO knowledge about what it was asked to do.
-create or replace function public.fn_knowledge_gap(p_ctx jsonb)
-returns jsonb
-language sql immutable set search_path = public as $$
-  with layers as (
-    select k as layer, p_ctx->k as rows
-      from unnest(array['company_core','department_knowledge','role_knowledge','category_knowledge']) k
-     where jsonb_typeof(p_ctx->k) = 'array'
-  ), per as (
-    select l.layer,
-           jsonb_array_length(l.rows)                                                          as n,
-           (select count(*) from jsonb_array_elements(l.rows) e where e->>'match' = 'query')    as matched,
-           (select count(*) from jsonb_array_elements(l.rows) e where (e->>'stale')::boolean)   as stale
-      from layers l
-  )
-  select jsonb_build_object(
-    'layers', coalesce(jsonb_object_agg(layer, jsonb_build_object('records', n, 'matched_query', matched, 'stale', stale)), '{}'::jsonb),
-    'total_records',  coalesce(sum(n),0),
-    'total_matched',  coalesce(sum(matched),0),
-    'total_stale',    coalesce(sum(stale),0),
-    -- The one boolean the runtime acts on.
-    'has_gap',        coalesce(sum(matched),0) = 0,
-    'gap_layers',     coalesce((select jsonb_agg(layer order by layer) from per where n > 0 and matched = 0), '[]'::jsonb),
-    'instruction',    case when coalesce(sum(matched),0) = 0
-                        then 'NO retrieved knowledge matched this task. You are working from general departmental material only. Say so explicitly, and request, research or escalate rather than answering as if you had specific guidance.'
-                        else null end)
-  from per;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_knowledge_gap was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_knowledge_gap(jsonb) from public;
 grant execute on function public.fn_knowledge_gap(jsonb) to service_role;
 
 -- ---------------------------------------------------------------------------------------------
 -- 3. COVERAGE PROBE — used by the regression suite to assert retrieval per role/category
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_retrieval_probe(
-  p_agent_key text, p_task_text text, p_category_key text default null)
-returns jsonb
-language plpgsql stable security definer set search_path = public as $$
-declare v_ctx jsonb; v_gap jsonb;
-begin
-  v_ctx := public.fn_agent_context_v3(p_agent_key, null, p_task_text, p_category_key, 24000);
-  v_gap := public.fn_knowledge_gap(v_ctx);
-  return jsonb_build_object(
-    'agent_key',        p_agent_key,
-    'role_ids',         v_ctx->'identity'->'packaged_role_ids',
-    'knowledge_count',  v_ctx->'knowledge_count',
-    'role_records',     coalesce(jsonb_array_length(v_ctx->'role_knowledge'),0),
-    'dept_records',     coalesce(jsonb_array_length(v_ctx->'department_knowledge'),0),
-    'category_records', coalesce(jsonb_array_length(v_ctx->'category_knowledge'),0),
-    'rules_records',    coalesce(jsonb_array_length(v_ctx->'deterministic_rules'),0),
-    'gap',              v_gap);
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_retrieval_probe was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_retrieval_probe(text,text,text) from public;
 grant execute on function public.fn_retrieval_probe(text,text,text) to service_role;
 
 -- ---------------------------------------------------------------------------------------------
 -- 4. CROSS-ROLE LEAKAGE CHECK — role_specific knowledge must not reach a role that does not own it
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_retrieval_leak_check(p_agent_key text, p_task_text text)
-returns jsonb
-language plpgsql stable security definer set search_path = public as $$
-declare v_ctx jsonb; v_mine text[]; v_leak int;
-begin
-  select coalesce(array_agg(packaged_role_id),'{}') into v_mine
-    from org_role_identity where agent_key = p_agent_key;
-  v_ctx := public.fn_agent_context_v3(p_agent_key, null, p_task_text, null, 24000);
-  select count(*) into v_leak
-    from jsonb_array_elements(coalesce(v_ctx->'role_knowledge','[]'::jsonb)) e
-    join ops_knowledge k on k.record_id = e->>'record_id'
-   where k.role_key is not null and not (k.role_key = any(v_mine));
-  return jsonb_build_object('agent_key', p_agent_key, 'own_roles', to_jsonb(v_mine),
-                            'foreign_role_records', v_leak,
-                            'clean', v_leak = 0);
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_retrieval_leak_check was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_retrieval_leak_check(text,text) from public;
 grant execute on function public.fn_retrieval_leak_check(text,text) to service_role;
 

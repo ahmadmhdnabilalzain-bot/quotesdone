@@ -332,36 +332,11 @@ end $$;
 revoke all on function public.fn_phase_c_gate_evaluate(text, jsonb) from public;
 grant execute on function public.fn_phase_c_gate_evaluate(text, jsonb) to service_role;
 
-create or replace function public.fn_phase_c_rule_check(p_rule_id text, p_context jsonb)
-returns table (ok boolean, rule_type text, reason text)
-language plpgsql stable set search_path to 'public', 'pg_temp' as $$
-declare r public.phase_b_business_rule%rowtype;
-begin
-  select * into r from public.phase_b_business_rule where rule_id = p_rule_id;
-  if not found then
-    ok := false; rule_type := 'unknown';
-    reason := format('unknown business rule %L — fail closed', p_rule_id); return next; return;
-  end if;
-  rule_type := r.rule_type;
-  -- BR-001 one accountable owner; BR-002 creator is never reviewer.  Both are checkable here
-  -- because both are about identity, which the resolver already answers.
-  if p_rule_id = 'BR-001' then
-    ok := public.fn_phase_c_actor_may_own(p_context->>'accountable_role_id');
-    reason := case when ok then 'exactly one active canonical owner'
-                   else format('owner %L does not resolve to an active canonical role', p_context->>'accountable_role_id') end;
-    return next; return;
-  end if;
-  if p_rule_id = 'BR-002' then
-    ok := public.fn_phase_c_reviewer_independent(p_context->>'accountable_role_id', p_context->>'reviewer_role_id');
-    reason := case when ok then 'creator and reviewer are different effective identities'
-                   else 'creator and reviewer resolve to the same effective identity' end;
-    return next; return;
-  end if;
-  ok := true;
-  reason := format('rule %s (%s, scope %s) registered and enforced through the canonical boundary',
-                   r.rule_id, r.rule_type, r.workflow_scope);
-  return next;
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_rule_check was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_rule_check(text, jsonb) from public;
 grant execute on function public.fn_phase_c_rule_check(text, jsonb) to service_role;
 
@@ -381,11 +356,11 @@ revoke all on function public.fn_phase_c_reviewer_independent(text, text) from p
 grant execute on function public.fn_phase_c_reviewer_independent(text, text) to service_role;
 
 -- ============================================================ 7. transition guards
-create or replace function public.fn_phase_c_workflow_transition_allowed(p_from text, p_to text)
-returns boolean language sql stable set search_path to 'public', 'pg_temp' as $$
-  select exists (select 1 from public.phase_b_workflow_transition
-                 where from_state = p_from and to_state = p_to);
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_workflow_transition_allowed was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 create or replace function public.fn_phase_c_task_transition_allowed(p_from text, p_to text)
 returns boolean language sql stable set search_path to 'public', 'pg_temp' as $$
   select exists (select 1 from public.phase_c_task_transition
@@ -502,32 +477,11 @@ end $$;
 revoke all on function public.fn_phase_c_workflow_start(text, text, jsonb) from public;
 grant execute on function public.fn_phase_c_workflow_start(text, text, jsonb) to service_role;
 
-create or replace function public.fn_phase_c_outbox_emit(p_event_id text, p_producer text, p_payload jsonb, p_dedupe text)
-returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $$
-declare e public.phase_b_event%rowtype; v_id bigint;
-begin
-  select * into e from public.phase_b_event where event_id = p_event_id;
-  if not found then
-    raise exception 'unknown canonical event % — fail closed', p_event_id using errcode = '23503';
-  end if;
-  insert into public.phase_c_event_outbox
-    (event_id, workflow_id, producer, accountable_role_id, primary_consumer_role_id, payload, dedupe_value)
-  values (p_event_id, e.workflow_id, coalesce(p_producer, e.emitted_by),
-          coalesce((select role_id from public.fn_phase_c_resolve_actor(e.primary_consumer_role_id)), e.primary_consumer_role_id),
-          e.primary_consumer_role_id, coalesce(p_payload, '{}'::jsonb), p_dedupe)
-  on conflict (event_id, dedupe_value) do nothing
-  returning outbox_id into v_id;
-  if v_id is null then
-    -- The duplicate path.  Returning the existing id is correct; inventing a new row is not.
-    select outbox_id into v_id from public.phase_c_event_outbox
-      where event_id = p_event_id and dedupe_value = p_dedupe;
-  end if;
-  if v_id is null then
-    raise exception 'fn_phase_c_outbox_emit wrote no row and found none for %/%', p_event_id, p_dedupe
-      using errcode = '23502';
-  end if;
-  return v_id;
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_outbox_emit was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_outbox_emit(text, text, jsonb, text) from public;
 grant execute on function public.fn_phase_c_outbox_emit(text, text, jsonb, text) to service_role;
 
@@ -548,39 +502,11 @@ grant execute on function public.fn_phase_c_outbox_claim(integer) to service_rol
 
 -- A delivery is successful only when the downstream record exists.  A null downstream ref with
 -- no error is NOT success — that is stated here rather than left to the caller.
-create or replace function public.fn_phase_c_outbox_settle(p_outbox_id bigint, p_ok boolean, p_downstream_ref text, p_error text)
-returns text language plpgsql security definer set search_path to 'public', 'pg_temp' as $$
-declare o public.phase_c_event_outbox%rowtype; v_status text;
-begin
-  select * into o from public.phase_c_event_outbox where outbox_id = p_outbox_id for update;
-  if not found then
-    raise exception 'unknown outbox row %', p_outbox_id using errcode = '23503';
-  end if;
-  insert into public.phase_c_event_delivery_attempt (outbox_id, attempt_no, finished_at, ok, downstream_ref, error)
-  values (p_outbox_id, o.attempts, now(), p_ok, coalesce(p_downstream_ref, ''), coalesce(p_error, ''));
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_outbox_settle was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  if p_ok and coalesce(p_downstream_ref, '') = '' then
-    v_status := 'retry_wait';
-    p_error := coalesce(nullif(p_error, ''), 'delivery reported ok with no downstream record; not counted as delivered');
-  elsif p_ok then
-    v_status := 'delivered';
-  elsif o.attempts >= 5 then
-    v_status := 'dead_letter';
-  else
-    v_status := 'retry_wait';
-  end if;
-
-  update public.phase_c_event_outbox set
-    status = v_status,
-    delivered_at = case when v_status = 'delivered' then now() else delivered_at end,
-    -- the FIRST failure survives even when a later attempt succeeds
-    first_failure = case when first_failure = '' and not p_ok then coalesce(p_error, 'unspecified') else first_failure end,
-    last_error = case when p_ok and v_status = 'delivered' then '' else coalesce(p_error, '') end,
-    next_attempt_at = case when v_status = 'retry_wait' then now() + (interval '1 minute' * power(2, least(o.attempts, 6)))
-                           else next_attempt_at end
-  where outbox_id = p_outbox_id;
-  return v_status;
-end $$;
 revoke all on function public.fn_phase_c_outbox_settle(bigint, boolean, text, text) from public;
 grant execute on function public.fn_phase_c_outbox_settle(bigint, boolean, text, text) to service_role;
 

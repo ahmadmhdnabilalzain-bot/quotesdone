@@ -578,33 +578,11 @@ begin
 end $function$;
 
 -- ── fn_autonomy_class: 'founder' means a refund ───────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.fn_autonomy_class(p_kind text, p_target_table text, p_recommendation text)
- RETURNS text
- LANGUAGE plpgsql
- STABLE
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare pol jsonb; d text;
-begin
-  -- THE ONE HARD RAIL. Money and refunds reach the founder (17 Aug 2026 ruling, restated 5 Sep
-  -- 2026: nothing else does). Everything that used to return 'founder' below — the APV-04 gates,
-  -- deletes on leads/customers, a supplier the sweep may not auto-approve — is 'keep': it stays
-  -- open, held with its accountable role, and no surface may call it his.
-  if p_kind ~* 'refund|payout|payment|withdraw|transfer|invoice_pay|money|charge' then return 'founder'; end if;
-  if p_kind in ('strategy_change','legal_action','partnership','security_incident_executive') then return 'keep'; end if;
-  if p_kind ~* 'delete|purge|remove_record' and coalesce(p_target_table,'') in ('leads','customers') then return 'keep'; end if;
-  if p_kind='approve_supplier' and coalesce(p_recommendation,'')='approve' then return 'clean_supplier'; end if;
-  if p_kind='approve_supplier' then return 'keep'; end if;
-  -- POLICY: per-kind disposition. 'ack' clears; a role name (or 'keep') holds it with that role.
-  -- 'founder' is honoured only for a kind the rail above already accepted, i.e. never here.
-  select value into pol from public.decision_policy where key='action_autonomy';
-  d := pol->>p_kind;
-  if d = 'ack' then return 'ack'; end if;
-  if d is not null then return 'keep'; end if;
-  -- LEGACY FALLBACK
-  if p_kind in ('security_alert','compliance_update','incident','supply_health','sla_no_supply') then return 'ack'; end if;
-  return 'keep';
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_autonomy_class was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- ── decision_policy says what phase_c_action_class says ───────────────────────────────────────
 update public.decision_policy

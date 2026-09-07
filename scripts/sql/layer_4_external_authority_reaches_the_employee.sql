@@ -26,83 +26,11 @@
 -- Everything that runs through agent_brain does. Widening it is a separate change with its own
 -- measurement.
 
-create or replace function public.fn_external_authority(p_query text default null,
-                                                        p_max_chars integer default 2800)
-returns text
-language plpgsql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  v_cap  int := greatest(coalesce(p_max_chars, 2800), 400);
-  v_q    text := nullif(btrim(coalesce(p_query, '')), '');
-  v_out  text := '';
-  v_part text;
-begin
-  -- Relevance is a plain ILIKE over the words of the question, not full-text: these are 118 rows,
-  -- the index would never be used, and a tsquery that fails to parse would silently return nothing.
-  -- When no question is supplied, or nothing matches, the most authoritative rows are emitted
-  -- anyway — an employee that does not know a regulation exists cannot ask about it.
+-- ROUTINE REMOVED 7 September 2026. public.fn_external_authority was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select string_agg('- ['||coalesce(r.authority,'?')||'] '||r.title
-                    ||case when coalesce(r.doc_ref,'') <> '' then ' ('||r.doc_ref||')' else '' end
-                    ||case when r.effective_date is not null then ' — in force '||r.effective_date else '' end
-                    ||case when coalesce(r.summary,'') <> '' then E'\n    '||left(regexp_replace(r.summary,'\s+',' ','g'), 260) else '' end,
-                    E'\n' order by (v_q is not null and (r.title ilike '%'||v_q||'%' or coalesce(r.summary,'') ilike '%'||v_q||'%')) desc,
-                                   r.effective_date desc nulls last, r.id)
-    into v_part
-    from (select * from public.regulations
-           where status = 'active' and approved_at is not null
-           order by (v_q is not null and (title ilike '%'||v_q||'%' or coalesce(summary,'') ilike '%'||v_q||'%')) desc,
-                    effective_date desc nulls last limit 8) r;
-  if v_part is not null then
-    v_out := v_out || 'UAE REGULATIONS IN FORCE (authoritative — cite the authority and the doc ref when you rely on one):'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||s.code||' — '||s.title||case when coalesce(s.authority,'') <> '' then ' ('||s.authority||')' else '' end,
-                    E'\n' order by s.code)
-    into v_part
-    from (select * from public.mdm_standards where coalesce(active,true) order by code limit 14) s;
-  if v_part is not null then
-    v_out := v_out || 'INDUSTRY STANDARDS THE COMPANY WORKS TO:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||m.name||case when coalesce(m.country,'') <> '' then ' ('||m.country||')' else '' end, ', '
-                    order by m.name)
-    into v_part
-    from (select * from public.mdm_manufacturers where coalesce(active,true) order by name limit 22) m;
-  if v_part is not null then
-    v_out := v_out || 'MANUFACTURERS ON THE MASTER LIST:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||coalesce(c.authority,'?')||': '||coalesce(c.topic,'(topic unrecorded)')
-                    ||case when c.last_checked_at is not null then ' — last checked '||c.last_checked_at::date else ' — NEVER CHECKED' end,
-                    E'\n' order by c.last_checked_at desc nulls last, c.id)
-    into v_part
-    from (select * from public.compliance_sources where active
-           order by last_checked_at desc nulls last limit 8) c;
-  if v_part is not null then
-    v_out := v_out || 'AUTHORITIES THIS COMPANY WATCHES FOR CHANGE:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  select string_agg('- '||coalesce(k.authority,'?')||' '||coalesce(k.code_name,'?')
-                    ||' ['||coalesce(k.status,'?')||']', E'\n' order by k.priority nulls last, k.authority)
-    into v_part
-    from (select * from public.reg_catalog where coalesce(status,'') = 'indexed'
-           order by priority nulls last limit 10) k;
-  if v_part is not null then
-    v_out := v_out || 'REGULATORY CODES ALREADY INDEXED IN THE KNOWLEDGE BASE:'||E'\n'||v_part||E'\n\n';
-  end if;
-
-  if v_out = '' then return null; end if;
-
-  return E'\n# LAYER 4 (EXTERNAL) - AUTHORITATIVE SOURCES OUTSIDE THIS COMPANY'||E'\n'
-      || 'Spec #7 L541. These are external and authoritative: where they conflict with anything else '
-      || 'in this context, they win, and you say so. Do not paraphrase a requirement without naming '
-      || 'its authority.'||E'\n\n'
-      || left(v_out, v_cap - 300);
-end $function$;
 
 revoke execute on function public.fn_external_authority(text, integer) from public;
 

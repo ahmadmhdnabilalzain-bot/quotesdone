@@ -253,81 +253,11 @@ end;
 $function$;
 
 -- ---------------------------------------------------------------- (a) follow-ups at +3 and +7 working days
-create or replace function public.fn_supplier_invite_followups(p_rehearsal_tag text default null)
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  v_reh    boolean := p_rehearsal_tag is not null;
-  v_today  date := (now() at time zone 'Asia/Dubai')::date;
-  v_cap    int; v_site text; v_subj text; v_body text; v_pool int := 0;
-  v_n int := 0; v_first int := 0; v_second int := 0;
-  r record;
-begin
-  if not public.fn_supplier_outreach_golive() then
-    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invite_followups', 'ok', jsonb_build_object('held', true, 'queued', 0, 'switch', 'supplier_outreach_golive'),
-            'HELD: app_secrets.supplier_outreach_golive is false — the founder flips it when the app is ready; no follow-up was queued.', now(), now());
-    return jsonb_build_object('held', true, 'queued', 0);
-  end if;
-  if not v_reh and not public.fn_is_working_day(v_today) then
-    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invite_followups', 'ok', jsonb_build_object('held', false, 'queued', 0, 'skipped', 'non_working_day'),
-            'No follow-ups on a non-working day (' || v_today || ' Dubai).', now(), now());
-    return jsonb_build_object('held', false, 'queued', 0, 'skipped', 'non_working_day');
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supplier_invite_followups was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  v_cap := coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
-  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
-  select value into v_subj from public.app_secrets where key = 'invite_subject';
-  select value into v_body from public.app_secrets where key = 'invite_body';
-  v_subj := coalesce((select nullif(value, '') from public.app_secrets where key = 'invite_followup_subject'),
-                     'Following up: ' || coalesce(v_subj, 'your invitation to QuotesDone'));
-  v_body := coalesce((select nullif(value, '') from public.app_secrets where key = 'invite_followup_body'),
-                     'Hello {{company}},' || E'\n\n' ||
-                     'We wrote to you recently and wanted to make sure our invitation reached you. The original message follows; '
-                     'the registration link in it is still yours: {{link}}' || E'\n\n' || '---' || E'\n\n' || coalesce(v_body, ''));
-
-  -- the pool: delivered, unanswered, unregistered, deliverable, and due by the working-day clock
-  create temp table tmp_followup_pool on commit drop as
-    select l.id, l.email, l.company_name, l.claim_token, l.invite_followups,
-           case when l.invite_followups = 0 then 1 else 2 end as nth, l.invited_at
-      from public.leads l
-     where l.invite_status = 'sent' and l.invited_at is not null
-       and coalesce(l.claimed, false) = false and coalesce(l.banned, false) = false
-       and l.lifecycle_stage in ('contacted', 'no_response')
-       and l.invite_followups < 2
-       and ((l.invite_followups = 0 and now() >= public.fn_add_working_days(l.invited_at, 3))
-         or (l.invite_followups = 1 and now() >= public.fn_add_working_days(l.invited_at, 7)))
-       and not exists (select 1 from public.inbound_messages m where m.lead_id = l.id and m.created_at > l.invited_at)
-       and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_followup' and n.lead_id = l.id
-                          and n.created_at > now() - interval '2 days')
-       and case when v_reh then (l.email ilike '%@example.invalid' and l.company_name like 'ZZ DEMO — %')
-                else (coalesce(l.email, '') not ilike '%@example.invalid'
-                      and coalesce(l.company_name, '') not like 'ZZ DEMO — %'
-                      and (public.fn_email_sendable(l.email) ->> 'ok')::boolean) end;
-  select count(*) into v_pool from tmp_followup_pool;
-
-  for r in select * from tmp_followup_pool order by invited_at, id limit v_cap loop
-    insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, created_at)
-    values ('supplier_invite_followup', r.email, 'supplier', r.id, v_subj,
-            replace(replace(v_body, '{{company}}', coalesce(nullif(btrim(r.company_name), ''), 'there')),
-                    '{{link}}', v_site || '/en/portal?t=' || r.claim_token::text),
-            'queued', now());
-    update public.leads set invite_followups = invite_followups + 1, invite_last_followup_at = now() where id = r.id;
-    v_n := v_n + 1;
-    if r.nth = 1 then v_first := v_first + 1; else v_second := v_second + 1; end if;
-  end loop;
-
-  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-  values ('supplier_invite_followups', 'ok',
-          jsonb_build_object('held', false, 'queued', v_n, 'first', v_first, 'second', v_second, 'pool', v_pool, 'cap', v_cap, 'rehearsal', v_reh),
-          'Invite follow-ups: ' || v_n || ' queued (' || v_first || ' at +3 working days, ' || v_second || ' at +7) of ' || v_pool
-          || ' due, cap ' || v_cap || case when v_reh then ' [rehearsal ' || p_rehearsal_tag || ']' else '' end || '.', now(), now());
-  return jsonb_build_object('held', false, 'queued', v_n, 'first', v_first, 'second', v_second, 'pool', v_pool, 'cap', v_cap);
-end $function$;
 revoke execute on function public.fn_supplier_invite_followups(text) from public, anon, authenticated;
 grant execute on function public.fn_supplier_invite_followups(text) to service_role;
 
@@ -345,207 +275,29 @@ create table if not exists public.supplier_lead_intake (
 alter table public.supplier_lead_intake enable row level security;
 revoke all on public.supplier_lead_intake from public, anon, authenticated;
 
-create or replace function public.fn_supplier_lead_intake(p_rehearsal_tag text default null)
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  v_reh boolean := p_rehearsal_tag is not null;
-  FREE constant text[] := array['gmail.com','googlemail.com','yahoo.com','ymail.com','yahoo.co.uk','hotmail.com','hotmail.co.uk','hotmail.fr',
-                                'outlook.com','outlook.sa','live.com','msn.com','icloud.com','me.com','mac.com','aol.com','mail.com','gmx.com',
-                                'gmx.net','protonmail.com','proton.me','yandex.com','zoho.com','rediffmail.com'];
-  r record; v_lead record; v_intent text; v_matched text; v_task bigint; v_text text; v_site text;
-  v_fee numeric; v_reveal numeric; v_title text; v_detail text; v_dom text;
-  v_n int := 0; v_tasks int := 0; v_supp int := 0; v_counts jsonb := '{}'::jsonb;
-begin
-  if not public.fn_supplier_outreach_golive() then
-    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-    values ('supplier_lead_intake', 'ok', jsonb_build_object('held', true, 'classified', 0, 'switch', 'supplier_outreach_golive'),
-            'HELD: app_secrets.supplier_outreach_golive is false — the founder flips it when the app is ready; the inbox was not classified.', now(), now());
-    return jsonb_build_object('held', true, 'classified', 0);
-  end if;
-  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
-  select supplier_reg_fee, standard_reveal_rate into v_fee, v_reveal from public.pricing_config order by id limit 1;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supplier_lead_intake was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  for r in
-    select m.* from public.inbound_messages m
-     where not exists (select 1 from public.supplier_lead_intake i where i.inbound_id = m.id)
-       and coalesce(m.from_email, '') <> ''
-       and lower(coalesce(m.to_email, '')) not like 'expenses@%'        -- receipts are the bookkeeper's (resend_inbound)
-       and case when v_reh then m.from_email ilike '%@example.invalid' else m.from_email not ilike '%@example.invalid' end
-     order by m.id limit 200
-  loop
-    v_text := lower(coalesce(r.subject, '') || ' ' || left(coalesce(r.body, ''), 4000));
-    v_dom  := lower(split_part(r.from_email, '@', 2));
-    v_matched := null;
-    select l.id, l.company_name, l.claim_token, l.invite_status into v_lead from public.leads l where l.id = r.lead_id;
-    if v_lead.id is not null then
-      v_matched := 'inbound.lead_id';
-    else
-      select l.id, l.company_name, l.claim_token, l.invite_status into v_lead from public.leads l
-       where lower(l.email) = lower(r.from_email) or lower(coalesce(l.claimed_by, '')) = lower(r.from_email)
-       order by l.id limit 1;
-      if v_lead.id is not null then
-        v_matched := 'email';
-      elsif v_dom <> all(FREE) then
-        select l.id, l.company_name, l.claim_token, l.invite_status into v_lead from public.leads l
-         where l.email_domain is not null and lower(l.email_domain) = v_dom order by l.id limit 1;
-        if v_lead.id is not null then v_matched := 'domain'; end if;
-      end if;
-    end if;
-
-    v_intent := case
-      when v_text ~ '(undeliverable|delivery (has )?failed|mail delivery|mailer-daemon|address not found|could not be delivered|delivery status notification)' then 'bounce'
-      when v_text ~ '(unsubscribe|remove (me|us)|not interested|stop (emailing|sending|contacting)|do not contact|opt[- ]?out|take (me|us) off)' then 'decline'
-      when v_text ~ '(register|sign[- ]?up|interested|join|onboard|how (do|can) (i|we)|send (me|us) the link|create (an )?account|want to (be )?list|would like to (be )?list)' then 'register'
-      when coalesce(r.attachments_count, 0) > 0 or v_text ~ '(trade licen[cs]e|licen[cs]e cop|vat certificate|company profile|catalog(ue)?|\mtrn\M)' then 'document'
-      when v_text ~ '(\?|\mfees?\M|\mcost|\mprice|how much|charges|commission|what is|pricing)' then 'question'
-      else 'other' end;
-
-    v_task := null;
-    if v_intent = 'decline' then
-      insert into public.email_suppressions (email, reason, source)
-      values (lower(r.from_email), 'asked to be removed (inbound reply #' || r.id || ')', 'supplier_lead_intake')
-      on conflict (email) do nothing;
-      v_supp := v_supp + 1;
-    elsif v_intent = 'bounce' then
-      if v_lead.id is not null then
-        update public.leads set invite_status = 'bounced' where id = v_lead.id and invite_status in ('queued', 'sent');
-      end if;
-    elsif v_intent in ('register', 'question', 'document') then
-      v_title := 'Supplier reply (' || v_intent || '): ' || coalesce(v_lead.company_name, r.from_email)
-                 || case when v_lead.id is not null then ' — lead #' || v_lead.id else '' end;
-      select id into v_task from public.org_tasks where title = v_title and status not in ('done', 'cancelled') order by id limit 1;
-      if v_task is null then
-        v_detail := 'Inbound email #' || r.id || ' from ' || r.from_email || ' on ' || to_char(r.created_at, 'DD Mon YYYY HH24:MI')
-          || ' UTC, subject: ' || coalesce(left(r.subject, 140), '(none)') || '. Classified deterministically as ' || v_intent
-          || ' (keywords, no model). Linked to ' || coalesce('lead #' || v_lead.id || ' (' || coalesce(v_lead.company_name, '?') || ') by ' || v_matched, 'no lead (unknown sender)') || '.'
-          || E'\n\n' || 'TEMPLATED REPLY TO SEND:' || E'\n'
-          || case v_intent
-               when 'register' then 'Thank you for your interest in QuotesDone. Registration takes a few minutes here: ' || v_site || '/en/portal'
-                                    || coalesce('?t=' || v_lead.claim_token::text, '') || ' — your trade licence and company details are all you need. Reply to this email if anything is unclear.'
-               when 'question' then 'Thank you for your question. QuotesDone matches your company to real customer requests in your trade'
-                                    || coalesce('; the supplier registration fee is AED ' || v_fee::text, '')
-                                    || coalesce(' and the platform fee on a won job is ' || round(v_reveal * 100, 1) || '% of the quoted value', '')
-                                    || '. Registration: ' || v_site || '/en/portal' || coalesce('?t=' || v_lead.claim_token::text, '') || '.'
-               else 'Thank you for sending your documents. They are attached to your supplier record and the verification team will review them; you will hear from us once the review is complete.' end
-          || E'\n\n' || 'Queue the reply through the notifications outbox to ' || r.from_email || ' (type supplier_invite_reply); never send by hand. Close this task with the notification id as the deliverable.';
-        insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
-        values ('supply', v_title, v_detail, 'assigned', 'autonomous', false, 'outreach_draft', 'bd')
-        returning id into v_task;
-        v_tasks := v_tasks + 1;
-      end if;
-    end if;
-
-    insert into public.supplier_lead_intake (inbound_id, lead_id, intent, matched_by, task_id, suppressed, run_tag)
-    values (r.id, v_lead.id, v_intent, v_matched, v_task, v_intent = 'decline', p_rehearsal_tag);
-    v_n := v_n + 1;
-    v_counts := jsonb_set(v_counts, array[v_intent], to_jsonb(coalesce((v_counts ->> v_intent)::int, 0) + 1));
-  end loop;
-
-  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-  values ('supplier_lead_intake', 'ok',
-          jsonb_build_object('held', false, 'classified', v_n, 'tasks_opened', v_tasks, 'suppressed', v_supp, 'rehearsal', v_reh) || v_counts,
-          'Lead intake: ' || v_n || ' inbound message(s) classified by keyword (' || coalesce(v_counts::text, '{}') || '); '
-          || v_tasks || ' reply task(s) opened on the BD manager; ' || v_supp || ' address(es) suppressed at their request'
-          || case when v_reh then ' [rehearsal ' || p_rehearsal_tag || ']' else '' end || '.', now(), now());
-  return jsonb_build_object('held', false, 'classified', v_n, 'tasks_opened', v_tasks, 'suppressed', v_supp) || v_counts;
-end $function$;
 revoke execute on function public.fn_supplier_lead_intake(text) from public, anon, authenticated;
 grant execute on function public.fn_supplier_lead_intake(text) to service_role;
 
 -- ---------------------------------------------------------------- (c) sourcing from what the estate already holds
-create or replace function public.fn_supplier_lead_sourcing(p_rehearsal_tag text default null)
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  v_reh boolean := p_rehearsal_tag is not null;
-  FREE constant text[] := array['gmail.com','googlemail.com','yahoo.com','ymail.com','yahoo.co.uk','hotmail.com','hotmail.co.uk','hotmail.fr',
-                                'outlook.com','outlook.sa','live.com','msn.com','icloud.com','me.com','mac.com','aol.com','mail.com','gmx.com',
-                                'gmx.net','protonmail.com','proton.me','yandex.com','zoho.com','rediffmail.com'];
-  r record; v_dom text; v_label text; v_n int := 0; v_cand int := 0; v_refused int := 0; v_dup int := 0;
-  v_staged int; v_inq int; v_quotes int;
-begin
-  if not public.fn_supplier_outreach_golive() then
-    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-    values ('supplier_lead_sourcing', 'ok', jsonb_build_object('held', true, 'harvested', 0, 'switch', 'supplier_outreach_golive'),
-            'HELD: app_secrets.supplier_outreach_golive is false — the founder flips it when the app is ready; no lead was harvested.', now(), now());
-    return jsonb_build_object('held', true, 'harvested', 0);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supplier_lead_sourcing was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  for r in
-    select m.id, m.from_email, m.subject, m.created_at
-      from public.inbound_messages m
-     where m.from_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$'
-       and lower(coalesce(m.to_email, '')) not like 'expenses@%'
-       and lower(split_part(m.from_email, '@', 2)) <> all(FREE)
-       and case when v_reh then m.from_email ilike '%@example.invalid'
-                else m.from_email not ilike '%@example.invalid'
-                     and not exists (select 1 from public.email_block_pattern p where p.active and lower(m.from_email) ~ p.pattern) end
-       and not exists (select 1 from public.leads l
-                        where lower(l.email) = lower(m.from_email)
-                           or lower(coalesce(l.claimed_by, '')) = lower(m.from_email)
-                           or (l.email_domain is not null and lower(l.email_domain) = lower(split_part(m.from_email, '@', 2))))
-       and not exists (select 1 from public.email_suppressions s where lower(s.email) = lower(m.from_email))
-       and not exists (select 1 from public.supplier_lead_intake i where i.inbound_id = m.id and i.intent in ('decline', 'bounce'))
-     order by m.id limit 100
-  loop
-    v_cand := v_cand + 1;
-    v_dom   := lower(split_part(r.from_email, '@', 2));
-    v_label := initcap(replace(split_part(v_dom, '.', 1), '-', ' '));
-    -- one lead per domain, also within a run (the loop's query was planned before the first insert)
-    if exists (select 1 from public.leads l where l.email_domain is not null and lower(l.email_domain) = v_dom) then
-      v_dup := v_dup + 1; continue;
-    end if;
-    begin
-      insert into public.leads (company_name, email, email_domain, domain, website, source, notes, scraped_at)
-      values (case when v_reh then 'ZZ DEMO — ' || v_label else v_label end, lower(r.from_email), v_dom, v_dom, 'https://' || v_dom,
-              'inbound_email',
-              'Harvested by the BD manager from inbound email #' || r.id || ' ("' || left(coalesce(r.subject, ''), 80) || '", '
-              || to_char(r.created_at, 'DD Mon YYYY') || '). The company name is the mail domain until enrichment corrects it.',
-              current_date);
-      v_n := v_n + 1;
-    exception when others then
-      v_refused := v_refused + 1;     -- e.g. the disposable-domain guard on leads; the sender stays an inbound row
-    end;
-  end loop;
-
-  select count(*) filter (where stage = 'profiled') into v_staged from public.yello_staging;
-  select count(*) into v_inq from public.inquiries;
-  select count(*) into v_quotes from public.quotes;
-  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-  values ('supplier_lead_sourcing', 'ok',
-          jsonb_build_object('held', false, 'harvested', v_n, 'candidates', v_cand, 'refused', v_refused, 'duplicate_domain', v_dup,
-                             'staged_directory_profiled_left', v_staged, 'inquiries', v_inq, 'quotes', v_quotes, 'rehearsal', v_reh),
-          'Lead sourcing: ' || v_n || ' new lead(s) from ' || v_cand || ' inbound business-domain sender(s) with no lead (' || v_refused
-          || ' refused by a guard, ' || v_dup || ' same-domain duplicate(s)). Other estate sources: the staged directory is promoted daily by supplier_discovery_daily (cron 322; '
-          || v_staged || ' profiled rows without an email remain); RFQ and quote supplier mentions need an inquiry to exist (' || v_inq
-          || ' inquiries, ' || v_quotes || ' quotes). No scraping, no paid inference.'
-          || case when v_reh then ' [rehearsal ' || p_rehearsal_tag || ']' else '' end, now(), now());
-  return jsonb_build_object('held', false, 'harvested', v_n, 'candidates', v_cand, 'refused', v_refused, 'duplicate_domain', v_dup, 'staged_directory_profiled_left', v_staged);
-end $function$;
 revoke execute on function public.fn_supplier_lead_sourcing(text) from public, anon, authenticated;
 grant execute on function public.fn_supplier_lead_sourcing(text) to service_role;
 
 -- ---------------------------------------------------------------- (e) the cron entry
-create or replace function public.fn_supplier_outreach_daily()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare v_f jsonb; v_i jsonb; v_s jsonb;
-begin
-  v_f := public.fn_supplier_invite_followups(null);
-  v_i := public.fn_supplier_lead_intake(null);
-  v_s := public.fn_supplier_lead_sourcing(null);
-  return jsonb_build_object('golive', public.fn_supplier_outreach_golive(), 'followups', v_f, 'intake', v_i, 'sourcing', v_s);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supplier_outreach_daily was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke execute on function public.fn_supplier_outreach_daily() from public, anon, authenticated;
 grant execute on function public.fn_supplier_outreach_daily() to service_role;
 

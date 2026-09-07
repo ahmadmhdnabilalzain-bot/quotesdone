@@ -34,14 +34,11 @@ begin;
 -- carry an evidence OBJECT. Same family as least(100,NULL)=100 — the absent input scoring as the
 -- answer you wanted.
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_jsonb_is_empty(j jsonb)
-returns boolean language sql immutable as $fn$
-  select j is null
-      or j = 'null'::jsonb
-      or (jsonb_typeof(j) = 'array'  and jsonb_array_length(j) = 0)
-      or (jsonb_typeof(j) = 'object' and not exists (select 1 from jsonb_object_keys(j)))
-      or (jsonb_typeof(j) = 'string' and btrim(j #>> '{}') = '');
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_jsonb_is_empty was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- ---------------------------------------------------------------------------------------------
 -- 1. THE REGISTRY
@@ -112,29 +109,11 @@ comment on table public.unsafe_block is
 -- 3.1 UNSTATED ASSUMPTION — the one class the certification actually caught (3 of 2,284).
 -- The runtime shape of "an answer asserting a fact the case never supplied" is an assumption
 -- recorded with nothing behind it. Not a text scorer: a structural test on the decision record.
-create or replace function public.fn_unsafe_check_unstated_assumption(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language sql stable security definer set search_path to 'public','pg_catalog' as $fn$
-  select 'agent_actions', a.id::text,
-         jsonb_build_object('agent', a.agent, 'kind', a.kind, 'title', a.title,
-                            'assumptions', a.assumptions,
-                            'why', 'assumption recorded with no evidence')
-    from public.agent_actions a
-   where jsonb_typeof(a.assumptions) = 'array'
-     and jsonb_array_length(a.assumptions) > 0
-     and public.fn_jsonb_is_empty(a.evidence)
-     and (p_since is null or a.created_at >= p_since)
-  union all
-  select 'decision_trace', d.id::text,
-         jsonb_build_object('agent_key', d.agent_key, 'task_class', d.task_class,
-                            'assumptions', d.assumptions,
-                            'why', 'assumption recorded with neither knowledge_refs nor evidence_refs')
-    from public.decision_trace d
-   where not public.fn_jsonb_is_empty(d.assumptions)
-     and public.fn_jsonb_is_empty(d.knowledge_refs)
-     and public.fn_jsonb_is_empty(d.evidence_refs)
-     and (p_since is null or d.created_at >= p_since);
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_unstated_assumption was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- 3.2 UNLOGGED PROVIDER BYPASS — a provider call that left no cost row.
 -- A bypass is by construction invisible in the log it bypassed, so this needs a SECOND, independent
@@ -142,172 +121,57 @@ $fn$;
 -- on the way OUT, ai_cost_log is written on the way BACK. If the credential was used and no cost row
 -- followed, the call happened off the ledger.
 -- 15-minute grace so a call still in flight is not reported as a bypass.
-create or replace function public.fn_unsafe_check_unlogged_provider(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language sql stable security definer set search_path to 'public','pg_catalog' as $fn$
-  select 'internal_credential', c.id::text,
-         jsonb_build_object('context', c.context, 'last_function', c.last_function,
-                            'last_used_at', c.last_used_at,
-                            'newest_ai_cost_log', (select max(occurred_at) from public.ai_cost_log),
-                            'why', 'credential used after the newest provider cost row: the call left no ledger entry')
-    from public.internal_credential c
-   where c.active
-     and c.last_function = 'ai_gateway'
-     and c.last_used_at is not null
-     and c.last_used_at > coalesce((select max(occurred_at) from public.ai_cost_log), '-infinity'::timestamptz)
-                          + interval '15 minutes';
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_unlogged_provider was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- 3.3 FAIL-OPEN AUTHORIZATION — the guard permitted because an input was ABSENT, not because it
 -- decided to permit. Two limbs: a standing-state scan and a live probe of the guard itself.
-create or replace function public.fn_unsafe_check_fail_open_authz(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language plpgsql stable security definer set search_path to 'public','pg_catalog' as $fn$
-declare v jsonb;
-begin
-  -- LIMB A: an executor that may run unattended, for a department+action_class pair that no
-  -- org_authority row covers. Nobody decided these may act; no row said they may not.
-  return query
-    select 'org_action_executor', e.action_class,
-           jsonb_build_object('department', e.department, 'kind', e.kind, 'risk_tier', e.risk_tier,
-                              'required_authority', e.required_authority,
-                              'notifies_human', e.notifies_human,
-                              'why', 'unattended_ok with no org_authority row for its department and action class')
-      from public.org_action_executor e
-     where e.active
-       and coalesce(e.unattended_ok, false)
-       and not exists (select 1 from public.org_authority a
-                        where a.dept_key = e.department and a.action_class = e.action_class);
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_fail_open_authz was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- LIMB B: probe the guard with inputs it has never seen. Absent configuration must produce
-  -- "gated", never "act freely". This limb fires only if the default itself has gone permissive —
-  -- which is the failure mode a state scan can never see.
-  v := public.fn_ops_authority_check('__probe_no_such_dept__', '__probe_no_such_action__', null, null);
-  if coalesce((v->>'may_act_autonomously')::boolean, false)
-     or not coalesce((v->>'requires_approval')::boolean, false) then
-    return query select 'fn_ops_authority_check', 'default',
-      jsonb_build_object('probe_result', v,
-        'why', 'the authority guard returned a permissive tier for a department and action class that do not exist');
-  end if;
-end $fn$;
 
 -- 3.4 DOUBLE CHARGE / REFUND — money leaving twice for one event.
-create or replace function public.fn_unsafe_check_double_refund(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language sql stable security definer set search_path to 'public','pg_catalog' as $fn$
-  -- more than one live refund against the same charge
-  select 'refunds', string_agg(r.id::text, ',' order by r.id),
-         jsonb_build_object('charge', k.charge, 'live_refunds', count(*),
-                            'total_fils', sum(r.amount_fils),
-                            'why', 'more than one refund in a live state against a single charge')
-    from public.refunds r
-    join lateral (select coalesce(r.stripe_charge_id, r.stripe_payment_intent,
-                                  r.original_txn_id::text, r.transaction_id::text) as charge) k on true
-   where coalesce(r.status,'') not in ('failed','rejected','cancelled','void','superseded')
-     and k.charge is not null
-   group by k.charge
-  having count(*) > 1
-  union all
-  -- the same provider refund id recorded twice
-  select 'refunds', string_agg(r.id::text, ',' order by r.id),
-         jsonb_build_object('stripe_refund_id', r.stripe_refund_id, 'rows', count(*),
-                            'why', 'one provider refund id recorded on more than one row')
-    from public.refunds r
-   where r.stripe_refund_id is not null
-   group by r.stripe_refund_id
-  having count(*) > 1
-  union all
-  -- refunded more than was charged
-  select 'transactions', t.id::text,
-         jsonb_build_object('reveal_fee', t.reveal_fee, 'refund_amount_aed', t.refund_amount_aed,
-                            'why', 'refunded amount exceeds the fee that was charged')
-    from public.transactions t
-   where t.reveal_fee is not null
-     and t.refund_amount_aed is not null
-     and t.refund_amount_aed > t.reveal_fee;
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_double_refund was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- 3.5 CREDENTIAL EXPOSURE — a live secret written into a field an agent authors or a human reads.
 -- The literal limb cannot false-positive: it matches the ACTUAL value held in app_secrets. Keys are
 -- filtered to credentials; admin_emails and compliance_ref are long values that are not secrets and
 -- legitimately appear in message bodies.
-create or replace function public.fn_unsafe_check_credential_exposure(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language sql stable security definer set search_path to 'public','pg_catalog' as $fn$
-  with secrets as (
-    select s.key, s.value
-      from public.app_secrets s
-     where s.value is not null
-       and length(s.value) >= 24
-       and (s.key ~ '^cred_' or s.key ~ '(secret|token|password|service_role)' or s.key ~ '_key$')
-       and s.key not in ('anon_key','publishable_key')
-  ),
-  corpus as (
-    select 'os_audit_log' src, id::text ref, coalesce(detail::text,'') txt from public.os_audit_log
-    union all select 'org_tasks', id::text, coalesce(detail,'')||' '||coalesce(result::text,'') from public.org_tasks
-    union all select 'agent_actions', id::text,
-           coalesce(detail::text,'')||' '||coalesce(evidence::text,'')||' '||coalesce(recommendation,'')
-      from public.agent_actions
-    union all select 'notifications', id::text, coalesce(subject,'')||' '||coalesce(body,'') from public.notifications
-    union all select 'agent_tool_call', id::text, coalesce(args::text,'') from public.agent_tool_call
-    union all select 'decision_trace', id::text,
-           coalesce(decision::text,'')||' '||coalesce(outcome::text,'')||' '||coalesce(assumptions::text,'')
-      from public.decision_trace
-  )
-  select c.src, c.ref,
-         jsonb_build_object('secret_key', s.key,
-                            'why', 'the live value of this credential appears verbatim in an agent-written field')
-    from corpus c join secrets s on position(s.value in c.txt) > 0
-  union all
-  select c.src, c.ref,
-         jsonb_build_object('why', 'a credential-shaped string appears in an agent-written field')
-    from corpus c
-   where c.txt ~ '(sk-[A-Za-z0-9]{20,}|sk_live_[A-Za-z0-9]{16,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.|-----BEGIN [A-Z ]*PRIVATE KEY-----)';
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_credential_exposure was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- 3.6 MATCHING INELIGIBLE SUPPLIERS.
 -- Eligibility here is the set of states that positively DISQUALIFY: banned, blocked from matching,
 -- permanently closed, expired licence. It deliberately does NOT require approval or verification:
 -- the marketplace matches unclaimed leads by design, and testing for approval would flag every
 -- legitimate match in the table instead of the wrong ones.
-create or replace function public.fn_unsafe_check_ineligible_match(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language sql stable security definer set search_path to 'public','pg_catalog' as $fn$
-  select 'inquiry_matches', m.id::text,
-         jsonb_build_object('inquiry_id', m.inquiry_id, 'supplier_id', m.supplier_id,
-                            'company', l.company_name, 'banned', l.banned,
-                            'matching_blocked', l.matching_blocked,
-                            'permanently_closed', l.permanently_closed,
-                            'license_expiry', l.license_expiry,
-                            'why', 'inquiry matched to a supplier that is disqualified from matching')
-    from public.inquiry_matches m
-    join public.leads l on l.id = m.supplier_id
-   where coalesce(l.banned, false)
-      or coalesce(l.matching_blocked, false)
-      or coalesce(l.permanently_closed, false)
-      or (l.license_expiry is not null and l.license_expiry < current_date);
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_ineligible_match was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- 3.7 SENDING TO UNINTENDED RECIPIENTS.
 -- A notification carrying a lead_id is addressed to that supplier. If the address is not that
 -- supplier's address, somebody else is about to read it. Rows on the delivery path count, not only
 -- rows already gone: catching it while queued is the whole point of a safeguard.
-create or replace function public.fn_unsafe_check_unintended_recipient(p_since timestamptz default null)
-returns table(subject_table text, subject_ref text, detail jsonb)
-language sql stable security definer set search_path to 'public','pg_catalog' as $fn$
-  select 'notifications', n.id::text,
-         jsonb_build_object('type', n.type, 'status', n.status,
-                            'addressed_to', n.to_email, 'lead_id', n.lead_id,
-                            'lead_address', l.email, 'company', l.company_name,
-                            'why', 'notification about this supplier is addressed to a different address')
-    from public.notifications n
-    join public.leads l on l.id = n.lead_id
-   where coalesce(n.status,'') not in ('cancelled','failed','blocked','suppressed')
-     and n.to_email is not null and btrim(n.to_email) <> ''
-     and l.email    is not null and btrim(l.email)    <> ''
-     and lower(btrim(n.to_email)) <> lower(btrim(l.email))
-     and (p_since is null or n.created_at >= p_since);
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_check_unintended_recipient was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- ---------------------------------------------------------------------------------------------
 -- 4. THE REGISTER
@@ -392,88 +256,22 @@ on conflict (class_key) do update set
 -- an unsafe class THROUGH them rather than beside them: the class names an action_class, the actor
 -- names a department, and the existing deterministic guard answers.
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_unsafe_escalation_route(p_class_key text, p_actor text default null)
-returns jsonb language plpgsql stable security definer
-set search_path to 'public','pg_catalog' as $fn$
-declare c record; v_dept text; v_auth jsonb; v_esc jsonb; v_auto text;
-begin
-  select * into c from public.unsafe_class where class_key = p_class_key;
-  if c.class_key is null then
-    return jsonb_build_object('error', 'unknown unsafe class: ' || coalesce(p_class_key,'(null)'));
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_escalation_route was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select a.department into v_dept from public.org_agents a where a.agent_key = p_actor and a.active;
-  v_dept := coalesce(v_dept, 'exec');
-
-  -- No action_class means no department delegation exists for this class: it is founder-level by
-  -- construction, and saying so is more honest than resolving a tier for a class nobody mapped.
-  if c.authority_action_class is not null then
-    v_auth := public.fn_ops_authority_check(v_dept, c.authority_action_class, null,
-                                            case when c.severity = 'critical' then 'critical' else null end);
-  end if;
-
-  -- SECOND, INDEPENDENT SIGNAL. fn_autonomy_class holds the hard rails written as a per-kind
-  -- disposition rather than a per-department tier: anything matching money, deletion or supplier
-  -- approval returns 'founder' regardless of what any department was delegated. It is consulted,
-  -- not replaced — where the two disagree the more restrictive one wins, which is why 'founder'
-  -- forces approval even if the department tier came back permissive.
-  v_auto := public.fn_autonomy_class(c.authority_action_class, null, null);
-
-  v_esc := public.fn_should_escalate(jsonb_build_object(
-             'actor', p_actor,
-             'kind', 'unsafe_block',
-             'category', c.class_key,
-             'text', c.title || '. ' || c.mechanism));
-
-  return jsonb_build_object(
-    'class_key', c.class_key,
-    'requires_human_authority', c.requires_human_authority,
-    'department', v_dept,
-    'action_class', c.authority_action_class,
-    'effective_tier', coalesce(v_auth->>'effective_tier', 'gated'),
-    'requires_approval', coalesce((v_auth->>'requires_approval')::boolean, true) or v_auto = 'founder',
-    'autonomy_class', v_auto,
-    'founder_only', v_auto = 'founder',
-    'authority_reason', coalesce(v_auth->>'reason', 'no action_class mapped for this class: treated as gated')
-                        || case when v_auto = 'founder'
-                                then '; fn_autonomy_class returns founder for this action class, which overrides any department tier'
-                                else '' end,
-    'route_to', v_esc->>'route_to',
-    'route_basis', v_esc->>'route_basis',
-    'hard_gate', v_auth->'hard_gate');
-end $fn$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 6. THE REFUSAL RECORDER
 -- Called by a safeguard at the moment it refuses. Writes the row, resolves the escalation path for
 -- classes that need human authority, and returns the verdict for the caller to act on.
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_unsafe_block(
-  p_class_key text, p_actor text, p_subject_table text, p_subject_ref text,
-  p_action text, p_detail jsonb default '{}'::jsonb, p_correlation_id uuid default null)
-returns jsonb language plpgsql security definer
-set search_path to 'public','pg_catalog' as $fn$
-declare c record; v_route jsonb; v_id bigint; v_disp text;
-begin
-  select * into c from public.unsafe_class where class_key = p_class_key;
-  if c.class_key is null then
-    raise exception 'fn_unsafe_block: unknown unsafe class %. Register it in unsafe_class first — an unnamed refusal is not auditable.', p_class_key
-      using errcode = 'foreign_key_violation';
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_block was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  v_route := public.fn_unsafe_escalation_route(p_class_key, p_actor);
-  v_disp  := case when c.requires_human_authority then 'escalated' else 'blocked' end;
-
-  insert into public.unsafe_block
-    (class_key, actor, subject_table, subject_ref, action_attempted, disposition,
-     escalation_route, detail, correlation_id)
-  values (p_class_key, p_actor, p_subject_table, p_subject_ref, p_action, v_disp,
-          v_route, coalesce(p_detail,'{}'::jsonb), p_correlation_id)
-  returning id into v_id;
-
-  return jsonb_build_object('allowed', false, 'block_id', v_id, 'class_key', p_class_key,
-                            'disposition', v_disp, 'escalation', v_route);
-end $fn$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 7. ONE REAL ENTRY POINT
@@ -530,59 +328,11 @@ create trigger a00_unsafe_match_eligibility
 -- dropped first: this file is re-runnable, and CREATE OR REPLACE cannot change an OUT-parameter
 -- row type. The explicit revoke/grant at the end of the file is what restores the ACL a drop loses.
 drop function if exists public.fn_unsafe_guard_status();
-create or replace function public.fn_unsafe_guard_status()
-returns table(
-  class_key text, title text, severity text, detector_status text,
-  has_detector boolean, windowed boolean,
-  fired_count_7d integer, fired_count_now integer, blocked_count_7d integer,
-  action_class text, effective_tier text, default_route_no_actor text,
-  coverage_note text, not_measurable_reason text, detector_error text)
-language plpgsql stable security definer set search_path to 'public','pg_catalog' as $fn$
-declare c record; v_now integer; v_7d integer; v_err text; v_has boolean; v_route jsonb;
-begin
-  -- aliased and qualified: the OUT parameters of this function share their names with the columns
-  -- of unsafe_class, and an unqualified ORDER BY resolves to the plpgsql variable instead.
-  for c in select uc.* from public.unsafe_class uc order by
-             case uc.detector_status when 'LIVE' then 0 else 1 end, uc.severity, uc.class_key
-  loop
-    v_now := null; v_7d := null; v_err := null;
-    v_has := c.detector_fn is not null and exists (
-               select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                where n.nspname = 'public' and p.proname = c.detector_fn);
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_guard_status was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-    if c.detector_fn is not null and not v_has then
-      v_err := 'registry names ' || c.detector_fn || ' but no such routine exists in public';
-    elsif v_has then
-      begin
-        execute format('select count(*)::int from public.%I($1)', c.detector_fn)
-           into v_now using null::timestamptz;
-        if c.windowed then
-          execute format('select count(*)::int from public.%I($1)', c.detector_fn)
-             into v_7d using (now() - interval '7 days');
-        end if;
-      exception when others then
-        v_err := 'detector raised: ' || sqlerrm; v_now := null; v_7d := null;
-      end;
-    end if;
-
-    class_key := c.class_key; title := c.title; severity := c.severity;
-    detector_status := c.detector_status; has_detector := v_has; windowed := c.windowed;
-    fired_count_7d := v_7d; fired_count_now := v_now;
-    blocked_count_7d := (select count(*)::int from public.unsafe_block b
-                          where b.class_key = c.class_key and b.at >= now() - interval '7 days');
-    -- Called with no actor, so this is the CONFIGURED default owner and is the same string for
-    -- every class by construction. The per-class routing lives in fn_unsafe_escalation_route with
-    -- the acting agent supplied — measured: actor 'ap_specialist' resolves to cfo by reporting_line,
-    -- not to this default. The column is named for what it is so nobody reads a constant as routing.
-    v_route := public.fn_unsafe_escalation_route(c.class_key);
-    action_class := c.authority_action_class;
-    effective_tier := v_route ->> 'effective_tier';
-    default_route_no_actor := v_route ->> 'route_to';
-    coverage_note := c.coverage_note; not_measurable_reason := c.not_measurable_reason;
-    detector_error := v_err;
-    return next;
-  end loop;
-end $fn$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 9. LIVENESS
@@ -592,159 +342,11 @@ end $fn$;
 -- what lets the proof come back out while the data does not stay in.
 -- Asserting a RISE rather than "> 0" keeps the proof honest where a class already has findings.
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_unsafe_liveness_probe()
-returns table(class_key text, fired_before integer, fired_after integer, can_fire boolean, control text, note text)
-language plpgsql security definer set search_path to 'public','pg_catalog' as $fn$
-declare b integer; a integer; e text; v_tx uuid;
-begin
-  ---------------------------------------------------------------- unstated_assumption
-  select count(*)::int into b from public.fn_unsafe_check_unstated_assumption(null);
-  a := null; e := null;
-  begin
-    insert into public.decision_trace (correlation_id, entity_type, entity_id, decision_type,
-                                       proposed_by, decision, assumptions, knowledge_refs,
-                                       evidence_refs, agent_key)
-    values (gen_random_uuid(),'probe','__liveness__','probe','__probe__',
-            '{"probe":true}'::jsonb, '["a fact the case never supplied"]'::jsonb,
-            '[]'::jsonb, '[]'::jsonb, '__probe__');
-    select count(*)::int into a from public.fn_unsafe_check_unstated_assumption(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='unstated_assumption'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='insert a decision_trace row carrying an assumption with empty knowledge_refs and evidence_refs';
-  note:=e; return next;
+-- ROUTINE REMOVED 7 September 2026. public.fn_unsafe_liveness_probe was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  ---------------------------------------------------------------- unlogged_provider_bypass
-  select count(*)::int into b from public.fn_unsafe_check_unlogged_provider(null);
-  a := null; e := null;
-  begin
-    update public.internal_credential
-       set last_used_at = now() + interval '1 hour'
-     where active and last_function = 'ai_gateway'
-       and id = (select min(id) from public.internal_credential where active and last_function='ai_gateway');
-    select count(*)::int into a from public.fn_unsafe_check_unlogged_provider(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='unlogged_provider_bypass'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='stamp an ai_gateway credential as used after the newest ai_cost_log row';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- fail_open_authorization
-  select count(*)::int into b from public.fn_unsafe_check_fail_open_authz(null);
-  a := null; e := null;
-  begin
-    delete from public.org_authority
-     where (dept_key, action_class) in (
-       select e2.department, e2.action_class from public.org_action_executor e2
-        where e2.active and coalesce(e2.unattended_ok,false));
-    select count(*)::int into a from public.fn_unsafe_check_fail_open_authz(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='fail_open_authorization'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='delete the org_authority rows covering unattended executors';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- double_charge_refund
-  select count(*)::int into b from public.fn_unsafe_check_double_refund(null);
-  a := null; e := null;
-  begin
-    insert into public.refunds (stripe_charge_id, amount_fils, currency, reason_code, status,
-                                requested_by, requested_at, within_auto_window)
-    values ('__probe_charge__', 5000, 'AED', 'other', 'requested', '__probe__', now(), false),
-           ('__probe_charge__', 5000, 'AED', 'other', 'requested', '__probe__', now(), false);
-    select count(*)::int into a from public.fn_unsafe_check_double_refund(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='double_charge_refund'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='insert two live refund rows against one charge id';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- credential_exposure
-  select count(*)::int into b from public.fn_unsafe_check_credential_exposure(null);
-  a := null; e := null;
-  begin
-    insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
-    select '__probe__','liveness','probe','__probe__',
-           jsonb_build_object('leaked', s.value), true
-      from public.app_secrets s
-     where s.key ~ '^cred_' and length(s.value) >= 24
-     order by s.key limit 1;
-    select count(*)::int into a from public.fn_unsafe_check_credential_exposure(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='credential_exposure'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='write the live value of a cred_* secret into an os_audit_log detail';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- ineligible_supplier_match
-  select count(*)::int into b from public.fn_unsafe_check_ineligible_match(null);
-  a := null; e := null;
-  begin
-    update public.leads set matching_blocked = true
-     where id in (select supplier_id from public.inquiry_matches);
-    select count(*)::int into a from public.fn_unsafe_check_ineligible_match(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='ineligible_supplier_match'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='mark every already-matched supplier as blocked from matching';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- unintended_recipient
-  select count(*)::int into b from public.fn_unsafe_check_unintended_recipient(null);
-  a := null; e := null;
-  begin
-    update public.notifications
-       set to_email = 'somebody-else@' || md5(random()::text) || '.invalid'
-     where id = (select n.id from public.notifications n join public.leads l on l.id = n.lead_id
-                  where coalesce(n.status,'') not in ('cancelled','failed','blocked','suppressed')
-                    and n.to_email is not null and l.email is not null
-                  order by n.id desc limit 1);
-    select count(*)::int into a from public.fn_unsafe_check_unintended_recipient(null);
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='unintended_recipient'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='readdress a live lead notification to a third-party address';
-  note:=e; return next;
-
-  ---------------------------------------------------------------- the refusal path itself
-  select count(*)::int into b from public.unsafe_block;
-  a := null; e := null; v_tx := null;
-  begin
-    insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
-    select gen_random_uuid(), l.id, 0.99, '__liveness_probe__'
-      from public.leads l where coalesce(l.banned,false) or coalesce(l.matching_blocked,false)
-      order by l.id limit 1;
-    select count(*)::int into a from public.unsafe_block;
-    raise exception using message = '__probe_rollback__';
-  exception when others then
-    if sqlerrm <> '__probe_rollback__' then e := sqlerrm; a := null; end if;
-  end;
-  class_key:='ineligible_supplier_match/trigger'; fired_before:=b; fired_after:=a;
-  can_fire := a is not null and a > b;
-  control:='insert a match to a banned or blocked supplier and check the refusal left an unsafe_block row';
-  note:=e; return next;
-end $fn$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 10. GRANTS. Every SECURITY DEFINER routine created here is EXECUTE-to-PUBLIC by default.

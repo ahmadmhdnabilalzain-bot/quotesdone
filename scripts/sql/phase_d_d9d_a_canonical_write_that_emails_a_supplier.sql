@@ -356,89 +356,17 @@ end $fn$;
 
 -- ---- 3. the board measures the exposure by execution, not by reading the map ---------------------
 
-create or replace function public.fn_phase_d_outbound_exposure()
-returns table(relation text, trigger_name text, writes_notifications boolean, reached_by_object text)
-language sql stable
-set search_path to 'public', 'pg_temp'
-as $fn$
-  -- Which write-map target relations carry a trigger whose function body inserts into the outbound
-  -- notification table. This reads the TRIGGER BODY, which is where the row actually comes from —
-  -- a check that read the write map would never see it, and that is how this stayed invisible.
-  select wm.target_relation,
-         t.tgname,
-         true,
-         wm.object_id
-    from public.phase_d_object_write_map wm
-    join pg_trigger t on t.tgrelid = wm.target_relation::regclass and not t.tgisinternal
-    join pg_proc  p on p.oid = t.tgfoid
-   where p.prosrc ~* 'insert\s+into\s+(public\.)?notifications'
-   order by 1, 2;
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_outbound_exposure was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-create or replace function public.fn_phase_d_fixture_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql stable
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select 'fixture_stages_declared', '>= 20',
-         (select count(*)::text from public.phase_d_fixture_stage),
-         (select count(*) from public.phase_d_fixture_stage) >= 20
-  union all
-  select 'stages_naming_an_unbound_object', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s
-           where not exists (select 1 from public.phase_d_business_object_binding b
-                              where b.object_id = s.object_id)),
-         not exists (select 1 from public.phase_d_fixture_stage s
-                      where not exists (select 1 from public.phase_d_business_object_binding b
-                                         where b.object_id = s.object_id))
-  union all
-  select 'stages_requiring_a_stage_that_does_not_exist', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-           where not exists (select 1 from public.phase_d_fixture_stage p where p.stage_key = r)),
-         not exists (select 1 from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-                      where not exists (select 1 from public.phase_d_fixture_stage p
-                                         where p.stage_key = r))
-  union all
-  select 'stages_depending_on_a_later_stage', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-            join public.phase_d_fixture_stage p on p.stage_key = r
-           where p.stage_no >= s.stage_no),
-         not exists (select 1 from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-                       join public.phase_d_fixture_stage p on p.stage_key = r
-                      where p.stage_no >= s.stage_no)
-  union all
-  select 'supplier_account_can_write_verified', 'true',
-         (select (column_map ? 'verified')::text from public.phase_d_object_write_map
-           where object_id = 'supplier_account'),
-         (select column_map ? 'verified' from public.phase_d_object_write_map
-           where object_id = 'supplier_account')
-  union all
-  select 'inquiry_can_write_rfq_ready', 'true',
-         (select (column_map ? 'rfq_ready')::text from public.phase_d_object_write_map
-           where object_id = 'inquiry'),
-         (select column_map ? 'rfq_ready' from public.phase_d_object_write_map
-           where object_id = 'inquiry')
-  union all
-  select 'fixture_rows_surviving_in_business_tables', '0',
-         (select coalesce(sum(surviving_rows),0)::text from public.fn_phase_d_fixture_residue()),
-         coalesce((select sum(surviving_rows) from public.fn_phase_d_fixture_residue()), 0) = 0
-  union all
-  select 'fixture_stage_targeting_public_notifications', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s
-            join public.phase_d_business_object_binding b on b.object_id = s.object_id
-           where b.canonical_relation = 'public.notifications'),
-         not exists (select 1 from public.phase_d_fixture_stage s
-                       join public.phase_d_business_object_binding b on b.object_id = s.object_id
-                      where b.canonical_relation = 'public.notifications')
-  union all
-  -- DISCLOSED, NOT SILENCED. This is expected to be 1 — public.inquiry_matches carries
-  -- notify_matched_supplier — and the number is here so the exposure is countable rather than
-  -- described. It is not ratcheted to 0 because closing it means changing live product behaviour,
-  -- which is not Phase D's job. The scenario factory's per-stage assertion is the containment.
-  select 'canonical_object_relations_whose_trigger_writes_notifications', '1 (disclosed)',
-         (select count(*)::text from public.fn_phase_d_outbound_exposure()),
-         (select count(*) from public.fn_phase_d_outbound_exposure()) <= 1;
-$fn$;
+
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_fixture_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_phase_d_outbound_exposure() from public;
 grant execute on function public.fn_phase_d_outbound_exposure() to service_role;

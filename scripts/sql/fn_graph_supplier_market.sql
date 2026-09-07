@@ -36,43 +36,11 @@
 --
 -- Derived, never invented: every edge carries the number of companies it was computed from, and a
 -- pair below the floor is not emitted at all rather than shown as a weak line.
-create or replace function public.fn_graph_supplier_market()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare n_edges int := 0; n_props int := 0;
-begin
-  -- Recomputed wholesale, like fn_graph_rebuild does. Only the edges this function owns are
-  -- removed, so it can run independently of the nightly rebuild without eating its work.
-  delete from graph_edges where rel = 'adjacent_to' and src_kind = 'category';
+-- ROUTINE REMOVED 7 September 2026. public.fn_graph_supplier_market was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- b.slug > a.slug emits each unordered pair once. Without it every pair appears twice, which
-  -- would double every count a reader aggregates and make the graph look denser than it is.
-  insert into graph_edges (src_kind, src_ref, rel, dst_kind, dst_ref, props)
-  select 'category', a.slug, 'adjacent_to', 'category', b.slug,
-         jsonb_build_object('companies', count(distinct a.lead_id))
-  from lead_category a
-  join lead_category b on b.lead_id = a.lead_id and b.slug > a.slug
-  group by a.slug, b.slug
-  -- THE FLOOR IS THE HONESTY. Two companies serving both categories is a coincidence, not an
-  -- adjacency, and drawing it would fill the graph with lines that mean nothing.
-  having count(distinct a.lead_id) >= 5
-  on conflict do nothing;
-  get diagnostics n_edges = row_count;
-
-  -- How many companies sit in each category, on the node itself, so a reader never has to guess
-  -- whether a big-looking category is big.
-  update graph_nodes n
-     set props = coalesce(n.props, '{}'::jsonb) || jsonb_build_object('companies', c.n),
-         updated_at = now()
-  from (select slug, count(distinct lead_id) n from lead_category group by 1) c
-  where n.kind = 'category' and n.ref_id = c.slug;
-  get diagnostics n_props = row_count;
-
-  return jsonb_build_object('adjacency_edges', n_edges, 'categories_counted', n_props);
-end $function$;
 
 comment on function public.fn_graph_supplier_market() is
   'Row #5 §23. Adds category<->category adjacency edges to the knowledge graph, computed from '

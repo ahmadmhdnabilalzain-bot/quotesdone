@@ -73,10 +73,11 @@ comment on table public.phase_d_handler_schema is
   'silently tolerated. Checked by public.fn_phase_d_handler_state().';
 
 -- The slug rule, written once and used for every derivation so the mapping is reproducible.
-create or replace function public.fn_phase_d_slug(p_text text)
-returns text language sql immutable as $$
-  select nullif(btrim(regexp_replace(lower(coalesce(p_text,'')), '[^a-z0-9]+', '_', 'g'), '_'), '')
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_slug was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 comment on function public.fn_phase_d_slug(text) is
   'The one slug rule used by every Phase D derivation: lowercase, non-alphanumeric runs to a single '

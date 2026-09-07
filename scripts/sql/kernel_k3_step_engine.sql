@@ -121,34 +121,17 @@ grant select, insert, update on table public.phase_c_step_completion to service_
 -- guard existed keeps saying what it said; advancing it now would be writing evidence for a
 -- transition nobody recorded. Those rows stay in the numerator and are reported as pre-existing.
 -- --------------------------------------------------------------------------------------------
-create or replace function public.fn_kernel_workflow_run_trace_guard()
-returns trigger language plpgsql security definer set search_path to 'public','pg_temp' as $fn$
-begin
-  if new.state is distinct from old.state and new.trace_id is not null then
-    perform public.fn_phase_c_trace_advance(
-      new.trace_id, new.state,
-      -- the terminal vocabulary fn_kernel_trace_integrity itself uses for a workflow_run
-      new.state in ('completed','cancelled','failed','superseded','expired','rejected'),
-      jsonb_build_object('evidence_refs', jsonb_build_array(
-        jsonb_build_object('transition', old.state || ' -> ' || new.state, 'at', now()))));
-  end if;
-  return new;
-end $fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_workflow_run_trace_guard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-create or replace function public.fn_kernel_handoff_run_trace_guard()
-returns trigger language plpgsql security definer set search_path to 'public','pg_temp' as $fn$
-begin
-  if new.status is distinct from old.status and new.trace_id is not null then
-    perform public.fn_phase_c_trace_advance(
-      new.trace_id, new.status,
-      new.status in ('accepted','rejected','cancelled','superseded'),
-      jsonb_build_object('evidence_refs', jsonb_build_array(
-        jsonb_build_object('transition', old.status || ' -> ' || new.status, 'at', now(),
-                           'rejection_reason', nullif(new.rejection_reason,''),
-                           'missing_items', nullif(new.missing_items,'')))));
-  end if;
-  return new;
-end $fn$;
+
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_handoff_run_trace_guard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- The same asymmetry, one table over. fn_phase_c_step_run_trace_guard seals and supersedes the
 -- trace a step run is being repointed AWAY from; fn_phase_c_task_trace_guard never did. Every
@@ -156,44 +139,11 @@ end $fn$;
 -- trace z90_phase_c_task_trace_subject minted for it OPEN and pointed at by nothing: measured at
 -- exactly 7 per 7-task run in the K3 rehearsal, 0 of which carried superseded_by. No check counts
 -- them, which is why they accumulated unnoticed. CREATE OR REPLACE preserves the ACL, so no revoke.
-create or replace function public.fn_phase_c_task_trace_guard()
-returns trigger language plpgsql security definer set search_path to 'public','pg_temp' as $fn$
-begin
-  -- A task may not become active or terminal with no trace. Absence is refused, not defaulted:
-  -- inventing one here would certify work that was never traced.
-  if new.state in ('assigned','accepted','in_progress','review_required','revision_required',
-                   'completed','failed','cancelled','superseded','blocked')
-     and new.trace_id is null then
-    raise exception 'phase_c_task %: state % requires a trace and trace_id is null',
-      new.task_id, new.state using errcode = '23514';
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_task_trace_guard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- The trace being left behind is sealed where it stands and superseded by the new one. Both
-  -- statements are what fn_phase_c_trace_append_only permits: the first only runs while the row is
-  -- still unsealed, the second changes superseded_by alone.
-  if new.trace_id is distinct from old.trace_id and old.trace_id is not null then
-    update public.phase_c_trace
-       set status = 'sealed', sealed_at = now(),
-           evidence_refs = coalesce(evidence_refs,'[]'::jsonb) || jsonb_build_array(jsonb_build_object(
-             'superseded_reason','task ' || new.task_id || ' was repointed to trace '
-               || new.trace_id || ', which carries the transition and its evidence.',
-             'at', now()))
-     where trace_id = old.trace_id and sealed_at is null;
-    update public.phase_c_trace
-       set superseded_by = new.trace_id
-     where trace_id = old.trace_id and superseded_by is null;
-  end if;
-
-  if new.state is distinct from old.state and new.trace_id is not null
-     and new.trace_id is not distinct from old.trace_id then
-    perform public.fn_phase_c_trace_advance(
-      new.trace_id, new.state,
-      new.state in ('completed','failed','cancelled','superseded'),
-      jsonb_build_object('evidence_refs', jsonb_build_array(
-        jsonb_build_object('transition', old.state || ' -> ' || new.state, 'at', now()))));
-  end if;
-  return new;
-end $fn$;
 
 -- a00_ so they run before the z-guards, which is the convention BEFORE triggers here follow:
 -- Postgres fires BEFORE triggers in NAME order.

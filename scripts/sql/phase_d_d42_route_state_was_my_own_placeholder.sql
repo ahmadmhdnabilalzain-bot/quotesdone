@@ -334,63 +334,11 @@ begin
 end
 $c$;
 
-create or replace function public.fn_phase_d_application_connection_measure()
-returns table(application_connection text, steps int)
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $fn$
-begin
-  with per_wf as (
-    select b.workflow_id,
-           bool_or(c.source_component_id like 'dbtrigger:%') filter (
-             where c.current_activation = 'ACTIVE'
-               and c.source_class in ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')) as has_trigger,
-           bool_or(c.source_component_id like 'edge:%') filter (
-             where c.current_activation = 'ACTIVE'
-               and c.source_class in ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')) as has_edge,
-           string_agg(distinct c.source_component_id, ', ') filter (
-             where c.current_activation = 'ACTIVE'
-               and c.source_class in ('A NEW_WORK_REQUEST','B EXISTING_WORKFLOW_SIGNAL')) as sources
-      from public.phase_d_handler_binding b
-      left join public.phase_c_source_cutover c
-             on split_part(c.target_workflow, ' ', 1) = b.workflow_id
-     group by b.workflow_id
-  ), per_wf2 as (
-    select p.*,
-           exists (select 1 from public.founder_command_workflow_link l
-                    where l.workflow_id = p.workflow_id) as has_founder_command
-      from per_wf p
-  )
-  update public.phase_d_handler_binding b
-     set application_connection =
-           case
-             when (coalesce(w.has_edge,false) or w.has_founder_command) and coalesce(w.has_trigger,false)
-               then 'FULL_APPLICATION_PATH_CONNECTED'
-             when coalesce(w.has_trigger,false) then 'AUTONOMOUS_SOURCE_CONNECTED_HELD'
-             when coalesce(w.has_edge,false) or w.has_founder_command then 'API_CONNECTED'
-             else 'KERNEL_INTERNAL_ONLY'
-           end,
-         application_connection_evidence =
-           case
-             when coalesce(w.sources,'') <> '' or w.has_founder_command
-               then format('phase_c_source_cutover ACTIVE class A/B: [%s]%s',
-                           coalesce(w.sources,'(none)'),
-                           case when w.has_founder_command
-                                then '; founder_command_workflow_link has a row for this workflow'
-                                else '' end)
-             else 'no ACTIVE class A or B source targets this workflow, and no founder command has ever started it'
-           end,
-         application_connection_measured_at = now()
-    from per_wf2 w
-   where w.workflow_id = b.workflow_id;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_application_connection_measure was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  return query
-    select b.application_connection, count(*)::int
-      from public.phase_d_handler_binding b
-     group by 1 order by 2 desc;
-end
-$fn$;
 
 revoke execute on function public.fn_phase_d_application_connection_measure() from public, anon, authenticated;
 grant  execute on function public.fn_phase_d_application_connection_measure() to service_role;
@@ -403,26 +351,11 @@ comment on column public.phase_d_handler_binding.application_connection is
 
 -- ---- A6. actual_caller --------------------------------------------------------------------------
 
-create or replace function public.fn_phase_d_actual_caller_measure()
-returns table(actual_caller text, steps int)
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $fn$
-begin
-  update public.phase_d_step_effect e
-     set actual_caller = coalesce(
-           (select format('%s via %s -> %s, last %s',
-                     d.opened_by_kind, d.opened_by_ref, d.outcome,
-                     to_char(d.dispatched_at,'YYYY-MM-DD HH24:MI'))
-              from public.phase_d_dispatch d
-             where d.step_id = e.step_id
-             order by d.dispatch_id desc limit 1),
-           'NOT_YET_REACHED - no path has opened this step');
-  return query
-    select e.actual_caller, count(*)::int from public.phase_d_step_effect e group by 1 order by 2 desc;
-end
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_actual_caller_measure was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_phase_d_actual_caller_measure() from public, anon, authenticated;
 grant  execute on function public.fn_phase_d_actual_caller_measure() to service_role;

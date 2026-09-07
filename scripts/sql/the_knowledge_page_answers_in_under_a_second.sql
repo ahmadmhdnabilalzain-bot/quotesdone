@@ -23,25 +23,11 @@ create table if not exists public.kb_category_stats (
 alter table public.kb_category_stats enable row level security;
 revoke all on public.kb_category_stats from public, anon, authenticated;
 
-create or replace function public.fn_kb_category_stats_refresh()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_n int; v_t0 timestamptz := clock_timestamp();
-begin
-  create temp table kb_stats_next on commit drop as
-    select coalesce(category, '') as category, coalesce(source_kind, '') as source_kind, count(*)::bigint as chunks
-      from public.kb_chunks group by 1, 2;
-  delete from public.kb_category_stats s
-   where not exists (select 1 from kb_stats_next n where n.category = s.category and n.source_kind = s.source_kind);
-  insert into public.kb_category_stats (category, source_kind, chunks, refreshed_at)
-  select category, source_kind, chunks, now() from kb_stats_next
-  on conflict (category, source_kind) do update set chunks = excluded.chunks, refreshed_at = excluded.refreshed_at;
-  select count(*) into v_n from public.kb_category_stats;
-  return jsonb_build_object('ok', true, 'rows', v_n, 'ms', (extract(epoch from clock_timestamp() - v_t0) * 1000)::int);
-end $fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kb_category_stats_refresh was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_kb_category_stats_refresh() from public, anon, authenticated;
 
 select public.fn_kb_category_stats_refresh();

@@ -218,24 +218,19 @@ $rc4c$;
 
 revoke execute on function public.fn_kernel_system_execution_close(bigint, jsonb) from public, anon, authenticated;
 
-create or replace function public.fn_kernel_system_execution_finish(p_trace bigint, p_input jsonb)
-returns bigint language sql security definer set search_path to 'public','pg_temp'
-as $rc4f$
-  select public.fn_kernel_system_execution_close(p_trace,
-    p_input || jsonb_build_object('result', coalesce(nullif(p_input->>'result',''), 'succeeded')));
-$rc4f$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_system_execution_finish was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_kernel_system_execution_finish(bigint, jsonb) from public, anon, authenticated;
 
-create or replace function public.fn_kernel_system_execution_fail(p_trace bigint, p_input jsonb)
-returns bigint language sql security definer set search_path to 'public','pg_temp'
-as $rc4x$
-  select public.fn_kernel_system_execution_close(p_trace, p_input || jsonb_build_object(
-    'result', 'failed',
-    'failure', coalesce(nullif(btrim(p_input->>'failure'),''),
-                        coalesce(p_input->>'sqlstate','') || ' ' || coalesce(p_input->>'message','(no message)')),
-    'retry_eligible', coalesce(p_input->>'retry_eligible','false')::boolean));
-$rc4x$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_system_execution_fail was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_kernel_system_execution_fail(bigint, jsonb) from public, anon, authenticated;
 

@@ -23,79 +23,11 @@
 -- 8-second PostgREST wall. Executing up to 8 arbitrary measure_sql statements per prompt is exactly
 -- the 7,302 ms defect that was fixed this month.
 
-create or replace function public.fn_employee_scorecard(p_agent_key text,
-                                                        p_max_chars integer default 1400)
-returns text
-language plpgsql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  v_cap  int := greatest(coalesce(p_max_chars, 1400), 300);
-  v_out  text := '';
-  v_line text;
-begin
-  if coalesce(btrim(p_agent_key),'') = '' then return null; end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_employee_scorecard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- YOUR NUMBER. attainment mirrors fn_kpi_scoreboard exactly, including the percent_max
-  -- inversion; it is NOT recomputed with a different rule, because two rules that must agree is
-  -- how sec() and J() ended up with 8 and 11 variants of the same helper.
-  -- An unmeasured KPI says so in words. It must never read as a zero.
-  select string_agg(
-           '- '||z.kpi||': target '||coalesce(z.target_value::text,'?')||' '||coalesce(z.unit,'')
-           ||case
-               when z.actual_value is null then ' — NOT MEASURED YET (no number exists; do not assume one)'
-               else ' — you are at '||z.actual_value::text
-                    ||case when z.target_value is null or z.target_value = 0 then ''
-                           when z.unit = 'percent_max'
-                             then ', '||round(least(100.0, 100.0 * z.target_value / nullif(z.actual_value,0)),0)::text||'% of target'
-                           else ', '||round(100.0 * z.actual_value / z.target_value,0)::text||'% of target' end
-                    ||case
-                        when z.target_value is null or z.target_value = 0 then ''
-                        when z.unit = 'percent_max' then
-                          case when z.actual_value <= z.target_value then ' (MET)' else ' (MISSED)' end
-                        else
-                          case when z.actual_value >= z.target_value then ' (MET)'
-                               when z.actual_value >= 0.9 * z.target_value then ' (NEAR)'
-                               else ' (MISSED)' end end
-             end
-           ||case when z.serves_goal is not null then ' — serves company goal '||z.serves_goal else '' end,
-           E'\n' order by z.kpi)
-    into v_line
-    from (select k.kpi, k.target_value, k.unit, k.actual_value, k.serves_goal
-            from employee_kpi k
-           where k.agent_key = p_agent_key and k.active
-           order by k.kpi limit 8) z;
-
-  if v_line is not null then
-    v_out := v_out || E'\n# YOUR NUMBER RIGHT NOW — measured, not asserted\n' || v_line || E'\n';
-  end if;
-
-  -- YOUR DEPARTMENT'S OBJECTIVE and the company goal it serves. This is the chain the founder
-  -- described, delivered to the one employee that has to act on it.
-  select string_agg(
-           '- '||d.objective
-           ||case when d.target_value is not null then ' (target '||d.target_value::text||' '||coalesce(d.unit,'')||')' else '' end
-           ||case when d.actual_value is not null then ', department is at '||d.actual_value::text
-                  when d.measure_sql is not null then ', not yet measured'
-                  else '' end
-           ||case when g.key is not null then E'\n    serves company goal '||g.key||' — "'||g.goal||'"' else '' end,
-           E'\n' order by d.sort, d.id)
-    into v_line
-    from department_objective d
-    join org_agents a on a.agent_key = p_agent_key and a.department = d.dept_key
-    left join company_goals g on g.key = d.goal_key and g.active
-   where d.active
-   limit 6;
-
-  if v_line is not null then
-    v_out := v_out || E'\n# WHAT YOUR DEPARTMENT IS FOR\n' || v_line || E'\n';
-  end if;
-
-  if v_out = '' then return null; end if;
-  return left(v_out, v_cap);
-end $function$;
 
 revoke all on function public.fn_employee_scorecard(text, integer) from public;
 
