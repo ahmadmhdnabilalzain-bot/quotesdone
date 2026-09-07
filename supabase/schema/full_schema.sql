@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T13:21:06.717Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T13:42:27.191Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4635,8 +4635,8 @@ CREATE TABLE IF NOT EXISTS public.org_agent_alias (
 
 CREATE TABLE IF NOT EXISTS public.org_agents (
   agent_key text NOT NULL,
-  department text NOT NULL,
-  role text NOT NULL,
+  department text,
+  role text,
   kind text DEFAULT 'brain'::text NOT NULL,
   active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
@@ -4771,7 +4771,7 @@ CREATE TABLE IF NOT EXISTS public.org_reset_backup_20260724 (
 CREATE TABLE IF NOT EXISTS public.org_role (
   role_id text NOT NULL,
   display_name text NOT NULL,
-  primary_department_id text NOT NULL,
+  primary_department_id text,
   manager_role_id text,
   runtime_mode text NOT NULL,
   runtime_agent_key text,
@@ -10159,7 +10159,6 @@ ALTER TABLE public.phase_c_step_binding ADD CONSTRAINT phase_c_step_binding_trac
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_run_id_fkey FOREIGN KEY (run_id) REFERENCES phase_c_workflow_run(run_id);
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_step_id_fkey FOREIGN KEY (step_id) REFERENCES phase_b_workflow_step(step_id);
 ALTER TABLE public.phase_c_step_completion ADD CONSTRAINT phase_c_step_completion_step_run_id_fkey FOREIGN KEY (step_run_id) REFERENCES phase_c_workflow_step_run(step_run_id);
-ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_component_id_fkey FOREIGN KEY (component_id) REFERENCES phase_c_component(component_id);
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_system_actor_fkey FOREIGN KEY (system_actor) REFERENCES phase_c_system_actor(system_actor_id);
 ALTER TABLE public.phase_c_system_execution ADD CONSTRAINT phase_c_system_execution_trace_id_fkey FOREIGN KEY (trace_id) REFERENCES phase_c_trace(trace_id) ON DELETE CASCADE;
@@ -29218,7 +29217,17 @@ declare
   rec record; v_go boolean; v_status text; v_n_actions int := 0; v_n_requests int := 0; v_n_held int := 0;
   v_blocks json; v_site text; v_reply text;
 begin
-  v_go := coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true';
+  -- A RENEWAL REMINDER IS NOT AN INVITATION. v_go used to read app_secrets.invite_enabled, the
+  -- cold-outreach campaign switch, so a supplier already on the books could not be told their own
+  -- trade licence was about to lapse until a marketing campaign was running. Two unrelated things
+  -- were sharing one switch: asking a stranger to join, and telling a member their document
+  -- expires. The second is service mail to someone who gave us the document in the first place,
+  -- it goes to an address already on their record, and withholding it is worse for them than
+  -- sending it -- matching is suspended automatically on the day the licence lapses either way.
+  --
+  -- Founder ruling 7 Sep 2026: every gate that is not OpenRouter comes off. This one comes off by
+  -- being deleted rather than defaulted, so nothing can quietly close it again.
+  v_go := true;
   select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
   select coalesce(nullif(btrim(value), ''), 'docs@mail.quotesdone.com') into v_reply from app_secrets where key = 'email_reply_supplier_docs';
 

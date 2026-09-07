@@ -1775,3 +1775,4 @@ scripts/sql/the_last_phase_b_guards_come_off_because_the_founder_removed_every_l
 
 [OK] Command outcome recorded
 scripts/sql/the_word_the_caller_uses_and_the_word_the_column_allows.sql
+scripts/sql/a_renewal_reminder_is_not_an_invitation.sql

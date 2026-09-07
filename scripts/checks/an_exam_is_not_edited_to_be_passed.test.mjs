@@ -33,7 +33,33 @@
 //
 //   node scripts/checks/an_exam_is_not_edited_to_be_passed.test.mjs
 
-import { sql } from 'file:///C:/Users/Opera/quotesdone/scripts/phase_c/lib/db.mjs';
+// A REPO-RELATIVE IMPORT. This was an absolute file:///C:/Users/... URL, which resolves on one
+// laptop and on no CI runner anywhere.
+import { sql } from '../phase_c/lib/db.mjs';
+
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+// A MISSING CREDENTIAL IS NOT A FAILING EXAM. This check reads production, and the job that runs
+// npm test has no management token. Without this guard it threw "No Supabase access token" and
+// reported six red tests that had asserted nothing at all -- which is the same defect in reverse as
+// a check that passes while the thing it checks is broken. It SKIPS where it cannot measure, and it
+// is named in the kernel-gate job, which has the token, so it still runs for real every push.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+
+// This file is a SCRIPT, not a node:test suite -- it drives two legs and exits. So the skip has to
+// be an exit, taken before the first read, and it has to be exit 0: a check that could not measure
+// is not a check that failed.
+if (!hasToken) {
+  console.log('SKIPPED: no SUPABASE_ACCESS_TOKEN and no local access token, so production cannot be');
+  console.log('read. This gate proves an exam answer cannot be edited into a pass; it asserts nothing');
+  console.log('here. It is named in the kernel-gate job, which holds the token, and runs there.');
+  process.exit(0);
+}
 
 // the marks the issuing bodies publish, from the author's brief of 6 Sep 2026
 const MARKS = [

@@ -33,7 +33,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sql } from '../phase_c/lib/db.mjs';
 
-test('every active employee holds at least one certification', async () => {
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+// A MISSING CREDENTIAL IS NOT A FAILING EXAM. This check reads production, and the job that runs
+// npm test has no management token. Without this guard it threw "No Supabase access token" and
+// reported six red tests that had asserted nothing at all -- which is the same defect in reverse as
+// a check that passes while the thing it checks is broken. It SKIPS where it cannot measure, and it
+// is named in the kernel-gate job, which has the token, so it still runs for real every push.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+
+test('every active employee holds at least one certification', { skip: SKIP }, async () => {
   const missing = await sql(`
     select a.agent_key, a.department from public.org_agents a
      where a.active and not exists (select 1 from public.role_certification rc where rc.agent_key = a.agent_key)
@@ -45,7 +59,7 @@ test('every active employee holds at least one certification', async () => {
   console.log(`  role_certification: ${n.rows} rows, ${n.agents} employees, ${n.certs} certifications`);
 });
 
-test('every certification named in role_certification has a bank of >= 40 questions', async () => {
+test('every certification named in role_certification has a bank of >= 40 questions', { skip: SKIP }, async () => {
   const short = await sql(`
     select rc.certification,
            (select count(*)::int from public.certification_exam_question q
@@ -59,7 +73,7 @@ test('every certification named in role_certification has a bank of >= 40 questi
     short.map(s => `    ${s.questions.toString().padStart(3)}  ${s.certification}`).join('\n'));
 });
 
-test('every question has one key and four distinct non-empty options', async () => {
+test('every question has one key and four distinct non-empty options', { skip: SKIP }, async () => {
   const bad = await sql(`
     select id, certification, 'bad key or option' as why
       from public.certification_exam_question
@@ -72,7 +86,7 @@ test('every question has one key and four distinct non-empty options', async () 
   assert.equal(bad.length, 0, `malformed questions: ${JSON.stringify(bad)}`);
 });
 
-test('the sitter is deterministic: two sittings inside an aborted transaction agree', async () => {
+test('the sitter is deterministic: two sittings inside an aborted transaction agree', { skip: SKIP }, async () => {
   const [pair] = await sql(`
     select rc.agent_key, rc.certification from public.role_certification rc
      where (select count(*) from public.certification_exam_question q
@@ -100,7 +114,7 @@ test('the sitter is deterministic: two sittings inside an aborted transaction ag
   console.log('  ' + (message.match(/DETERMINISM [^\\]*/) || [''])[0].trim());
 });
 
-test('REPORT ONLY: the pass/fail table the founder asked for', async () => {
+test('REPORT ONLY: the pass/fail table the founder asked for', { skip: SKIP }, async () => {
   const rows = await sql(`
     select agent_key, department, assigned, sat, passed, failed,
            coalesce(array_to_string(worst_areas, ' | '), '') as worst
