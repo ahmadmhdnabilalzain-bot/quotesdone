@@ -77,9 +77,32 @@ if (has('changed')) {
     }
     console.log(`_shared changed — widened to ${touched.size} importer(s)`);
   }
+  // A DELETED FUNCTION IS A CHANGED FUNCTION, and it cannot be deployed.
+  //
+  // `git diff --name-only` lists removals exactly like edits, so deleting 68 functions on 8 Sep
+  // 2026 produced 68 slugs whose directory no longer exists, and the typecheck step failed with 68
+  // "Cannot find module" errors before a single live function was touched. The deploy was not
+  // broken by the deletion; it was broken by assuming every path in a diff still has a file behind
+  // it.
+  //
+  // They are reported rather than quietly dropped. A deletion that vanishes from the deploy log
+  // reads identically to one that never happened, and the undeploy is a separate action somebody
+  // still has to take -- this line is where they find out it is owed.
+  const gone = [...touched].filter((s) => !existsSync(`supabase/functions/${s}/index.ts`));
+  if (gone.length) {
+    console.log(`${gone.length} function(s) were DELETED in this range and cannot be deployed: ${gone.join(' ')}`);
+    console.log('  Removing them from production is a separate step; this run only skips them.');
+    for (const s of gone) touched.delete(s);
+  }
   slugs = [...touched].sort();
 }
 slugs = slugs.filter((s) => s !== '_shared');
+// The same guard for an explicitly named slug: a typo or a stale runbook should say which name is
+// wrong, not fail later inside a typechecker with a file:// URL.
+{
+  const missing = slugs.filter((s) => !existsSync(`supabase/functions/${s}/index.ts`));
+  if (missing.length) die(`no such function(s) in this checkout: ${missing.join(' ')}`);
+}
 if (!slugs.length) { console.log('No functions to deploy. Nothing to do.'); process.exit(0); }
 
 console.log(`target project: ${ref}${ref === PROD_REF ? '  (PRODUCTION)' : ''}`);
