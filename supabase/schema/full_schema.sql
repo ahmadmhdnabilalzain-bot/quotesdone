@@ -188,7 +188,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (641) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (642) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -8468,6 +8468,18 @@ CREATE TABLE IF NOT EXISTS public.wa_reply_intent (
   requires_number boolean DEFAULT false NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.wa_template_registry (
+  template_name text NOT NULL,
+  language text NOT NULL,
+  category text NOT NULL,
+  status text NOT NULL,
+  purpose text NOT NULL,
+  approved_on date,
+  rejection_cause text,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL,
+  source text DEFAULT 'Twilio Content API'::text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.wa_turn (
   id bigint DEFAULT nextval('wa_turn_id_seq'::regclass) NOT NULL,
   conversation_id bigint NOT NULL,
@@ -9204,6 +9216,7 @@ ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_pkey PRI
 ALTER TABLE public.wa_inbound_seen ADD CONSTRAINT wa_inbound_seen_pkey PRIMARY KEY (message_sid);
 ALTER TABLE public.wa_messages ADD CONSTRAINT wa_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_pkey PRIMARY KEY (intent_key);
+ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_pkey PRIMARY KEY (template_name);
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_pkey PRIMARY KEY (id);
 ALTER TABLE public.workflow ADD CONSTRAINT workflow_pkey PRIMARY KEY (workflow_key);
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_pkey PRIMARY KEY (id);
@@ -9840,6 +9853,7 @@ ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_classifi
 ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_classified_by_check CHECK ((classified_by = ANY (ARRAY['caption'::text, 'filename'::text, 'model'::text, 'human'::text])));
 ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_confidence_check CHECK ((confidence = ANY (ARRAY['high'::text, 'low'::text])));
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_scope_check CHECK ((scope = ANY (ARRAY['company'::text, 'own_records'::text, 'by_id'::text])));
+ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_status_check CHECK ((status = ANY (ARRAY['approved'::text, 'pending'::text, 'rejected'::text, 'unsubmitted'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_answered_by_check CHECK ((answered_by = ANY (ARRAY['deterministic'::text, 'model'::text, 'human'::text, 'template'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_transcript_source_check CHECK ((transcript_source = ANY (ARRAY['twilio'::text, 'model'::text, 'none'::text])));
@@ -94849,6 +94863,7 @@ ALTER TABLE public.wa_document_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_inbound_seen ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_reply_intent ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wa_template_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_turn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow_run ENABLE ROW LEVEL SECURITY;
