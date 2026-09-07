@@ -121,6 +121,7 @@ CREATE SEQUENCE IF NOT EXISTS public.kernel_signal_inbox_signal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.kernel_trigger_inbox_inbox_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.knowledge_exam_results_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.licence_renewal_ask_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.llm_calls_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.marketing_library_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_brands_id_seq;
@@ -187,7 +188,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (640) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (641) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -4009,6 +4010,21 @@ CREATE TABLE IF NOT EXISTS public.legal_reviews (
   needs_licensed_review boolean DEFAULT true,
   reviewed_at timestamp with time zone DEFAULT now() NOT NULL,
   reviewed_by text DEFAULT 'legal_ai'::text
+);
+
+CREATE TABLE IF NOT EXISTS public.licence_renewal_ask (
+  id bigint DEFAULT nextval('licence_renewal_ask_id_seq'::regclass) NOT NULL,
+  lead_id bigint NOT NULL,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  band text NOT NULL,
+  expiry_date date NOT NULL,
+  days_to_expiry integer NOT NULL,
+  channel text NOT NULL,
+  sent boolean DEFAULT false NOT NULL,
+  blocked_reason text,
+  notification_id bigint,
+  answered_at timestamp with time zone,
+  answered_by_intake bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.llm_attempt (
@@ -8859,6 +8875,7 @@ ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_pkey PRIMARY K
 ALTER TABLE public.legal_documents ADD CONSTRAINT legal_documents_pkey PRIMARY KEY (slug);
 ALTER TABLE public.legal_kpi_snapshots ADD CONSTRAINT legal_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.legal_reviews ADD CONSTRAINT legal_reviews_pkey PRIMARY KEY (id);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_pkey PRIMARY KEY (id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_pkey PRIMARY KEY (attempt_id);
 ALTER TABLE public.llm_cache ADD CONSTRAINT llm_cache_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.llm_calls ADD CONSTRAINT llm_calls_pkey PRIMARY KEY (id);
@@ -9249,6 +9266,7 @@ ALTER TABLE public.kernel_signal_inbox ADD CONSTRAINT kernel_signal_inbox_idempo
 ALTER TABLE public.kernel_trigger_inbox ADD CONSTRAINT kernel_trigger_inbox_idem_uk UNIQUE (idempotency_key);
 ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_name_emirate_code_key UNIQUE (name, emirate_code);
@@ -9481,6 +9499,8 @@ ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_u
 ALTER TABLE public.leads ADD CONSTRAINT leads_approved_implies_verified CHECK (((COALESCE(approval_status, ''::text) <> 'approved'::text) OR (COALESCE(verified, false) = true)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_status_check CHECK (((registration_status IS NULL) OR (registration_status = ANY (ARRAY['exempt'::text, 'paid'::text, 'not_due'::text, 'due'::text]))));
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_band_check CHECK ((band = ANY (ARRAY['t_minus_60'::text, 't_minus_30'::text, 't_minus_14'::text, 't_minus_7'::text, 'expired'::text])));
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text])));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_attempt_no_check CHECK ((attempt_no >= 1));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_matches_ok CHECK (((ok AND (class_key IS NULL)) OR ((NOT ok) AND (class_key IS NOT NULL))));
 ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_layer_check CHECK ((layer = ANY (ARRAY['provider'::text, 'transport'::text, 'contract'::text, 'tool'::text, 'retrieval'::text, 'database'::text, 'orchestration'::text, 'test_runner'::text, 'unknown'::text])));
@@ -9986,6 +10006,8 @@ ALTER TABLE public.lead_category_scan ADD CONSTRAINT lead_category_scan_lead_id_
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answered_by_intake_fkey FOREIGN KEY (answered_by_intake) REFERENCES wa_document_intake(id);
+ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.mdm_cities ADD CONSTRAINT mdm_cities_emirate_code_fkey FOREIGN KEY (emirate_code) REFERENCES mdm_emirates(code);
@@ -10475,6 +10497,7 @@ CREATE INDEX leads_lifecycle_stage_idx ON public.leads USING btree (lifecycle_st
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);
 CREATE INDEX leads_sector_idx ON public.leads USING btree (sector);
 CREATE UNIQUE INDEX legal_kpi_snap_day ON public.legal_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX licence_renewal_ask_open ON public.licence_renewal_ask USING btree (lead_id, asked_at DESC) WHERE (answered_at IS NULL);
 CREATE INDEX llm_attempt_agent_idx ON public.llm_attempt USING btree (agent_key, created_at DESC);
 CREATE INDEX llm_attempt_first_idx ON public.llm_attempt USING btree (created_at DESC) WHERE (attempt_no = 1);
 CREATE INDEX llm_attempt_route_idx ON public.llm_attempt USING btree (model_route, created_at DESC);
@@ -17867,16 +17890,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17902,6 +17915,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18777,135 +18800,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19421,6 +19315,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_capped(p_agent_key text, p_max_chars integer DEFAULT 9000, p_query text DEFAULT NULL::text)
@@ -46585,6 +46608,158 @@ AS $function$
   select case
     when coalesce(p_version, '') !~ '[0-9]+\s*$' then '1.1'
     else regexp_replace(p_version, '([0-9]+)\s*$', ((substring(p_version from '([0-9]+)\s*$'))::int + 1)::text) end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_ask_close_on_intake(p_intake_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_i record; v_closed int;
+begin
+  select * into v_i from public.wa_document_intake where id = p_intake_id;
+  if not found or v_i.lead_id is null or v_i.classified_as <> 'licence' or not v_i.attached then
+    return jsonb_build_object('ok', true, 'closed', 0,
+      'reason', 'Not an attached licence for a known lead, so no renewal ask is answered by it.');
+  end if;
+
+  update public.licence_renewal_ask
+     set answered_at = now(), answered_by_intake = p_intake_id
+   where lead_id = v_i.lead_id and answered_at is null;
+  get diagnostics v_closed = row_count;
+
+  return jsonb_build_object('ok', true, 'closed', v_closed, 'lead_id', v_i.lead_id,
+    'note', 'Every open renewal ask for this supplier is answered by the document that arrived.');
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_expiry_sweep(p_dry_run boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  r          record;
+  v_band     text;
+  v_days     int;
+  v_planned  int := 0;
+  v_email    int := 0;
+  v_wa       int := 0;
+  v_blocked  int := 0;
+  v_wa_ok    boolean;
+  v_wa_why   text;
+  v_rows     jsonb := '[]'::jsonb;
+  v_subject  text;
+  v_body     text;
+  v_note     bigint;
+begin
+  -- Ask the channel policy rather than assuming. Today WhatsApp is blocked for want of a template
+  -- and any opt-in, and this must say so instead of quietly sending nothing.
+  select (status = 'open'), status_reason
+    into v_wa_ok, v_wa_why
+    from public.outreach_channel_policy where channel_key = 'whatsapp';
+  v_wa_ok := coalesce(v_wa_ok, false);
+
+  for r in
+    select l.id, l.company_name, l.email, l.phone_e164, l.license_expiry, l.license_doc_path,
+           (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
+      from public.leads l
+     where l.license_expiry is not null
+       and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 60
+       and coalesce(l.banned, false) = false
+     order by l.license_expiry
+     limit 500
+  loop
+    v_days := r.days_left;
+    v_band := case
+      when v_days < 0   then 'expired'
+      when v_days <= 7  then 't_minus_7'
+      when v_days <= 14 then 't_minus_14'
+      when v_days <= 30 then 't_minus_30'
+      else                   't_minus_60' end;
+
+    v_planned := v_planned + 1;
+
+    v_subject := case when v_days < 0
+      then 'Your trade licence has expired - QuotesDone'
+      else 'Your trade licence expires in ' || v_days || ' days - QuotesDone' end;
+
+    v_body := 'Dear ' || coalesce(r.company_name, 'Supplier') || ',' || chr(10) || chr(10)
+           || case when v_days < 0
+                then 'The trade licence we hold for you expired on ' || to_char(r.license_expiry, 'DD Mon YYYY')
+                  || '. Until we have a valid one we cannot include you in new requests.'
+                else 'The trade licence we hold for you expires on ' || to_char(r.license_expiry, 'DD Mon YYYY')
+                  || ', which is ' || v_days || ' days from now.' end
+           || chr(10) || chr(10)
+           || 'Please send us the renewed copy. A clear photograph is fine, a PDF is better. '
+           || 'You can reply to this email with it attached, or send it on WhatsApp and it will go '
+           || 'straight onto your file.' || chr(10) || chr(10)
+           || 'Nothing else is needed and there is no charge.' || chr(10) || chr(10)
+           || 'QuotesDone';
+
+    -- EMAIL. Always attempted when we hold an address.
+    if coalesce(btrim(r.email), '') <> '' then
+      if not p_dry_run then
+        insert into public.licence_renewal_ask
+          (lead_id, band, expiry_date, days_to_expiry, channel, sent)
+        values (r.id, v_band, r.license_expiry, v_days, 'email', false)
+        on conflict (lead_id, expiry_date, band, channel) do nothing;
+
+        if found then
+          insert into public.notifications (type, kind, to_email, subject, body, status, channel, lead_id)
+          values ('licence_renewal', 'licence_expiry', r.email, v_subject, v_body, 'queued', 'email', r.id)
+          returning id into v_note;
+
+          update public.licence_renewal_ask
+             set sent = true, notification_id = v_note
+           where lead_id = r.id and expiry_date = r.license_expiry and band = v_band and channel = 'email';
+        end if;
+      end if;
+      v_email := v_email + 1;
+    end if;
+
+    -- WHATSAPP. Planned either way, and the block is recorded rather than the ask vanishing.
+    if coalesce(btrim(r.phone_e164), '') <> '' then
+      if v_wa_ok then
+        v_wa := v_wa + 1;
+      else
+        v_blocked := v_blocked + 1;
+        if not p_dry_run then
+          insert into public.licence_renewal_ask
+            (lead_id, band, expiry_date, days_to_expiry, channel, sent, blocked_reason)
+          values (r.id, v_band, r.license_expiry, v_days, 'whatsapp', false, v_wa_why)
+          on conflict (lead_id, expiry_date, band, channel) do nothing;
+        end if;
+      end if;
+    end if;
+
+    if jsonb_array_length(v_rows) < 10 then
+      v_rows := v_rows || jsonb_build_object(
+        'lead_id', r.id, 'company', r.company_name, 'expiry', r.license_expiry,
+        'days_left', v_days, 'band', v_band,
+        'email', case when coalesce(btrim(r.email),'')<>'' then 'queued' else 'no address held' end,
+        'whatsapp', case when v_wa_ok then 'queued' else 'BLOCKED' end);
+    end if;
+  end loop;
+
+  return jsonb_build_object(
+    'ok', true,
+    'dry_run', p_dry_run,
+    'licences_within_60_days', v_planned,
+    'email_asks', v_email,
+    'whatsapp_asks_sent', v_wa,
+    'whatsapp_asks_blocked', v_blocked,
+    'whatsapp_status', case when v_wa_ok then 'open' else 'BLOCKED: ' || coalesce(v_wa_why,'no policy row') end,
+    'sample', v_rows,
+    'note', case when p_dry_run
+      then 'Dry run. Nothing was queued and nothing was written. Call with p_dry_run => false to act.'
+      else 'Asks queued. Each is closed only when a replacement document actually arrives, never when a message is sent.' end
+  );
+end;
 $function$
 
 
@@ -94345,6 +94520,7 @@ ALTER TABLE public.legal_checklist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.licence_renewal_ask ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_attempt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
