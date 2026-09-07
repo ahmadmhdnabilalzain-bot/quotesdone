@@ -91,3 +91,11 @@ begin
 end;
 $function$;
 
+-- THE REVOKE THAT MUST SHIP WITH EVERY RECREATED SECURITY DEFINER ROUTINE.
+-- These were recovered verbatim from migrations_history, and the original CREATE statements grant
+-- EXECUTE to PUBLIC -- so recovering them re-opened them to an unauthenticated caller.
+-- anon_cannot_execute_security_definer caught both within one run. PUBLIC first: when the grant is
+-- held through PUBLIC, revoking from anon alone is a silent no-op.
+revoke execute on function public.is_disposable_email(text) from public;
+revoke execute on function public.is_disposable_email(text) from anon;
+revoke execute on function public.is_disposable_email(text) from authenticated;
