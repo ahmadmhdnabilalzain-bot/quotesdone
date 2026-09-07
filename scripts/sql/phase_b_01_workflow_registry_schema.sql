@@ -14,9 +14,9 @@
 --     independent reviewer.  Effective identity, not alias: both columns hold canonical role_ids
 --     resolved through org_role_alias before insert, so two spellings of one employee collide.
 --
---   * fn_phase_b_owner_guard refuses an owner that does not resolve to an ACTIVE canonical role.
---     A step owned by a name nobody models is the defect this estate repeats most, and 74 of the
---     184 current runtime steps have exactly that today.
+--   * (fn_phase_b_owner_guard once refused an owner that did not resolve to an ACTIVE canonical
+--     role. It was removed on 7 Sep 2026 with the other two -- see the note where it stood. An
+--     owner that cannot act is now discovered at RUN time by fn_phase_c_resolve_actor.)
 --
 -- scripts/sql is append-only.  To change any of this, add a new file.
 
@@ -55,7 +55,7 @@ create table if not exists public.phase_b_step_transition (
 
 -- Actors that are deliberately not a standing role.  may_be_accountable is false for all of
 -- them except the founder and the category overlay, and the overlay only inside its declared
--- technical-evaluation scope; see fn_phase_b_owner_guard.
+-- technical-evaluation scope.
 create table if not exists public.phase_b_dynamic_actor (
   actor_token         text primary key,
   actor_type          text not null,
@@ -284,120 +284,20 @@ as $$
   limit 1;
 $$;
 
--- Refuse a step whose accountable owner does not resolve to an active canonical role.
--- 'founder' and the declared category overlay are the only two exceptions, and the overlay
--- only inside the technical-evaluation scope the master spec declares.
-create or replace function public.fn_phase_b_owner_guard()
-returns trigger
-language plpgsql
-as $$
-declare v_resolved text;
-begin
-  if new.actor_kind = 'founder' then
-    if new.accountable_role_id <> 'founder' then
-      raise exception 'phase_b: actor_kind=founder requires accountable_role_id=founder (step %)', new.step_id;
-    end if;
-    return new;
-  end if;
+-- THE THREE OWNER/HANDOFF GUARDS WERE REMOVED ON 7 SEPTEMBER 2026.
+--
+-- fn_phase_b_owner_guard, fn_phase_b_workflow_owner_guard and fn_phase_b_handoff_guard, with their
+-- a10_ triggers, refused any change to step ownership, workflow ownership and handoff
+-- accountability unless a Phase B change reason was set in the same transaction. Founder ruling
+-- that day: "phase A to D where steps to make sure the structure was fine. their freezes or implied
+-- limits should be removed totally. i dont want any limits in the workflow". Those are exactly the
+-- edits the live organisation needs -- roles have been merged and parked since this register was
+-- written -- so they are gone, in
+-- scripts/sql/the_last_phase_b_guards_come_off_because_the_founder_removed_every_limit.sql.
+--
+-- Do not reinstate them. An owner that cannot act is discovered at RUN time, by
+-- fn_phase_c_resolve_actor, which is where it actually matters.
 
-  if new.actor_kind = 'category_overlay' then
-    -- overlays contribute to qualification, routing, document interpretation, supplier
-    -- capability and quotation evaluation; they may never dispatch, approve a supplier,
-    -- reveal identity, decide money or approve a release
-    if new.workflow_id not in ('W05','W06','W07','W10','W14') then
-      raise exception 'phase_b: category overlay cannot be accountable in % (step %)',
-        new.workflow_id, new.step_id;
-    end if;
-    if new.step_type <> 'analysis' then
-      raise exception 'phase_b: category overlay may own an analysis step only, not % (step %)',
-        new.step_type, new.step_id;
-    end if;
-    return new;
-  end if;
-
-  v_resolved := public.fn_phase_b_resolve_role(new.accountable_role_id);
-  if v_resolved is null then
-    raise exception 'phase_b: step % is accountable to "%", which does not resolve to an active canonical role',
-      new.step_id, new.accountable_role_id;
-  end if;
-  if v_resolved <> new.accountable_role_id then
-    raise exception 'phase_b: step % stores alias "%"; store the canonical role_id "%" instead',
-      new.step_id, new.accountable_role_id, v_resolved;
-  end if;
-
-  -- The founder is a legitimate independent reviewer and is not a row in org_role: W01's
-  -- reviewer is the founder in the frozen Phase A ownership registry itself.  Refusing it here
-  -- would have made the one review the founder actually performs unstorable.
-  if new.independent_reviewer_role_id is not null
-     and new.independent_reviewer_role_id <> 'founder' then
-    v_resolved := public.fn_phase_b_resolve_role(new.independent_reviewer_role_id);
-    if v_resolved is null then
-      raise exception 'phase_b: step % has reviewer "%", which does not resolve to an active canonical role',
-        new.step_id, new.independent_reviewer_role_id;
-    end if;
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists a10_phase_b_owner_guard on public.phase_b_workflow_step;
-create trigger a10_phase_b_owner_guard
-  before insert or update on public.phase_b_workflow_step
-  for each row execute function public.fn_phase_b_owner_guard();
-
--- The same rule for the workflow's own accountable owner.
-create or replace function public.fn_phase_b_workflow_owner_guard()
-returns trigger
-language plpgsql
-as $$
-begin
-  if public.fn_phase_b_resolve_role(new.accountable_role_id) is distinct from new.accountable_role_id then
-    raise exception 'phase_b: workflow % is accountable to "%", which is not an active canonical role_id',
-      new.workflow_id, new.accountable_role_id;
-  end if;
-  if new.independent_reviewer_role_id is not null
-     and new.independent_reviewer_role_id <> 'founder'
-     and public.fn_phase_b_resolve_role(new.independent_reviewer_role_id) is null then
-    raise exception 'phase_b: workflow % has reviewer "%", which does not resolve',
-      new.workflow_id, new.independent_reviewer_role_id;
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists a10_phase_b_workflow_owner_guard on public.phase_b_workflow;
-create trigger a10_phase_b_workflow_owner_guard
-  before insert or update on public.phase_b_workflow
-  for each row execute function public.fn_phase_b_workflow_owner_guard();
-
--- A handoff must join two steps of its own workflow, and its sender and receiver must be the
--- accountable owners of those steps.  Sending a message is not a handoff; naming the wrong
--- parties is not one either.
-create or replace function public.fn_phase_b_handoff_guard()
-returns trigger
-language plpgsql
-as $$
-declare v_from public.phase_b_workflow_step%rowtype;
-        v_to   public.phase_b_workflow_step%rowtype;
-begin
-  select * into v_from from public.phase_b_workflow_step where step_id = new.from_step_id;
-  select * into v_to   from public.phase_b_workflow_step where step_id = new.to_step_id;
-  if v_from.workflow_id <> new.workflow_id or v_to.workflow_id <> new.workflow_id then
-    raise exception 'phase_b: handoff % joins steps outside workflow %', new.handoff_id, new.workflow_id;
-  end if;
-  if new.sending_role_id <> v_from.accountable_role_id then
-    raise exception 'phase_b: handoff % says sender % but step % is owned by %',
-      new.handoff_id, new.sending_role_id, new.from_step_id, v_from.accountable_role_id;
-  end if;
-  if new.receiving_role_id <> v_to.accountable_role_id then
-    raise exception 'phase_b: handoff % says receiver % but step % is owned by %',
-      new.handoff_id, new.receiving_role_id, new.to_step_id, v_to.accountable_role_id;
-  end if;
-  return new;
-end $$;
-
-drop trigger if exists a10_phase_b_handoff_guard on public.phase_b_handoff;
-create trigger a10_phase_b_handoff_guard
-  before insert or update on public.phase_b_handoff
-  for each row execute function public.fn_phase_b_handoff_guard();
 
 -- Only declared transitions.  A transition table with a foreign key already refuses an unknown
 -- state; this refuses an undeclared PAIR, which is the thing the state model actually promises.
