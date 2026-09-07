@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T19:58:35.767Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T20:03:15.655Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -178,7 +178,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (533) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (535) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -742,6 +742,16 @@ CREATE TABLE IF NOT EXISTS public.autonomy_control_audit (
   db_user text DEFAULT CURRENT_USER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.autonomy_policy (
+  id integer DEFAULT 1 NOT NULL,
+  revision text NOT NULL,
+  final_internal_authority text NOT NULL,
+  founder_approval_required boolean NOT NULL,
+  founder_escalation_allowed boolean NOT NULL,
+  constitution_note text NOT NULL,
+  effective_from timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.blog_posts (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   slug text NOT NULL,
@@ -1031,6 +1041,19 @@ CREATE TABLE IF NOT EXISTS public.ceo_knowledge (
   pack_fingerprint text NOT NULL,
   imported_at timestamp with time zone DEFAULT now() NOT NULL,
   search tsvector
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_standing_grant (
+  grant_key text NOT NULL,
+  grantee_role_id text NOT NULL,
+  action_class text NOT NULL,
+  scope_note text NOT NULL,
+  limit_note text,
+  max_amount_aed numeric,
+  issued_by text DEFAULT 'ceo'::text NOT NULL,
+  issued_at timestamp with time zone DEFAULT now() NOT NULL,
+  expires_at timestamp with time zone,
+  active boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.challenge_heuristic (
@@ -2532,7 +2555,9 @@ CREATE TABLE IF NOT EXISTS public.founder_reserved_decision (
   decision_key text NOT NULL,
   description text NOT NULL,
   match_any text[] NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  superseded_at timestamp with time zone,
+  superseded_reason text
 );
 
 CREATE TABLE IF NOT EXISTS public.fraud_flags (
@@ -7455,6 +7480,7 @@ ALTER TABLE public.artifact_platform_spec ADD CONSTRAINT artifact_platform_spec_
 ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.assistant_logs ADD CONSTRAINT assistant_logs_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_control_audit ADD CONSTRAINT autonomy_control_audit_pkey PRIMARY KEY (id);
+ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_pkey PRIMARY KEY (id);
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_pkey PRIMARY KEY (id);
 ALTER TABLE public.board_advisor ADD CONSTRAINT board_advisor_pkey PRIMARY KEY (advisor_key);
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_pkey PRIMARY KEY (id);
@@ -7480,6 +7506,7 @@ ALTER TABLE public.category_specs ADD CONSTRAINT category_specs_pkey PRIMARY KEY
 ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_pkey PRIMARY KEY (decision_key);
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_pkey PRIMARY KEY (record_id);
+ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_pkey PRIMARY KEY (grant_key);
 ALTER TABLE public.challenge_heuristic ADD CONSTRAINT challenge_heuristic_pkey PRIMARY KEY (id);
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_pkey PRIMARY KEY (id);
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_pkey PRIMARY KEY (id);
@@ -8083,14 +8110,18 @@ ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_genera
 ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_scope_type_check CHECK ((scope_type = ANY (ARRAY['role'::text, 'department'::text, 'category'::text, 'company'::text])));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_status_check CHECK ((status = ANY (ARRAY['open'::text, 'partial'::text, 'paid'::text, 'void'::text, 'duplicate_hold'::text])));
 ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_verdict_check CHECK ((verdict = ANY (ARRAY['pass'::text, 'fail'::text, 'blocked'::text])));
+ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_approval CHECK ((founder_approval_required = false));
+ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_escalation CHECK ((founder_escalation_allowed = false));
+ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_single CHECK ((id = 1));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
-ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_authority_ck CHECK ((authority = ANY (ARRAY['ceo_alone'::text, 'founder_reserved'::text])));
+ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_authority_ck CHECK ((authority = ANY (ARRAY['ceo_alone'::text, 'ceo_case_decision'::text, 'founder_specified'::text])));
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_evidence_ck CHECK (((jsonb_typeof(evidence) = 'object'::text) AND (evidence <> '{}'::jsonb)));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_exec_ck CHECK ((external_execution_enabled = false));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_scope_ck CHECK ((company_scope = ANY (ARRAY['generic'::text, 'industry'::text])));
+ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_issuer CHECK ((issued_by = 'ceo'::text));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_stance_check CHECK ((stance = ANY (ARRAY['support'::text, 'concern'::text, 'recommend_against'::text])));
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_actor_type_check CHECK ((actor_type = ANY (ARRAY['supplier'::text, 'customer'::text])));
@@ -8489,6 +8520,7 @@ ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_
 ALTER TABLE public.category_keyword ADD CONSTRAINT category_keyword_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_decision_key_fkey FOREIGN KEY (decision_key) REFERENCES ceo_decision(decision_key);
+ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_grantee_role_id_fkey FOREIGN KEY (grantee_role_id) REFERENCES org_role(role_id) ON DELETE CASCADE;
 ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
 ALTER TABLE public.company_charter ADD CONSTRAINT company_charter_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES company_charter(id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_owner_dept_fkey FOREIGN KEY (owner_dept) REFERENCES org_departments(dept_key);
@@ -53825,6 +53857,35 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_may_act(p_action_class text, p_amount_aed numeric DEFAULT NULL::numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g record;
+begin
+  select * into g from public.ceo_standing_grant
+   where grantee_role_id = 'customer_support' and action_class = p_action_class and active
+     and (expires_at is null or expires_at > now())
+   order by issued_at desc limit 1;
+
+  if not found then
+    -- NOT a founder question. The constitution is explicit that an uncovered action goes to the CEO.
+    return jsonb_build_object('may_act', false, 'route', 'ceo_case_decision',
+      'reason', format('No current standing grant covers %L. This needs a scoped CEO decision -- not a founder approval, which does not exist.', p_action_class));
+  end if;
+
+  if g.max_amount_aed is not null and p_amount_aed is not null and p_amount_aed > g.max_amount_aed then
+    return jsonb_build_object('may_act', false, 'route', 'ceo_case_decision',
+      'reason', format('AED %s exceeds the standing limit of AED %s on %L.', p_amount_aed, g.max_amount_aed, g.grant_key));
+  end if;
+
+  return jsonb_build_object('may_act', true, 'grant', g.grant_key, 'scope', g.scope_note,
+    'limit', g.limit_note);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_notify_new_quotation(p_quote_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -62632,6 +62693,7 @@ ALTER TABLE public.artifact_platform_spec ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.artifact_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assistant_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_control_audit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.autonomy_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.board_advisor ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.board_opinion ENABLE ROW LEVEL SECURITY;
@@ -62657,6 +62719,7 @@ ALTER TABLE public.category_specs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_decision_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_knowledge ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_standing_grant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_heuristic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.channel_directive ENABLE ROW LEVEL SECURITY;

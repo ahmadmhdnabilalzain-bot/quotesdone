@@ -865,10 +865,22 @@ Deno.serve(async (req) => {
       } catch (_e) { /* the reply already went out */ }
       // A REQUEST FOR A PERSON IS AN ESCALATION even though the answer was free: the number was
       // given by a machine and cannot be taken back, so he is told it went out.
+      // THE FOUNDER IS NO LONGER TOLD. Operating constitution 1.2: sharing his approved public
+      // number "neither alerts Ahmad internally nor promises a transfer, availability or
+      // response, and the automated case continues". Two writes stood here -- a founder_alerts
+      // row and an email to him -- and both turned a customer-facing courtesy into a task in
+      // his queue. The customer still gets the number; the internal page is gone.
       if (route.needs_a_person === true) {
-        const ownerR = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
-        try { await admin.from('founder_alerts').insert({ level: 'info', event: 'wa_escalation', detail: 'WhatsApp from ' + From.replace('whatsapp:', '') + ' asked for a person; your number was given: ' + Body.slice(0, 160), channel: 'system' }); } catch (_e) { /* */ }
-        try { await admin.from('notifications').insert({ type: 'wa_escalation', to_email: ownerR, to_role: 'admin', channel: 'email', subject: 'Someone on WhatsApp asked for a person', body: 'A WhatsApp message from ' + (Profile || From) + ' (' + From.replace('whatsapp:', '') + ') asked to speak to a person, so the assistant gave your direct line.\n\nTheir message:\n"' + Body.slice(0, 600) + '"\n\nExpect a call or a WhatsApp from them.', status: 'queued' }); } catch (_e) { /* */ }
+        try {
+          await admin.rpc('fn_support_report_to_ceo', {
+            p_idempotency_key: 'wa:person:' + (MessageSid || From) ,
+            p_severity: 'routine',
+            p_subject: 'A customer asked to speak to a person and was given the public contact',
+            p_evidence: { from: From, message: Body.slice(0, 300), number_given: true },
+            p_attempted: ['shared the approved public contact', 'kept the case open'],
+            p_requested: 'Visibility only. No action is requested and no work is waiting on this.',
+          });
+        } catch (_e) { /* the reply already went out; visibility must not block it */ }
       }
       await logRun(enabledR && !sentR ? 'error' : 'ok',
         { audience, route: 'deterministic', intent: route.deterministic_intent, sent: sentR,
@@ -950,13 +962,37 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
 
     if (enabled && !sent) {
-      try { await admin.from('founder_alerts').insert({ level: 'warn', event: 'wa_send_failed', detail: 'Could not deliver WhatsApp reply to ' + From.replace('whatsapp:', '') + ' (' + audienceFinal + '): ' + (sendErr || 'unknown'), channel: 'system' }); } catch (_e) { /* */ }
-      try { await admin.from('notifications').insert({ type: 'wa_send_failed', to_email: owner, to_role: 'admin', channel: 'email', subject: 'WhatsApp reply could not be delivered', body: 'Someone messaged the QuotesDone WhatsApp number and the assistant composed a reply, but Twilio refused to send it.\n\nFrom: ' + (Profile || From) + ' (' + From.replace('whatsapp:', '') + ')\nIdentified as: ' + audienceFinal + '\nTwilio said: ' + (sendErr || 'unknown') + '\n\nTheir message:\n“' + Body.slice(0, 600) + '”\n\nThe reply we intended to send:\n“' + reply.slice(0, 600) + '”\n\nYou may want to follow up by hand.', status: 'queued' }); } catch (_e) { /* */ }
+      // A FAILED SEND IS THE CEO'S, not the founder's. It was a founder_alerts row and an email
+      // to him; under constitution 1.2 neither agent sends him unsolicited operational alerts.
+      try {
+        await admin.rpc('fn_support_report_to_ceo', {
+          p_idempotency_key: 'wa:send_failed:' + (MessageSid || From),
+          p_severity: 'elevated',
+          p_subject: 'A WhatsApp reply could not be delivered',
+          p_evidence: { to: From, provider_error: sendErr || null, audience: audienceFinal },
+          p_attempted: ['composed the reply', 'attempted delivery through the configured sender'],
+          p_requested: 'Decide whether to retry on this channel or reach the customer another way.',
+        });
+      } catch (_e) { /* */ }
+      // THE EMAIL ASKING HIM TO 'FOLLOW UP BY HAND' IS GONE. That is a human dependency, and the
+      // CEO report queued just above already carries the same failure to the seat that can act on
+      // it. Constitution 1.2: neither agent sends him unsolicited operational alerts.
     }
 
     if (escalate) {
-      try { await admin.from('notifications').insert({ type: 'wa_escalation', to_email: owner, to_role: 'admin', channel: 'email', subject: 'WhatsApp needs your attention', body: 'A WhatsApp message from ' + (Profile || From) + ' (' + From.replace('whatsapp:', '') + ', identified as: ' + audienceFinal + ') needs a human:\n\n“' + Body.slice(0, 600) + '”\n\nThe assistant ' + (enabled ? (sent ? 'replied and shared your direct line' : 'FAILED to deliver its reply') : 'is in draft mode and did NOT reply') + '. They may call or WhatsApp you directly.', status: 'queued' }); } catch (_e) { /* */ }
-      try { await admin.from('founder_alerts').insert({ level: 'info', event: 'wa_escalation', detail: 'WhatsApp from ' + From.replace('whatsapp:', '') + ' (' + audienceFinal + '): ' + Body.slice(0, 160), channel: 'system' }); } catch (_e) { /* */ }
+      // AN ESCALATION GOES TO THE CEO. This wrote an email to the founder and a founder_alerts
+      // row saying a message "needs a human". Under constitution 1.2 there is no human queue and
+      // no founder escalation: the CEO is the final internal authority and the one that can act.
+      try {
+        await admin.rpc('fn_support_report_to_ceo', {
+          p_idempotency_key: 'wa:escalation:' + (MessageSid || From),
+          p_severity: 'serious',
+          p_subject: 'A WhatsApp conversation needs a decision support cannot make',
+          p_evidence: { from: From, message: Body.slice(0, 400), audience: audienceFinal, replied: sent },
+          p_attempted: ['answered from live account facts and approved knowledge', 'checked the standing grant'],
+          p_requested: 'Decide the outcome, or issue a standing grant that covers it.',
+        });
+      } catch (_e) { /* */ }
     }
 
     const counts = { audience: audienceFinal, lang, escalated: escalate, autoreply_enabled: enabled, sent, llm_failed: llmFailed, faq_matches: ids.length, row_saved: rowSaved, provenance_verified: 1 };
