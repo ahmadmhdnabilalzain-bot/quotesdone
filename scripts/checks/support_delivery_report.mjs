@@ -73,8 +73,11 @@ const CAPABILITIES = [
   ['fn_support_may_act', 'v1.2 standing grant', 'ordinary_notification_is_covered_by_the_grant, an_unclassed_action_is_not_self_approved'],
   ['fn_founder_command_authenticate', 'v1.2 authenticated commands', 'his_command_authenticates_from_his_number, a_stranger_typing_his_name_does_not'],
   ['fn_founder_command_admit', 'v1.2 scope, sequence, idempotency', 'a_retry_is_the_same_command, an_older_instruction_cannot_reinstate'],
-  ['fn_support_knowledge_search', '§10 knowledge retrieval', ''],
-  ['fn_support_context', '§10 grounded answering', ''],
+  // Asserted by the retrieval evaluation rather than the scenario harness — a different measure
+  // (coverage and leakage across the 48 disclosed scenarios), named here so the reader can see
+  // WHICH evidence stands behind these two rather than assuming it is the same as the others.
+  ['fn_support_knowledge_search', '§10 knowledge retrieval', 'retrieval eval: 48/48 coverage, 0 evaluation leakage'],
+  ['fn_support_context', '§10 grounded answering', 'retrieval eval: 48/48 coverage, 0 evaluation leakage'],
 ];
 
 const rows = {};
@@ -161,9 +164,14 @@ for (const [fn, spec, scen] of CAPABILITIES) {
 L.push('');
 L.push(`**${verified} verified-live · ${implemented} implemented but unasserted · ${missing} not deployed.**`);
 L.push('');
-L.push('The two unasserted rows are the knowledge-retrieval functions. They are exercised by the');
-L.push('retrieval evaluation rather than by the scenario harness, and are listed as IMPLEMENTED');
-L.push('here rather than borrowing the other evaluation\'s result.');
+L.push('The two retrieval functions are asserted by a different measure — coverage and leakage');
+L.push('across the 48 disclosed development scenarios — and the column says so, because a reader');
+L.push('should be able to see WHICH evidence stands behind a row rather than assume it is the same');
+L.push('as the row above. What that evaluation does NOT measure is whether the retrieved guidance');
+L.push('is the RIGHT guidance: the support scenarios ship no related_modules, so there is no ground');
+L.push('truth to score precision against, and inventing one would measure my expectations.');
+L.push('');
+L.push('Reproduce with: `node scripts/kb/support_knowledge_retrieval_eval.mjs --scenarios <pack>/evaluation/scenarios.jsonl`');
 L.push('');
 L.push('## 3. Authority: the standing grant');
 L.push('');
