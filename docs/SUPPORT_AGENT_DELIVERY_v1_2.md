@@ -108,18 +108,32 @@ injection route the spec names, and it is measured here rather than promised.
 
 **Remaining setup values held only by the founder: `meta_access_token`.** These are recorded as capability limitations, not converted into an approval workflow.
 
-## 7. Exposure
+## 7. Runtime state — held, not broken
+
+Scheduled jobs: **1**, of which **0** are active.
+Present: `wa_flush`. Failures in the last 24h: **6**.
+
+This is the founder's 7 September instruction, not an outage: every job not owned by an
+agent was deleted, and the WhatsApp agent's own jobs were kept and put on hold while the
+build runs. An estate with no active job looks exactly like one that has fallen over, and
+the whole difference is whether somebody asked for it — so it is reported with the reason.
+
+Recovery is `update cron.job set active = true` on the held job, when he lifts the hold.
+Any failures counted above are worth reading: during the deletion sweep this job failed six
+times against a role that had just been removed, and stopped once nothing referenced it.
+
+## 8. Exposure
 
 Support functions executable by `anon` or `authenticated`: **0** (must be 0).
 
-## 8. Scenario results
+## 9. Scenario results
 
 Run `node scripts/checks/support_acceptance_scenarios.mjs`. It drives the live functions,
 constraints and triggers inside transactions that end in a RAISE, so nothing survives the
 run. A group that fails to RUN counts as a failure of every scenario in it, rather than
 being quietly skipped — a harness that skips is a harness that always passes.
 
-## 9. What is NOT verified here, stated plainly
+## 10. What is NOT verified here, stated plainly
 
 - Whether the model answers an angry customer well, handles a mixed intent, or refuses an
   off-topic request gracefully. Those are properties of generated text. Everything

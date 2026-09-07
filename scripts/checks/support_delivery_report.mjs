@@ -117,6 +117,17 @@ rows.config = await q(`select k.key,
                  ('public_site_url'),('meta_access_token'),('stripe_secret_key')) k(key)
     left join public.app_secrets s on s.key = k.key
    order by k.key`);
+// THE RUNTIME STATE. An estate with no active scheduled job looks identical to an estate that has
+// fallen over, and the difference is entirely in whether somebody asked for it. The founder did, on
+// 7 September: every job not owned by an agent deleted, and the WhatsApp agent's own jobs kept but
+// held. So this is reported as a deliberate state with its instruction beside it, never as a
+// health metric that happens to read zero.
+rows.cron = one(await q(`select
+  (select count(*) from cron.job) jobs,
+  (select count(*) from cron.job where active) active_jobs,
+  (select coalesce(string_agg(jobname, ', ' order by jobname), '(none)') from cron.job) names,
+  (select count(*) from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+    where d.status <> 'succeeded' and d.start_time > now() - interval '24 hours') failures_24h`));
 rows.exposure = one(await q(`select count(*) c from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public' and p.prosecdef and p.proname like 'fn_support%'
     and (has_function_privilege('anon',p.oid,'EXECUTE') or has_function_privilege('authenticated',p.oid,'EXECUTE'))`));
@@ -221,18 +232,32 @@ L.push(notSet.length
     + 'These are recorded as capability limitations, not converted into an approval workflow.'
   : '**No configuration value is outstanding.**');
 L.push('');
-L.push('## 7. Exposure');
+L.push('## 7. Runtime state — held, not broken');
+L.push('');
+L.push(`Scheduled jobs: **${rows.cron.jobs}**, of which **${rows.cron.active_jobs}** are active.`);
+L.push(`Present: \`${rows.cron.names}\`. Failures in the last 24h: **${rows.cron.failures_24h}**.`);
+L.push('');
+L.push('This is the founder\'s 7 September instruction, not an outage: every job not owned by an');
+L.push('agent was deleted, and the WhatsApp agent\'s own jobs were kept and put on hold while the');
+L.push('build runs. An estate with no active job looks exactly like one that has fallen over, and');
+L.push('the whole difference is whether somebody asked for it — so it is reported with the reason.');
+L.push('');
+L.push('Recovery is `update cron.job set active = true` on the held job, when he lifts the hold.');
+L.push('Any failures counted above are worth reading: during the deletion sweep this job failed six');
+L.push('times against a role that had just been removed, and stopped once nothing referenced it.');
+L.push('');
+L.push('## 8. Exposure');
 L.push('');
 L.push(`Support functions executable by \`anon\` or \`authenticated\`: **${rows.exposure.c}** (must be 0).`);
 L.push('');
-L.push('## 8. Scenario results');
+L.push('## 9. Scenario results');
 L.push('');
 L.push('Run `node scripts/checks/support_acceptance_scenarios.mjs`. It drives the live functions,');
 L.push('constraints and triggers inside transactions that end in a RAISE, so nothing survives the');
 L.push('run. A group that fails to RUN counts as a failure of every scenario in it, rather than');
 L.push('being quietly skipped — a harness that skips is a harness that always passes.');
 L.push('');
-L.push('## 9. What is NOT verified here, stated plainly');
+L.push('## 10. What is NOT verified here, stated plainly');
 L.push('');
 L.push('- Whether the model answers an angry customer well, handles a mixed intent, or refuses an');
 L.push('  off-topic request gracefully. Those are properties of generated text. Everything');
