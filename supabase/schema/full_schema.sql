@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T13:11:50.367Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T13:21:06.717Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -86601,7 +86601,22 @@ declare
   v_kind   text := 'unknown';
   v_pid    text;
   v_turn   bigint;
+  v_dir    text;
 begin
+  -- THE DIRECTION IS NORMALISED HERE, WHERE THE CALLER'S VOCABULARY MEETS THE COLUMN'S.
+  -- Every branch below compares p_direction to 'in', and wa_turn's CHECK allows only 'in' and
+  -- 'out'. A caller writing 'INBOUND' -- the obvious word, and the one the edge function reached
+  -- for -- hit the CHECK and the whole turn was lost. Worse would have been no CHECK: the row
+  -- would have been stored and the 24-hour service window would never have opened, so the agent
+  -- would have gone quiet a day later for a reason nothing recorded.
+  v_dir := case lower(btrim(coalesce(p_direction, '')))
+             when 'in' then 'in' when 'inbound' then 'in' when 'incoming' then 'in'
+             when 'out' then 'out' when 'outbound' then 'out' when 'outgoing' then 'out'
+             else null end;
+  if v_dir is null then
+    return jsonb_build_object('ok', false, 'reason',
+      format('direction %L is neither inbound nor outbound; nothing was recorded', p_direction));
+  end if;
   if v_digits = '' then
     return jsonb_build_object('ok', false, 'reason', 'No usable phone number on the message.');
   end if;
@@ -86618,16 +86633,16 @@ begin
   insert into public.wa_conversation (phone_e164, party_kind, party_id, message_count,
                                       window_opened_at, window_expires_at)
   values (v_digits, v_kind, v_pid, 0,
-          case when p_direction = 'in' then now() else null end,
-          case when p_direction = 'in' then now() + interval '24 hours' else null end)
+          case when v_dir = 'in' then now() else null end,
+          case when v_dir = 'in' then now() + interval '24 hours' else null end)
   on conflict (phone_e164) do update set
       last_seen_at   = now(),
       party_kind     = coalesce(excluded.party_kind, wa_conversation.party_kind),
       party_id       = coalesce(excluded.party_id,   wa_conversation.party_id),
       -- An INBOUND message opens or re-opens the 24-hour service window. An outbound one never does,
       -- which is the whole point of the rule: we cannot extend our own permission to keep talking.
-      window_opened_at  = case when p_direction = 'in' then now() else wa_conversation.window_opened_at end,
-      window_expires_at = case when p_direction = 'in' then now() + interval '24 hours'
+      window_opened_at  = case when v_dir = 'in' then now() else wa_conversation.window_opened_at end,
+      window_expires_at = case when v_dir = 'in' then now() + interval '24 hours'
                                else wa_conversation.window_expires_at end
   returning * into v_conv;
 
@@ -86639,7 +86654,7 @@ begin
 
   insert into public.wa_turn (conversation_id, direction, body, media_url, media_kind, transcript,
                               transcript_source, intent_key, answered_by, fact_pack, model_id, cost_aed)
-  values (v_conv.id, p_direction, p_body, p_media_url, p_media_kind, p_transcript,
+  values (v_conv.id, v_dir, p_body, p_media_url, p_media_kind, p_transcript,
           case when p_transcript is not null then 'model' else 'none' end,
           p_intent, p_answered_by, p_fact_pack, p_model, p_cost_aed)
   returning id into v_turn;
