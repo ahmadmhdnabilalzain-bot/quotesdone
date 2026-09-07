@@ -180,6 +180,18 @@ update public.wa_reply_intent set requires_number = true where intent_key = 'by_
 --   Deterministic throughout: no model call, works with inference held.
 -- ---------------------------------------------------------------------------------------------
 
+-- The reply when nothing matched. It says it WILL check, which is true, rather than asserting a
+-- hand-off that may never happen, and it does not hand out the founder's number to anyone whose
+-- question missed the list.
+create or replace function public.fn_wa_unmatched_reply()
+returns text
+language sql
+immutable
+as $fn$
+  select 'I can help with your registration, your documents, your quotes, and any job by its number. '
+      || 'I am not sure about that one, so let me check and someone will come back to you.'
+$fn$;
+
 create or replace function public.fn_wa_answer(p_from text, p_body text)
 returns jsonb
 language plpgsql
@@ -245,10 +257,7 @@ begin
   -- NO MATCH. An honest refusal that names what it would need. Never a guess, and never a claim
   -- that some service is unavailable.
   if v_intent is null then
-    v_reply := 'I can answer questions about your registration, your documents, your quotes, a '
-            || 'specific job by its number, our fees, and how the platform works. I do not have an '
-            || 'answer for that one yet, so I have passed it to the team. You can also reach us on '
-            || '+971 50 931 9355.';
+    v_reply := public.fn_wa_unmatched_reply();
     insert into public.wa_answer_log (from_phone, body, identity_kind, identity_id, matched, reply, refusal_reason)
     values (p_from, p_body, v_ident_k, v_ident_id, false, v_reply,
             'No enumerated intent matched. This row is the backlog: a real question with no resolver.')
