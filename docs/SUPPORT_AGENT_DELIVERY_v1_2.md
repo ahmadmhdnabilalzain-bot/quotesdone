@@ -109,6 +109,25 @@ injection route the spec names, and it is measured here rather than promised.
 
 **Remaining setup values held only by the founder: `meta_access_token`, `twilio_auth_token`.** These are recorded as capability limitations, not converted into an approval workflow.
 
+### An MCP connection is not a runtime credential
+
+The founder has Meta and Twilio connected in his Claude settings, and it is worth being
+exact about what that does and does not settle, because the two connections are not the
+same kind of thing and neither one closes the row above.
+
+- **Meta** is a live account connection. Measured 7 Sep 2026: ad account `10151242677262668`
+  (Ahmad Zain), ACTIVE, payment method on file, AED, minimum daily budget AED 3.69.
+- **Twilio** is documentation search only — it queries docs and API schemas, not the
+  account. It cannot yield the account auth token, so the signature-validation limitation
+  in section 10 stands unchanged.
+
+And the part that matters more than either: an MCP connection is authenticated as a
+SESSION on the founder's desktop. A Supabase cron job firing at 03:00 cannot reach it, and
+neither can an edge function. So Meta is reachable by an agent working beside him, and
+still absent from the unattended runtime — which is the thing this build is for. Recording
+the connection as though it satisfied `meta_access_token` would be the same error as a
+credential that works in every environment except production.
+
 ## 7. Runtime state — held, not broken
 
 Scheduled jobs: **1**, of which **0** are active.

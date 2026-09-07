@@ -237,6 +237,25 @@ L.push(notSet.length
     + 'These are recorded as capability limitations, not converted into an approval workflow.'
   : '**No configuration value is outstanding.**');
 L.push('');
+L.push('### An MCP connection is not a runtime credential');
+L.push('');
+L.push('The founder has Meta and Twilio connected in his Claude settings, and it is worth being');
+L.push('exact about what that does and does not settle, because the two connections are not the');
+L.push('same kind of thing and neither one closes the row above.');
+L.push('');
+L.push('- **Meta** is a live account connection. Measured 7 Sep 2026: ad account `10151242677262668`');
+L.push('  (Ahmad Zain), ACTIVE, payment method on file, AED, minimum daily budget AED 3.69.');
+L.push('- **Twilio** is documentation search only — it queries docs and API schemas, not the');
+L.push('  account. It cannot yield the account auth token, so the signature-validation limitation');
+L.push('  in section 10 stands unchanged.');
+L.push('');
+L.push('And the part that matters more than either: an MCP connection is authenticated as a');
+L.push('SESSION on the founder\'s desktop. A Supabase cron job firing at 03:00 cannot reach it, and');
+L.push('neither can an edge function. So Meta is reachable by an agent working beside him, and');
+L.push('still absent from the unattended runtime — which is the thing this build is for. Recording');
+L.push('the connection as though it satisfied `meta_access_token` would be the same error as a');
+L.push('credential that works in every environment except production.');
+L.push('');
 L.push('## 7. Runtime state — held, not broken');
 L.push('');
 L.push(`Scheduled jobs: **${rows.cron.jobs}**, of which **${rows.cron.active_jobs}** are active.`);
