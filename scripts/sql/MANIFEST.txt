@@ -1795,3 +1795,9 @@ scripts/sql/the_kernel_gates_come_off.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/the_ceo_holds_a_target_a_decision_register_and_an_authority.sql
+scripts/sql/the_ceo_decision_register_and_its_authority.sql
+scripts/sql/the_four_targets_the_founder_set.sql
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

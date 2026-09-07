@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T14:35:49.620Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T14:49:00.676Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -54,6 +54,7 @@ CREATE SEQUENCE IF NOT EXISTS public.canon_eval_questions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.canon_eval_runs_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.category_keyword_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.category_quote_specs_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.ceo_decision_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.certification_exam_question_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.certification_exam_result_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.certification_knowledge_gap_id_seq;
@@ -202,7 +203,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (645) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (647) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -1102,6 +1103,32 @@ CREATE TABLE IF NOT EXISTS public.category_specs (
   supplier_requirements jsonb,
   compliance_checklist jsonb,
   reqs_updated_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_decision (
+  decision_key text NOT NULL,
+  domain text NOT NULL,
+  decision text NOT NULL,
+  trigger_condition text NOT NULL,
+  measure text NOT NULL,
+  measure_sql text,
+  authority text NOT NULL,
+  evidence_required text NOT NULL,
+  cadence text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_decision_log (
+  id bigint DEFAULT nextval('ceo_decision_log_id_seq'::regclass) NOT NULL,
+  decision_key text NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL,
+  the_decision text NOT NULL,
+  evidence jsonb NOT NULL,
+  reading_before text,
+  reading_after text,
+  escalated_to_founder boolean DEFAULT false NOT NULL,
+  founder_answer text
 );
 
 CREATE TABLE IF NOT EXISTS public.certification_exam_question (
@@ -8706,6 +8733,8 @@ ALTER TABLE public.category_licence_activity ADD CONSTRAINT category_licence_act
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_pkey PRIMARY KEY (id);
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_pkey PRIMARY KEY (category);
 ALTER TABLE public.category_specs ADD CONSTRAINT category_specs_pkey PRIMARY KEY (category);
+ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_pkey PRIMARY KEY (decision_key);
+ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.certification_exam_question ADD CONSTRAINT certification_exam_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.certification_exam_question_vector ADD CONSTRAINT certification_exam_question_vector_pkey PRIMARY KEY (question_id, kind);
 ALTER TABLE public.certification_exam_result ADD CONSTRAINT certification_exam_result_pkey PRIMARY KEY (id);
@@ -9443,6 +9472,8 @@ ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_signal_type_check CH
 ALTER TABLE public.brand_signal ADD CONSTRAINT brand_signal_status_check CHECK ((status = ANY (ARRAY['open'::text, 'investigating'::text, 'confirmed'::text, 'dismissed'::text, 'actioned'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
+ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_authority_ck CHECK ((authority = ANY (ARRAY['ceo_alone'::text, 'founder_reserved'::text])));
+ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_evidence_ck CHECK (((jsonb_typeof(evidence) = 'object'::text) AND (evidence <> '{}'::jsonb)));
 ALTER TABLE public.certification_exam_question ADD CONSTRAINT certification_exam_question_correct_option_check CHECK ((correct_option = ANY (ARRAY['A'::bpchar, 'B'::bpchar, 'C'::bpchar, 'D'::bpchar])));
 ALTER TABLE public.certification_exam_question ADD CONSTRAINT certification_exam_question_difficulty_check CHECK ((difficulty = ANY (ARRAY['exam'::text, 'hard'::text])));
 ALTER TABLE public.certification_exam_question_vector ADD CONSTRAINT certification_exam_question_vector_kind_check CHECK ((kind = ANY (ARRAY['stem'::text, 'A'::text, 'B'::text, 'C'::text, 'D'::text])));
@@ -9929,6 +9960,7 @@ ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_agent_sl
 ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_keyword ADD CONSTRAINT category_keyword_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
+ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_decision_key_fkey FOREIGN KEY (decision_key) REFERENCES ceo_decision(decision_key);
 ALTER TABLE public.certification_exam_question_vector ADD CONSTRAINT certification_exam_question_vector_question_id_fkey FOREIGN KEY (question_id) REFERENCES certification_exam_question(id) ON DELETE CASCADE;
 ALTER TABLE public.certification_exam_result ADD CONSTRAINT certification_exam_result_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key);
 ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
@@ -23541,6 +23573,41 @@ begin
   values ('ceo_questions',now(),now(),'ok',jsonb_build_object('asked',n),
           'CEO self-questioning: '||n||' strategic question(s) raised from live company data.');
   return jsonb_build_object('asked',n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_standing()
+ RETURNS TABLE(domain text, decision_key text, authority text, reading text, reading_kind text)
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+  v text;
+begin
+  for r in select d.domain, d.decision_key, d.authority, d.measure, d.measure_sql
+             from public.ceo_decision d
+            where d.active
+            order by d.domain, d.decision_key
+  loop
+    domain := r.domain; decision_key := r.decision_key; authority := r.authority;
+    if r.measure_sql is null then
+      reading := 'NOT INSTRUMENTED -- ' || r.measure;
+      reading_kind := 'not_instrumented';
+    else
+      begin
+        execute r.measure_sql into v;
+        reading := coalesce(v, '(null)');
+        reading_kind := 'measured';
+      exception when others then
+        -- An instrument that throws is not a zero either. It is a broken instrument, and it says so.
+        reading := 'INSTRUMENT FAILED -- ' || sqlerrm;
+        reading_kind := 'instrument_failed';
+      end;
+    end if;
+    return next;
+  end loop;
 end $function$
 
 
@@ -94286,6 +94353,8 @@ ALTER TABLE public.category_licence_activity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_quote_specs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_route_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_specs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_decision ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_decision_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certification_exam_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certification_exam_question_vector ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certification_exam_result ENABLE ROW LEVEL SECURITY;
