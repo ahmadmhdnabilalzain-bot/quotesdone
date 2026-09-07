@@ -154,17 +154,23 @@ insert into public.outreach_channel_policy (
 ),
 (
   'phone_call', 'Direct calls by the seat that owns onboarding',
-  'open',
-  'A human-paced channel with no platform to be banned from. The limit is working hours, not policy.',
+  'blocked',
+  'NO OPERATOR EXISTS. Measured 7 Sep 2026: all 54 active seats are software (7 of kind agent, 47 of '
+  || 'kind brain), no seat brief mentions calling or dialling, and the estate has no voice capability. '
+  || 'This channel was marked open on the assumption that a seat could dial a phone. It cannot. The cap '
+  || 'below is what ONE HUMAN could carry; it stays blocked until such a person exists.',
   25, 125, null, null, null, null, false, false,
-  'Capacity of one seat at roughly 25 dials a day', 'estimate',
+  'Capacity of ONE HUMAN at roughly 25 dials a day - and no human exists', 'estimate',
   'MY ESTIMATE. Nobody has ever made a supplier call, so no dial rate has been measured here. 25 a day is a plausible figure for one seat doing qualified B2B outreach with notes; it should be replaced by measurement in the first week of calling.',
   'The highest-converting channel available today and the only one currently open at volume.'
 ),
 (
   'partnership_introduction', 'Introductions through associations, chambers and distributors',
-  'open',
-  'Volume is bounded by the number of counterparties, not by a sending limit. No reputation risk.',
+  'blocked',
+  'NO OPERATOR EXISTS, for the same reason as calls. A partnership approach is a relationship built by '
+  || 'a person; no seat in this company can attend a chamber meeting or hold a commercial conversation. '
+  || 'Volume is bounded by counterparties, not by a sending limit, but the binding constraint today is '
+  || 'that nobody can make the approach.',
   5, 25, null, null, null, null, false, false,
   'Relationship capacity', 'estimate',
   'MY ESTIMATE, and the softest number in the table. Partnership outreach is not really a per-day quantity at all; the real constraint is how many credible counterparties exist, which nobody has counted.',
