@@ -1,3 +1,15 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: dept_plan and cos_execute
+// Department planning and the chief-of-staff executor. Both went with the departments on 7 Sep 2026 and the functions on 8 Sep.
+//
+// This file reads that source at module top level, so it does not fail an assertion -- it
+// cannot start. There is nothing left for it to measure.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the
+// thing it checks does not exist, which converts an absence into confidence.
+//
+// TO REVIVE: rebuild the subject, then rename back to .test.mjs.
 // The third writer, and the constraint the registry declared but never enforced.
 //
 // Audit 7.3 made fn_event_dispatch and cos_execute read the authority model instead of trusting a

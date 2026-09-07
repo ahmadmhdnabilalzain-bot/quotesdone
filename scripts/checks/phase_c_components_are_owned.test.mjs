@@ -130,6 +130,18 @@ test('every deployed edge function in the repository is a component', { skip }, 
     .map((r) => r.component_id.slice(5)));
   const missing = slugs.filter((s) => !known.has(s));
   show('edge functions in supabase/functions with no component', missing, (s) => s);
-  assert.ok(slugs.length > 100, `only ${slugs.length} edge functions found under supabase/functions — wrong directory?`);
+  // The floor was 100 and the estate now has 68: 137 functions were deleted on 8 Sep 2026 under the
+  // founder's rule that anything belonging to neither the CEO, the customer-support agent nor the
+  // website does not exist.
+  //
+  // Lowered rather than removed, because this assertion is not a business rule about how large the
+  // estate should be -- its own message says what it is for: "wrong directory?". It exists to catch
+  // a path mistake, where the glob resolves somewhere with no functions in it and every downstream
+  // check then passes vacuously over an empty list. 20 still catches that (a wrong directory yields
+  // zero or a handful) while letting the real count through.
+  //
+  // Deleting the guard would have been the easier edit and the wrong one: vacuous passes over an
+  // empty set are exactly what it was written to prevent.
+  assert.ok(slugs.length > 20, `only ${slugs.length} edge functions found under supabase/functions — wrong directory?`);
   assert.equal(missing.length, 0);
 });

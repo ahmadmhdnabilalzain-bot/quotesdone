@@ -1,3 +1,15 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: supplier_api
+// The supplier API surface. Deleted 8 Sep 2026.
+//
+// This file reads that source at module top level, so it does not fail an assertion -- it
+// cannot start. There is nothing left for it to measure.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the
+// thing it checks does not exist, which converts an absence into confidence.
+//
+// TO REVIVE: rebuild the subject, then rename back to .test.mjs.
 // The companion to supplier_notification_identity.test.mjs, and the reason that one was not enough.
 //
 // 4 AUG 2026. That guard contains a test named "a failed owner lookup drops the customer free text

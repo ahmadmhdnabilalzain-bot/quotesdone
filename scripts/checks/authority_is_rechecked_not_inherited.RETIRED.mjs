@@ -1,3 +1,15 @@
+// RETIRED 8 September 2026 — its subject was deleted.
+//
+// Subject: cos_execute
+// The chief-of-staff executor. Deleted 8 Sep 2026: no agent owned it.
+//
+// This file reads that source at module top level, so it does not fail an assertion -- it
+// cannot start. There is nothing left for it to measure.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the
+// thing it checks does not exist, which converts an absence into confidence.
+//
+// TO REVIVE: rebuild the subject, then rename back to .test.mjs.
 // A permission carried in the payload is not a permission. It is a claim by the caller.
 //
 // Audit 7.3. cos_execute is the engine that runs registered executors - real side effects, including
