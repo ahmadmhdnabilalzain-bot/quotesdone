@@ -424,6 +424,96 @@ That is a harder plan than the one I wrote an hour ago. It is the one that does 
 
 ---
 
+## 5f. The measured reason nothing followed up, and what the brain must add
+
+You asked which agent owns this, how it slipped, where the follow-up is, where the report to the
+department head is, and where the feedback is. I measured the whole chain against production on
+7 September 2026. The answer is not a missing agent. Every part exists and is assigned. The chain
+breaks at one specific link, and it breaks the same way for all fifty-four seats.
+
+### It is assigned, and it is assigned correctly
+
+The supply department carries it. Seven "KPI missed" tasks were opened automatically at 04:00 today
+and spread across five seats.
+
+| Task | Department | Assigned seat | Status now |
+|---|---|---|---|
+| Registered suppliers this calendar month (target 300) | supply | bd | done |
+| New sendable leads added in the last 30 days | supply | bd | done |
+| Coverage across active supplier categories | supply | onboarding | done |
+| Share of invited suppliers that reach approved | supply | onboarding | done |
+| Categories with 10+ approved suppliers | supply | partnerships_mgr | done |
+| Categories holding enough sendable leads | supply | supplier_coverage | done |
+| Suppliers that completed onboarding and were approved | supply | supplier_retention | done |
+
+`bd` is the Business Development Manager, director grade, and reports to `ceo`. The other five report
+to `bd`. Email deliverability itself is owned separately by `channel_specialist` in customer_experience.
+So ownership, the reporting line and the escalation path all exist in the data.
+
+### The break: the close documents the miss instead of acting on it
+
+Task 576318 is the one that matters. It says, in its own words, "Target 300 suppliers, actual 0 (0.0%
+of target) ... Diagnose the cause and either close the gap or propose a revised target with evidence."
+
+It was created at 04:00 and marked **done at 07:51 the same morning**, in mode `determined`. Its stored
+result contains the facts it gathered and nothing else: no decision, no next step, no events, and no
+proposed revision. The KPI it names still reads 0 against 300.
+
+That is not an isolated row. Of the 134 "KPI missed" tasks ever opened, **113 are marked done and 21
+were cancelled. None was ever left open.** Meanwhile the live scoreboard right now reads 45 MISSED,
+35 NO DATA, 8 NEAR and 32 MET. The tasks close; the misses persist. **A deterministic close that
+records the number and marks itself done is indistinguishable, in the data, from work performed.**
+
+### The break repeats at every link
+
+- **Nothing was reported upward.** `bd` reports to `ceo`. Zero notifications sent today mention a
+  supplier or a KPI. The reporting line exists and has never carried this.
+- **Nothing was escalated.** The internal escalation queue holds zero rows for any of the six supply
+  seats, and zero rows mentioning invitations or suppliers, ever.
+- **The deliverability number is computed for nobody.** The view `v_deliverability` calculates a
+  three-day and seven-day bounce percentage and a PAUSED state. I searched every routine body in the
+  `public` schema: **not one reads it.** It is a dashboard with no consumer.
+- **The seats are running.** `onboarding` has 1,397 recorded runs, `bd` has 10, the other four have
+  three or four each, all still ticking today. Against all of that activity the approved supplier pool
+  stands at one.
+
+### What is genuinely safe, stated precisely
+
+Two things I checked that are better than I expected, and I will not overstate the danger:
+
+- The bounce brake is real and it lives at the point of sending. `enqueue_supplier_invites` reads
+  `invite_max_bounce_rate`, currently 0.05, computes the recent rate itself and can pause. A configured
+  threshold that the sender enforces is a working guard, not a decorative one.
+- The bounce sensor is wired end to end. The provider has carried an enabled webhook for bounce and
+  complaint events since 24 June, pointing at our own endpoint, and bounces do land in the data.
+
+So the machine can measure itself and can stop itself. What it cannot do is **tell anyone** or
+**change what it does next**.
+
+### What the brain must add, and it is one thing repeated fifty-four times
+
+Every seat's plan in this document already ends in a target, a measurement and a fallback ladder. This
+finding adds the link that makes the ladder run:
+
+1. **A close must produce an act, not a record.** A KPI-missed task may only reach done if it wrote a
+   decision, took a fallback rung, or raised an escalation. Otherwise it stays open and ages, and the
+   age itself becomes the signal. Closing with facts alone is refused.
+2. **A miss travels the reporting line automatically.** The `manager_key` chain already exists in the
+   org data. A missed target produces a report to the manager, weekly, with the number, its trend and
+   the rung the seat took. `bd` misses, `ceo` is told, without anyone deciding to tell.
+3. **A repeated miss changes the plan.** Two consecutive misses on the same metric force a branch to
+   the next rung of that seat's ladder. The same rung may not be taken twice without one variable
+   changing. This is the rule that prevents 1,397 runs producing one supplier.
+4. **Every computed number has a named consumer.** No view, no score, no percentage ships without a
+   routine that reads it and a seat that owns the reading. `v_deliverability` is the proof of what
+   happens otherwise.
+
+### A correction I owe you
+
+I have been telling you zero suppliers registered. **That is wrong and I am correcting it.** One
+supplier is approved: MERIDIAN MEP CONTRACTING LLC. The invite-to-approval conversion is 0.58%, not
+zero, against a 5% target. The arithmetic in section 5c was built on a zero and is rewritten on 0.58%.
+
 ## 6. Sequence of work
 
 | Phase | What is built | How you will know it worked |
