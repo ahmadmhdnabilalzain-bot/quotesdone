@@ -52,6 +52,11 @@ create table if not exists public.outreach_channel_policy (
   requires_opt_in     boolean     not null default false,
 
   authority           text        not null,   -- who or what sets this limit
+  -- HOW SOLID IS THE NUMBER. The founder asked "did you set that?" and the answer was yes for all
+  -- five, with only two resting on anything solid. A cap that is an estimate must be visibly an
+  -- estimate in the data, not just in whoever remembers writing it.
+  limit_basis         text        not null default 'estimate',
+  limit_uncertainty   text,
   reviewed_at         timestamptz not null default now(),
   note                text,
 
@@ -59,22 +64,59 @@ create table if not exists public.outreach_channel_policy (
     check (status <> 'open' or max_per_day is not null)
 );
 
+-- The table was created by an earlier run of this file without these two columns, and
+-- CREATE TABLE IF NOT EXISTS will not add them. Alter explicitly so a re-apply converges.
+alter table public.outreach_channel_policy
+  add column if not exists limit_basis       text not null default 'estimate',
+  add column if not exists limit_uncertainty text;
+
+do $add_ck$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.outreach_channel_policy'::regclass
+       and conname  = 'outreach_channel_limit_basis_ck'
+  ) then
+    alter table public.outreach_channel_policy
+      add constraint outreach_channel_limit_basis_ck
+      check (limit_basis in ('founder_ruling','provider_published','measured_here',
+                             'practitioner_norm','estimate'));
+  end if;
+end $add_ck$;
+
 comment on table public.outreach_channel_policy is
   'The safe throughput of each outbound channel. Sits ABOVE every target: when a target and a limit conflict, the limit wins.';
+
+comment on column public.outreach_channel_policy.limit_basis is
+  'How solid the number is. An estimate that is not labelled an estimate becomes a fact the moment someone who was not there reads it.';
 
 comment on column public.outreach_channel_policy.status is
   'blocked means no volume at all, whatever the target requires. An open channel must state a max_per_day.';
 
 -- ---------------------------------------------------------------------------------------------
--- The policy as the evidence supports it today. Every number here is either a provider rule, a
--- widely-published deliverability threshold, or a measurement from this estate. None is aspirational.
+-- The policy as the evidence supports it today.
+--
+-- HONESTY ABOUT WHERE THESE NUMBERS COME FROM. The founder asked "what is the max safe cap, did you
+-- set that?" The answer is that I set all five, and only two rest on anything solid:
+--
+--   founder_ruling      the two zeros. quotesdone.com is blocked because he ruled outreach must not
+--                       risk the authentication channel and the 10% bounce is measured from the
+--                       provider's own log. WhatsApp is blocked because zero contacts have opted in.
+--   practitioner_norm   the 50-a-day outreach cap. A conservative industry convention, NOT a
+--                       published provider limit and NOT measured here.
+--   estimate            the 25 dials a day and the 5 introductions a day. Both are mine, neither has
+--                       ever been measured, because no supplier call has ever been made.
+--
+-- Every row carries limit_basis and limit_uncertainty so this is visible in the data rather than
+-- resting on whoever remembers writing it. An estimate that is not labelled an estimate becomes a
+-- fact the moment it is read by someone who was not there.
 -- ---------------------------------------------------------------------------------------------
 
 insert into public.outreach_channel_policy (
   channel_key, channel_label, status, status_reason,
   max_per_day, max_per_week, ramp_start_per_day, ramp_weekly_growth,
   halt_bounce_pct, halt_complaint_pct, shares_transactional_reputation, requires_opt_in,
-  authority, note
+  authority, limit_basis, limit_uncertainty, note
 ) values
 (
   'email_transactional_domain', 'Cold outreach from quotesdone.com',
@@ -83,7 +125,8 @@ insert into public.outreach_channel_policy (
   || '110 invitations the provider actually sent is 10%, five times the 2% danger threshold. Cold '
   || 'outreach here risks the authentication channel, so the safe volume is zero and stays zero.',
   0, 0, null, null, 2.0, 0.1, true, false,
-  'Founder ruling 7 Sep 2026 plus the provider''s own delivery log',
+  'Founder ruling 7 Sep 2026 plus the provider''s own delivery log', 'founder_ruling',
+  'None. Zero is not an estimate: the founder ruled that outreach must not risk the authentication channel, and the 10% bounce is measured from the provider''s own log.',
   'Never re-open. Cold outreach moves to a separate domain permanently.'
 ),
 (
@@ -93,8 +136,9 @@ insert into public.outreach_channel_policy (
   || 'DMARC, and warmed, its safe volume is zero rather than unknown. The limits below are what it '
   || 'would be permitted to reach ONCE warm, so the arithmetic can already say what such a domain '
   || 'could and could not carry. status=blocked is what holds it at zero today.',
-  500, 2000, 20, 0.5, 2.0, 0.1, false, false,
-  'Standard deliverability practice',
+  50, 250, 20, 0.5, 2.0, 0.1, false, false,
+  'Standard deliverability practice', 'practitioner_norm',
+  'THE WEAKEST NUMBER HERE. 50 a day is the conservative practitioner norm for cold outreach from a single warmed domain; it is NOT a published Resend limit and NOT measured by us. Resend''s own acceptable-use position on cold outreach has not been checked and may forbid it outright, which would make this cap irrelevant. Scaling means more warmed domains, each ramped separately, never more volume from one.',
   'Warm from roughly 20 a day, rising by no more than 50% a week, and only while the previous week '
   || 'held bounce under 2% and complaints under 0.1%. Every address MX-verified before use.'
 ),
@@ -104,7 +148,8 @@ insert into public.outreach_channel_policy (
   'Zero contacts have opted in. An unsolicited business message risks the number being banned, and '
   || 'the ban takes the transactional channel with it. Measured: 13 messages queued, none ever sent.',
   0, 0, null, null, null, null, true, true,
-  'Platform policy plus founder ruling',
+  'Platform policy plus founder ruling', 'founder_ruling',
+  'None. Zero opted-in contacts exist, so any volume is unsolicited by definition.',
   'Only opted-in recipients, only approved templates.'
 ),
 (
@@ -112,7 +157,8 @@ insert into public.outreach_channel_policy (
   'open',
   'A human-paced channel with no platform to be banned from. The limit is working hours, not policy.',
   25, 125, null, null, null, null, false, false,
-  'Capacity of one seat at roughly 25 dials a day',
+  'Capacity of one seat at roughly 25 dials a day', 'estimate',
+  'MY ESTIMATE. Nobody has ever made a supplier call, so no dial rate has been measured here. 25 a day is a plausible figure for one seat doing qualified B2B outreach with notes; it should be replaced by measurement in the first week of calling.',
   'The highest-converting channel available today and the only one currently open at volume.'
 ),
 (
@@ -120,7 +166,8 @@ insert into public.outreach_channel_policy (
   'open',
   'Volume is bounded by the number of counterparties, not by a sending limit. No reputation risk.',
   5, 25, null, null, null, null, false, false,
-  'Relationship capacity',
+  'Relationship capacity', 'estimate',
+  'MY ESTIMATE, and the softest number in the table. Partnership outreach is not really a per-day quantity at all; the real constraint is how many credible counterparties exist, which nobody has counted.',
   'Low volume, far higher conversion, and it carries an implied endorsement cold email cannot buy.'
 )
 -- The LIMITS are canonical and come from this file, so a re-apply corrects them. The STATUS is not
@@ -137,6 +184,8 @@ on conflict (channel_key) do update set
   requires_opt_in    = excluded.requires_opt_in,
   channel_label      = excluded.channel_label,
   authority          = excluded.authority,
+  limit_basis        = excluded.limit_basis,
+  limit_uncertainty  = excluded.limit_uncertainty,
   note               = excluded.note,
   reviewed_at        = now();
 
