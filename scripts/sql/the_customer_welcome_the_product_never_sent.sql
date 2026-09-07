@@ -40,97 +40,11 @@ values ('customer_welcome', false,
 on conflict (kind) do update set
   allowed_to_email = excluded.allowed_to_email, reason = excluded.reason, owner_role = excluded.owner_role;
 
-create or replace function public.fn_customer_welcome(p_customer_id uuid, p_send boolean default true)
- returns jsonb
- language plpgsql
- security definer
- set search_path to 'public', 'pg_temp'
-as $function$
-declare
-  c            public.customers%rowtype;
-  v_rate_pct   int;
-  v_ar         boolean;
-  v_name       text;
-  v_subject    text;
-  v_body       text;
-  v_exists     boolean;
-  v_id         bigint;
-  v_refund_url text := 'https://quotesdone.com/refund-policy';
-  v_app_url    text := 'https://quotesdone.com/me';
-begin
-  select * into c from public.customers where id = p_customer_id;
-  if not found then
-    return jsonb_build_object('ok', false, 'reason', 'no such customer ' || p_customer_id);
-  end if;
-  if coalesce(btrim(c.email),'') = '' then
-    return jsonb_build_object('ok', false, 'reason', 'customer has no email; nothing to welcome');
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_customer_welcome was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- LIVE facts, never hard-coded: the reveal rate is whatever pricing_config currently says.
-  select round(coalesce(standard_reveal_rate, 0.03) * 100)::int into v_rate_pct
-    from public.pricing_config order by id limit 1;
-  v_rate_pct := coalesce(v_rate_pct, 3);
-
-  v_ar   := lower(coalesce(c.locale,'en')) = 'ar';
-  v_name := nullif(btrim(coalesce(c.full_name,'')),'');
-
-  if v_ar then
-    v_subject := 'مرحبًا بك في QuotesDone — انشر طلبك الأول';
-    v_body :=
-      (case when v_name is not null then 'مرحبًا ' || v_name || '،' else 'مرحبًا،' end) || E'\n\n'
-      || 'QuotesDone هي سوق عروض الأسعار المجهّل للأعمال في الإمارات: انشر طلبًا واحدًا واحصل على عروض '
-      || 'متنافسة من موردين موثّقين، وتبقى هوية المورّد مخفية حتى تختار الكشف عنها.' || E'\n\n'
-      || 'انشر طلبك الأول' || E'\n'
-      || 'افتح لوحتك على ' || v_app_url || ' واختر «طلب جديد». حدّد الفئة والكمية والإمارة والمدة الزمنية — '
-      || 'هذا كل ما يحتاجه المورّد ليقدّم عرضًا.' || E'\n\n'
-      || 'التكلفة' || E'\n'
-      || 'نشر الطلبات ومقارنة العروض مجاني. عند كشف المورّد صاحب العرض الذي تختاره، الرسوم ' || v_rate_pct
-      || '٪ من قيمة ذلك العرض. وترى دائمًا أفضل ثلاثة عروض قابلة للمقارنة قبل اتخاذ قرارك.' || E'\n\n'
-      || 'الاسترداد' || E'\n'
-      || 'إذا لم يستجب المورّد الذي تم كشفه لمحاولة تواصل معقولة خلال ثلاثة أيام عمل، تُسترد رسوم الكشف '
-      || 'البالغة ' || v_rate_pct || '٪ مع إثبات محاولتك. السياسة الكاملة: ' || v_refund_url || E'\n\n'
-      || 'يمكنك الرد على هذه الرسالة في أي وقت وسيساعدك فريقنا.';
-  else
-    v_subject := 'Welcome to QuotesDone — post your first request';
-    v_body :=
-      (case when v_name is not null then 'Welcome to QuotesDone, ' || v_name || '.' else 'Welcome to QuotesDone.' end) || E'\n\n'
-      || 'QuotesDone is the UAE''s anonymous B2B quotation marketplace: post one request and receive '
-      || 'competing quotes from verified suppliers, with each supplier''s identity hidden until you '
-      || 'choose to reveal it.' || E'\n\n'
-      || 'Post your first request' || E'\n'
-      || 'Open your dashboard at ' || v_app_url || ' and choose New request. Tell us the category, the '
-      || 'quantity, your emirate and your timeline — that is all a supplier needs to quote.' || E'\n\n'
-      || 'What it costs' || E'\n'
-      || 'Posting requests and comparing quotes is free. When you reveal the supplier behind a quote '
-      || 'you want, the fee is ' || v_rate_pct || '% of that quote. You always see the top three '
-      || 'comparable quotes before you decide.' || E'\n\n'
-      || 'Refunds' || E'\n'
-      || 'If a revealed supplier does not respond to your reasonable contact attempt within three '
-      || 'working days, the ' || v_rate_pct || '% reveal fee is refundable with proof of your attempt. '
-      || 'Full policy: ' || v_refund_url || E'\n\n'
-      || 'Reply to this email any time and our team will help.';
-  end if;
-
-  if not p_send then
-    return jsonb_build_object('ok', true, 'sent', false, 'subject', v_subject, 'body', v_body,
-                             'to_email', c.email, 'locale', coalesce(c.locale,'en'), 'reveal_pct', v_rate_pct);
-  end if;
-
-  -- One welcome per address. A re-registration or a repeated trigger never doubles it.
-  select exists (select 1 from public.notifications n
-                  where n.kind = 'customer_welcome' and lower(n.to_email) = lower(c.email))
-    into v_exists;
-  if v_exists then
-    return jsonb_build_object('ok', true, 'sent', false, 'reason', 'already welcomed', 'to_email', c.email);
-  end if;
-
-  insert into public.notifications (type, kind, channel, to_email, to_role, subject, body)
-  values ('customer_welcome', 'customer_welcome', 'email', c.email, 'customer', v_subject, v_body)
-  returning id into v_id;
-
-  return jsonb_build_object('ok', true, 'sent', true, 'notification_id', v_id, 'to_email', c.email,
-                           'reveal_pct', v_rate_pct);
-end $function$;
 
 revoke all on function public.fn_customer_welcome(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.fn_customer_welcome(uuid, boolean) to service_role;

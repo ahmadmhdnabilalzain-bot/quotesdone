@@ -480,66 +480,11 @@ begin
 end
 $function$;
 
-CREATE OR REPLACE FUNCTION public.qd_reveal_nudges()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare base text := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/supplier_ack';
-        v_window int; v_chase int;
-begin
-  -- 6 Sep 2026: the nudges quote the ladder from pricing_config (window 5, chase 3), one source.
-  select refund_window_working_days, chase_after_working_days into v_window, v_chase
-    from public.pricing_config order by id limit 1;
-  v_window := coalesce(v_window, 5); v_chase := coalesce(v_chase, 3);
+-- ROUTINE REMOVED 7 September 2026. public.qd_reveal_nudges was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  with due as (
-    select t.id, t.inquiry_id, t.supplier_id, t.ack_token, l.email, coalesce(l.locale,'en') as locale
-    from transactions t join leads l on l.id=t.supplier_id
-    where t.revealed_at is not null and t.revealed_at < now()-interval '24 hours'
-      and t.nudged_24_at is null and coalesce(t.fee_status,'')='paid' and t.refund_status is null and t.supplier_ack_at is null
-      and not exists (select 1 from messages m where m.inquiry_id=t.inquiry_id and m.supplier_id=t.supplier_id and m.sender='supplier' and coalesce(m.blocked,false)=false and m.created_at>t.revealed_at)
-      and l.email ~ '@'
-  ), ins as (
-    insert into notifications(type,to_email,to_role,inquiry_id,subject,body)
-    select 'supplier_nudge', d.email, 'supplier', d.inquiry_id,
-      case when d.locale='ar' then 'عميل دافع بانتظارك — يُرجى الرد'
-           else 'A paying customer is waiting for you — please respond' end,
-      (case when d.locale='ar'
-        then 'دفع أحد العملاء لكشف بيانات تواصلك على QuotesDone وهو بانتظار ردك. يُرجى التواصل معه في أقرب وقت. وفقاً لاتفاقية المورّد، يجب عليك الرد خلال ' || v_window::text || ' أيام عمل من الكشف؛ وإذا لم ترد خلال ' || v_chase::text || ' أيام عمل نتابعك مع نسخة للعميل، وإذا لم ترد بحلول يوم العمل ' || v_window::text || ' يجري مؤسسنا اتصالاً أخيراً ثم يُسترد المبلغ للعميل وتُحصَّل من حسابك رسوم الكشف (٣٪ من قيمة العرض) مع رسم إداري قدره ٢٥٠ درهماً وفائدة ٩٪ سنوياً.'
-        else 'A customer has paid to reveal your contact on QuotesDone and is waiting to hear from you. Please contact them as soon as possible. Under the Supplier Agreement you must respond within ' || v_window::text || ' working days of the reveal; if you have not responded after ' || v_chase::text || ' working days we chase you with the customer copied, and if there is still no response on working day ' || v_window::text || ' our founder makes a final call, the customer is refunded, and the reveal fee (3% of the quoted value) plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.' end)
-      || E'\n\n' ||
-      (case when d.locale='ar' then 'هل تواصلت مع العميل بالفعل؟ أكّد هنا لإيقاف هذه التذكيرات: '
-            else 'Already contacted this customer? Confirm here to stop these reminders: ' end)
-      || base || '?tx=' || d.id || '&token=' || d.ack_token
-    from due d returning 1
-  )
-  update transactions set nudged_24_at=now() where id in (select id from due);
-
-  with due as (
-    select t.id, t.inquiry_id, t.supplier_id, t.ack_token, l.email, coalesce(l.locale,'en') as locale
-    from transactions t join leads l on l.id=t.supplier_id
-    where t.revealed_at is not null and t.revealed_at < now()-interval '48 hours'
-      and t.nudged_48_at is null and coalesce(t.fee_status,'')='paid' and t.refund_status is null and t.supplier_ack_at is null
-      and not exists (select 1 from messages m where m.inquiry_id=t.inquiry_id and m.supplier_id=t.supplier_id and m.sender='supplier' and coalesce(m.blocked,false)=false and m.created_at>t.revealed_at)
-      and l.email ~ '@'
-  ), ins as (
-    insert into notifications(type,to_email,to_role,inquiry_id,subject,body)
-    select 'supplier_nudge', d.email, 'supplier', d.inquiry_id,
-      case when d.locale='ar' then 'تذكير أخير: عميل لا يزال بانتظارك — يُرجى الرد اليوم'
-           else 'Final reminder: a customer is still waiting — please respond today' end,
-      (case when d.locale='ar'
-        then 'هذا تذكير أخير بأن عميلاً دافعاً بانتظار ردك على QuotesDone. إذا لم ترد بحلول يوم العمل ' || v_window::text || ' من الكشف وتم استرداد المبلغ للعميل، تُحصَّل من حسابك رسوم الكشف (٣٪ من قيمة العرض) مع رسم إداري قدره ٢٥٠ درهماً وفائدة ٩٪ سنوياً، وقد يؤدي تكرار عدم الرد إلى إزالتك من المنصّة.'
-        else 'This is a final reminder that a paying customer is waiting for your response on QuotesDone. If you have not responded by working day ' || v_window::text || ' after the reveal and the customer is refunded, the reveal fee (3% of the quoted value) plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account, and repeated non-response may lead to removal from the Platform.' end)
-      || E'\n\n' ||
-      (case when d.locale='ar' then 'هل تواصلت مع العميل بالفعل؟ أكّد هنا لإيقاف هذه التذكيرات: '
-            else 'Already contacted this customer? Confirm here to stop these reminders: ' end)
-      || base || '?tx=' || d.id || '&token=' || d.ack_token
-    from due d returning 1
-  )
-  update transactions set nudged_48_at=now() where id in (select id from due);
-end $function$;
 
 -- the two retired ladder keys keep their rows (fn_dept_decision_thresholds lists them) but say what they are now
 update public.decision_policy
@@ -689,7 +634,11 @@ declare v_job bigint; v jsonb;
 begin
   select jobid into v_job from cron.job where jobname = 'refund_ladder_sweep_hourly';
   if v_job is null then
-    v_job := cron.schedule('refund_ladder_sweep_hourly', '35 * * * *', 'select public.fn_refund_ladder_sweep();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
   end if;
   v := public.fn_kernel_wrap_and_enable_cron(v_job, 'customer_success_director', 'customer_experience', 'routine_operational_decision');
   if coalesce((v->>'ok')::boolean, false) is not true then raise exception 'refund_ladder_sweep_hourly wrap failed: %', v; end if;

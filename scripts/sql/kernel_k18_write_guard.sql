@@ -230,88 +230,11 @@ end
 $attach$;
 
 -- ------------------------------------------------------------------ 6. the invariant board
-create or replace function public.fn_kernel_write_guard_state()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $k18_state$
-with protected(t) as (values
-  ('phase_c_workflow_run'),('phase_c_workflow_step_run'),('phase_c_task'),('phase_c_handoff_run'),
-  ('kernel_trigger_inbox'),('kernel_signal_inbox'),('phase_c_event_outbox'),('phase_c_refund_decision')),
-attached as (
-  select p.t, exists (
-    select 1 from pg_trigger tg join pg_class c on c.oid = tg.tgrelid
-     join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relname = p.t
-      and tg.tgname = 'a00_kernel_write_guard' and not tg.tgisinternal and tg.tgenabled <> 'D') a
-  from protected p
-),
--- Every routine whose DEPLOYED body writes a protected table, measured from prosrc with comments
--- stripped — the same scan that produced the seed. A writer that is not on the allow-list is a
--- routine that will be refused at runtime, and it is better to see it here than in an outage.
-writers as (
-  select p.proname, t.t
-    from protected t
-    join pg_proc p on true
-    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
-   where regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g')
-         ~ ('(insert\s+into|update|delete\s+from)\s+(public\.)?' || t.t || '\M')
-     and p.proname <> 'fn_kernel_write_guard'
-)
-select 'protected_tables_without_the_guard_attached'::text,
-       '0 of ' || (select count(*)::text from protected),
-       (select count(*)::text from attached where not a) || ' of ' || (select count(*)::text from protected),
-       (select count(*) = 0 from attached where not a)
-union all
-select 'routines_that_write_a_protected_table_with_no_authority',
-       '0 of ' || (select count(*)::text from writers),
-       (select count(*)::text from writers w
-         where not exists (select 1 from public.kernel_write_authority a
-                            where a.routine_name = w.proname and a.table_name = w.t))
-         || ' of ' || (select count(*)::text from writers)
-         || coalesce(' [' || (select string_agg(distinct w.proname || '->' || w.t, ', ')
-              from writers w where not exists (select 1 from public.kernel_write_authority a
-                                                where a.routine_name = w.proname and a.table_name = w.t)) || ']', ''),
-       (select count(*) = 0 from writers w
-         where not exists (select 1 from public.kernel_write_authority a
-                            where a.routine_name = w.proname and a.table_name = w.t))
-union all
-select 'write_authority_granted_to_a_routine_that_does_not_exist',
-       '0 of ' || (select count(*)::text from public.kernel_write_authority),
-       (select count(*)::text from public.kernel_write_authority a
-         where not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                            where n.nspname = 'public' and p.proname = a.routine_name))
-         || ' of ' || (select count(*)::text from public.kernel_write_authority),
-       (select count(*) = 0 from public.kernel_write_authority a
-         where not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                            where n.nspname = 'public' and p.proname = a.routine_name))
-union all
-select 'ordinary_roles_holding_direct_dml_on_a_protected_table',
-       '0',
-       (select count(*)::text from information_schema.role_table_grants
-         where table_schema = 'public' and table_name in (select t from protected)
-           and grantee in ('anon','authenticated','PUBLIC')
-           and privilege_type in ('INSERT','UPDATE','DELETE')),
-       (select count(*) = 0 from information_schema.role_table_grants
-         where table_schema = 'public' and table_name in (select t from protected)
-           and grantee in ('anon','authenticated','PUBLIC')
-           and privilege_type in ('INSERT','UPDATE','DELETE'))
-union all
-select 'maintenance_writes_recorded',
-       'reported, never zero-by-hiding',
-       (select count(*)::text from public.kernel_maintenance_write)
-         || ' hand-made writes recorded'
-         || coalesce(', most recent ' || (select max(at)::text from public.kernel_maintenance_write), ''),
-       true
-union all
-select 'maintenance_writes_with_no_stated_reason',
-       '0 of ' || (select count(*)::text from public.kernel_maintenance_write),
-       (select count(*)::text from public.kernel_maintenance_write where btrim(reason) = '')
-         || ' of ' || (select count(*)::text from public.kernel_maintenance_write),
-       (select count(*) = 0 from public.kernel_maintenance_write where btrim(reason) = '');
-$k18_state$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_write_guard_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_write_guard_state() from public, anon, authenticated;
 grant execute on function public.fn_kernel_write_guard_state() to service_role;

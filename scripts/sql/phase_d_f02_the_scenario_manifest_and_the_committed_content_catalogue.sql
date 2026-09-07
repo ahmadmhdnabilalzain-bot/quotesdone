@@ -313,54 +313,11 @@ COMMENT ON FUNCTION public.fn_phase_d_fixture_input(bigint, text, text) IS
 -- ================================================================================================
 -- 4. THE BOARD
 -- ================================================================================================
-CREATE OR REPLACE FUNCTION public.fn_phase_d_fixture_catalogue_state()
- RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with c as (select * from public.phase_d_fixture_catalogue)
-  select 'catalogue_entries'::text, 'at least 40'::text,
-         (select count(*)::text from c), (select count(*) from c) >= 40
-  union all
-  select 'text_fixtures_without_the_marker', '0',
-         (select count(*)::text from c where jsonb_typeof(value) = 'string'
-            and value #>> '{}' not like '%PHASE_D_FIXTURE_DO_NOT_PUBLISH%'),
-         not exists (select 1 from c where jsonb_typeof(value) = 'string'
-            and value #>> '{}' not like '%PHASE_D_FIXTURE_DO_NOT_PUBLISH%')
-  union all
-  select 'financial_fixtures_without_a_declared_currency', '0',
-         (select count(*)::text from c where value_kind = 'number'
-            and field_key ~ '(amount|fee|price|fils|aed|cost|total)' and currency is null),
-         not exists (select 1 from c where value_kind = 'number'
-            and field_key ~ '(amount|fee|price|fils|aed|cost|total)' and currency is null)
-  union all
-  select 'rows_whose_checksum_does_not_match_their_content', '0',
-         (select count(*)::text from c
-           where checksum <> encode(sha256(convert_to(concat_ws(chr(31),
-             fixture_id, fixture_version::text, coalesce(workflow_id,''), coalesce(step_id,''),
-             scope, field_key, value::text, value_kind, coalesce(currency,''),
-             expected_schema, expected_result, prohibited_external_use),'UTF8')),'hex')),
-         not exists (select 1 from c
-           where checksum <> encode(sha256(convert_to(concat_ws(chr(31),
-             fixture_id, fixture_version::text, coalesce(workflow_id,''), coalesce(step_id,''),
-             scope, field_key, value::text, value_kind, coalesce(currency,''),
-             expected_schema, expected_result, prohibited_external_use),'UTF8')),'hex'))
-  union all
-  select 'catalogue_rows_naming_a_step_that_is_not_frozen', '0',
-         (select count(*)::text from c where step_id is not null
-            and not exists (select 1 from public.phase_b_workflow_step s where s.step_id = c.step_id)),
-         not exists (select 1 from c where step_id is not null
-            and not exists (select 1 from public.phase_b_workflow_step s where s.step_id = c.step_id))
-  union all
-  select 'scenario_records_still_committed', '0',
-         (select count(*)::text from public.phase_d_scenario_record),
-         not exists (select 1 from public.phase_d_scenario_record)
-  union all
-  select 'fixture_contexts_still_committed', '0',
-         (select count(*)::text from public.phase_d_test_context_grant),
-         not exists (select 1 from public.phase_d_test_context_grant);
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_fixture_catalogue_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 COMMENT ON FUNCTION public.fn_phase_d_fixture_catalogue_state() IS
   'THE PHASE D FIXTURE CATALOGUE BOARD. Counts the catalogue, refuses an unmarked text fixture, an '

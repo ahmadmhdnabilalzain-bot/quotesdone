@@ -603,78 +603,11 @@ end $function$
 -- 2. The board. The disagreement count is DISCLOSED, not narrowed to zero: it is a property of the
 --    frozen registry and Phase D may measure it, not change it.
 -- -------------------------------------------------------------------------------------------------
-create or replace function public.fn_phase_d_reference_fold_state()
-returns table(check_name text, expected text, actual text, state text, detail text)
-language sql stable
-set search_path to 'public', 'pg_temp'
-as $board$
-with declared as (
-  -- THE BOARD COMPARES LIKE FOR LIKE, AND THE FIRST DRAFT DID NOT.
-  -- phase_d_step_effect.effect_relation is a REGISTRY name and for a store-backed object that is
-  -- the view, public.v_obj_<object>. The DRIVER compares against the physical table, because
-  -- fn_phase_d_object_write returns public.phase_d_object_record:record_id=N at runtime. Both are
-  -- correct in their own place; putting the runtime name into the registry comparison reported 40
-  -- healthy steps as mismatched, including every step of W02, W06, W08, W10 and W11 — five
-  -- workflows that CLOSE. Two vocabularies for one relation, which is the same trap this file
-  -- exists to close, met once more while writing the check for it.
-  select e.step_id, e.workflow_id, e.effect_object_id,
-         b.canonical_relation as object_relation,
-         e.effect_relation
-    from public.phase_d_step_effect e
-    join public.phase_d_business_object_binding b on b.object_id = e.effect_object_id
-   where e.effect_object_id is not null
-),
-mismatch as (
-  select * from declared
-   where effect_relation is not null
-     and object_relation is not null
-     and effect_relation is distinct from object_relation
-)
-select 'the_fold_compares_the_produced_relation_to_the_objects_own',
-       '1',
-       (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-         where n.nspname = 'public' and p.proname = 'fn_phase_d_drive_workflow'
-           and p.prosrc like '%v_produced_rel is distinct from v_object_rel%'),
-       case when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                          where n.nspname = 'public' and p.proname = 'fn_phase_d_drive_workflow'
-                            and p.prosrc like '%v_produced_rel is distinct from v_object_rel%')
-            then 'GREEN' else 'RED' end,
-       'without this a review record''s id is filed as the inquiry it reviews, and the next gate is '
-       || 'asked about an object that does not exist'
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_reference_fold_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-union all
--- DISCLOSED, NOT NARROWED. This number is a fact about the frozen registry, not a target.
-select 'steps_that_record_an_external_intent_instead_of_writing_their_object',
-       'disclosed',
-       (select count(*)::text from mismatch),
-       'DISCLOSED',
-       coalesce((select string_agg(distinct workflow_id, ', ' order by workflow_id) from mismatch),'none')
-       || ' — every one of these lands in public.phase_d_effect_ledger: they RECORD an external '
-       || 'intent under the hold rather than writing the business object they name. W13 is all seven '
-       || 'of its steps, which is why it holds no notification reference and correctly does not need '
-       || 'one. Refusing the fold for these is right, and the durable contract behind them is the '
-       || 'section 9 adapter work, not this file.'
-
-union all
--- THE POPULATION THE RUNTIME FIX ACTUALLY PROTECTS. A review handler appends a review_record
--- whatever object the registry says the step is about, so every one of these would have filed a
--- record_id under a business object''s name. Disclosed for the same reason: Phase B is frozen.
-select 'review_steps_that_name_a_business_object',
-       'disclosed',
-       (select count(*)::text
-          from public.phase_d_step_effect e
-          join public.phase_d_handler_binding hb on hb.step_id = e.step_id
-         where hb.handler_class = 'REVIEW_HANDLER' and e.effect_object_id is not null),
-       'DISCLOSED',
-       coalesce((select string_agg(distinct e.workflow_id, ', ' order by e.workflow_id)
-                   from public.phase_d_step_effect e
-                   join public.phase_d_handler_binding hb on hb.step_id = e.step_id
-                  where hb.handler_class = 'REVIEW_HANDLER' and e.effect_object_id is not null),'none')
-       || ' — W05-S06 is the one that was measured doing it: declared effect_object_id=inquiry, '
-       || 'produced public.phase_d_object_record, and GATE-011 was then asked about inquiry 3123. '
-       || 'The registry''s effect_relation says these steps write the business object; at runtime '
-       || 'they append a review record. The driver now trusts what was produced, not what was declared.'
-$board$;
 
 revoke all on function public.fn_phase_d_reference_fold_state() from public, anon, authenticated;
 

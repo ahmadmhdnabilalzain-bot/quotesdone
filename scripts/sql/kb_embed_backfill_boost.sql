@@ -32,12 +32,9 @@
 -- embedding rate collapsed from 164/min to 17/min. Batch is 5, the only size the gte-small
 -- session survives; the concurrency stays, because a separate worker per invocation is the whole
 -- reason more invocations help where a bigger batch does not.
-select cron.unschedule('kb_embed_backfill_boost');
-select cron.schedule('kb_embed_backfill_boost', '* * * * *', $job$
-  select net.http_post(
-    url := 'https://__PROJECT_REF__.supabase.co/functions/v1/kb_embed',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_knowledge'),
-                               'limit', 5))
-  from generate_series(1, 6);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 $job$);

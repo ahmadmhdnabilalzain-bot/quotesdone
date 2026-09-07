@@ -59,46 +59,11 @@
 -- would be a reason to look harder at the repair.
 -- ================================================================================================
 
-create or replace function public.fn_model_benchmark()
-returns table(task_class text, model_used text, runs bigint, success_rate numeric, avg_cost_usd numeric, verdict text)
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-begin
-  return query
-  with s as (
-    select o.task_class, o.model_used,
-           count(*) as runs,
-           round(avg(case when o.ok then 1.0 else 0.0 end), 4) as success_rate,
-           round((avg(o.cost_aed) / 3.6725)::numeric, 6) as avg_cost_usd
-    from ai_cost_log o
-    where o.occurred_at > now() - interval '30 days'
-      and o.task_class is not null
-      and o.model_used is not null
-    group by 1, 2
-    having count(*) >= 20   -- never judge a model on a handful of runs
-  )
-  select s.task_class, s.model_used, s.runs, s.success_rate, s.avg_cost_usd,
-         case
-           when s.success_rate >= 0.95 then 'GOOD - safe to keep or promote for this class'
-           when s.success_rate >= 0.85 then 'ACCEPTABLE - watch'
-           else 'POOR - this class needs a stronger tier'
-         end
-  from s order by s.task_class, s.success_rate desc;
+-- ROUTINE REMOVED 7 September 2026. public.fn_model_benchmark was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- Feed the score back onto the registry so routing can see it. This is the only writer of
-  -- model_registry.quality_score, which is why that column was null on all six models.
-  update model_registry r set quality_score = q.sr, updated_at = now()
-  from (
-    select o.model_used, round(avg(case when o.ok then 1.0 else 0.0 end),4) sr
-    from ai_cost_log o
-    where o.occurred_at > now() - interval '30 days'
-      and o.task_class is not null and o.model_used is not null
-    group by 1 having count(*) >= 20
-  ) q
-  where r.model_id = q.model_used;
-end $function$;
 
 create or replace function public.fn_model_autoswitch()
 returns integer

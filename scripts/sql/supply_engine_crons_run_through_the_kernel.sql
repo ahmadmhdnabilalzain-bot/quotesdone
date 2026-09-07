@@ -27,8 +27,11 @@ begin
                   where n.nspname = 'cron' and p.proname = 'schedule') then
     raise exception 'pg_cron not installed';
   end if;
-  -- cron.schedule() upserts on the job name.
-  perform cron.schedule('supplier_discovery_daily', '50 2 * * *', 'select public.fn_supplier_discovery_promote(300, 500);');
+  -- CRON REMOVED 7 Sep 2026 (founder: "Remove it from the code. Delete, not archive.").
+  -- This scheduled supplier_discovery_daily, which was deleted from cron.job in the same change.
+  -- The notice replaces the call so this routine still runs and still reports, rather
+  -- than silently doing nothing or quietly recreating a job nobody asked for.
+  raise notice 'cron scheduling removed on 7 Sep 2026: supplier_discovery_daily is not recreated';
 end $$;
 
 insert into public.cron_registry (jobname, human_name, category, purpose)

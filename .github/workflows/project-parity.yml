@@ -97,21 +97,9 @@ jobs:
       # remembers, which is not a gate". Every write is an aborted-transaction probe (RAISE rolls it
       # back — verified: 0 residue), it calls no model, and it retries a bare 429 so a concurrent
       # management-API job cannot fail it falsely.
-      - name: The org connects like a real company (cascade, messaging, approval, escalation)
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          NO_PAID_AI: 'true'
-          OPENROUTER_DISABLED: 'true'
-        run: node scripts/checks/org_connectivity_signal_path.test.mjs
       # The adversarial companion: org-wide invariants (every role, every department) + the refusal
       # cases (an empty department, an incomplete contract, a wrong approver, a refund by an AI, an
       # unmeasurable goal). Same aborted-tx discipline, zero residue, no model.
-      - name: The org connectivity is correct under pressure (refusals + org-wide invariants)
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          NO_PAID_AI: 'true'
-          OPENROUTER_DISABLED: 'true'
-        run: node scripts/checks/org_connectivity_scenarios.test.mjs
 
   # ============================================================================================
   # THE KERNEL AND HANDLER GATE, RUN FOR REAL ON EVERY PULL REQUEST.
@@ -173,21 +161,26 @@ jobs:
           # Deliberately no `set -e`: the exit code of each check is read into $code and acted on
           # below. With `set -e` the shell would leave before $? could be captured, and a failing
           # check would end the job without ever printing which one it was.
+          # ELEVEN CHECKS LEFT THIS LIST ON 7 SEP 2026, retired with their subject. The founder
+          # removed the organisation chart, every pre-programmed workflow and the kernel gates, so
+          # kernel_positive_controls, phase_c_guards_reject_injected_defects,
+          # kernel_write_guard_both_directions, active_signal_types_are_executable,
+          # company_is_fully_wired, application_source_of_truth, phase_d_dispatch_reaches_executed,
+          # phase_d_input_schemas_are_typed_and_closed, phase_d_object_record_has_a_contract,
+          # kernel_boards_are_green and a_failed_scheduled_run_has_a_reader each assert a noun that
+          # was deliberately deleted. Each is now scripts/checks/<name>.RETIRED.mjs and carries a
+          # header saying what it checked and why it is gone. They were RETIRED, not edited until
+          # they passed: a check that goes green against an empty schema asserts nothing while
+          # still looking like a guard.
+          #
+          # These four remain because they never depended on the organisation, and all four are
+          # green: the kernel's own invariants, cancellation reaching the kernel, every discharge
+          # claim reaching its table, and -- the one that must never leave this list --
+          # anon_cannot_execute_security_definer, which is security, not structure.
           for t in kernel_invariants \
-                   kernel_positive_controls \
-                   phase_c_guards_reject_injected_defects \
-                   kernel_write_guard_both_directions \
                    cancellation_reaches_the_kernel \
-                   active_signal_types_are_executable \
-                   company_is_fully_wired \
-                   kernel_boards_are_green \
                    every_discharge_claim_reaches_its_table \
-                   application_source_of_truth \
-                   anon_cannot_execute_security_definer \
-                   a_failed_scheduled_run_has_a_reader \
-                   phase_d_dispatch_reaches_executed \
-                   phase_d_input_schemas_are_typed_and_closed \
-                   phase_d_object_record_has_a_contract; do
+                   anon_cannot_execute_security_definer; do
             echo "::group::$t"
             # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at its last check and the log
             # carried NOT ONE LINE of that check's output -- in a step that had run for eight minutes.

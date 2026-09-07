@@ -19,73 +19,23 @@
 -- These are records, not decisions. The reasoning behind each routine lives in whichever file
 -- introduced it; this file only asserts the current text.
 
-CREATE OR REPLACE FUNCTION public.canary_scan(haystack text)
- RETURNS TABLE(kind text, label text, fingerprint text, matched text)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select c.kind, c.label, c.fingerprint,
-    case
-      when position(lower(c.fingerprint) in lower(haystack))>0 then 'fingerprint'
-      when position(lower(c.label) in lower(haystack))>0 then 'company name'
-      when c.honeytoken_email is not null and position(lower(c.honeytoken_email) in lower(haystack))>0 then 'honeytoken email'
-    end as matched
-  from canary_records c
-  where position(lower(c.fingerprint) in lower(haystack))>0
-     or position(lower(c.label) in lower(haystack))>0
-     or (c.honeytoken_email is not null and position(lower(c.honeytoken_email) in lower(haystack))>0);
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.canary_scan was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_autonomy_audit_run()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare a jsonb; stalled int;
-begin
-  a := fn_autonomy_audit();
-  stalled := coalesce((a->'summary'->>'stalled')::int, 0);
-  insert into org_memory(scope,kind,content,source)
-    values ('exec','audit','Autonomy self-audit: '||(a->'summary')::text||' — '||stalled||' department loop(s) stalled.', 'autonomy_audit');
-  if stalled > 0 then
-    insert into agent_actions(agent,kind,status,risk,title,recommendation,detail)
-    values ('brief','autonomy_stall','pending','medium',
-      stalled||' department loop(s) have stalled',
-      'One or more departments have not planned in 4+ days and have no open or recent work. Check fn_autonomy_audit().',
-      a);
-  end if;
-  return a;
-end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_autonomy_dispose()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare r record; n_appr int:=0; n_ack int:=0; n_queue int:=0; c text;
-begin
-  for r in select * from public.agent_actions
-           where status in ('pending','held_for_review','proposed','open','needs_review')
-  loop
-    c := public.fn_autonomy_class(r.kind, r.target_table, r.recommendation);
-    if c='clean_supplier' and r.target_id ~ '^\d+$' then
-      update public.leads set approval_status='approved', approved_at=now(),
-             approval_decided_by='chief_of_staff (auto)', lifecycle_stage='active'
-       where id=r.target_id::bigint and approval_status='pending' and coalesce(banned,false)=false;
-      update public.agent_actions set status='approved', decided_by='chief_of_staff (auto)', decided_at=now() where id=r.id;
-      n_appr := n_appr+1;
-    elsif c='ack' then
-      update public.agent_actions set status='auto_done', decided_by='chief_of_staff (auto)', decided_at=now() where id=r.id;
-      n_ack := n_ack+1;
-    else  -- 'founder' or 'keep' → remains visible in the queue
-      n_queue := n_queue+1;
-    end if;
-  end loop;
-  return jsonb_build_object('approved_suppliers',n_appr,'auto_cleared_logged',n_ack,'in_your_queue',n_queue);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_autonomy_audit_run was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
+
+-- ROUTINE REMOVED 7 September 2026. public.fn_autonomy_dispose was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.fn_cancel_inquiry(p_inquiry uuid, p_customer uuid, p_reason text DEFAULT NULL::text)
  RETURNS jsonb
@@ -225,108 +175,17 @@ AS $function$
   limit greatest(p_limit, 1);
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_chief_of_staff()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare disp jsonb; exec jsonb; health jsonb; ops jsonb; rev jsonb;
-  n_pending int; n_aging int; n_depts int; brief text; recs text; dept_txt text; esc_txt text; owner text;
-  prioritized jsonb; run_id bigint;
-begin
-  disp := public.fn_autonomy_dispose();
-  exec := public.fn_ws_exec();
-  health := exec->'command'->'health'; ops := exec->'command'->'ops'; rev := ops->'revenue';
+-- ROUTINE REMOVED 7 September 2026. public.fn_chief_of_staff was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select count(*) into n_pending from public.agent_actions where status in ('pending','held_for_review','proposed','open','needs_review');
-  select count(*) into n_aging from public.agent_actions
-    where status in ('pending','held_for_review','proposed','open','needs_review') and created_at < now()-interval '3 days';
-  select count(distinct agent) into n_depts from public.agent_runs where started_at > now()-interval '24 hours';
 
-  select string_agg(line, E'\n' order by line) into dept_txt from (
-    select '- '||agent||': '||count(*)||' runs'||
-           case when count(*) filter (where status='error')>0 then ' ('||count(*) filter (where status='error')||' failed)' else '' end as line
-    from public.agent_runs where started_at > now()-interval '24 hours' group by agent
-  ) d;
+-- ROUTINE REMOVED 7 September 2026. public.fn_collections was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select string_agg('- ['||coalesce(risk,'?')||'] '||coalesce(title,kind)||' ('||agent||')', E'\n') into esc_txt from (
-    select agent,risk,title,kind from public.agent_actions
-     where status in ('pending','held_for_review','proposed','open','needs_review') order by created_at asc limit 10
-  ) e;
-
-  select coalesce(jsonb_agg(x order by cat asc),'[]'::jsonb) into prioritized from (
-    select jsonb_build_object('id',id,'agent',agent,'risk',risk,'title',title,
-             'age_days',round(extract(epoch from (now()-created_at))/86400)) x, created_at cat
-    from public.agent_actions where status in ('pending','held_for_review','proposed','open','needs_review')
-    order by created_at asc limit 15
-  ) s;
-
-  recs := '';
-  if n_pending>0 then recs := recs||'1) '||n_pending||' item(s) in your queue (payments, deletions, flagged suppliers, marketing to post, BD to enable, to-dos).'||E'\n'; end if;
-  if n_aging>0 then recs := recs||'2) '||n_aging||' waited >3 days — action or dismiss.'||E'\n'; end if;
-  if (health->>'band') is not null and lower(health->>'band')<>'good'
-     then recs := recs||'3) Health "'||(health->>'band')||'" ('||coalesce(health->>'index','?')||'/100).'||E'\n'; end if;
-  if recs='' then recs := 'Queue clear. Everything auto-handled where safe.'; end if;
-
-  brief := 'Chief of Staff — daily briefing ('||to_char(now(),'DD Mon YYYY')||')'||E'\n\n'
-    ||'HEADLINE: auto-approved '||coalesce(disp->>'approved_suppliers','0')||' clean supplier(s), auto-cleared '
-      ||coalesce(disp->>'auto_cleared_logged','0')||' logged alert(s). '||n_pending||' item(s) in your queue. Health '
-      ||coalesce(health->>'index','?')||'/100 ('||coalesce(health->>'band','?')||').'||E'\n\n'
-    ||'YOUR QUEUE:'||E'\n'||coalesce(esc_txt,'- Empty.')||E'\n\n'
-    ||'DEPARTMENTS (24h):'||E'\n'||coalesce(dept_txt,'- No agent runs in the last 24h.')||E'\n\n'
-    ||'KPIs: revenue month '||coalesce(rev->>'month_aed','0')||' AED, cash received '||coalesce(rev->>'cash_received_aed','0')
-      ||' AED, pending fees '||coalesce(rev->>'pending_fees_aed','0')||' AED, active RFQs '||coalesce(ops->'marketplace'->>'active_rfqs','0')||'.'||E'\n\n'
-    ||'RECOMMENDATIONS:'||E'\n'||recs;
-
-  insert into public.agent_runs(agent,started_at,finished_at,status,counts,note)
-    values('chief_of_staff',now(),now(),'ok',
-      jsonb_build_object('approved_suppliers',disp->>'approved_suppliers','auto_cleared',disp->>'auto_cleared_logged',
-        'in_queue',n_pending,'aging',n_aging,'departments',n_depts),'coordination + autonomy v2')
-    returning id into run_id;
-
-  insert into public.agent_actions(agent,kind,status,risk,title,recommendation,target_table,target_id,detail)
-    values('chief_of_staff','exec_briefing','auto_done','low',
-      'Chief of Staff briefing — '||n_pending||' in queue, '||coalesce(disp->>'auto_cleared_logged','0')||' auto-cleared',
-      'Informational.', null, null,
-      jsonb_build_object('briefing',brief,'prioritized',prioritized,'autonomy',disp,'health',health->>'index','in_queue',n_pending));
-
-  select split_part(coalesce(value,'management@quotesdone.com'),',',1) into owner from public.app_secrets where key='admin_emails';
-  owner := coalesce(nullif(trim(owner),''),'management@quotesdone.com');
-  insert into public.notifications(type,to_email,to_role,channel,subject,body)
-    values('chief_of_staff', owner, 'admin','email',
-      'Chief of Staff — '||n_pending||' in your queue, health '||coalesce(health->>'index','?')||'/100', brief);
-
-  return jsonb_build_object('ok',true,'autonomy',disp,'in_queue',n_pending,'aging',n_aging,'departments',n_depts,'run_id',run_id);
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.fn_collections()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_run bigint; v_reminded int:=0; r record;
-begin
-  insert into agent_runs(agent, started_at) values ('collections', now()) returning id into v_run;
-  -- NO commission is charged on won jobs (founder policy: zero commission). This engine never creates dues.
-  -- The only supplier charge is the non-response fine (= the refunded reveal fee), created by qd_on_refund_resolved,
-  -- and enforced by a matching block until settled. Here we only send a gentle reminder; no extra fees are added.
-  for r in select d.*, l.claimed_by, l.email as lead_email, l.company_name
-           from supplier_dues d join leads l on l.id=d.supplier_id
-           where d.status in ('due','pending','reminded')
-             and (d.last_reminder_at is null or d.last_reminder_at < now()-interval '4 days')
-             and d.reminders < 3
-  loop
-    update supplier_dues set status='reminded', reminders=reminders+1, last_reminder_at=now() where id=r.id;
-    insert into notifications(type,to_email,to_role,channel,status,lead_id,subject,body)
-      values ('nonresponse_reminder', coalesce(r.claimed_by,r.lead_email), 'supplier', 'portal', 'portal', r.supplier_id,
-        'Reminder: outstanding non-response charge',
-        'Reminder: a non-response charge of AED '||round(r.amount_due)||' is outstanding on your account. This equals the reveal fee that was refunded to a customer because a paid reveal was not responded to. Please settle it on the portal to lift the hold on new matches. QuotesDone charges no commission on won jobs.');
-    v_reminded := v_reminded + 1;
-  end loop;
-  update agent_runs set finished_at=now(), status='ok', counts=jsonb_build_object('reminders',v_reminded,'commission_charged',0) where id=v_run;
-end;$function$;
 
 CREATE OR REPLACE FUNCTION public.fn_company_brief(p_max_chars integer DEFAULT 1600)
  RETURNS text
@@ -355,37 +214,11 @@ begin
   return left(out, greatest(p_max_chars, 400));
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_company_faq_sync()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_body text; n int;
-begin
-  select count(*) into n from company_faq where status='approved';
-  select 'QUOTESDONE COMPANY FAQ — canonical answers every agent must use verbatim-in-spirit (founder-approved). '||
-         'If asked anything here, answer consistently with this. Do not contradict it or invent beyond it.'||E'\n\n'||
-         coalesce(string_agg(
-           '## ['||section||'] '||question||E'\n'||coalesce(answer,'(no answer yet)')||
-           case when audience<>'all' then E'\n(Audience: '||audience||')' else '' end,
-           E'\n\n' order by section, sort, id), '')
-    into v_body
-  from company_faq where status='approved';
+-- ROUTINE REMOVED 7 September 2026. public.fn_company_faq_sync was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  if n=0 then
-    delete from agent_knowledge where agent_key='_global' and topic='Company FAQ (canonical answers)';
-    return jsonb_build_object('synced',0);
-  end if;
-  if exists(select 1 from agent_knowledge where agent_key='_global' and topic='Company FAQ (canonical answers)') then
-    update agent_knowledge set content=v_body, updated_at=now()
-      where agent_key='_global' and topic='Company FAQ (canonical answers)';
-  else
-    insert into agent_knowledge(agent_key,topic,content,priority,created_at,updated_at)
-      values('_global','Company FAQ (canonical answers)', v_body, 96, now(), now());
-  end if;
-  return jsonb_build_object('synced', n);
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_company_state()
  RETURNS jsonb
@@ -750,69 +583,11 @@ begin
 end
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_inquiry_workstream_activate(p_group_id bigint, p_trade_key text, p_actor text DEFAULT 'system'::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare v_ws_id bigint; v_route integer; v_reactivated boolean := false; v_reqs integer;
-begin
-  if not exists (select 1 from public.mep_trade where trade_key = p_trade_key) then
-    return jsonb_build_object('ok', false, 'error', 'unknown_trade', 'trade_key', p_trade_key);
-  end if;
-  if not exists (select 1 from public.inquiry_workstream_group where id = p_group_id) then
-    return jsonb_build_object('ok', false, 'error', 'unknown_group');
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_inquiry_workstream_activate was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select catalog_num into v_route from public.mep_trade_route
-   where trade_key = p_trade_key and is_primary order by catalog_num limit 1;
-
-  select id into v_ws_id from public.inquiry_workstream
-   where group_id = p_group_id and trade_key = p_trade_key;
-
-  if v_ws_id is null then
-    insert into public.inquiry_workstream (group_id, trade_key, route_catalog_num)
-    values (p_group_id, p_trade_key, v_route) returning id into v_ws_id;
-  else
-    update public.inquiry_workstream
-       set active = true, activated_at = now(), deactivated_at = null
-     where id = v_ws_id and active = false;
-    v_reactivated := found;
-    update public.inquiry_workstream set active = true where id = v_ws_id;
-  end if;
-
-  insert into public.inquiry_workstream_requirement (workstream_id, question_id, field_id, mandatory)
-  select v_ws_id, min(q.question_id), s.field_id, bool_or(q.mandatory)
-    from public.mep_trade_route tr
-    join public.kb_operational_route_map m on m.catalog_num = tr.catalog_num
-    join kb_stage.questions q on q.subcategory_slug = m.subcategory_slug
-    join public.field_definition_source s
-      on s.subcategory_slug = q.subcategory_slug and s.source_field_key = q.field_key
-    left join public.subcategory_trade_contribution c
-      on c.subcategory_slug = m.subcategory_slug and c.catalog_num = tr.catalog_num
-     and c.trade_key = tr.trade_key
-   where tr.trade_key = p_trade_key and q.field_key is not null
-     and coalesce(c.contribution, 'technical') <> 'excluded'
-     and (coalesce(c.contribution, 'technical') <> 'regulatory'
-          or q.field_key = any(coalesce(c.contributed_field_keys, '{}'::text[])))
-     and not exists (select 1 from public.field_definition_reference r
-                      where r.field_id = s.field_id and r.referencing_trade_key = p_trade_key)
-   group by s.field_id
-  on conflict (workstream_id, field_id) do update
-     set mandatory = public.inquiry_workstream_requirement.mandatory or excluded.mandatory;
-
-  get diagnostics v_reqs = row_count;
-
-  insert into public.inquiry_state_audit (group_id, workstream_id, event, detail, actor)
-  values (p_group_id, v_ws_id,
-          case when v_reactivated then 'workstream_reactivated' else 'workstream_activated' end,
-          jsonb_build_object('trade_key', p_trade_key, 'route_catalog_num', v_route,
-                             'requirements', v_reqs), p_actor);
-
-  return jsonb_build_object('ok', true, 'workstream_id', v_ws_id, 'trade_key', p_trade_key,
-                            'reactivated', v_reactivated, 'requirements', v_reqs);
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_intake_slug_for_catalog(p_catalog_slug text)
  RETURNS text
@@ -899,61 +674,11 @@ AS $function$
   );
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_llm_drift_watch()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v jsonb := '[]'::jsonb; v_off int; v_fb numeric; v_fail int; v_owner text; v_recent int;
-begin
-  select count(*) into v_recent from llm_calls where created_at > now() - interval '24 hours';
-  if v_recent = 0 then
-    return jsonb_build_object('checked_at', now(), 'calls_24h', 0, 'findings', 0,
-                              'note','no llm traffic in 24h - nothing to judge');
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_llm_drift_watch was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- 1. any model not on the approved list
-  select count(*) into v_off from v_llm_offpolicy;
-  if v_off > 0 then
-    v := v || jsonb_build_object('issue','off_policy_model','severity','high',
-         'detail',(select jsonb_agg(jsonb_build_object('fn',fn,'model',model,'calls',calls)) from v_llm_offpolicy));
-  end if;
-
-  -- 2. fallback rate: Opus answering when Sonnet was asked means Sonnet is failing
-  select round(100.0 * count(*) filter (where fell_back) / nullif(count(*),0), 1)
-    into v_fb from llm_calls where created_at > now() - interval '24 hours';
-  if coalesce(v_fb,0) > 20 then
-    v := v || jsonb_build_object('issue','high_fallback_rate','severity','high','pct',v_fb,
-         'detail','the primary model is failing often - you are paying fallback prices silently');
-  end if;
-
-  -- 3. outright failures
-  select count(*) into v_fail from llm_calls
-   where created_at > now() - interval '24 hours' and not ok;
-  if v_fail > 5 then
-    v := v || jsonb_build_object('issue','llm_failures','severity','medium','count',v_fail);
-  end if;
-
-  if jsonb_array_length(v) > 0 then
-    v_owner := split_part(coalesce((select value from app_secrets where key='admin_emails'),
-                                   'management@quotesdone.com'), ',', 1);
-    -- once per 24h only, so a standing problem does not spam (lesson from the smoke check)
-    if not exists (select 1 from founder_alerts
-                    where event='llm_drift' and created_at > now() - interval '24 hours') then
-      insert into founder_alerts(level,event,detail,channel)
-        values ('warn','llm_drift','Model policy drift: '||v::text, 'system');
-      insert into notifications(type,to_email,to_role,channel,subject,body,status)
-        values ('llm_drift', v_owner, 'admin', 'email', 'QuotesDone: AI model drift detected',
-                'The model-policy watch found issues in the last 24h:'||chr(10)||chr(10)||
-                jsonb_pretty(v)||chr(10)||chr(10)||
-                'Check the AI Observability view (v_llm_model_mix / v_llm_offpolicy).', 'queued');
-    end if;
-  end if;
-
-  return jsonb_build_object('checked_at', now(), 'calls_24h', v_recent,
-                            'findings', jsonb_array_length(v), 'detail', v);
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_memory_search(p_q text, p_kinds text[] DEFAULT NULL::text[], p_lim integer DEFAULT 20)
  RETURNS TABLE(kind text, ref text, snippet text, ts timestamp with time zone, score real)
@@ -1002,59 +727,17 @@ AS $function$
   limit greatest(1, coalesce(p_lim,20));
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_mep_full_scope(p_text_norm text)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare r record; v_re text; v_sep text := '[^[:alnum:].;,،؛' || chr(10) || ']+';
-begin
-  for r in select pattern_norm, lang from public.mep_trade_pattern where kind = 'mep_full_phrase' loop
-    if public.fn_term_matches(p_text_norm, r.pattern_norm, r.lang) then
-      return jsonb_build_object('matched', true, 'basis', 'explicit_full_mep_phrase',
-                                'anchor', r.pattern_norm, 'modifier', null, 'modifier_kind', null);
-    end if;
-  end loop;
+-- ROUTINE REMOVED 7 September 2026. public.fn_mep_full_scope was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  for r in
-    select a.pattern_norm as anchor, m.pattern_norm as modifier, m.kind as modifier_kind, a.lang
-      from public.mep_trade_pattern a
-      join public.mep_trade_pattern m on m.kind in ('scope_full','scope_container')
-     where a.kind = 'mep_anchor'
-  loop
-    v_re := '(^|[^[:alnum:]])' || r.anchor || '(' || v_sep || '[[:alnum:]]+){0,2}' || v_sep
-            || r.modifier || '($|[^[:alnum:]])';
-    if p_text_norm ~ v_re then
-      return jsonb_build_object('matched', true, 'basis', 'anchor_plus_modifier',
-                                'anchor', r.anchor, 'modifier', r.modifier,
-                                'modifier_kind', r.modifier_kind);
-    end if;
-    v_re := '(^|[^[:alnum:]])' || r.modifier || '(' || v_sep || '[[:alnum:]]+){0,2}' || v_sep
-            || r.anchor || '($|[^[:alnum:]])';
-    if p_text_norm ~ v_re then
-      return jsonb_build_object('matched', true, 'basis', 'modifier_plus_anchor',
-                                'anchor', r.anchor, 'modifier', r.modifier,
-                                'modifier_kind', r.modifier_kind);
-    end if;
-  end loop;
 
-  return jsonb_build_object('matched', false, 'basis', null);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_officer_recs was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_officer_recs(n integer DEFAULT 8)
- RETURNS text
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select string_agg(line, E'\n') from (
-    select '- ['||er.officer||'] '||left(coalesce(rec->>'action',''),150) as line
-    from (select distinct on (officer) officer, recommendations from exec_reports order by officer, created_at desc) er,
-         lateral jsonb_array_elements(er.recommendations) rec
-    where coalesce(rec->>'action','')<>''
-    limit n) z;
-$function$;
 
 CREATE OR REPLACE FUNCTION public.fn_ops_knowledge_search(p_dept text, p_query text, p_limit integer DEFAULT 5)
  RETURNS TABLE(record_id text, title text, content text, record_type text, authority_tier text, implementation_status text, rank real)
@@ -1130,30 +813,11 @@ begin
   return new;
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_org_exec_knowledge_fill(p_limit integer DEFAULT 5)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare v_gaps int; v_req bigint; v_recon jsonb;
-begin
-  -- self-heal the taxonomy every run (fast, synchronous)
-  v_recon := public.fn_kb_reconcile();
-  -- how many service categories still have zero knowledge chunks
-  select count(*) into v_gaps from public.category_specs s
-    where not exists (select 1 from public.kb_chunks k where k.category = s.category);
-  -- trigger the (slow) generator in the background
-  select net.http_post(
-    url:='https://' || public.qd_project_ref() || '.supabase.co/functions/v1/kb_autofill_gaps',
-    headers:='{"Content-Type":"application/json"}'::jsonb,
-    body:=jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_db_internal'),'limit',greatest(1,least(coalesce(p_limit,5),5))),
-    timeout_milliseconds:=280000
-  ) into v_req;
-  return jsonb_build_object('empty_categories', v_gaps, 'autofill_triggered', true, 'reconcile', v_recon,
-    'note', case when v_gaps=0 then 'Knowledge base complete: 0 empty categories. Taxonomy reconciled ('||coalesce(v_recon->>'cat_prefix_stripped','0')||' prefixes stripped, '||coalesce(v_recon->>'alias_remapped','0')||' aliased).'
-                 else 'Triggered background gap-fill for '||v_gaps||' empty category(ies); taxonomy reconciled. Generation runs in the background and logs to agent_runs.' end);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_org_exec_knowledge_fill was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.fn_os_detail(p_entity text, p_id text)
  RETURNS jsonb
@@ -1292,83 +956,17 @@ AS $function$
   );
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_os_selftest()
- RETURNS jsonb
- LANGUAGE plpgsql
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare tests text[] := array[
-  'select public.fn_os_command()',
-  'select public.fn_os_nav()',
-  'select public.fn_os_dashboard_viz()',
-  'select public.fn_os_search(''glass'')',
-  'select public.fn_inbox_list()',
-  'select public.fn_ws_exec()','select public.fn_ws_marketplace()','select public.fn_ws_customers()',
-  'select public.fn_ws_operations()','select public.fn_ws_ai()','select public.fn_ws_knowledge()',
-  'select public.fn_ws_documents()','select public.fn_ws_analytics()','select public.fn_ws_company()',
-  'select public.fn_ws_finance()','select public.fn_ws_agents()','select public.fn_ws_marketing()',
-  'select public.fn_ws_ea()','select public.fn_ws_reports()','select public.fn_ws_strategy()',
-  'select public.fn_ws_governance()','select public.fn_ws_fraud()','select public.fn_ws_refunds()',
-  'select public.fn_ws_suppliers(''{}''::jsonb)',
-  'select public.fn_ws_supplier_360(30305)',
-  'select public.fn_ws_agent_ops(''security'')',
-  'select public.fn_suppliers_board('''','''',5,0)',
-  'select public.fn_rfq_board('''',5,0)',
-  'select public.fn_customers_board('''',5,0)',
-  'select public.fn_agents_board()',
-  'select public.fn_os_record(''supplier'',''30305'')',
-  'select public.fn_entity_files(''supplier'',''30372'')',
-  'select public.fn_entity_activity(''supplier'',''4299'')',
-  'select public.fn_os_health()',
-  'select public.fn_os_reconcile()',
-  'select public.fn_os_settings_list()',
-  'select public.fn_os_automation_list()',
-  'select public.fn_os_catalog_list()',
-  'select public.fn_os_incident_list('''')',
-  'select public.fn_os_runbooks()'
-];
-r jsonb := '[]'::jsonb; t text; ec text;
-begin
-  foreach t in array tests loop
-    begin execute t; ec := null;
-    exception when others then ec := SQLERRM; end;
-    r := r || jsonb_build_object('test', split_part(split_part(t,'public.',2),'(',1), 'ok', ec is null, 'err', ec);
-  end loop;
-  return r;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_os_selftest was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_p2c1_fixture_satisfy(p_group bigint, p_ws bigint, p_actor text DEFAULT 'selftest'::text)
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare rec record; n integer := 0; v_val text;
-begin
-  for rec in
-    select r.field_id, fd.scope, fd.allowed_values
-      from public.inquiry_workstream_requirement r
-      join public.field_definition fd on fd.field_id = r.field_id
-     where r.workstream_id = p_ws and r.mandatory
-  loop
-    v_val := coalesce(rec.allowed_values[1], 'fixture-value');
-    if rec.scope = 'shared' then
-      perform public.fn_inquiry_answer_set(p_group, rec.field_id, v_val,
-                'customer_confirmed', 'customer', p_actor);
-    else
-      perform public.fn_inquiry_answer_set(p_group, rec.field_id, v_val,
-                'customer_confirmed', 'customer', p_actor, null, array[p_ws]);
-    end if;
-    n := n + 1;
-  end loop;
 
-  insert into public.inquiry_gate (group_id, workstream_id, gate_key, state, asserted_by)
-  select p_group, p_ws, gr.gate_key, 'passed'::public.gate_state, p_actor
-    from public.inquiry_gate_required gr where gr.level = 'workstream'
-  on conflict do nothing;
+-- ROUTINE REMOVED 7 September 2026. public.fn_p2c1_fixture_satisfy was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  return n;
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_phase_b_change_request_append_only()
  RETURNS trigger
@@ -1385,368 +983,29 @@ begin
 end
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_phase_b_invariants()
- RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-with
--- ---------------------------------------------------------------- declared counts
-counts(check_name, expected, actual) as (
-  values
-    ('count.workflows',            (select (b.counts->>'workflows')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow)),
-    ('count.steps',                (select (b.counts->>'steps')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_workflow_step)),
-    ('count.handoffs',             (select (b.counts->>'handoffs')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_handoff)),
-    ('count.business_objects',     (select (b.counts->>'business_objects')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_business_object)),
-    ('count.business_rules',       (select (b.counts->>'business_rules')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_business_rule)),
-    ('count.exceptions',           (select (b.counts->>'exceptions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_exception)),
-    ('count.sla_policies',         (select (b.counts->>'sla_policies')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_sla_policy)),
-    ('count.gates',                (select (b.counts->>'gates')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_gate)),
-    ('count.events',               (select (b.counts->>'events')::text from public.org_phase_baseline b where b.phase = 'B'), (select count(*)::text from public.phase_b_event)),
-    ('count.workflow_states',      (select (b.counts->>'workflow_states')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow_state)),
-    ('count.workflow_transitions', (select (b.counts->>'workflow_transitions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_workflow_transition)),
-    ('count.step_states',          (select (b.counts->>'step_states')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_step_state)),
-    ('count.step_transitions',     (select (b.counts->>'step_transitions')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_step_transition)),
-    ('count.founder_boundaries',   (select (b.counts->>'founder_boundaries')::text from public.org_phase_baseline b where b.phase = 'B'),  (select count(*)::text from public.phase_b_founder_boundary)),
-    ('count.cross_department_handoffs', (select (b.counts->>'cross_department_handoffs')::text from public.org_phase_baseline b where b.phase = 'B'),
-      (select count(*)::text from public.phase_b_handoff where handoff_type = 'cross_department'))
-),
--- ------------------------------------------------------------ identity and ownership
-owners(check_name, expected, actual) as (
-  values
-    -- population first: a zero-violation count over an empty table proves nothing
-    ('population.steps_with_owner', '257',
-      (select count(*)::text from public.phase_b_workflow_step where accountable_role_id <> '')),
-    ('identity.unknown_step_owners', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        where s.actor_kind = 'canonical_role'
-          and public.fn_phase_b_resolve_role(s.accountable_role_id) is null)),
-    ('identity.inactive_step_owners', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        join public.org_role r on r.role_id = s.accountable_role_id
-        where s.actor_kind = 'canonical_role' and r.status <> 'active')),
-    ('identity.steps_without_owner', '0',
-      (select count(*)::text from public.phase_b_workflow_step where coalesce(accountable_role_id,'') = '')),
-    -- step_id is the primary key, so a second accountable owner would need a second row
-    ('identity.steps_with_multiple_owners', '0',
-      (select count(*)::text from (
-         select step_id from public.phase_b_workflow_step group by step_id having count(*) > 1) d)),
-    ('identity.workflows_without_owner', '0',
-      (select count(*)::text from public.phase_b_workflow where coalesce(accountable_role_id,'') = '')),
-    ('identity.overlay_accountable_outside_scope', '0',
-      (select count(*)::text from public.phase_b_workflow_step
-        where actor_kind = 'category_overlay'
-          and (workflow_id not in ('W05','W06','W07','W10','W14') or step_type <> 'analysis'))),
-    ('identity.dynamic_actor_accountable', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        join public.phase_b_dynamic_actor a on a.actor_token = s.accountable_role_id
-        where not a.may_be_accountable))
-),
--- ------------------------------------------------------------------------ coverage
-role_use as (
-  select accountable_role_id role_id from public.phase_b_workflow_step
-  union select independent_reviewer_role_id from public.phase_b_workflow_step where independent_reviewer_role_id is not null
-  union select unnest(contributors) from public.phase_b_workflow_step
-  union select accountable_role_id from public.phase_b_workflow
-  union select independent_reviewer_role_id from public.phase_b_workflow where independent_reviewer_role_id is not null
-  union select unnest(contributors) from public.phase_b_workflow
-  union select detection_owner_role_id from public.phase_b_exception
-  union select escalation_owner_role_id from public.phase_b_exception
-  union select accountable_role_id from public.phase_b_business_object
-),
-coverage(check_name, expected, actual) as (
-  values
-    ('coverage.canonical_roles_total', '90',
-      (select count(*)::text from public.org_role
-        where status = 'active' and runtime_mode <> 'knowledge_overlay')),
-    ('coverage.roles_unrepresented', '0',
-      (select count(*)::text from public.org_role r
-        where r.status = 'active' and r.runtime_mode <> 'knowledge_overlay'
-          and r.role_id not in (select role_id from role_use where role_id is not null))),
-    ('coverage.departments_unrepresented', '0',
-      (select count(*)::text from public.org_departments d
-        where d.active and not exists (
-          select 1 from public.org_role r
-          where r.primary_department_id = d.dept_key and r.status = 'active'
-            and r.role_id in (select role_id from role_use where role_id is not null)))),
-    ('coverage.category_overlays_governed', '86',
-      (select count(*)::text from public.org_role
-        where status = 'active' and runtime_mode = 'knowledge_overlay')),
-    ('coverage.workflows_without_steps', '0',
-      (select count(*)::text from public.phase_b_workflow w
-        where not exists (select 1 from public.phase_b_workflow_step s where s.workflow_id = w.workflow_id))),
-    ('coverage.workflows_without_closure_step', '0',
-      (select count(*)::text from public.phase_b_workflow w
-        where not exists (select 1 from public.phase_b_workflow_step s
-                           where s.workflow_id = w.workflow_id and s.is_closure_step))),
-    ('coverage.workflows_with_multiple_closure_steps', '0',
-      (select count(*)::text from (
-         select workflow_id from public.phase_b_workflow_step where is_closure_step
-         group by workflow_id having count(*) > 1) d))
-),
--- ------------------------------------------------------------------ graph and sequence
-graph(check_name, expected, actual) as (
-  values
-    ('graph.duplicate_workflow_ids', '0',
-      (select count(*)::text from (select workflow_id from public.phase_b_workflow group by 1 having count(*)>1) d)),
-    ('graph.duplicate_step_ids', '0',
-      (select count(*)::text from (select step_id from public.phase_b_workflow_step group by 1 having count(*)>1) d)),
-    ('graph.impossible_next_step_references', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        where (s.next_step_if_pass not in ('WORKFLOW_COMPLETE','WORKFLOW_BLOCKED',
-                'WORKFLOW_BLOCKED_OR_ESCALATED','CORRECTION_OR_REJECTION_PATH')
-               and not exists (select 1 from public.phase_b_workflow_step t where t.step_id = s.next_step_if_pass))
-           or (s.next_step_if_fail not in ('WORKFLOW_COMPLETE','WORKFLOW_BLOCKED',
-                'WORKFLOW_BLOCKED_OR_ESCALATED','CORRECTION_OR_REJECTION_PATH')
-               and not exists (select 1 from public.phase_b_workflow_step t where t.step_id = s.next_step_if_fail)))),
-    ('graph.steps_without_inbound_path', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        where s.step_no > 1
-          and not exists (select 1 from public.phase_b_workflow_step p
-                           where p.workflow_id = s.workflow_id
-                             and (p.next_step_if_pass = s.step_id or p.next_step_if_fail = s.step_id)))),
-    ('graph.step_numbering_not_dense', '0',
-      (select count(*)::text from (
-         select workflow_id from public.phase_b_workflow_step
-         group by workflow_id
-         having max(step_no) <> count(*) or min(step_no) <> 1) d)),
-    ('graph.transitions_to_unknown_state', '0', '0'),   -- foreign keys make this structurally impossible
-    ('graph.terminal_state_reopened', '0',
-      (select count(*)::text from public.phase_b_workflow_transition t
-        join public.phase_b_workflow_state f on f.state = t.from_state
-        join public.phase_b_workflow_state x on x.state = t.to_state
-        where f.terminal and not x.terminal)),
-    ('graph.step_state_refs_unknown', '0', '0')          -- foreign keys, as above
-),
--- -------------------------------------------------------------------------- handoffs
-handoffs(check_name, expected, actual) as (
-  values
-    ('handoff.owner_change_without_contract', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        join public.phase_b_workflow_step n on n.step_id = s.next_step_if_pass
-        where s.accountable_role_id <> n.accountable_role_id
-          and not exists (select 1 from public.phase_b_handoff h
-                           where h.from_step_id = s.step_id and h.to_step_id = n.step_id))),
-    ('handoff.incomplete_packet', '0',
-      (select count(*)::text from public.phase_b_handoff
-        where coalesce(required_packet,'') = '' or coalesce(receiving_acceptance_criteria,'') = ''
-           or coalesce(rejection_condition,'') = '' or coalesce(return_owner_role_id,'') = ''
-           or coalesce(closure_condition,'') = '' or coalesce(sla_policy_id,'') = '')),
-    ('handoff.role_mismatch_with_steps', '0',
-      (select count(*)::text from public.phase_b_handoff h
-        join public.phase_b_workflow_step f on f.step_id = h.from_step_id
-        join public.phase_b_workflow_step t on t.step_id = h.to_step_id
-        where h.sending_role_id <> f.accountable_role_id
-           or h.receiving_role_id <> t.accountable_role_id)),
-    ('handoff.cross_department_without_sla', '0',
-      (select count(*)::text from public.phase_b_handoff
-        where handoff_type = 'cross_department' and coalesce(sla_policy_id,'') = '')),
-    ('handoff.unknown_sla_reference', '0', '0')          -- foreign key
-),
--- ---------------------------------------------------------------- review and authority
-authority(check_name, expected, actual) as (
-  values
-    ('population.steps_with_reviewer', 'gt0',
-      (case when (select count(*) from public.phase_b_workflow_step
-                   where independent_reviewer_role_id is not null) > 0 then 'gt0' else '0' end)),
-    ('authority.creator_reviewer_collisions', '0',
-      (select count(*)::text from public.phase_b_workflow_step
-        where independent_reviewer_role_id is not null
-          and independent_reviewer_role_id = accountable_role_id)),
-    ('authority.workflow_owner_reviewer_collisions', '0',
-      (select count(*)::text from public.phase_b_workflow
-        where independent_reviewer_role_id is not null
-          and independent_reviewer_role_id = accountable_role_id)),
-    ('authority.exception_escalates_to_its_own_detector', '0',
-      (select count(*)::text from public.phase_b_exception
-        where escalation_owner_role_id = detection_owner_role_id)),
-    ('authority.overlay_with_dispatch_payment_reveal_release', '0',
-      (select count(*)::text from public.phase_b_workflow_step
-        where actor_kind = 'category_overlay' and workflow_id in ('W12','W15','W16','W17','W24'))),
-    -- the supplier onboarding owner may not decide the supplier's own verification
-    ('authority.onboarding_approving_own_supplier', '0',
-      (select count(*)::text from public.phase_b_workflow_step s
-        where s.workflow_id = 'W10' and s.step_type in ('decision','review')
-          and s.accountable_role_id = (select accountable_role_id from public.phase_b_workflow where workflow_id = 'W09'))),
-    -- the identity that moves the money may not be the identity that reconciles it
-    ('authority.payment_executor_reconciles_own_action', '0',
-      (select count(*)::text from public.phase_b_workflow_step r
-        where r.workflow_id = 'W16' and r.step_type = 'review'
-          and r.accountable_role_id in (
-            select e.accountable_role_id from public.phase_b_workflow_step e
-            where e.workflow_id = 'W16' and e.step_type in ('intake','execution','decision')
-              and e.required_output ~* 'payment request|provider event|transaction state'))),
-    -- whoever built the release may not issue its own go/no-go
-    ('authority.release_decided_by_an_implementer', '0',
-      (select count(*)::text from public.phase_b_workflow_step d
-        where d.workflow_id = 'W24' and d.step_type = 'decision'
-          and d.accountable_role_id in (
-            select accountable_role_id from public.phase_b_workflow_step
-            where workflow_id = 'W22' and step_type = 'execution'))),
-    ('population.founder_boundaries_in_scope', '10',
-      (select count(*)::text from public.phase_b_founder_boundary)),
-    ('authority.founder_boundary_without_any_gate', '0',
-      (select count(*)::text from public.phase_b_founder_boundary b
-        where not exists (
-          select 1 from public.phase_b_workflow_step s
-          where s.founder_gate is not null and lower(s.founder_gate) <> 'none'
-            and b.workflow_scope like '%' || s.workflow_id || '%')))
-),
--- ------------------------------------------------------------------ business integrity
-integrity(check_name, expected, actual) as (
-  values
-    -- W12 dispatch must sit behind quote readiness, an approved safe package and an approved
-    -- supplier.  Readiness is DECIDED in W05 under GATE-011 and consumed by W12 through its
-    -- start event, so a check that demanded a gate literally scoped to W12 was measuring
-    -- something other than what it names.  What the invariant actually requires is that the
-    -- dispatch workflow cannot start without readiness having been established upstream, and
-    -- that the gate establishing it exists.  Both halves are asserted.
-    ('integrity.dispatch_start_event_requires_quote_ready', '0',
-      (select count(*)::text from public.phase_b_workflow
-        where workflow_id = 'W12' and start_event !~* 'quote.?ready')),
-    ('integrity.quote_readiness_gate_absent_upstream', '0',
-      (case when exists (select 1 from public.phase_b_gate
-                          where gate_name ~* 'quote.?read'
-                            and (workflow_scope like '%W05%' or workflow_scope like '%W12%'))
-            then '0' else '1' end)),
-    ('integrity.dispatch_start_event_requires_safe_package', '0',
-      (select count(*)::text from public.phase_b_workflow
-        where workflow_id = 'W12' and start_event !~* 'supplier.?safe')),
-    ('integrity.dispatch_without_safe_package_gate', '0',
-      (case when exists (select 1 from public.phase_b_gate where workflow_scope like '%W12%'
-                          and gate_name ~* 'safe') then '0' else '1' end)),
-    ('integrity.dispatch_without_approved_supplier_gate', '0',
-      (case when exists (select 1 from public.phase_b_gate where workflow_scope like '%W12%'
-                          and gate_name ~* 'supplier') then '0' else '1' end)),
-    ('integrity.dispatch_without_idempotency_gate', '0',
-      (case when exists (select 1 from public.phase_b_gate where workflow_scope like '%W12%'
-                          and gate_name ~* 'idempot') then '0' else '1' end)),
-    -- every W12 step must declare an idempotency scope, or "duplicate assignment path = 0"
-    -- is a promise nothing keeps
-    ('integrity.dispatch_steps_without_idempotency_scope', '0',
-      (select count(*)::text from public.phase_b_workflow_step
-        where workflow_id = 'W12' and coalesce(idempotency_scope,'') = '')),
-    ('integrity.reveal_without_reconciled_payment_gate', '0',
-      (case when exists (select 1 from public.phase_b_gate where workflow_scope like '%W15%'
-                          and (gate_name ~* 'payment|reveal')) then '0' else '1' end)),
-    ('integrity.mutable_accepted_terms_record', '0',
-      (select count(*)::text from public.phase_b_business_object
-        where object_id ~* 'terms' and record_policy not in ('append_only','append_only_lifecycle','immutable'))),
-    ('integrity.mutable_approved_safe_package', '0',
-      (select count(*)::text from public.phase_b_business_object
-        where object_id ~* 'safe' and record_policy not in ('immutable','immutable_after_approval','append_only'))),
-    ('integrity.platform_rewrites_supplier_quotation', '0',
-      (select count(*)::text from public.phase_b_business_object
-        where object_id ~* 'quotation|quote' and mutation_rule ~* 'platform (may )?(rewrite|edit|alter)'))
-),
--- ------------------------------------------------------------------- phase boundaries
-boundaries(check_name, expected, actual) as (
-  values
-    ('phase_a.baseline_drift_rows', '0', (select count(*)::text from public.fn_phase_a_baseline_drift())),
-    ('phase_a.organization_violations', '0',
-      (select count(*)::text from public.fn_phase_a_organization_violations())),
-    ('phase_b.crosswalk_rows_measured', 'gt0',
-      (case when (select count(*) from public.phase_b_crosswalk) > 0 then 'gt0' else '0' end)),
-    ('phase_b.crosswalk_unclassified', '0',
-      (select count(*)::text from public.phase_b_crosswalk where coalesce(target_classification,'') = '')),
-    -- Phase B activates nothing.  These read the live estate, not a Phase B table.
-    -- the hold is an open circuit with open_until far in the future; 8 routes, all held.
-    -- count(*)=0 would make bool_and(...) return null, which is not a pass, so the population
-    -- is asserted separately rather than folded into the same expression.
-    ('population.llm_routes', '8', (select count(*)::text from public.llm_route_health)),
-    ('phase_b.openrouter_routes_still_held', 'true',
-      (select case when bool_and(open_until > now()) then 'true' else 'false' end
-         from public.llm_route_health)),
-    ('phase_b.cron_jobs_created_by_phase_b', '0',
-      (select count(*)::text from cron.job where jobname like 'phase_b%'))
-)
-select c.check_name, c.expected, c.actual,
-       case when c.expected = 'gt0' then c.actual = 'gt0' else c.actual = c.expected end
-from (
-  select * from counts union all select * from owners union all select * from coverage
-  union all select * from graph union all select * from handoffs union all select * from authority
-  union all select * from integrity union all select * from boundaries
-) c
-order by 1;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_b_invariants was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_policy_consistency_check()
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; f jsonb := '[]'::jsonb; n int := 0; v_admin text; v_crit int := 0;
-begin
-  for r in select * from policy_rules where active loop
-    if r.scope in ('all','site') then
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','site','location',path))
-             from qd_deploy_src where path not like '\_archive/%' and data ~* r.forbid_regex), '[]'::jsonb);
-    end if;
-    if r.scope in ('all','faq') then
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','company_faq','location','#'||id||' '||question))
-             from company_faq where status='approved' and answer ~* r.forbid_regex), '[]'::jsonb);
-    end if;
-    if r.scope in ('all','email') then
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','email','location',key))
-             from app_secrets where key in ('invite_body','invite_subject') and value ~* r.forbid_regex), '[]'::jsonb);
-    end if;
-    if r.scope in ('all','kb') then
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','agent_knowledge','location',agent_key||' / '||topic||' (#'||id||')'))
-             from agent_knowledge where content ~* r.forbid_regex), '[]'::jsonb);
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','dept_library','location',department||' / '||title||' (#'||id||')'))
-             from dept_library where content ~* r.forbid_regex), '[]'::jsonb);
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','agent_memory','location',agent_key||' / '||kind||' (#'||id||')'))
-             from agent_memory where content ~* r.forbid_regex), '[]'::jsonb);
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','org_memory','location',scope||' / '||kind||' (#'||id||')'))
-             from org_memory where active and content ~* r.forbid_regex), '[]'::jsonb);
-      f := f || coalesce((select jsonb_agg(jsonb_build_object('rule',r.name,'severity',r.severity,'source','kb_chunks','location',coalesce(category,'?')||' (#'||id||')'))
-             from kb_chunks where content ~* r.forbid_regex), '[]'::jsonb);
-    end if;
-  end loop;
-  n := jsonb_array_length(f);
-  select count(*) into v_crit from jsonb_array_elements(f) e where e->>'severity'='critical';
-  if n > 0 then
-    v_admin := coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com');
-    if not exists (select 1 from founder_alerts where event='policy_inconsistency' and created_at > now()-interval '24 hours') then
-      insert into founder_alerts(level,event,detail,channel)
-        values(case when v_crit>0 then 'crit' else 'warn' end,'policy_inconsistency',
-          n||' policy contradiction(s) found across site, FAQ, email, agent knowledge, library, memories and retrieval chunks: '||left(f::text,600),'system');
-      insert into notifications(type,to_email,to_role,channel,subject,body,status)
-        values('policy_inconsistency', v_admin,'admin','email','Policy contradiction detected',
-          n||' place(s) now contradict current QuotesDone policy. Scan covers 8 stores incl. kb_chunks retrieval. Details: '||left(f::text,1500),'queued');
-    end if;
-  end if;
-  return json_build_object('findings', n, 'critical', v_crit, 'detail', f, 'checked_at', now());
-end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_policy_lint_kb_chunks()
- RETURNS jsonb
- LANGUAGE sql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
- select jsonb_build_object('kb_chunks_dirty', count(*)) from kb_chunks k
- where exists (select 1 from policy_rules p where p.active and k.content ~* p.forbid_regex)
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_policy_consistency_check was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_provision_category_call(p_raw text, p_lead bigint, p_hint text)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_secret text;
-begin
-  if coalesce(trim(p_raw),'')='' then return; end if;
-  select value into v_secret from app_secrets where key='cred_db_internal';
-  perform net.http_post(
-    url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/category_provision',
-    headers := jsonb_build_object('Content-Type','application/json'),
-    body := jsonb_build_object('__secret',v_secret,'raw_category',p_raw,'lead_id',p_lead,'hint_services',coalesce(p_hint,''))
-  );
-end $function$;
+
+-- ROUTINE REMOVED 7 September 2026. public.fn_policy_lint_kb_chunks was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
+
+-- ROUTINE REMOVED 7 September 2026. public.fn_provision_category_call was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.fn_quote_spec_group(p_category text)
  RETURNS text
@@ -1803,49 +1062,17 @@ AS $function$
     else null end;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_recert_rotate()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_agent text; v_secret text;
-begin
-  perform fn_onboarding_ingest_runs();
-  select agent_key into v_agent from org_onboarding
-    order by coalesce(greatest(l1_at,l2_at,l3_at,l4_at), 'epoch'::timestamptz) asc limit 1;
-  if v_agent is null then return jsonb_build_object('skipped','no onboarding records'); end if;
-  select value into v_secret from app_secrets where key='cred_db_internal';
-  perform net.http_post(
-    url:='https://' || public.qd_project_ref() || '.supabase.co/functions/v1/canon_eval',
-    body:=jsonb_build_object('__secret', v_secret, 'agent', v_agent, 'limit', 8),
-    headers:='{"Content-Type":"application/json"}'::jsonb, timeout_milliseconds:=150000);
-  return jsonb_build_object('examined', v_agent);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_recert_rotate was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_reconcile_licence_blocks(p_grace_days integer DEFAULT 0)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_suspended int; v_restored int;
-begin
-  -- Suspend approved, non-banned suppliers whose trade licence is expired (beyond grace),
-  -- WITHOUT clobbering manual blocks (only touch rows that are unblocked or already licence-blocked).
-  update leads set matching_blocked=true, matching_block_reason='licence_expired'
-   where approval_status='approved' and coalesce(banned,false)=false
-     and license_expiry is not null
-     and license_expiry < (current_date - make_interval(days => p_grace_days))
-     and (coalesce(matching_blocked,false)=false or matching_block_reason='licence_expired');
-  get diagnostics v_suspended = row_count;
-  -- Restore suppliers we auto-blocked once their licence is valid again (renewal-by-reply updates license_expiry).
-  update leads set matching_blocked=false, matching_block_reason=null
-   where matching_block_reason='licence_expired'
-     and (license_expiry is null or license_expiry >= (current_date - make_interval(days => p_grace_days)));
-  get diagnostics v_restored = row_count;
-  return json_build_object('suspended', v_suspended, 'restored', v_restored, 'grace_days', p_grace_days, 'ran_at', now());
-end $function$;
+
+-- ROUTINE REMOVED 7 September 2026. public.fn_reconcile_licence_blocks was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.fn_refund_settle(p_stripe_refund_id text, p_status text, p_amount_fils bigint DEFAULT NULL::bigint, p_payment_intent text DEFAULT NULL::text, p_charge_id text DEFAULT NULL::text, p_failure_reason text DEFAULT NULL::text, p_amount_source text DEFAULT 'webhook_event'::text, p_stripe_event_id text DEFAULT NULL::text)
  RETURNS jsonb
@@ -2036,31 +1263,11 @@ begin
   );
 end;$function$;
 
-CREATE OR REPLACE FUNCTION public.fn_scan_new_supplier_categories()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; n int:=0;
-begin
-  for r in
-    select l.id, l.categories, l.services
-    from leads l
-    where l.source='self_registered'
-      and coalesce(trim(l.categories),'')<>''
-      and not exists (select 1 from category_agents a where a.active and a.slug=l.categories)
-      -- not already handled: no provisioning card referencing this lead
-      and not exists (
-        select 1 from agent_actions aa
-        where aa.kind='category_knowledge' and (aa.detail->>'lead_id')=l.id::text)
-    limit 25
-  loop
-    perform public.fn_provision_category_call(r.categories, r.id, r.services);
-    n := n + 1;
-  end loop;
-  return jsonb_build_object('ran_at',now(),'dispatched',n);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_scan_new_supplier_categories was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.fn_schema_export()
  RETURNS text
@@ -2102,186 +1309,11 @@ select
   ||E'\n'
 $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_scope_detect(p_group_id bigint, p_customer_text text, p_actor text DEFAULT 'system'::text)
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  v_norm text := public.fn_norm_text(p_customer_text);
-  cl record; m record;
-  v_exc_pos int; v_base text; v_base_marker text; v_base_res text; v_pos int;
-  v_umbrella boolean; v_umb_pos int;
-  v_comps text[]; v_comp text; v_n integer := 0;
-  v_trades jsonb; v_tk text; v_tpos int; v_disp text; v_spec int;
-  v_active_trades text[];
-  v_party jsonb; v_supply jsonb; v_basis text;
-  v_pty text; v_pcls text; v_prole text; v_pidx int;
-  v_cdisp text; v_cbasis text; v_epty text; v_epcls text; v_eprole text;
-  v_why text;
-begin
-  for cl in select * from public.fn_scope_clause_map(v_norm) loop
-    v_exc_pos := null;
-    for m in select pattern_norm, lang from public.scope_marker where marker_type = 'exception' loop
-      v_pos := public.fn_term_position(cl.clause, m.pattern_norm, m.lang);
-      if v_pos > 0 and (v_exc_pos is null or v_pos < v_exc_pos) then v_exc_pos := v_pos; end if;
-    end loop;
+-- ROUTINE REMOVED 7 September 2026. public.fn_scope_detect was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-    v_base := null; v_base_marker := null; v_base_res := 'fixed';
-    for m in select disposition, pattern_norm, lang, priority, resolution from public.scope_marker
-              where marker_type = 'disposition' order by priority, length(pattern_norm) desc loop
-      v_pos := public.fn_term_position(cl.clause, m.pattern_norm, m.lang);
-      if v_pos > 0 and (v_exc_pos is null or v_pos < v_exc_pos) then
-        v_base := m.disposition; v_base_marker := m.pattern_norm; v_base_res := m.resolution; exit;
-      end if;
-    end loop;
-
-    -- who, and whether material comes from the buying side. Clause-scoped, both of them.
-    v_party  := public.fn_scope_party(cl.clause);
-    v_supply := public.fn_scope_supply_attribution(cl.clause);
-    v_pty := null; v_pcls := null; v_prole := null; v_pidx := null;
-    if coalesce((v_party->>'identified')::boolean, false) then
-      v_pty   := v_party->>'party';      v_pcls  := v_party->>'party_class';
-      v_prole := v_party->>'role';       v_pidx  := cl.idx;
-    end if;
-
-    v_basis := 'fixed_marker';
-    if v_base is not null and v_base_res = 'party_dependent' then
-      if coalesce((v_party->>'identified')::boolean, false) then
-        v_base := 'by_others'; v_basis := 'removal_attributed';
-      else
-        v_base := 'excluded';  v_basis := 'removal_unattributed';
-      end if;
-    elsif v_base = 'excluded' and coalesce((v_party->>'identified')::boolean, false) then
-      v_base := 'by_others'; v_basis := 'excluded_upgraded_to_by_others';
-    elsif v_base in ('by_others','client_supplied') and v_pty is null then
-      v_prole := 'inline_marker';
-    end if;
-
-    select coalesce(array_agg(distinct m2.component), '{}') into v_comps
-      from public.scope_marker m2
-     where m2.marker_type = 'component'
-       and public.fn_term_matches(cl.clause, m2.pattern_norm, m2.lang);
-
-    -- "free issue by the employer" carries no component word, but it is unmistakably about supply.
-    if coalesce((v_supply->>'matched')::boolean, false) and not ('supply' = any(v_comps)) then
-      v_comps := array_append(v_comps, 'supply'::text);
-    end if;
-
-    select coalesce(bool_or(public.fn_term_position(cl.clause, p.pattern_norm, p.lang) > 0), false),
-           min(nullif(public.fn_term_position(cl.clause, p.pattern_norm, p.lang), 0))
-      into v_umbrella, v_umb_pos
-      from public.mep_trade_pattern p where p.kind in ('mep_anchor','mep_full_phrase');
-
-    select coalesce(jsonb_object_agg(z.tk, z.p), '{}'::jsonb) into v_trades
-      from (
-        select t.trade_key as tk, min(t.pos) as p
-          from (
-            select p.trade_key, public.fn_term_position(cl.clause, p.pattern_norm, p.lang) as pos
-              from public.mep_trade_pattern p
-             where p.kind in ('trade_name','trade_hint') and p.trade_key is not null
-            union all
-            select c.trade_key,
-                   public.fn_term_position(cl.clause, public.fn_norm_text(e.matched_term), 'en')
-              from public.inquiry_trade_candidate c
-              join public.inquiry_trade_candidate_evidence e on e.candidate_id = c.id
-             where c.group_id = p_group_id and e.matched_term is not null
-               and e.evidence_source in ('alias','customer_text')
-               and length(e.matched_term) >= 3
-          ) t
-         where t.pos > 0
-         group by t.trade_key
-      ) z;
-
-    if v_base is null and (v_umbrella or v_trades <> '{}'::jsonb) then
-      v_base := 'included'; v_basis := 'clause_default'; end if;
-    if v_base is null then continue; end if;
-
-    foreach v_comp in array (case when cardinality(v_comps) = 0
-                                  then array['complete_trade_scope'] else v_comps end) loop
-      if v_comp = 'supply' and coalesce((v_supply->>'matched')::boolean, false) then
-        v_cdisp := 'client_supplied'; v_cbasis := 'supply_attributed_counterparty';
-        v_epty  := v_supply->>'party'; v_epcls := v_supply->>'party_class';
-        v_eprole := v_supply->>'role';
-      else
-        v_cdisp := null; v_cbasis := v_basis;
-        v_epty  := v_pty; v_epcls := v_pcls; v_eprole := v_prole;
-      end if;
-
-      v_why := case v_cbasis
-        when 'removal_unattributed' then ' The clause removes this scope from us and identifies no other responsible party, so it is excluded rather than by others.'
-        when 'removal_attributed' then ' The clause removes this scope from us and identifies "' || coalesce(v_epty,'?') || '" (' || coalesce(v_epcls,'?') || ', ' || coalesce(v_eprole,'?') || ') as responsible, so it is by others.'
-        when 'excluded_upgraded_to_by_others' then ' Exclusion language with an identified responsible party "' || coalesce(v_epty,'?') || '", so it is by others rather than excluded.'
-        when 'supply_attributed_counterparty' then ' Supply is attributed to the counterparty "' || coalesce(v_epty,'?') || '" (' || coalesce(v_eprole,'?') || '), so the supply component is client supplied. Work retained by us on this trade is unaffected.'
-        else '' end;
-
-      for v_tk, v_tpos in select key, value::int from jsonb_each_text(v_trades) loop
-        v_disp := coalesce(v_cdisp,
-                    case when v_exc_pos is not null and v_tpos > v_exc_pos
-                         then public.fn_scope_inverse(v_base) else v_base end);
-        v_spec := 2 + (case when v_comp = 'complete_trade_scope' then 0 else 1 end);
-        insert into public.inquiry_scope_disposition
-          (group_id, trade_key, scope_component, disposition, specificity, source_kind,
-           evidence_source, evidence_score, clause_index, clause_text, matched_marker, reason, actor,
-           classification_basis, responsible_party, party_class, party_role, party_clause_index,
-           sentence_index)
-        values (p_group_id, v_tk, v_comp, v_disp, v_spec, 'customer_text', 'customer_text', 0.950,
-                cl.idx, cl.clause, v_base_marker,
-                'Clause ' || cl.idx || ' names this trade' ||
-                  case when v_comp <> 'complete_trade_scope' then ' and the ' || v_comp || ' component' else '' end ||
-                  case when v_cdisp is null and v_exc_pos is not null and v_tpos > v_exc_pos
-                       then ', after an exception marker, so the clause disposition is inverted' else '' end ||
-                  '. Marker: ' || coalesce(v_base_marker,'(none - default included)') || '.' || v_why,
-                p_actor, v_cbasis, v_epty, v_epcls, v_eprole,
-                case when v_epty is null then null else cl.idx end, cl.sentence_idx);
-        v_n := v_n + 1;
-      end loop;
-
-      if v_umbrella then
-        insert into public.inquiry_scope_disposition
-          (group_id, trade_key, scope_component, disposition, specificity, source_kind,
-           evidence_source, evidence_score, clause_index, clause_text, matched_marker, reason, actor,
-           classification_basis, responsible_party, party_class, party_role, party_clause_index,
-           sentence_index)
-        select p_group_id, t.trade_key, v_comp,
-               coalesce(v_cdisp,
-                 case when v_exc_pos is not null and v_umb_pos > v_exc_pos
-                      then public.fn_scope_inverse(v_base) else v_base end),
-               (case when v_comp = 'complete_trade_scope' then 0 else 1 end),
-               'customer_text','customer_text', 0.900, cl.idx, cl.clause, v_base_marker,
-               'Clause ' || cl.idx || ' uses an MEP umbrella term' ||
-                 case when v_comp <> 'complete_trade_scope' then ' with the ' || v_comp || ' component' else '' end ||
-                 '. Applied to the core trades at umbrella specificity, so any named-trade instruction outranks it. Marker: '
-                 || coalesce(v_base_marker,'(none - default included)') || '.' || v_why, p_actor,
-               v_cbasis, v_epty, v_epcls, v_eprole,
-               case when v_epty is null then null else cl.idx end, cl.sentence_idx
-          from public.mep_trade t where t.is_core and not (v_trades ? t.trade_key);
-        v_n := v_n + (select count(*) from public.mep_trade t where t.is_core and not (v_trades ? t.trade_key));
-      end if;
-
-      if not v_umbrella and v_trades = '{}'::jsonb and v_comp <> 'complete_trade_scope' then
-        select coalesce(array_agg(distinct c.trade_key), '{}') into v_active_trades
-          from public.inquiry_trade_candidate c
-         where c.group_id = p_group_id and c.status in ('confirmed','proposed');
-        insert into public.inquiry_scope_disposition
-          (group_id, trade_key, scope_component, disposition, specificity, source_kind,
-           evidence_source, evidence_score, clause_index, clause_text, matched_marker, reason, actor,
-           classification_basis, responsible_party, party_class, party_role, party_clause_index,
-           sentence_index)
-        select p_group_id, t, v_comp, coalesce(v_cdisp, v_base), 1, 'customer_text','customer_text', 0.900,
-               cl.idx, cl.clause, v_base_marker,
-               'Clause ' || cl.idx || ' names the ' || v_comp || ' component with no trade, so it applies to the trades already in play.' || v_why,
-               p_actor, v_cbasis, v_epty, v_epcls, v_eprole,
-               case when v_epty is null then null else cl.idx end, cl.sentence_idx
-          from unnest(v_active_trades) t;
-        v_n := v_n + coalesce(cardinality(v_active_trades),0);
-      end if;
-    end loop;
-  end loop;
-
-  return v_n;
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_security_scan()
  RETURNS void
@@ -2328,53 +1360,11 @@ begin
   update agent_runs set finished_at=now(), status='ok', counts=jsonb_build_object('scanned',v_scanned,'suspicious',v_susp,'high',v_high,'violations7d',v_viol,'banned',v_banned) where id=v_run;
 end;$function$;
 
-CREATE OR REPLACE FUNCTION public.fn_supplier_autoapprove_clean(p_limit integer DEFAULT 25)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare v_ids bigint[]; v_approved int := 0; v_scanned int; r record;
-begin
-  -- how many genuine applicants are waiting a decision (for reporting)
-  select count(*) into v_scanned from leads
-    where approval_status in ('pending','submitted') and coalesce(banned,false)=false;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supplier_autoapprove_clean was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- pick the fully-clean ones
-  select array_agg(id) into v_ids from (
-    select id from leads
-    where approval_status in ('pending','submitted')
-      and coalesce(banned,false) = false
-      and registration_submitted_at is not null
-      and license_doc_path is not null          -- trade licence uploaded
-      and doc_extracted_at is not null           -- OCR has run on the docs
-      and trade_license_no is not null and length(trade_license_no) > 3   -- licence number extracted
-      and license_expiry is not null and license_expiry > current_date + 30  -- valid, not near expiry
-      and coalesce(owner_email_verified,false) = true                         -- verified contact
-    order by registration_submitted_at
-    limit greatest(1, coalesce(p_limit,25))
-  ) z;
-
-  if v_ids is null then
-    return jsonb_build_object('approved',0,'candidates_scanned',v_scanned,'note','No licence-OCR-clean applicants to auto-approve; any remaining applicants need manual review.');
-  end if;
-
-  for r in select id, company_name, coalesce(claimed_by,email) as contact from leads where id = any(v_ids) loop
-    update leads set approval_status='approved', verified=true, verification_status='verified',
-      lifecycle_stage='active', approved_at=now(), approval_decided_by='chief_of_staff (auto)'
-      where id = r.id;
-    if r.contact is not null then
-      insert into notifications(type,to_email,to_role,lead_id,channel,subject,body)
-      values('registration_approved', r.contact, 'supplier', r.id, 'email',
-        'You''re verified on QuotesDone',
-        'Good news — '||coalesce(r.company_name,'your company')||' has been verified on QuotesDone (trade licence checks passed). You can now receive inquiries and quote: https://quotesdone.com/suppliers/');
-    end if;
-    v_approved := v_approved + 1;
-  end loop;
-
-  return jsonb_build_object('approved',v_approved,'candidates_scanned',v_scanned,'approved_ids',v_ids,
-    'note','Auto-approved '||v_approved||' licence-OCR-clean supplier(s); '||(v_scanned - v_approved)||' applicant(s) left for manual review.');
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_expiries(p_supplier_id bigint)
  RETURNS jsonb
@@ -2457,86 +1447,17 @@ begin
   return v;
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_supply_health()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_run bigint; s timestamptz := now()-interval '30 days'; v_total int; v_matched int; v_quoted int; v_nosupply int; v_ttfq numeric; v_fill numeric; v_owner text; v_gaps jsonb; v_gapcount int;
-begin
-  insert into agent_runs(agent,started_at) values('supply_health',now()) returning id into v_run;
-  select count(*) into v_total from inquiries where created_at>=s;
-  select count(*) into v_matched from inquiries i where i.created_at>=s and exists(select 1 from inquiry_matches m where m.inquiry_id=i.id);
-  select count(*) into v_quoted from inquiries i where i.created_at>=s and exists(select 1 from quotes q where q.inquiry_id=i.id);
-  select count(*) into v_nosupply from inquiries i where i.created_at>=s and not exists(select 1 from inquiry_matches m where m.inquiry_id=i.id);
-  v_fill := case when v_total>0 then round(v_quoted::numeric/v_total,3) else null end;
-  select round(percentile_cont(0.5) within group (order by extract(epoch from (fq.first_q - i.created_at))/3600)::numeric,1)
-    into v_ttfq
-    from inquiries i join lateral (select min(q.created_at) first_q from quotes q where q.inquiry_id=i.id) fq on true
-    where i.created_at>=s and fq.first_q is not null;
-  -- coverage gaps: categories with >=3 inquiries in 30d and quote-rate < 50%
-  select coalesce(jsonb_agg(g),'[]'::jsonb), count(*) into v_gaps, v_gapcount from (
-    select i.category,
-      count(*) as inquiries,
-      count(*) filter (where exists(select 1 from quotes q where q.inquiry_id=i.id)) as quoted,
-      round(count(*) filter (where exists(select 1 from quotes q where q.inquiry_id=i.id))::numeric/count(*),2) as quote_rate
-    from inquiries i where i.created_at>=s and i.category is not null
-    group by i.category
-    having count(*)>=3 and count(*) filter (where exists(select 1 from quotes q where q.inquiry_id=i.id))::numeric/count(*) < 0.5
-    order by count(*) desc limit 20
-  ) g;
-  insert into supply_health_snapshots(period_end,metrics) values (current_date,
-    jsonb_build_object('inquiries_30d',v_total,'matched',v_matched,'quoted',v_quoted,'no_supply',v_nosupply,'fill_rate',v_fill,'median_hours_to_first_quote',v_ttfq,'coverage_gaps',v_gaps));
-  select split_part(coalesce(value,'management@quotesdone.com'),',',1) into v_owner from app_secrets where key='admin_emails';
-  -- queue a report for the Follow-up agent when health is weak
-  if v_total>=5 and (coalesce(v_fill,0) < 0.5 or v_gapcount>0 or v_nosupply>0) then
-    insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table)
-      values('followup','supply_health','pending','medium',
-        'Supply health: '||coalesce(round(v_fill*100)::text,'?')||'% of requests got a quote (30d)',
-        'Source/activate suppliers in low-coverage categories; '||v_nosupply||' request(s) had no supplier match.',
-        jsonb_build_object('fill_rate',v_fill,'no_supply',v_nosupply,'median_hours_to_first_quote',v_ttfq,'gaps',v_gaps),'inquiries');
-    if v_owner is not null then
-      insert into notifications(type,to_email,to_role,channel,subject,body)
-        values('supply_health',v_owner,'admin','email','QuotesDone supply-health alert',
-          'In the last 30 days: '||v_total||' requests, '||coalesce(round(v_fill*100)::text,'?')||'% received a quote, '||v_nosupply||' had no matched supplier, median time-to-first-quote '||coalesce(v_ttfq::text,'n/a')||'h, '||v_gapcount||' low-coverage categor(ies). Open the Secretary or Follow-up agent for the breakdown.');
-    end if;
-  end if;
-  update agent_runs set finished_at=now(),status='ok',counts=jsonb_build_object('inquiries_30d',v_total,'fill_rate',v_fill,'no_supply',v_nosupply,'gaps',v_gapcount) where id=v_run;
-end; $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_supply_health was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_watch_health()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'extensions'
-AS $function$
-declare
-  v_score numeric;
-  v_at_risk text;
-  v_secret text;
-begin
-  select overall_score_measurable into v_score from v_business_health;
-  select string_agg(department || ' ' || score || '% (' || basis || ')', E'\n')
-    into v_at_risk from v_department_health where status = 'at risk';
 
-  if v_at_risk is not null then
-    select value into v_secret from app_secrets where key='cred_db_internal';
-    perform net.http_post(
-      url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/alert_founder',
-      headers := '{"Content-Type":"application/json"}'::jsonb,
-      body := jsonb_build_object(
-        '__secret', v_secret,
-        'event', 'Business health ' || v_score || '% - department(s) at risk',
-        'detail', v_at_risk,
-        'level', 'warn',
-        'dedupe_key', 'health:' || to_char(now(),'YYYY-MM-DD')
-      ),
-      timeout_milliseconds := 20000);
-  end if;
-  return jsonb_build_object('score', v_score, 'at_risk', coalesce(v_at_risk,'none'));
-end;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_watch_health was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.fn_ws_rfq_360(p_id uuid)
  RETURNS jsonb
@@ -2584,49 +1505,17 @@ begin
   return j;
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.hook_password_verification_attempt(event jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_uid uuid; v_valid boolean; v_email text; v_recent int;
-begin
-  begin v_uid := (event->>'user_id')::uuid; exception when others then v_uid := null; end;
-  v_valid := coalesce((event->>'valid')::boolean, true);
-  if not v_valid then
-    begin select email into v_email from auth.users where id = v_uid; exception when others then v_email := null; end;
-    select count(*) into v_recent from public.security_events
-      where kind='login_failed' and subject = coalesce(v_email,'')
-        and created_at > now() - interval '15 minutes';
-    insert into public.security_events(kind, severity, source, subject, detail)
-    values ('login_failed',
-            case when v_recent >= 4 then 'high' else 'medium' end,
-            'password',
-            coalesce(v_email,''),
-            jsonb_build_object('user_id', v_uid, 'recent_15m', v_recent + 1,
-                               'why', 'password verification failed'));
-  end if;
-  return '{}'::jsonb;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.hook_password_verification_attempt was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.mask_contact(s text)
- RETURNS text
- LANGUAGE sql
- IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select case when s is null then s else
-    regexp_replace(
-    regexp_replace(
-    regexp_replace(
-    regexp_replace(s,
-      '[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}', '[hidden until reveal]', 'gi'),
-      '(https?://|www\.)[^[:space:]]+', '[hidden until reveal]', 'gi'),
-      '\y[[:alnum:]-]{2,}\.(com|ae|net|org|io|me)\y', '[hidden until reveal]', 'gi'),
-      '(\+?971|00971|0)[[:space:].-]?[0-9]{1,2}[[:space:].-]?[0-9]{3}[[:space:].-]?[0-9]{4}', '[hidden until reveal]', 'gi')
-  end
-$function$;
+
+-- ROUTINE REMOVED 7 September 2026. public.mask_contact was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.qd_recompute_response()
  RETURNS void
@@ -2648,60 +1537,11 @@ begin
   from stats s where s.supplier_id=l.id;
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.qd_reveal_nudges()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare base text := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/supplier_ack';
-begin
-  with due as (
-    select t.id, t.inquiry_id, t.supplier_id, t.ack_token, l.email, coalesce(l.locale,'en') as locale
-    from transactions t join leads l on l.id=t.supplier_id
-    where t.revealed_at is not null and t.revealed_at < now()-interval '24 hours'
-      and t.nudged_24_at is null and coalesce(t.fee_status,'')='paid' and t.refund_status is null and t.supplier_ack_at is null
-      and not exists (select 1 from messages m where m.inquiry_id=t.inquiry_id and m.supplier_id=t.supplier_id and m.sender='supplier' and coalesce(m.blocked,false)=false and m.created_at>t.revealed_at)
-      and l.email ~ '@'
-  ), ins as (
-    insert into notifications(type,to_email,to_role,inquiry_id,subject,body)
-    select 'supplier_nudge', d.email, 'supplier', d.inquiry_id,
-      case when d.locale='ar' then 'عميل دافع بانتظارك — يُرجى الرد'
-           else 'A paying customer is waiting for you — please respond' end,
-      (case when d.locale='ar'
-        then 'دفع أحد العملاء لكشف بيانات تواصلك على QuotesDone وهو بانتظار ردك. يُرجى التواصل معه في أقرب وقت. وفقاً لاتفاقية المورّد، إذا لم ترد خلال ٣ أيام عمل وتم استرداد المبلغ للعميل، تُطبَّق رسوم عدم استجابة تعادل رسوم الكشف (٣٪ من قيمة العرض) على حسابك.'
-        else 'A customer has paid to reveal your contact on QuotesDone and is waiting to hear from you. Please contact them as soon as possible. Under the Supplier Agreement, if you do not respond within 3 working days and the customer is refunded, a non-response charge equal to the reveal fee (3% of the quoted value) applies to your account.' end)
-      || E'\n\n' ||
-      (case when d.locale='ar' then 'هل تواصلت مع العميل بالفعل؟ أكّد هنا لإيقاف هذه التذكيرات: '
-            else 'Already contacted this customer? Confirm here to stop these reminders: ' end)
-      || base || '?tx=' || d.id || '&token=' || d.ack_token
-    from due d returning 1
-  )
-  update transactions set nudged_24_at=now() where id in (select id from due);
+-- ROUTINE REMOVED 7 September 2026. public.qd_reveal_nudges was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  with due as (
-    select t.id, t.inquiry_id, t.supplier_id, t.ack_token, l.email, coalesce(l.locale,'en') as locale
-    from transactions t join leads l on l.id=t.supplier_id
-    where t.revealed_at is not null and t.revealed_at < now()-interval '48 hours'
-      and t.nudged_48_at is null and coalesce(t.fee_status,'')='paid' and t.refund_status is null and t.supplier_ack_at is null
-      and not exists (select 1 from messages m where m.inquiry_id=t.inquiry_id and m.supplier_id=t.supplier_id and m.sender='supplier' and coalesce(m.blocked,false)=false and m.created_at>t.revealed_at)
-      and l.email ~ '@'
-  ), ins as (
-    insert into notifications(type,to_email,to_role,inquiry_id,subject,body)
-    select 'supplier_nudge', d.email, 'supplier', d.inquiry_id,
-      case when d.locale='ar' then 'تذكير أخير: عميل لا يزال بانتظارك — يُرجى الرد اليوم'
-           else 'Final reminder: a customer is still waiting — please respond today' end,
-      (case when d.locale='ar'
-        then 'هذا تذكير أخير بأن عميلاً دافعاً بانتظار ردك على QuotesDone. إذا لم ترد وتم استرداد المبلغ للعميل، تُطبَّق رسوم عدم استجابة تعادل رسوم الكشف (٣٪ من قيمة العرض)، وقد يؤدي تكرار عدم الرد إلى إزالتك من المنصّة.'
-        else 'This is a final reminder that a paying customer is waiting for your response on QuotesDone. If you do not respond and the customer is refunded, a non-response charge equal to the reveal fee (3% of the quoted value) applies, and repeated non-response may lead to removal from the Platform.' end)
-      || E'\n\n' ||
-      (case when d.locale='ar' then 'هل تواصلت مع العميل بالفعل؟ أكّد هنا لإيقاف هذه التذكيرات: '
-            else 'Already contacted this customer? Confirm here to stop these reminders: ' end)
-      || base || '?tx=' || d.id || '&token=' || d.ack_token
-    from due d returning 1
-  )
-  update transactions set nudged_48_at=now() where id in (select id from due);
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.rl_check(p_key text, p_limit integer, p_seconds integer)
  RETURNS boolean
@@ -2734,27 +1574,11 @@ begin
   );
 end$function$;
 
-CREATE OR REPLACE FUNCTION public.run_auto_deploy()
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare d boolean; s text; ak text;
-begin
-  select dirty into d from public.deploy_state where id=1;
-  if not coalesce(d,false) then return 'clean'; end if;
-  select value into s from public.app_secrets where key='cred_db_internal';
-  select value into ak from public.app_secrets where key='anon_key';
-  perform net.http_post(
-    url:='https://' || public.qd_project_ref() || '.supabase.co/functions/v1/site_deploy',
-    headers:=jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||ak),
-    body:=jsonb_build_object('__secret', s),
-    timeout_milliseconds:=150000);
-  update public.deploy_state set dirty=false, last_deploy=now(), last_status='triggered' where id=1;
-  update public.site_publish_state set dirty=false, last_deploy_at=now() where id=1;
-  return 'deploying';
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.run_auto_deploy was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.run_doc_reminders()
  RETURNS void
@@ -2771,45 +1595,17 @@ begin
     body := jsonb_build_object('__secret', s, 'days', 14));
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.run_pending_digest()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare s text;
-begin
-  select value into s from public.app_secrets where key='cred_db_internal';
-  perform net.http_post(
-    url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/pending_digest',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', s)
-  );
-end$function$;
+-- ROUTINE REMOVED 7 September 2026. public.run_pending_digest was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.run_site_autodeploy()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp', 'net'
-AS $function$
-declare s text; d boolean; lastdep timestamptz; ak text;
-begin
-  select dirty, last_deploy_at into d, lastdep from public.site_publish_state where id=1;
-  if not coalesce(d,false) then return; end if;
-  if lastdep is not null and now()-lastdep < interval '50 seconds' then return; end if;
-  select value into s from public.app_secrets where key='cred_db_internal';
-  select value into ak from public.app_secrets where key='anon_key';
-  if s is null then return; end if;
-  update public.site_publish_state set dirty=false, last_deploy_at=now() where id=1;
-  update public.deploy_state set dirty=false, last_deploy=now(), last_status='triggered' where id=1;
-  perform net.http_post(
-    url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/site_deploy',
-    body := jsonb_build_object('__secret', s),
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||ak),
-    timeout_milliseconds := 150000
-  );
-end$function$;
+
+-- ROUTINE REMOVED 7 September 2026. public.run_site_autodeploy was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.trg_block_banned_inquiry()
  RETURNS trigger

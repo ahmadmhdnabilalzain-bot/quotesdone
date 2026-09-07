@@ -225,39 +225,11 @@ COMMENT ON FUNCTION public.fn_phase_c_require_founder(text) IS
 -- ================================================================================================
 -- 5. THE BOARD
 -- ================================================================================================
-CREATE OR REPLACE FUNCTION public.fn_phase_c_founder_auth_state()
- RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select 'enabled_founder_identities_without_an_auth_subject'::text, '0'::text,
-         (select count(*)::text from public.phase_c_founder_identity
-           where active and kind = 'email' and auth_user_id is null),
-         not exists (select 1 from public.phase_c_founder_identity
-                      where active and kind = 'email' and auth_user_id is null)
-  union all
-  select 'require_founder_still_resolves_a_caller_supplied_string', '0',
-         (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'public' and p.proname = 'fn_phase_c_require_founder'
-             and p.prosrc ~ 'f\.identity = lower\(btrim\(p_actor\)\)'),
-         not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                      where n.nspname = 'public' and p.proname = 'fn_phase_c_require_founder'
-                        and p.prosrc ~ 'f\.identity = lower\(btrim\(p_actor\)\)')
-  union all
-  select 'founder_bind_executable_by_anon_or_authenticated', '0',
-         (select count(*)::text from information_schema.routine_privileges
-           where routine_schema = 'public' and routine_name = 'fn_phase_c_founder_subject_bind'
-             and grantee in ('anon','authenticated','PUBLIC')),
-         not exists (select 1 from information_schema.routine_privileges
-                      where routine_schema = 'public'
-                        and routine_name = 'fn_phase_c_founder_subject_bind'
-                        and grantee in ('anon','authenticated','PUBLIC'))
-  union all
-  select 'founder_auth_events_still_committed', '0',
-         (select count(*)::text from public.phase_c_founder_auth_event),
-         not exists (select 1 from public.phase_c_founder_auth_event);
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_founder_auth_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 COMMENT ON FUNCTION public.fn_phase_c_founder_auth_state() IS
   'THE FOUNDER AUTHENTICATION BOARD. Every enabled founder identity carries an auth subject; '

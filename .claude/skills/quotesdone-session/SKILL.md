@@ -249,37 +249,76 @@ Before the one line — or before an honest hand-over:
    the organisation's validity is asserted by `fn_phase_a_organization_violations()` = 0 inside the boards)*
 9. *(retired with 8)*
 
-**PHASE B IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-b-founder-approved-2026-08-15`,
-baseline in `org_phase_baseline` where `phase = 'B'`. Step 9 is how you know it still is.
+**AND AS OF 7 SEPTEMBER 2026 THERE IS NO ORGANISATION, NO WORKFLOW AND NO KERNEL GATE EITHER.**
 
-The approved architecture is 30 workflows · 257 steps · 161 handoffs · 56 objects · 54 rules ·
-32 gates · 50 exceptions · 34 SLAs · 347 events · 14/35 workflow states and transitions ·
-11/19 step · 10 founder boundaries · 719 crosswalk classifications.
+The founder dismantled the structure in four rulings that day, in his words: *"actually remove the
+whole organization chart that you made cause its trash"*; *"so no departments from now"* and *"no
+tasks excepts what i confirm"*; *"dont link everything to CEO. i didnt say that. keep them unlinked
+now till we come up with the new structure"*; and *"remove everything except the company knowledge,
+terms and conditions and website related stuff and my decisions which i shared earlier. i dont want
+any pre programmed workflow as things will totally be different"*, then *"i said remove the kernel
+gates"*. When I archived the chart before deleting it he said *"not archive. remove totally"*.
 
-You may not change workflow ownership, workflow order, states or transitions, gates, business
-rules, handoff accountability, category-overlay authority or founder boundaries without a formal
-Phase B change request — `docs/phase-b/PHASE_B_CHANGE_REQUEST_TEMPLATE.md`, eleven required
-elements — stated in the same transaction as `set local app.phase_b_change_reason = 'PBCR-nnn: …'`.
-`z90_phase_b_freeze` sits on 11 tables and compares a DIGEST, not a count, so swapping two step
-owners is refused even though no row count moves. Proved: 9/9 subjects refused, hatch opens.
+**What the company is now:** two seats — `ceo` and `customer_support` (the WhatsApp agent) — with no
+departments, no tasks, no workflows, no handoffs, no subscriptions, no executors and no kernel
+write/trace gates. 1,664 components are deliberately UNOWNED and stay that way until he sets the new
+structure.
 
-**Not frozen, deliberately:** SLA values (master spec §14 lets management adjust them), the
-crosswalk (Phase C must re-measure it), and `phase_b_exception` / `phase_b_business_object` /
-`phase_b_event` (not in the founder's list — drift reports them, nothing guards them at write
-time). See `docs/phase-b/PHASE_B_FOUNDER_APPROVED_BASELINE.md`.
+**Do not** invent a third agent, write a department into anything, create a task he has not
+confirmed, rebuild a workflow registry, or re-attach a kernel gate. If work fits neither seat, that
+is the finding — say it and stop. See `.claude/skills/quotesdone-work-is-assigned/SKILL.md`.
 
-**Phase B approval does NOT claim the runtime works.** Seven wiring gaps are recorded in
-`public.phase_b_phase_c_wiring_gap` as Phase C work — 12 of 19 runtime workflows have never run,
-407 execution paths have no accountable role, 64 edge functions have no caller. Do not report any
-of those as Phase B defects.
+**Two guards survived on purpose and must stay:** the TRUNCATE guard on 100+ tables (a whole-table
+wipe is never a workflow, always a mistake), and `anon_cannot_execute_security_definer` in CI —
+that one is security, not structure.
 
-**PHASE A IS FROZEN** — founder-approved 15 Aug 2026, tagged `phase-a-founder-approved-2026-08-15`,
-baseline in `org_phase_baseline`. Step 8 is how you know it still is. Do not change the number of
-departments, canonical roles or category overlays: a statement-level guard refuses it unless
-`set local app.phase_a_change_reason = 'PACR-nnn: …'` is set in the same transaction, and that
-reason means a real change request with evidence and his approval — not a sentence to get past the
-guard. Changing a role's tools, knowledge, KPI or title is NOT frozen; that is the deferred
-later-phase work. See `docs/phase-a/PHASE_A_FOUNDER_APPROVED_BASELINE.md`.
+**Thirteen checks were RETIRED**, not weakened, because every noun they asserted was deliberately
+deleted: the kernel positive controls, the Phase C injected-defect guards, the write guard, active
+signal types, company_is_fully_wired, application_source_of_truth, three Phase D checks, the kernel
+boards, the failed-scheduled-run reader, and both org-connectivity checks. Each is
+`scripts/checks/<name>.RETIRED.mjs` with a header saying what it checked and why it is gone. **Do
+not resurrect them.** When the new structure exists, write new checks against THAT structure.
+A check edited until it goes green against an empty schema asserts nothing while still looking like
+a guard — which is worse than no check.
+
+Still green and still guarding: `kernel_invariants`, `cancellation_reaches_the_kernel`,
+`every_discharge_claim_reaches_its_table`, `anon_cannot_execute_security_definer`,
+`phase_c_components_are_owned` (rewritten: a component that NAMES an owner names a live one, and no
+component names a department), `canonical_routine_manifest`,
+`export_from_either_source_is_identical`, `receipts_never_wait_on_the_founder`.
+
+---
+**THERE ARE NO PHASE FREEZES. THERE ARE NO PHASE GATES.** Founder ruling, 7 Sep 2026, in his
+own words: *"phase A to D where steps to make sure the structure was fine. their freezes or implied
+limits should be removed totally. i dont want any limits in the workflow"* and *"the only thing on
+hold open router. any other limit or freeze or gates that is affecting us should be removed.
+otherwise we will never be able to finish this code"*.
+
+Phases A to D were scaffolding for getting the structure right. They did their job. Nothing about
+them constrains work any more:
+
+- Workflow ownership, workflow order, states and transitions, gates, business rules, handoff
+  accountability, category-overlay authority, departments, canonical roles and overlays are all
+  **freely changeable**. No change request, no `app.phase_a_change_reason`, no
+  `app.phase_b_change_reason`, no approval.
+- The digest guard `z90_phase_b_freeze` was removed 2 Sep 2026. The baseline drift boards
+  `fn_phase_a_baseline_drift` and `fn_phase_b_baseline_drift` were dropped 4 Sep 2026. The last
+  three statement guards — `a10_phase_b_workflow_owner_guard`, `a10_phase_b_owner_guard` and
+  `a10_phase_b_handoff_guard`, with their functions — were dropped 7 Sep 2026
+  (`scripts/sql/the_last_phase_b_guards_come_off_because_the_founder_removed_every_limit.sql`).
+- **Do not reinstate any of them**, and do not write a new check that asserts a phase baseline is
+  unchanged. A structure that cannot move cannot be corrected, and the live organisation has moved
+  since those registers were written.
+
+**The ONE thing still on hold is OpenRouter.** That is the founder's only standing limit.
+
+**What stays, and is not a limit:** the append-only triggers on `org_phase_baseline` and
+`phase_b_change_request` (they stop history being rewritten, they refuse no change), and every
+guard that protects correctness rather than structure — CHECK constraints, foreign keys,
+`fn_org_authority_guard`, credential tests, verify_jwt drift. Section 6 still applies to those.
+
+**Phase B approval never claimed the runtime works.** Wiring gaps recorded in
+`public.phase_b_phase_c_wiring_gap` are real work, not Phase B defects.
 
 Steps 5–7 replace `project_parity.mjs`, retired 15 Aug 2026 with the project it compared against.
 See `docs/agents/RETIRED_TWO_PROJECT_CHECKS.md`. **Do not reintroduce a check that reads

@@ -101,48 +101,11 @@ insert into public.phase_c_frozen_subject (subject, object_kind, object_identity
 on conflict do nothing;
 
 -- ---------------------------------------------------------------- 2. the drift board (a GATE)
-create or replace function public.fn_phase_c_freeze_drift()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-set search_path to 'public', 'pg_temp'
-as $fn$
-  with live as (
-    select f.subject, f.object_identity, f.digest as frozen,
-           case
-             when f.object_kind = 'routine' then (
-               select encode(sha256(convert_to(pg_get_functiondef(p.oid),'UTF8')),'hex')
-                 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-                where n.nspname='public'
-                  and p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
-                      = f.object_identity)
-             when f.object_kind = 'table' and f.object_identity = 'public.phase_c_component' then (
-               select encode(sha256(convert_to(string_agg(
-                 c.component_id || '|' || coalesce(c.component_type,'') || '|' || coalesce(c.workflow_id,'')
-                   || '|' || coalesce(c.step_id,'') || '|' || coalesce(c.accountable_role_id,'')
-                   || '|' || coalesce(c.canonical_system_actor,'') || '|' || coalesce(c.authority_class,'')
-                   || '|' || coalesce(c.trace_policy_id,'') || '|' || coalesce(c.activation_state,'')
-                   || '|' || coalesce(c.classification,'') || '|' || coalesce(c.mutates_state::text,''),
-                 chr(10) order by c.component_id),'UTF8')),'hex')
-                 from public.phase_c_component c)
-             else f.digest   -- repository_file subjects are checked in CI, not here; never silently green
-           end as now_digest
-      from public.phase_c_frozen_subject f
-  )
-  select 'frozen_subjects_drifted', '0',
-         count(*) filter (where now_digest is distinct from frozen)::text || ' of ' || count(*)::text,
-         count(*) filter (where now_digest is distinct from frozen) = 0
-    from live
-  union all
-  select 'frozen_subjects_whose_object_no_longer_exists', '0',
-         count(*) filter (where now_digest is null)::text || ' of ' || count(*)::text,
-         count(*) filter (where now_digest is null) = 0
-    from live
-  union all
-  select 'raw_frozen_subjects', 'informational',
-         count(*)::text || ' of ' || count(*)::text, true
-    from live;
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_freeze_drift was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_phase_c_freeze_drift() from public;
 grant execute on function public.fn_phase_c_freeze_drift() to service_role;

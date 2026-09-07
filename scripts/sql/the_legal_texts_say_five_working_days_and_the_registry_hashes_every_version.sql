@@ -48,17 +48,11 @@ alter table public.legal_documents
   add column if not exists content_sha256 text,
   add column if not exists source text;
 
-CREATE OR REPLACE FUNCTION public.fn_legal_version_bump(p_version text)
- RETURNS text
- LANGUAGE sql
- IMMUTABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  -- 'v3' -> 'v4', '1.2' -> '1.3', '5' -> '6', null/'' -> '1.1': the trailing integer is the counter
-  select case
-    when coalesce(p_version, '') !~ '[0-9]+\s*$' then '1.1'
-    else regexp_replace(p_version, '([0-9]+)\s*$', ((substring(p_version from '([0-9]+)\s*$'))::int + 1)::text) end;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_legal_version_bump was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.trg_legal_documents_hash()
  RETURNS trigger
@@ -188,51 +182,11 @@ update public.legal_checklist
        notes = 'Embedded in the customer T&C and the supplier agreement: present only when BOTH agreement documents carry a governing-law-and-jurisdiction clause (match_clause, checked by fn_legal_ai against body_html since 6 Sep 2026).'
  where id = 13;
 
-CREATE OR REPLACE FUNCTION public.fn_legal_ai()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare k record; v_health numeric; v_terms numeric; v_fresh numeric; n int; v_missing text; v_regchg int;
-begin
-  -- refresh checklist presence: a slug row is present when the registry holds that slug; a clause row
-  -- (match_slug null, match_clause set) is present when EVERY registered agreement carries the clause
-  -- in its body; a row with neither keeps what it has (nothing can prove it).
-  update legal_checklist lc
-     set present = case
-       when lc.match_slug is not null then exists (select 1 from legal_documents d where d.slug = lc.match_slug)
-       when lc.match_clause is not null then coalesce((select bool_and(d.body_html ~* lc.match_clause)
-                                                         from legal_documents d where d.category = 'agreement'), false)
-       else lc.present end;
-  select * into k from legal_kpis;
+-- ROUTINE REMOVED 7 September 2026. public.fn_legal_ai was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  v_terms := round((coalesce(k.customer_terms_acceptance_pct,0)+coalesce(k.supplier_terms_acceptance_pct,0))/2,1);
-  v_fresh := case when k.policies_published=0 then 0 else round(100.0*(k.policies_published-k.policies_stale)/k.policies_published,1) end;
-  v_health := round(coalesce(k.coverage_pct,0)*0.35 + v_terms*0.30 + v_fresh*0.20 + greatest(0,100-coalesce(k.open_legal_flags,0)*10)*0.15,1);
-
-  insert into legal_kpi_snapshots(snapshot_date,kpis) values (current_date, to_jsonb(k)||jsonb_build_object('legal_health',v_health,'terms_acceptance_avg',v_terms))
-    on conflict (snapshot_date) do update set kpis=excluded.kpis, created_at=now();
-
-  select string_agg(requirement,'; ') into v_missing from legal_checklist where not present and priority=1;
-  select count(*) into v_regchg from compliance_sources where last_changed_at >= now()-interval '30 days';
-
-  -- ESCALATIONS (founder-visible legal_flag; never legal advice)
-  perform leg_flag('missing_core_docs', coalesce(k.critical_missing,0)>0, 'high', 'Core legal documents missing',
-    'The platform is operating without these core documents: '||coalesce(v_missing,'')||'. They govern your contractual relationship with customers and suppliers (liability, governing law, dispute resolution). Have a licensed UAE lawyer prepare and approve them, then publish as versioned legal documents.');
-  perform leg_flag('supplier_terms_acceptance', coalesce(k.suppliers_approved,0)>0 and coalesce(k.supplier_terms_acceptance_pct,0) < 90, 'high', 'Suppliers have not accepted current terms',
-    'Only '||coalesce(k.supplier_terms_acceptance_pct,0)||'% of approved suppliers have accepted the current terms. Enforce terms acceptance (click-wrap / signed) at onboarding so agreements are enforceable.');
-  perform leg_flag('customer_terms_acceptance', coalesce(k.customer_terms_acceptance_pct,0) < 90, 'medium', 'Customers have not accepted current terms',
-    'Only '||coalesce(k.customer_terms_acceptance_pct,0)||'% of customers have accepted the current terms. Gate key actions (posting an inquiry / paying to reveal) behind explicit terms acceptance.');
-  perform leg_flag('stale_policies', coalesce(k.policies_stale,0)>0, 'low', 'Policies due for annual review',
-    k.policies_stale||' published policy(ies) have not been reviewed in over a year. Schedule an annual legal review.');
-  perform leg_flag('reg_change_review', v_regchg>0, 'medium', 'Regulatory change may affect your terms/policies',
-    v_regchg||' monitored authority source(s) changed in the last 30 days. Review whether your terms, privacy or compliance policies need updating with a lawyer.');
-
-  select count(*) into n from agent_actions where agent='legal_ai' and status in ('pending','needs_review');
-  return jsonb_build_object('ran_at',now(),'legal_health',v_health,'kpis',to_jsonb(k),'open_flags',n,
-                            'critical_missing', k.critical_missing, 'missing_priority_1', v_missing);
-end $function$;
 
 -- ---------------------------------------------------------------- the ledger follows the manifest
 insert into public.kernel_routine_ownership(schema_name, routine_name, identity_args, ownership_class, classified_by_rule, evidence, source_kind, source_file, justification, recorded_at)

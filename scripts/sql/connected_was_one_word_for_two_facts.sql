@@ -88,73 +88,11 @@ grant  select on public.v_phase_c_event_binding_state to service_role;
 -- deliberately held is SUPPOSED to have most events unobserved, and a check that demanded
 -- otherwise would be demanding that the hold be lifted. What IS asserted is that no row claims a
 -- structural status the deployed code does not support.
-create or replace function public.fn_phase_c_event_truth_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-set search_path to 'public', 'pg_temp'
-as $ets$
-  select 'stored_structural_status_disagrees_with_derived'::text,
-         '0'::text,
-         (select count(*)::text from public.v_phase_c_event_binding_state where structural_status_disagrees)
-           || ' of ' || (select count(*)::text from public.phase_c_event_binding),
-         (select count(*) from public.v_phase_c_event_binding_state where structural_status_disagrees) = 0
-  union all
-  select 'registry_only_event_presented_as_runtime_observed'::text,
-         '0 — structurally impossible: runtime observation is derived, not stored'::text,
-         '0 of ' || (select count(*)::text from public.phase_c_event_binding),
-         true
-  union all
-  select 'structurally_connected'::text,
-         'reported, never read as a runtime claim'::text,
-         (select count(*)::text from public.v_phase_c_event_binding_state
-           where structural_status_derived = 'CONNECTED')
-           || ' of ' || (select count(*)::text from public.phase_c_event_binding),
-         true
-  union all
-  select 'runtime_observed_at_least_once'::text,
-         'reported; it rises as the runtime is released'::text,
-         (select count(*)::text from public.v_phase_c_event_binding_state
-           where runtime_observation <> 'NEVER_OBSERVED')
-           || ' of ' || (select count(*)::text from public.phase_c_event_binding),
-         true
-  union all
-  -- The one that would have caught the original defect if it had existed: an event the registry
-  -- calls deferred, which is nevertheless running.
-  --
-  -- SCOPED TO THE CURRENT REGIME, AND THE HISTORY IS REPORTED ON ITS OWN LINE BELOW. On its first
-  -- run this check fired at 1 of 60: EV-W06-COMPLETED, emitted and delivered once at
-  -- 2026-08-16 23:15:23 — three minutes BEFORE the kernel epoch at 23:18:23. A pre-cutover emission
-  -- by the runtime the kernel replaced is not a live contradiction, and counting it would hold this
-  -- check red forever over a row nothing can now produce. Splitting the population by the epoch is
-  -- the same discipline fn_kernel_system_trace_state already applies to cron executions.
-  --
-  -- last_seen, not first_seen: a binding that emitted before the cutover AND after it is a live
-  -- contradiction and must still fail.
-  select 'deferred_binding_that_is_actually_running'::text,
-         '0 since the kernel epoch'::text,
-         (select count(*)::text from public.v_phase_c_event_binding_state s
-           where s.structural_status_derived = 'DEFERRED_RUNTIME_IMPLEMENTATION'
-             and s.last_seen >= (select started_at from public.phase_c_kernel_epoch
-                                  where epoch_id = 'S3_SYSTEM_EXECUTION_TRACING'))
-           || ' of ' || (select count(*)::text from public.phase_c_event_binding
-                          where connection_status = 'DEFERRED_RUNTIME_IMPLEMENTATION'),
-         (select count(*) from public.v_phase_c_event_binding_state s
-           where s.structural_status_derived = 'DEFERRED_RUNTIME_IMPLEMENTATION'
-             and s.last_seen >= (select started_at from public.phase_c_kernel_epoch
-                                  where epoch_id = 'S3_SYSTEM_EXECUTION_TRACING')) = 0
-  union all
-  select 'deferred_binding_that_ran_before_the_kernel_epoch'::text,
-         'informational — historical, produced by the runtime the kernel replaced'::text,
-         (select count(*)::text from public.v_phase_c_event_binding_state s
-           where s.structural_status_derived = 'DEFERRED_RUNTIME_IMPLEMENTATION'
-             and s.runtime_observation <> 'NEVER_OBSERVED'
-             and s.last_seen < (select started_at from public.phase_c_kernel_epoch
-                                 where epoch_id = 'S3_SYSTEM_EXECUTION_TRACING'))
-           || ' of ' || (select count(*)::text from public.phase_c_event_binding
-                          where connection_status = 'DEFERRED_RUNTIME_IMPLEMENTATION'),
-         true;
-$ets$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_event_truth_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_phase_c_event_truth_state() from public;
 grant  execute on function public.fn_phase_c_event_truth_state() to service_role;

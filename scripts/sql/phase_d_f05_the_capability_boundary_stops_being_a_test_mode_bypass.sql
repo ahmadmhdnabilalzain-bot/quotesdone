@@ -408,46 +408,11 @@ GRANT EXECUTE ON FUNCTION public.fn_phase_d_capability_answer(bigint) TO service
 -- ================================================================================================
 -- 6. THE BOARD
 -- ================================================================================================
-CREATE OR REPLACE FUNCTION public.fn_phase_d_capability_state()
- RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with dep as (select * from public.phase_d_handler_binding where capability_dependency <> 'NONE')
-  select 'capability_dependent_steps'::text, '21'::text,
-         (select count(*)::text from dep), (select count(*) from dep) = 21
-  union all
-  select 'capability_dependent_steps_without_a_contract', '0',
-         (select count(*)::text from dep
-           where not exists (select 1 from public.phase_d_capability_contract c
-                              where c.step_id = dep.step_id)),
-         not exists (select 1 from dep
-                      where not exists (select 1 from public.phase_d_capability_contract c
-                                         where c.step_id = dep.step_id))
-  union all
-  select 'handler_paths_that_skip_the_capability_check_on_a_mode_string', '0',
-         (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'public'
-             and p.proname in ('fn_phase_d_handler_execute','fn_phase_d_effect_produce')
-             and p.prosrc ~ 'capability_dependency <> ''NONE'' and v_ctx <> ''test'''),
-         not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                      where n.nspname = 'public'
-                        and p.proname in ('fn_phase_d_handler_execute','fn_phase_d_effect_produce')
-                        and p.prosrc ~ 'capability_dependency <> ''NONE'' and v_ctx <> ''test''')
-  union all
-  select 'capability_requests_still_committed', '0',
-         (select count(*)::text from public.phase_d_capability_request),
-         not exists (select 1 from public.phase_d_capability_request)
-  union all
-  select 'capability_results_still_committed', '0',
-         (select count(*)::text from public.phase_d_capability_result),
-         not exists (select 1 from public.phase_d_capability_result)
-  union all
-  select 'accepted_results_produced_by_a_paid_provider', '0',
-         (select count(*)::text from public.phase_d_capability_result where provider_mode = 'provider'),
-         not exists (select 1 from public.phase_d_capability_result where provider_mode = 'provider');
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_capability_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 COMMENT ON FUNCTION public.fn_phase_d_capability_state() IS
   'THE PHASE D CAPABILITY BOUNDARY BOARD. Counts the 21 capability-dependent steps, refuses one '

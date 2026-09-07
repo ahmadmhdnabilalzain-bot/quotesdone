@@ -122,55 +122,11 @@ CREATE TRIGGER z00_kernel_truncate_guard
 -- typed. fn_phase_d_domain_source_digest returns the sha256 of the authority itself: the routine
 -- body for a routine, the ordered content for a registry table.
 
-CREATE OR REPLACE FUNCTION public.fn_phase_d_domain_source_digest(p_authority text)
- RETURNS text
- LANGUAGE plpgsql
- STABLE
- SET search_path TO 'public', 'pg_catalog', 'pg_temp'
-AS $function$
-declare v text;
-begin
-  if p_authority like 'routine:%' then
-    select pg_get_functiondef(p.oid) into v
-      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public'
-       and p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
-           = substring(p_authority from 9);
-    if v is null then
-      raise exception 'fn_phase_d_domain_source_digest: no routine % — a domain may not cite an authority that does not exist (pd_domain_authority_absent)',
-        substring(p_authority from 9) using errcode = '42883';
-    end if;
-    return encode(sha256(convert_to(v,'UTF8')),'hex');
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_domain_source_digest was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  if p_authority = 'table:public.phase_d_object_state_contract' then
-    select string_agg(object_id || '|' || policy_family || '|' || array_to_string(allowed_states,',')
-                      || '|' || initial_state, E'\n' order by object_id)
-      into v from public.phase_d_object_state_contract;
-  elsif p_authority = 'table:public.phase_b_handoff' then
-    select string_agg(handoff_id || '|' || from_step_id || '|' || receiving_role_id, E'\n' order by handoff_id)
-      into v from public.phase_b_handoff;
-  elsif p_authority = 'table:public.phase_b_workflow_step' then
-    select string_agg(step_id || '|' || accountable_role_id, E'\n' order by step_id)
-      into v from public.phase_b_workflow_step;
-  elsif p_authority = 'table:public.phase_d_step_effect' then
-    select string_agg(step_id || '|' || expected_effect_type || '|' || coalesce(effect_object_id,''),
-                      E'\n' order by step_id)
-      into v from public.phase_d_step_effect;
-  elsif p_authority = 'table:public.phase_b_business_object' then
-    select string_agg(object_id, E'\n' order by object_id) into v from public.phase_b_business_object;
-  else
-    raise exception 'fn_phase_d_domain_source_digest: % is not a registered authority. A domain source is named from a closed list so that "where did this come from" always has an answer. (pd_domain_authority_unregistered)',
-      p_authority using errcode = '22023';
-  end if;
-
-  if v is null then
-    raise exception 'fn_phase_d_domain_source_digest: authority % is EMPTY. An empty authority hashes to a stable value and would silently certify an empty domain. (pd_domain_authority_empty)',
-      p_authority using errcode = '22023';
-  end if;
-  return encode(sha256(convert_to(v,'UTF8')),'hex');
-end
-$function$;
 
 REVOKE ALL ON FUNCTION public.fn_phase_d_domain_source_digest(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.fn_phase_d_domain_source_digest(text) TO service_role;
@@ -1317,58 +1273,17 @@ GRANT EXECUTE ON FUNCTION public.fn_phase_d_schema_validate(text, jsonb) TO serv
 -- into its own check. These two routines let the contract board and the domain test suite build a
 -- conforming payload, and a payload wrong in exactly one field, from the registry itself.
 
-CREATE OR REPLACE FUNCTION public.fn_phase_d_domain_probe_schema(p_field text)
- RETURNS text
- LANGUAGE sql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select r.schema_id from public.phase_d_output_domain_registry r
-   where r.field_name = p_field and r.field_semantic_type = 'CLOSED_ENUM'
-   order by r.step_id limit 1;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_domain_probe_schema was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_phase_d_domain_probe_payload(
-  p_schema_id text, p_field text, p_conforming boolean)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare sc public.phase_d_handler_schema%rowtype; v jsonb := '{}'::jsonb; k text; r record;
-begin
-  select * into sc from public.phase_d_handler_schema where schema_id = p_schema_id;
-  if not found then
-    raise exception 'fn_phase_d_domain_probe_payload: no schema % (pd_domain_probe_unknown_schema)',
-      coalesce(p_schema_id,'(null)') using errcode = '23503';
-  end if;
-  if not exists (select 1 from public.phase_d_output_domain_registry
-                  where schema_id = p_schema_id and field_name = p_field
-                    and field_semantic_type = 'CLOSED_ENUM') then
-    raise exception 'fn_phase_d_domain_probe_payload: % is not a registered CLOSED_ENUM field on %. A probe that cannot name a domain proves nothing about one. (pd_domain_probe_field_not_closed)',
-      p_field, p_schema_id using errcode = '22023';
-  end if;
 
-  foreach k in array sc.required_keys loop
-    select * into r from public.phase_d_output_domain_registry
-     where schema_id = p_schema_id and field_name = k;
-    if k = p_field then
-      v := v || jsonb_build_object(k, to_jsonb(case when p_conforming then r.valid_control_value
-                                                   else r.invalid_sentinel_value end));
-    elsif r.field_semantic_type = 'CLOSED_ENUM' then
-      v := v || jsonb_build_object(k, to_jsonb(r.valid_control_value));
-    else
-      v := v || jsonb_build_object(k, case coalesce(sc.field_types->>k,'string')
-                                        when 'array'  then jsonb_build_array('probe')
-                                        when 'object' then jsonb_build_object('probe', true)
-                                        when 'number' then to_jsonb(1)
-                                        when 'boolean' then to_jsonb(true)
-                                        else to_jsonb('probe'::text) end);
-    end if;
-  end loop;
-  return v;
-end
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_domain_probe_payload was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 REVOKE ALL ON FUNCTION public.fn_phase_d_domain_probe_schema(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.fn_phase_d_domain_probe_payload(text, text, boolean) FROM PUBLIC;
@@ -1383,142 +1298,11 @@ GRANT EXECUTE ON FUNCTION public.fn_phase_d_domain_probe_payload(text, text, boo
 -- audit named (decision = NOT_A_DECISION with a conforming status, so the refusal is attributable),
 -- plus refuse/accept pairs for verdict and state_change built FROM the registry.
 
-CREATE OR REPLACE FUNCTION public.fn_phase_d_contract_state()
- RETURNS TABLE(check_name text, expected text, actual text, ok boolean)
- LANGUAGE sql
- STABLE
-AS $function$
-  with p as (
-    select 'schema_output_w17_s06'::text sid
-  ),
-  probe(nm, res) as (
-    values
-      ('wrong_types_are_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":12345,"output":true,"acceptance_assertions":"not-an-array","evidence_refs":99,
-           "decision":[1,2],"rationale":{"x":1},"authority_ref":-1}'::jsonb))),
-      ('out_of_domain_status_is_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"purple-elephant","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"NOT_A_DECISION","rationale":"r","authority_ref":"auth"}'::jsonb))),
-      ('invented_keys_are_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"ok","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"approved","rationale":"r","authority_ref":"auth",
-           "totally_invented_field":"x","refund_amount_aed":999999}'::jsonb))),
-      ('a_string_zero_denominator_is_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w02_s08',
-         (select jsonb_object_agg(k, case when k='denominator' then to_jsonb('0'::text)
-                                          when k='numerator' then to_jsonb(1)
-                                          when k='status' then to_jsonb('ok'::text)
-                                          when k in ('acceptance_assertions','evidence_refs')
-                                               then jsonb_build_array('x')
-                                          else to_jsonb('x'::text) end)
-            from unnest((select required_keys from public.phase_d_handler_schema
-                          where schema_id='schema_output_w02_s08')) k)))),
-      ('a_conforming_payload_is_accepted',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"completed","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"approved","rationale":"r","authority_ref":"auth"}'::jsonb))),
-      ('a_missing_required_key_is_still_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"ok"}'::jsonb))),
-      ('an_unknown_schema_is_still_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_does_not_exist',
-         '{"status":"ok"}'::jsonb))),
-      -- P01 / GATE 5. THE CASE THE FINAL INDEPENDENT ACCEPTANCE AUDIT NAMED.
-      -- Measured 24 Aug 2026: schema_output_w17_s06 ACCEPTED decision = NOT_A_DECISION, because
-      -- every output schema declared exactly one enum domain and it was always status. The probe
-      -- above (out_of_domain_status_is_refused) sent NOT_A_DECISION too, but alongside
-      -- status=purple-elephant, so it could never distinguish which field caused the refusal. This
-      -- one holds status conforming and moves only the decision.
-      ('out_of_domain_decision_is_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"completed","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"NOT_A_DECISION","rationale":"r","authority_ref":"auth"}'::jsonb))),
-      -- The same shape for the two other consequential domains Gate 5 measured, so a regression in
-      -- any one of the three is a red row rather than a silent acceptance. Both payloads are BUILT
-      -- FROM public.phase_d_output_domain_registry rather than typed here: every closed field takes
-      -- its own registered valid_control_value, and only the field under test is moved to its
-      -- registered invalid_sentinel_value. A literal typed into a probe is an expectation typed
-      -- into the check it guards.
-      ('out_of_domain_verdict_is_refused',
-       (select valid from public.fn_phase_d_schema_validate(
-          public.fn_phase_d_domain_probe_schema('verdict'),
-          public.fn_phase_d_domain_probe_payload(
-            public.fn_phase_d_domain_probe_schema('verdict'), 'verdict', false)))),
-      ('a_conforming_verdict_is_accepted',
-       (select valid from public.fn_phase_d_schema_validate(
-          public.fn_phase_d_domain_probe_schema('verdict'),
-          public.fn_phase_d_domain_probe_payload(
-            public.fn_phase_d_domain_probe_schema('verdict'), 'verdict', true)))),
-      ('out_of_domain_state_change_is_refused',
-       (select valid from public.fn_phase_d_schema_validate(
-          public.fn_phase_d_domain_probe_schema('state_change'),
-          public.fn_phase_d_domain_probe_payload(
-            public.fn_phase_d_domain_probe_schema('state_change'), 'state_change', false)))),
-      ('a_conforming_state_change_is_accepted',
-       (select valid from public.fn_phase_d_schema_validate(
-          public.fn_phase_d_domain_probe_schema('state_change'),
-          public.fn_phase_d_domain_probe_payload(
-            public.fn_phase_d_domain_probe_schema('state_change'), 'state_change', true))))
-  )
-  select nm,
-         case when nm like 'a_conforming%_is_accepted' then 'accepted' else 'refused' end,
-         case when res then 'accepted' else 'refused' end,
-         case when nm like 'a_conforming%_is_accepted' then res else not res end
-    from probe
-  union all
-  select 'every_schema_types_every_required_key', '0',
-         (select count(*)::text from public.phase_d_handler_schema sc
-           where exists (select 1 from unnest(sc.required_keys) k where not (sc.field_types ? k))),
-         (select count(*) from public.phase_d_handler_schema sc
-           where exists (select 1 from unnest(sc.required_keys) k where not (sc.field_types ? k))) = 0
-  union all
-  select 'every_schema_carries_a_version', '514',
-         (select count(*)::text from public.phase_d_handler_schema where schema_version >= 1),
-         (select count(*) from public.phase_d_handler_schema where schema_version >= 1) = 514
-  union all
-  -- P01. EVERY FIELD ON EVERY SCHEMA CARRIES A CLASSIFIED SEMANTIC DOMAIN.
-  -- The denominator is the whole population, not the fields that were easy. A field the registry
-  -- does not classify is refused at validation time (fn_phase_d_schema_validate section P01(e)),
-  -- so this row goes red before a payload ever reaches it.
-  select 'every_schema_field_carries_a_registered_semantic_domain', '0',
-         (select count(*)::text
-            from public.phase_d_handler_schema hs,
-                 lateral unnest(hs.required_keys || coalesce(hs.optional_keys,'{}')) k
-           where not exists (select 1 from public.phase_d_output_domain_registry r
-                              where r.schema_id = hs.schema_id and r.field_name = k))
-         || ' unclassified of '
-         || (select count(*)::text from public.phase_d_handler_schema hs,
-                    lateral unnest(hs.required_keys || coalesce(hs.optional_keys,'{}')) k),
-         (select count(*) from public.phase_d_handler_schema hs,
-                 lateral unnest(hs.required_keys || coalesce(hs.optional_keys,'{}')) k
-           where not exists (select 1 from public.phase_d_output_domain_registry r
-                              where r.schema_id = hs.schema_id and r.field_name = k)) = 0
-  union all
-  -- P01. EVERY REGISTERED CLOSED DOMAIN IS ACTUALLY DECLARED ON ITS SCHEMA.
-  -- The registry is the derivation; enum_domains is what fn_phase_d_schema_validate enforces. A
-  -- CLOSED_ENUM row with no matching enum_domains entry is an unenforced closed domain — the exact
-  -- state Gate 5 measured, wearing a registry row as cover.
-  select 'every_registered_closed_domain_is_declared_on_its_schema', '0',
-         (select count(*)::text from public.phase_d_output_domain_registry r
-            join public.phase_d_handler_schema hs on hs.schema_id = r.schema_id
-           where r.field_semantic_type = 'CLOSED_ENUM'
-             and not (hs.enum_domains ? r.field_name))
-         || ' undeclared of '
-         || (select count(*)::text from public.phase_d_output_domain_registry
-              where field_semantic_type = 'CLOSED_ENUM')
-         || ' registered CLOSED_ENUM field(s); '
-         || (select count(*)::text from public.phase_d_output_domain_registry
-              where field_semantic_type = 'CLOSED_ENUM_UNDEFINED')
-         || ' field(s) are registered CLOSED_ENUM_UNDEFINED and raised as PBCR-002 — their frozen '
-         || 'contract states no vocabulary and one this session chose would be an invented value.',
-         (select count(*) from public.phase_d_output_domain_registry r
-            join public.phase_d_handler_schema hs on hs.schema_id = r.schema_id
-           where r.field_semantic_type = 'CLOSED_ENUM'
-             and not (hs.enum_domains ? r.field_name)) = 0;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_contract_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 REVOKE ALL ON FUNCTION public.fn_phase_d_contract_state() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.fn_phase_d_contract_state() TO service_role;

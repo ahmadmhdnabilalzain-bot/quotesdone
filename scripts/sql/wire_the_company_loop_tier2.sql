@@ -46,32 +46,11 @@ create trigger trg_emit_refund_requested
   for each row execute function public.fn_emit_refund_requested();
 
 -- CHAIN-02 — deterministic suspension signal: an approved supplier with an expired trade licence.
-create or replace function public.fn_emit_supplier_suspension_proposed(p_lookback_minutes int default 0)
-returns int language plpgsql security definer set search_path to 'public', 'pg_temp' as $function$
-declare r record; n int := 0;
-begin
-  for r in
-    select l.id, l.company_name, l.license_expiry, l.trade_license_no
-      from public.leads l
-     where l.approval_status = 'approved'
-       and coalesce(l.banned, false) = false
-       and coalesce(l.matching_blocked, false) = false
-       and l.license_expiry is not null
-       and l.license_expiry < current_date
-       and not exists (select 1 from public.company_event e
-                        where e.event_type = 'supplier.suspension_proposed'
-                          and e.entity_type = 'lead' and e.entity_id = l.id::text)
-     order by l.license_expiry
-     limit 50
-  loop
-    perform public.fn_emit('supplier.suspension_proposed', 'lead', r.id::text, 'trust_safety_manager',
-      jsonb_build_object('lead_id', r.id, 'company', r.company_name,
-        'signal', 'expired_licence', 'license_expiry', r.license_expiry,
-        'trade_licence', r.trade_license_no));
-    n := n + 1;
-  end loop;
-  return n;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_emit_supplier_suspension_proposed was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke execute on function public.fn_emit_supplier_suspension_proposed(int) from public;
 
 -- SINK-04 — give the orphaned paid-ad-launch signal a consumer.

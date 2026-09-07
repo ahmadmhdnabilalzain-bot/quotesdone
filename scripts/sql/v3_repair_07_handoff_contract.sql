@@ -189,17 +189,11 @@ grant execute on function public.fn_handoff_criteria(jsonb) to service_role;
 
 -- One place that decides whether a colleague is a real, active employee before writing to their
 -- memory. Used by every path in this file that has to tell the sender something came back.
-create or replace function public.fn_handoff_notify(p_agent_key text, p_content text, p_source text)
-returns boolean language plpgsql volatile security definer set search_path = public as $$
-begin
-  if coalesce(btrim(p_agent_key), '') = ''
-     or not exists (select 1 from org_agents where agent_key = p_agent_key) then
-    return false;
-  end if;
-  insert into agent_memory (agent_key, kind, content, source, importance)
-  values (p_agent_key, 'learned', left(p_content, 2000), p_source, 4);
-  return true;
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_handoff_notify was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_handoff_notify(text, text, text) from public;
 grant execute on function public.fn_handoff_notify(text, text, text) to service_role;
 
@@ -330,104 +324,11 @@ grant execute on function public.fn_handoff_open(jsonb) to service_role;
 -- One entry point, because all three answers share the same authorisation: only an active employee
 -- of the RECEIVING department may answer, and every answer that is not an acceptance must carry a
 -- reason. Acceptance of an incomplete handoff is refused - it must be rejected or corrected first.
-create or replace function public.fn_handoff_respond(
-  p_id bigint, p_agent_key text, p_decision text, p_reason text default null)
-returns jsonb language plpgsql volatile security definer set search_path = public as $$
-declare
-  c        handoff_contract%rowtype;
-  v_dec    text := lower(btrim(coalesce(p_decision, '')));
-  v_reason text := btrim(coalesce(p_reason, ''));
-  v_gaps   text[] := '{}';
-begin
-  if v_dec not in ('accept','reject','return') then
-    return jsonb_build_object('ok', false, 'reason', 'decision must be accept, reject or return');
-  end if;
-  select * into c from handoff_contract where id = p_id;
-  if not found then
-    return jsonb_build_object('ok', false, 'reason', 'no handoff contract with that id');
-  end if;
-  if not exists (select 1 from org_agents
-                  where agent_key = p_agent_key and active and department = c.to_dept) then
-    return jsonb_build_object('ok', false, 'reason', 'only an active employee of the receiving department may answer',
-                              'to_dept', c.to_dept);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_handoff_respond was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  if jsonb_array_length(c.evidence) = 0 then v_gaps := v_gaps || 'evidence'::text; end if;
-  if cardinality(c.acceptance_criteria) = 0 then v_gaps := v_gaps || 'acceptance_criteria'::text; end if;
-
-  if v_dec = 'accept' then
-    if c.status <> 'open' then
-      return jsonb_build_object('ok', false, 'reason', 'only an open handoff can be accepted', 'status', c.status);
-    end if;
-    -- REJECTABLE ON ARRIVAL: an incomplete handoff cannot be silently taken on.
-    if array_length(v_gaps, 1) is not null then
-      return jsonb_build_object('ok', false, 'reason', 'handoff is incomplete and cannot be accepted',
-        'missing', to_jsonb(v_gaps), 'next', 'reject it with a reason, or ask the sender to amend it');
-    end if;
-    update handoff_contract
-       set status = 'accepted', return_status = 'accepted',
-           accepted_by = p_agent_key, accepted_at = now(), return_reason = nullif(v_reason, '')
-     where id = p_id;
-    perform public.fn_handoff_notify(c.accountable_owner,
-      'Handoff #'||p_id||' ("'||c.purpose||'") was ACCEPTED by '||p_agent_key||' ('||c.to_dept||'). '
-      ||'Due '||to_char(c.deadline, 'YYYY-MM-DD HH24:MI')||'. Closure criteria: '
-      ||array_to_string(c.closure_criteria, ' | '),
-      'handoff_contract:'||p_id);
-    return jsonb_build_object('ok', true, 'id', p_id, 'status', 'accepted',
-      'accepted_by', p_agent_key, 'deadline', c.deadline,
-      'acceptance_criteria', to_jsonb(c.acceptance_criteria),
-      'closure_criteria', to_jsonb(c.closure_criteria));
-  end if;
-
-  if v_reason = '' then
-    return jsonb_build_object('ok', false, 'reason', 'a '||v_dec||' must state why');
-  end if;
-
-  if v_dec = 'reject' then
-    if c.status <> 'open' then
-      return jsonb_build_object('ok', false, 'reason', 'only an open handoff can be rejected', 'status', c.status);
-    end if;
-    update handoff_contract
-       set status = 'rejected',
-           return_status = case when array_length(v_gaps, 1) is not null
-                                then 'rejected_incomplete' else 'rejected' end,
-           return_reason = v_reason
-     where id = p_id;
-    -- The transport row leaves the receiver's inbox; the sender is told, in their own memory.
-    update agent_actions
-       set status = 'done', decided_at = now(), decided_by = p_agent_key,
-           detail = coalesce(detail, '{}'::jsonb)
-                    || jsonb_build_object('outcome', 'rejected', 'reason', left(v_reason, 1000),
-                                          'missing', to_jsonb(v_gaps), 'rejected_at', now())
-     where id = c.action_id;
-    perform public.fn_handoff_notify(c.accountable_owner,
-      'Handoff #'||p_id||' ("'||c.purpose||'") was REJECTED by '||p_agent_key||' ('||c.to_dept||'): '
-      ||v_reason||case when array_length(v_gaps, 1) is not null
-                       then '. Missing: '||array_to_string(v_gaps, ', ')||'. Amend and resubmit with fn_handoff_amend.'
-                       else '' end,
-      'handoff_contract:'||p_id);
-    return jsonb_build_object('ok', true, 'id', p_id, 'status', 'rejected',
-      'return_status', case when array_length(v_gaps, 1) is not null then 'rejected_incomplete' else 'rejected' end,
-      'missing', to_jsonb(v_gaps), 'sender_notified', c.accountable_owner);
-  end if;
-
-  -- return: the receiver took it on, then found it cannot be finished as handed over.
-  if c.status <> 'accepted' then
-    return jsonb_build_object('ok', false, 'reason', 'only an accepted handoff can be returned for correction',
-                              'status', c.status);
-  end if;
-  update handoff_contract
-     set status = 'returned', return_status = 'returned_for_correction',
-         return_reason = v_reason, returns_count = returns_count + 1
-   where id = p_id;
-  perform public.fn_handoff_notify(c.accountable_owner,
-    'Handoff #'||p_id||' ("'||c.purpose||'") was RETURNED FOR CORRECTION by '||p_agent_key||': '||v_reason
-    ||' Correct it with fn_handoff_amend; it goes back to '||c.to_dept||' as open.',
-    'handoff_contract:'||p_id);
-  return jsonb_build_object('ok', true, 'id', p_id, 'status', 'returned',
-    'return_status', 'returned_for_correction', 'returns_count', c.returns_count + 1,
-    'sender_notified', c.accountable_owner);
-end $$;
 revoke all on function public.fn_handoff_respond(bigint, text, text, text) from public;
 grant execute on function public.fn_handoff_respond(bigint, text, text, text) to service_role;
 
@@ -437,60 +338,11 @@ grant execute on function public.fn_handoff_respond(bigint, text, text, text) to
 -- The only way a rejected or returned handoff becomes open again. The caller must be the
 -- accountable owner or another active employee of the originating department; if it is someone
 -- else in that department, ownership MOVES to them explicitly and is recorded - it is never vacant.
-create or replace function public.fn_handoff_amend(p_id bigint, p_agent_key text, p_patch jsonb)
-returns jsonb language plpgsql volatile security definer set search_path = public as $$
-declare
-  c          handoff_contract%rowtype;
-  v_evidence jsonb;
-  v_accept   text[];
-  v_deadline timestamptz;
-  v_owner    text;
-  v_gaps     text[] := '{}';
-begin
-  select * into c from handoff_contract where id = p_id;
-  if not found then
-    return jsonb_build_object('ok', false, 'reason', 'no handoff contract with that id');
-  end if;
-  if c.status = 'closed' then
-    return jsonb_build_object('ok', false, 'reason', 'a closed handoff cannot be amended');
-  end if;
-  if not exists (select 1 from org_agents
-                  where agent_key = p_agent_key and active and department = c.from_dept) then
-    return jsonb_build_object('ok', false, 'reason', 'only an active employee of the originating department may amend',
-                              'from_dept', c.from_dept);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_handoff_amend was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  v_evidence := case when jsonb_typeof(p_patch->'evidence') = 'array' then p_patch->'evidence' else c.evidence end;
-  v_accept   := case when jsonb_typeof(p_patch->'acceptance_criteria') = 'array'
-                     then public.fn_handoff_criteria(p_patch->'acceptance_criteria') else c.acceptance_criteria end;
-  v_owner    := coalesce(nullif(btrim(p_patch->>'accountable_owner'), ''), p_agent_key);
-  begin v_deadline := coalesce((p_patch->>'deadline')::timestamptz, c.deadline);
-  exception when others then v_deadline := c.deadline; end;
-
-  update handoff_contract
-     set evidence = v_evidence,
-         acceptance_criteria = v_accept,
-         deadline = v_deadline,
-         accountable_owner = v_owner,          -- guard refuses a blank, a stranger or an ex-employee
-         status = case when c.status in ('rejected','returned') then 'open' else c.status end,
-         return_status = case when c.status in ('rejected','returned') then null else c.return_status end,
-         return_reason = case when c.status in ('rejected','returned') then null else c.return_reason end
-   where id = p_id;
-
-  -- Back into the receiver's inbox if the rejection had taken it out.
-  update agent_actions
-     set status = 'needs_review', decided_at = null, decided_by = null,
-         detail = coalesce(detail, '{}'::jsonb) || jsonb_build_object('amended_at', now(), 'amended_by', p_agent_key)
-   where id = c.action_id and c.status in ('rejected','returned');
-
-  if jsonb_array_length(v_evidence) = 0 then v_gaps := v_gaps || 'evidence'::text; end if;
-  if cardinality(v_accept) = 0 then v_gaps := v_gaps || 'acceptance_criteria'::text; end if;
-
-  return jsonb_build_object('ok', true, 'id', p_id,
-    'status', case when c.status in ('rejected','returned') then 'open' else c.status end,
-    'accountable_owner', v_owner, 'owner_changed', v_owner is distinct from c.accountable_owner,
-    'complete', array_length(v_gaps, 1) is null, 'missing_for_acceptance', to_jsonb(v_gaps));
-end $$;
 revoke all on function public.fn_handoff_amend(bigint, text, jsonb) from public;
 grant execute on function public.fn_handoff_amend(bigint, text, jsonb) to service_role;
 
@@ -500,56 +352,11 @@ grant execute on function public.fn_handoff_amend(bigint, text, jsonb) to servic
 -- p_closure_evidence is [{"criterion": "<one of closure_criteria>", "evidence": "<what proves it>"}].
 -- The gaps are named back to the caller here; the trigger in section 2 is the backstop that makes
 -- the same rule true for a direct UPDATE.
-create or replace function public.fn_handoff_close(p_id bigint, p_agent_key text, p_closure_evidence jsonb)
-returns jsonb language plpgsql volatile security definer set search_path = public as $$
-declare
-  c         handoff_contract%rowtype;
-  v_ev      jsonb := case when jsonb_typeof(p_closure_evidence) = 'array' then p_closure_evidence else '[]'::jsonb end;
-  v_missing text[];
-begin
-  select * into c from handoff_contract where id = p_id;
-  if not found then
-    return jsonb_build_object('ok', false, 'reason', 'no handoff contract with that id');
-  end if;
-  if c.status <> 'accepted' then
-    return jsonb_build_object('ok', false, 'reason', 'only an accepted handoff can be closed', 'status', c.status);
-  end if;
-  if not exists (select 1 from org_agents
-                  where agent_key = p_agent_key and active and department = c.to_dept) then
-    return jsonb_build_object('ok', false, 'reason', 'only an active employee of the receiving department may close it',
-                              'to_dept', c.to_dept);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_handoff_close was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select coalesce(array_agg(x), '{}'::text[]) into v_missing
-    from unnest(c.closure_criteria) x
-   where not exists (
-     select 1 from jsonb_array_elements(v_ev) e
-      where btrim(coalesce(e->>'criterion', '')) = btrim(x)
-        and coalesce(btrim(e->>'evidence'), '') <> '');
-  if array_length(v_missing, 1) is not null then
-    return jsonb_build_object('ok', false, 'reason', 'closure criteria without recorded proof',
-      'unproven', to_jsonb(v_missing), 'declared', to_jsonb(c.closure_criteria));
-  end if;
-
-  update handoff_contract
-     set status = 'closed', return_status = 'closed', closure_evidence = v_ev,
-         closed_by = p_agent_key, closed_at = now()
-   where id = p_id;
-
-  update agent_actions
-     set status = 'done', decided_at = now(), decided_by = p_agent_key,
-         detail = coalesce(detail, '{}'::jsonb)
-                  || jsonb_build_object('outcome', 'closed', 'closure_evidence', v_ev, 'closed_at', now())
-   where id = c.action_id;
-
-  perform public.fn_handoff_notify(c.accountable_owner,
-    'Handoff #'||p_id||' ("'||c.purpose||'") was CLOSED by '||p_agent_key||' ('||c.to_dept||'). '
-    ||'Proof recorded for '||cardinality(c.closure_criteria)||' closure criteria: '||v_ev::text,
-    'handoff_contract:'||p_id);
-
-  return jsonb_build_object('ok', true, 'id', p_id, 'status', 'closed', 'closed_by', p_agent_key,
-    'criteria_proven', cardinality(c.closure_criteria), 'closure_evidence', v_ev);
-end $$;
 revoke all on function public.fn_handoff_close(bigint, text, jsonb) from public;
 grant execute on function public.fn_handoff_close(bigint, text, jsonb) to service_role;
 
@@ -587,14 +394,11 @@ create or replace view public.v_handoff_stalled as
 comment on view public.v_handoff_stalled is
   'Cross-department work that has stopped moving, with the reason. Empty is the correct state; a row here always names one accountable owner.';
 
-create or replace function public.fn_handoff_stalled(p_dept text default null, p_limit integer default 50)
-returns setof public.v_handoff_stalled
-language sql stable security definer set search_path = public as $$
-  select * from public.v_handoff_stalled s
-   where p_dept is null or s.from_dept = p_dept or s.to_dept = p_dept
-   order by s.days_past_deadline desc, s.deadline
-   limit greatest(1, coalesce(p_limit, 50));
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_handoff_stalled was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_handoff_stalled(text, integer) from public;
 grant execute on function public.fn_handoff_stalled(text, integer) to service_role;
 

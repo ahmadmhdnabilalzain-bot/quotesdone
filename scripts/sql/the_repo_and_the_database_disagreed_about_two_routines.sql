@@ -41,72 +41,11 @@
 -- Both definitions below are captured VERBATIM from pg_get_functiondef on production, so applying
 -- this file is a no-op against live and simply makes the newest file the true one.
 
-CREATE OR REPLACE FUNCTION public.fn_category_specialist_scorecard(p_days integer DEFAULT 30)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  v_since timestamptz := now() - make_interval(days => greatest(coalesce(p_days,30),1));
-  v_routed int; v_routed_ok int; v_inq int; v_quotable int; v_completeness_rows int;
-  v_disp int; v_responded int; v_quotes int; v_valid int;
-  v_overlays int; v_with_knowledge int;
-begin
-  select count(*) into v_overlays from org_role where status='active' and runtime_mode='knowledge_overlay';
-  select count(distinct k.category_key) into v_with_knowledge
-    from ops_knowledge k where k.category_key is not null and k.runtime_eligible;
+-- ROUTINE REMOVED 7 September 2026. public.fn_category_specialist_scorecard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select count(*), count(*) filter (where coalesce(category,'') <> ''),
-         count(*) filter (where coalesce(rfq_ready,false)),
-         count(*) filter (where completeness is not null)
-    into v_routed, v_routed_ok, v_quotable, v_completeness_rows
-    from inquiries where created_at >= v_since;
-  v_inq := v_routed;
-
-  -- Dispatch is inquiry_matches.sent_at: a match that was never sent is a coverage fact, not a
-  -- specialist outcome, so it is excluded from the denominator rather than counted as unanswered.
-  select count(*) into v_disp from inquiry_matches where sent_at >= v_since;
-  select count(distinct m.id) into v_responded
-    from inquiry_matches m
-    join quotes q on q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id
-   where m.sent_at >= v_since;
-
-  select count(*) into v_quotes from quotes where created_at >= v_since;
-  select count(*) into v_valid from quotes
-   where created_at >= v_since and coalesce(status,'') not in ('draft','invalid','withdrawn');
-
-  return jsonb_build_object(
-    'window_days', p_days,
-    'overlays_active', v_overlays,
-    'categories_with_runtime_knowledge', v_with_knowledge,
-    'routing_accuracy', case when v_routed = 0 then null
-                             else round(100.0 * v_routed_ok / v_routed, 1) end,
-    'routing_accuracy_basis', case when v_routed = 0
-      then 'no inquiry created in the window: not measurable, and deliberately not reported as 100'
-      else v_routed_ok||' of '||v_routed||' inquiries carry a resolved category' end,
-    'inquiry_quoteability', case when v_inq = 0 then null
-                                 else round(100.0 * v_quotable / v_inq, 1) end,
-    'inquiry_quoteability_basis', case when v_inq = 0
-      then 'no inquiry in the window' else v_quotable||' of '||v_inq||' marked rfq_ready' end,
-    'mandatory_field_completeness', null,
-    'mandatory_field_completeness_basis',
-      'not measurable: inquiries.completeness is jsonb and holds '||v_completeness_rows
-      ||' non-null value(s) in this window. The column exists and no path writes it, so any number '
-      ||'reported here would describe the schema rather than the inquiries',
-    'supplier_response_rate', case when v_disp = 0 then null
-                                   else round(100.0 * v_responded / v_disp, 1) end,
-    'supplier_response_rate_basis', case when v_disp = 0
-      then 'nothing dispatched in the window; with one confirmed supplier company-wide this is '
-           ||'expected and is a coverage fact, not a specialist failure'
-      else v_responded||' of '||v_disp||' dispatches answered' end,
-    'valid_quotations', case when v_quotes = 0 then null
-                             else round(100.0 * v_valid / v_quotes, 1) end,
-    'valid_quotations_basis', case when v_quotes = 0
-      then 'no quotation in the window' else v_valid||' of '||v_quotes end,
-    'measured_at', now());
-end
-$function$;
 
 CREATE OR REPLACE FUNCTION public.fn_classify_llm_failure(p_err text, p_http_status integer DEFAULT NULL::integer, p_finish_reason text DEFAULT NULL::text, p_model text DEFAULT NULL::text, p_latency_ms integer DEFAULT NULL::integer)
  RETURNS jsonb

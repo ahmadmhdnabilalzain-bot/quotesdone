@@ -77,95 +77,21 @@ on conflict (path_name) do update
 -- below if absent). The primitives assert it. A direct call from psql, PostgREST or an old edge
 -- bundle therefore refuses, while the kernel's own call succeeds — the guard can fire AND can not
 -- fire, which is the pair that makes it worth having.
-create or replace function public.fn_kernel_assert_in_kernel(p_who text)
-returns void language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $k13a$
-begin
-  if coalesce(current_setting('kernel.in_kernel', true), '') <> 'on' then
-    raise exception
-      '% is a kernel-internal primitive and was called from outside the kernel', p_who
-      using errcode = '23514',
-            hint = 'Call the canonical service instead. public.kernel_retired_path names the '
-                || 'replacement for every retired path.';
-  end if;
-end $k13a$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_assert_in_kernel was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_assert_in_kernel(text) from public;
 grant execute on function public.fn_kernel_assert_in_kernel(text) to service_role;
 
 -- ------------------------------------------------------------------ 3. the state of the retirement
-create or replace function public.fn_kernel_retired_path_state()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql stable security definer set search_path to 'public', 'pg_temp' as $k13s$
-  -- Every check below counts over the FULL register, never over a filtered subset, so a path that
-  -- is quietly removed from the register cannot make a number improve.
-  select 'old_cron_jobs_invoking_old_runtime', '0',
-         count(*) filter (where j.active)::text || ' of ' || count(*)::text,
-         count(*) filter (where j.active) = 0
-    from cron.job j
-   where exists (select 1 from public.kernel_retired_path r
-                  where r.disposition <> 'KERNEL_INTERNAL_PRIMITIVE'
-                    and j.command like '%' || r.path_name || '%')
-  union all
-  select 'direct_grants_permitting_kernel_bypass', '0',
-         count(*)::text || ' of ' || (select count(*) from public.kernel_retired_path)::text,
-         count(*) = 0
-    from public.kernel_retired_path r
-    join pg_proc p on p.proname = r.path_name
-    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
-   where has_function_privilege('anon', p.oid, 'EXECUTE')
-      or has_function_privilege('authenticated', p.oid, 'EXECUTE')
-  union all
-  select 'active_callers_of_disabled_paths', '0',
-         count(*)::text || ' of ' || (select count(*) from public.kernel_retired_path
-                                       where disposition = 'DISABLED')::text,
-         count(*) = 0
-    from public.kernel_retired_path r
-    join pg_proc p on p.prosrc like '%' || r.path_name || '%'
-    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
-   where r.disposition = 'DISABLED'
-     and p.proname <> r.path_name
-     and p.proname not like 'fn_kernel_%'
-     and p.proname not in ('fn_phase_c_event_binding_status', 'fn_phase_c_invariants',
-                           'fn_kernel_retired_path_state')
-  union all
-  select 'paths_with_no_recorded_disposition', '0',
-         count(*)::text || ' of ' || count(*)::text, count(*) = 0
-    from (select unnest(array['fn_phase_c_event_ingress','fn_phase_c_event_consume',
-                              'fn_phase_c_outbox_deliver','fn_phase_c_outbox_settle',
-                              'fn_phase_c_workflow_start','fn_phase_c_step_advance',
-                              'fn_phase_c_task_create','fn_phase_c_outbox_claim']) pn) x
-   where not exists (select 1 from public.kernel_retired_path r where r.path_name = x.pn)
-  union all
-  -- The three primitives are reached only from fn_kernel_* today. This measures that, rather than
-  -- claiming it: any NON-kernel routine whose source names a primitive is counted. The two retired
-  -- wrappers are excluded by name because they are the retirement, not a bypass of it.
-  --
-  -- 18 AUG 2026 — THE PREDICATE WAS `prosrc like '%' || path_name || '%'`, AND A PREFIX IS NOT A CALL.
-  -- The final acceptance audit found this check red at 1 of 9. The single row was
-  -- fn_phase_c_task_state_guard against the primitive fn_phase_c_task_transition — and that guard
-  -- never calls it. `like` matched because the primitive's name is a PREFIX of a different, longer
-  -- function: fn_phase_c_task_transition_allowed, which is a pure predicate. A substring match
-  -- reported a bypass that does not exist, on a board nothing else reads.
-  --
-  -- Now: comments are stripped first, so naming a primitive in an error message or a note is not a
-  -- call; and the name must be followed by an opening parenthesis with a word boundary in front,
-  -- which is what a call looks like. `_` is a word character in Postgres regex, so `\yfn_x\y` does
-  -- not match inside `fn_x_allowed` — that is the whole fix.
-  select 'kernel_primitives_called_from_outside_the_kernel', '0',
-         count(*)::text || ' of ' || (select count(*) from public.kernel_retired_path
-                                       where disposition = 'KERNEL_INTERNAL_PRIMITIVE')::text,
-         count(*) = 0
-    from public.kernel_retired_path r
-    join pg_proc p on regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', ' ', 'g'), '--[^\n]*', ' ', 'g')
-                      ~ ('\y' || r.path_name || '\y\s*\(')
-    join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
-   where r.disposition = 'KERNEL_INTERNAL_PRIMITIVE'
-     and p.proname <> r.path_name
-     and p.proname not like 'fn_kernel_%'
-     and p.proname not in ('fn_phase_c_event_ingress','fn_phase_c_event_consume',
-                           'fn_phase_c_outbox_deliver','fn_phase_c_step_advance',
-                           'fn_phase_c_invariants','fn_phase_c_event_binding_status');
-$k13s$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_retired_path_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_retired_path_state() from public;
 grant execute on function public.fn_kernel_retired_path_state() to service_role;

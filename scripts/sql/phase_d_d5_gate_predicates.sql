@@ -422,46 +422,11 @@ comment on function public.fn_phase_d_gate_applies(text, text) is
   'the frozen step never had.';
 
 -- ================================================================ 3. the board
-create or replace function public.fn_phase_d_gate_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language plpgsql stable
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare n_gates int; n_contract int; n_notimpl int; n_generic int; n_blank int;
-begin
-  select count(*) into n_gates    from public.phase_b_gate;
-  select count(*) into n_contract from public.phase_d_gate_contract;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_gate_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  check_name := 'every_frozen_gate_has_an_evidence_contract';
-  expected := n_gates::text; actual := n_contract::text; ok := (n_contract = n_gates); return next;
-
-  -- Every gate must reach a predicate. Asked with EMPTY evidence, none may report NOT_IMPLEMENTED.
-  select count(*) into n_notimpl from public.phase_b_gate g
-   where (select ge.state from public.fn_phase_d_gate_evaluate(g.gate_id, '{}'::jsonb) ge)
-         = 'NOT_IMPLEMENTED';
-  check_name := 'gates_with_no_predicate';
-  expected := '0'; actual := n_notimpl::text; ok := (n_notimpl = 0); return next;
-
-  -- An unknown gate must be blocked, never waved through.
-  check_name := 'unknown_gate_is_blocked';
-  expected := 'NOT_IMPLEMENTED/false';
-  actual := (select ge.state || '/' || ge.passed::text
-               from public.fn_phase_d_gate_evaluate('GATE-999','{}'::jsonb) ge);
-  ok := (actual = 'NOT_IMPLEMENTED/false'); return next;
-
-  -- A gate declaring evidence must BLOCK when given none. This is the check that would have
-  -- caught the generic predicate this file replaces.
-  select count(*) into n_generic from public.phase_d_gate_contract c
-   where cardinality(c.evidence_keys) > 0
-     and (select ge.passed from public.fn_phase_d_gate_evaluate(c.gate_id, '{}'::jsonb) ge);
-  check_name := 'evidence_declaring_gates_that_pass_on_no_evidence';
-  expected := '0'; actual := n_generic::text; ok := (n_generic = 0); return next;
-
-  select count(*) into n_blank from public.phase_d_gate_contract
-   where coalesce(btrim(correction_owner),'') = '' or coalesce(btrim(evidence_source),'') = '';
-  check_name := 'gates_with_no_correction_owner_or_source';
-  expected := '0'; actual := n_blank::text; ok := (n_blank = 0); return next;
-end $fn$;
 
 comment on function public.fn_phase_d_gate_state() is
   'Phase D gate board. The fourth check is the one that matters: a gate declaring evidence must '

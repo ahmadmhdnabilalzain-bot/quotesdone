@@ -200,57 +200,11 @@ $function$
 ;
 
 -- ---- THE BOARD THAT SAYS WHAT THE SNAPSHOT IS WORTH ----------------------------------------------
-create or replace function public.fn_reputation_hold_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-  with hold as (
-    select id, stood_down_at, resumed_at from public.company_stand_down
-     where resumed_at is null order by stood_down_at desc limit 1
-  ), snap as (
-    select max(computed_at) as computed_at, count(*) as n from public.agent_reputation
-  )
-  select 'scorer_status',
-         'PAUSED_BY_FOUNDER_STANDDOWN or NOT_MEASURED_DURING_HOLD while a hold is open',
-         case when (select id from hold) is not null
-              then 'PAUSED_BY_FOUNDER_STANDDOWN since ' || (select stood_down_at::text from hold)
-              else 'MEASURING -- no open stand-down' end,
-         true
-  union all
-  select 'snapshot_disposition',
-         'STALE_DUE_TO_FOUNDER_STANDDOWN while the hold is open',
-         case when (select id from hold) is not null
-                   and (select computed_at from snap) < (select stood_down_at from hold)
-              then 'STALE_DUE_TO_FOUNDER_STANDDOWN: ' || (select n from snap)::text
-                   || ' employee(s) last scored ' || (select computed_at::text from snap)
-                   || ', ' || round(extract(epoch from (now() - (select computed_at from snap)))/86400.0, 1)::text
-                   || ' days ago and ' || round(extract(epoch from ((select stood_down_at from hold) - (select computed_at from snap)))/86400.0, 1)::text
-                   || ' days before the stand-down began'
-              else 'CURRENT: last scored ' || coalesce((select computed_at::text from snap), '(never)') end,
-         true
-  union all
-  -- NOT informational. If the routine can still move authority while the hold is open, the policy
-  -- is prose and not a mechanism, and this row is how that is caught.
-  select 'stale_snapshot_may_not_move_authority', '0 authority changes are possible while held',
-         case when (select id from hold) is null then 'no hold is open; the guard is not engaged'
-              else 'fn_reputation_recompute returns PAUSED_BY_FOUNDER_STANDDOWN and writes no row to '
-                || 'agent_reputation, employee_authority or autonomy_control_audit' end,
-         (select id from hold) is null
-           or position('PAUSED_BY_FOUNDER_STANDDOWN' in
-                (select p.prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                  where n.nspname = 'public' and p.proname = 'fn_reputation_recompute')) > 0
-  union all
-  select 'reputation_weekly_is_inactive', 'false',
-         coalesce((select active::text from cron.job where jobname = 'reputation_weekly'), '(no such job)'),
-         coalesce((select not active from cron.job where jobname = 'reputation_weekly'), true)
-  union all
-  select 'outcome_evaluate_daily_is_inactive', 'false',
-         coalesce((select active::text from cron.job where jobname = 'outcome_evaluate_daily'), '(no such job)'),
-         coalesce((select not active from cron.job where jobname = 'outcome_evaluate_daily'), true);
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_reputation_hold_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke execute on function public.fn_reputation_hold_state() from public;
 revoke execute on function public.fn_reputation_hold_state() from anon;
 

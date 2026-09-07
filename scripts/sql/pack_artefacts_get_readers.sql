@@ -93,50 +93,18 @@ end $function$;
 -- google/gemini-3.6-flash, anthropic/claude-opus-5 — are not in production's model_registry.
 -- fn_ai_route silently substitutes and writes a WARNING into `why` that nothing reads. This makes
 -- the divergence a measured, dated number instead of a string in a return value.
-create or replace function public.fn_model_catalog_drift()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare v_cat int; v_not_served int; v_policy_off int; v_names text[]; v_pol text[];
-begin
-  select count(*) into v_cat from public.model_catalog;
+-- ROUTINE REMOVED 7 September 2026. public.fn_model_catalog_drift was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select count(*), coalesce(array_agg(c.model_id order by c.model_id), '{}')
-    into v_not_served, v_names
-    from public.model_catalog c
-   where c.model_id <> 'none/deterministic'
-     and not exists (select 1 from public.model_registry r where r.model_id = c.model_id and r.active);
-
-  select count(*), coalesce(array_agg(distinct p.task_class), '{}')
-    into v_policy_off, v_pol
-    from public.model_policy p
-   where p.active and coalesce(p.tier,'') <> 'none'
-     and p.model_primary is not null
-     and not exists (select 1 from public.model_registry r where r.model_id = p.model_primary and r.active);
-
-  if v_policy_off > 0 then
-    insert into public.agent_actions(agent, kind, title, recommendation, detail, risk, status)
-    values ('it', 'ai_improvement',
-            format('%s active model policies name a model production does not serve', v_policy_off),
-            'Either add the model to model_registry or repoint the policy at a served model. Until then fn_ai_route substitutes by tier and price, and the policy is decorative.',
-            jsonb_build_object('task_classes', to_jsonb(v_pol),
-                               'catalog_models_not_served', to_jsonb(v_names),
-                               'source', 'fn_model_catalog_drift'),
-            'low', 'pending');
-  end if;
-
-  return jsonb_build_object('catalog_models', v_cat,
-                            'catalog_models_not_served', v_not_served,
-                            'catalog_models_not_served_list', to_jsonb(v_names),
-                            'active_policies_on_unserved_models', v_policy_off,
-                            'affected_task_classes', to_jsonb(v_pol),
-                            'ran_at', now());
-end $function$;
 
 revoke execute on function public.fn_model_catalog_drift() from public;
 revoke execute on function public.fn_model_catalog_drift() from anon;
 revoke execute on function public.fn_model_catalog_drift() from authenticated;
 
-select cron.schedule('model_catalog_drift_daily', '50 3 * * *', $$select public.fn_model_catalog_drift();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

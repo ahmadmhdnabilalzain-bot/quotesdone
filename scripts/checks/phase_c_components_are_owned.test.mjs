@@ -42,29 +42,44 @@ const show = (label, list, fmt) => {
   if (list.length > 25) console.error(`  ... and ${list.length - 25} more`);
 };
 
-test('every component is accountable to an active canonical role', { skip }, async () => {
+// A COMPONENT THAT NAMES AN OWNER NAMES A REAL ONE. Until 7 Sep 2026 this asserted that EVERY
+// component had an active owner. The founder removed the organisation chart that day and said "keep
+// them unlinked now till we come up with the new structure", so 1,664 components are deliberately
+// unowned and that assertion would now fail on the company's own intended state.
+//
+// What is still worth asserting, and is asserted here: a component that DOES name a role names one
+// that exists and is active. That is the defect this check was written for -- a stale reference to
+// somebody who left -- and it is untouched. An absent owner is the founder's decision; a wrong owner
+// is a bug.
+test('every component that names an owner names an active canonical role', { skip }, async () => {
   const bad = await rows(`
     select c.component_id, c.accountable_role_id, coalesce(r.status, '(no such role)') role_status
       from public.phase_c_component c
       left join public.org_role r on r.role_id = c.accountable_role_id
-     where r.role_id is null or r.status <> 'active'
+     where coalesce(btrim(c.accountable_role_id), '') <> ''
+       and (r.role_id is null or r.status <> 'active')
      order by 1`);
   show('components whose accountable role is not an active canonical role', bad,
     (r) => `${r.component_id}  ->  ${r.accountable_role_id} (${r.role_status})`);
   assert.equal(bad.length, 0);
 });
 
-test('every component sits in an active department, and it is its role\'s department', { skip }, async () => {
-  const bad = await rows(`
-    select c.component_id, c.department_id, r.primary_department_id role_dept, coalesce(d.active, false) dept_active
-      from public.phase_c_component c
-      join public.org_role r on r.role_id = c.accountable_role_id and r.status = 'active'
-      left join public.org_departments d on d.dept_key = c.department_id
-     where d.dept_key is null or not d.active or c.department_id is distinct from r.primary_department_id
-     order by 1`);
-  show('components whose department is inactive or is not their role\'s', bad,
-    (r) => `${r.component_id}  department ${r.department_id} (active=${r.dept_active}), role sits in ${r.role_dept}`);
-  assert.equal(bad.length, 0);
+// THERE ARE NO DEPARTMENTS. This asserted that every component sat in an ACTIVE department and that
+// the department was its role's. The founder removed every department on 7 Sep 2026 -- "so no
+// departments from now" -- so the old assertion has no subject left.
+//
+// It is not deleted, it is INVERTED, because the ruling is worth guarding: no component may name a
+// department, and no department may exist. If either creeps back the check goes red, which is the
+// only way this ruling survives contact with the next person who reaches for a dept_key.
+test('no component names a department, because there are none', { skip }, async () => {
+  const withDept = await rows(`
+    select component_id, department_id from public.phase_c_component
+     where coalesce(btrim(department_id), '') <> '' order by 1`);
+  const depts = await rows(`select dept_key from public.org_departments order by 1`);
+  show('components still naming a department', withDept,
+    (r) => `${r.component_id}  ->  ${r.department_id}`);
+  show('departments that exist again', depts, (r) => r.dept_key);
+  assert.equal(withDept.length + depts.length, 0);
 });
 
 test('every active component carries a trace policy', { skip }, async () => {

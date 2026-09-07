@@ -242,16 +242,11 @@ COMMENT ON FUNCTION public.fn_phase_d_fixture_context() IS
   'Every Phase D fixture path calls this instead of reading a GUC (F01).';
 
 -- ---- the operation this context was opened for, for a routine that must check it ---------------
-CREATE OR REPLACE FUNCTION public.fn_phase_d_fixture_operation()
- RETURNS text
- LANGUAGE sql
- STABLE
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select g.operation_key from public.phase_d_test_context_grant g
-   where g.fixture_run_id = public.fn_phase_d_fixture_context();
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_fixture_operation was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 REVOKE ALL ON FUNCTION public.fn_phase_d_fixture_operation() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.fn_phase_d_fixture_operation() FROM anon, authenticated;

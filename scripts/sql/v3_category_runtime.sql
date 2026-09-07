@@ -115,43 +115,11 @@ grant execute on function fn_category_checklist(text, text, text) to service_rol
 -- Quote-readiness: the brief may only go to suppliers when every mandatory field for the
 -- resolved route is present. Returns the blocking fields rather than a bare boolean, so the
 -- caller can ask for exactly what is missing instead of asking again for everything.
-create or replace function fn_category_quote_ready(
-  p_category text,
-  p_spec     jsonb,
-  p_label    text default null
-) returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-declare
-  v_chk     jsonb;
-  v_missing text[] := '{}';
-  f         text;
-begin
-  v_chk := fn_category_checklist(p_category, p_label, null);
-  if not (v_chk->>'route_resolved')::boolean then
-    return jsonb_build_object('ready', false, 'reason', 'route_unresolved',
-                              'clarification', v_chk->>'clarification',
-                              'missing', '[]'::jsonb, 'checklist', v_chk);
-  end if;
-  for f in select jsonb_array_elements_text(v_chk->'mandatory_fields') loop
-    if coalesce(p_spec, '{}'::jsonb) ->> f is null
-       or btrim(coalesce(p_spec ->> f, '')) = '' then
-      v_missing := v_missing || f;
-    end if;
-  end loop;
-  return jsonb_build_object(
-    'ready', coalesce(array_length(v_missing, 1), 0) = 0,
-    'reason', case when coalesce(array_length(v_missing,1),0) = 0 then 'complete' else 'missing_mandatory_fields' end,
-    'missing', to_jsonb(v_missing),
-    'route_key', v_chk->>'route_key',
-    'category_key', v_chk->>'category_key',
-    'stop_rule', v_chk->>'stop_rule',
-    'never_infer', v_chk->'never_infer',
-    'knowledge_ids', v_chk->'knowledge_ids');
-end $$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_category_quote_ready was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function fn_category_quote_ready(text, jsonb, text) from public;
 grant execute on function fn_category_quote_ready(text, jsonb, text) to service_role;

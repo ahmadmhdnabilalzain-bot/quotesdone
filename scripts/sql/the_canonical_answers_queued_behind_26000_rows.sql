@@ -23,15 +23,10 @@
 -- kinds already queued. Embedding is the in-region gte-small model and is free — this costs nothing
 -- but the order it happens in.
 
-select cron.unschedule('kb_embed_priority_kinds');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
-select cron.schedule('kb_embed_priority_kinds', '* * * * *', $job$
-  select net.http_post(
-    url := 'https://' || (select value from app_secrets where key = 'project_ref')
-           || '.supabase.co/functions/v1/kb_embed',
-    headers := '{"Content-Type":"application/json"}'::jsonb,
-    body := jsonb_build_object('__secret', (select value from app_secrets where key = 'cred_cron_knowledge'),
-                               'limit', 5,
-                               'source_kinds', jsonb_build_array('company_faq','trade','regulation','material')))
-  from generate_series(1, 6);
 $job$);

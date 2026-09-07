@@ -8,8 +8,11 @@
 -- Registered in cron_registry in the SAME file: an unregistered job dropped Row #3 from 130 to 129
 -- via s38 on 14 Aug, and the answer to that check is to register the job, never to relax it.
 
-select cron.schedule('scenario_rehearsal_weekly', '10 3 * * 0',
-                     $$select public.fn_scenario_rehearse_all();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 insert into public.cron_registry (jobname, human_name, category, purpose)
 values ('scenario_rehearsal_weekly', 'Rehearse the failure scenarios', 'continuity',

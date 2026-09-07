@@ -848,82 +848,11 @@ end; $function$
 ;
 
 -- fn_employee_scorecard(p_agent_key text, p_max_chars integer)
-CREATE OR REPLACE FUNCTION public.fn_employee_scorecard(p_agent_key text, p_max_chars integer DEFAULT 1400)
- RETURNS text
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  v_cap  int := greatest(coalesce(p_max_chars, 1400), 300);
-  v_out  text := '';
-  v_line text;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  if coalesce(btrim(p_agent_key),'') = '' then return null; end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_employee_scorecard was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- YOUR NUMBER. attainment mirrors fn_kpi_scoreboard exactly, including the percent_max
-  -- inversion; it is NOT recomputed with a different rule, because two rules that must agree is
-  -- how sec() and J() ended up with 8 and 11 variants of the same helper.
-  -- An unmeasured KPI says so in words. It must never read as a zero.
-  select string_agg(
-           '- '||z.kpi||': target '||coalesce(z.target_value::text,'?')||' '||coalesce(z.unit,'')
-           ||case
-               when z.actual_value is null then ' — NOT MEASURED YET (no number exists; do not assume one)'
-               else ' — you are at '||z.actual_value::text
-                    ||case when z.target_value is null then ''
-                    when z.target_value = 0 then
-                      case when z.actual_value <= 0 then ', at the zero-defect target (MET)'
-                           else ', against a target of ZERO (MISSED)' end
-                           when z.unit = 'percent_max'
-                             then ', '||round(least(100.0, 100.0 * z.target_value / nullif(z.actual_value,0)),0)::text||'% of target'
-                           else ', '||round(100.0 * z.actual_value / z.target_value,0)::text||'% of target' end
-                    ||case
-                        when z.target_value is null or z.target_value = 0 then ''
-                        when z.unit = 'percent_max' then
-                          case when z.actual_value <= z.target_value then ' (MET)' else ' (MISSED)' end
-                        else
-                          case when z.actual_value >= z.target_value then ' (MET)'
-                               when z.actual_value >= 0.9 * z.target_value then ' (NEAR)'
-                               else ' (MISSED)' end end
-             end
-           ||case when z.serves_goal is not null then ' — serves company goal '||z.serves_goal else '' end,
-           E'\n' order by z.kpi)
-    into v_line
-    from (select k.kpi, k.target_value, k.unit, k.actual_value, k.serves_goal
-            from employee_kpi k
-           where k.agent_key = p_agent_key and k.active
-           order by k.kpi limit 8) z;
-
-  if v_line is not null then
-    v_out := v_out || E'\n# YOUR NUMBER RIGHT NOW — measured, not asserted\n' || v_line || E'\n';
-  end if;
-
-  -- YOUR DEPARTMENT'S OBJECTIVE and the company goal it serves. This is the chain the founder
-  -- described, delivered to the one employee that has to act on it.
-  select string_agg(
-           '- '||d.objective
-           ||case when d.target_value is not null then ' (target '||d.target_value::text||' '||coalesce(d.unit,'')||')' else '' end
-           ||case when d.actual_value is not null then ', department is at '||d.actual_value::text
-                  when d.measure_sql is not null then ', not yet measured'
-                  else '' end
-           ||case when g.key is not null then E'\n    serves company goal '||g.key||' — "'||g.goal||'"' else '' end,
-           E'\n' order by d.sort, d.id)
-    into v_line
-    from department_objective d
-    join org_agents a on a.agent_key = p_agent_key and a.department = d.dept_key
-    left join company_goals g on g.key = d.goal_key and g.active
-   where d.active
-   limit 6;
-
-  if v_line is not null then
-    v_out := v_out || E'\n# WHAT YOUR DEPARTMENT IS FOR\n' || v_line || E'\n';
-  end if;
-
-  if v_out = '' then return null; end if;
-  return left(v_out, v_cap);
-end $function$
-;
 
 -- fn_exam_revert(p_agent_key text)
 CREATE OR REPLACE FUNCTION public.fn_exam_revert(p_agent_key text DEFAULT NULL::text)
@@ -1025,101 +954,24 @@ end $function$
 ;
 
 -- fn_propose_lesson(p_agent_key text, p_topic text, p_statement text, p_evidence jsonb, p_confidence numeric, p_valid_until date)
-CREATE OR REPLACE FUNCTION public.fn_propose_lesson(p_agent_key text, p_topic text, p_statement text, p_evidence jsonb, p_confidence numeric DEFAULT 0.5, p_valid_until date DEFAULT NULL::date)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare
-  v_id bigint;
-  v_obs int := coalesce(jsonb_array_length(p_evidence->'observations'), 0);
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  if p_agent_key is null or not exists (select 1 from org_agents where agent_key = p_agent_key) then
-    raise exception 'unknown agent %', p_agent_key;
-  end if;
-  if coalesce(btrim(p_statement), '') = '' then
-    raise exception 'a lesson needs a statement';
-  end if;
-  -- Two independent observations minimum. One outcome is an anecdote; the loop is allowed
-  -- to record it as evidence but not to call it a lesson.
-  if v_obs < 2 then
-    return jsonb_build_object('accepted', false, 'reason', 'insufficient_evidence',
-      'detail', format('a proposed lesson needs at least 2 observations; %s supplied', v_obs));
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_propose_lesson was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  insert into agent_knowledge
-    (agent_key, topic, content, priority, layer, source_ref, owner_agent, version,
-     confidence, validation_status, review_due, valid_until, supporting_evidence)
-  values (p_agent_key, p_topic, p_statement, 5, 'experience', 'learning_loop', p_agent_key, 1,
-          least(coalesce(p_confidence, 0.5), 0.9), 'proposed',
-          current_date + 30, p_valid_until, p_evidence::text)
-  returning id into v_id;
-
-  return jsonb_build_object('accepted', true, 'lesson_id', v_id, 'validation_status', 'proposed',
-    'note', 'not retrievable until validated by someone other than its author');
-end $function$
-;
 
 -- fn_retrieval_leak_check(p_agent_key text, p_task_text text)
-CREATE OR REPLACE FUNCTION public.fn_retrieval_leak_check(p_agent_key text, p_task_text text)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare v_ctx jsonb; v_mine text[]; v_leak int;
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  select coalesce(array_agg(packaged_role_id),'{}') into v_mine
-    from org_role_identity where agent_key = p_agent_key;
-  v_ctx := public.fn_agent_context_v3(p_agent_key, null, p_task_text, null, 24000);
-  select count(*) into v_leak
-    from jsonb_array_elements(coalesce(v_ctx->'role_knowledge','[]'::jsonb)) e
-    join ops_knowledge k on k.record_id = e->>'record_id'
-   where k.role_key is not null and not (k.role_key = any(v_mine));
-  return jsonb_build_object('agent_key', p_agent_key, 'own_roles', to_jsonb(v_mine),
-                            'foreign_role_records', v_leak,
-                            'clean', v_leak = 0);
-end $function$
-;
+-- ROUTINE REMOVED 7 September 2026. public.fn_retrieval_leak_check was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- fn_validate_lesson(p_lesson_id bigint, p_validator text, p_verdict text, p_reason text)
-CREATE OR REPLACE FUNCTION public.fn_validate_lesson(p_lesson_id bigint, p_validator text, p_verdict text, p_reason text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare v agent_knowledge; v_mgr text;
-begin
-  p_validator := coalesce(public.fn_org_agent_resolve(p_validator), p_validator);
-  select * into v from agent_knowledge where id = p_lesson_id;
-  if v.id is null then raise exception 'unknown lesson %', p_lesson_id; end if;
-  if v.validation_status <> 'proposed' then
-    return jsonb_build_object('ok', false, 'reason', 'not_proposed', 'status', v.validation_status);
-  end if;
-  if p_validator = v.agent_key then
-    return jsonb_build_object('ok', false, 'reason', 'self_validation_refused',
-      'detail', 'the agent that proposed a lesson cannot be the one that validates it');
-  end if;
-  if p_verdict not in ('validated','rejected') then
-    raise exception 'verdict must be validated or rejected, got %', p_verdict;
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_validate_lesson was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select manager_key into v_mgr from org_agents where agent_key = v.agent_key;
-  update agent_knowledge
-     set validation_status = p_verdict,
-         updated_at = now(),
-         supporting_evidence = coalesce(supporting_evidence, '') ||
-           format(E'\n[%s by %s%s] %s', p_verdict, p_validator,
-                  case when p_validator = v_mgr then ' (line manager)' else '' end,
-                  coalesce(p_reason, ''))
-   where id = p_lesson_id;
-  return jsonb_build_object('ok', true, 'lesson_id', p_lesson_id, 'status', p_verdict,
-                            'validator', p_validator, 'was_line_manager', p_validator = v_mgr);
-end $function$
-;
 
 commit;

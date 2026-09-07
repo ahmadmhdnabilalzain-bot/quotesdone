@@ -29,20 +29,11 @@
 
 begin;
 
-create or replace function public.fn_knowledge_review_days(p_agent_key text, p_layer text, p_topic text)
-returns integer
-language sql
-immutable
-as $function$
-  select case
-    when p_agent_key = '_global'
-         and (coalesce(p_layer, '') = 'state'
-              or coalesce(p_topic, '') ~* 'self_knowledge|company faq|company primer|pricing|fees|live[ -]state|live —|live -')
-      then 30
-    when coalesce(p_topic, '') ~* 'regulat|licen[cs]|complian|\mtax\M|\mvat\M|\mlaw\M|decree|\mcode\M|authorit|\mact\M|statut'
-      then 180
-    else 365 end;
-$function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_knowledge_review_days was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 CREATE OR REPLACE FUNCTION public.trg_agent_knowledge_metadata()
  RETURNS trigger

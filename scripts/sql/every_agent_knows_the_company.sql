@@ -241,8 +241,11 @@ revoke execute on function public.fn_company_self_knowledge_sync() from public;
 
 -- The connection is LIVE (this is knowledge refresh only — it reads sources and writes company_core;
 -- it creates no business work and calls no paid inference, so it runs regardless of the stand-down).
-select cron.schedule('company_self_knowledge_sync_15min','*/15 * * * *',
-  $$select public.fn_company_self_knowledge_sync();$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 insert into public.cron_registry(jobname, human_name, category, purpose)
 values ('company_self_knowledge_sync_15min','Every agent knows the company (refresh)','knowledge',
  'Every 15 min: recomposes the universal company_core self-knowledge (identity, funnel, commercials, top-3 comparison, '

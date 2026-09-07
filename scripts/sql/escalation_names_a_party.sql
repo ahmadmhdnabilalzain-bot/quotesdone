@@ -169,116 +169,17 @@ begin
     'route_owner_configured', owner);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_ai_gate(p_answer text, p_sources jsonb DEFAULT '[]'::jsonb, p_confidence numeric DEFAULT NULL::numeric, p_action text DEFAULT 'run_agent_action'::text, p_actor text DEFAULT 'agent'::text, p_attrs jsonb DEFAULT '{}'::jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare g jsonb; a jsonb; esc jsonb; conf_min numeric; viol text[]:='{}'; approved boolean; route text;
-        v_sources jsonb;
-begin
-  g := public.fn_require_grounding(p_answer, p_sources);
-  if not (g->>'grounded')::boolean then viol := array_append(viol,'ungrounded: retrieve knowledge and cite a source'); end if;
-  select value::numeric into conf_min from decision_policy where key='confidence_min';
-  if p_confidence is not null and p_confidence < coalesce(conf_min,0.6) then
-     viol := array_append(viol,'low_confidence: below '||coalesce(conf_min,0.6)||' — ask a clarifying question or escalate'); end if;
-  a := public.fn_authorize(p_actor, p_action, p_attrs);
-  if not (a->>'allowed')::boolean then viol := array_append(viol,'unauthorized: '||(a->>'reason')); end if;
-  -- THE ROUTER CANNOT NAME WHO TAKES IT WITHOUT KNOWING WHO RAISED IT. p_actor was passed to
-  -- fn_authorize and withheld from fn_should_escalate, so every escalation this gate produced was
-  -- addressed to the same company-wide owner. It travels up the escalating employee's own line now.
-  esc := public.fn_should_escalate(p_attrs || jsonb_build_object('confidence',p_confidence,'actor',p_actor));
-  route := esc->>'route_to';
-  approved := (array_length(viol,1) is null) and not (esc->>'escalate')::boolean;
-  -- WHAT THIS DECISION WAS TAKEN ON: the caller's citations plus the two verdicts the gate obtained
-  -- for itself. Reaching this line means both calls returned, so both elements are real retrievals.
-  v_sources := (case when jsonb_typeof(p_sources)='array' then p_sources else '[]'::jsonb end)
-    || jsonb_build_array(
-         jsonb_build_object('kind','policy_check','ref','fn_should_escalate','result',esc),
-         jsonb_build_object('kind','authority_check','ref','fn_authorize','result',a));
-  -- log the governance decision (immutable)
-  insert into decision_log(actor,kind,ctx,decision,confidence,reasons,sources,route_to)
-  values (p_actor,'ai_gate', jsonb_build_object('action',p_action,'attrs',p_attrs),
-          case when approved then 'approved' else 'blocked' end, p_confidence,
-          to_jsonb(viol || array(select jsonb_array_elements_text(coalesce(esc->'reasons','[]')))), v_sources, route);
-  return jsonb_build_object('approved',approved,'violations',to_jsonb(viol),
-    'grounding',g,'authorization',a,'escalation',esc,'route_to',route,'sources',v_sources,
-    'directive', case when approved then 'emit'
-                      when (esc->>'escalate')::boolean and route is not null then 'escalate to '||route
-                      when (esc->>'escalate')::boolean then 'escalate: no party is configured to take this — '
-                           ||coalesce(esc->>'route_note','decision_policy.review_owner resolves to nobody')
-                      else 'revise before emitting' end);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_ai_gate was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.trg_action_gate()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare attrs jsonb; action text; esc jsonb; authz jsonb; blocked boolean:=false; reasons text[]:='{}'; amt numeric;
-        v_sources jsonb := '[]'::jsonb; v_dl_id bigint;
-begin
-  -- build context defensively (detail may be jsonb or text)
-  begin
-    attrs := case when jsonb_typeof(to_jsonb(NEW.detail)) = 'object' then to_jsonb(NEW.detail) else '{}'::jsonb end;
-  exception when others then attrs := '{}'::jsonb; end;
-  begin amt := nullif(attrs->>'amount_aed','')::numeric; if amt is null then amt := nullif(attrs->>'amount','')::numeric; end if; exception when others then amt := null; end;
-  -- 'actor' IS PART OF THE CONTEXT, NOT JUST OF THE LEDGER ROW. NEW.agent was written to
-  -- decision_log.actor and withheld from fn_should_escalate, so the router had nobody to route
-  -- FROM and every one of these rows carried the same company-wide addressee. With it the
-  -- escalation travels up the escalating employee's own reporting line.
-  attrs := attrs || jsonb_build_object('amount_aed', amt, 'text', lower(coalesce(NEW.title,'')||' '||coalesce(NEW.recommendation,'')),
-                                       'category', coalesce(attrs->>'category',''), 'moves_money', (lower(coalesce(NEW.kind,'')) ~ '(refund|payout|charge|payment|transfer)'),
-                                       'actor', coalesce(NEW.agent,'agent'));
-  -- map action kind to an RBAC action
-  action := case
-    when lower(coalesce(NEW.kind,'')) ~ 'refund' then 'issue_refund'
-    when lower(coalesce(NEW.kind,'')) ~ 'approve.*suppl|suppl.*approve|kyc' then 'approve_supplier'
-    when lower(coalesce(NEW.kind,'')) ~ 'price|fee|commission' then 'edit_pricing'
-    when lower(coalesce(NEW.kind,'')) ~ 'publish|post|content|blog|campaign' then 'publish_content'
-    when lower(coalesce(NEW.kind,'')) ~ 'message|email|notify|send' then 'send_message'
-    else 'run_agent_action' end;
 
-  begin
-    esc  := public.fn_should_escalate(attrs);
-    authz:= public.fn_authorize(coalesce(NEW.agent,'agent'), action, attrs);
-    if (esc->>'escalate')::boolean then blocked:=true; reasons := reasons || array(select jsonb_array_elements_text(coalesce(esc->'reasons','[]'))); end if;
-    if not (authz->>'allowed')::boolean then blocked:=true; reasons := array_append(reasons, authz->>'reason'); end if;
-  exception when others then blocked:=true; reasons := array_append(reasons,'gate error — held for review: '||sqlerrm); end;
+-- ROUTINE REMOVED 7 September 2026. public.trg_action_gate was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- WHAT THIS DECISION WAS TAKEN ON. Each element is a retrieval that actually returned: if the
-  -- call above raised, the variable is still NULL, nothing is appended, and the ledger row says so.
-  if esc is not null then
-    v_sources := v_sources || jsonb_build_array(jsonb_build_object(
-      'kind', 'policy_check', 'ref', 'fn_should_escalate', 'result', esc));
-  end if;
-  if authz is not null then
-    v_sources := v_sources || jsonb_build_array(jsonb_build_object(
-      'kind', 'authority_check', 'ref', 'fn_authorize', 'result', authz));
-  end if;
-
-  -- enforce: a gated action can never be auto-approved; force human review
-  if blocked and coalesce(NEW.status,'pending') in ('approved','auto','auto_approved','executed','done') then
-    NEW.status := 'needs_review';
-  elsif blocked and coalesce(NEW.status,'pending')='pending' then
-    NEW.status := 'needs_review';
-  end if;
-
-  -- immutable audit
-  begin
-    insert into decision_log(actor,kind,ctx,decision,confidence,reasons,sources,route_to)
-    values (coalesce(NEW.agent,'agent'),'action_gate',
-            jsonb_build_object('action',action,'kind',NEW.kind,'risk',NEW.risk,'attrs',attrs),
-            case when blocked then 'held_for_review' else 'permitted' end, null,
-            to_jsonb(reasons), v_sources, esc->>'route_to')
-    returning id into v_dl_id;
-  exception when others then v_dl_id := null; end;
-
-  NEW.decision_log_id := v_dl_id;
-  return NEW;
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_decide(p_kind text, p_ctx jsonb, p_actor text DEFAULT 'agent'::text)
  RETURNS jsonb

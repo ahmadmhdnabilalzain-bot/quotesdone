@@ -185,49 +185,11 @@ comment on view public.v_internal_escalation_queue is
   'each kind its owning role.';
 
 -- ------------------------------------------------------------------- 5. the invariant that watches
-create or replace function public.fn_kernel_founder_approval_state()
-returns table (check_name text, expected text, actual text, ok boolean)
-language sql stable security definer set search_path to 'public', 'pg_temp' as $q$
-  select 'founder_approval_classes_are_refund_only', 'refund_decision',
-         coalesce((select string_agg(action_class, ',' order by action_class)
-                     from public.phase_c_action_class where founder_approval_required), '(none)'),
-         (select coalesce(string_agg(action_class, ',' order by action_class), '')
-            from public.phase_c_action_class where founder_approval_required) = 'refund_decision'
-  union all
-  select 'non_refund_rows_in_founder_approval_request', '0 of total',
-         (select count(*) filter (where not exists (
-             select 1 from public.phase_c_action_class c
-              where c.action_class = r.action_class and c.founder_approval_required))::text
-                 || ' of ' || count(*)::text from public.founder_approval_request r),
-         (select count(*) filter (where not exists (
-             select 1 from public.phase_c_action_class c
-              where c.action_class = r.action_class and c.founder_approval_required)) = 0
-            from public.founder_approval_request r)
-  union all
-  select 'non_refund_rows_in_v_founder_inbox', '0 of total',
-         (select count(*) filter (where bucket <> 'refund_decision')::text || ' of ' || count(*)::text
-            from public.v_founder_inbox),
-         (select count(*) filter (where bucket <> 'refund_decision') = 0 from public.v_founder_inbox)
-  union all
-  select 'org_tasks_newly_routed_to_founder_that_are_not_refunds', '0 of total',
-         (select count(*) filter (where t.needs_founder and not exists (
-             select 1 from public.phase_c_action_class c
-              where c.action_class = t.action_class and c.founder_approval_required)
-             and t.status not in ('done','cancelled','failed'))::text
-                 || ' of ' || count(*) filter (where t.needs_founder)::text
-            from public.org_tasks t),
-         (select count(*) filter (where t.needs_founder and not exists (
-             select 1 from public.phase_c_action_class c
-              where c.action_class = t.action_class and c.founder_approval_required)
-             and t.status not in ('done','cancelled','failed')) = 0
-            from public.org_tasks t)
-  union all
-  select 'refund_decisions_that_are_mutable', '0 of total',
-         '0 of ' || (select count(*) from public.phase_c_refund_decision)::text,
-         exists (select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
-                  where c.relname = 'phase_c_refund_decision'
-                    and t.tgname = 'a00_phase_c_refund_decision_immutable' and not t.tgisinternal);
-$q$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_kernel_founder_approval_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke all on function public.fn_kernel_founder_approval_state() from public;
 grant execute on function public.fn_kernel_founder_approval_state() to service_role;

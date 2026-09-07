@@ -147,11 +147,11 @@ grant execute on function public.fn_agent_tools(text, text) to service_role;
 
 -- Is this agent allowed to call this specific tool? Used to REFUSE, so it must be callable
 -- independently of the list above.
-create or replace function public.fn_agent_tool_allowed(p_agent_key text, p_tool_id text)
-returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.fn_agent_tools(p_agent_key) t where t.tool_id = p_tool_id);
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_agent_tool_allowed was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_agent_tool_allowed(text, text) from public;
 grant execute on function public.fn_agent_tool_allowed(text, text) to service_role;
 

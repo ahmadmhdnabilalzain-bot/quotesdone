@@ -79,7 +79,9 @@ const CASES = [
              failure_or_block_state, idempotency_scope, next_step_if_pass, next_step_if_fail,
              success_workflow_state, failure_workflow_state)
           values ('ZZ-INJECT-01','W01',900,'x','analysis',null,'x','canonical_role','x','x','x','x','x','x',
-                  'blocked','x','WORKFLOW_COMPLETE','WORKFLOW_BLOCKED','completed','blocked')`,
+                  -- next_step_if_pass must NOT be WORKFLOW_COMPLETE unless is_closure_step is true:
+                 -- the terminality CHECK fires before the primary key and this probe is about the KEY.
+                 'blocked','x','W01-S02','WORKFLOW_BLOCKED_OR_ESCALATED','waiting_handoff','blocked')`,
     // the BEFORE trigger fires ahead of the NOT NULL constraint and names the step, which is
     // the more useful refusal of the two
     expect: /accountable to .{0,2}<NULL>|null value in column .accountable_role_id|not-null/i,
@@ -87,15 +89,11 @@ const CASES = [
   {
     name: 'two owners for one step',
     why: 'step_id is the primary key, so a second accountable owner needs a second row',
+    // An EXACT duplicate of a row that is already valid. Nothing but the primary key can object to it.
+    // The previous fixture hand-built a partial row and tripped the terminality CHECK before the key,
+    // so the probe reported the wrong guard firing rather than a hole.
     sql: `insert into public.phase_b_workflow_step
-            (step_id, workflow_id, step_no, step_name, step_type, accountable_role_id,
-             package_accountable_token, actor_kind, entry_condition, required_inputs,
-             required_action, required_output, acceptance_criteria, closure_criteria,
-             failure_or_block_state, idempotency_scope, next_step_if_pass, next_step_if_fail,
-             success_workflow_state, failure_workflow_state)
-          select step_id, workflow_id, 901, 'x','analysis','ceo','ceo','canonical_role','x','x','x','x','x','x',
-                 'blocked','x','WORKFLOW_COMPLETE','WORKFLOW_BLOCKED','completed','blocked'
-            from public.phase_b_workflow_step where step_id = 'W01-S01'`,
+            select * from public.phase_b_workflow_step where step_id = 'W01-S01'`,
     expect: /duplicate key value|phase_b_workflow_step_pkey/i,
   },
   {
@@ -156,10 +154,15 @@ const CASES = [
   {
     name: 'creator/reviewer alias collision',
     why: 'the same employee under two names must still collide',
+    // The old fixture set the reviewer on a step owned by 'risk_and_governance_manager'. Since the
+    // consolidation that role owns NO step, so the update touched nothing and the probe then reported
+    // the guard had missed a collision it had never created. It now BUILDS the collision on a real
+    // reviewed step: the owner is written as one alias and the reviewer as the other, and both resolve
+    // to general_counsel.
     sql: underChangeRequest(`update public.phase_b_workflow_step
-             set independent_reviewer_role_id = 'risk_governance_manager'
-           where step_id = (select step_id from public.phase_b_workflow_step
-                             where accountable_role_id = 'risk_and_governance_manager' order by step_id limit 1);
+             set accountable_role_id = 'risk_and_governance_manager',
+                 independent_reviewer_role_id = 'general_counsel'
+           where step_id = '${ids.reviewed_step}';
           do $$ declare n bigint; begin
             select count(*) into n from public.phase_b_workflow_step
              where independent_reviewer_role_id is not null
@@ -168,7 +171,10 @@ const CASES = [
             if n = 0 then raise exception 'GUARD DID NOT DETECT the alias collision'; end if;
             raise exception 'DETECTED % alias collision(s)', n;
           end $$;`),
-    expect: /DETECTED \d+ alias collision/i,
+    // The guard turned out STRONGER than this probe assumed. It does not wait for a collision to be
+    // detectable after the fact: it refuses to store an alias at all, naming the canonical role to
+    // use instead. An alias collision therefore cannot be created, which is the better property.
+    expect: /stores alias .+ store the canonical role_id/i,
   },
   {
     name: 'category overlay granted dispatch authority',

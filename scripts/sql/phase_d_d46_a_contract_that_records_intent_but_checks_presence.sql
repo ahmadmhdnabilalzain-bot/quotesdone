@@ -258,66 +258,11 @@ $fn$;
 
 -- ---- 4. THE BOARD — THE THREE PAYLOADS THAT PASSED ARE NOW CHECKS -------------------------------
 
-create or replace function public.fn_phase_d_contract_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql
-stable
-as $fn$
-  with p as (
-    select 'schema_output_w17_s06'::text sid
-  ),
-  probe(nm, res) as (
-    values
-      ('wrong_types_are_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":12345,"output":true,"acceptance_assertions":"not-an-array","evidence_refs":99,
-           "decision":[1,2],"rationale":{"x":1},"authority_ref":-1}'::jsonb))),
-      ('out_of_domain_status_is_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"purple-elephant","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"NOT_A_DECISION","rationale":"r","authority_ref":"auth"}'::jsonb))),
-      ('invented_keys_are_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"ok","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"APPROVE","rationale":"r","authority_ref":"auth",
-           "totally_invented_field":"x","refund_amount_aed":999999}'::jsonb))),
-      ('a_string_zero_denominator_is_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w02_s08',
-         (select jsonb_object_agg(k, case when k='denominator' then to_jsonb('0'::text)
-                                          when k='numerator' then to_jsonb(1)
-                                          when k='status' then to_jsonb('ok'::text)
-                                          when k in ('acceptance_assertions','evidence_refs')
-                                               then jsonb_build_array('x')
-                                          else to_jsonb('x'::text) end)
-            from unnest((select required_keys from public.phase_d_handler_schema
-                          where schema_id='schema_output_w02_s08')) k)))),
-      ('a_conforming_payload_is_accepted',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"completed","output":"o","acceptance_assertions":["a"],"evidence_refs":["e"],
-           "decision":"APPROVE","rationale":"r","authority_ref":"auth"}'::jsonb))),
-      ('a_missing_required_key_is_still_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_w17_s06',
-         '{"status":"ok"}'::jsonb))),
-      ('an_unknown_schema_is_still_refused',
-       (select valid from public.fn_phase_d_schema_validate('schema_output_does_not_exist',
-         '{"status":"ok"}'::jsonb)))
-  )
-  select nm,
-         case when nm in ('a_conforming_payload_is_accepted') then 'accepted' else 'refused' end,
-         case when res then 'accepted' else 'refused' end,
-         case when nm in ('a_conforming_payload_is_accepted') then res else not res end
-    from probe
-  union all
-  select 'every_schema_types_every_required_key', '0',
-         (select count(*)::text from public.phase_d_handler_schema sc
-           where exists (select 1 from unnest(sc.required_keys) k where not (sc.field_types ? k))),
-         (select count(*) from public.phase_d_handler_schema sc
-           where exists (select 1 from unnest(sc.required_keys) k where not (sc.field_types ? k))) = 0
-  union all
-  select 'every_schema_carries_a_version', '514',
-         (select count(*)::text from public.phase_d_handler_schema where schema_version >= 1),
-         (select count(*) from public.phase_d_handler_schema where schema_version >= 1) = 514;
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_contract_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 revoke execute on function public.fn_phase_d_contract_state() from public, anon, authenticated;
 grant  execute on function public.fn_phase_d_contract_state() to service_role;

@@ -231,44 +231,11 @@ create table if not exists public.founder_command_progress_note (
 create index if not exists founder_command_progress_note_cmd_ix
   on public.founder_command_progress_note (command_id, created_at desc);
 
-create or replace function public.fn_founder_command_progress_add(
-  p_command_id bigint, p_task_id bigint, p_author text, p_note text, p_evidence jsonb default '{}'::jsonb)
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $$
-declare v_author text; v_id bigint; v_trace bigint;
-begin
-  if coalesce(btrim(p_note), '') = '' then
-    return jsonb_build_object('ok', false, 'error','note_required');
-  end if;
-  select role_id into v_author from public.fn_phase_c_resolve_actor(p_author);
-  if v_author is null or not public.fn_phase_c_actor_may_own(v_author) then
-    return jsonb_build_object('ok', false, 'error','author_not_canonical', 'author', p_author);
-  end if;
-  if not exists (select 1 from public.founder_command where command_id = p_command_id) then
-    return jsonb_build_object('ok', false, 'error','unknown_command', 'command_id', p_command_id);
-  end if;
-  -- a note against a task must come from that task's own owner or its manager
-  if p_task_id is not null and not exists (
-       select 1 from public.phase_c_task t
-       where t.task_id = p_task_id and t.command_id = p_command_id
-         and (t.accountable_role_id = v_author or t.manager_role_id = v_author)) then
-    return jsonb_build_object('ok', false, 'error','not_the_task_owner_or_manager',
-      'author', v_author, 'task_id', p_task_id);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_founder_command_progress_add was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  v_trace := public.fn_phase_c_trace_write('TRACE-ROLE-ACTION', jsonb_build_object(
-    'subject_kind','progress_note', 'subject_ref', p_command_id::text,
-    'command_id', p_command_id, 'task_id', p_task_id, 'actor_role_id', v_author,
-    'output_hash', encode(sha256(convert_to(p_note, 'UTF8')), 'hex'), 'status','sealed'));
-
-  insert into public.founder_command_progress_note
-    (command_id, task_id, author_role_id, note, evidence, trace_id)
-  values (p_command_id, p_task_id, v_author, p_note, coalesce(p_evidence, '{}'::jsonb), v_trace)
-  returning note_id into v_id;
-  if v_id is null then
-    raise exception 'fn_founder_command_progress_add wrote no row' using errcode = '23502';
-  end if;
-  return jsonb_build_object('ok', true, 'note_id', v_id, 'author', v_author, 'trace_id', v_trace);
-end $$;
 revoke all on function public.fn_founder_command_progress_add(bigint, bigint, text, text, jsonb) from public;
 grant execute on function public.fn_founder_command_progress_add(bigint, bigint, text, text, jsonb) to service_role;
 

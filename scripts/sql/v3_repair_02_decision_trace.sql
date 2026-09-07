@@ -156,39 +156,11 @@ begin
 end $$;
 
 -- Shared body so the INSERT and UPDATE paths can never drift apart.
-create or replace function public.fn_agent_action_trace_row(a public.agent_actions)
-returns uuid language plpgsql security definer set search_path = public as $$
-declare v_ids text[]; v_id uuid;
-begin
-  -- knowledge actually retrieved by this agent near the decision, from the recording table
-  select coalesce(array_agg(distinct k), '{}') into v_ids
-    from agent_context_retrieval r, unnest(r.knowledge_ids) k
-   where r.agent_key = a.agent
-     and r.created_at between a.decided_at - interval '30 minutes' and a.decided_at + interval '1 minute';
+-- ROUTINE REMOVED 7 September 2026. public.fn_agent_action_trace_row was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select public.fn_write_decision_trace(jsonb_build_object(
-    'agent_key',       a.agent,
-    'entity_type',     coalesce(a.target_table,'agent_action'),
-    'entity_id',       coalesce(a.target_id::text, a.id::text),
-    'decision_type',   a.kind,
-    'decided_by',      coalesce(a.decided_by, a.agent),
-    'task_id',         a.id::text,
-    'confidence',      a.confidence::text,
-    'risk',            jsonb_build_object('tier', a.risk, 'escalated', a.escalated),
-    'evidence_refs',   coalesce(a.evidence, '[]'::jsonb),
-    'alternatives',    coalesce(a.alternatives, '[]'::jsonb),
-    'assumptions',     coalesce(a.assumptions, '[]'::jsonb),
-    'knowledge_refs',  to_jsonb(v_ids),
-    'proposed_action', a.recommendation,
-    'expected_outcome',a.expected_impact,
-    'escalation_decision', case when a.escalated then 'escalated' else 'within_authority' end,
-    'outcome_status',  case when a.status in ('done','approved') then 'accepted'
-                            when a.status in ('rejected','dismissed') then 'rejected'
-                            else 'pending' end,
-    'final_status',    a.status
-  )) into v_id;
-  return v_id;
-end $$;
 
 drop trigger if exists z90_agent_action_decision_trace_ins on public.agent_actions;
 create trigger z90_agent_action_decision_trace_ins
@@ -234,35 +206,11 @@ grant execute on function public.fn_seal_decision_trace(uuid) to service_role;
 -- ---------------------------------------------------------------------------------------------
 -- 5. THE READER — so these traces are not write-only
 -- ---------------------------------------------------------------------------------------------
-create or replace function public.fn_management_decision_review(
-  p_department text default null, p_days integer default 7, p_limit integer default 100)
-returns table (
-  trace_id uuid, decided_at timestamptz, agent_key text, role_id text, department_id text,
-  manager_id text, decision_type text, proposed_action text, confidence numeric,
-  escalation_decision text, tools_requested text[], tools_executed text[],
-  knowledge_count integer, evidence_count integer, review_date date,
-  outcome_status text, final_status text, sealed boolean,
-  gap text)
-language sql stable security definer set search_path = public as $$
-  select t.id, t.created_at, t.agent_key, t.role_id, t.department_id, t.manager_id,
-         t.decision_type, t.proposed_action, t.confidence, t.escalation_decision,
-         t.tools_requested, t.tools_executed,
-         coalesce(jsonb_array_length(t.knowledge_refs),0), coalesce(jsonb_array_length(t.evidence_refs),0),
-         t.review_date, t.outcome_status, t.final_status, t.sealed_at is not null,
-         -- name what is missing rather than presenting an incomplete trace as complete
-         nullif(concat_ws('; ',
-           case when t.role_id is null                                 then 'no canonical role' end,
-           case when coalesce(jsonb_array_length(t.evidence_refs),0)=0 then 'no evidence' end,
-           case when t.confidence is null                              then 'no confidence' end,
-           case when t.escalation_decision is null                     then 'no authority decision' end,
-           case when t.review_date is null                             then 'no review date' end,
-           case when t.final_status is null                            then 'no output status' end), '')
-  from decision_trace t
-  where (p_department is null or t.department_id = p_department)
-    and t.created_at > now() - make_interval(days => greatest(p_days,1))
-  order by t.created_at desc
-  limit greatest(p_limit,1);
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_management_decision_review was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_management_decision_review(text,integer,integer) from public;
 grant execute on function public.fn_management_decision_review(text,integer,integer) to service_role;
 

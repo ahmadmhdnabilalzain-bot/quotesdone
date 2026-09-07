@@ -442,77 +442,11 @@ create trigger a00_role_identity_isolation_guard
 -- CREATE OR REPLACE of an existing function: its ACL is preserved, so no revoke here.
 -- Only change: two clauses at the head of the rung CASE.  Without them a recorded block survives
 -- exactly until the next recompute — measured, 0 of 13 rows survived one call.
-create or replace function public.fn_role_readiness_recompute()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public'
-as $function$
-declare v_counts jsonb;
-begin
-  with fact as (
-    select
-      i.agent_key, i.packaged_role_id, a.active, a.department,
-      exists (select 1 from ops_knowledge k
-               where k.role_key = i.packaged_role_id and k.runtime_eligible
-                 and k.supersession_state = 'current')                         as has_knowledge,
-      exists (select 1 from org_departments d
-               where d.lead_agent = i.agent_key or d.brain_agent = i.agent_key) as is_named_runner,
-      exists (select 1 from agent_runs r where r.agent = i.agent_key)           as has_run,
-      exists (select 1 from org_action_executor e
-               where e.active and (e.department = a.department or e.target = i.agent_key)) as has_tools,
-      exists (select 1 from ops_knowledge k
-               where k.record_type = 'live_data_binding'
-                 and (k.scope_type = 'company' or k.dept_key = a.department))   as has_live_data,
-      exists (select 1 from agent_context_retrieval c where c.agent_key = i.agent_key)
-        or exists (select 1 from agent_actions x where x.agent = i.agent_key)   as traceable,
-      exists (select 1 from agent_remediation m
-               where m.agent_key = i.agent_key and m.status = 'passed')         as trained,
-      exists (select 1 from agent_remediation m
-               where m.agent_key = i.agent_key and m.blocks_autonomy and m.status <> 'passed') as blocked,
-      exists (select 1 from org_action_executor e
-               where e.active and e.department = a.department
-                 and (e.risk_tier in ('high','medium') or e.notifies_human))    as consequential,
-      -- an isolation call outranks every rung below it
-      (select d.resolution from role_isolation_decision d
-        where d.agent_key = i.agent_key and d.packaged_role_id = i.packaged_role_id)
-                                                                               as isolation_resolution
-    from org_role_identity i
-    join org_agents a on a.agent_key = i.agent_key
-  ), rung as (
-    select agent_key, packaged_role_id,
-      case
-        when isolation_resolution = 'block'                then 'blocked'
-        when isolation_resolution = 'restrict_to_advisory' then 'restricted_to_advisory'
-        when not active                       then 'blocked'
-        when blocked                          then 'restricted_to_advisory'
-        when not has_knowledge                then 'blocked'
-        when trained and not blocked          then 'independent_certification_pending'
-        when consequential and not trained    then 'restricted_to_advisory'
-        when traceable and has_live_data and has_tools then 'decision_trace_connected'
-        when has_live_data and has_tools      then 'live_data_connected'
-        when has_tools                        then 'tools_connected'
-        when is_named_runner or has_run       then 'runtime_mapped'
-        else 'knowledge_imported'
-      end as readiness
-    from fact
-  )
-  update org_role_identity i set readiness = r.readiness, updated_at = now()
-    from rung r
-   where i.agent_key = r.agent_key and i.packaged_role_id = r.packaged_role_id
-     and i.readiness is distinct from r.readiness;
+-- ROUTINE REMOVED 7 September 2026. public.fn_role_readiness_recompute was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select jsonb_object_agg(readiness, n) into v_counts
-    from (select readiness, count(*) n from org_role_identity group by 1) s;
-
-  -- The one status a builder session may never assign.
-  if exists (select 1 from org_role_identity where readiness = 'certified_for_defined_role_scope') then
-    raise exception 'certified_for_defined_role_scope was assigned without an independent evaluator';
-  end if;
-
-  return jsonb_build_object('recomputed_at', now(), 'counts', v_counts,
-    'ceiling', 'independent_certification_pending');
-end $function$;
 
 select public.fn_role_readiness_recompute();
 
@@ -521,84 +455,11 @@ select public.fn_role_readiness_recompute();
 -- ---------------------------------------------------------------------------------------------
 -- Reports what is UNRESOLVED, and separately whether the guards that make "resolved" mean anything
 -- are actually installed.  A zero that comes from a missing guard is not a zero worth having.
-create or replace function public.fn_role_isolation_status()
-returns jsonb
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $$
-  select jsonb_build_object(
-    'measured_at', now(),
+-- ROUTINE REMOVED 7 September 2026. public.fn_role_isolation_status was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-    'collisions', (select count(*) from v_role_identity_collision),
-    'roles_in_collision', (select coalesce(sum(roles_served),0) from v_role_identity_collision),
-
-    -- the two targets
-    'unresolved_cross_seniority_collisions', (
-      select count(*) from v_role_identity_collision
-       where spans_seniority_tiers and roles_without_decision > 0),
-    'unresolved_self_approval_conflicts', (
-      select count(*) from org_role_identity i
-       where exists (select 1 from org_role_identity o
-                      where o.agent_key = i.agent_key
-                        and o.packaged_department = i.packaged_department
-                        and o.packaged_role_id <> i.packaged_role_id
-                        and ((    i.archetype = 'reviewer-auditor'
-                              and o.archetype in ('director','operations-specialist','analyst-controller'))
-                          or (    o.archetype = 'reviewer-auditor'
-                              and i.archetype in ('director','operations-specialist','analyst-controller'))))
-         and not exists (select 1 from role_isolation_decision d
-                          where d.agent_key = i.agent_key
-                            and d.packaged_role_id = i.packaged_role_id)),
-
-    'decisions', (select jsonb_object_agg(resolution, n) from
-                   (select resolution, count(*) n from role_isolation_decision group by 1) s),
-    'roles_with_no_decision_and_no_conflict', (
-      select count(*) from org_role_identity i
-       where not exists (select 1 from role_isolation_decision d
-                          where d.agent_key = i.agent_key and d.packaged_role_id = i.packaged_role_id)),
-
-    -- the 14 certification roles that must each end with an explicit disposition
-    'certification_dispositions', (
-      select jsonb_object_agg(certification_status, n) from
-        (select certification_status, count(*) n from role_isolation_decision
-          where certification_status is not null group by 1) s),
-    'certification_role_ids_dispositioned', (
-      select count(distinct packaged_role_id) from role_isolation_decision
-       where certification_status is not null),
-
-    -- do the guards exist?  a 0 above is only meaningful if these are true.
-    'guard_role_identity_installed', exists (
-      select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
-       where c.relname = 'org_role_identity'
-         and t.tgname = 'a00_role_identity_isolation_guard' and not t.tgisinternal),
-    'guard_review_chain_installed', exists (
-      select 1 from pg_constraint con join pg_class c on c.oid = con.conrelid
-       where c.relname = 'review_chain' and con.conname = 'review_chain_no_self_approval_ck'),
-    'guard_artifact_review_installed', exists (
-      select 1 from pg_trigger t join pg_class c on c.oid = t.tgrelid
-       where c.relname = 'artifact_review'
-         and t.tgname = 'a00_artifact_review_author_is_not_reviewer' and not t.tgisinternal),
-
-    -- legacy rows the NOT VALID constraint exempts; reported, never rewritten
-    'review_chain_legacy_self_rows', (
-      select count(*) from review_chain where author_agent = reviewer_agent),
-    'review_chain_legacy_self_approvals', (
-      select count(*) from review_chain where author_agent = reviewer_agent and decision = 'approve'),
-
-    -- has anything drifted away from the recorded call?
-    'mapping_type_drift', (
-      select count(*) from role_isolation_decision d join org_role_identity i
-             on i.agent_key = d.agent_key and i.packaged_role_id = d.packaged_role_id
-       where i.mapping_type is distinct from d.intended_mapping_type),
-    'readiness_drift', (
-      select count(*) from role_isolation_decision d join org_role_identity i
-             on i.agent_key = d.agent_key and i.packaged_role_id = d.packaged_role_id
-       where d.intended_readiness is not null
-         and i.readiness is distinct from d.intended_readiness)
-  );
-$$;
 revoke all on function public.fn_role_isolation_status() from public;
 grant execute on function public.fn_role_isolation_status() to service_role;
 

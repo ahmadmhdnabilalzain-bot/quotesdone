@@ -134,64 +134,11 @@ create trigger z10_phase_c_refund_decision_guard before insert or update
 -- One authoritative answer to "may this actor take this action, and does it need a reviewer or
 -- the founder?".  An action class the registry does not know FAILS CLOSED; that is the whole
 -- reason it returns a row with an explicit allowed=false rather than null.
-create or replace function public.fn_phase_c_authority_check(
-  p_action_class text, p_actor text, p_reviewer text default null)
-returns table (allowed boolean, mode text, requires_reviewer boolean, reviewer_independent boolean,
-               founder_approval boolean, founder_initiated_only boolean, reason text)
-language plpgsql stable set search_path to 'public', 'pg_temp' as $$
-declare a public.phase_c_action_class%rowtype; v_actor text; v_kind text;
-begin
-  select * into a from public.phase_c_action_class where action_class = p_action_class;
-  if not found then
-    allowed := false; mode := 'unknown'; requires_reviewer := true; reviewer_independent := false;
-    founder_approval := false; founder_initiated_only := false;
-    reason := format('unknown action class %L — fail closed', p_action_class);
-    return next; return;
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_authority_check was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select kind, role_id into v_kind, v_actor from public.fn_phase_c_resolve_actor(p_actor);
-  if v_kind is distinct from 'canonical' and v_kind is distinct from 'founder' then
-    allowed := false; mode := a.execution_mode; requires_reviewer := true;
-    reviewer_independent := false; founder_approval := a.founder_approval_required;
-    founder_initiated_only := a.founder_initiated_only;
-    reason := format('actor %L resolves to %s and may not act', p_actor, coalesce(v_kind, 'nothing'));
-    return next; return;
-  end if;
-
-  founder_approval := a.founder_approval_required;
-  founder_initiated_only := a.founder_initiated_only;
-  mode := a.execution_mode;
-  requires_reviewer := a.execution_mode in ('autonomous_internal_review','autonomous_dual_review');
-  reviewer_independent := case when requires_reviewer
-                               then public.fn_phase_c_reviewer_independent(p_actor, p_reviewer)
-                               else true end;
-
-  -- Founder-reserved matters are not an approval queue.  An agent may research and recommend;
-  -- it may not commit without an explicit founder-originated command.
-  if a.founder_initiated_only then
-    allowed := false;
-    reason := format('%s is founder_initiated_only: research and recommendation are autonomous, commitment requires an explicit founder command', a.action_class);
-    return next; return;
-  end if;
-
-  if a.founder_approval_required and v_kind <> 'founder' then
-    allowed := false;
-    reason := format('%s requires the founder''s own decision', a.action_class);
-    return next; return;
-  end if;
-
-  if requires_reviewer and not reviewer_independent then
-    allowed := false;
-    reason := case when coalesce(p_reviewer,'') = ''
-                   then format('%s needs an independent reviewer and none was named', a.action_class)
-                   else format('reviewer %L is the same effective identity as %L', p_reviewer, p_actor) end;
-    return next; return;
-  end if;
-
-  allowed := true;
-  reason := format('%s permitted under %s for %s', a.action_class, a.execution_mode, v_actor);
-  return next;
-end $$;
 revoke all on function public.fn_phase_c_authority_check(text, text, text) from public;
 grant execute on function public.fn_phase_c_authority_check(text, text, text) to service_role;
 

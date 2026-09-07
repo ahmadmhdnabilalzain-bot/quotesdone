@@ -165,36 +165,11 @@ create trigger t40_org_task_incident_sync
 -- the founder stand-down: an overdue high-severity incident is exactly the signal that must still
 -- travel. Building the wiring; whether the cron actually fires is the runtime's business (proved here
 -- by an aborted-transaction probe, not by waiting for the schedule).
-create or replace function public.fn_os_incident_watchdog()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public','pg_temp'
-as $fn$
-declare r record; v_esc int := 0;
-begin
-  for r in
-    select * from public.os_incidents
-     where status='open' and coalesce(severity,'medium') in ('high','critical')
-       and due_at is not null and due_at < now()
-       and (escalated_at is null or escalated_at < now() - interval '24 hours')
-     order by due_at
-  loop
-    perform public.fn_notify_founder(
-      'OS incident #'||r.id||' ('||coalesce(r.severity,'medium')||') past SLA: '||r.title,
-      'Opened '||to_char(r.opened_at,'YYYY-MM-DD HH24:MI')||' UTC; owner '||coalesce(r.owner,'unassigned')
-        ||'; due '||to_char(r.due_at,'YYYY-MM-DD HH24:MI')||' UTC and still open. '
-        ||coalesce(r.detail->>'description',''),
-      case when coalesce(r.severity,'medium')='critical' then 'critical' else 'high' end);
-    update public.os_incidents set escalated_at = now() where id = r.id;
-    v_esc := v_esc + 1;
-  end loop;
-  insert into public.agent_runs(agent, started_at, finished_at, status, counts, note)
-  values ('os_incident_watchdog', now(), now(), 'ok',
-          jsonb_build_object('reescalated', v_esc),
-          'Incident watchdog re-escalated '||v_esc||' overdue high/critical incident(s).');
-  return jsonb_build_object('ok', true, 'reescalated', v_esc);
-end $fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_os_incident_watchdog was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- New SECURITY DEFINER functions: every CREATE grants EXECUTE to PUBLIC; revoke it.
 revoke execute on function public.fn_os_incident_set_owner_and_due() from public;
@@ -237,6 +212,10 @@ begin
 end $backfill$;
 
 -- 8. THE SCHEDULE. A plain pg_cron job, idiomatic here (most of the 206 jobs run a direct select).
-select cron.schedule('incident_watchdog_hourly', '20 * * * *', 'select public.fn_os_incident_watchdog();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 commit;

@@ -35,39 +35,17 @@ alter table public.org_action_executor add constraint org_action_executor_money_
   check (not (department in ('finance','legal') and risk_tier in ('medium','high')) or second_authority is not null);
 
 -- D9.2 — the consumer of an escalated remediation.
-create or replace function public.fn_agent_remediation_escalate_consume()
-returns jsonb language plpgsql security definer set search_path to 'public','pg_temp' as $fn$
-declare r record; v_mgr text; v_dept text; v_title text; v_handled int := 0;
-begin
-  for r in select * from public.agent_remediation where status='escalated' loop
-    v_title := 'Remediation escalated: '||r.agent_key||' / '||coalesce(r.competency, r.failure_class);
-    if exists (select 1 from public.org_tasks where title = v_title and status <> 'done') then
-      continue;   -- already consumed
-    end if;
-    v_mgr  := coalesce(public.fn_org_agent_resolve((select manager_key from public.org_agents where agent_key=r.agent_key)),
-                       (select manager_key from public.org_agents where agent_key=r.agent_key));
-    v_dept := coalesce((select department from public.org_agents where agent_key=v_mgr),
-                       (select department from public.org_agents where agent_key=r.agent_key), 'exec');
-    insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
-    values (v_dept, v_title,
-      r.agent_key||' has exhausted remediation on '||coalesce(r.competency,r.failure_class)||' ('
-      ||coalesce(r.attempts::text,'?')||'/'||coalesce(r.max_attempts::text,'?')||' attempts, latest score '
-      ||coalesce(r.latest_score::text,'?')||'). Autonomy is still blocked. Decide: retrain, reassign, or downgrade seniority.',
-      'assigned', 'supervised', false, 'remediation', v_mgr);
-    begin
-      perform public.fn_notify_founder('Remediation escalated: '||r.agent_key,
-        r.agent_key||' failed remediation on '||coalesce(r.competency,r.failure_class)||' and remains autonomy-blocked. A manager task was opened for '||coalesce(v_mgr,'the manager')||'.',
-        'high');
-    exception when others then null; end;
-    v_handled := v_handled + 1;
-  end loop;
-  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('remediation_escalate_consume', now(), now(), 'ok', jsonb_build_object('handled', v_handled),
-          'Escalated-remediation consumer: '||v_handled||' manager task(s) + founder notice(s) raised.');
-  return jsonb_build_object('ok', true, 'handled', v_handled);
-end $fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_agent_remediation_escalate_consume was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke execute on function public.fn_agent_remediation_escalate_consume() from public;
-select cron.schedule('remediation_escalate_consume_daily', '15 5 * * *', 'select public.fn_agent_remediation_escalate_consume();');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 -- D8.2/D8.3/D9.1 — the dispatcher, with a spend check, a forced second approval, and an autonomy block.
 CREATE OR REPLACE FUNCTION public.fn_action_invoke_dispatch(p_limit integer DEFAULT 5)

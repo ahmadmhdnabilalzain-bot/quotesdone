@@ -421,106 +421,26 @@ $function$;
 -- ---------------------------------------------------------------------------------------------
 -- Which overlay a category loads, and who invokes it. The chain is Marketplace Director ->
 -- RFQ Qualification Manager -> Inquiry Router -> the category overlay.
-create or replace function public.fn_overlay_for_category(p_category_key text)
-returns jsonb language sql stable as $$
-  select jsonb_build_object(
-    'category_key', c.category_key,
-    'route_key', c.route_key,
-    'overlay_role_id', 'category_overlay_'||c.category_key,
-    'owner_agent', c.owner_agent,
-    'invoked_by_role', 'inquiry_router',
-    'readiness', c.readiness,
-    'exists', (select count(*) > 0 from public.org_role r
-                where r.role_id = 'category_overlay_'||c.category_key and r.status='active'))
-    from public.org_category_identity c where c.category_key = p_category_key;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_overlay_for_category was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- A manager invoking a specialist as a tool. The manager keeps the conversation; the specialist
 -- returns a finding. Recorded, so "the specialist was consulted" is a fact and not a claim.
-create or replace function public.fn_specialist_invoke(
-  p_manager text, p_specialist text, p_subject_type text, p_subject_id text, p_reason text)
-returns jsonb language plpgsql security definer set search_path to 'public'
-as $function$
-declare v_mgr text; v_spec text; v_mode text; v_dept text; v_id bigint;
-begin
-  v_mgr  := public.fn_org_role_resolve(p_manager);
-  v_spec := public.fn_org_role_resolve(p_specialist);
-  if v_mgr is null then
-    return jsonb_build_object('ok', false, 'error', 'unknown invoking role: '||p_manager);
-  end if;
-  if v_spec is null then
-    return jsonb_build_object('ok', false, 'error', 'unknown specialist role: '||p_specialist);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_specialist_invoke was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select runtime_mode, primary_department_id into v_mode, v_dept from public.org_role where role_id = v_spec;
-
-  -- A standing manager or an event-driven operator is not a tool: work goes to it by handoff, so
-  -- that one accountable owner exists rather than two agents holding the same subject.
-  if v_mode not in ('on_demand_specialist','knowledge_overlay','independent_reviewer') then
-    return jsonb_build_object('ok', false, 'error',
-      v_spec||' is a '||v_mode||'; invoke it by handoff (fn_role_handoff), not as a tool',
-      'use', 'fn_role_handoff');
-  end if;
-
-  insert into public.review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent,
-                                   stage, decision, reason, confidence, delegation_basis)
-  values (p_subject_type, p_subject_id, v_dept,
-          public.fn_org_role_agent(v_mgr), public.fn_org_role_agent(v_spec),
-          'specialist_invocation', 'owned',
-          coalesce(p_reason, 'specialist consulted as a tool'), null,
-          v_mgr||' invoked '||v_spec||' as a tool and retains ownership of the subject')
-  returning id into v_id;
-
-  return jsonb_build_object('ok', true, 'invocation_id', v_id,
-    'manager_role', v_mgr, 'specialist_role', v_spec, 'specialist_mode', v_mode,
-    'accountable_owner', v_mgr,
-    'customer_visible', false,
-    'note', 'the invoking manager remains the accountable owner and keeps the conversation');
-end
-$function$;
 
 -- A handoff, where the specialist genuinely takes over. Exactly one accountable owner at a time.
-create or replace function public.fn_role_handoff(
-  p_from text, p_to text, p_subject_type text, p_subject_id text, p_reason text, p_payload jsonb default '{}'::jsonb)
-returns jsonb language plpgsql security definer set search_path to 'public'
-as $function$
-declare v_from text; v_to text; v_dept text; v_allowed boolean; v_id bigint;
-begin
-  v_from := public.fn_org_role_resolve(p_from);
-  v_to   := public.fn_org_role_resolve(p_to);
-  if v_from is null or v_to is null then
-    return jsonb_build_object('ok', false, 'error', 'unknown role in handoff',
-                              'from', p_from, 'to', p_to);
-  end if;
-  if v_from = v_to then
-    return jsonb_build_object('ok', false, 'error', 'a role cannot hand off to itself');
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_role_handoff was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  select primary_department_id into v_dept from public.org_role where role_id = v_to;
-
-  -- The declared handoff graph. An undeclared handoff is allowed but recorded as such, because a
-  -- refusal here would silently drop work; what must never happen is an unrecorded one.
-  select v_to = any(r.handoff_targets) or v_to = any(r.escalation_targets)
-    into v_allowed from public.org_role r where r.role_id = v_from;
-
-  insert into public.review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent,
-                                   stage, decision, reason, delegated_from, delegation_basis)
-  values (p_subject_type, p_subject_id, v_dept,
-          public.fn_org_role_agent(v_from), public.fn_org_role_agent(v_to),
-          'handoff', 'owned', coalesce(p_reason, 'ownership transferred'),
-          public.fn_org_role_agent(v_from),
-          case when coalesce(v_allowed,false)
-               then 'declared handoff target of '||v_from
-               else 'UNDECLARED handoff from '||v_from||' to '||v_to||'; recorded for the '
-                    ||'organisation designer to reconcile' end)
-  returning id into v_id;
-
-  return jsonb_build_object('ok', true, 'handoff_id', v_id,
-    'from_role', v_from, 'to_role', v_to, 'accountable_owner', v_to,
-    'declared', coalesce(v_allowed, false),
-    'to_agent', public.fn_org_role_agent(v_to), 'payload', p_payload);
-end
-$function$;
 
 revoke all on function public.fn_overlay_for_category(text) from public;
 revoke all on function public.fn_specialist_invoke(text,text,text,text,text) from public;

@@ -336,76 +336,11 @@ end $fn$;
 
 -- ---- 2. the board: disclose the exposure, and check the thing that can actually fail -------------
 
-create or replace function public.fn_phase_d_fixture_state()
-returns table(check_name text, expected text, actual text, ok boolean)
-language sql stable
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select 'fixture_stages_declared', '>= 20',
-         (select count(*)::text from public.phase_d_fixture_stage),
-         (select count(*) from public.phase_d_fixture_stage) >= 20
-  union all
-  select 'stages_naming_an_unbound_object', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s
-           where not exists (select 1 from public.phase_d_business_object_binding b
-                              where b.object_id = s.object_id)),
-         not exists (select 1 from public.phase_d_fixture_stage s
-                      where not exists (select 1 from public.phase_d_business_object_binding b
-                                         where b.object_id = s.object_id))
-  union all
-  select 'stages_requiring_a_stage_that_does_not_exist', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-           where not exists (select 1 from public.phase_d_fixture_stage p where p.stage_key = r)),
-         not exists (select 1 from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-                      where not exists (select 1 from public.phase_d_fixture_stage p
-                                         where p.stage_key = r))
-  union all
-  select 'stages_depending_on_a_later_stage', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-            join public.phase_d_fixture_stage p on p.stage_key = r
-           where p.stage_no >= s.stage_no),
-         not exists (select 1 from public.phase_d_fixture_stage s, unnest(s.requires_stages) r
-                       join public.phase_d_fixture_stage p on p.stage_key = r
-                      where p.stage_no >= s.stage_no)
-  union all
-  select 'supplier_account_can_write_verified', 'true',
-         (select (column_map ? 'verified')::text from public.phase_d_object_write_map
-           where object_id = 'supplier_account'),
-         (select column_map ? 'verified' from public.phase_d_object_write_map
-           where object_id = 'supplier_account')
-  union all
-  select 'inquiry_can_write_rfq_ready', 'true',
-         (select (column_map ? 'rfq_ready')::text from public.phase_d_object_write_map
-           where object_id = 'inquiry'),
-         (select column_map ? 'rfq_ready' from public.phase_d_object_write_map
-           where object_id = 'inquiry')
-  union all
-  select 'fixture_rows_surviving_in_business_tables', '0',
-         (select coalesce(sum(surviving_rows),0)::text from public.fn_phase_d_fixture_residue()),
-         coalesce((select sum(surviving_rows) from public.fn_phase_d_fixture_residue()), 0) = 0
-  union all
-  select 'fixture_stage_targeting_public_notifications', '0',
-         (select count(*)::text from public.phase_d_fixture_stage s
-            join public.phase_d_business_object_binding b on b.object_id = s.object_id
-           where b.canonical_relation = 'public.notifications'),
-         not exists (select 1 from public.phase_d_fixture_stage s
-                       join public.phase_d_business_object_binding b on b.object_id = s.object_id
-                      where b.canonical_relation = 'public.notifications')
-  union all
-  -- INFORMATIONAL. The number moves whenever the product gains or loses a notification trigger, so
-  -- a typed expectation would only ever mean "agree with whatever is there". D9d typed 1 and the
-  -- measurement was 8. What can genuinely fail is the executed check below it.
-  select 'canonical_object_writes_that_can_reach_a_notification_trigger', 'informational',
-         (select count(*)::text from public.fn_phase_d_outbound_exposure()), true
-  union all
-  select 'fixture_identities_carrying_a_contact_detail', '0',
-         (select count(*)::text from public.customers c
-           where c.full_name like 'ZZ DEMO — %'
-             and (coalesce(c.email,'') <> '' or coalesce(c.phone,'') <> '')),
-         not exists (select 1 from public.customers c
-                      where c.full_name like 'ZZ DEMO — %'
-                        and (coalesce(c.email,'') <> '' or coalesce(c.phone,'') <> ''));
-$fn$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_fixture_state was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- ---- 3. the executed control: run the whole scenario and count the delta -------------------------
 -- This is the check that can fail. It runs the full lineage on this deployment, asserts the

@@ -31,73 +31,11 @@
 
 begin;
 
-create or replace function public.fn_goal_period_refresh()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; v numeric; n int := 0; created int := 0;
-        v_month text := to_char(now(),'YYYY-MM');
-        v_qtr   text := to_char(now(),'YYYY')||'-Q'||extract(quarter from now())::int;
-        v_year  text := to_char(now(),'YYYY');
-begin
-  -- ---- ROLL THE PERIOD FORWARD ---------------------------------------------------------------
-  -- A period that never opens is a period that never closes. Each active goal gets a row for the
-  -- CURRENT month, quarter and year, carrying forward the target from its most recent row for that
-  -- horizon so the target is not silently lost or re-derived differently.
-  insert into goal_period (goal_key, horizon, period_label, target_value, owner_dept, status)
-  select g.key, h.horizon, h.label,
-         (select p.target_value from goal_period p
-           where p.goal_key = g.key and p.horizon = h.horizon
-           order by p.period_label desc limit 1),
-         g.owner_dept, 'open'
-    from company_goals g
-    cross join (values ('monthly', v_month), ('quarterly', v_qtr), ('annual', v_year)) as h(horizon, label)
-   where g.active
-     and not exists (select 1 from goal_period p
-                      where p.goal_key = g.key and p.horizon = h.horizon and p.period_label = h.label);
-  get diagnostics created = row_count;
+-- ROUTINE REMOVED 7 September 2026. public.fn_goal_period_refresh was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- ---- MEASURE THE CURRENT PERIOD -------------------------------------------------------------
-  for r in
-    select gp.id, gp.goal_key, gp.target_value, g.measure_sql, g.direction
-    from goal_period gp join company_goals g on g.key = gp.goal_key
-    where g.active and g.measure_sql is not null
-      and gp.period_label in (v_month, v_qtr, v_year)
-  loop
-    v := null;
-    begin execute r.measure_sql into v; exception when others then v := null; end;
-    if v is not null then
-      update goal_period
-         set actual_value = v,
-             status = case
-               when r.target_value is null or r.target_value = 0 then 'tracking'
-               -- 'at_most'/'at_least' is the vocabulary company_goals actually stores. 'down'/'up'
-               -- are accepted as synonyms because one row still uses 'up' and a scorer that only
-               -- knows one dialect is how 19 goals came to be scored upside down.
-               when coalesce(r.direction,'at_least') in ('at_most','down')
-                 then case when v <= r.target_value then 'on_track'
-                           when v <= r.target_value * 1.1 then 'near' else 'at_risk' end
-                 else case when v >= r.target_value then 'on_track'
-                           when v >= r.target_value * 0.9 then 'near' else 'at_risk' end
-             end,
-             updated_at = now()
-       where id = r.id;
-      n := n + 1;
-    end if;
-  end loop;
-
-  insert into agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('goal_period_refresh', now(), now(), 'ok',
-          jsonb_build_object('updated', n, 'periods_opened', created,
-                             'month', v_month, 'quarter', v_qtr, 'year', v_year),
-          'Goal periods refreshed: '||created||' period row(s) opened for '||v_month||'/'||v_qtr||'/'||v_year
-          ||', '||n||' measured from live SQL. '
-          ||(select count(*) from company_goals where active and measure_sql is null)
-          ||' active goal(s) still carry no measure_sql and can never produce an actual.');
-  return jsonb_build_object('updated', n, 'periods_opened', created);
-end $function$;
 
 -- ATTAINMENT, AS ONE FUNCTION SO EVERY READER GETS THE SAME ANSWER. fn_founder_brief computed it
 -- inline; so would the board report and the period report if they ever carried it. One definition,

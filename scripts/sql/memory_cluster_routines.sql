@@ -168,43 +168,11 @@ $function$;
 -- resolve through one of the three. A lesson that resolves through none of them writes a null, and
 -- comp-12-best-practices goes red on it — deliberately: the remedy is a department-to-OS mapping,
 -- and a runbook nobody can route to an operating system is a runbook nobody will be handed.
-create or replace function public.fn_sop_update()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare r record; n_new int := 0; v_slug text;
-begin
-  for r in
-    select m.id, m.headline, m.detail, m.outcome,
-           coalesce(m.os_key,
-                    (select d.os_key from org_tasks o join os_department d on d.dept_key = o.dept_key
-                      where m.subject_type = 'org_task' and o.id::text = m.subject_id limit 1),
-                    (select d.os_key from os_department d where d.dept_key = m.learned_by limit 1)) as os_key
-    from institutional_memory m
-    where m.outcome in ('worse', 'improved', 'success', 'success_over_dissent')
-      and not exists (select 1 from os_runbooks b where b.slug = 'lesson-' || m.id)
-    order by m.created_at desc
-    limit 25
-  loop
-    v_slug := 'lesson-' || r.id;
-    insert into os_runbooks (slug, title, category, when_to_use, steps, sort, os_key)
-    values (v_slug, left(coalesce(r.headline, 'Lesson ' || r.id), 120),
-            coalesce(r.os_key, 'operations'),
-            case when r.outcome = 'worse'
-              then 'Before repeating this change. It was tried and it made things worse.'
-              else 'When this situation recurs. This approach was measured and it worked.' end,
-            coalesce(r.detail, ''), 100, r.os_key);
-    n_new := n_new + 1;
-  end loop;
+-- ROUTINE REMOVED 7 September 2026. public.fn_sop_update was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  insert into agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('sop_update', now(), now(), 'ok', jsonb_build_object('runbooks_written', n_new),
-    'SOP update: ' || n_new || ' graded lesson(s) written into the runbook library so the company cannot repeat them by accident.');
-  return jsonb_build_object('written', n_new);
-end
-$function$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 4. The improvement plan reads the root causes the department already recorded.
@@ -212,77 +180,11 @@ $function$;
 -- This is the reader that makes org_tasks.root_cause a mechanism rather than a column: a diagnosis
 -- written once now reaches the prompt of everyone in that department, which is the whole point of
 -- the Variance -> Root Cause -> Improvement Plan chain in the blueprint.
-create or replace function public.fn_improvement_plan_refresh()
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_catalog'
-as $function$
-declare
-  a record; v_parts text[]; v_line text; v_plan text;
-  v_written int := 0; v_cleared int := 0;
-begin
-  for a in select agent_key, department from org_agents where active loop
-    v_parts := array[]::text[];
+-- ROUTINE REMOVED 7 September 2026. public.fn_improvement_plan_refresh was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-    -- 1. What this department's work has been returned for, most recent first.
-    select 'Your department has had ' || count(*) || ' deliverable(s) returned by review recently. '
-        || 'The reasons on record: ' || string_agg(distinct left(m.detail, 120), '; ')
-      into v_line
-      from institutional_memory m
-     where m.subject_type = 'org_task' and m.outcome = 'worse'
-       and a.department = any(coalesce(m.visible_to, array[]::text[]))
-       and m.created_at > now() - interval '30 days';
-    if v_line is not null and v_line not like '%has had 0 %' then
-      v_parts := v_parts || v_line;
-    end if;
-
-    -- 2. KPIs this employee owns that are behind. Their own targets, not the department's.
-    select 'You own ' || count(*) || ' KPI(s) with a target you are not currently meeting: '
-        || string_agg(k.kpi || ' (target ' || coalesce(k.target_value::text,'?') || ' ' || coalesce(k.unit,'') || ')', '; ')
-      into v_line
-      from employee_kpi k
-     where k.agent_key = a.agent_key and k.active
-       and exists (select 1 from goal_period g
-                    where g.goal_key = k.serves_goal
-                      and g.status in ('at_risk','missed','behind'));
-    if v_line is not null and v_line not like '%own 0 KPI%' then
-      v_parts := v_parts || v_line;
-    end if;
-
-    -- 3. Root causes already diagnosed against KPI misses in this department.
-    select 'Root cause(s) already recorded against KPI misses in your department: '
-        || string_agg(left(t.root_cause, 180), ' | ')
-      into v_line
-      from (select o.root_cause, o.updated_at
-              from org_tasks o
-             where o.dept_key = a.department
-               and o.title ilike 'KPI missed%'
-               and coalesce(o.root_cause, '') <> ''
-             order by o.updated_at desc
-             limit 2) t;
-    if v_line is not null then v_parts := v_parts || v_line; end if;
-
-    -- 4. Open findings the organisation has already recorded against this department.
-    select 'Open findings against your department: ' || string_agg(left(s.finding, 110), '; ')
-      into v_line
-      from (select finding from self_review
-             where coalesce(status,'open') not in ('done','implemented','rejected')
-             order by created_at desc limit 2) s;
-    if v_line is not null then v_parts := v_parts || v_line; end if;
-
-    v_plan := nullif(array_to_string(v_parts, ' '), '');
-
-    -- NULL when there is nothing on record. An empty plan is honest; a generic one is noise that
-    -- would reach 66 prompts and mean nothing in any of them.
-    update org_agents set improvement_plan = left(v_plan, 900) where agent_key = a.agent_key;
-    if v_plan is null then v_cleared := v_cleared + 1; else v_written := v_written + 1; end if;
-  end loop;
-
-  return jsonb_build_object('agents', v_written + v_cleared,
-                            'with_a_plan', v_written, 'nothing_on_record', v_cleared);
-end
-$function$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 5a. Promotion refuses a memory that is already long-term.
@@ -298,31 +200,11 @@ $function$;
 -- "already promoted" guard misses it whenever the earlier promotion came from another path.
 -- Signature unchanged (bigint, text, text) — a different argument list would create an OVERLOAD and
 -- leave fn_promote_memory_sweep calling the old body.
-create or replace function public.fn_promote_memory(p_memory_id bigint, p_category text, p_by text default 'founder')
-returns bigint
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare m record; v_chunk_id bigint;
-begin
-  select * into m from public.agent_memory where id = p_memory_id;
-  if not found then raise exception 'memory % not found', p_memory_id; end if;
-  if coalesce(m.horizon, 'short') <> 'short' then
-    raise exception 'memory % is already long-term (horizon=%): promotion is the short-to-long transition and there is nothing left to promote', p_memory_id, m.horizon;
-  end if;
-  if exists (select 1 from public.memory_promotions where memory_id = p_memory_id) then
-    raise exception 'memory % already promoted', p_memory_id;
-  end if;
-  insert into public.kb_chunks(source_kind, source_id, category, title, content, citation, effective_date)
-  values('memory', p_memory_id::text, coalesce(nullif(p_category,''),'general'),
-         left(m.content, 80), m.content,
-         'agent_memory #'||p_memory_id||' ('||coalesce(m.agent_key,'?')||')', current_date)
-  returning id into v_chunk_id;
-  insert into public.memory_promotions(memory_id, kb_chunk_id, category, promoted_by)
-  values(p_memory_id, v_chunk_id, coalesce(nullif(p_category,''),'general'), p_by);
-  return v_chunk_id;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_promote_memory was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- ---------------------------------------------------------------------------------------------
 -- 5. The sweeper that gives fn_promote_memory a caller.
@@ -333,43 +215,8 @@ end $function$;
 -- (instructions are long-term by definition, reflections are moment-in-time), at least a week old
 -- so it has survived contact with more work, and substantial enough to be worth a knowledge-base
 -- chunk. Everything else stays short-term.
-create or replace function public.fn_promote_memory_sweep(p_limit integer default 20)
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public', 'pg_temp'
-as $function$
-declare r record; n int := 0; n_err int := 0;
-begin
-  for r in
-    select m.id, coalesce(g.department, 'general') as dept
-      from agent_memory m
-      left join org_agents g on g.agent_key = m.agent_key
-     where coalesce(m.horizon, 'short') = 'short'
-       and m.kind = 'learned'
-       and m.created_at < now() - interval '7 days'
-       and length(coalesce(m.content, '')) >= 120
-       and not exists (select 1 from memory_promotions p where p.memory_id = m.id)
-       and not exists (select 1 from kb_chunks c
-                        where c.source_kind = 'memory' and c.source_id = m.id::text)
-     order by m.created_at
-     limit greatest(coalesce(p_limit, 20), 0)
-  loop
-    begin
-      perform fn_promote_memory(r.id, r.dept, 'memory_sweeper');
-      update agent_memory set horizon = 'long' where id = r.id;
-      n := n + 1;
-    exception when others then
-      -- One unpromotable row must not stop the sweep forever; it is counted, not swallowed.
-      n_err := n_err + 1;
-    end;
-  end loop;
+-- ROUTINE REMOVED 7 September 2026. public.fn_promote_memory_sweep was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  insert into agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('memory_promotion', now(), now(), case when n_err > 0 then 'partial' else 'ok' end,
-          jsonb_build_object('promoted', n, 'failed', n_err),
-    'Memory promotion sweep: ' || n || ' short-term learned memory(ies) at least a week old promoted '
-    || 'into the knowledge base and marked long-term, ' || n_err || ' could not be promoted.');
-  return jsonb_build_object('promoted', n, 'failed', n_err);
-end
-$function$;

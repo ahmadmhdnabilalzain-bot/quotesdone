@@ -7,10 +7,11 @@
 -- Every 6 hours, offset off the busy :35 slot the hourly sweeps share. The sweep's own backoff is
 -- also 6 hours, so each eligible RFQ is offered to the matcher at most once per run.
 
-select cron.schedule(
-  'rfq_redispatch_6h',
-  '15 */6 * * *',
-  $$select public.fn_rfq_redispatch_sweep(20);$$);
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.
 
 insert into public.cron_registry (jobname, human_name, category, purpose)
 values (

@@ -31,52 +31,11 @@ on conflict (trace_policy_id) do update set
 -- ---------------------------------------------------------------- coverage, by subject
 -- One place that answers "required / complete / incomplete / missing", so a report and a test can
 -- never disagree about the denominator.
-create or replace function public.fn_phase_c_trace_coverage()
-returns table (subject text, policy text, required bigint, complete bigint,
-               incomplete bigint, missing bigint, excluded_rows bigint, reason text)
-language sql stable set search_path to 'public', 'pg_temp' as $$
-  select 'founder_command', 'TRACE-FOUNDER-COMMAND', count(*),
-         count(*) filter (where t.trace_id is not null and t.state_after = c.state),
-         count(*) filter (where t.trace_id is not null and t.state_after is distinct from c.state),
-         count(*) filter (where c.trace_id is null), 0::bigint, null::text
-    from public.founder_command c left join public.phase_c_trace t on t.trace_id = c.trace_id
-  union all
-  select 'phase_c_task', 'TRACE-TASK', count(*),
-         count(*) filter (where trace_id is not null),
-         0::bigint, count(*) filter (where trace_id is null), 0::bigint, null
-    from public.phase_c_task
-  union all
-  select 'phase_c_workflow_run', 'TRACE-WORKFLOW', count(*),
-         count(*) filter (where trace_id is not null),
-         0::bigint, count(*) filter (where trace_id is null), 0::bigint, null
-    from public.phase_c_workflow_run
-  union all
-  select 'phase_c_workflow_step_run', 'TRACE-STEP', count(*),
-         count(*) filter (where trace_id is not null),
-         count(*) filter (where trace_id is not null and state = 'active'),
-         count(*) filter (where trace_id is null and state <> 'active'),
-         count(*) filter (where state = 'active'),
-         'open step runs are excluded: the step has not produced a verdict yet'
-    from public.phase_c_workflow_step_run
-  union all
-  select 'phase_c_handoff_run', 'TRACE-HANDOFF', count(*),
-         count(*) filter (where trace_id is not null),
-         0::bigint, count(*) filter (where trace_id is null), 0::bigint, null
-    from public.phase_c_handoff_run
-  union all
-  select 'phase_c_event_outbox', 'TRACE-SYSTEM-EXECUTION', count(*),
-         count(*) filter (where trace_id is not null),
-         0::bigint, count(*) filter (where trace_id is null), 0::bigint, null
-    from public.phase_c_event_outbox
-  union all
-  select 'phase_c_event_delivery_attempt', 'TRACE-SYSTEM-EXECUTION', count(*),
-         count(*) filter (where finished_at is not null),
-         count(*) filter (where finished_at is null),
-         0::bigint,
-         count(*) filter (where finished_at is null),
-         'an attempt still running is not yet missing evidence'
-    from public.phase_c_event_delivery_attempt;
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_trace_coverage was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_trace_coverage() from public;
 grant execute on function public.fn_phase_c_trace_coverage() to service_role;
 

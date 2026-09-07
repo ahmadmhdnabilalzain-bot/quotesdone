@@ -29,38 +29,23 @@ drop function if exists public.mkt_rec(text, boolean, text, text, text);
 drop function if exists public.kn_task(text, boolean, text, text, text);
 drop function if exists public.doc_rec(text, boolean, text, text, text);
 
-create function public.ai_rec(p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text,
-                              p_assumptions jsonb default null, p_impact text default null, p_cost text default null)
-returns void language plpgsql security definer set search_path to 'public', 'pg_temp'
-as $function$
-begin
-  if p_cond and not exists (select 1 from agent_actions where kind='ai_improvement' and detail->>'signal'=p_sig and status in ('pending','needs_review')) then
-    insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table,target_id,assumptions,expected_impact,cost)
-    values ('ai_trainer','ai_improvement','pending',p_risk,p_title,p_reco,jsonb_build_object('signal',p_sig),'ai',p_sig,p_assumptions,p_impact,p_cost);
-  end if;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.ai_rec was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-create function public.ops_rec(p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text,
-                               p_assumptions jsonb default null, p_impact text default null, p_cost text default null)
-returns void language plpgsql security definer set search_path to 'public', 'pg_temp'
-as $function$
-begin
-  if p_cond and not exists (select 1 from agent_actions where kind='ops_recommendation' and detail->>'signal'=p_sig and status in ('pending','needs_review')) then
-    insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table,target_id,assumptions,expected_impact,cost)
-    values ('operations_ai','ops_recommendation','pending',p_risk,p_title,p_reco,jsonb_build_object('signal',p_sig),'operations',p_sig,p_assumptions,p_impact,p_cost);
-  end if;
-end $function$;
 
-create function public.mkt_rec(p_sig text, p_cond boolean, p_risk text, p_title text, p_reco text,
-                               p_assumptions jsonb default null, p_impact text default null, p_cost text default null)
-returns void language plpgsql security definer set search_path to 'public', 'pg_temp'
-as $function$
-begin
-  if p_cond and not exists (select 1 from agent_actions where kind='marketing_recommendation' and detail->>'signal'=p_sig and status in ('pending','needs_review')) then
-    insert into agent_actions(agent,kind,status,risk,title,recommendation,detail,target_table,target_id,assumptions,expected_impact,cost)
-    values ('marketing_ai','marketing_recommendation','pending',p_risk,p_title,p_reco,jsonb_build_object('signal',p_sig),'marketing',p_sig,p_assumptions,p_impact,p_cost);
-  end if;
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.ops_rec was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
+
+-- ROUTINE REMOVED 7 September 2026. public.mkt_rec was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- kn_task keeps its auto-resolve branch: when the condition stops holding, the open task is closed
 -- rather than left standing. That half is unchanged and deliberately not given a reason to carry —

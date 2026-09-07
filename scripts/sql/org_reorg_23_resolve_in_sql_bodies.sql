@@ -55,38 +55,11 @@ $function$
 ;
 
 -- fn_employee_kpi_trend
-CREATE OR REPLACE FUNCTION public.fn_employee_kpi_trend(p_agent_key text, p_days integer DEFAULT 90)
- RETURNS TABLE(kpi text, unit text, observations bigint, first_value numeric, latest_value numeric, direction text, latest_verdict text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  with h as (
-    select k.kpi, h.kpi_id, h.actual_value, h.unit, h.verdict, h.measured_on,
-           first_value(h.actual_value) over w_asc  as first_v,
-           first_value(h.actual_value) over w_desc as latest_v,
-           first_value(h.verdict)      over w_desc as latest_verdict,
-           row_number()                over w_desc as rn,
-           count(*)                    over (partition by h.kpi_id) as n
-      from employee_kpi_history h
-      join employee_kpi k on k.id = h.kpi_id
-     where h.agent_key = coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key)
-       and h.measured_on > (now() at time zone 'utc')::date - p_days
-       and h.actual_value is not null
-    window w_asc  as (partition by h.kpi_id order by h.measured_on),
-           w_desc as (partition by h.kpi_id order by h.measured_on desc)
-  )
-  select kpi, unit, n,
-         first_v, latest_v,
-         case when n < 2 or first_v is null or latest_v is null then 'no trend yet'
-              when latest_v = first_v then 'flat'
-              when (unit = 'percent_max') = (latest_v < first_v) then 'improving'
-              else 'worsening' end,
-         latest_verdict
-    from h where rn = 1
-   order by kpi;
-$function$
-;
+-- ROUTINE REMOVED 7 September 2026. public.fn_employee_kpi_trend was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 
 -- fn_routing_tier_model
 CREATE OR REPLACE FUNCTION public.fn_routing_tier_model(p_agent_key text)

@@ -35,165 +35,17 @@ $function$;
 
 revoke all on function public.fn_alert_severe(text) from public;
 
-CREATE OR REPLACE FUNCTION public.fn_board_report()
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  inq_t int; inq_p int; q_t int; q_p int; c_t int; c_p int; s_t int; s_p int;
-  rev_t numeric; rev_p numeric; conv numeric; qpr numeric;
-  gap int; expired int; crit int; gatepass numeric;
-  health jsonb; eval jsonb; officer text; topcats text;
-  wtrend text; body text; owner text; d jsonb;
-begin
-  select count(*) filter (where created_at>=now()-interval '7 days'),
-         count(*) filter (where created_at>=now()-interval '14 days' and created_at<now()-interval '7 days')
-    into inq_t, inq_p from inquiries;
-  select count(*) filter (where created_at>=now()-interval '7 days'),
-         count(*) filter (where created_at>=now()-interval '14 days' and created_at<now()-interval '7 days')
-    into q_t, q_p from quotes;
-  select count(*) filter (where created_at>=now()-interval '7 days'),
-         count(*) filter (where created_at>=now()-interval '14 days' and created_at<now()-interval '7 days')
-    into c_t, c_p from customers;
-  select count(*) filter (where registration_submitted_at>=now()-interval '7 days'),
-         count(*) filter (where registration_submitted_at>=now()-interval '14 days' and registration_submitted_at<now()-interval '7 days')
-    into s_t, s_p from leads;
-  select coalesce(sum(reveal_fee) filter (where revealed_at>=now()-interval '7 days'),0),
-         coalesce(sum(reveal_fee) filter (where revealed_at>=now()-interval '14 days' and revealed_at<now()-interval '7 days'),0)
-    into rev_t, rev_p from transactions where coalesce(refund_status,'')<>'approved';
-  select round(100.0*count(distinct t.inquiry_id)/nullif(count(distinct i.id),0),1) into conv
-    from inquiries i left join transactions t on t.inquiry_id=i.id where i.created_at>=now()-interval '30 days';
-  select round(avg(qc),1) into qpr from (select count(*) qc from quotes q join inquiries i on i.id=q.inquiry_id where i.created_at>=now()-interval '30 days' group by q.inquiry_id) z;
-  select count(*) into gap from inquiries i where i.status not in ('completed','accepted','closed','cancelled') and not exists(select 1 from inquiry_matches m where m.inquiry_id=i.id);
-  begin select count(*) into expired from leads where license_expiry<current_date and coalesce(approval_status,'')='approved'; exception when others then expired:=0; end;
-  select count(*) into crit from founder_alerts where public.fn_alert_severe(level) and created_at>=now()-interval '7 days';
-  select round(100.0*count(*) filter (where nullif(quality->>'score','')::numeric>=60)/nullif(count(*) filter (where quality is not null),0),1) into gatepass
-    from quotes where created_at>=now()-interval '7 days';
-  begin select public.fn_health_index() into health; exception when others then health:=null; end;
-  begin select public.fn_eval_snapshot(30) into eval; exception when others then eval:=null; end;
-  select string_agg(cat,', ') into topcats from (select coalesce(nullif(category,''),'(uncat)') cat, count(*) n from inquiries where created_at>=now()-interval '7 days' group by 1 order by n desc limit 5) z;
-  officer := public.fn_officer_recs(8);
+-- ROUTINE REMOVED 7 September 2026. public.fn_board_report was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  wtrend :=
-    '- RFQs: '||inq_t||' (prev '||inq_p||')'||E'\n'||
-    '- Quotes: '||q_t||' (prev '||q_p||')'||E'\n'||
-    '- New customers: '||c_t||' (prev '||c_p||')'||E'\n'||
-    '- New supplier registrations: '||s_t||' (prev '||s_p||')'||E'\n'||
-    '- Revenue: AED '||round(rev_t)||' (prev AED '||round(rev_p)||')';
 
-  d := jsonb_build_array();
-  if expired>0 then d := d||to_jsonb('Review '||expired||' supplier(s) with expired trade licence'::text); end if;
-  if crit>0 then d := d||to_jsonb('Address '||crit||' critical alert(s) from this week'::text); end if;
-  if gap>0 then d := d||to_jsonb('Decide sourcing for '||gap||' unmatched demand item(s)'::text); end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_exception_alerts was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  body := public.fn_report_skeleton(
-    'QuotesDone Weekly Board Report — '||to_char(current_date,'DD Mon YYYY'),
-    'Marketplace health '||coalesce(health->>'index','—')||'/100 ('||coalesce(health->>'band','no data')||'). '||
-      inq_t||' RFQs and '||q_t||' quotes this week; revenue AED '||round(rev_t)||'; 30-day conversion '||coalesce(conv::text,'—')||'%.',
-    jsonb_build_array(
-      jsonb_build_object('heading','Key Metrics (this week)','body',
-        'RFQs '||inq_t||' · Quotes '||q_t||' · Avg quotes/RFQ (30d) '||coalesce(qpr::text,'—')||' · Conversion (30d) '||coalesce(conv::text,'—')||'% · Revenue AED '||round(rev_t)||' · Quote-gate pass '||coalesce(gatepass::text,'—')||'%'),
-      jsonb_build_object('heading','Trends (WoW)','body',wtrend),
-      jsonb_build_object('heading','Growth','body','Top categories: '||coalesce(topcats,'—')),
-      jsonb_build_object('heading','AI Performance','body','Health index '||coalesce(health->>'index','—')||'/100; eval sample '||coalesce(eval->'samples'->>'quotes','0')||' quotes, gate pass '||coalesce(gatepass::text,'—')||'%.'),
-      jsonb_build_object('heading','Issues','body','Supply gaps: '||gap||' · Expired licences: '||expired||' · Critical alerts (7d): '||crit),
-      jsonb_build_object('heading','Recommendations (officers)','body',coalesce(officer,'No officer recommendations available yet.'))
-    ),
-    d,
-    'Health: '||coalesce(health::text,'n/a')||E'\n'||'Eval: '||coalesce(eval::text,'n/a'));
-
-  insert into public.board_reports(week_start, title, body, kpis)
-  values (date_trunc('week',current_date)::date,
-          'QuotesDone Weekly Board Report — '||to_char(current_date,'DD Mon YYYY'), body,
-          jsonb_build_object('rfqs',inq_t,'quotes',q_t,'customers',c_t,'suppliers',s_t,'revenue',rev_t,'conversion',conv,'gate_pass',gatepass,'health',(health->>'index')));
-
-  select split_part(coalesce(value,'management@quotesdone.com'),',',1) into owner from app_secrets where key='admin_emails';
-  insert into notifications(type,to_email,to_role,channel,subject,body)
-  values ('board_report', coalesce(owner,'management@quotesdone.com'),'admin','email',
-          'QuotesDone Weekly Board Report — '||to_char(current_date,'DD Mon'), body);
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.fn_exception_alerts()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  rev_today numeric; rev_prev numeric;
-  gw_bad int; q24 int; qpass24 int; last_backup timestamptz;
-  fired text[] := '{}';
-  procedure_note text;
-begin
-  -- helper: only fire if same event not raised in last 12h
-  -- 1) revenue drop > 20% day-over-day (needs a meaningful prior day)
-  select coalesce(sum(reveal_fee),0) into rev_today from transactions
-    where revealed_at::date = current_date and coalesce(refund_status,'')<>'approved';
-  select coalesce(sum(reveal_fee),0) into rev_prev from transactions
-    where revealed_at::date = current_date-1 and coalesce(refund_status,'')<>'approved';
-  if rev_prev >= 100 and rev_today < rev_prev*0.8 then
-     if not exists(select 1 from founder_alerts where event='revenue_drop' and created_at>now()-interval '12 hours') then
-        insert into founder_alerts(level,event,detail,channel) values
-          ('critical','revenue_drop','Revenue AED '||round(rev_today)||' today vs AED '||round(rev_prev)||' yesterday (>20% drop).','email');
-        fired := array_append(fired,'revenue_drop'); end if;
-  end if;
-
-  -- 2) payment gateway offline (latest stripe health check failing in last hour)
-  select count(*) into gw_bad from health_checks
-    where created_at>now()-interval '1 hour' and not ok
-      and (lower(coalesce(check_kind,'')) like '%stripe%' or lower(coalesce(target,'')) like '%stripe%' or lower(coalesce(check_kind,'')) like '%pay%');
-  if gw_bad > 0 then
-     if not exists(select 1 from founder_alerts where event='gateway_offline' and created_at>now()-interval '3 hours') then
-        insert into founder_alerts(level,event,detail,channel) values
-          ('critical','gateway_offline','Payment gateway health check failing in the last hour.','email');
-        fired := array_append(fired,'gateway_offline'); end if;
-  end if;
-
-  -- 3) AI confidence / quote-quality below threshold (proxy: gate pass-rate collapse with volume)
-  select count(*) filter (where quality is not null),
-         count(*) filter (where nullif(quality->>'score','')::numeric >= 60)
-    into q24, qpass24 from quotes where created_at>now()-interval '24 hours';
-  if q24 >= 5 and qpass24::numeric/nullif(q24,0) < 0.5 then
-     if not exists(select 1 from founder_alerts where event='ai_confidence_low' and created_at>now()-interval '12 hours') then
-        insert into founder_alerts(level,event,detail,channel) values
-          ('warning','ai_confidence_low','Quote-quality gate pass rate '||round(qpass24::numeric/q24*100)||'% over last 24h ('||q24||' quotes) — below 50% threshold.','email');
-        fired := array_append(fired,'ai_confidence_low'); end if;
-  end if;
-
-  -- 4) backup stale (no backup manifest in > 8 days)
-  select max(updated_at) into last_backup from storage.objects where bucket_id='backups' and name like '%/_manifest.json';
-  if last_backup is null or last_backup < now()-interval '8 days' then
-     if not exists(select 1 from founder_alerts where event='backup_stale' and created_at>now()-interval '24 hours') then
-        insert into founder_alerts(level,event,detail,channel) values
-          ('critical','backup_stale','No fresh backup manifest in over 8 days (last: '||coalesce(last_backup::text,'never')||').','email');
-        fired := array_append(fired,'backup_stale'); end if;
-  end if;
-
-  -- QD_CRON_HEALTH: fn_os_health computes the failing-now cron signal; nothing asked for it.
-  if jsonb_array_length(coalesce(public.fn_os_health()->'failing_crons','[]'::jsonb)) > 0 then
-    if not exists(select 1 from founder_alerts
-                   where event='cron_failing' and created_at > now()-interval '6 hours') then
-      insert into founder_alerts(level,event,detail,channel)
-      select 'critical','cron_failing',
-             'Scheduled job(s) failed on their most recent run: '||
-             (select string_agg(distinct (e->>'job')||' — '||left(coalesce(e->>'message',''),120), '; ')
-                from jsonb_array_elements(public.fn_os_health()->'failing_crons') e),
-             'email';
-      fired := array_append(fired,'cron_failing');
-    end if;
-  end if;
-
-  -- surface criticals as founder notifications too
-  insert into notifications(type,to_role,channel,subject,body)
-  select 'exception_alert','admin','email','QuotesDone ALERT: '||event, detail
-  from founder_alerts fa
-  where fa.created_at>now()-interval '2 minutes' and public.fn_alert_severe(fa.level)
-    and not exists(select 1 from notifications n where n.type='exception_alert' and n.subject='QuotesDone ALERT: '||fa.event and n.created_at>now()-interval '3 hours');
-
-  return jsonb_build_object('fired', to_jsonb(fired), 'rev_today',rev_today,'rev_prev',rev_prev,'checked_at',now());
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_ops_dashboard()
  RETURNS jsonb

@@ -33,7 +33,8 @@
 -- schedules removes the behaviour without touching a credential, and is reversible with one
 -- cron.schedule call each.
 
-select cron.unschedule('ai_health_15min')    where exists (select 1 from cron.job where jobname='ai_health_15min');
-select cron.unschedule('uptime_check_15min') where exists (select 1 from cron.job where jobname='uptime_check_15min');
-select cron.unschedule('money_tests_daily')  where exists (select 1 from cron.job where jobname='money_tests_daily');
-select cron.unschedule('qa_suite_daily')     where exists (select 1 from cron.job where jobname='qa_suite_daily');
+-- CRON SCHEDULE REMOVED 7 September 2026 on the founder's instruction: "there shouldn't be
+-- any job in the code except the stuff that I literally told you for the CEO... Remove it from
+-- the code. Delete, not archive." The job it created was deleted from the database in the same
+-- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
+-- by each build adding one and nothing ever removing one.

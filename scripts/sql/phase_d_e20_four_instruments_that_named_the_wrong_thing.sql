@@ -126,100 +126,11 @@ end
 $function$;
 
 -- ---------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.fn_phase_d_object_read(p_input jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  b            public.phase_d_business_object_binding%rowtype;
-  v_object     text := nullif(btrim(coalesce(p_input->>'object_id','')),'');
-  v_key        text := nullif(btrim(coalesce(p_input->>'business_key','')),'');
-  v_scope      text := nullif(btrim(coalesce(p_input->>'caller_scope','')),'');
-  v_asked      text := nullif(btrim(coalesce(p_input->>'caller_ref','')),'');
-  v_ref        text;
-  v_identity   text;
-  v_derived    boolean := false;
-  v_rows       jsonb;
-begin
-  if v_object is null then
-    raise exception 'fn_phase_d_object_read: object_id is required (pd_object_input_invalid)'
-      using errcode = '22023';
-  end if;
-  select * into b from public.phase_d_business_object_binding where object_id = v_object;
-  if not found then
-    raise exception 'fn_phase_d_object_read: % is not a bound Phase D business object (pd_object_unbound)',
-      v_object using errcode = '23503';
-  end if;
-  if b.relation_kind <> 'PHASE_D_OBJECT_VIEW' then
-    raise exception 'fn_phase_d_object_read: % lives in the existing relation % and is read there. (pd_object_wrong_reader)',
-      v_object, b.canonical_relation using errcode = '23514';
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_d_object_read was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  -- E20 / finding 16. WHO THE CALLER IS COMES FROM THE TOKEN, NOT FROM THE CALL.
-  -- This routine is SECURITY DEFINER, so it reads with the owner's rights and its owner scoping was
-  -- the only thing standing between one customer's records and another's — and it took caller_ref
-  -- straight out of the input. E4 revoked it from anon and authenticated, which bounds WHO can
-  -- reach it; it does nothing about WHOSE records they then ask for.
-  --
-  -- Derived exactly as fn_customer_document_refs derives it, against the same table. A supplied
-  -- caller_ref is accepted only when the call carries no end-user identity at all, which is the
-  -- service_role case; when it does carry one, a caller_ref naming somebody else is refused rather
-  -- than honoured.
-  v_identity := nullif(coalesce(auth.email(), ''), '');
-  if v_identity is not null or auth.uid() is not null then
-    select c.id::text into v_ref
-      from public.customers c
-     where lower(c.email) = lower(coalesce(v_identity,''))
-        or c.id = auth.uid()
-     order by (lower(c.email) = lower(coalesce(v_identity,''))) desc nulls last
-     limit 1;
-    if v_ref is null and v_identity is not null then
-      select l.id::text into v_ref from public.leads l
-       where lower(coalesce(l.email,'')) = lower(v_identity) limit 1;
-    end if;
-    if v_ref is null then
-      raise exception 'fn_phase_d_object_read: the call carries an end-user identity that resolves to no customer or supplier, so there is no owner to scope this read to. (pd_object_caller_unresolved)'
-        using errcode = '42501';
-    end if;
-    v_derived := true;
-    if v_asked is not null and v_asked <> v_ref then
-      raise exception 'fn_phase_d_object_read: the call presents caller_ref % and the verified identity resolves to %. A caller does not get to name whose records these are. (pd_object_caller_ref_mismatch)',
-        v_asked, v_ref using errcode = '42501';
-    end if;
-  else
-    v_ref := v_asked;
-  end if;
-
-  -- CROSS-OWNER ACCESS IS REFUSED HERE, not filtered by the caller. A COMPANY-scoped object is
-  -- readable by an internal caller; a CUSTOMER- or SUPPLIER-scoped one requires the caller to
-  -- name whose record it is asking for, and gets nothing back for anybody else.
-  if b.ownership_scope in ('CUSTOMER','SUPPLIER') then
-    if v_scope is null or v_ref is null then
-      raise exception 'fn_phase_d_object_read: % is %-scoped and the call names no caller_scope/caller_ref. Refusing to answer for an unnamed owner. (pd_object_owner_unstated)',
-        v_object, b.ownership_scope using errcode = '22023';
-    end if;
-    if v_scope <> b.ownership_scope then
-      raise exception 'fn_phase_d_object_read: % is %-scoped and the caller presents scope %. (pd_object_cross_scope)',
-        v_object, b.ownership_scope, v_scope using errcode = '23514';
-    end if;
-  end if;
-
-  select coalesce(jsonb_agg(to_jsonb(r) order by r.version desc), '[]'::jsonb) into v_rows
-    from public.phase_d_object_record r
-   where r.object_id = v_object
-     and (v_key is null or r.business_key = v_key)
-     and (b.ownership_scope = 'COMPANY' or r.owner_ref = v_ref);
-
-  return jsonb_build_object(
-    'ok', true, 'object_id', v_object, 'canonical_relation', b.canonical_relation,
-    'owner_scope', b.ownership_scope, 'caller_ref', v_ref,
-    -- Said out loud in the answer, so a consumer can tell a verified read from an internal one.
-    'caller_ref_source', case when v_derived then 'derived from the verified auth identity'
-                              else 'supplied by the caller; no end-user identity was present' end,
-    'count', jsonb_array_length(v_rows), 'records', v_rows);
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_phase_d_handler_state()
  RETURNS TABLE(check_name text, expected text, actual text, ok boolean)

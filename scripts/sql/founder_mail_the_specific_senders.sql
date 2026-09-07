@@ -126,58 +126,11 @@ begin
   return jsonb_build_object('alerted',true,'last',v_last,'status',v_status,'existing_open',v_open);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_handoff_watchdog()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; v_esc int := 0; v_routed int := 0; v_emailed int := 0;
-        v_lead text; v_dept text; v_kind text; v_res jsonb;
-begin
-  if exists (select 1 from public.company_stand_down where resumed_at is null) then
-    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN', 'escalated',0);
-  end if;
+-- ROUTINE REMOVED 7 September 2026. public.fn_handoff_watchdog was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  for r in select * from public.fn_phase_c_handoff_overdue() order by hours_late desc loop
-    -- one route per stuck handoff run per day; the task it lands on is bumped, never duplicated
-    if exists (select 1 from public.founder_alerts
-                where event like '%run #'||r.handoff_run_id||' %'
-                  and created_at > now() - interval '24 hours') then
-      continue;
-    end if;
-    -- THE RECEIVING ROLE'S DEPARTMENT LEAD owns an unaccepted handoff (6 Sep 2026). The receiver has not
-    -- picked up the baton, so the lead of the receiver's department is asked to accept it on the
-    -- receiver's behalf or park it with a reason. Runs #80 and #82 of one handoff are one condition.
-    v_lead := null; v_dept := null;
-    select d.lead_agent, d.dept_key into v_lead, v_dept
-      from public.org_role ro
-      join public.org_departments d on d.dept_key = ro.primary_department_id and d.active
-     where ro.role_id = r.receiver;
-    -- a week-old stall reaches him only if founder_mail_policy.handoff_stalled_7d says so; otherwise it is
-    -- the same condition on the same task, and the message says how long it has stood
-    v_kind := case when r.hours_late >= 168
-                    and coalesce((select allowed_to_email from public.founder_mail_policy where kind = 'handoff_stalled_7d'), false)
-                   then 'handoff_stalled_7d' else 'handoff_stalled' end;
-    v_res := public.fn_notify_founder(
-      'Stalled handoff '||coalesce(r.handoff_id,'?')||' run #'||r.handoff_run_id||' '||round(r.hours_late)||'h past SLA',
-      'From '||coalesce(r.sender,'?')||' to '||coalesce(r.receiver,'?')||', due '
-        ||to_char(r.due_at,'YYYY-MM-DD HH24:MI')||' UTC and still not accepted. The receiver has not '
-        ||'picked up the baton; the workflow cannot advance until it does. '
-        ||coalesce(v_lead,'the exec lead')||' leads '||coalesce(v_dept,'the receiving department')
-        ||': accept it on '||coalesce(r.receiver,'the receiver')||'''s behalf or park it with a reason.'
-        ||case when r.hours_late >= 168 then ' It has been stalled for over a week.' else '' end,
-      'high', p_kind => v_kind, p_dedupe_key => 'handoff:'||r.handoff_run_id, p_owner_agent => v_lead);
-    if coalesce((v_res->>'emailed')::boolean, false) then v_emailed := v_emailed + 1; else v_routed := v_routed + 1; end if;
-    v_esc := v_esc + 1;
-  end loop;
-
-  insert into public.agent_runs(agent, started_at, finished_at, status, counts, note)
-  values ('handoff_watchdog', now(), now(), 'ok',
-          jsonb_build_object('escalated', v_esc, 'routed', v_routed, 'emailed', v_emailed),
-          'Handoff watchdog raised '||v_esc||' alert(s) on overdue handoffs ('||v_routed||' routed to the receiving lead, '||v_emailed||' emailed).');
-  return jsonb_build_object('ok', true, 'escalated', v_esc, 'routed', v_routed, 'emailed', v_emailed);
-end $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_agent_action_work_sweep(p_limit integer DEFAULT 10)
  RETURNS jsonb
@@ -630,134 +583,20 @@ begin
                             'deduplicated', v_skipped, 'awaiting_approval', v_awaiting, 'ran_at', now());
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.fn_agent_remediation_escalate_consume()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; v_mgr text; v_dept text; v_title text; v_handled int := 0;
-begin
-  for r in select * from public.agent_remediation where status='escalated' loop
-    v_title := 'Remediation escalated: '||r.agent_key||' / '||coalesce(r.competency, r.failure_class);
-    if exists (select 1 from public.org_tasks where title = v_title and status <> 'done') then
-      continue;   -- already consumed
-    end if;
-    v_mgr  := coalesce(public.fn_org_agent_resolve((select manager_key from public.org_agents where agent_key=r.agent_key)),
-                       (select manager_key from public.org_agents where agent_key=r.agent_key));
-    v_dept := coalesce((select department from public.org_agents where agent_key=v_mgr),
-                       (select department from public.org_agents where agent_key=r.agent_key), 'exec');
-    insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
-    values (v_dept, v_title,
-      r.agent_key||' has exhausted remediation on '||coalesce(r.competency,r.failure_class)||' ('
-      ||coalesce(r.attempts::text,'?')||'/'||coalesce(r.max_attempts::text,'?')||' attempts, latest score '
-      ||coalesce(r.latest_score::text,'?')||'). Autonomy is still blocked. Decide: retrain, reassign, or downgrade seniority.',
-      'assigned', 'supervised', false, 'remediation', v_mgr);
-    begin
-      perform public.fn_notify_founder('Remediation escalated: '||r.agent_key,
-        r.agent_key||' failed remediation on '||coalesce(r.competency,r.failure_class)||' and remains autonomy-blocked. A manager task was opened for '||coalesce(v_mgr,'the manager')||'.',
-        'high', p_kind => 'remediation_escalated');
-    exception when others then null; end;
-    v_handled := v_handled + 1;
-  end loop;
-  insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
-  values ('remediation_escalate_consume', now(), now(), 'ok', jsonb_build_object('handled', v_handled),
-          'Escalated-remediation consumer: '||v_handled||' manager task(s) + founder notice(s) raised.');
-  return jsonb_build_object('ok', true, 'handled', v_handled);
-end $function$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_agent_remediation_escalate_consume was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-CREATE OR REPLACE FUNCTION public.fn_org_task_sla_watch()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; v_esc int:=0; v_founder int:=0; v_reassigned int:=0; v_mgr text; v_stage int;
-begin
-  if exists (select 1 from public.company_stand_down where resumed_at is null) then
-    return jsonb_build_object('ok', false, 'status','PAUSED_BY_FOUNDER_STANDDOWN', 'escalated',0);
-  end if;
 
-  for r in
-    select t.id, t.title, t.detail, t.tier, t.dept_key, t.assigned_agent, t.result,
-           extract(day from now() - t.created_at)::int as age_days,
-           case t.tier when 'advisory' then 14 when 'gated' then 7 else 5 end as sla_days
-      from public.org_tasks t
-     where t.status not in ('done','cancelled')
-       and t.action_class in ('recommend','incident_fix')
-       and t.created_at < now() - (case t.tier when 'advisory' then interval '14 days'
-                                                when 'gated'    then interval '7 days'
-                                                else interval '5 days' end)
-  loop
-    v_stage := coalesce((r.result->'_sla'->>'stage')::int, 0);
-    -- the owner's manager is the accountable owner of its department; the department is the escalation
-    -- address. The exact manager-chain role is deliberately NOT resolved here — the role-chain resolver
-    -- is a deferred (unimplemented) kernel component, and referencing it would make deferred machinery
-    -- reachable and redden a kernel board.
-    v_mgr := coalesce(r.dept_key, 'exec') || ' manager';
+-- ROUTINE REMOVED 7 September 2026. public.fn_org_task_sla_watch was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-    if v_stage = 0 then
-      update public.org_tasks
-         set result = coalesce(result,'{}'::jsonb)
-             || jsonb_build_object('_sla', jsonb_build_object('stage',1,'escalated_at',now(),
-                                   'escalated_to', coalesce(v_mgr,'exec'), 'sla_days', r.sla_days))
-       where id = r.id;
-      v_esc := v_esc + 1;
-    elsif v_stage = 1 and r.age_days >= r.sla_days * 2 then
-      perform public.fn_notify_founder(
-        'Corrective task #'||r.id||' overdue '||r.age_days||'d (2x SLA): '||left(coalesce(r.title,'task'),80),
-        'Owner '||coalesce(r.assigned_agent, r.dept_key, 'exec')||', manager '||coalesce(v_mgr,'exec')
-          ||' was notified at stage 1 and it is still open. '||left(coalesce(r.detail,''),200),
-        'high', p_kind => 'corrective_task_overdue');
-      update public.org_tasks
-         set result = coalesce(result,'{}'::jsonb)
-             || jsonb_build_object('_sla', jsonb_build_object('stage',2,'escalated_at',now(),
-                                   'escalated_to','founder_alert', 'sla_days', r.sla_days))
-       where id = r.id;
-      v_founder := v_founder + 1;
-    end if;
-  end loop;
 
-  begin
-    v_reassigned := coalesce((public.fn_org_task_assign(50)->>'assigned')::int, 0);
-  exception when others then v_reassigned := 0; end;
+-- ROUTINE REMOVED 7 September 2026. public.fn_os_incident_watchdog was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
 
-  insert into public.agent_runs(agent, started_at, finished_at, status, counts, note)
-  values ('org_task_sla_watch', now(), now(), 'ok',
-          jsonb_build_object('escalated_to_manager',v_esc,'escalated_to_founder',v_founder,'reassigned',v_reassigned),
-          'Corrective-task SLA watch: '||v_esc||' escalated to a manager, '||v_founder
-            ||' raised to a founder alert, '||v_reassigned||' re-assigned.');
-  return jsonb_build_object('ok',true,'escalated_to_manager',v_esc,'escalated_to_founder',v_founder,'reassigned',v_reassigned);
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.fn_os_incident_watchdog()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare r record; v_esc int := 0;
-begin
-  for r in
-    select * from public.os_incidents
-     where status='open' and coalesce(severity,'medium') in ('high','critical')
-       and due_at is not null and due_at < now()
-       and (escalated_at is null or escalated_at < now() - interval '24 hours')
-     order by due_at
-  loop
-    perform public.fn_notify_founder(
-      'OS incident #'||r.id||' ('||coalesce(r.severity,'medium')||') past SLA: '||r.title,
-      'Opened '||to_char(r.opened_at,'YYYY-MM-DD HH24:MI')||' UTC; owner '||coalesce(r.owner,'unassigned')
-        ||'; due '||to_char(r.due_at,'YYYY-MM-DD HH24:MI')||' UTC and still open. '
-        ||coalesce(r.detail->>'description',''),
-      case when coalesce(r.severity,'medium')='critical' then 'critical' else 'high' end,
-      p_kind => 'os_incident_past_sla');
-    update public.os_incidents set escalated_at = now() where id = r.id;
-    v_esc := v_esc + 1;
-  end loop;
-  insert into public.agent_runs(agent, started_at, finished_at, status, counts, note)
-  values ('os_incident_watchdog', now(), now(), 'ok',
-          jsonb_build_object('reescalated', v_esc),
-          'Incident watchdog re-escalated '||v_esc||' overdue high/critical incident(s).');
-  return jsonb_build_object('ok', true, 'reescalated', v_esc);
-end $function$;

@@ -70,13 +70,11 @@ grant execute on function public.fn_phase_c_workflow_start(text, text, jsonb) to
 -- Deterministic and registry-driven: the step in this workflow that no handoff points at. W05 has
 -- three such steps (S01, S08, S09), so the lowest id is taken and the choice is stated rather than
 -- left to row order.
-create or replace function public.fn_phase_c_entry_step(p_workflow_id text)
-returns text language sql stable set search_path to 'public', 'pg_temp' as $$
-  select min(s.step_id)
-    from public.phase_b_workflow_step s
-   where s.workflow_id = p_workflow_id
-     and not exists (select 1 from public.phase_b_handoff h where h.to_step_id = s.step_id);
-$$;
+-- ROUTINE REMOVED 7 September 2026. public.fn_phase_c_entry_step was dropped from the database with
+-- everything else that did not belong to the new structure, and its definition is cut from
+-- this file so re-applying the file cannot recreate it. The other routines defined here are
+-- still running and are untouched.
+
 revoke all on function public.fn_phase_c_entry_step(text) from public;
 grant execute on function public.fn_phase_c_entry_step(text) to service_role;
 
