@@ -324,6 +324,106 @@ things at once means the result teaches nothing, which is how a year of posting 
 
 ---
 
+## 5e. The safety envelope: hard limits no target may override
+
+I am responsible for the consequences of the work this plan assigns. A blacklisted domain, a suspended email account,
+a banned WhatsApp number or a closed ad account are not setbacks, they are months of damage and some of them are not
+recoverable. So the envelope below sits **above** every target in this document. When a target and a limit conflict,
+the limit wins and the target is renegotiated with the founder. No agent may breach one, and the breach check is code,
+not a reminder.
+
+### What I got wrong an hour ago, corrected here
+
+Section 5c proposed 200 invitations in week 1 scaling to 2,500 in week 3, and the arithmetic elsewhere implied about
+15,800 a month. Measured against the estate, that plan would probably have cost you your sending domain. Three facts
+make it unsafe.
+
+**One domain does everything.** Sending is configured as `info@quotesdone.com` and `supplier@quotesdone.com`, both on
+quotesdone.com. That is the same domain that carries login codes, receipts, refund notices and your own alerts. Cold
+outreach and transactional mail must never share a reputation. If the outreach burns it, customers stop receiving
+their one-time codes and the marketplace stops working.
+
+**The list is compiled, not opted in.** Provenance, measured: 9,873 from a company register, 4,635 web-scraped, 4,282
+from a spreadsheet, 1,800 from a staging import, 862 from a directory, 607 from a scraping run, 186 from yellow pages.
+Not one address asked to hear from us. Most email providers' terms prohibit sending to compiled or scraped lists at
+all, so the risk is not only reputation, it is the provider closing the account, which would also stop transactional
+mail.
+
+**The bounce rate is already over the line.** 172 supplier invitations sent, 10 bounced. That is 5.8%, against an
+industry danger threshold of 2%. Continuing at that rate damages the domain regardless of volume.
+
+### The invitations that went out without an activation
+
+The founder said he never activated the supplier campaign. Measured on production, the campaign ran anyway:
+
+- **161 leads** carry `invite_status = sent` with `invited_at` between **23 July and 15 August 2026**. **Zero are
+  fixtures.** The recipients are real UAE businesses: eim.ae, brothersgas.ae, emirates.net.ae, alphacargo.ae,
+  ifgroup.ae, ppkcontracting.com, omanabrasives.com and others, plus nine private addresses.
+- **172 notifications** of type `supplier_invite` reached status `sent` with a dispatch timestamp, so the provider
+  delivered them.
+- `app_secrets.invite_enabled` was set to **false on 12 August at 19:57**. **50 invitations went out on 15 August at
+  09:00**, three days after that. The switch did not stop the send at that time.
+- Nothing has been sent since **15 August 09:00**, twenty-three days ago.
+
+**Where it stands today, verified rather than assumed.** Both switches are false. `enqueue_supplier_invites` now
+reads both of them. The daily 09:00 cron still runs, and an aborted-transaction probe of the function returns
+**created = 0**, so the gate holds. The risk is closed today; it was open for three weeks in July and August.
+
+**Why this matters more than the number.** An outbound channel reached 161 real companies without the founder
+authorising it, and continued for three days after a switch was turned off. That is the exact failure class the
+safety envelope exists to prevent, and it is why the envelope is enforced by a check rather than by a rule in a
+document.
+
+### The envelope
+
+**Email.**
+- Cold outreach moves to a **separate domain**, never quotesdone.com. Transactional and outreach reputations stay
+  apart, permanently.
+- A new domain is **warmed**: roughly 20 a day in week 1, and volume rises by no more than 50% a week, and only when
+  the previous week's bounce rate is under 2% and complaints under 0.1%.
+- **Every address is verified before it is used**: syntax, deliverable domain by MX record, not on a suppression list,
+  not matching a block pattern. The estate already checks MX for 8,764 domains; that check becomes mandatory rather
+  than advisory.
+- **Automatic halt.** Bounce rate at or above 2% in a batch, complaint rate at or above 0.1%, or any spam-trap
+  indicator stops all outreach sending immediately and opens a founder task. Halting is code; nobody has to notice.
+- Role addresses are preferred over named individuals, which lowers both the personal-data exposure and the complaint
+  rate.
+- Every message identifies the sender, states why the recipient is being contacted, and carries a working one-click
+  unsubscribe that writes to the suppression list permanently.
+- **The provider's own terms are checked before the first send.** If cold outreach is not permitted by the current
+  provider, we do not do it there quietly. We either use a provider that permits it, on the separate domain, or we do
+  not use email for this at all.
+
+**WhatsApp.** Zero opted-in contacts exist today. No unsolicited message is sent, ever. Templates are used only with
+recipients who opted in through the product, because a business number that sends unsolicited messages is banned
+quickly and the ban takes the transactional channel with it.
+
+**Paid advertising.** Claims are checked against the platform's policies before submission, and against our own
+published terms, so nothing promises what the product does not do. Spend never exceeds the founder's daily cap, which
+is enforced in code and not by attention.
+
+**Payments.** Dispute and refund rates are monitored against the processor's thresholds, because a marketplace with a
+rising dispute rate gets reviewed and can lose processing.
+
+**Data.** Contacting a business is not the same as processing an individual's data. Named-person addresses carry a
+lawful-basis question under the UAE data protection law, so the outreach uses role addresses where they exist,
+records the source of every address, honours erasure requests, and keeps the provenance we already store.
+
+### What the envelope does to the supplier target, honestly
+
+Inside safe sending limits, a warmed separate domain reaches perhaps 600 to 900 emails a month after two months of
+ramping, not 15,800. At the conversion the evidence allows, that is a handful of registrations a month from email.
+
+**So cold email cannot deliver 300 supplier registrations a month, and no amount of planning changes that.** Email
+becomes a small supporting channel. The primary routes have to be the ones with high conversion and no platform to be
+banned from: direct calls by the seat that owns onboarding, trade associations and category distributors who introduce
+their members, in-person at the trade venues where these businesses already gather, and paid acquisition where the
+platform is the one taking the risk rather than our domain.
+
+That is a harder plan than the one I wrote an hour ago. It is the one that does not end with your email dead.
+
+---
+
 ## 6. Sequence of work
 
 | Phase | What is built | How you will know it worked |
