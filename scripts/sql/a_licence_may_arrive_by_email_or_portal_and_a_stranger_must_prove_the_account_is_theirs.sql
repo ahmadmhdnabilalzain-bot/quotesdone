@@ -202,6 +202,13 @@ begin
       update public.leads set signed_terms_path = p_storage_path where id = v_lead;
     end if;
 
+    -- A LICENCE THAT ARRIVED STOPS THE CHASE FOR IT. Without this the supplier keeps being asked
+    -- for a document the company already holds, which is how a chase teaches people we do not read
+    -- what they send.
+    if (c->>'kind') = 'licence' then
+      perform public.fn_licence_ask_close_for_lead(v_lead, p_channel, v_id);
+    end if;
+
     v_after := public.fn_supplier_mandatory_check(v_lead);
     -- THE RECEIPT SAYS WHAT IS STILL MISSING, the same as the WhatsApp path. A receipt that only
     -- confirms arrival leaves the supplier believing they are finished when they are not, which is
@@ -349,6 +356,10 @@ begin
     signed_terms_path = coalesce((select storage_path from public.support_document_intake
       where lead_id = ch.lead_id and classified_as = 'signed_terms' order by received_at desc, intake_id desc limit 1), l.signed_terms_path)
   where l.id = ch.lead_id;
+
+  -- The same rule at the other door: the owner was unknown when the document arrived, so the chase
+  -- could not be stopped then. It is stopped now, at the moment the account is proven.
+  perform public.fn_licence_ask_close_for_lead(ch.lead_id, 'identity_challenge', null);
 
   return jsonb_build_object('ok', true, 'verified', true, 'lead_id', ch.lead_id,
     'documents_released', v_filed,

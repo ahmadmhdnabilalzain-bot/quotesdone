@@ -23,6 +23,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { G8 } from './support_acceptance_group_licence_expiry.mjs';
 
 const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
@@ -257,7 +258,7 @@ end $p$;`,
 // GROUP 4 — LICENCE INTAKE ON EVERY PATH, AND EXPIRY ARITHMETIC
 // ==============================================================================================
 const G4 = {
-  title: '4. All three intake paths, and the expiry boundaries at 31/30/1/0/-1',
+  title: '4. All three intake paths, and one classifier behind them',
   scenarios: [
     S('email_path_files_the_licence', 'true'),
     S('portal_declared_type_beats_the_filename', 'declared'),
@@ -486,7 +487,9 @@ begin
 end $p$;`,
 };
 
-const GROUPS = [G1, G2, G3, G4, G5, G6, G7];
+// Group 8 lives in its own module: its SQL is dollar-quoted, and this repository has a standing
+// hazard with shell-generated files mangling $p$ into nothing.
+const GROUPS = [G1, G2, G3, G4, G5, G6, G7, G8];
 
 // ----------------------------------------------------------------------------------------------
 const only = process.argv.includes('--group')

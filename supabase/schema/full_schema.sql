@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-07T20:29:08.213Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-07T20:33:25.375Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -13005,6 +13005,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -13030,16 +13040,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -30970,27 +30970,46 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_licence_ask_close_for_lead(p_lead_id bigint, p_source text, p_source_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_closed int;
+begin
+  if p_lead_id is null then
+    return jsonb_build_object('ok', true, 'closed', 0,
+      'reason', 'no lead, so no ask is answered. A document held for an unmatched sender has not arrived for anybody yet.');
+  end if;
+
+  -- ANSWERED, not sent. The distinction the original function was built around and which this
+  -- preserves: an ask closes when a document ARRIVES, never when a message goes out.
+  update public.licence_renewal_ask
+     set answered_at = now(),
+         answered_by_intake = case when p_source = 'whatsapp' then p_source_id else answered_by_intake end
+   where lead_id = p_lead_id and answered_at is null;
+  get diagnostics v_closed = row_count;
+
+  return jsonb_build_object('ok', true, 'closed', v_closed, 'lead_id', p_lead_id, 'source', p_source,
+    'note', 'Every open renewal ask for this supplier is answered by the document that arrived, whichever door it came through.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_licence_ask_close_on_intake(p_intake_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-declare v_i record; v_closed int;
+declare v_i record;
 begin
   select * into v_i from public.wa_document_intake where id = p_intake_id;
   if not found or v_i.lead_id is null or v_i.classified_as <> 'licence' or not v_i.attached then
     return jsonb_build_object('ok', true, 'closed', 0,
       'reason', 'Not an attached licence for a known lead, so no renewal ask is answered by it.');
   end if;
-
-  update public.licence_renewal_ask
-     set answered_at = now(), answered_by_intake = p_intake_id
-   where lead_id = v_i.lead_id and answered_at is null;
-  get diagnostics v_closed = row_count;
-
-  return jsonb_build_object('ok', true, 'closed', v_closed, 'lead_id', v_i.lead_id,
-    'note', 'Every open renewal ask for this supplier is answered by the document that arrived.');
+  return public.fn_licence_ask_close_for_lead(v_i.lead_id, 'whatsapp', p_intake_id);
 end;
 $function$
 
@@ -54293,6 +54312,10 @@ begin
       where lead_id = ch.lead_id and classified_as = 'signed_terms' order by received_at desc, intake_id desc limit 1), l.signed_terms_path)
   where l.id = ch.lead_id;
 
+  -- The same rule at the other door: the owner was unknown when the document arrived, so the chase
+  -- could not be stopped then. It is stopped now, at the moment the account is proven.
+  perform public.fn_licence_ask_close_for_lead(ch.lead_id, 'identity_challenge', null);
+
   return jsonb_build_object('ok', true, 'verified', true, 'lead_id', ch.lead_id,
     'documents_released', v_filed,
     'mandatory', public.fn_supplier_mandatory_check(ch.lead_id),
@@ -54876,6 +54899,13 @@ begin
       update public.leads set company_profile_doc_path = p_storage_path where id = v_lead;
     else
       update public.leads set signed_terms_path = p_storage_path where id = v_lead;
+    end if;
+
+    -- A LICENCE THAT ARRIVED STOPS THE CHASE FOR IT. Without this the supplier keeps being asked
+    -- for a document the company already holds, which is how a chase teaches people we do not read
+    -- what they send.
+    if (c->>'kind') = 'licence' then
+      perform public.fn_licence_ask_close_for_lead(v_lead, p_channel, v_id);
     end if;
 
     v_after := public.fn_supplier_mandatory_check(v_lead);
