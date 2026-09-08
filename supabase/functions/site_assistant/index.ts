@@ -173,8 +173,34 @@ Deno.serve(async (req) => {
     const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags').eq('public', true).eq('status','approved');
     const qtok = tok(message);
     const scored = (faqs||[]).map((f:any)=>{ const hay = tok(f.question+' '+f.answer+' '+((f.tags||[]).join(' '))); let sc=0; for(const t of qtok){ if(hay.includes(t)) sc++; } return { f, sc }; }).sort((a,b)=>b.sc-a.sc).slice(0,8).filter(x=>x.sc>0);
-    const ctx = scored.map(x=>`Q: ${x.f.question}\nA: ${x.f.answer}`).join('\n\n');
+    const ctx0 = scored.map(x=>`Q: ${x.f.question}\nA: ${x.f.answer}`).join('\n\n');
     const matchedIds = scored.map(x=>x.f.id);
+
+    // THE SUPPORT PACK, WHICH THIS AGENT WAS NEVER GIVEN. Until 8 Sep 2026 the widget answered from
+    // company_faq and the FACTS strings above and nothing else, while public.support_knowledge — 407
+    // records written for this exact agent — sat unread by anything deployed. fn_support_corpus_search
+    // reads the combined body (FAQ + support pack + operations knowledge) as ONE corpus.
+    //
+    // p_public IS PASSED EXPLICITLY AND IS ALWAYS TRUE HERE. The function takes it with no default
+    // precisely so this call site has to state what it is: a stranger on the public home page. Most of
+    // that corpus is internal — estate architecture, escalation mechanics, founder decisions — and
+    // only rows with a recorded promotion in support_public_override come back for a public caller.
+    // Relying on the prompt to keep internal content out of an answer would make the model
+    // responsible for not leaking, which is not a control.
+    let packCtx = '';
+    let packTop: { content: string; citation: string; rank: number } | null = null;
+    try {
+      const { data: pack } = await admin.rpc('fn_support_corpus_search', {
+        p_query: message, p_public: true, p_limit: 6,
+      });
+      packCtx = (pack || []).map((r: any) => `${r.citation}\n${r.content}`).join('\n\n');
+      packTop = (pack || [])[0] || null;
+    } catch (_e) {
+      // A retrieval failure must not take the widget down: the FAQ context above still answers, and a
+      // thinner answer beats no answer. It is deliberately not logged as an error the founder sees.
+      packCtx = '';
+    }
+    const ctx = [ctx0, packCtx].filter(Boolean).join('\n\n');
 
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: this visitor is on a SUPPLIER page${path ? ' (' + path + ')' : ''} or is writing as a supplier. Treat them as a SUPPLIER.`
@@ -227,6 +253,20 @@ Deno.serve(async (req) => {
 
     // The fallback has to know about the session too. Telling a signed-in customer "I can help you
     // join as a supplier" when the model timed out is the same defect one layer down.
+    // ANSWER FROM THE CORPUS BEFORE DEFLECTING. Measured 8 Sep 2026: every model route in
+    // llm_route_health is open_until 2126 — the founder's own hold, "no OpenRouter calls" — so the
+    // gateway returns nothing for any question a stored FAQ does not match exactly, and this branch
+    // is not a rare timeout path, it is the NORMAL path today. A visitor asking a real question was
+    // getting "I can help with questions about how QuotesDone works", which is a deflection dressed
+    // as an answer.
+    //
+    // The support pack is 407 records written for this agent and it needs no model to be read. If
+    // retrieval found something confident, say it, and say where it came from. A cited, deterministic
+    // answer is worth more than a phone number, and it costs nothing while the hold is on.
+    if (!reply && !live && packTop && packTop.rank > 0.05) {
+      reply = String(packTop.content || '').trim().slice(0, 700)
+        + '\n\nIf that does not cover it, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.';
+    }
     if (!reply) reply = live
       ? 'Something went wrong on my side just now, so I could not read your account. Please ask me again in a moment. If it keeps happening, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.'
       : 'I can help with questions about how QuotesDone works, pricing, posting a job, or joining as a supplier. To speak with someone directly, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.';

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-08T02:15:30.905Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-08T02:29:57.490Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -182,7 +182,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (549) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (550) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -7235,6 +7235,15 @@ CREATE TABLE IF NOT EXISTS public.support_notification (
   bridge_note text
 );
 
+CREATE TABLE IF NOT EXISTS public.support_public_override (
+  src text NOT NULL,
+  src_id text NOT NULL,
+  is_public boolean NOT NULL,
+  decided_by text NOT NULL,
+  rationale text NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.target_contract (
   id bigint DEFAULT nextval('target_contract_id_seq'::regclass) NOT NULL,
   contract_key text NOT NULL,
@@ -8138,6 +8147,7 @@ ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intak
 ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_challenge_pkey PRIMARY KEY (challenge_id);
 ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_pkey PRIMARY KEY (id);
+ALTER TABLE public.support_public_override ADD CONSTRAINT support_public_override_pkey PRIMARY KEY (src, src_id);
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_pkey PRIMARY KEY (id);
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_pkey PRIMARY KEY (id);
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_pkey PRIMARY KEY (id);
@@ -11960,6 +11970,44 @@ CREATE OR REPLACE VIEW public.v_supply_gap AS  WITH pool AS (
             ELSE 'IN PROGRESS'::text
         END AS status
    FROM pool;
+
+CREATE OR REPLACE VIEW public.v_support_corpus AS  SELECT 'faq'::text AS src,
+    (f.id)::text AS src_id,
+    f.question AS title,
+    f.answer AS content,
+    f.embedding_gte,
+    COALESCE(o.is_public, f.public, false) AS is_public,
+    f.audience,
+    ('FAQ: '::text || f.question) AS citation,
+    f.updated_at AS as_of
+   FROM (company_faq f
+     LEFT JOIN support_public_override o ON (((o.src = 'faq'::text) AND (o.src_id = (f.id)::text))))
+  WHERE (f.status = 'approved'::text)
+UNION ALL
+ SELECT 'supportkb'::text AS src,
+    s.record_id AS src_id,
+    s.title,
+    s.body AS content,
+    NULL::vector(384) AS embedding_gte,
+    COALESCE(o.is_public, false) AS is_public,
+    'all'::text AS audience,
+    ('Support pack: '::text || s.title) AS citation,
+    s.imported_at AS as_of
+   FROM (support_knowledge s
+     LEFT JOIN support_public_override o ON (((o.src = 'supportkb'::text) AND (o.src_id = s.record_id))))
+  WHERE s.runtime_index_eligible
+UNION ALL
+ SELECT 'ops'::text AS src,
+    k.record_id AS src_id,
+    k.title,
+    k.content,
+    k.embedding_gte,
+    COALESCE(o.is_public, false) AS is_public,
+    'all'::text AS audience,
+    ('Operations: '::text || k.title) AS citation,
+    NULL::timestamp with time zone AS as_of
+   FROM (ops_knowledge k
+     LEFT JOIN support_public_override o ON (((o.src = 'ops'::text) AND (o.src_id = k.record_id))));
 
 CREATE OR REPLACE VIEW public.v_test_matrix AS  SELECT agent AS suite,
     count(*) AS runs_14d,
@@ -46900,7 +46948,7 @@ CREATE OR REPLACE FUNCTION public.fn_refund_request(p_amount_fils bigint, p_reas
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-declare v_id bigint; v_in_window boolean := false; t public.transactions;
+declare v_id bigint; v_task bigint; v_in_window boolean := false; t public.transactions;
 begin
   if p_amount_fils is null or p_amount_fils <= 0 then
     return jsonb_build_object('ok', false, 'error', 'amount_required');
@@ -46912,10 +46960,9 @@ begin
       or (p_transaction_id is null and p_quote_id is null and p_payment_intent is not null and payment_ref = p_payment_intent)
    order by revealed_at desc nulls last limit 1;
 
-  -- Recorded, never acted on. Whether the request arrived inside the window promised at reveal
-  -- (transactions.refund_deadline, computed by fn_add_working_days when the quote was revealed) is
-  -- exactly the kind of thing the founder wants in front of him when he decides — and exactly the
-  -- kind of thing that must not decide for him.
+  -- Recorded, never acted on. Whether the request arrived inside the window promised at reveal is
+  -- exactly the kind of thing the decider wants in front of them, and exactly the kind of thing that
+  -- must not decide for them.
   if t.id is not null and t.refund_deadline is not null and t.refund_deadline >= now() then
     v_in_window := true;
   end if;
@@ -46929,9 +46976,10 @@ begin
           coalesce(p_payment_intent, t.payment_ref), p_charge_id,
           p_amount_fils, p_reason_code, p_note, p_requested_by,
           v_in_window, 'requested',
-          'HELD FOR THE FOUNDER. Every refund waits for his decision, whatever the amount and '
-       || 'whether or not it is inside the promised window — founder instruction, 17 Aug 2026. '
-       || 'This one is ' || round(p_amount_fils / 100.0, 2) || ' AED and is '
+          'ROUTED TO THE CEO. Every refund waits for the CEO seat''s decision, whatever the amount '
+       || 'and whether or not it is inside the promised window — founder ruling, 8 Sep 2026, '
+       || 'replacing his 17 Aug rule that every refund needed him personally. This one is '
+       || round(p_amount_fils / 100.0, 2) || ' AED and is '
        || case when v_in_window then 'inside' else 'outside' end || ' the window promised at reveal.')
   returning id into v_id;
 
@@ -46944,11 +46992,28 @@ begin
      where id = t.id;
   end if;
 
+  -- THE ROUTE. Without this the request is recorded and nothing is asked of anyone.
+  insert into public.ceo_task (title, detail)
+  values (
+    'Decide refund ' || v_id || ' — AED ' || round(p_amount_fils / 100.0, 2),
+    'Refund ' || v_id || ' requested by ' || coalesce(nullif(btrim(p_requested_by), ''), '(unknown)')
+      || ' for ' || round(p_amount_fils / 100.0, 2) || ' AED, reason ' || coalesce(p_reason_code, '(none)')
+      || '. Transaction ' || coalesce(t.id::text, '(none matched)')
+      || '. The request arrived ' || case when v_in_window then 'INSIDE' else 'OUTSIDE' end
+      || ' the refund window promised at reveal — a fact, not a decision.'
+      || coalesce(chr(10) || 'Customer note: ' || nullif(btrim(p_note), ''), '')
+      || chr(10) || chr(10)
+      || 'To approve: write a row in public.ceo_approval (subject_kind = ''refund'') and set '
+      || 'refunds.refund_decision_id to it. The guards on public.refunds will refuse the money moving '
+      || 'any other way.')
+  returning task_id into v_task;
+
   return jsonb_build_object('ok', true, 'refund_id', v_id, 'transaction_id', t.id,
                             'status', 'requested',
                             'within_auto_window', v_in_window,
                             'auto_approved', false,
-                            'awaiting', 'founder');
+                            'ceo_task_id', v_task,
+                            'awaiting', 'ceo');
 end
 $function$
 
@@ -51257,6 +51322,32 @@ begin
                    then 'NO ADVISORY COVERAGE for this query. Answer from company policy and live account facts, or say you will check. Do not improvise from these records.'
                    else 'Advisory guidance only. Account facts come from the database.' end);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_corpus_search(p_query text, p_public boolean, p_limit integer DEFAULT 8)
+ RETURNS TABLE(src text, src_id text, title text, content text, citation text, rank real)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  with q as (
+    select websearch_to_tsquery('english', coalesce(p_query, '')) as qe,
+           websearch_to_tsquery('simple',  coalesce(p_query, '')) as qs
+  ),
+  hay as (
+    select c.src, c.src_id, c.title, c.content, c.citation, c.is_public,
+           to_tsvector('english', coalesce(c.title,'') || ' ' || coalesce(c.content,'')) as te,
+           to_tsvector('simple',  coalesce(c.title,'') || ' ' || coalesce(c.content,'')) as ts
+      from public.v_support_corpus c
+     where (case when p_public then c.is_public else true end)
+  )
+  select h.src, h.src_id, h.title, h.content, h.citation,
+         greatest(ts_rank(h.te, q.qe), ts_rank(h.ts, q.qs)) as rank
+    from hay h, q
+   where h.te @@ q.qe or h.ts @@ q.qs
+   order by rank desc
+   limit greatest(1, least(coalesce(p_limit, 8), 25))
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_support_deliver_artifact(p_artifact_id bigint, p_case_id bigint, p_recipient_party_id text, p_whatsapp text, p_email text, p_inquiry_ref text)
@@ -59802,6 +59893,7 @@ ALTER TABLE public.support_document_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_identity_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_notification ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_public_override ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_contract ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_driver ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_verdict ENABLE ROW LEVEL SECURITY;
