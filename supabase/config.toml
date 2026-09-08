@@ -3,7 +3,7 @@
 #
 # Why this file exists (decision D1, 3 Aug 2026). Without it, `supabase functions deploy`
 # sets verify_jwt from whatever CLI flag it is passed, and the deploy scripts pass a blanket
-# --no-verify-jwt. 17 of these 65 functions REQUIRE a JWT, so one routine redeploy
+# --no-verify-jwt. 17 of these 54 functions REQUIRE a JWT, so one routine redeploy
 # could silently strip that requirement with nothing failing and nothing logged. Pinning the
 # value here makes the auth posture reviewable in git: an unintended change shows up as a diff.
 #
@@ -28,13 +28,7 @@
 
 project_id = "htdblwldjkcgjvmqkbeh"
 
-[functions.about]
-verify_jwt = false
-
 [functions.ai_gateway]
-verify_jwt = false
-
-[functions.auth_api]
 verify_jwt = false
 
 [functions.ceo_agent]
@@ -67,18 +61,6 @@ verify_jwt = false
 [functions.extract_text]
 verify_jwt = false
 
-[functions.faq]
-verify_jwt = false
-
-[functions.home]
-verify_jwt = false
-
-[functions.home-ar]
-verify_jwt = false
-
-[functions.i18n_get]
-verify_jwt = false
-
 [functions.inbound_email]
 verify_jwt = false
 
@@ -86,9 +68,6 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.kyc]
-verify_jwt = false
-
-[functions.legal]
 verify_jwt = false
 
 [functions.license_extract]
@@ -109,23 +88,14 @@ verify_jwt = true
 [functions.pdf_native]
 verify_jwt = false
 
-[functions.portal]
-verify_jwt = false
-
 [functions.procurement_api]
 verify_jwt = true
 
 [functions.project_api]
 verify_jwt = true
 
-[functions.public_stats]
-verify_jwt = false
-
 [functions.quote_compare]
 verify_jwt = true
-
-[functions.quote_pdf]
-verify_jwt = false
 
 [functions.refund_flow]
 verify_jwt = false
@@ -176,9 +146,6 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.stripe_webhook]
-verify_jwt = false
-
-[functions.sup_dob]
 verify_jwt = false
 
 [functions.supplier_ack]
