@@ -30,14 +30,6 @@ const nextConfig = {
       { source: '/ar/customer/:path*', destination: '/ar/me', permanent: false },
       { source: '/suppliers', destination: '/portal', permanent: false },
       { source: '/suppliers/:path*', destination: '/portal', permanent: false },
-      { source: '/os2', destination: '/os', permanent: false },
-      { source: '/os2/:path*', destination: '/os', permanent: false },
-      { source: '/os3', destination: '/os', permanent: false },
-      { source: '/os3/:path*', destination: '/os', permanent: false },
-      { source: '/crm', destination: '/os', permanent: false },
-      { source: '/crm/:path*', destination: '/os', permanent: false },
-      { source: '/admin', destination: '/os', permanent: false },
-      { source: '/admin/:path*', destination: '/os', permanent: false },
     ];
   },
 };
