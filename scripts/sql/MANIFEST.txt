@@ -1583,3 +1583,5 @@ scripts/sql/the_cutover_register_stops_claiming_deleted_sources.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded
+scripts/sql/retire_the_routines_no_seat_can_reach.sql
+scripts/sql/the_tools_the_maintenance_runs_on_are_not_dead_code.sql

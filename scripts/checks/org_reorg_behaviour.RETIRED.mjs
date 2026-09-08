@@ -1,3 +1,18 @@
+// RETIRED 8 September 2026 — its subject was removed from the company, not from the check.
+//
+// Subject: the department re-carve of the ten-department organisation.
+//
+// fn_ops_department_context returned a projection per department. There are no departments: the founder
+// removed the organisation chart on 7 September and the company is two seats, ceo and
+// customer_support. fn_org_role_agent, fn_org_role_violations and fn_specialist_invoke, which this file
+// also drives, were already absent from production before today.
+//
+// RETIRED RATHER THAN SOFTENED. Editing the assertions until they pass would leave a check that goes
+// green while the thing it checks does not exist, which converts an absence into confidence and is
+// worse than having no check at all. Renaming it out of the .test.mjs glob keeps every word of the
+// reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the routine names.
 // AGENT COMPANY REORGANISATION — BEHAVIOURAL TESTS.
 //
 // Every test here runs the real runtime path, on production. None of them asserts on a source

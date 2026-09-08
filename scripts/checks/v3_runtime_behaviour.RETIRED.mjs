@@ -1,3 +1,21 @@
+// RETIRED 8 September 2026 — its subject was removed from the company, not from the check.
+//
+// Subject: the v3 knowledge runtime for department agents and category specialists.
+//
+// It ran the real runtime path: fn_agent_context_capped for capped retrieval, fn_category_checklist
+// and fn_category_quote_ready for the category specialists, fn_propose_lesson for the learning loop and
+// fn_artifact_publish_blocked for the visual gate. Four of those were already absent from production
+// before today (fn_propose_lesson, fn_category_quote_ready, fn_overlay_for_category,
+// fn_category_specialist_scorecard); the other three were retired on 8 Sep as unreachable. The runtime
+// it tested belonged to the ten departments and the category specialist roster, which the founder
+// removed on 7 September.
+//
+// RETIRED RATHER THAN SOFTENED. Editing the assertions until they pass would leave a check that goes
+// green while the thing it checks does not exist, which converts an absence into confidence and is
+// worse than having no check at all. Renaming it out of the .test.mjs glob keeps every word of the
+// reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the routine names.
 // V3 KNOWLEDGE RUNTIME — BEHAVIOURAL TESTS.
 //
 // These do not assert on source strings. Every one of them runs the real runtime path an

@@ -14,7 +14,6 @@
     "  npm test              every test in the repository, nothing excluded",
     "  npm run test:phase-d  the Phase D deterministic suite, zero-cost, exclusions below applied"
   ],
-
   "profiles": {
     "phase-d": {
       "description": "The Phase D deterministic suite: Phase A, effective Phase B, and Phase C runtime and evidence tests. Runs under the zero-cost contract with no paid-AI provider reachable and no external-effect path active.",
@@ -24,26 +23,7 @@
         "AI_PROVIDER_MODE": "mock",
         "PHASE_D_EXTERNAL_EFFECT_MODE": "mock"
       },
-      "excluded": [
-        {
-          "test": "production: every packaged department resolves to a live runtime department",
-          "file": "scripts/checks/v3_runtime_behaviour.test.mjs",
-          "phase": "KNOWLEDGE_V3",
-          "owner": "knowledge-pack remediation (V3 delivery package)",
-          "reason": "The committed V3 delivery package names 24 departments. The organisation is 10 active departments of 33 rows since the Phase A reorganisation, so the package and the estate disagree by construction. Repackaging V3 against the current organisation is later-phase knowledge work; it is not a Phase C runtime defect and it does not gate the kernel.",
-          "measured": "actual 33, expected 24, on production 2026-08-18",
-          "unblocks": "regenerate the V3 department manifest from org_departments where active, then delete this exclusion"
-        },
-        {
-          "test": "production: a decided agent action writes a decision trace naming those records",
-          "file": "scripts/checks/v3_runtime_behaviour.test.mjs",
-          "phase": "KNOWLEDGE_V3",
-          "owner": "knowledge-pack remediation (V3 decision-trace work)",
-          "reason": "V3 decision-trace coverage over agent_actions. The Phase C trace estate is separately asserted by fn_kernel_trace_integrity and fn_kernel_system_trace_state, both of which are clean on current state; this is the older V3 trace shape over a different subject and is later-phase work.",
-          "measured": "traces=1 ids=<NULL>, expected true, on production 2026-08-18",
-          "unblocks": "V3 remediation writes the record ids into the decision trace, then delete this exclusion"
-        }
-      ]
+      "excluded": []
     }
   }
 }
