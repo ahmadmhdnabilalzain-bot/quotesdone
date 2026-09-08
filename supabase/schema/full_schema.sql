@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-08T02:29:57.490Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-08T20:45:19.030Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16782,7 +16782,7 @@ AS $function$
   select r.intent_id, r.rule_id, r.pattern
     from public.ceo_command_rule r
    where position(r.pattern in lower(coalesce(p_text, ''))) > 0
-   order by length(r.pattern) desc, r.rank asc
+   order by r.rank asc, length(r.pattern) desc
    limit 1
 $function$
 
@@ -60011,6 +60011,7 @@ select cron.schedule('wa_flush','*/2 * * * *',$CRON$select public.fn_kernel_cron
 --   cred_fn_enrich_capability
 --   cred_fn_exec_agents
 --   cred_fn_finance_doc
+--   cred_fn_founder_channel
 --   cred_fn_gen_category_knowledge
 --   cred_fn_gen_category_personas
 --   cred_fn_inbound_email
