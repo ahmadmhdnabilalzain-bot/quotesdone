@@ -560,7 +560,6 @@ scripts/sql/the_capability_retry_cron_and_its_registry_row.sql
 # --- cdfd9e2 2026-08-12 ---
 scripts/sql/sixteen_routines_stop_naming_their_own_project.sql
 scripts/sql/the_two_signing_triggers_must_never_refuse_a_signature.sql
-scripts/sql/the_two_triggers_on_the_critical_path_stop_naming_their_own_project.sql
 # --- 9a97866 2026-08-12 ---
 scripts/sql/twenty_thousand_suppliers_rated_zero_for_work_never_offered.sql
 # --- dff07cc 2026-08-12 ---
@@ -1542,7 +1541,6 @@ scripts/sql/the_head_budget_is_split_after_the_mandatory_pieces.sql
 scripts/sql/a_merged_role_alias_is_unreachable_while_the_retired_row_still_exists.sql
 scripts/sql/the_last_phase_b_guards_come_off_because_the_founder_removed_every_limit.sql
 [INFO] Recording command outcome: printf
-
 [OK] Command outcome recorded
 scripts/sql/the_word_the_caller_uses_and_the_word_the_column_allows.sql
 scripts/sql/the_routines_that_still_addressed_a_seat_nobody_holds.sql
@@ -1572,6 +1570,16 @@ scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_th
 scripts/sql/he_gives_an_instruction_and_nothing_asks_him_to_confirm_it_again.sql
 scripts/sql/the_refund_tools_are_typed_so_the_model_never_names_the_account.sql
 scripts/sql/the_reminder_stops_whichever_door_the_licence_came_through.sql
+scripts/sql/the_support_outbox_reaches_the_postman_that_already_exists.sql
+scripts/sql/the_customer_email_has_to_survive_outlook_and_a_phone.sql
+scripts/sql/the_mail_goes_dark_on_the_brand_it_already_had.sql
+scripts/sql/the_logo_is_sized_by_its_height_because_the_box_was_mostly_nothing.sql
+scripts/sql/the_whatsapp_agent_gets_a_model_policy_instead_of_the_catch_all.sql
+scripts/sql/one_seat_one_brain_the_support_agent_routes_the_same_on_both_channels.sql
+scripts/sql/the_triggers_that_called_the_deleted_functions_go_with_them.sql
+scripts/sql/every_function_that_survives_names_its_owner.sql
+scripts/sql/a_function_can_be_owned_now_and_destined_elsewhere.sql
+scripts/sql/the_cutover_register_stops_claiming_deleted_sources.sql
 [INFO] Recording command outcome: printf
 
 [OK] Command outcome recorded

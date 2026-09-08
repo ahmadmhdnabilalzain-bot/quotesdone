@@ -111,15 +111,21 @@ Deno.serve(async (req) => {
       if (!lead) return J({ error: 'could not create lead', detail: ins.error?.message }, 500);
     }
 
-    let profile: Record<string, unknown> = {}; let aiOk = false; let aiNotes = '';
-    try {
-      const rr = await fetch(`${SUPA_URL}/functions/v1/profile_ai`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: sec.value, company_name: lead.company_name, sector: lead.sector, emirate: lead.emirate, text: (subject ? subject + '\n\n' : '') + text, images }),
-      });
-      const jd = await rr.json();
-      if (jd?.ok && jd.profile) { profile = jd.profile; aiOk = true; } else aiNotes = jd?.error || 'ai fallback';
-    } catch (e) { aiNotes = String((e as Error)?.message || e); }
+    // profile_ai was DELETED on 8 Sep 2026 under the founder's rule: a function that belongs to
+    // neither the CEO nor the customer-support agent does not exist. It enriched a supplier profile
+    // from the text of an inbound email, and no agent owned that work.
+    //
+    // The call is removed rather than left to 404. It sat inside a try/catch with an 'ai fallback'
+    // note, so it would have degraded quietly and correctly -- and that is exactly the problem: an
+    // HTTP request on every inbound email, to an endpoint deliberately deleted, recording a
+    // fallback that reads like a transient AI failure rather than a decision. A dead call that
+    // fails gracefully is how a deletion gets un-noticed for months.
+    //
+    // The intake keeps everything it did without a model: the sender is matched to a lead, the
+    // message and attachments are stored, and the row is available for the support agent to work.
+    const profile: Record<string, unknown> = {};
+    const aiOk = false;
+    const aiNotes = 'profile enrichment removed 8 Sep 2026: no agent owns it. Intake is deterministic.';
 
     const upd: Record<string, unknown> = {};
     const setField = (col: string, val: unknown) => {

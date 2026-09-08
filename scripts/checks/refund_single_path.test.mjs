@@ -11,6 +11,18 @@
 // org_authority.threshold_aed (AED 2,000) a refund auto-approves; above it, both the approval and
 // the payment wait for a human. That policy lives in fn_refund_request, so every requester must go
 // through it rather than setting a status itself.
+// SECRETARY_ACT WAS DELETED ON 8 SEP 2026 and the two tests that read it went with it. They
+// asserted about the shape of tool_issue_refund: that it called fn_refund_request rather than
+// stamping refund_status itself, and that it pinned p_reason_code to the closed vocabulary. There
+// is no such tool any more — the CEO agent requests a refund through fn_ceo_request_decision and
+// the money moves through fn_refund_execute_authorized, which takes no destination and no decision
+// parameter at all, so the class of defect those two tests guarded cannot be expressed in the new
+// path. §15 of the support acceptance harness covers what replaced them.
+//
+// The other two tests are untouched and still have live subjects: the scan below is over EVERY
+// function in the directory, not over one that was deleted, and refunds_api still exists and still
+// carries the Control Mode gate. Deleting the whole file would have taken those down with the dead
+// ones — the rule is that a check retires with ITS OWN subject, not with a neighbour's.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -20,21 +32,6 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FNDIR = join(root, 'supabase', 'functions');
 const read = (slug) => readFileSync(join(FNDIR, slug, 'index.ts'), 'utf8');
-
-test('secretary_act requests a refund through the policy function, it does not decide one', () => {
-  const src = read('secretary_act');
-  const fn = src.slice(src.indexOf('async function tool_issue_refund('), src.indexOf('async function tool_supplier_decision('));
-  assert.ok(fn.length > 0, 'tool_issue_refund is gone from secretary_act - this guard is now testing nothing');
-  assert.match(fn, /rpc\('fn_refund_request'/,
-    'tool_issue_refund does not call fn_refund_request, so it is deciding a refund outside the one function ' +
-    'that knows the window and the ceiling.');
-  assert.doesNotMatch(fn, /refund_status:\s*'refunded'/,
-    "tool_issue_refund still writes refund_status: 'refunded' directly. That marks the books refunded without " +
-    'a refunds row, without Stripe, and without the Control Mode gate on refunds_api.');
-  assert.doesNotMatch(fn, /refund_resolved_at/,
-    'tool_issue_refund still stamps refund_resolved_at itself. Resolution is what refunds_api does after Stripe ' +
-    'confirms; asserting it here makes the timestamp a claim rather than a record.');
-});
 
 test('no edge function sets a terminal refund state on transactions by hand', () => {
   // The class, not the instance. Any function that writes a settled refund state straight onto
@@ -52,16 +49,6 @@ test('no edge function sets a terminal refund state on transactions by hand', ()
   assert.deepEqual(offenders, [],
     'these functions write a settled refund state directly onto transactions, bypassing fn_refund_request and ' +
     'the Control Mode gate: ' + offenders.join(', '));
-});
-
-test('the refund reason recorded is from the closed vocabulary, not guessed from free text', () => {
-  const src = read('secretary_act');
-  const fn = src.slice(src.indexOf('async function tool_issue_refund('), src.indexOf('async function tool_supplier_decision('));
-  assert.match(fn, /p_reason_code: 'other'/,
-    "tool_issue_refund does not pin p_reason_code. refunds.reason_code has a CHECK constraint with eight legal " +
-    'values; inferring one from a founder sentence either violates the constraint or files the wrong reason.');
-  assert.match(fn, /p_note: String\(reason/,
-    'the founder\'s own wording is not preserved in p_note, so the reason for the refund is lost.');
 });
 
 test('refunds_api still gates the Stripe execution on Control Mode', () => {

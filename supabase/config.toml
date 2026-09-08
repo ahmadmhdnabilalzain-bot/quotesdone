@@ -27,116 +27,20 @@ project_id = "htdblwldjkcgjvmqkbeh"
 [functions.about]
 verify_jwt = false
 
-[functions.action_worker]
-verify_jwt = false
-
-[functions.agent_act]
-verify_jwt = false
-
-[functions.agent_autogen]
-verify_jwt = false
-
-[functions.agent_brain]
-verify_jwt = false
-
 [functions.agent_learnings_report]
-verify_jwt = false
-
-[functions.agent_train]
-verify_jwt = false
-
-[functions.agents]
 verify_jwt = false
 
 [functions.ai_gateway]
 verify_jwt = false
 
-[functions.ai_health]
-verify_jwt = false
-
-[functions.alert_founder]
-verify_jwt = false
-
-[functions.analytics_recommend]
-verify_jwt = false
-
-[functions.apify_scrape]
-verify_jwt = false
-
-[functions.archive_rfq]
-verify_jwt = false
-
-[functions.artifact_review]
-verify_jwt = false
-
-[functions.asset_delete]
-verify_jwt = false
-
-[functions.assets_ingest]
-verify_jwt = false
-
-[functions.attach_photos]
-verify_jwt = false
-
 [functions.auth_api]
-verify_jwt = false
-
-[functions.backup]
-verify_jwt = false
-
-[functions.blog_weekly]
-verify_jwt = false
-
-[functions.boost_recommend]
-verify_jwt = false
-
-[functions.boq_fixture_check]
-verify_jwt = false
-
-[functions.brand_upload]
-verify_jwt = true
-
-[functions.cad_convert]
-verify_jwt = false
-
-[functions.canon_eval]
-verify_jwt = false
-
-[functions.capability_agent]
-verify_jwt = false
-
-[functions.category_provision]
-verify_jwt = false
-
-[functions.category_reqs]
 verify_jwt = false
 
 [functions.claim_lookup]
 verify_jwt = false
 
-[functions.collections_legal]
-verify_jwt = false
-
-[functions.compliance_archive]
-verify_jwt = false
-
 [functions.contact_submit]
 verify_jwt = true
-
-[functions.content_revise]
-verify_jwt = false
-
-[functions.copilot]
-verify_jwt = false
-
-[functions.cos_execute]
-verify_jwt = false
-
-[functions.cost_snapshot]
-verify_jwt = false
-
-[functions.customer_api]
-verify_jwt = false
 
 [functions.customer_documents]
 verify_jwt = false
@@ -147,103 +51,16 @@ verify_jwt = true
 [functions.customer_portal]
 verify_jwt = false
 
-[functions.deploy_next_preview]
-verify_jwt = false
-
-[functions.dept_learn]
-verify_jwt = false
-
-[functions.dept_plan]
-verify_jwt = false
-
-[functions.designer]
-verify_jwt = false
-
-[functions.dev_login]
-verify_jwt = false
-
-[functions.dir_ingest]
-verify_jwt = false
-
-[functions.dispatch_inquiry]
-verify_jwt = false
-
-[functions.doc_extract]
-verify_jwt = false
-
-[functions.doc_reminder]
-verify_jwt = false
-
-[functions.doc_render]
-verify_jwt = false
-
-[functions.dr_drill]
-verify_jwt = false
-
-[functions.drawing_boq]
-verify_jwt = false
-
-[functions.drawing_redact]
-verify_jwt = false
-
-[functions.dropbox_backup]
-verify_jwt = false
-
-[functions.dropbox_oauth]
-verify_jwt = false
-
-[functions.dropbox_sync]
-verify_jwt = false
-
-[functions.ea_meeting_summary]
-verify_jwt = false
-
 [functions.email_cron]
 verify_jwt = false
 
-[functions.email_fix]
-verify_jwt = false
-
 [functions.email_triage]
-verify_jwt = false
-
-[functions.embed_leads]
-verify_jwt = false
-
-[functions.enrich_capability]
-verify_jwt = false
-
-[functions.exec_agents]
-verify_jwt = false
-
-[functions.export_all_knowledge]
-verify_jwt = false
-
-[functions.export_cat_knowledge]
-verify_jwt = false
-
-[functions.export_leads_csv]
 verify_jwt = false
 
 [functions.extract_text]
 verify_jwt = false
 
 [functions.faq]
-verify_jwt = false
-
-[functions.finance_doc]
-verify_jwt = false
-
-[functions.finance_ingest]
-verify_jwt = false
-
-[functions.gen_category_knowledge]
-verify_jwt = false
-
-[functions.gen_category_personas]
-verify_jwt = false
-
-[functions.github_sync]
 verify_jwt = false
 
 [functions.home]
@@ -258,73 +75,10 @@ verify_jwt = false
 [functions.inbound_email]
 verify_jwt = false
 
-[functions.inquiry_ai]
-verify_jwt = false
-
-[functions.inquiry_dedup_check]
-verify_jwt = false
-
-[functions.inquiry_intake]
-verify_jwt = false
-
-[functions.inquiry_parse]
-verify_jwt = false
-
-[functions.intent_router]
-verify_jwt = false
-
-[functions.kb_autofill_gaps]
-verify_jwt = false
-
-[functions.kb_corpus_import]
-verify_jwt = false
-
-[functions.kb_deepen]
-verify_jwt = false
-
-[functions.kb_embed]
-verify_jwt = false
-
-[functions.kb_fill_gap]
-verify_jwt = false
-
-[functions.kb_import]
-verify_jwt = false
-
-[functions.kb_ingest]
-verify_jwt = false
-
-[functions.kb_ingest_text]
-verify_jwt = false
-
-[functions.kb_research_test]
-verify_jwt = false
-
-[functions.kb_retrieve]
-verify_jwt = false
-
-[functions.kb_search]
-verify_jwt = false
-
-[functions.knowledge_exam]
-verify_jwt = false
-
 [functions.kyc]
 verify_jwt = false
 
-[functions.learn_gaps]
-verify_jwt = false
-
 [functions.legal]
-verify_jwt = false
-
-[functions.legal_ingest]
-verify_jwt = false
-
-[functions.legal_review]
-verify_jwt = false
-
-[functions.licence_reminder]
 verify_jwt = false
 
 [functions.license_extract]
@@ -339,38 +93,11 @@ verify_jwt = false
 [functions.make_xlsx]
 verify_jwt = false
 
-[functions.marketing_draft]
-verify_jwt = false
-
-[functions.marketing_image]
-verify_jwt = false
-
-[functions.match]
-verify_jwt = false
-
-[functions.match_eval]
-verify_jwt = false
-
-[functions.messages_api]
-verify_jwt = false
-
-[functions.meta_ads]
-verify_jwt = false
-
-[functions.meta_sync]
-verify_jwt = false
-
 [functions.mobile_otp]
-verify_jwt = false
-
-[functions.money_tests]
 verify_jwt = false
 
 [functions.negotiation_assistant]
 verify_jwt = true
-
-[functions.orchestrate]
-verify_jwt = false
 
 [functions.os_api]
 verify_jwt = false
@@ -390,97 +117,31 @@ verify_jwt = false
 [functions.os_ops]
 verify_jwt = false
 
-[functions.os_pages]
-verify_jwt = false
-
 [functions.os_settings]
 verify_jwt = false
 
 [functions.pdf_native]
 verify_jwt = false
 
-[functions.pdpl_erase]
-verify_jwt = false
-
-[functions.pdpl_request]
-verify_jwt = false
-
-[functions.pending_digest]
-verify_jwt = false
-
 [functions.portal]
-verify_jwt = false
-
-[functions.postiz_publish]
 verify_jwt = false
 
 [functions.procurement_api]
 verify_jwt = true
 
-[functions.profile_ai]
-verify_jwt = false
-
 [functions.project_api]
 verify_jwt = true
-
-[functions.project_consultant]
-verify_jwt = false
-
-[functions.prompt_gate]
-verify_jwt = false
-
-[functions.prompt_improve]
-verify_jwt = false
 
 [functions.public_stats]
 verify_jwt = false
 
-[functions.push_src_to_github]
-verify_jwt = false
-
-[functions.put_src]
-verify_jwt = true
-
-[functions.qa_api]
-verify_jwt = false
-
-[functions.qa_login]
-verify_jwt = false
-
-[functions.qa_mint]
-verify_jwt = false
-
-[functions.qa_suite]
-verify_jwt = false
-
-[functions.quote_compare]
-verify_jwt = false
-
-[functions.quote_extract]
-verify_jwt = false
-
 [functions.quote_pdf]
-verify_jwt = false
-
-[functions.quote_quality]
-verify_jwt = true
-
-[functions.quote_review]
-verify_jwt = false
-
-[functions.rate_dims]
-verify_jwt = true
-
-[functions.reflect]
 verify_jwt = false
 
 [functions.refund_flow]
 verify_jwt = false
 
 [functions.refunds_api]
-verify_jwt = false
-
-[functions.reg_fetch]
 verify_jwt = false
 
 [functions.report_body]
@@ -498,9 +159,6 @@ verify_jwt = false
 [functions.resilience_ping]
 verify_jwt = false
 
-[functions.retention_purge]
-verify_jwt = false
-
 [functions.reveal_invoice]
 verify_jwt = false
 
@@ -508,15 +166,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.role_guard]
-verify_jwt = false
-
-[functions.route_inquiry]
-verify_jwt = false
-
-[functions.sanctions_screen]
-verify_jwt = false
-
-[functions.secretary_act]
 verify_jwt = false
 
 [functions.send_outbox]
@@ -528,20 +177,8 @@ verify_jwt = false
 [functions.send_whatsapp]
 verify_jwt = false
 
-[functions.seo_gen]
-verify_jwt = false
-
 [functions.site_assistant]
 verify_jwt = false
-
-[functions.site_deploy]
-verify_jwt = false
-
-[functions.social_stage]
-verify_jwt = false
-
-[functions.src_io]
-verify_jwt = true
 
 [functions.stripe_checkout]
 verify_jwt = false
@@ -564,58 +201,19 @@ verify_jwt = false
 [functions.supplier_ack]
 verify_jwt = false
 
-[functions.supplier_api]
-verify_jwt = false
-
-[functions.supplier_catalog_ingest]
-verify_jwt = false
-
-[functions.supplier_onboard]
-verify_jwt = false
-
 [functions.supplier_pay]
-verify_jwt = false
-
-[functions.supplier_portal]
-verify_jwt = false
-
-[functions.supplier_review]
-verify_jwt = false
-
-[functions.support_ai]
-verify_jwt = false
-
-[functions.sync_src_from_github]
 verify_jwt = false
 
 [functions.transcribe]
 verify_jwt = false
 
-[functions.translate_html]
-verify_jwt = false
-
-[functions.translate_page]
-verify_jwt = false
-
 [functions.unsubscribe]
-verify_jwt = false
-
-[functions.uptime_check]
-verify_jwt = false
-
-[functions.vercel_status]
-verify_jwt = false
-
-[functions.video_produce]
 verify_jwt = false
 
 [functions.voice_otp]
 verify_jwt = false
 
 [functions.voice_otp_capture]
-verify_jwt = false
-
-[functions.vt_scan]
 verify_jwt = false
 
 [functions.wa_inbound]
@@ -630,8 +228,3 @@ verify_jwt = false
 [functions.wa_templates_watch]
 verify_jwt = true
 
-[functions.workflow_dispatch]
-verify_jwt = false
-
-[functions.yello_scrape]
-verify_jwt = false

@@ -6,6 +6,7 @@
 //      2-minute cadence cannot bury the signal; idle runs with no work are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { BRAND, lockupImg } from '../_shared/brand.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
@@ -18,11 +19,16 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function tmplRow(n: string) { try { const { data } = await admin.from('templates').select('content').eq('name', n).maybeSingle(); return (data?.content as string) || ''; } catch { return ''; } }
 function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-// BRAND (6 Sep 2026): the founder's kit is on file (public.company_brand). Wordmark = navy "Quotes" + teal
-// "Done" as in the on-white lockup; links and headings use teal-deep #0B8276, the shade that passes WCAG AA
-// on white (brand teal #14B8A6 is 2.5:1 there — an accent, never text). The old #0d9488 was Tailwind's, not ours.
-const LINK = '#0B8276';
-function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + LINK + '">$1</a>'); }
+// BRAND: the founder's kit is on file (public.company_brand). Every colour below is one of its
+// rows, and this file now renders on NAVY, so it uses the on-navy pair throughout. The on-white
+// link (teal-deep #0B8276) is gone from here -- it was correct when the mail was white and is
+// near-invisible on #123041. Brand teal #14B8A6 remains an accent that never carries text.
+// v18 (8 Sep 2026): renderBody's output is placed on the DARK internal card, so it needs the
+// on-navy pair, not the on-white one. company_brand.contrast.links states it outright -- "On navy:
+// teal-light #6EE7D4" -- and teal-deep #0B8276 is the on-WHITE link, near-invisible on #123041.
+// The body colour had the same fault: #1f2937 is dark grey, which on navy is grey on black.
+const DARK_LINK = '#6EE7D4', DARK_INK = '#EAF4F2';
+function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + DARK_LINK + '">$1</a>'); }
 
 // Observability -------------------------------------------------------------
 const T0 = Date.now();
@@ -53,29 +59,52 @@ function renderBody(raw: string) {
     const t = line.replace(/\s+$/, '');
     if (!t) { closeList(); html += '<div style="height:8px"></div>'; continue; }
     if (/^[=\-_]{3,}$/.test(t)) { continue; }
-    if (/^\s*[-•*]\s+/.test(t)) { if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0">'; inList = true; } html += '<li style="margin:3px 0;font-size:15px;line-height:1.55">' + linkify(esc(t.replace(/^\s*[-•*]\s+/, ''))) + '</li>'; continue; }
+    if (/^\s*[-•*]\s+/.test(t)) { if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0">'; inList = true; } html += '<li style="margin:3px 0;font-size:15px;line-height:1.55;color:' + DARK_INK + '">' + linkify(esc(t.replace(/^\s*[-•*]\s+/, ''))) + '</li>'; continue; }
     closeList();
-    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:' + LINK + ';text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
-    html += '<p style="margin:0 0 9px;font-size:15px;line-height:1.6;color:#1f2937">' + linkify(esc(t)) + '</p>';
+    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:' + DARK_LINK + ';text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
+    html += '<p style="margin:0 0 9px;font-size:15px;line-height:1.6;color:' + DARK_INK + '">' + linkify(esc(t)) + '</p>';
   }
   closeList();
   return html;
 }
 function tmpl(opts: { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string }) {
   const { body, logo, name, title, channelEmail, unsub, wrapper, internal, subject } = opts;
-  const logoTag = logo ? `<img src="${logo}" width="34" height="34" alt="QuotesDone" style="border-radius:8px;display:block"/>` : '';
+  // v17 (8 Sep 2026): the logo is the horizontal OnDark lockup, not the 192px PWA app tile, so
+  // 34x34 with a border-radius would squash a wordmark into a square and round its corners off.
+  //
+  // v18 (8 Sep 2026, founder: "make the logo a bit bigger... everywhere from now it should [be
+  // sized] in terms of the height"). Measured rather than nudged: the supplied lockup is a
+  // 1859x460 box holding 1608x176 of artwork, so 62% of its height is empty alpha. At width 170
+  // the box came out 42px tall and the visible wordmark 16px -- the same height as the 15px body
+  // text beneath it, which is precisely what he was looking at. Widening the box would have spent
+  // 62% of every added pixel on nothing.
+  //
+  // So the size now comes from lockupImg() in _shared/brand.ts, which uses the TRIMMED lockup and
+  // takes a HEIGHT. One helper, so email, UI and PDF cannot drift apart, and one unit, because a
+  // width means something different for every asset depending on the padding it was drawn inside.
+  const logoTag = logo ? lockupImg({ ground: 'dark', height: BRAND.logoHeight.email }) : '';
   const unsubLine = unsub ? `<br><a href="${unsub}" style="color:#9ca3af">Unsubscribe</a> &middot; or reply to this email to be removed.` : '';
   if (wrapper && wrapper.indexOf('{{BODY}}') >= 0) {
     return wrapper.split('{{LOGO}}').join(logoTag).split('{{BODY}}').join(esc(body)).split('{{NAME}}').join(esc(name)).split('{{TITLE}}').join(esc(title)).split('{{REPLY}}').join(esc(channelEmail)).split('{{UNSUB}}').join(unsubLine);
   }
-  const header = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${logoTag}<div style="font-weight:800;font-size:18px;color:#0C2330">Quotes<span style="color:#14B8A6">Done</span></div>${internal ? '<div style="margin-left:auto;font-size:11px;font-weight:700;color:#6b7280;background:#f1f5f4;border:1px solid #e5e7eb;border-radius:999px;padding:3px 10px">INTERNAL</div>' : ''}</div>`;
-  const titleBlock = (internal && subject) ? `<h2 style="margin:14px 0 12px;font-size:19px;line-height:1.3;color:#0f172a">${esc(subject)}</h2>` : '';
-  const content = internal ? renderBody(body) : `<div style="font-size:15px;line-height:1.6;white-space:pre-wrap">${esc(body)}</div>`;
-  const sig = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eef0f2;font-size:13px;color:#374151;line-height:1.55"><div style="font-weight:700;color:#0C2330">${esc(name)}</div><div>${esc(title)}, QuotesDone</div><div style="color:#6b7280;margin-top:2px">${esc(channelEmail)} &middot; <a href="https://quotesdone.com" style="color:${LINK};text-decoration:none">quotesdone.com</a></div></div>`;
+  // v17 (8 Sep 2026): dark, on the brand kit's own navy, and table-based. This fallback is what
+  // internal/admin mail uses (it takes no wrapper), and it had the same two faults the customer
+  // template had: display:flex, which Outlook's Word engine ignores outright, and a light ground.
+  // Colours and their contrast ratios come from company_brand, which records them measured:
+  // paper #EAF4F2 on navy 14.4:1 AAA, muted #9DB2B2 7.3:1 AAA, teal-light #6EE7D4 10.8:1 AAA.
+  // The kit also states the rule this file previously broke -- on navy the link is teal-light, and
+  // brand teal #14B8A6 is an accent that must never carry text.
+  const INK = '#EAF4F2', MUTED = '#9DB2B2', SURFACE = '#123041', GROUND = '#06121B', RULE = '#173A4B', DLINK = '#6EE7D4';
+  const header = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="vertical-align:middle">${logoTag}</td>${internal ? `<td align="right" style="vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:${MUTED};letter-spacing:.06em">INTERNAL</td>` : ''}</tr></table>`;
+  const titleBlock = (internal && subject) ? `<h2 style="margin:18px 0 12px;font-size:19px;line-height:1.3;color:#FFFFFF;font-family:Arial,Helvetica,sans-serif">${esc(subject)}</h2>` : '';
+  const content = internal ? renderBody(body) : `<div dir="auto" style="font-size:15px;line-height:1.65;white-space:pre-wrap;color:${INK};text-align:start;unicode-bidi:plaintext">${esc(body)}</div>`;
+  const sig = `<div style="margin-top:26px;padding-top:18px;border-top:1px solid ${RULE};font-size:13px;color:${MUTED};line-height:1.6"><div style="font-weight:700;color:#FFFFFF">${esc(name)}</div><div style="color:${INK}">${esc(title)}, QuotesDone</div><div style="margin-top:3px">${esc(channelEmail)} &middot; <a href="https://quotesdone.com" style="color:${DLINK};text-decoration:none">quotesdone.com</a></div></div>`;
   const footer = internal
-    ? `<div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:14px">QuotesDone OS &middot; internal operations report &middot; Dubai, UAE<br>You're receiving this because you're an administrator of QuotesDone.</div>`
-    : `<div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:14px">QuotesDone &middot; Dubai, UAE<br>You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.${unsubLine}</div>`;
-  return `<!doctype html><html><body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#1f2937"><div style="max-width:600px;margin:0 auto;padding:24px"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:28px">${header}${titleBlock}${content}${sig}</div>${footer}</div></body></html>`;
+    ? `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone OS &middot; internal operations report &middot; Dubai, UAE<br>You're receiving this because you're an administrator of QuotesDone.</div>`
+    : `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone &middot; Dubai, UAE<br>You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.${unsubLine}</div>`;
+  // bgcolor AND inline background on every coloured cell: different clients read different ones,
+  // and Outlook is unreliable about background-color on a div.
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head><body style="margin:0;padding:0;background:${GROUND};font-family:Arial,Helvetica,sans-serif"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${GROUND}" style="background:${GROUND};padding:28px 12px"><tr><td align="center"><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${SURFACE}" style="max-width:600px;width:100%;background:${SURFACE};border:1px solid ${RULE};border-radius:14px"><tr><td style="padding:30px">${header}${titleBlock}${content}${sig}</td></tr></table><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%"><tr><td>${footer}</td></tr></table></td></tr></table></body></html>`;
 }
 Deno.serve(async (req) => {
   try {

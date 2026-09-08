@@ -56,7 +56,15 @@ name: deploy edge functions
 on:
   push:
     branches: ['**']
-    paths: ['supabase/functions/**', 'supabase/config.toml', '.github/workflows/deploy-functions.yml']
+    # scripts/deploy_functions.mjs added 8 Sep 2026. This workflow's only real work is running that
+    # script, and it did not rerun when the script changed -- so a fix to the deployer was never
+    # exercised by the deployer. Found the hard way: the change that repaired a red deploy job
+    # triggered nothing, because it touched no path on this list.
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/deploy-functions.yml'
+      - 'scripts/deploy_functions.mjs'
   workflow_dispatch:
     inputs:
       target:
