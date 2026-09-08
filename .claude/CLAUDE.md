@@ -24,3 +24,12 @@ Load this alongside `quotesdone-session` at the START of every session on this r
   session does NOT stop until every requirement is built, proved by execution and CI is green, and
   the only thing said at the end is the one confirmation line. Blockers are worked around, not
   stopped at. Ruling of 7 Sep 2026.
+
+# quotesdone-parallel-agents — ALWAYS APPLY
+- **quotesdone-parallel-agents** (`.claude/skills/quotesdone-parallel-agents/SKILL.md`) — the
+  founder's ruling of 8 Sep 2026: "use as many agents possible to speed up the process". Fan out by
+  default — independent tool calls in ONE message, independent investigations to subagents launched
+  together, long work to the background while you pick up something else. Serial only where a step
+  genuinely depends on the one before it, and NEVER for production writes, applies or git.
+
+Load this alongside `quotesdone-session` at the START of every session on this repository.
