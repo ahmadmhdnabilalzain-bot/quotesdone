@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/checks/run.mjs",
     "test:phase-d": "node scripts/checks/run.mjs --profile=phase-d",
-    "build:phase-d": "node scripts/phase_d/build_all.mjs",
     "regen:canonical-manifest": "node scripts/checks/canonical_routine_manifest.mjs --all --emit"
   },
   "dependencies": {

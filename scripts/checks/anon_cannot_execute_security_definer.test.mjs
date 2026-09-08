@@ -118,7 +118,11 @@ const ANON_CEILING = 0;
 // authenticated-executable SECURITY DEFINER routines without anyone reviewing who calls them, with
 // which client, and whether an RLS policy names them — which is the whole review this file exists to
 // force.
-const AUTHENTICATED_CEILING = 4;
+// 9 Sep 2026: 4 -> 2. fn_phase_c_founder_subject_bind and fn_phase_c_governance_decide were dropped
+// with the whole Phase A-D programme. Both existed to let the FOUNDER approve something from his own
+// browser; the founder approves nothing now -- every approval is the CEO's -- so neither the routines
+// nor their grants have a caller left. What remains is the two customer-document routines.
+const AUTHENTICATED_CEILING = 2;
                                    // 27 Aug 2026: 6 -> 7, fn_phase_c_founder_subject_bind. It is a
                                    // NARROWING: the routine simultaneously LOST its service_role
                                    // grant, which is what a service_role call was using to bind the
@@ -128,66 +132,11 @@ const AUTHENTICATED_CEILING = 4;
 // reason each one is here. Pinned by name: a bare count would stay green if one of these closed
 // while some unrelated routine opened.
 const AUTHENTICATED_BY_DESIGN = {
-  // 27 AUG 2026 — reviewed the way this file asks: who calls it, with which client, and is it named
-  // in an RLS policy the querying role evaluates?
-  //
-  // WHO: nothing in production, today. os_api does not bind — it builds asCaller(authHeader) and
-  // lets PostgREST hand the database the subject it verified, so auth.uid() resolves on Route A of
-  // fn_phase_c_require_founder without any bind. The door exists for a server that verified a token
-  // some other way, and `grep -rn "founder_subject_bind" supabase/ scripts/ src/ docs/` returns no
-  // caller in supabase/functions and none in src/.
-  // WITH WHICH CLIENT: the anon key plus a GoTrue bearer for an active founder identity.
-  // NAMED IN AN RLS POLICY: no.
-  //
-  // WHY THE GRANT MOVED AT ALL. Until 27 Aug this routine was granted to service_role and accepted
-  // p_subject as an argument WITHOUT comparing it to the caller's own auth.uid(). PostgREST connects
-  // as authenticator and SET ROLEs, so a service_role call carrying the founder's auth_user_id --
-  // readable from the very table the routine validates against -- bound his subject with no founder
-  // bearer token in existence, and fn_kernel_refund_decision_record and
-  // fn_phase_c_freeze_amendment_approve accepted it. The routine now requires the verified JWT role
-  // to be 'authenticated', requires auth.uid() to be non-null, and requires p_subject = auth.uid().
-  // service_role, anon and PUBLIC lost EXECUTE in the same file. Measured over real HTTPS the day it
-  // was applied, in docs/phase-d/PHASE_D_GOVERNANCE_DOOR_CANARY.csv: service_role + the founder's own
-  // uuid -> 403; anon + the founder's uuid -> 401; a non-founder JWT + the founder's uuid -> 403
-  // pd_founder_bind_subject_is_not_the_caller; the founder's JWT + another subject -> 403, same code;
-  // the founder's JWT binding itself -> 200.
-  fn_phase_c_founder_subject_bind:
-    'reachable only by a signed-in user session, and it refuses any subject that is not the caller\'s'
-    + ' own auth.uid() and any founder identity that is not active. service_role LOST this grant in'
-    + ' the same change, which is the point: the grant narrowed (PD-FIN-004, 27 Aug 2026)',
   fn_customer_document_refs:
     'called with the customer\'s own JWT at customer_documents/index.ts:148, AND used inside the RLS'
     + ' policy documents.documents_customer_select, which is evaluated as the querying role',
   fn_customer_documents:
     'called with the customer\'s own JWT at customer_documents/index.ts:125, :167 and :197',
-  // PCCR-003, 21 Aug 2026 — reviewed the way this file asks: who calls it, with which client, and
-  // is it named in an RLS policy the querying role evaluates?
-  //
-  // WHO: os_api, at the founder_command_clarify and founder_command_control actions.
-  // WITH WHICH CLIENT: asCaller(authHeader) — the anon key plus the caller's OWN bearer token,
-  // which os_api has already verified with admin.auth.getUser. That is the whole point:
-  // fn_phase_c_require_founder now resolves the founder from auth.uid(), and auth.uid() is null on
-  // a service_role connection, so the service-role client can no longer reach these routines at all.
-  // NAMED IN AN RLS POLICY: no.
-  //
-  // The grant is what lets the FOUNDER use them; the routine is what stops everyone else. A signed-in
-  // customer or supplier calling either one gets 28000 — "not the founder: no verified auth subject
-  // on this call" — and so does anyone holding service_role. Measured in
-  // docs/phase-d/PHASE_D_FOUNDER_AUTHENTICATION_RESULT.csv. os_api also refuses the static x-os-key
-  // bypass on both actions, so the grant cannot be reached by the preview key either.
-  fn_phase_c_governance_decide:
-    'PCCR-006, applied 25 Aug 2026 on the founder\'s approval (Command Center command 39505).'
-    + ' WHO: the founder, over PostgREST, with a GoTrue bearer for his own active identity.'
-    + ' WITH WHICH CLIENT: the anon key plus that bearer, so PostgREST sets the request JWT claims'
-    + ' and auth.uid() resolves inside the routine. NAMED IN AN RLS POLICY: no.'
-    + ' This grant NARROWS rather than widens: the routine refuses outright unless session_user is'
-    + ' authenticator -- so service_role and every migration connection are locked out BY THE'
-    + ' ROUTINE, not by the grant -- then derives the identity from auth.uid() or a bound verified'
-    + ' subject and refuses any caller that supplies approved_by, approval_basis, approval_route,'
-    + ' approval_auth_subject, disposition or decided_by. Measured on production the day it was'
-    + ' applied: a typed founder email with no verified session returns 28000. Being reachable by'
-    + ' authenticated is not incidental to this routine, it is the entire design -- an approval'
-    + ' service the founder cannot reach from his own browser records nothing.',
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];

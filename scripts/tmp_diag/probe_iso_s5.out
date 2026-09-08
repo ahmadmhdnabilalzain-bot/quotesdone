@@ -1,9 +1,0 @@
-after_factory_rows=1
-after_direct_call_rows=6
-total_diag_rows=6 distinct_keys=caller_customer_id,comparison_id,quote_id,quote_revision_ref,supplier_id
-caller_customer_id: ctx=3201 keyobj=customer_account scn_null=f ci=902e169a-0ef9-17d7-b10d-083555447079 nrec=1
-comparison_id: G08 found=t keyobj=quotation_comparison obj=quotation
-comparison_id: ctx=3201 keyobj=quotation_comparison scn_null=f ci=5659 nrec=1
-quote_revision_ref: ctx=3201 keyobj=quotation_revision scn_null=f ci=f5d261b7-1401-eec0-cfe4-05a31da19c3d nrec=1
-
-live routine unchanged after probe: true

@@ -1,3 +1,0 @@
-import { sql } from '../lib/db.mjs';
-console.log(JSON.stringify(await sql(`select column_name, data_type from information_schema.columns where table_schema='public' and table_name='inquiries' and column_name in ('spec','boq','budget','trades','raw_input','summary','routing','status','scope_type','completeness')`)));
-console.log(JSON.stringify(await sql(`select p.oid::regprocedure::text sig from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('fn_phase_d_rule_check','fn_phase_d_fixture_scenario','fn_phase_d_outbound_requests_by_this_transaction')`)));

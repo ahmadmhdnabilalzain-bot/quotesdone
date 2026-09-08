@@ -13,7 +13,7 @@
 //   2. the newest finance report (finance_reports, or a board_reports row of type finance, whichever is
 //      newer — the same rule report_pdf's latest_finance uses) renders to at least 2 pages and its text
 //      contains "Cash", "Runway" and "AED". The bytes are read from storage with the project's service
-//      key, obtained through the management API the way scripts/phase_d/approve_pccr008.mjs does, and
+//      key, obtained through the management API, and
 //      the text is pulled out with a plain parser (inflate each content stream, read Tj/TJ strings):
 //      report_pdf saves with useObjectStreams:false and standard WinAnsi fonts precisely so that this
 //      needs no PDF library.
