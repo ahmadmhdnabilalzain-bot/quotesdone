@@ -129,8 +129,17 @@ jobs:
       # than the list being softened: a named function that is gone must come OFF the list, because
       # leaving it makes the step fail for a reason that has nothing to do with type safety, and the
       # usual repair for that is to stop taking the step seriously.
+      # os_api led this list until 9 Sep 2026, when the OS was deleted. A named function that is gone
+      # must come OFF the list rather than the step being softened: leaving it makes deno check fail
+      # for a reason that has nothing to do with type safety, and the usual repair for that is to stop
+      # taking the step seriously.
+      #
+      # What replaced it is chosen on the same rule the original comment gives — the functions where a
+      # compile error is a silent 500 rather than a visible failure. The money paths, the founder's
+      # only command channel, and the two portal backends whose absence 404'd every button on /me and
+      # /portal for ninety minutes on 8 September.
       - name: Check the gated functions
-        run: deno check --no-lock --node-modules-dir=auto supabase/functions/os_api/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts
+        run: deno check --no-lock --node-modules-dir=auto supabase/functions/ceo_agent/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts supabase/functions/customer_api/index.ts supabase/functions/supplier_api/index.ts
       - name: Check every other edge function (advisory)
         continue-on-error: true
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts

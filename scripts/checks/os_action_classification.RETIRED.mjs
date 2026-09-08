@@ -1,3 +1,19 @@
+// RETIRED 9 September 2026 — its subject was deleted.
+//
+// Subject: every os_api action is classified read or mutating before the gate sees it.
+//
+// It drove extract_os_actions.mjs, which reads supabase/functions/os_api/index.ts at module level to
+// enumerate the action switch. os_api is deleted. The classification it enforced — that an action
+// mutating state cannot be served through a read-only path — mattered because secretary_chat was
+// once unregistered and therefore ungated.
+//
+// The founder ruled on 8 Sep: "anything related to OS can be removed. its totally irrelevant to my
+// new structure". The console, its twelve edge functions and its routes are gone.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the thing
+// it checks does not exist, which is worse than no check at all.
+//
+// TO REVIVE: build the replacement surface, then rename this back to .test.mjs and re-point it.
 // Every os_api action must be explicitly classified. This is the build gate the founder asked for:
 // it fails when an action is added without a classification, so "we forgot to register it" cannot
 // reach production as "it was treated as read-only".

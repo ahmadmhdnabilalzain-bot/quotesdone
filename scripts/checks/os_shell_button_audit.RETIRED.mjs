@@ -1,3 +1,22 @@
+// RETIRED 9 September 2026 — its subject was deleted.
+//
+// Subject: every button in the OS console reaches a real os_api action.
+//
+// It read supabase/functions/os_api/index.ts and src/components/osx/OsxShell.tsx at module level and
+// cross-checked that every button in the shell named an action the API actually implements. Both
+// files are deleted, so it cannot start — it throws ENOENT before the first test runs.
+//
+// THE LESSON IN IT IS NOT RETIRED: a button that calls an action nobody implemented is invisible
+// until a person clicks it. Any future admin surface deserves the same check, written against
+// whatever replaces os_api.
+//
+// The founder ruled on 8 Sep: "anything related to OS can be removed. its totally irrelevant to my
+// new structure". The console, its twelve edge functions and its routes are gone.
+//
+// RETIRED RATHER THAN SOFTENED. Editing it to pass would leave a check going green while the thing
+// it checks does not exist, which is worse than no check at all.
+//
+// TO REVIVE: build the replacement surface, then rename this back to .test.mjs and re-point it.
 // The founder's 6 Sep 2026 OS walk — the mechanisms behind each fix, asserted on the shell source.
 // A rendered walk needs his signed-in session; this is the check that runs without one and fails
 // the moment any of the mechanisms is put back the way it was.

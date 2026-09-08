@@ -8,7 +8,10 @@ export const config = {
   // and fall through to the legacy catch-all rewrite.
   matcher: [
     '/', '/(ar|en)',
-    '/(ar|en)/os', '/os', '/(ar|en)/console', '/console', '/(ar|en)/portal', '/portal', '/(ar|en)/me', '/me', '/(ar|en)/supplier', '/supplier',
+    // /os and /console were the OS admin console. The founder ruled the OS irrelevant on 8 Sep 2026
+    // and it is deleted — the routes, the shell, its client and its twelve edge functions. Matching a
+    // path that no longer exists costs a middleware run on every request to a 404.
+    '/(ar|en)/portal', '/portal', '/(ar|en)/me', '/me', '/(ar|en)/supplier', '/supplier',
     '/terms', '/(ar|en)/terms', '/privacy', '/(ar|en)/privacy', '/cookie-policy', '/(ar|en)/cookie-policy', '/refund-policy', '/(ar|en)/refund-policy', '/supplier-agreement', '/(ar|en)/supplier-agreement', '/acceptable-use', '/(ar|en)/acceptable-use', '/disclaimer', '/(ar|en)/disclaimer', '/complaints', '/(ar|en)/complaints',
     '/about', '/(ar|en)/about', '/contact', '/(ar|en)/contact', '/faq', '/(ar|en)/faq', '/services', '/(ar|en)/services', '/blog', '/(ar|en)/blog',
     '/services/:path*', '/(ar|en)/services/:path*',
