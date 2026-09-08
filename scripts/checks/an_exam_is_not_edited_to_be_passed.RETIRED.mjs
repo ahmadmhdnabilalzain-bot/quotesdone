@@ -21,11 +21,21 @@
 // and gap_fact, not against a mark. There is no pass/fail threshold anywhere in the surviving loop,
 // so there is nothing an edit could move a score across.
 //
-// A re-point would not be a re-point. It would be a new check of a different property (that a
-// document-derived question bank is not mutated by an edge function outside pg_proc) against a
-// machine whose ingester is supabase/functions/knowledge_exam, not a database routine — and whose
-// cron job 'knowledge_exam_loop' no longer exists (cron.job holds 1 job, 0 active). Building that is
-// the founder's call, not this session's.
+// A re-point would not be a re-point. It would be a new check of a different property — that a
+// document-derived question bank is not mutated — against a machine whose cron job
+// 'knowledge_exam_loop' no longer exists (cron.job holds 1 job, 0 active). Building that is the
+// founder's call, not this session's.
+//
+// CORRECTION, 9 Sep 2026. An earlier draft of this header said the loop's ingester is the edge
+// function supabase/functions/knowledge_exam rather than a database routine. Both halves are false
+// and it is corrected rather than left standing: there is NO supabase/functions/knowledge_exam in
+// this repository, and THREE live routines name public.knowledge_exam_results — fn_exam_revert,
+// fn_knowledge_exam_summary and fn_ws_agent_ops. None of them INSERTs into it, which is why the
+// table stands at 0 rows: they read and summarise a result the loop has never produced.
+//
+// The retirement verdict is UNCHANGED, and now rests on a measurement rather than on that claim:
+// no routine whose body mentions knowledge_exam names a pass mark, threshold or comparison against
+// one. There is still no score for an edit to move.
 //
 // The original file follows, unchanged.
 //
