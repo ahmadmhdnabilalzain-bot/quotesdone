@@ -17,7 +17,7 @@
 // look at its callers before its grant goes, and a blind sweep over 56 routines is how a security
 // tidy-up becomes an outage."
 //
-// 20 AUG 2026 — scripts/sql/phase_d_e4_the_door_was_never_a_browser.sql took that look, function by
+// 20 AUG 2026 — a per-function review took that look, function by
 // function, and the ratchet is now a FLOOR of zero. What the per-function review found:
 //
 //   * `X.rpc(` across supabase/functions, src and scripts resolves to exactly three client
@@ -202,7 +202,7 @@ test('the seven routines D35 closed are still closed to anon and authenticated',
     .map((r) => `${r.proname}(${r.anon_can ? 'anon ' : ''}${r.authed_can ? 'authenticated' : ''})`);
   assert.deepEqual(open, [],
     'these SECURITY DEFINER routines are executable without a service role again:\n  ' + open.join('\n  ')
-    + '\nA plain CREATE re-grants EXECUTE to PUBLIC. Re-apply scripts/sql/phase_d_d35_a_mention_is_not_a_call.sql,'
+    + '\nA plain CREATE re-grants EXECUTE to PUBLIC. Re-apply the revoke for each routine named above,'
     + ' and revoke from PUBLIC first — revoke ... from anon against a PUBLIC grant is a silent no-op.');
 });
 
@@ -282,8 +282,8 @@ test('no Phase D object view answers a client role, and service_role still reads
   assert.deepEqual(open, [],
     'these SECURITY DEFINER views over public.phase_d_object_record answer a signed-in caller:\n  '
     + open.join('\n  ')
-    + '\nphase_d_d2_business_object_map.sql:474 grants exactly this; re-applying d2 re-opens them.'
-    + ' Re-apply scripts/sql/phase_d_e8_the_view_handed_back_what_the_table_withheld.sql.');
+    + '\nThe grant that opens these is the one the business-object map carried; revoke it from anon'
+    + ' and authenticated, and from PUBLIC first — a revoke from anon over a PUBLIC grant is a no-op.');
   const lost = objViews.filter((v) => !v.service_can).map((v) => v.relname);
   assert.deepEqual(lost, [],
     'service_role lost SELECT on: ' + lost.join(', ')

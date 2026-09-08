@@ -57,8 +57,9 @@ export default async function ({ req }) {
   // and arm 1 consuming the live set through a CTE — even MATERIALIZED — times out, so the cost is
   // the planner re-evaluating it per candidate row. The shape that will work here is the one
   // ui_closure.mjs already uses for spec #3: resolve the names in JavaScript with one query and pass
-  // them in as a literal array. That is the next attempt, and it is written down in
-  // docs/phase-d/SPEC_FILE_SCOREBOARD_2026-08-27.md rather than half-done here.
+  // them in as a literal array. That is the next attempt. It was written down in the Phase D spec
+  // scoreboard of 27 Aug 2026 rather than half-done here; that documentation was deleted on
+  // 9 Sep 2026 and now lives only in git history.
   //
   // What IS kept from the first pass is the correctness half: RAN above now resolves the cron
   // command through phase_c_system_execution_wrapper, so liveness can see the twenty-two active jobs

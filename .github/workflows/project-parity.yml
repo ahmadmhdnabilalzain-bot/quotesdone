@@ -47,7 +47,8 @@ jobs:
   # 17 AUG 2026 — THE CROSSWALK, IN TWO JOBS ON PURPOSE.
   #
   # rc4_execution_and_trace_are_atomic.sql registered two runtime components on production and did
-  # not extend docs/phase-c/PHASE_C_RUNTIME_COMPONENT_CROSSWALK.csv. Production held 1801 rows, the
+  # not extend the committed Phase C runtime-component crosswalk CSV (that documentation tree was
+  # deleted on 9 Sep 2026). Production held 1801 rows, the
   # committed crosswalk 1799, and no CI job could see it: the only check that compares them needs a
   # management token, and it skipped without one and exited 0.
   #
