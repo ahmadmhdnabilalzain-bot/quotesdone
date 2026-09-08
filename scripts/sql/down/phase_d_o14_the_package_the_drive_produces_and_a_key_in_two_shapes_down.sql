@@ -1,7 +1,0 @@
--- DOWN for O14. Classification: ROUTINE_RESTORE for both routines; no DDL, no new object.
--- Restore by re-applying the last file before O14 that defines each, by scripts/sql/MANIFEST.txt
--- position: phase_d_o06 for fn_phase_d_quote_original_intact, and whichever file position names for
--- fn_phase_d_effect_produce. Confirm with
--- `node scripts/checks/canonical_routine_manifest.mjs --all` reporting 0 repository -> production
--- drift. Expect 16 red step-contract cases back on W08 and W14 afterwards: that is the state O14
--- corrected, not a new fault.

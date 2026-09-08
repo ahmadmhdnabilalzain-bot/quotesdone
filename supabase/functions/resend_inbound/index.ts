@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
       if (key) {
         const content:any[] = [{ type:'text', text:`Email from supplier ${lead?.company_name||from}. Subject: ${subject}. Body: ${text}. Attached file: ${fname} (${mime}). Classify this document.` }];
         if (/^image\//.test(sniffedMime)) { try { content.push({ type:'image_url', image_url:{ url:`data:${sniffedMime};base64,${bytesToB64(bytes)}` } }); } catch {} }
-        // ZERO-COST GUARD (16 Aug 2026, Phase C correction 9). This is the estate's only direct
+        // ZERO-COST GUARD (16 Aug 2026). This is the estate's only direct
         // POST to OpenRouter's /chat/completions - real paid inference, on a path an inbound
         // supplier email triggers, and it consulted nothing. Every other caller reaches the
         // provider through ai_gateway, which calls fn_llm_preflight. This one asks the same
