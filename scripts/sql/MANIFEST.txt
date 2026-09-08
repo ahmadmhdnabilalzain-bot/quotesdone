@@ -1587,3 +1587,4 @@ scripts/sql/the_portals_come_back.sql
 scripts/sql/the_owner_registry_learns_the_portals.sql
 scripts/sql/the_ceo_gets_its_own_command_machine_not_phase_cs.sql
 scripts/sql/every_approval_is_the_ceos_now_including_the_money.sql
+scripts/sql/the_ceo_command_channel_is_new_not_inherited.sql
