@@ -1,3 +1,19 @@
+// RETIRED 9 September 2026 — its subject is being deleted.
+//
+// Subject: public.phase_c_source_cutover, the Phase C register recording which routine discharges
+// each autonomous source.
+//
+// It failed because eleven edge functions were deleted today and the register still names them, so
+// a discharge claim points at a function with no source in the repository. That is the check doing
+// its job -- and the right repair is not to prune the register, because the register itself is going:
+// the founder ruled on 9 Sep "remove them totally. i dont want to see their names popping anymore",
+// and phase_c_source_cutover is one of the 80 phase/kernel tables in that removal.
+//
+// Pruning it would have been an hour of work on a table with an hour left to live.
+//
+// WHAT IT ASSERTED IS WORTH KEEPING IN MIND: a register that claims a source is discharged by code
+// that does not exist is worse than no register, because it reads as coverage. Any future registry
+// of what handles what deserves the same check.
 // A COVERAGE CLAIM MUST NAME A TABLE THE SOURCE ACTUALLY TOUCHES.
 //
 // public.phase_c_source_cutover records, for each autonomous source, the routine that discharges it
