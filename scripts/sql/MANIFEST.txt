@@ -1580,10 +1580,11 @@ scripts/sql/the_triggers_that_called_the_deleted_functions_go_with_them.sql
 scripts/sql/every_function_that_survives_names_its_owner.sql
 scripts/sql/a_function_can_be_owned_now_and_destined_elsewhere.sql
 scripts/sql/the_cutover_register_stops_claiming_deleted_sources.sql
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded
 scripts/sql/retire_the_routines_no_seat_can_reach.sql
 scripts/sql/the_tools_the_maintenance_runs_on_are_not_dead_code.sql
+scripts/sql/the_portals_come_back.sql
+scripts/sql/the_owner_registry_learns_the_portals.sql
 scripts/sql/the_ceo_gets_its_own_command_machine_not_phase_cs.sql
 scripts/sql/every_approval_is_the_ceos_now_including_the_money.sql
+scripts/sql/the_ceo_command_channel_is_new_not_inherited.sql
