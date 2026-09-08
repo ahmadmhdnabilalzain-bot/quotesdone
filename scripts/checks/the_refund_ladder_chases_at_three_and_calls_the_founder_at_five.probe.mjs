@@ -10,7 +10,7 @@
 // (kind refund_final_call, allowed_to_email), and a customer complaint must route to a task, not to him.
 //
 //   node scripts/checks/the_refund_ladder_chases_at_three_and_calls_the_founder_at_five.probe.mjs
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const probe = `
 do $probe$

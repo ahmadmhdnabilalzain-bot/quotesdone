@@ -62,7 +62,7 @@ if (!hasToken) {
   console.log('SKIP kernel_positive_controls: no Supabase management token here.');
   process.exit(0);
 }
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 const ORDER = 'Draft one short internal note for the marketing team summarising how QuotesDone '
   + 'shortens supplier sourcing by 3 days. Keep it internal only, finish by 30 August 2026. Do not '

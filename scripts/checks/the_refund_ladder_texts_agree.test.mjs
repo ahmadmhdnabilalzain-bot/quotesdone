@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
@@ -60,8 +60,33 @@ test('the signed bodies name the version the registry holds, and the terms pins 
   const bad = rows.filter((r) => norm(r.named) !== norm(r.version)).map((r) => `${r.slug}: body names ${r.named}, registry ${r.version}`);
   assert.deepEqual(bad, []);
   assert.ok(rows.length >= 2, 'both agreements are registered from a page');
-  const integ = await q(`select kind, ok from public.fn_terms_integrity()`);
-  assert.deepEqual(integ.filter((r) => !r.ok), [], 'fn_terms_integrity');
+  // 9 Sep 2026: public.fn_terms_integrity() was dropped from production on 7 Sep 2026 (scripts/sql/DROPPED.txt).
+  // Its subject — the app_secrets pins and the two pages bodies — is alive, so the same three properties are read
+  // here directly from those tables: the pin's sha matches the live signed body, the pin is for the declared
+  // version, and the published page is byte-identical to the signed body. Nothing was weakened.
+  const integ = await q(`
+    with s as (
+      select 'supplier'::text kind,
+             (select value from public.app_secrets where key='terms_version') dv,
+             (select value from public.app_secrets where key='terms_sha256_supplier_version') pv,
+             (select value from public.app_secrets where key='terms_sha256_supplier') psha,
+             (select encode(sha256(convert_to(value,'UTF8')),'hex') from public.app_secrets where key='supplier_terms_html') lsha,
+             (select encode(sha256(convert_to(html,'UTF8')),'hex') from public.pages where slug='legal_supplier_body') pubsha
+      union all
+      select 'customer',
+             (select value from public.app_secrets where key='customer_terms_version'),
+             (select value from public.app_secrets where key='terms_sha256_customer_version'),
+             (select value from public.app_secrets where key='terms_sha256_customer'),
+             (select encode(sha256(convert_to(html,'UTF8')),'hex') from public.pages where slug='legal_terms_body'),
+             (select encode(sha256(convert_to(html,'UTF8')),'hex') from public.pages where slug='legal_terms_body')
+    )
+    select kind, dv, pv, psha, lsha, pubsha,
+           (psha is not distinct from lsha) and (dv is not distinct from pv) and (pubsha is not distinct from lsha) as ok
+      from s`);
+  assert.equal(integ.length, 2, 'both pins are readable');
+  assert.deepEqual(integ.filter((r) => !r.ok), [], 'terms pins intact');
+  // a pin of null on both sides is "not distinct" and would pass silently — the pins must actually be there
+  assert.deepEqual(integ.filter((r) => !(r.dv && r.pv && r.psha && r.lsha && r.pubsha)), [], 'no pin is null');
 });
 
 test('no knowledge store still ties a refund to 3 working days', { skip: SKIP }, async () => {

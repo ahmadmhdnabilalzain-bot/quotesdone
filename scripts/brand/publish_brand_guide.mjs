@@ -16,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const md = fs.readFileSync(path.join(here, '..', '..', 'docs', 'brand', 'QUOTESDONE_BRAND_GUIDE.md'), 'utf8');

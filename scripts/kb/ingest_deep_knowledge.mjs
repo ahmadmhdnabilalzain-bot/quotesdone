@@ -9,7 +9,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 // Version-controlled source of truth for the deep expert knowledge, re-ingestable on any machine.
 const KNOWLEDGE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'deep_knowledge');

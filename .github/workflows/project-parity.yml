@@ -56,10 +56,9 @@ jobs:
   # alone. The production comparison lives in the secure job with the token, is asked for with
   # --require-live, and returns NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL — never PASS, never
   # SKIPPED — if the secret is ever unavailable.
-  # 3 SEP 2026 — THE CROSSWALK MIRROR IS RETIRED (docs/agents/RETIRED_MIRROR_GATES.md). The
-  # component registry lived three times — SQL literals, a committed CSV, the live table — and the
-  # copies were right only on the day they were emitted. The properties the mirror defended are
-  # asserted against production itself by phase_c_components_are_owned, in the token-holding job.
+  # 9 SEP 2026 — the component registry itself is gone, dropped with Phases A-D. Both the mirror
+  # and the production check that replaced it are retired; there is no component registry left to
+  # own anything.
   parity:
     name: the database is running what this repository says
     runs-on: ubuntu-latest
@@ -69,10 +68,6 @@ jobs:
         with:
           node-version: '22'
       # No npm install: every check here uses fetch and node:fs only.
-      - name: Every runtime component is owned, and every live entry point is a component
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: node --test scripts/checks/phase_c_components_are_owned.test.mjs
       - name: A forwarded receipt is booked or owned by finance, never waiting on the founder
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

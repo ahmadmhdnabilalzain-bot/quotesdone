@@ -11,7 +11,7 @@
 // by at least 2 of the step's own lexemes and at least 30% of them.
 //
 //   node scripts/kb/probe_change_deployment_playbooks.mjs
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const WORKFLOW = 'change_deployment';

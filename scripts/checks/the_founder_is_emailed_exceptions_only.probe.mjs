@@ -10,7 +10,7 @@
 // routine's exact call is made instead, and that boundary is stated in the output.
 //
 //   node scripts/checks/the_founder_is_emailed_exceptions_only.probe.mjs
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const probe = `
 do $probe$

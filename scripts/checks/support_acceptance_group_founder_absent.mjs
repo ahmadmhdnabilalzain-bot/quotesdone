@@ -22,28 +22,50 @@
 // The master update also warns against the opposite error: "Preserve necessary containment and
 // non-bypassable controls." Removing his endpoints must not remove the CEO's authority, so the
 // same block re-checks that execution without a decision is still refused while he is gone.
+//
+// ── 9 SEP 2026: WHAT THE COMMAND-LAYER REMOVAL DID, AND WHAT IT DID NOT DO ────────────────────
+//
+// The founder-command layer was dropped from production on 9 Sep 2026. Measured, not assumed —
+// to_regclass returns null for public.founder_command, public.founder_command_message,
+// public.phase_c_command_state and public.phase_c_command_transition, and there is no
+// public.fn_founder_command_admit or public.fn_founder_command_authenticate in pg_proc. Two
+// scenarios drove exactly those routines and are removed here, because their subject is gone and
+// a scenario that passes because its subject vanished is a green light over nothing:
+//
+//   • an_authenticated_command_still_admits  — drove fn_founder_command_admit (dropped).
+//   • a_superseded_instruction_cannot_execute — drove the same function with a second, newer
+//     message from founder_command_message (table dropped). Its successor, fn_ceo_command_submit,
+//     has no supersession concept at all (measured: its body has no stale/superseded branch), so
+//     there is nothing to re-point the original assertion at. This property is now UNTESTED and
+//     that is stated rather than papered over.
+//
+// The RENAME SCAFFOLDING BELOW IS NOT DEAD CODE AND STAYS. It was tempting to retire it on the
+// theory that the absence became real — but the absence that became real is the command layer's,
+// not the alert table's. Measured 9 Sep 2026: public.founder_alerts still exists, holds 15 rows,
+// and is named in the body of 17 live routines (fn_notify_founder, fn_notifications_founder_mail_
+// policy, fn_refund_ladder_sweep, fn_agent_silence_watch, enqueue_supplier_invites and twelve
+// more). A table that live code still writes cannot be proved unreached by asserting it is absent;
+// only taking it away and watching what breaks proves that. So the rename remains the mechanism,
+// and nothing_wrote_to_his_alert_table keeps its original assertion unchanged.
 
 const S = (name, expect, critical = false) => ({ name, expect, critical });
 
 export const G11 = {
-  title: '11. The founder\'s endpoints removed: ordinary work, refunds and commands still run',
+  title: '11. The founder\'s endpoints removed: ordinary work, refunds and containment still run',
   scenarios: [
     S('ordinary_notification_still_sends', 'true', true),
     S('document_intake_still_files', 'true', true),
     S('a_valid_refund_still_completes', 'succeeded', true),
     S('the_ceo_can_still_be_reached', 'true', true),
-    S('an_authenticated_command_still_admits', 'true', true),
     S('containment_survives_his_absence', 'false', true),
     S('a_stale_grant_authorises_nothing', 'false', true),
     S('a_spoofed_approval_is_not_an_approval', 'false', true),
-    S('a_superseded_instruction_cannot_execute', 'superseded', true),
     S('nothing_wrote_to_his_alert_table', 'true', true),
   ],
   sql: `do $p$
 declare
-  v_lead bigint; v_case bigint; v_a bigint; v_tx uuid; v_rid bigint; v_his text;
-  m1 bigint; m2 bigint;
-  n1 jsonb; i1 jsonb; x1 jsonb; c1 jsonb; k1 jsonb; k2 jsonb; g1 jsonb; sp jsonb;
+  v_lead bigint; v_case bigint; v_a bigint; v_tx uuid; v_rid bigint;
+  n1 jsonb; i1 jsonb; x1 jsonb; c1 jsonb; g1 jsonb; sp jsonb;
   v_reached boolean; v_clean boolean := true;
 begin
   -- THE FOUNDER'S ENDPOINTS ARE TAKEN AWAY. Renamed rather than dropped, so anything reaching for
@@ -77,16 +99,8 @@ begin
   select exists (select 1 from public.fn_support_open_reports() q
                   where q.report_id = (c1->'report'->>'report_id')::bigint) into v_reached;
 
-  -- 4. HIS COMMANDS STILL WORK -- which is the point: he is not required, he is still able.
-  select value into v_his from public.app_secrets where key = 'founder_public_phone';
-  insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key, channel)
-  values (v_his,'pause supplier invitations','g11a','g11-idem-A','whatsapp') returning message_id into m1;
-  insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key, channel)
-  values (v_his,'resume them','g11b','g11-idem-B','whatsapp') returning message_id into m2;
-  k1 := public.fn_founder_command_admit(m1,'whatsapp', v_his, 'g11_invitations', 20);
-  -- An older instruction arriving after a newer one must not execute: "pauses/cancellations revoke
-  -- affected execution" cuts both ways, and a stale resume is exactly what must not slip through.
-  k2 := public.fn_founder_command_admit(m2,'whatsapp', v_his, 'g11_invitations', 10);
+  -- 4. (RETIRED 9 Sep 2026 — the founder's command endpoints. founder_command_message and
+  --     fn_founder_command_admit no longer exist in production; see the header.)
 
   -- 5. CONTAINMENT SURVIVES. Removing his endpoints must not remove the CEO's authority: a second
   --    refund executed with no decision behind it is still refused while he is gone.
@@ -109,8 +123,8 @@ begin
 
   alter table public.founder_alerts__absent_for_this_test rename to founder_alerts;
 
-  raise exception 'CHK<<ordinary_notification_still_sends=%||document_intake_still_files=%||a_valid_refund_still_completes=%||the_ceo_can_still_be_reached=%||an_authenticated_command_still_admits=%||containment_survives_his_absence=%||a_stale_grant_authorises_nothing=%||a_spoofed_approval_is_not_an_approval=%||a_superseded_instruction_cannot_execute=%||nothing_wrote_to_his_alert_table=%>>',
-    n1->>'ok', i1->>'attached', x1->>'state', v_reached, k1->>'authenticated',
-    sp->>'ok', g1->>'may_act', sp->>'ok', k2->>'state', v_clean;
+  raise exception 'CHK<<ordinary_notification_still_sends=%||document_intake_still_files=%||a_valid_refund_still_completes=%||the_ceo_can_still_be_reached=%||containment_survives_his_absence=%||a_stale_grant_authorises_nothing=%||a_spoofed_approval_is_not_an_approval=%||nothing_wrote_to_his_alert_table=%>>',
+    n1->>'ok', i1->>'attached', x1->>'state', v_reached,
+    sp->>'ok', g1->>'may_act', sp->>'ok', v_clean;
 end $p$;`,
 };

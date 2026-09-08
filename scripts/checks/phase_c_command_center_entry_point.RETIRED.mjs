@@ -28,7 +28,7 @@ if (!hasToken) {
   console.log('SKIP phase_c_command_center_entry_point: no Supabase management token here.');
   process.exit(0);
 }
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 // Taken BEFORE the probe, so the closing assertion is a DELTA. It used to assert these four tables
 // were globally EMPTY - a claim about the whole company, not about this probe - and it went red for

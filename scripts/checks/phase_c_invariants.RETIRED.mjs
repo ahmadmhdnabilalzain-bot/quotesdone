@@ -30,7 +30,7 @@ if (!hasToken) {
   process.exit(0);
 }
 
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 const { readCSV } = await import('../phase_c/lib/package.mjs');
 
 let fail = 0;

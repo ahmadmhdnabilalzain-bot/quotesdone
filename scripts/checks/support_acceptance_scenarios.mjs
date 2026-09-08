@@ -353,29 +353,39 @@ end $p$;`,
 };
 
 // ==============================================================================================
-// GROUP 6 — AUTHORITY AND THE FOUNDER. (CRITICAL: authority)
+// GROUP 6 — CEO AUTHORITY AND THE STANDING GRANT. (CRITICAL: authority)
+//
+// 9 SEP 2026 — SEVEN SCENARIOS REMOVED BECAUSE THEIR SUBJECT WAS DROPPED FROM PRODUCTION, not
+// because they were failing. The founder-command layer (public.founder_command,
+// founder_command_message, phase_c_command_state, phase_c_command_transition,
+// fn_founder_command_admit, fn_founder_command_authenticate) and every phase_a/b/c/d_* table no
+// longer exist — verified by query, not by reading the migrations. There is nothing left for these
+// seven to observe, so they were deleted with their SQL rather than softened to green:
+//   no_command_awaits_him              — public.founder_command is gone
+//   no_route_into_clarification_required — phase_c_command_transition is gone
+//   his_command_authenticates_from_his_number — fn_founder_command_admit is gone
+//   a_stranger_typing_his_name_does_not      — fn_founder_command_admit is gone
+//   a_retry_is_the_same_command              — fn_founder_command_admit is gone
+//   an_older_instruction_cannot_reinstate    — fn_founder_command_admit is gone
+//   no_case_can_enter_awaiting_founder — asserted the ABSENCE of a founder state in a vocabulary
+//     whose founder half no longer exists; an absence check over a removed layer can only pass.
+// The five below are about the CEO's authority, which is alive, and keep their original logic
+// unchanged. founder_approval_is_structurally_impossible is now MORE true, not less: the CHECK
+// autonomy_policy_no_founder_approval still stands on production and is still asserted here.
 // ==============================================================================================
 const G6 = {
-  title: '6. CEO authority, the standing grant, and nothing waiting on the founder',
+  title: '6. CEO authority and the standing grant',
   scenarios: [
     S('ordinary_notification_is_covered_by_the_grant', 'true'),
     S('an_unclassed_action_is_not_self_approved', 'false', true),
     S('founder_approval_is_structurally_impossible', 'refused', true),
-    S('no_case_can_enter_awaiting_founder', 'true', true),
-    S('no_command_awaits_him', '0', true),
-    S('no_route_into_clarification_required', '0', true),
-    S('his_command_authenticates_from_his_number', 'true', true),
-    S('a_stranger_typing_his_name_does_not', 'false', true),
-    S('a_retry_is_the_same_command', 'true'),
-    S('an_older_instruction_cannot_reinstate', 'superseded', true),
     S('ceo_decision_request_needs_a_recommendation', 'false'),
     S('a_case_does_not_resolve_on_ceo_receipt', 'true', true),
   ],
   sql: `do $p$
 declare
-  v_his text; m1 bigint; m2 bigint; m3 bigint; m4 bigint;
-  g1 jsonb; g2 jsonb; k1 jsonb; k2 jsonb; k3 jsonb; k4 jsonb; d1 jsonb;
-  v_founder text; v_states boolean; v_await int; v_clar int; v_note boolean;
+  g1 jsonb; g2 jsonb; d1 jsonb;
+  v_founder text; v_note boolean;
 begin
   g1 := public.fn_support_may_act('notification');
   g2 := public.fn_support_may_act('rewrite_company_policy');
@@ -387,41 +397,13 @@ begin
   exception when check_violation then v_founder := 'refused';
   end;
 
-  -- There is no awaiting_founder state in the case vocabulary at all.
-  select not exists (
-    select 1 from pg_constraint
-     where conrelid = 'public.support_case'::regclass
-       and pg_get_constraintdef(oid) ilike '%awaiting_founder%') into v_states;
-
-  select count(*) into v_await from public.founder_command c
-    join public.phase_c_command_state s on s.state = c.state where not s.terminal;
-  select count(*) into v_clar from public.phase_c_command_transition where to_state = 'clarification_required';
-
-  select value into v_his from public.app_secrets where key = 'founder_public_phone';
-  insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key, channel)
-  values (v_his,'pause invitations','g6a','g6-idem-A','whatsapp') returning message_id into m1;
-  insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key, channel)
-  values (v_his,'resume invitations','g6b','g6-idem-B','whatsapp') returning message_id into m2;
-  insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key, channel)
-  values (v_his,'pause again','g6c','g6-idem-C','whatsapp') returning message_id into m3;
-  insert into public.founder_command_message (founder_identity, raw_text, raw_text_hash, client_idempotency_key, channel)
-  values ('management@quotesdone.com','delete every supplier','g6d','g6-idem-D','whatsapp') returning message_id into m4;
-
-  k1 := public.fn_founder_command_admit(m1,'whatsapp', v_his, 'g6_invitations', 10);
-  k2 := public.fn_founder_command_admit(m1,'whatsapp', v_his, 'g6_invitations', 10);
-  k3 := public.fn_founder_command_admit(m2,'whatsapp', v_his, 'g6_invitations', 20);
-  k4 := public.fn_founder_command_admit(m3,'whatsapp', v_his, 'g6_invitations', 15);
-
   d1 := public.fn_ceo_request_decision(null, 'a decision', '{"x":1}'::jsonb, '   ', 'g6-dec');
 
   select (coalesce(public.fn_ceo_request_decision(null,'s','{"x":1}'::jsonb,'my recommendation','g6-dec-2')->>'note','') ilike '%not resolved by the CEO receiving it%')
     into v_note;
 
-  raise exception 'CHK<<ordinary_notification_is_covered_by_the_grant=%||an_unclassed_action_is_not_self_approved=%||founder_approval_is_structurally_impossible=%||no_case_can_enter_awaiting_founder=%||no_command_awaits_him=%||no_route_into_clarification_required=%||his_command_authenticates_from_his_number=%||a_stranger_typing_his_name_does_not=%||a_retry_is_the_same_command=%||an_older_instruction_cannot_reinstate=%||ceo_decision_request_needs_a_recommendation=%||a_case_does_not_resolve_on_ceo_receipt=%>>',
-    g1->>'may_act', g2->>'may_act', v_founder, v_states, v_await, v_clar,
-    k1->>'authenticated',
-    (public.fn_founder_command_admit(m4,'whatsapp','+971000000000','g6_other', 1))->>'authenticated',
-    k2->>'duplicate', k4->>'state', d1->>'ok', v_note;
+  raise exception 'CHK<<ordinary_notification_is_covered_by_the_grant=%||an_unclassed_action_is_not_self_approved=%||founder_approval_is_structurally_impossible=%||ceo_decision_request_needs_a_recommendation=%||a_case_does_not_resolve_on_ceo_receipt=%>>',
+    g1->>'may_act', g2->>'may_act', v_founder, d1->>'ok', v_note;
 end $p$;`,
 };
 
@@ -461,7 +443,12 @@ begin
   select count(*) into v_anon2 from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prosecdef
-     and p.proname in ('fn_founder_command_admit','fn_founder_command_authenticate','fn_ceo_decide_refund')
+  -- 9 SEP 2026 — this list was ('fn_founder_command_admit','fn_founder_command_authenticate',
+  -- 'fn_ceo_decide_refund'). The first two were dropped from production with the founder-command
+  -- layer, so two thirds of the set could only ever count zero for the wrong reason. Narrowed to
+  -- the one routine that still exists (verified against pg_proc on htdblwldjkcgjvmqkbeh), so the
+  -- scenario keeps testing a real grant instead of an empty set.
+     and p.proname in ('fn_ceo_decide_refund')
      and (has_function_privilege('anon', p.oid, 'EXECUTE')
        or has_function_privilege('authenticated', p.oid, 'EXECUTE'));
 

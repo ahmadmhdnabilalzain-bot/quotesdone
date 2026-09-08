@@ -20,7 +20,7 @@
 //   node scripts/kb/ceo_knowledge_retrieval_eval.mjs --scenarios <path to scenarios.jsonl> [--k 8]
 
 import { readFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const args = process.argv.slice(2);
 const at = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };

@@ -39,7 +39,7 @@ if (!hasToken) {
     + 'approvals off production and cannot be answered from the repository alone.');
   process.exit(0);
 }
-const { sql, PROJECT_REF } = await import('../phase_b/lib/db.mjs');
+const { sql, PROJECT_REF } = await import('../lib/db.mjs');
 
 const TABLES = 'docs/phase-d/PHASE_D_PCCR_AMENDMENT_TABLES.md';
 const digest = createHash('sha256').update(readFileSync(TABLES)).digest('hex');

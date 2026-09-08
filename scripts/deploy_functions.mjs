@@ -24,7 +24,7 @@
 //    before and after; a deploy that did not bump the version did not happen, whatever it printed.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { sql } from './phase_c/lib/db.mjs';
+import { sql } from './lib/db.mjs';
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const args = process.argv.slice(2);

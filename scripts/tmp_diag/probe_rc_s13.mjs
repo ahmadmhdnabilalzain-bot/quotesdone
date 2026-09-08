@@ -1,7 +1,0 @@
-import { sql } from '../phase_c/lib/db.mjs';
-console.log('MAP', JSON.stringify(await sql(`select object_id, target_relation, key_column, owner_column, column_map from public.phase_d_object_write_map where object_id in ('review_record','initiative','invoice_receipt')`)));
-console.log('REVIEW_CHAIN NN', JSON.stringify(await sql(`select column_name, is_nullable, column_default from information_schema.columns where table_name='review_chain' and table_schema='public' and is_nullable='NO' order by ordinal_position`)));
-console.log('CAT subject', JSON.stringify(await sql(`select fixture_id, workflow_id, step_id, field_key, value from public.phase_d_fixture_catalogue where field_key in ('subject_type','subject_id','author_agent','stage') order by field_key`)));
-console.log('INVOICE_RECEIPT binding', JSON.stringify(await sql(`select object_id, relation_kind, canonical_relation, policy_family from public.phase_d_business_object_binding where object_id in ('invoice_receipt','initiative')`)));
-console.log('reveal_invoices NN', JSON.stringify(await sql(`select column_name, is_nullable, column_default from information_schema.columns where table_name='reveal_invoices' and is_nullable='NO' order by ordinal_position`)));
-console.log('org_tasks dept_key fk', JSON.stringify(await sql(`select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid='public.org_tasks'::regclass and contype='f'`)));

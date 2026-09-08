@@ -20,7 +20,7 @@
 // committed writes and they are closed at the end.
 //
 //   node scripts/staging/rehearse_supplier_loops.mjs
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const tag = 'zzdemo-loops-' + Math.random().toString(36).slice(2, 8);
 const checks = [];

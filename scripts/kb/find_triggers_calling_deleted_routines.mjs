@@ -16,7 +16,7 @@
 // The choice is between a table nobody can write to and a table that works without a feature that
 // no longer exists.
 
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const FIX = process.argv.includes('--fix');
 

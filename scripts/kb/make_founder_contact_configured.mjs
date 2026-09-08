@@ -23,7 +23,7 @@
 //   node scripts/kb/make_founder_contact_configured.mjs [--apply]
 
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const APPLY = process.argv.includes('--apply');
 const LITERAL = '+971509319355';

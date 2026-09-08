@@ -14,7 +14,7 @@
 // scripts/sql/metric_lifecycle_playbooks_close_the_loop_model_off.sql.
 //
 //   node scripts/kb/probe_metric_lifecycle_playbooks.mjs
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 // step_no -> the record that step must retrieve, and the agent the workflow names as its actor

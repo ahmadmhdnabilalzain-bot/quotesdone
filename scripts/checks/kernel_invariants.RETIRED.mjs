@@ -34,7 +34,7 @@ if (!hasToken) {
   console.log('SKIP kernel_invariants: no Supabase management token in this environment.');
   process.exit(0);
 }
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 let fail = 0;
 // A zero numerator over a ZERO denominator is not a pass. "0 of 0" means the check had nothing to

@@ -7,7 +7,7 @@
 //
 //   node scripts/kb/probe_ops_knowledge_match.mjs                 # the five standing needs
 //   node scripts/kb/probe_ops_knowledge_match.mjs cs_support "customer asks for refund of the reveal fee"
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const STANDING = [
