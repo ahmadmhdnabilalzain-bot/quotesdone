@@ -1,3 +1,34 @@
+// RETIRED 9 September 2026 — its subject was deleted on 7 September 2026.
+//
+// WHAT WAS DROPPED. This check is about POSITIONS: that every position holds certifications, that
+// each certification has a real bank, and that the sitter which grades a position holder is
+// deterministic. On 7 Sep 2026 the founder collapsed the organisation to exactly two agents, `ceo`
+// and `customer_support`, with no departments and no role hierarchy, and the certification layer went
+// with it. Measured on production htdblwldjkcgjvmqkbeh, 9 Sep 2026:
+//   select to_regclass('public.role_certification')           ->  null
+//   select to_regclass('public.certification_exam_question')  ->  null
+//   select to_regclass('public.certification_exam_result')    ->  null
+//   fn_certification_exam_sit, fn_certification_exam_summary  ->  absent from pg_proc
+//   select count(*) from public.org_agents                    ->  2 (ceo, customer_support; both active)
+//   select count(*) from public.org_agents where department is not null  ->  0
+//
+// WHY THE PROPERTY HAS NO SUBJECT LEFT. Each of the four assertions names a deleted structure:
+//   1. "every active employee has a role_certification row" — role_certification is gone, and the two
+//      surviving agents are seats, not positions; there is no position layer to map.
+//   2. "every certification has a bank of >= 40 questions" — there are no certifications and no bank.
+//      public.knowledge_exam_questions survived (1,530 rows), but it is keyed by agent_key, not by
+//      certification, and has no options and no correct_option, so the >= 40-per-certification and
+//      four-distinct-options assertions have nothing to range over.
+//   3. "one key and four distinct non-empty options per question" — those five columns do not exist on
+//      any surviving table.
+//   4. "the sitter is deterministic" — fn_certification_exam_sit is gone; the report leg's
+//      fn_certification_exam_summary is gone, and it printed a per-department table for departments
+//      that no longer exist.
+// This is the pure role/position case the founder deleted. It retires with its subject rather than
+// being re-pointed at a knowledge table it was never about.
+//
+// The original file follows, unchanged.
+//
 // EVERY POSITION HOLDS CERTIFICATIONS, EVERY CERTIFICATION HAS A REAL BANK, AND THE SITTER IS
 // DETERMINISTIC.
 //

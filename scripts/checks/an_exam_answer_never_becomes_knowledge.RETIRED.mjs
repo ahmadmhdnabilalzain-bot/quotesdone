@@ -1,3 +1,48 @@
+// RETIRED 9 September 2026 — its subject was deleted on 7 September 2026.
+//
+// WHAT WAS DROPPED. This check compared the knowledge body against an independently authored
+// certification question bank. Every table and routine it names is gone from production
+// htdblwldjkcgjvmqkbeh, measured 9 Sep 2026:
+//   select to_regclass('public.certification_exam_question')  ->  null
+//   select to_regclass('public.certification_knowledge_gap')  ->  null
+//   select to_regclass('public.role_certification')           ->  null
+//   fn_certification_gap_ingest                               ->  absent from pg_proc
+// The only surviving public functions whose name contains 'certification' or 'exam' are
+// fn_supplier_certifications, fn_knowledge_exam_summary and fn_exam_revert.
+//
+// WHY IT IS NOT RE-POINTED AT THE SURVIVING BANK. public.knowledge_exam_questions (1,530 rows) and
+// public.knowledge_exam_results (0 rows) did survive, and every knowledge store this check scanned is
+// alive (agent_knowledge 2,556 rows, ops_knowledge 9,139, kb_chunks 2,686,026). But the premise of
+// this check is that the bank is authored INDEPENDENTLY of the knowledge, so that any overlap is
+// leakage. That premise is false for knowledge_exam_questions, measured 9 Sep 2026:
+//   * 858 of its 1,530 rows carry a document path as their topic, and 703 carry a reference_answer of
+//     exactly 700 characters — a truncated slice of a knowledge document. Question 749's "answer" is
+//     the opening 700 characters of an ops_knowledge document
+//     (QD_AGENT_KNOWLEDGE_03_MARKETPLACE_CATEGORY_EXPERTS .../01_SPECIALIST_EXPERTISE_V2.md).
+//   * probing the surviving bank exactly as this file probes — 40 characters of the question or of the
+//     model answer, against every knowledge row written since the bank was born — already returns
+//     hits: 25 distinct questions match kb_chunks content verbatim, with reference answers ranging
+//     from 43 to 700 characters. The oldest-first created_at window this file relies on to separate
+//     "written after the bank" from "written before it" buys nothing here either: the surviving bank
+//     was born 2026-07-26, so 2,684,295 of the 2,686,026 kb_chunks rows fall inside the window.
+// A re-pointed check would therefore be red on the day it was written, and red for the machine
+// working as designed rather than for the defect it names. Tuning the probe until it passed is the
+// one thing the founder forbids outright.
+//
+// AND THE LEAK IT WOULD HAVE FOUND IS ALREADY ADJUDICATED. The older knowledge_exam loop did write
+// reference answers into agent_knowledge. That was measured on 7 Sep 2026 (557 rows across 110 agent
+// keys, 3,046 content matches against knowledge_exam_questions) and settled by
+// scripts/sql/knowledge_written_from_an_exams_own_answer_is_marked_unsourced.sql, which is applied on
+// production: those 557 rows stand today at 397 'quarantined' and 160 'unsourced'.
+//
+// RECOMMENDATION, DELIBERATELY NOT BUILT HERE. The property is still worth guarding over the loop the
+// founder kept, but in a form that fits it: no agent_knowledge row written by the knowledge_exam loop
+// may carry its own question's reference answer, and no row already marked 'unsourced' may be
+// re-promoted to 'author_verified'. That is a new check against a surviving machine, so building it
+// is the founder's call, not this session's.
+//
+// The original file follows, unchanged.
+//
 // AN EXAM ANSWER NEVER BECOMES KNOWLEDGE.
 //
 // The founder asked the only question that matters about a certification exam whose failures drive an

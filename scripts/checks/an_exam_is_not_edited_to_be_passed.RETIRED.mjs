@@ -1,4 +1,34 @@
 #!/usr/bin/env node
+// RETIRED 9 September 2026 — its subject was deleted on 7 September 2026, the day it was written.
+//
+// WHAT WAS DROPPED. Every table and routine both legs drive is gone from production
+// htdblwldjkcgjvmqkbeh, measured 9 Sep 2026:
+//   select to_regclass('public.role_certification')            ->  null
+//   select to_regclass('public.certification_exam_question')   ->  null
+//   select to_regclass('public.certification_exam_result')     ->  null
+//   fn_certification_gaps_refresh, fn_certification_ingestion_plan, fn_certification_gap_ingest,
+//   fn_certification_resit                                     ->  all absent from pg_proc
+// The SQL this file names as the loop it guards,
+// scripts/sql/a_failed_exam_becomes_ingested_knowledge_or_an_honest_gap.sql, has no live routine left.
+//
+// WHY THE PROPERTY HAS NO SUBJECT. "An exam is not edited to be passed" needs a pass to be edited
+// into. This check's entire apparatus measures that pass: the 52 issuing-body pass marks (CPA 75,
+// PMP 61, CISSP 70 …) it asserts against role_certification.pass_mark_pct, the per-certification hash
+// over id/syllabus_area/stem/four options/correct_option, and the xmin identity hash over the bank.
+// The surviving exam machinery has none of it. public.knowledge_exam_questions (1,530 rows) carries
+// only id, agent_key, question, reference_answer, topic, difficulty — no options, no key, no
+// certification, no pass mark. public.knowledge_exam_results (0 rows) grades by verdict, converged
+// and gap_fact, not against a mark. There is no pass/fail threshold anywhere in the surviving loop,
+// so there is nothing an edit could move a score across.
+//
+// A re-point would not be a re-point. It would be a new check of a different property (that a
+// document-derived question bank is not mutated by an edge function outside pg_proc) against a
+// machine whose ingester is supabase/functions/knowledge_exam, not a database routine — and whose
+// cron job 'knowledge_exam_loop' no longer exists (cron.job holds 1 job, 0 active). Building that is
+// the founder's call, not this session's.
+//
+// The original file follows, unchanged.
+//
 // AN EXAM IS NOT EDITED TO BE PASSED (7 Sep 2026).
 //
 // The knowledge loop (scripts/sql/a_failed_exam_becomes_ingested_knowledge_or_an_honest_gap.sql)
