@@ -1,3 +1,45 @@
+// RETIRED 9 SEP 2026 — THE BASELINE, BOTH VIEWS AND THE LEDGER ARE GONE; THERE IS NOTHING TO COMPARE.
+//
+// This file was, by its own account below, only a backstop that noticed if a write-time guard had
+// quietly gone. The guard, the thing it guarded and the baseline it compared against were all
+// dropped with the Phase A–D estate on 9 Sep 2026 (the founder's 7 Sep ruling that everything
+// outside the two-agent structure is deleted).
+//
+// MEASURED ON PRODUCTION (htdblwldjkcgjvmqkbeh) 9 SEP 2026, across EVERY schema via pg_class, not
+// just public, and via pg_proc for the routines:
+//
+//   public.scenario_expectation_baseline    does not exist — no relation of that name in any schema
+//   public.v_scenario_expectation_current   does not exist — no relation of that name in any schema
+//   public.v_scenario_expectation_drift     does not exist — no relation of that name in any schema
+//   public.scenario_expectation_change      does not exist — no relation of that name in any schema
+//   public.fn_scenario_expectation_change   does not exist — 0 rows in pg_proc
+//
+// That is all three relations the single test read (42P01: relation
+// "public.scenario_expectation_baseline" does not exist), plus the ledger and the ledger routine the
+// header calls the actual defence.
+//
+// WHAT SURVIVES, AND WHY IT IS NOT A REPAIR TARGET. `scenario_tests` exists only as
+// kb_stage.scenario_tests (3,324 rows) — a staging schema, not the public subject this check read —
+// still carrying its trigger `scenario_expected_needs_ledger`. That trigger directs any writer to
+// public.fn_scenario_expectation_change, which no longer exists, so the guard now refuses every edit
+// rather than routing it: expectations there are frozen, not drifting. There is no baseline to
+// compare them against in any case, and re-capturing one would mean rebuilding the ledger the
+// founder deliberately deleted. Recommended to him, not done here.
+//
+// WHERE THE PROPERTY LIVES NOW. The scenarios that are actually run are
+// scripts/checks/support_acceptance_scenarios.mjs, green at 103/103, and it carries its expectations
+// INLINE — its own header: "EACH SCENARIO IS NAMED, AND THE EXPECTED VALUE IS WRITTEN BESIDE IT."
+// An expected value committed to git beside its scenario cannot drift from a database baseline,
+// because there is no database baseline; it drifts only in a diff a human reads. So the property is
+// not lost, it moved into the suite and out of the estate.
+//
+// NOT SOFTENED, RETIRED. Nothing here was relaxed to make it green. Note in particular that the
+// assertion this file was proudest of — that an EMPTY baseline is a failure and not a pass — would
+// still be doing its job right up to the moment the table was dropped out from under it. It is
+// retiring because its subject was deleted, which is the only legitimate way a check stops running.
+//
+// ORIGINAL HEADER FOLLOWS.
+//
 // A BACKSTOP FOR TWO GUARDS THAT ALREADY WORK — AND THE REASON THAT IS ALL IT IS.
 //
 // MEASURED 13 Aug 2026 while working through the tables nothing reads:

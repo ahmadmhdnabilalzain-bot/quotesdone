@@ -34,28 +34,51 @@ const q = async (project, query) => {
   return r.json();
 };
 
+// 9 SEP 2026 — THE GATE THIS TEST NAMED WAS DROPPED, THE ORDERING PROPERTY WAS NOT.
+//
+// `trg_action_gate` (trigger `zzz_action_gate`) was dropped from production on 7 Sep 2026 under the
+// founder's ruling that anything outside the two-agent structure is deleted; scripts/sql/DROPPED.txt
+// line 155 records it. MEASURED on production 9 Sep: 0 rows in pg_proc for any %action_gate% name,
+// and the BEFORE row triggers left on agent_actions are a00_agent_action_resolve_addressee,
+// trg_dedupe_it_incident, trg_governance_stamp and zzz_zz_agent_action_fill_fields.
+//
+// That did NOT re-open the defect. The filler was rewritten on 3 Sep
+// (scripts/sql/fn_agent_actions_fill_alternatives_without_a_decision_log.sql) to derive alternatives
+// from the row's own dispositions instead of returning early on a null decision_log_id, so it fills
+// with no gate present. MEASURED: both agent_actions rows written since (id 10081, 10082, newest
+// 7 Sep 16:15Z) carry decision_log_id NULL and all four of alternatives, assumptions, cost and
+// expected_impact populated. So this is not a live defect and the check is not retired.
+//
+// WHAT IS ASSERTED NOW IS STRICTLY STRONGER, not weaker. The old assertion was "the filler sorts
+// after ONE named trigger". The replacement is "the filler sorts after EVERY other BEFORE row
+// trigger on agent_actions" — which implies the old one for any future gate, under any name, and
+// also catches a new sibling that assigns something the filler reads. The population of BEFORE
+// triggers is asserted so an empty answer cannot read as a pass.
+//
 // staging was a second target until its Supabase project was deleted on 15 Aug 2026; the same
 // assertions now run against production alone.
 for (const [label, project] of [['production', 'htdblwldjkcgjvmqkbeh']]) {
-  test(`the field filler fires after the gate on ${label}`, async (t) => {
+  test(`the field filler fires last among the BEFORE triggers on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token, so trigger order cannot be read'); return; }
     const rows = await q(project,
-      "select t.tgname from pg_trigger t join pg_class c on c.oid = t.tgrelid "
+      "select t.tgname, p.proname from pg_trigger t join pg_class c on c.oid = t.tgrelid "
       + "join pg_proc p on p.oid = t.tgfoid "
       + "where c.relname = 'agent_actions' and not t.tgisinternal "
-      + "and (t.tgtype & 2) = 2 "                      // BEFORE
-      + "and p.proname in ('trg_action_gate','fn_agent_actions_fill_alternatives') "
+      + "and (t.tgtype & 2) = 2 and (t.tgtype & 1) = 1 "   // BEFORE, ROW
       + "order by t.tgname");
-    const names = rows.map((r) => r.tgname);
-    const gate = names.find((n) => n === 'zzz_action_gate');
-    const filler = names.find((n) => n !== 'zzz_action_gate');
-    assert.ok(gate, `zzz_action_gate is not a BEFORE trigger on agent_actions on ${label}`);
+    assert.ok(rows.length > 1,
+      `only ${rows.length} BEFORE row trigger(s) were found on agent_actions on ${label}. The `
+      + 'ordering question is meaningless on a set that small — the query is wrong, or the table has '
+      + 'lost its triggers, and either way a pass here would assert nothing.');
+    const filler = rows.find((r) => r.proname === 'fn_agent_actions_fill_alternatives');
     assert.ok(filler, `no BEFORE trigger runs fn_agent_actions_fill_alternatives on ${label}`);
-    assert.ok(filler > gate,
-      `the field filler "${filler}" sorts BEFORE the gate "${gate}" on ${label}. BEFORE triggers fire `
-      + 'in name order, and the filler reads NEW.decision_log_id which the gate assigns — so it will '
-      + 'see NULL on every insert and fill nothing, exactly as it did for months.');
-    console.log(`${label}: ${gate} then ${filler}`);
+    const later = rows.filter((r) => r.tgname > filler.tgname).map((r) => r.tgname);
+    assert.deepEqual(later, [],
+      `the field filler "${filler.tgname}" sorts BEFORE ${later.join(', ')} on ${label}. BEFORE `
+      + 'triggers fire in name order, and the filler reads columns its siblings assign — so anything '
+      + 'sorting after it is written too late to be seen, and the filler quietly fills nothing, '
+      + 'exactly as it did for months when zzz_action_gate sorted after it.');
+    console.log(`${label}: ${rows.map((r) => r.tgname).join(' -> ')}`);
   });
 }
 
