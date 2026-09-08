@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-08T01:15:44.681Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-08T02:07:16.455Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -182,7 +182,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (540) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
+-- ===== TABLES (544) =====\nCREATE TABLE IF NOT EXISTS public.action_approval (
   action_execution_id uuid NOT NULL,
   action_class text NOT NULL,
   department text NOT NULL,
@@ -987,6 +987,30 @@ CREATE TABLE IF NOT EXISTS public.category_specs (
   reqs_updated_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.ceo_approval (
+  decision_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  subject_kind text NOT NULL,
+  subject_id text NOT NULL,
+  decision text NOT NULL,
+  decided_by text NOT NULL,
+  amount_aed numeric(12,2),
+  rationale text NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL,
+  superseded_by bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_command_state (
+  state text NOT NULL,
+  is_terminal boolean DEFAULT false NOT NULL,
+  meaning text NOT NULL,
+  added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_command_transition (
+  from_state text NOT NULL,
+  to_state text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.ceo_decision (
   decision_key text NOT NULL,
   domain text NOT NULL,
@@ -1011,6 +1035,13 @@ CREATE TABLE IF NOT EXISTS public.ceo_decision_log (
   reading_after text,
   escalated_to_founder boolean DEFAULT false NOT NULL,
   founder_answer text
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_identity (
+  identity text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  note text,
+  added_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_knowledge (
@@ -7604,8 +7635,12 @@ ALTER TABLE public.category_keyword ADD CONSTRAINT category_keyword_pkey PRIMARY
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_pkey PRIMARY KEY (id);
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_pkey PRIMARY KEY (category);
 ALTER TABLE public.category_specs ADD CONSTRAINT category_specs_pkey PRIMARY KEY (category);
+ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_pkey PRIMARY KEY (decision_id);
+ALTER TABLE public.ceo_command_state ADD CONSTRAINT ceo_command_state_pkey PRIMARY KEY (state);
+ALTER TABLE public.ceo_command_transition ADD CONSTRAINT ceo_command_transition_pkey PRIMARY KEY (from_state, to_state);
 ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_pkey PRIMARY KEY (decision_key);
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.ceo_identity ADD CONSTRAINT ceo_identity_pkey PRIMARY KEY (identity);
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_pkey PRIMARY KEY (grant_key);
 ALTER TABLE public.challenge_heuristic ADD CONSTRAINT challenge_heuristic_pkey PRIMARY KEY (id);
@@ -8222,6 +8257,9 @@ ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_single CHECK (
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
+ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_decision_check CHECK ((decision = ANY (ARRAY['approved'::text, 'refused'::text])));
+ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_not_self_superseding CHECK ((superseded_by IS DISTINCT FROM decision_id));
+ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_subject_kind_check CHECK ((subject_kind = ANY (ARRAY['refund'::text, 'spend'::text, 'supplier'::text, 'publication'::text, 'other'::text])));
 ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_authority_ck CHECK ((authority = ANY (ARRAY['ceo_alone'::text, 'ceo_case_decision'::text, 'founder_specified'::text])));
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_evidence_ck CHECK (((jsonb_typeof(evidence) = 'object'::text) AND (evidence <> '{}'::jsonb)));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
@@ -8649,6 +8687,10 @@ ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_agent_sl
 ALTER TABLE public.category_agent_map ADD CONSTRAINT category_agent_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_keyword ADD CONSTRAINT category_keyword_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
+ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_decided_by_fkey FOREIGN KEY (decided_by) REFERENCES ceo_identity(identity);
+ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES ceo_approval(decision_id);
+ALTER TABLE public.ceo_command_transition ADD CONSTRAINT ceo_command_transition_from_state_fkey FOREIGN KEY (from_state) REFERENCES ceo_command_state(state);
+ALTER TABLE public.ceo_command_transition ADD CONSTRAINT ceo_command_transition_to_state_fkey FOREIGN KEY (to_state) REFERENCES ceo_command_state(state);
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_decision_key_fkey FOREIGN KEY (decision_key) REFERENCES ceo_decision(decision_key);
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_grantee_role_id_fkey FOREIGN KEY (grantee_role_id) REFERENCES org_role(role_id) ON DELETE CASCADE;
 ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
@@ -8689,7 +8731,7 @@ ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_
 ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key) ON DELETE CASCADE;
 ALTER TABLE public.founder_approval_request ADD CONSTRAINT founder_approval_request_action_class_fkey FOREIGN KEY (action_class) REFERENCES phase_c_action_class(action_class);
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_message_id_fkey FOREIGN KEY (message_id) REFERENCES founder_command_message(message_id);
-ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_state_fkey FOREIGN KEY (state) REFERENCES phase_c_command_state(state);
+ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_state_fkey FOREIGN KEY (state) REFERENCES ceo_command_state(state);
 ALTER TABLE public.founder_command ADD CONSTRAINT founder_command_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES founder_command(command_id);
 ALTER TABLE public.founder_command_clarification ADD CONSTRAINT founder_command_clarification_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
 ALTER TABLE public.founder_command_completion ADD CONSTRAINT founder_command_completion_command_id_fkey FOREIGN KEY (command_id) REFERENCES founder_command(command_id) ON DELETE CASCADE;
@@ -8922,7 +8964,7 @@ ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_re
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
-ALTER TABLE public.refunds ADD CONSTRAINT refunds_refund_decision_id_fkey FOREIGN KEY (refund_decision_id) REFERENCES phase_c_refund_decision(decision_id);
+ALTER TABLE public.refunds ADD CONSTRAINT refunds_refund_decision_id_fkey FOREIGN KEY (refund_decision_id) REFERENCES ceo_approval(decision_id);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL;
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES regulations(id);
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
@@ -9002,6 +9044,7 @@ CREATE UNIQUE INDEX brand_assets_filename_key ON public.brand_assets USING btree
 CREATE INDEX category_keyword_slug_idx ON public.category_keyword USING btree (slug);
 CREATE UNIQUE INDEX category_keyword_uidx ON public.category_keyword USING btree (slug, pattern);
 CREATE INDEX ce_type_idx ON public.company_event USING btree (event_type, occurred_at DESC);
+CREATE INDEX ceo_approval_subject_idx ON public.ceo_approval USING btree (subject_kind, subject_id);
 CREATE INDEX ceo_knowledge_kind_idx ON public.ceo_knowledge USING btree (record_kind, domain);
 CREATE INDEX ceo_knowledge_search_idx ON public.ceo_knowledge USING gin (search);
 CREATE INDEX channel_directive_actor_idx ON public.channel_directive USING btree (actor_type, actor_id, created_at DESC);
@@ -13739,135 +13782,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -14383,6 +14297,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -16343,6 +16386,41 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_category_expert_ref(p_category text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_slug text; v_txt text;
+begin
+  v_slug := case
+    when p_category ~* 'cctv|security|surveillance' then 'cctv-security'
+    when p_category ~* 'hvac|air.?con|ac-' then 'ac-maintenance'
+    when p_category ~* 'duct' then 'ac-duct-cleaning'
+    when p_category ~* 'glass|glaz|alumin' then 'aluminium-glass'
+    when p_category = 'carpentry' then 'carpentry-joinery'
+    when p_category ~* 'joinery|kitchen' then 'joinery-kitchens'
+    when p_category ~* 'tiling|tile|marble|granite' then 'tiling-marble'
+    when p_category ~* 'gypsum|false.?ceiling|ceiling' then 'false-ceiling'
+    when p_category ~* 'upholstery|blind|curtain' then 'curtains-blinds'
+    when p_category ~* 'fit.?out' then 'commercial-retail-fitout'
+    when p_category ~* 'combined.?mep|^mep$' then 'combined-mep'
+    when p_category ~* 'steel|fabrication' then 'structural-steel-fabrication'
+    when p_category ~* 'pest' then 'pest-control'
+    when p_category ~* 'tent|shade' then 'tents-and-shade-structures'
+    when p_category ~* 'general|other|handyman|facilit' then coalesce(
+        (select 'general-services-other' where exists (select 1 from agent_knowledge where agent_key='cat:general-services-other')), p_category)
+    else p_category end;
+  select string_agg('## '||topic||E'\n'||content, E'\n\n')
+    into v_txt from agent_knowledge
+    where agent_key = 'cat:'||v_slug
+      and topic in ('Pricing benchmarks & red flags','Quote analysis & comparison',
+                    'Standards, materials & specifications','Field expertise — UAE codes, standards & specs');
+  return left(coalesce(v_txt,''), 4500);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_category_key_for_slug(p_slug text)
  RETURNS text
  LANGUAGE sql
@@ -16561,6 +16639,27 @@ begin
   return jsonb_build_object('ok', true, 'report_id', p_report_id, 'owner', 'ceo',
     'note', 'Accepted. Ownership has moved to the CEO, which is the only thing that moves it.');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_approval_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+begin
+  if new.subject_kind is distinct from old.subject_kind
+     or new.subject_id is distinct from old.subject_id
+     or new.decision   is distinct from old.decision
+     or new.decided_by is distinct from old.decided_by
+     or new.amount_aed is distinct from old.amount_aed
+     or new.rationale  is distinct from old.rationale
+     or new.decided_at is distinct from old.decided_at then
+    raise exception 'ceo_approval %: a decision is superseded, never edited', old.decision_id
+      using errcode = '23514',
+            hint = 'Write a new decision and point the old row''s superseded_by at it.';
+  end if;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_context(p_query text, p_max_chars integer DEFAULT 18000, p_limit integer DEFAULT 8)
@@ -19972,6 +20071,118 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_edit_inquiry(p_inquiry uuid, p_customer uuid, p_patch jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v inquiries%rowtype; v_paid boolean; v_deadline timestamptz;
+  v_material boolean := false; v_reason text; v_stale int := 0; v_notified int := 0;
+  v_cust_email text; v_admin text;
+begin
+  select * into v from inquiries where id=p_inquiry;
+  if not found then return jsonb_build_object('error','inquiry_not_found'); end if;
+  if p_customer is not null and v.customer_id is distinct from p_customer then
+    return jsonb_build_object('error','not_your_inquiry'); end if;
+  select exists(select 1 from transactions where inquiry_id=p_inquiry) into v_paid;
+  if v_paid or v.status in ('revealed','completed','cancelled','closed') or v.pipeline_stage in ('revealed','won','cancelled') then
+    return jsonb_build_object('error','not_editable','status',v.status,
+      'message','This request can no longer be edited.'); end if;
+  v_deadline := v.created_at + interval '1 hour';
+  if now() > v_deadline then
+    return jsonb_build_object('error','edit_window_closed','editable_until',v_deadline,
+      'message','Inquiries can be edited within 1 hour of submitting. Please create a new request for changes after that.'); end if;
+
+  -- Decide materiality BEFORE the update, while the old row is still in hand.
+  v_material :=
+       (p_patch ? 'spec'       and (p_patch->'spec')       is distinct from v.spec)
+    or (p_patch ? 'boq'        and (p_patch->'boq')        is distinct from v.boq)
+    or (p_patch ? 'budget'     and (p_patch->>'budget')    is distinct from v.budget)
+    or (p_patch ? 'scope_type' and (p_patch->>'scope_type') is distinct from v.scope_type)
+    or (p_patch ? 'emirate'    and (p_patch->>'emirate')   is distinct from v.emirate)
+    or (p_patch ? 'trades'     and array(select jsonb_array_elements_text(p_patch->'trades')) is distinct from v.trades);
+
+  update inquiries set
+    summary   = coalesce(p_patch->>'summary', summary),
+    raw_input = coalesce(p_patch->>'raw_input', raw_input),
+    budget    = coalesce(p_patch->>'budget', budget),
+    emirate   = coalesce(p_patch->>'emirate', emirate),
+    scope_type= coalesce(p_patch->>'scope_type', scope_type),
+    spec      = case when p_patch ? 'spec' then p_patch->'spec' else spec end,
+    boq       = case when p_patch ? 'boq' then p_patch->'boq' else boq end,
+    trades    = case when p_patch ? 'trades' then array(select jsonb_array_elements_text(p_patch->'trades')) else trades end,
+    keywords  = case when p_patch ? 'keywords' then array(select jsonb_array_elements_text(p_patch->'keywords')) else keywords end
+    where id=p_inquiry;
+
+  if v_material then
+    v_reason := 'The customer changed the requirements of this request on '
+             || to_char(now() at time zone 'Asia/Dubai','DD Mon YYYY HH24:MI')
+             || ' (Dubai), after this quote was submitted.';
+
+    -- Stale the live quotes and tell each supplier, in one statement so a quote can never be
+    -- reverted without its supplier being told.
+    with staled as (
+      update quotes q
+         set stale_at = now(), stale_reason = v_reason, status = 'draft'
+       where q.inquiry_id = p_inquiry
+         and q.stale_at is null
+         and coalesce(q.status,'') in ('submitted','draft')
+      returning q.id, q.supplier_id
+    ),
+    told as (
+      insert into notifications(type, to_email, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status)
+      select 'quote_requirements_changed',
+             coalesce(l.claimed_by, l.email), 'supplier', s.supplier_id, p_inquiry, s.id, 'email',
+             'The customer changed this request — please re-quote',
+             'Hello ' || coalesce(l.company_name,'') || ',' || chr(10) || chr(10) ||
+             'A customer has changed the requirements of a request you had already quoted, so your quote has been set back to draft and is no longer being shown to them.' || chr(10) || chr(10) ||
+             v_reason || chr(10) || chr(10) ||
+             'Please open the request in your supplier portal, review what changed, and submit an updated quote. Your original figures are still there — nothing has been deleted.' || chr(10) || chr(10) ||
+             'QuotesDone',
+             'queued'
+        from staled s join leads l on l.id = s.supplier_id
+       where coalesce(l.claimed_by, l.email) is not null
+      returning 1
+    )
+    select (select count(*) from staled), (select count(*) from told) into v_stale, v_notified;
+
+    if v_stale > 0 then
+      select email into v_cust_email from customers where id = v.customer_id;
+      v_admin := coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),
+                          'management@quotesdone.com');
+
+      -- The customer must know their edit cost them their quotes, or they will wait for prices
+      -- that are never coming back on their own.
+      if v_cust_email is not null then
+        insert into notifications(type, to_email, to_role, inquiry_id, channel, subject, body, status)
+        values ('inquiry_edit_staled_quotes', v_cust_email, 'customer', p_inquiry, 'email',
+                'Your change means we have asked for fresh prices',
+                'Hello,' || chr(10) || chr(10) ||
+                'You changed the requirements on your request, so the ' || v_stale ||
+                ' quote(s) already submitted no longer match what you are asking for. We have asked those suppliers to re-quote against your updated requirements.' || chr(10) || chr(10) ||
+                'You do not need to do anything — the new prices will appear as they arrive.' || chr(10) || chr(10) ||
+                'QuotesDone', 'queued');
+      end if;
+
+      insert into agent_actions(agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+      values ('procurement','requote_required','needs_review','medium',
+              'Requirements changed after ' || v_stale || ' quote(s) were submitted',
+              'Watch that the invited suppliers actually re-quote. If they do not, the customer is left with a request that had prices and now has none.',
+              jsonb_build_object('inquiry_id', p_inquiry, 'quotes_staled', v_stale,
+                                 'suppliers_notified', v_notified, 'changed_at', now()),
+              'inquiries', p_inquiry::text);
+    end if;
+  end if;
+
+  return jsonb_build_object('ok',true,'edited',true,'editable_until',v_deadline,
+                            'material_change', v_material,
+                            'quotes_staled', v_stale,
+                            'suppliers_notified', v_notified);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_emit(p_event_type text, p_entity_type text, p_entity_id text, p_actor text DEFAULT 'system'::text, p_payload jsonb DEFAULT '{}'::jsonb)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -22590,20 +22801,21 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_founder_command_state_guard()
  RETURNS trigger
  LANGUAGE plpgsql
- SET search_path TO 'public', 'pg_temp'
+ SECURITY DEFINER
+ SET search_path TO 'public'
 AS $function$
 begin
-  if tg_op = 'UPDATE' and new.state is distinct from old.state then
-    if not exists (select 1 from public.phase_c_command_transition
-                   where from_state = old.state and to_state = new.state) then
-      raise exception 'founder_command %: transition % -> % is not in the Phase C command state model',
-        old.command_id, old.state, new.state using errcode = '23514';
-    end if;
-    insert into public.founder_command_status_history (command_id, from_state, to_state, reason)
-    values (old.command_id, old.state, new.state, 'state guard');
+  if new.state is distinct from old.state
+     and not exists (select 1 from public.ceo_command_transition
+                      where from_state = old.state and to_state = new.state) then
+    raise exception
+      'founder_command %: transition % -> % is not a legal move in the CEO command model',
+      old.command_id, old.state, new.state
+      using hint = 'Legal moves are listed in public.ceo_command_transition.';
   end if;
   return new;
-end $function$
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_founder_command_status(p_ref text)
@@ -46149,6 +46361,28 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_refund_ceo_approval_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+begin
+  if new.status <> 'approved' then return new; end if;
+  if exists (select 1 from public.ceo_identity c
+              where c.active and lower(c.identity) = lower(btrim(coalesce(new.decided_by, '')))) then
+    return new;
+  end if;
+  raise exception 'refund %: approved by %, who is not an active CEO identity.',
+    coalesce(new.id::text, '(new)'), coalesce(nullif(btrim(new.decided_by), ''), '(nobody)')
+    using errcode = '42501',
+          hint = 'Refunds belong to the CEO — the founder''s ruling of 8 Sep 2026, replacing his '
+              || '17 Aug rule that every refund needed him. A refund reaches ''approved'' only with '
+              || 'a decided_by that is an active row in public.ceo_identity. decided_by is checked '
+              || 'against that table and never trusted as supplied: the hole this closes is a refund '
+              || 'that approved itself as ''policy:auto_window''.';
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_refund_decide(p_refund_id bigint, p_approve boolean, p_decided_by text, p_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -46260,6 +46494,56 @@ begin
       when 'failed' then 'The provider refused it. This stays visible and retriable within policy; it is not a closed case.'
       else 'Submitted. Submitted is not settled, and the status tool reads the provider, not this row''s optimism.' end);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_refund_execution_requires_ceo_approval()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+declare
+  v_money_moved constant text[] := array['approved','processing','succeeded'];
+  -- A refund Stripe already issued is a FACT to be recorded, not a request to be approved. Refusing
+  -- the row would delete our only record of real money leaving, which is worse than admitting it.
+  v_external    constant text[] := array['stripe_webhook','stripe_dashboard','stripe'];
+  d public.ceo_approval%rowtype;
+begin
+  if not (new.status = any(v_money_moved)) then return new; end if;
+  if tg_op = 'UPDATE' and old.status = any(v_money_moved)
+     and new.refund_decision_id is not distinct from old.refund_decision_id then
+    return new;   -- already past this boundary and not changing which decision it cites
+  end if;
+  if lower(coalesce(new.requested_by, '')) = any(v_external) then
+    return new;
+  end if;
+
+  if new.refund_decision_id is null then
+    raise exception 'refunds %: a platform-originated refund may not reach status % without naming the CEO decision that authorised it.',
+      coalesce(new.id::text, '(new)'), new.status
+      using errcode = '23514',
+            hint = 'Record one in public.ceo_approval (subject_kind = ''refund'') and cite its '
+                || 'decision_id. Founder ruling, 8 Sep 2026: all approvals are the CEO''s.';
+  end if;
+
+  select * into d from public.ceo_approval where decision_id = new.refund_decision_id;
+  if not found then
+    raise exception 'refunds %: refund_decision_id % names no CEO decision',
+      coalesce(new.id::text, '(new)'), new.refund_decision_id using errcode = '23503';
+  end if;
+  if d.subject_kind <> 'refund' then
+    raise exception 'refunds %: decision % is a % decision, not a refund decision',
+      coalesce(new.id::text, '(new)'), d.decision_id, d.subject_kind using errcode = '23514';
+  end if;
+  if d.decision <> 'approved' then
+    raise exception 'refunds %: decision % refused this refund; it may not reach %',
+      coalesce(new.id::text, '(new)'), d.decision_id, new.status using errcode = '23514';
+  end if;
+  if d.superseded_by is not null then
+    raise exception 'refunds %: decision % was superseded by %; cite the decision that stands',
+      coalesce(new.id::text, '(new)'), d.decision_id, d.superseded_by using errcode = '23514';
+  end if;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_refund_founder_decision_only()
@@ -48342,6 +48626,129 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_advisor(p_lead_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with l as (select * from public.leads where id = p_lead_id),
+  s as (select * from public.supplier_score where lead_id = p_lead_id),
+  -- The opportunity population a closed gap would unlock. Counted, never assumed.
+  live_inq as (
+    select count(*) as n from public.inquiries i
+    where coalesce(i.status, '') not in ('closed', 'cancelled', 'expired')
+  ),
+  gaps as (
+    select g.* from (
+      select 'trade_licence' as key, 'Upload your trade licence' as action,
+             'You cannot be matched to any opportunity without a current trade licence.' as why,
+             'high' as severity, 'documents' as goes_to, 1 as sort
+      from l where l.license_doc_path is null
+      union all
+      select 'licence_expired', 'Replace your expired trade licence',
+             'Your trade licence expired on ' || to_char(l.license_expiry, 'DD Mon YYYY') || '.',
+             'high', 'documents', 2
+      from l where l.license_doc_path is not null and l.license_expiry is not null
+                and l.license_expiry < current_date
+      union all
+      select 'iso_certificate', 'Upload an ISO certificate',
+             'Buyers filter on ISO 9001 and 14001. Adding one opens the projects that require it.',
+             'medium', 'documents', 3
+      from l where l.iso_doc_path is null
+      union all
+      select 'iso_expired', 'Renew your ISO certificate',
+             'Your ISO certificate expired on ' || to_char(l.iso_expiry, 'DD Mon YYYY') || '.',
+             'high', 'documents', 4
+      from l where l.iso_doc_path is not null and l.iso_expiry is not null and l.iso_expiry < current_date
+      union all
+      select 'not_verified', 'Complete verification',
+             'Unverified suppliers are excluded from matching entirely.',
+             'high', 'profile', 5
+      from l where not coalesce(l.verified, false)
+      union all
+      select 'capability_summary', 'Describe what you actually do',
+             'Requests are matched on your capability summary. An empty one matches nothing.',
+             'high', 'profile', 6
+      from l where l.capability_summary is null or btrim(l.capability_summary) = ''
+      union all
+      select 'no_products', 'Upload a product catalogue',
+             'Your catalogue is what buyers search. Without it you compete on company name alone.',
+             'medium', 'products', 7
+      from l where not exists (select 1 from public.supplier_product sp where sp.supplier_id = l.id)
+      union all
+      select 'no_service_area', 'Set the emirates you serve',
+             'Opportunities are filtered by location before anything else is considered.',
+             'medium', 'profile', 8
+      from l where coalesce(array_length(l.service_emirates, 1), 0) = 0
+      union all
+      select 'slow_response', 'Improve your response time',
+             'Your response rate is ' || coalesce((select response_rate from s)::text, '0')
+               || '%. Buyers see it, and it is 55% of your reliability score.',
+             'medium', 'twin', 9
+      from l where coalesce((select response_rate from s), 0) < 60
+    ) g
+  )
+  select jsonb_build_object(
+    'lead_id', p_lead_id,
+
+    -- ── §15's LOSS BREAKDOWN — empty, and saying why ────────────────────────────────────────────
+    'loss_analysis', jsonb_build_object(
+      'quotes_submitted', coalesce((select quotes_submitted from s), 0),
+      'quotes_won',       coalesce((select quotes_won from s), 0),
+      'rejections',       coalesce((select rejection_count from s), 0),
+      'loss_reasons', case
+        when coalesce((select quotes_submitted from s), 0) = 0 then '[]'::jsonb
+        else jsonb_build_array(
+          jsonb_build_object('reason', 'Rejected after quoting', 'count', coalesce((select rejection_count from s), 0),
+            'pct', round(100.0 * coalesce((select rejection_count from s), 0)
+                         / nullif((select quotes_submitted from s), 0)))
+        ) end,
+      -- The evidence for an EMPTY breakdown, so nobody mistakes it for a computation that failed.
+      'basis', case when coalesce((select quotes_submitted from s), 0) = 0
+                    then 'no_completed_opportunities' else 'quotes_submitted' end
+    ),
+
+    -- ── §15's RECOMMENDATIONS, and §4's actionable assistant line ───────────────────────────────
+    'recommendations', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'key', g.key, 'action', g.action, 'why', g.why,
+        'severity', g.severity, 'goes_to', g.goes_to,
+        -- Quantified upside, counted from the live population. 0 when there is nothing live, and
+        -- the basis says so rather than the number standing alone.
+        'impact_rfqs', (select n from live_inq)
+      ) order by g.sort), '[]'::jsonb) from gaps g
+    ),
+    'gap_count', (select count(*) from gaps),
+    'impact_basis', jsonb_build_object(
+      'live_inquiries', (select n from live_inq),
+      'note', 'impact_rfqs counts live inquiries a closed gap would let this supplier compete for'
+    ),
+
+    -- The one-line headline §4's command centre shows. Names a concrete gap and its upside, or says
+    -- plainly that there is nothing to fix — never a vague "improve your profile".
+    -- Three cases, because "can qualify for 0 more opportunities" is TRUE and reads as though
+    -- closing the gaps were pointless. When nothing is live the honest statement is that the gaps
+    -- block eligibility — the supplier still needs to fix them, they just cannot be told a number
+    -- yet. Quoting an upside of 0 would discourage exactly the action the advisor is recommending.
+    'headline', (
+      select case
+        when (select count(*) from gaps) = 0
+          then 'Your profile is complete. You are eligible for every opportunity we can match.'
+        when (select n from live_inq) = 0
+          then 'You have ' || (select count(*) from gaps)::text
+               || ' gap(s) blocking you from being matched at all. Start with: '
+               || (select g.action from gaps g order by g.sort limit 1)
+               || '. There are no live opportunities right now, so there is time to fix them.'
+        else 'Your profile can qualify for ' || (select n from live_inq)::text
+             || ' more opportunities if you close ' || (select count(*) from gaps)::text
+             || ' gap(s), starting with: ' || (select g.action from gaps g order by g.sort limit 1) || '.'
+      end
+    )
+  );
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_apply_change(p_phone text, p_field text, p_value text, p_inbound text, p_quote_id uuid DEFAULT NULL::uuid, p_channel text DEFAULT 'whatsapp'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -48473,6 +48880,76 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_certifications(p_lead_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with me as (select * from public.leads where id = p_lead_id),
+  docs as (
+    select * from (values
+      ('trade_licence',      'Trade licence',              'critical', 'Approval is impossible without it — the licence gate refuses every profile that has none.'),
+      ('insurance',          'Insurance',                  'high',     'Many customers will not award work to an uninsured supplier.'),
+      ('vat',                'VAT certificate',            'high',     'Needed before you can invoice with VAT.'),
+      ('iso',               'ISO certification',           'medium',   'Strengthens your capability score and unlocks quality-gated requests.'),
+      ('manufacturer_auth', 'Manufacturer authorisation',  'medium',   'Proves you are authorised for the brands you carry.'),
+      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.'),
+      ('bank_iban',         'Bank details (IBAN)',         'medium',   'We cannot pay you without it.')
+    ) d(key, label, impact, impact_why)
+  ),
+  held as (
+    select d.key, d.label, d.impact, d.impact_why,
+      case d.key
+        when 'trade_licence'      then (select license_doc_path from me)
+        when 'insurance'          then (select insurance_doc_path from me)
+        when 'vat'                then (select vat_doc_path from me)
+        when 'iso'                then (select iso_doc_path from me)
+        when 'manufacturer_auth'  then (select manufacturer_auth_doc_path from me)
+        when 'establishment'      then (select egr_doc_path from me)
+        when 'bank_iban'          then (select iban_doc_path from me)
+      end as path,
+      case d.key
+        when 'trade_licence'     then (select license_expiry from me)
+        when 'insurance'         then (select insurance_expiry from me)
+        when 'iso'               then (select iso_expiry from me)
+        when 'manufacturer_auth' then (select manufacturer_auth_expiry from me)
+        else null
+      end::date as expiry
+    from docs d
+  )
+  select jsonb_build_object(
+    'lead_id', p_lead_id,
+    'certifications', coalesce((select jsonb_agg(jsonb_build_object(
+        'key', h.key, 'label', h.label,
+        'held', h.path is not null,
+        'expiry', h.expiry,
+        'days_left', case when h.expiry is null then null else (h.expiry - current_date) end,
+        -- THE FIELD §16 ASKS FOR. A document with no expiry column is 'valid' when held: it does
+        -- not expire, so calling it 'unknown' would invent a problem the supplier cannot fix.
+        'document_status', case
+          when h.path is null then 'missing'
+          when h.expiry is null then 'valid'
+          when h.expiry < current_date then 'expired'
+          when h.expiry < current_date + 60 then 'expiring'
+          else 'valid' end,
+        'impact_level', h.impact,
+        'impact_why', h.impact_why)
+      order by case h.impact when 'critical' then 0 when 'high' then 1 when 'medium' then 2 else 3 end, h.label)
+      from held h), '[]'::jsonb),
+    'impact_basis', 'impact_level is a stated QuotesDone policy about what each document gates — not a number derived from your history',
+    'summary', jsonb_build_object(
+      'held', (select count(*) from held where path is not null),
+      'total', (select count(*) from held),
+      'expired', (select count(*) from held where path is not null and expiry is not null and expiry < current_date),
+      'expiring', (select count(*) from held where path is not null and expiry is not null
+                     and expiry >= current_date and expiry < current_date + 60),
+      -- The one number that decides whether they can trade at all, surfaced on its own.
+      'blocking_missing', (select count(*) from held where path is null and impact = 'critical'))
+  );
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_changeable()
  RETURNS TABLE(field text, kind text, description text)
  LANGUAGE sql
@@ -48566,6 +49043,20 @@ AS $function$
       ) order by s.gates_matching desc, s.key), '[]'::jsonb)
       from scored s)
   );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_exception_close(p_lead_id bigint, p_outcome text)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  update public.leads
+     set exception_closed_at = now(),
+         exception_outcome = p_outcome,
+         licence_gate_reason = case when p_outcome = 'resolved' then null else licence_gate_reason end
+   where id = p_lead_id and exception_closed_at is null;
 $function$
 
 
@@ -48931,6 +49422,150 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_negotiation(p_quote_id uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with q as (
+    select id, inquiry_id, supplier_id, quote_amount, margin_rate, app_fee, customer_price, lead_time, warranty
+      from public.quotes where id = p_quote_id
+  ),
+  -- The inbound side of the conversation only. What the supplier said is not evidence of pressure.
+  inbound as (
+    select m.id, m.body, m.created_at
+      from public.messages m join q on q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id
+     where m.sender = 'customer' order by m.created_at desc limit 10
+  ),
+  scen as (
+    select v.pct,
+           round((select quote_amount from q) * (1 - v.pct / 100.0), 2) new_quote,
+           round((select quote_amount from q) * (1 - v.pct / 100.0)
+                 * (1 + coalesce((select margin_rate from q), 0)), 2) new_customer_price,
+           round((select quote_amount from q) * (v.pct / 100.0), 2) you_give_up
+      from (values (3), (5), (10)) v(pct)
+  )
+  select jsonb_build_object(
+    'quote_id', p_quote_id,
+    -- The thread this quote belongs to. Returned because the drafted reply has to be SENDABLE, and
+    -- messages_api keys a thread on (inquiry_id, supplier_id) — without both, the draft is a
+    -- suggestion the supplier has to retype somewhere else.
+    'inquiry_id', (select inquiry_id from q),
+    'supplier_id', (select supplier_id from q),
+    'quote_amount', (select quote_amount from q),
+    'customer_price', (select customer_price from q),
+    -- THE PLATFORM'S margin, named as such. app_fee / quote_amount is QuotesDone's cut, and calling
+    -- it "your margin" would be a lie by label.
+    'margin', jsonb_build_object(
+      'whose', 'platform',
+      'app_fee', (select app_fee from q),
+      'margin_rate', (select margin_rate from q),
+      'note', 'This is the QuotesDone fee on the reveal, not your profit.'),
+    'supplier_cost_known', false,
+    'possible_reduction', jsonb_build_object(
+      'available', false,
+      'why', 'QuotesDone does not know what this job costs you to deliver, so it cannot tell you how far you can go. The scenarios below are arithmetic, not advice.',
+      'scenarios', coalesce((select jsonb_agg(jsonb_build_object(
+          'reduction_pct', s.pct, 'you_receive', s.new_quote,
+          'customer_pays', s.new_customer_price, 'you_give_up', s.you_give_up)
+        order by s.pct) from scen s), '[]'::jsonb)),
+    'inbound_messages', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', i.id, 'body', i.body, 'created_at', i.created_at) order by i.created_at desc)
+      from inbound i), '[]'::jsonb),
+    'population', jsonb_build_object(
+      'customer_messages', (select count(*) from inbound),
+      'note', case when (select count(*) from inbound) = 0
+                   then 'the customer has not written anything yet, so there is no discount request to read'
+                   else null end),
+    'terms', jsonb_build_object('lead_time', (select lead_time from q), 'warranty', (select warranty from q))
+  );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_network_map()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with centroid(emirate, lat, lng) as (
+    values ('Dubai', 25.2048, 55.2708),
+           ('Abu Dhabi', 24.4539, 54.3773),
+           ('Sharjah', 25.3463, 55.4209),
+           ('Ajman', 25.4052, 55.5136),
+           ('Ras Al Khaimah', 25.7895, 55.9432),
+           ('Umm Al Quwain', 25.5647, 55.5552),
+           ('Fujairah', 25.1288, 56.3265)
+  ),
+  -- Emirate names arrive in several spellings across 20,464 scraped rows, so they are normalised
+  -- to the centroid table's keys. A row that matches nothing is counted as unplaced rather than
+  -- dropped: silently discarding rows would make the map look tidier than the data is.
+  norm as (
+    select case
+             when l.emirate ilike '%dubai%'      then 'Dubai'
+             when l.emirate ilike '%abu%dhabi%'  then 'Abu Dhabi'
+             when l.emirate ilike '%sharjah%'    then 'Sharjah'
+             when l.emirate ilike '%ajman%'      then 'Ajman'
+             when l.emirate ilike '%ras%khaim%'  then 'Ras Al Khaimah'
+             when l.emirate ilike '%umm%quwain%' then 'Umm Al Quwain'
+             when l.emirate ilike '%fujairah%'   then 'Fujairah'
+             else null end as emirate,
+           l.id, l.verified, l.matching_blocked
+    from public.leads l
+  )
+  select jsonb_build_object(
+    'generated_for', 'row5-section-19',
+
+    -- ── LAYER 1: SUPPLIERS. Real, and the only populated one. ──────────────────────────────────
+    'suppliers', jsonb_build_object(
+      'basis', 'leads.emirate',
+      'count', (select count(*) from norm where emirate is not null),
+      'unplaced', (select count(*) from norm where emirate is null),
+      'markers', (
+        select coalesce(jsonb_agg(jsonb_build_object(
+          'name', c.emirate, 'lat', c.lat, 'lng', c.lng,
+          'count', (select count(*) from norm n where n.emirate = c.emirate),
+          -- Kept separate because they are different claims: how many companies we KNOW OF versus
+          -- how many can actually receive an RFQ. On production the second is 0 and the map must
+          -- not let the first stand in for it.
+          'matchable', (select count(*) from norm n where n.emirate = c.emirate
+                          and coalesce(n.verified, false) and not coalesce(n.matching_blocked, false))
+        ) order by c.emirate), '[]'::jsonb)
+        from centroid c
+      )
+    ),
+
+    -- ── LAYERS 2-4: EMPTY, each saying so in its own words ─────────────────────────────────────
+    'demand', jsonb_build_object(
+      'basis', 'inquiries',
+      'count', (select count(*) from public.inquiries),
+      'markers', '[]'::jsonb,
+      'note', 'no inquiries exist yet, so no demand is plotted'
+    ),
+    'projects', jsonb_build_object(
+      'basis', 'inquiries with a project',
+      'count', (select count(*) from public.inquiries),
+      'markers', '[]'::jsonb,
+      'note', 'no projects exist yet'
+    ),
+    'shipments', jsonb_build_object(
+      'basis', 'none',
+      'count', 0,
+      'markers', '[]'::jsonb,
+      'note', 'there is no shipments relation in this schema; nothing is tracked to plot'
+    ),
+
+    'totals', jsonb_build_object(
+      'leads', (select count(*) from public.leads),
+      'placed', (select count(*) from norm where emirate is not null),
+      'matchable', (select count(*) from norm
+                    where coalesce(verified, false) and not coalesce(matching_blocked, false))
+    )
+  );
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_opportunities(p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -49057,6 +49692,224 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_outreach_golive()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'supplier_outreach_golive'), false);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_product_match(p_inquiry_id uuid, p_lead_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with inq as (
+    -- EVERYTHING THE CUSTOMER SAID, not the first field that happens to be non-empty. The first
+    -- version preferred raw_input and fell back to summary, and on the demo enquiry that discarded
+    -- the only line describing the work — every product scored 0% while the store held a curtain
+    -- wall profile and the enquiry was for curtain walling. A brief's title carries meaning too,
+    -- and dropping it to honour a precedence rule loses signal for nothing.
+    select lower(coalesce(category, '')) cat,
+           lower(concat_ws(' ', coalesce(summary, ''), coalesce(raw_input, ''), coalesce(category, ''))) want
+      from public.inquiries where id = p_inquiry_id
+  ),
+  -- Words worth matching on. Anything under four characters is noise ("we", "for", "the"), and a
+  -- stop list would be a maintenance burden for no gain at this size.
+  terms as (
+    select distinct w from inq, unnest(regexp_split_to_array(inq.want, '[^a-z0-9]+')) w
+     where length(w) >= 4
+  ),
+  prod as (
+    select p.id, p.name, p.brand, p.model, p.category_slug,
+           lower(concat_ws(' ', p.name, p.brand, p.model, p.description, p.category_slug)) hay
+      from public.supplier_product p
+     where p.supplier_id = p_lead_id
+  ),
+  -- ── THE DENOMINATOR IS THE PRODUCT, NOT THE BRIEF ──────────────────────────────────────────────
+  -- Scoring matched-terms over ALL the brief's words made the exactly-right product read 6%:
+  -- "Aluminium curtain wall profile" matched 2 of 32 words in a paragraph that also discussed
+  -- square metres, retail units and powder coating. That understates as badly as an inflated score
+  -- overstates, and a supplier seeing 6% on their best product would conclude the matching is
+  -- broken — which it would be.
+  --
+  -- The question is not "how much of the brief does this product cover" (no single product covers
+  -- a brief) but "how much of THIS PRODUCT does the brief ask for". Aluminium ✓ curtain ✓ wall ✓
+  -- profile ✗ is a strong match, and reads as one.
+  pterms as (
+    select pr.id pid, w from prod pr,
+      unnest(regexp_split_to_array(lower(concat_ws(' ', pr.name, pr.category_slug)), '[^a-z0-9]+')) w
+     where length(w) >= 4
+  ),
+  hit as (
+    select pr.id, pr.name, pr.brand, pr.model, pr.category_slug, pr.hay,
+           (select count(*) from pterms pt, inq where pt.pid = pr.id and position(pt.w in inq.want) > 0) matched_terms,
+           (select count(*) from pterms pt where pt.pid = pr.id) total_terms,
+           (pr.category_slug is not null and pr.category_slug = (select cat from inq)) cat_hit,
+           ((select cat from inq) <> '' and pr.category_slug is not null) cat_askable
+      from prod pr
+  ),
+  scored as (
+    select h.*,
+      round(100.0 * (
+          (case when h.cat_hit then 40 else 0 end)
+        + (case when h.total_terms > 0 then 60.0 * h.matched_terms / h.total_terms else 0 end)
+      ) / nullif((case when h.cat_askable then 40 else 0 end)
+               + (case when h.total_terms > 0 then 60 else 0 end), 0)) match_pct
+      from hit h
+  )
+  select jsonb_build_object(
+    'inquiry_id', p_inquiry_id,
+    'supplier_id', p_lead_id,
+    'basis', 'lexical: the enquiry''s own words against the product record. Not semantic — supplier_product carries no embedding, so a synonym will not match.',
+    'population', jsonb_build_object(
+      'products', (select count(*) from prod),
+      'terms_from_enquiry', (select count(*) from terms),
+      'note', case when (select count(*) from prod) = 0
+                   then 'you have no products yet — upload a catalog and these become matchable'
+                   when (select count(*) from terms) = 0
+                   then 'the enquiry has no description to match against, so only category could be asked'
+                   else null end),
+    'matches', coalesce((
+      select jsonb_agg(jsonb_build_object(
+          'product_id', s.id, 'name', s.name, 'brand', s.brand, 'model', s.model,
+          'match_pct', s.match_pct,
+          'matched_terms', s.matched_terms, 'terms_considered', s.total_terms,
+          'category_match', s.cat_hit)
+        order by s.match_pct desc nulls last, s.name)
+      from scored s), '[]'::jsonb)
+  );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_products(p_lead_id bigint, p_query text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with base as (
+    select p.*
+    from public.supplier_product p
+    where p.supplier_id = p_lead_id
+      and coalesce(p.status, 'active') <> 'archived'
+  ),
+  -- §7 "Searchable: YES". Matched over name, brand, model, category and the ATTRIBUTE VALUES, so a
+  -- search for "5000 CFM" finds the unit whose spec says so rather than only matching its title.
+  filtered as (
+    select b.* from base b
+    where p_query is null or btrim(p_query) = '' or (
+         b.name              ilike '%' || btrim(p_query) || '%'
+      or coalesce(b.brand, '')          ilike '%' || btrim(p_query) || '%'
+      or coalesce(b.model, '')          ilike '%' || btrim(p_query) || '%'
+      or coalesce(b.category_slug, '')  ilike '%' || btrim(p_query) || '%'
+      or coalesce(b.subcategory_slug,'')ilike '%' || btrim(p_query) || '%'
+      or coalesce(b.description, '')    ilike '%' || btrim(p_query) || '%'
+      or exists (
+           select 1 from jsonb_each_text(coalesce(b.attributes, '{}'::jsonb)) a
+           where a.value ilike '%' || btrim(p_query) || '%'
+              or a.key   ilike '%' || btrim(p_query) || '%')
+      -- Certifications are a jsonb ARRAY and were unreachable by the attribute scan above, so
+      -- "show me my Eurovent-certified units" returned nothing. A supplier searching their own
+      -- catalogue by certification is the obvious case for §7's "Searchable: YES".
+      or exists (
+           select 1 from jsonb_array_elements_text(
+             case when jsonb_typeof(b.certifications) = 'array' then b.certifications else '[]'::jsonb end) c
+           where c ilike '%' || btrim(p_query) || '%')
+    )
+  )
+  select jsonb_build_object(
+    'supplier_id', p_lead_id,
+    'query', p_query,
+
+    -- ── §7's THREE COUNTS, over the supplier's whole catalogue, not the filtered page ───────────
+    'product_count',  (select count(*) from base),
+    -- coalesce(SUBcategory, category), not the reverse. category_slug is the broad family ('hvac')
+    -- and is identical across a whole catalogue, so coalescing to it FIRST collapsed four distinct
+    -- product categories into 1. The spec's "Categories: 18" means product categories, not sectors.
+    'category_count', (select count(distinct coalesce(subcategory_slug, category_slug))
+                       from base where coalesce(subcategory_slug, category_slug) is not null),
+    -- The real number of specification keys the platform holds. Counted, never estimated.
+    'attribute_count', (
+      select coalesce(sum((select count(*) from jsonb_object_keys(coalesce(b.attributes, '{}'::jsonb)))), 0)
+      from base b
+    ),
+    'searchable', true,
+
+    -- ── §5's WAREHOUSE PANEL: the three quantities, over the SUPPLIER's own stock ────────────────
+    -- inv_items is NOT this, and the distinction matters. Measured: inv_items has no supplier_id at
+    -- all, and carries inventory_account / cogs_account / reorder_point — it is QuotesDone's OWN
+    -- accounting ledger. A supplier's warehouse could never appear in it, so scoring §5 against it
+    -- would have been unsatisfiable by any correct implementation.
+    -- A supplier's stock lives on the variant, which is also where §8's "Available: 120" comes from.
+    'stock', (
+      select jsonb_build_object(
+        'available',     coalesce(sum(nullif(v.attributes ->> 'available_units', '')::numeric), 0),
+        'reserved',      coalesce(sum(nullif(v.attributes ->> 'reserved_units', '')::numeric), 0),
+        'in_production', coalesce(sum(nullif(v.attributes ->> 'in_production_units', '')::numeric), 0),
+        'skus', count(*)
+      )
+      from public.supplier_product_variant v
+      join base b2 on b2.id = v.product_id
+      where v.active
+    ),
+
+    'match_count', (select count(*) from filtered),
+
+    'catalogs', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', c.id, 'status', c.status, 'version', c.version,
+        'extracted_at', c.extracted_at, 'source', c.source_document_path
+      ) order by c.created_at desc), '[]'::jsonb)
+      from public.supplier_catalog c where c.supplier_id = p_lead_id
+    ),
+
+    -- ── §8 AI PRODUCT CARDS ─────────────────────────────────────────────────────────────────────
+    -- Every field the spec draws on a card, from real columns. `ai_match` is NOT invented: it is
+    -- null unless the product carries a computed match in its attributes, because §8's "AI Match
+    -- 96%" is a claim about a specific opportunity and there are 0 inquiries on production. A card
+    -- showing a confident percentage against nothing would be the exact fabrication this row's
+    -- scorer exists to catch.
+    'products', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', f.id,
+        'name', f.name,
+        'category', coalesce(f.subcategory_slug, f.category_slug),
+        'brand', f.brand,
+        'model', f.model,
+        'description', f.description,
+        'attributes', coalesce(f.attributes, '{}'::jsonb),
+        'attribute_count', (select count(*) from jsonb_object_keys(coalesce(f.attributes, '{}'::jsonb))),
+        'certifications', coalesce(f.certifications, '[]'::jsonb),
+        'documents', coalesce(f.documents, '[]'::jsonb),
+        'status', f.status,
+        -- Availability comes from the variants, which is where stock policy lives.
+        'variants', (
+          select coalesce(jsonb_agg(jsonb_build_object(
+            'sku', v.sku, 'attributes', v.attributes,
+            'price_policy', v.price_policy, 'lead_time_policy', v.lead_time_policy,
+            'active', v.active) order by v.sku), '[]'::jsonb)
+          from public.supplier_product_variant v where v.product_id = f.id
+        ),
+        'reserved_units', (
+          select sum(nullif(v.attributes ->> 'reserved_units', '')::numeric)
+          from public.supplier_product_variant v where v.product_id = f.id and v.active
+        ),
+        'in_production_units', (
+          select sum(nullif(v.attributes ->> 'in_production_units', '')::numeric)
+          from public.supplier_product_variant v where v.product_id = f.id and v.active
+        ),
+        'available_units', (
+          select sum((v.attributes ->> 'available_units')::numeric)
+          from public.supplier_product_variant v
+          where v.product_id = f.id and v.active
+            and (v.attributes ->> 'available_units') ~ '^[0-9]+$'
+        ),
+        -- §8's "Compatible Projects". Real when the extractor recorded it, null otherwise.
+        'compatible_projects', coalesce(f.attributes -> 'compatible_projects', 'null'::jsonb),
+        'ai_match', (f.attributes ->> 'ai_match')::numeric,
+        'evidence_refs', coalesce(f.evidence_refs, '[]'::jsonb)
+      ) order by f.name), '[]'::jsonb)
+      from (select * from filtered order by name limit 200) f
+    )
+  );
 $function$
 
 
@@ -49631,6 +50484,72 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_tier(p_lead_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with s as (
+    select coalesce(quotes_submitted, 0) submitted, coalesce(quotes_won, 0) won,
+           response_rate, quality_rating, reliability
+      from public.supplier_score where lead_id = p_lead_id
+  ),
+  -- ACTIVITY IS THE GATE, and it is checked before the score is consulted. A supplier who has never
+  -- quoted has no performance to measure, and averaging nulls into a number would manufacture one.
+  a as (select coalesce((select submitted from s), 0) > 0 active),
+  t as (
+    select case
+      when not (select active from a) then 'unranked'
+      when (select won from s) >= 10 and coalesce((select quality_rating from s), 0) >= 85 then 'platinum'
+      when (select won from s) >= 5  and coalesce((select quality_rating from s), 0) >= 70 then 'gold'
+      when (select won from s) >= 1                                                        then 'silver'
+      else 'bronze'
+    end tier
+  )
+  select jsonb_build_object(
+    'lead_id', p_lead_id,
+    'tier', (select tier from t),
+    -- available:false is the difference between "we ranked you low" and "we cannot rank you yet".
+    -- The supplier must never read the first when the second is true.
+    'available', (select active from a),
+    'basis', case when (select active from a)
+                  then 'quotes won and quality rating, from supplier_score'
+                  else 'no quote has been submitted yet, so there is nothing to rank — this is not a low score' end,
+    'ladder', jsonb_build_array(
+      jsonb_build_object('tier','bronze',  'needs','submit your first quote'),
+      jsonb_build_object('tier','silver',  'needs','win 1 job'),
+      jsonb_build_object('tier','gold',    'needs','win 5 jobs and hold a 70% quality rating'),
+      jsonb_build_object('tier','platinum','needs','win 10 jobs and hold an 85% quality rating')
+    ),
+    'progress', jsonb_build_object(
+      'quotes_submitted', (select submitted from s),
+      'quotes_won', (select won from s),
+      -- NULL, not 0. A rating is earned; nobody has earned one, and 0 would read as "rated badly".
+      'quality_rating', (select quality_rating from s),
+      'response_rate', (select response_rate from s)
+    ),
+    -- ── THE TIER DOES NOT AFFECT MATCHING. FOUNDER DECISION, 2026-08-08, VERBATIM: ──────────────
+    --     "no cancel that totally. a tier shouldnt effect a match."
+    --
+    -- §20 asks for a tier that changes RFQ distribution, preferred status and search visibility.
+    -- The founder has refused it, and the refusal is the correct call: a score computed by this
+    -- platform deciding which real companies get sent work would quietly sort suppliers into
+    -- winners and losers on a number none of them agreed to.
+    --
+    -- This field used to say "not YET" — which was a promise, and is now a false one. A supplier
+    -- reading "not yet" waits for an advantage that is never coming and may chase the ladder for
+    -- it. So the payload states the settled position instead, and the three §20 benefit
+    -- requirements stay permanently unmet BY DECISION rather than by omission.
+    'benefits_active', false,
+    'affects_matching', false,
+    'benefits_note', 'Your tier never affects which work you are matched to, how you rank in search, '
+      || 'or whether you are shown as preferred. Every supplier is matched on fit alone. '
+      || 'This is a record of your track record, not a queue position.'
+  );
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_twin(p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -49840,6 +50759,119 @@ AS $function$
                        and coalesce(array_to_string(l.tags, ','), '') ilike '%demo%' from l),
     'matchable', (select public.fn_is_matchable(l.verified, l.banned, l.matching_blocked,
                           l.approval_status, l.permanently_closed, l.chat_strikes) from l)
+  );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_workspaces(p_lead_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with rel as (
+    -- One row per customer relationship this supplier actually has: an inquiry they were matched
+    -- to, or one they have exchanged messages about.
+    select distinct i.id as inquiry_id
+    from public.inquiries i
+    where exists (select 1 from public.inquiry_matches m
+                  where m.inquiry_id = i.id and m.supplier_id = p_lead_id)
+       or exists (select 1 from public.messages g
+                  where g.inquiry_id = i.id and g.supplier_id = p_lead_id)
+  )
+  select jsonb_build_object(
+    'lead_id', p_lead_id,
+    'count', (select count(*) from rel),
+    -- The populations behind an empty list, so nobody has to guess whether the query worked.
+    'population', jsonb_build_object(
+      'inquiries', (select count(*) from public.inquiries),
+      'matches_for_me', (select count(*) from public.inquiry_matches where supplier_id = p_lead_id)
+    ),
+    'note', case when (select count(*) from rel) = 0
+                 then 'no customer relationships yet — nothing has been matched or messaged'
+                 else null end,
+    'workspaces', (
+      select coalesce(jsonb_agg(w order by w->>'last_activity' desc nulls last), '[]'::jsonb)
+      from (
+        select jsonb_build_object(
+          'inquiry_id', i.id,
+          -- §18's project identity.
+          'project', jsonb_build_object(
+            -- inquiries has no `title` column. The human-readable name is the summary, then the
+            -- category, then the RFQ number — falling through in that order means a workspace
+            -- always has a name rather than rendering as blank.
+            'title', coalesce(nullif(btrim(coalesce(i.summary, '')), ''), i.category,
+                              'RFQ ' || coalesce(i.rfq_no::text, i.id::text)),
+            'category', i.category,
+            'emirate', i.emirate,
+            'status', i.status,
+            'created_at', i.created_at
+          ),
+          -- §18's files, CATEGORISED. The spec names drawings, specifications and contracts, so the
+          -- bucket is derived from the document's own kind rather than left as one undifferentiated
+          -- pile — a workspace whose files are a flat list is the thing §18 replaces.
+          'files', (
+            select coalesce(jsonb_agg(jsonb_build_object(
+              'name', d.file_name, 'kind', d.kind, 'created_at', d.created_at,
+              'category', case
+                when d.kind ~* 'drawing|dwg|plan|layout'        then 'drawings'
+                when d.kind ~* 'spec|datasheet|boq|schedule'    then 'specifications'
+                when d.kind ~* 'contract|agreement|po|purchase' then 'contracts'
+                else 'other' end
+            ) order by d.created_at desc), '[]'::jsonb)
+            from public.documents d
+            where d.ref_table = 'inquiries' and d.ref_id = i.id::text
+          ),
+          'file_categories', (
+            select jsonb_build_object(
+              'drawings', count(*) filter (where d.kind ~* 'drawing|dwg|plan|layout'),
+              'specifications', count(*) filter (where d.kind ~* 'spec|datasheet|boq|schedule'),
+              'contracts', count(*) filter (where d.kind ~* 'contract|agreement|po|purchase'),
+              'other', count(*) filter (where d.kind !~* 'drawing|dwg|plan|layout|spec|datasheet|boq|schedule|contract|agreement|po|purchase')
+            )
+            from public.documents d
+            where d.ref_table = 'inquiries' and d.ref_id = i.id::text
+          ),
+          -- §18's message count, and the unread split a supplier actually acts on.
+          'message_count', (
+            select count(*) from public.messages g
+            where g.inquiry_id = i.id and g.supplier_id = p_lead_id and not coalesce(g.blocked, false)
+          ),
+          'unread', (
+            select count(*) from public.messages g
+            where g.inquiry_id = i.id and g.supplier_id = p_lead_id
+              and g.sender = 'customer' and not coalesce(g.read_by_supplier, false)
+              and not coalesce(g.blocked, false)
+          ),
+          'last_activity', (
+            select max(g.created_at) from public.messages g
+            where g.inquiry_id = i.id and g.supplier_id = p_lead_id
+          ),
+          -- §18's timeline percentage. Derived from the stages the relationship has actually
+          -- passed, so it moves for a real reason and is null before anything has happened rather
+          -- than sitting at a meaningless 0%.
+          'timeline', (
+            select jsonb_build_object(
+              'pct', case when total = 0 then null else round(100.0 * hit / total) end,
+              'stages', jsonb_build_object(
+                'matched', matched, 'messaged', messaged, 'quoted', quoted, 'awarded', awarded)
+            )
+            from (
+              select 4 as total,
+                (exists (select 1 from public.inquiry_matches m where m.inquiry_id = i.id and m.supplier_id = p_lead_id))::int
+                  as matched,
+                (exists (select 1 from public.messages g where g.inquiry_id = i.id and g.supplier_id = p_lead_id))::int
+                  as messaged,
+                (exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = p_lead_id))::int
+                  as quoted,
+                (exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = p_lead_id
+                         and q.status = 'won'))::int as awarded
+            ) s, lateral (select (s.matched + s.messaged + s.quoted + s.awarded) as hit) h
+          )
+        ) as w
+        from rel r join public.inquiries i on i.id = r.inquiry_id
+      ) t
+    )
   );
 $function$
 
@@ -56185,6 +57217,22 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.kb_query(p_query text, p_category text DEFAULT NULL::text, p_limit integer DEFAULT 8)
+ RETURNS TABLE(source_kind text, category text, title text, snippet text, citation text, effective_date date, rank real)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with q as (select websearch_to_tsquery('english', coalesce(p_query,'')) as tsq)
+  select c.source_kind, c.category, c.title, left(c.content, 700) as snippet, c.citation, c.effective_date,
+    (ts_rank(c.fts, q.tsq) + case when p_category is not null and c.category = p_category then 0.4 else 0 end)::real as rank
+  from kb_chunks c, q
+  where coalesce(p_query,'') = '' or c.fts @@ q.tsq
+  order by rank desc nulls last, c.effective_date desc nulls last
+  limit greatest(1, least(coalesce(p_limit,8), 25));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.kb_sync()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -57812,50 +58860,51 @@ CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
-CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
+CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
-CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.ap_bills FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
 CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.ap_bills FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.app_secrets FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.artifact_review FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
-CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
 CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.control_mode_session FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.control_mode_session FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
-CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.decision_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.decision_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
-CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.decision_trace FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
 CREATE TRIGGER trg_undo_department_objective BEFORE DELETE OR UPDATE ON public.department_objective FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER version_document AFTER INSERT OR UPDATE OF extracted ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_version_document();
 CREATE TRIGGER trg_undo_employee_authority BEFORE DELETE OR UPDATE ON public.employee_authority FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('agent_key');
@@ -57865,79 +58914,79 @@ CREATE TRIGGER trg_emit_invoice_received_expense AFTER INSERT ON public.expense_
 CREATE TRIGGER t_emit_customer_complaint AFTER INSERT ON public.feedback FOR EACH ROW WHEN ((((new.rating IS NOT NULL) AND (new.rating <= (2)::numeric)) OR ((new.source IS NOT NULL) AND (lower(new.source) ~~ '%complaint%'::text)))) EXECUTE FUNCTION fn_emit_customer_complaint();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.finance_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
+CREATE TRIGGER z10_founder_approval_refund_only BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_refund_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_approval_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_founder_approval_names_a_real_refund BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_names_a_real_refund();
-CREATE TRIGGER z10_founder_approval_refund_only BEFORE INSERT OR UPDATE ON public.founder_approval_request FOR EACH ROW EXECUTE FUNCTION fn_founder_approval_refund_only();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z20_founder_command_state_guard BEFORE UPDATE ON public.founder_command FOR EACH ROW EXECUTE FUNCTION fn_founder_command_state_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_clarification FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_founder_command_clarification_answer_is_sealed BEFORE INSERT OR DELETE OR UPDATE ON public.founder_command_clarification FOR EACH ROW EXECUTE FUNCTION fn_founder_command_clarification_answer_is_sealed();
 CREATE TRIGGER z10_founder_command_message_immutable BEFORE DELETE OR UPDATE ON public.founder_command_message FOR EACH ROW EXECUTE FUNCTION fn_founder_command_message_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_command_message FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.founder_release_approval FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_phase_c_no_new_release_approval BEFORE INSERT ON public.founder_release_approval FOR EACH ROW EXECUTE FUNCTION fn_phase_c_no_new_founder_approval_path();
-CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER trg_gl_lines_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.gl_journal_lines FOR EACH ROW EXECUTE FUNCTION fn_gl_lines_immutable();
+CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.gl_journal_lines FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_gl_lines_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.gl_journal_lines FOR EACH ROW EXECUTE FUNCTION fn_gl_lines_immutable();
 CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.gl_settings FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.handoff_contract FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
-CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_conflict_value FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_corroboration FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_answer_document FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER answer_document_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_document FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON public.inquiry_scope_disposition FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_scope_disposition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
+CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON public.inquiry_scope_disposition FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_state_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_supplier_brief FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_trade_candidate_evidence FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.inquiry_trade_candidate_evidence FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.internal_credential_audit FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_inbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z10_signal_type_activation_guard BEFORE UPDATE ON public.kernel_signal_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_signal_type_activation_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_signal_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_inbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_kernel_trigger_type_routing_guard BEFORE INSERT OR UPDATE OF workflow_id, trigger_type ON public.kernel_trigger_type FOR EACH ROW EXECUTE FUNCTION fn_kernel_trigger_type_routing_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.kernel_trigger_type FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.llm_attempt FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
-CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_action_executor FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
@@ -57946,13 +58995,13 @@ CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_authority
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_departments FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_phase_baseline FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_org_role_no_reserved_decision BEFORE INSERT OR UPDATE OF owned_decisions ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_reserved_decision();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_role_identity FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
+CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
 CREATE TRIGGER a00_org_tasks_founder_routing_refund_only BEFORE INSERT OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_kernel_founder_routing_is_refund_only();
 CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
 CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
@@ -57961,18 +59010,18 @@ CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.org_tasks FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.os_incidents FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.os_incidents FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
-CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
-CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
+CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase1_rollback_log FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_business_rule FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_dynamic_actor FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_founder_boundary FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
@@ -57984,16 +59033,16 @@ CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workf
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_state FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_step FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_b_workflow_transition FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER a10_change_request_approver_is_the_founder BEFORE INSERT OR UPDATE OF approved_by, approved_at ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approver_guard();
 CREATE TRIGGER a05_phase_c_change_request_approval_is_derived BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_approval_is_derived();
-CREATE TRIGGER a15_phase_c_change_request_disposition_follows_approval BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_disposition_follows_approval();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_change_request FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_component FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER a15_phase_c_change_request_disposition_follows_approval BEFORE INSERT OR UPDATE ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_change_request_disposition_follows_approval();
+CREATE TRIGGER a10_change_request_approver_is_the_founder BEFORE INSERT OR UPDATE OF approved_by, approved_at ON public.phase_c_change_request FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_approver_guard();
 CREATE TRIGGER a00_phase_c_readonly_exemption_guard BEFORE INSERT OR UPDATE OF trace_policy_id, mutates_state ON public.phase_c_component FOR EACH ROW EXECUTE FUNCTION fn_phase_c_readonly_exemption_guard();
-CREATE TRIGGER a00_phase_c_event_binding_status_guard BEFORE INSERT OR UPDATE OF connection_status ON public.phase_c_event_binding FOR EACH ROW EXECUTE FUNCTION fn_phase_c_event_binding_status_guard();
+CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_component FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_event_binding FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
-CREATE TRIGGER z05_outbox_refuse_cancelled_subject BEFORE UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_outbox_refuse_cancelled_subject();
+CREATE TRIGGER a00_phase_c_event_binding_status_guard BEFORE INSERT OR UPDATE OF connection_status ON public.phase_c_event_binding FOR EACH ROW EXECUTE FUNCTION fn_phase_c_event_binding_status_guard();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_event_outbox FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
+CREATE TRIGGER z05_outbox_refuse_cancelled_subject BEFORE UPDATE ON public.phase_c_event_outbox FOR EACH ROW EXECUTE FUNCTION fn_kernel_outbox_refuse_cancelled_subject();
 CREATE TRIGGER a00_phase_c_founder_auth_event_is_server_minted BEFORE INSERT OR DELETE OR UPDATE ON public.phase_c_founder_auth_event FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_auth_event_is_server_minted();
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.phase_c_founder_auth_event FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER a00_phase_c_founder_identity_human_only BEFORE INSERT OR UPDATE ON public.phase_c_founder_identity FOR EACH ROW EXECUTE FUNCTION fn_phase_c_founder_identity_human_only();
@@ -58066,8 +59115,8 @@ CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FO
 CREATE TRIGGER z00_kernel_truncate_guard BEFORE TRUNCATE ON public.refunds FOR EACH STATEMENT EXECUTE FUNCTION fn_kernel_truncate_guard();
 CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
-CREATE TRIGGER z00_refund_founder_decision_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_founder_decision_only();
-CREATE TRIGGER z05_refund_execution_requires_decision BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_phase_c_refund_execution_requires_decision();
+CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
 CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
@@ -58160,8 +59209,12 @@ ALTER TABLE public.category_keyword ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_quote_specs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_route_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_specs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_approval ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_command_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_command_transition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_decision_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_standing_grant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_heuristic ENABLE ROW LEVEL SECURITY;
