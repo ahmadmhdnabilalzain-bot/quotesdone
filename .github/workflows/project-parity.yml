@@ -177,9 +177,14 @@ jobs:
           # green: the kernel's own invariants, cancellation reaching the kernel, every discharge
           # claim reaching its table, and -- the one that must never leave this list --
           # anon_cannot_execute_security_definer, which is security, not structure.
-          for t in kernel_invariants \
-                   cancellation_reaches_the_kernel \
-                   every_discharge_claim_reaches_its_table \
+          # TWO MORE LEFT THIS LIST ON 9 SEP 2026, retired with their subject: kernel_invariants
+          # (reads founder_command and phase_c_kernel_epoch, both dropped) and
+          # cancellation_reaches_the_kernel (drives fn_kernel_cancel against founder_command, which
+          # the OS console was the only writer of). Retired, not edited until they passed.
+          #
+          # The two that remain never depended on the phase programme, and the second must never
+          # leave this list: it is security, not structure.
+          for t in every_discharge_claim_reaches_its_table \
                    anon_cannot_execute_security_definer; do
             echo "::group::$t"
             # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at its last check and the log

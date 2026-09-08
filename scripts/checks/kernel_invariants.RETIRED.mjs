@@ -1,3 +1,18 @@
+// RETIRED 9 September 2026 — its subject was deleted.
+//
+// Subject: the Phase C execution kernel's own invariants.
+//
+// It reads public.founder_command and public.phase_c_kernel_epoch, both dropped on 9 September, plus
+// phase_c_task, phase_c_trace, phase_c_workflow_run, phase_c_workflow_step_run and
+// phase_c_event_outbox, which are on the same path out. Its subject is the kernel runtime itself.
+//
+// The founder: "i dont want a single routine or workflow or decision prior 7 september. literally
+// nothing." The Phase A-D programme and its kernel are being removed; this check watched the part
+// that has already gone.
+//
+// RETIRED, NOT SOFTENED. Editing it to skip the missing tables would leave a check that goes green
+// against an empty schema — asserting nothing while still looking like a guard. That is the exact
+// failure this estate has written down more than once.
 // Kernel invariants — READ ONLY. Six things that must be zero once K2, K2b and K5 are live.
 //
 //   node scripts/checks/kernel_invariants.test.mjs

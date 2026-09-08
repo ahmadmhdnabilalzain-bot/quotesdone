@@ -1,3 +1,20 @@
+// RETIRED 9 September 2026 — its subject was deleted.
+//
+// Subject: a cancelled founder command reaching the kernel.
+//
+// It drives fn_kernel_cancel against public.founder_command, and founder_command was dropped on 9
+// September when the OS console that was its only writer went. The property it asserted — that a
+// cancellation is not merely recorded on the command but reaches the runtime that is doing the
+// work — is worth reasserting for ceo_command when the CEO seat has work in flight. It has none
+// yet: cancelling is a transition in ceo_command_transition and nothing runs behind it.
+//
+// The founder: "i dont want a single routine or workflow or decision prior 7 september. literally
+// nothing." The Phase A-D programme and its kernel are being removed; this check watched the part
+// that has already gone.
+//
+// RETIRED, NOT SOFTENED. Editing it to skip the missing tables would leave a check that goes green
+// against an empty schema — asserting nothing while still looking like a guard. That is the exact
+// failure this estate has written down more than once.
 // CANCELLATION REACHES THE KERNEL, AND NOTHING SURVIVES BENEATH A CANCELLED COMMAND.
 //
 // Root cause 2 of the final Phase C acceptance. fn_founder_command_control cancelled the command
