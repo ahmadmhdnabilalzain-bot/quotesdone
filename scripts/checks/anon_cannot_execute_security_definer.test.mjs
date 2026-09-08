@@ -108,7 +108,17 @@ const ANON_CEILING = 0;
 // 7 -> 6 on 7 September 2026: fn_phase_c_freeze_amendment_approve was dropped with the removed
 // structure. This is a CEILING, and it moved DOWN, which is the safe direction. It is lowered
 // rather than left at 7 so that the privileged surface growing back to seven fails this check.
-const AUTHENTICATED_CEILING = 6;   // 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006)
+// 25 Aug 2026: 5 -> 6, fn_phase_c_governance_decide (PCCR-006).
+// 9 Sep 2026: 6 -> 4. fn_founder_command_clarify and fn_founder_command_control were dropped with the
+// OS console, which was the only surface that called them with the founder's own verified JWT. Their
+// entries in AUTHENTICATED_BY_DESIGN went with them.
+//
+// THIS NUMBER GOING DOWN IS THE SAFE DIRECTION, and it is lowered rather than left alone deliberately:
+// a ceiling that only ever rises stops being a ratchet. Left at 6 it would silently admit two NEW
+// authenticated-executable SECURITY DEFINER routines without anyone reviewing who calls them, with
+// which client, and whether an RLS policy names them — which is the whole review this file exists to
+// force.
+const AUTHENTICATED_CEILING = 4;
                                    // 27 Aug 2026: 6 -> 7, fn_phase_c_founder_subject_bind. It is a
                                    // NARROWING: the routine simultaneously LOST its service_role
                                    // grant, which is what a service_role call was using to bind the
@@ -165,10 +175,6 @@ const AUTHENTICATED_BY_DESIGN = {
   // on this call" — and so does anyone holding service_role. Measured in
   // docs/phase-d/PHASE_D_FOUNDER_AUTHENTICATION_RESULT.csv. os_api also refuses the static x-os-key
   // bypass on both actions, so the grant cannot be reached by the preview key either.
-  fn_founder_command_clarify:
-    'called with the founder\'s own verified JWT from os_api (asCaller); fn_phase_c_require_founder'
-    + ' inside it resolves the founder from auth.uid(), which service_role does not have, so this'
-    + ' grant narrows the caller set rather than widening it (PCCR-003)',
   fn_phase_c_governance_decide:
     'PCCR-006, applied 25 Aug 2026 on the founder\'s approval (Command Center command 39505).'
     + ' WHO: the founder, over PostgREST, with a GoTrue bearer for his own active identity.'
@@ -182,30 +188,6 @@ const AUTHENTICATED_BY_DESIGN = {
     + ' applied: a typed founder email with no verified session returns 28000. Being reachable by'
     + ' authenticated is not incidental to this routine, it is the entire design -- an approval'
     + ' service the founder cannot reach from his own browser records nothing.',
-  fn_founder_command_control:
-    'called with the founder\'s own verified JWT from os_api (asCaller); same routine, same reason'
-    + ' (PCCR-003)',
-  // G01, 23 Aug 2026 — reviewed the same three ways this file asks for.
-  //
-  // WHO: the founder, over PostgREST, with a bearer GoTrue issued for his own active identity.
-  // WITH WHICH CLIENT: the anon key plus that bearer, so PostgREST sets the request JWT claims and
-  // auth.uid() resolves inside the routine. NAMED IN AN RLS POLICY: no.
-  //
-  // The routine's FIRST statement is fn_phase_c_require_founder(null), so this grant NARROWS the
-  // caller set rather than widening it: a signed-in customer or supplier gets 28000, and so does
-  // anyone holding service_role. That was measured before any approval was recorded and is the
-  // first row of docs/phase-d/PHASE_D_PCCR_APPROVAL_RESULT.csv — the identical call with the
-  // service_role key returns 403, "not the founder". approved_by is written from the identity that
-  // resolver returns and never from the input, which is E39's vector staying closed.
-  //
-  // Without the grant there is no door a founder session can open, and the freeze board's own text
-  // says the written-instruction approval is "cleared only by re-approval through a verified auth
-  // subject, which no migration can perform".
-  // fn_phase_c_freeze_amendment_approve WAS HERE. It was dropped from production on
-  // 7 September 2026 with everything else outside the new structure, so the
-  // authenticated-executable set is one smaller than it was. Removed from the expected
-  // set rather than the assertion being relaxed: this check must still go red the day
-  // that set GROWS, which is the direction that matters.
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
