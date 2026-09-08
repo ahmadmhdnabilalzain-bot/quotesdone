@@ -1,3 +1,7 @@
+// RETIRED 9 September 2026 with os_action_classification, its only consumer.
+//
+// It parsed the action switch out of supabase/functions/os_api/index.ts, which is deleted.
+
 // Read os_api's source and return (a) every action it dispatches on and (b) the classification it
 // declares for each. The classification check compares the two, so an action added without a
 // classification fails the build instead of being discovered later in an audit.

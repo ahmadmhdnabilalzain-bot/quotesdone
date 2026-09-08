@@ -1600,3 +1600,4 @@ scripts/sql/the_phase_programme_and_its_kernel_are_removed.sql
 scripts/sql/the_organisation_that_was_removed_leaves_the_database.sql
 scripts/sql/the_os_and_the_founder_command_layer_are_removed.sql
 scripts/sql/the_whatsapp_flush_is_unwrapped_from_the_kernel.sql
+scripts/sql/nothing_is_approved_by_the_founder_any_more.sql
