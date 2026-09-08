@@ -1,3 +1,19 @@
+// RETIRED 8 September 2026 — its subject was removed from the company, not from the check.
+//
+// Subject: the profession layer of the agent roster.
+//
+// Every active employee was asserted to carry a profession body under LAYER 2 of fn_agent_context_capped,
+// with LAYER 3 and LAYER 4 inside the 19,500 characters the capped path keeps. There is no roster of
+// employees to receive a profession any more, and the capped path was retired on 8 Sep as unreachable.
+// The 54/54 empty LAYER 2 finding this check produced is recorded; it is not being buried, it simply has
+// no subject left to be true or false about.
+//
+// RETIRED RATHER THAN SOFTENED. Editing the assertions until they pass would leave a check that goes
+// green while the thing it checks does not exist, which converts an absence into confidence and is
+// worse than having no check at all. Renaming it out of the .test.mjs glob keeps every word of the
+// reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the routine names.
 // EVERY AGENT RECEIVES ITS PROFESSION.
 //
 // Knowledge audit, 6 Sep 2026 (docs/knowledge_audit/company_wide.md §3b): fn_agent_context's "LAYER 2 -

@@ -1,3 +1,20 @@
+// RETIRED 8 September 2026 — its subject was removed from the company, not from the check.
+//
+// Subject: fn_supplier_capability_chase, the guard whose loop no row could satisfy.
+//
+// This is the check that found a guard which reported success forever because its loop opened with two
+// review_status values no row had ever held. THAT LESSON IS NOT RETIRED -- it is one of the standing
+// lenses this estate reads new code with, and the next capability-confirmation mechanism must be tested
+// the same way. What is retired is this instance: fn_supplier_capability_chase was already absent from
+// production before 8 September, there is no capability-chase cron job, and fn_email_sendable (the
+// deliverability filter it drove) was retired on 8 Sep as unreachable.
+//
+// RETIRED RATHER THAN SOFTENED. Editing the assertions until they pass would leave a check that goes
+// green while the thing it checks does not exist, which converts an absence into confidence and is
+// worse than having no check at all. Renaming it out of the .test.mjs glob keeps every word of the
+// reasoning on disk for whoever rebuilds the surface, and brings nothing green with it.
+//
+// TO REVIVE: rebuild the subject, then rename this back to .test.mjs and re-point the routine names.
 // A GUARD NO ROW CAN SATISFY REPORTS SUCCESS FOREVER.
 //
 // 13 Aug 2026. fn_supplier_capability_chase is the only mechanism in the estate that asks a
