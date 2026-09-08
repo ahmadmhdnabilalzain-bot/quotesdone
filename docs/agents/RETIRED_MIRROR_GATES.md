@@ -34,9 +34,10 @@ jobs. Of the gate findings that day, 3 were defects and about 25 were copies.
 | `phase_c_invariants` block 3: nine Phase C binding CSVs = their tables, by id set | the founder's deliverable and the runtime registry are one thing | the tables are the registry; the CSVs are snapshots whose lag is printed; ownership and activeness of every binding are asserted by `phase_c_components_are_owned` and `fn_phase_c_invariants` |
 | the `fn_kernel_system_trace_state` population "every firing since the epoch" | every wrapped cron firing carries a trace | every firing **since the job was wrapped** carries a trace (`a_trace_is_required_from_the_moment_the_door_exists.sql`) — a firing that predates the kernel door is history; after the wrap nothing may slip |
 
-`docs/phase-c/PHASE_C_RUNTIME_COMPONENT_CROSSWALK.csv` and `docs/phase-d/PHASE_D_*.csv` stay in
-the tree as the last emitted snapshots. Nothing gates on them. Regenerate them when a reader
-wants a current copy, never to make a check green.
+The Phase C runtime-component crosswalk and the Phase D CSVs used to stay in the tree as the last
+emitted snapshots. Nothing gated on them, and on 9 Sep 2026 the whole Phase A–D documentation was
+deleted on the founder's instruction; git history still holds every one. The rule they illustrated
+is what survives, and it is the rule below.
 
 ## The rule going forward
 

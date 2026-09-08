@@ -19,7 +19,9 @@
 # WHAT IS DELIBERATELY NOT EXCLUDED, so this is not a keep-list that quietly grew:
 #   · *_ACCEPTANCE_CHECKLIST.md      — package INPUTS. They state what must be true, which is a
 #                                      specification. Three of them are ingested and they stay.
-#   · docs/phase-*/PHASE_*_RESULT.*  — Phase D deliverables. They record measurements, not verdicts.
+#   · PHASE_*_RESULT.*               — result files record measurements, not verdicts. The Phase A-D
+#                                      documentation that held them was deleted on 9 Sep 2026; the
+#                                      pattern stays because it is a rule, not a list.
 #   · docs/sessions/*                — handovers and briefs. They describe work, not judgements.
 #     (the single exception below is named individually and says why)
 #

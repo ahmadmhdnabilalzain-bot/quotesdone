@@ -60,7 +60,10 @@ const ROOT = process.cwd().replace(/\\/g, '/');
 const PROD = 'htdblwldjkcgjvmqkbeh';
 const MANIFEST = 'scripts/sql/MANIFEST.txt';
 const SUPERSEDED = 'scripts/sql/SUPERSEDED.txt';
-const CSV_OUT = 'docs/phase-c-final-kernel/CANONICAL_ROUTINE_MANIFEST.csv';
+// 9 Sep 2026: the emit target moved to docs/. It used to sit inside one of the nine Phase A-D
+// documentation trees, and those were deleted on the founder's instruction. The check itself is
+// unchanged — it measures production, and this CSV is a --emit side output nothing asserts against.
+const CSV_OUT = 'docs/CANONICAL_ROUTINE_MANIFEST.csv';
 const EMIT = process.argv.includes('--emit');
 const ALL = process.argv.includes('--all');   // print every finding instead of the first 25
 
