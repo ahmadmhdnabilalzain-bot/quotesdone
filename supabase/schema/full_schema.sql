@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-08T22:11:52.593Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-08T22:25:48.658Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6959,7 +6959,6 @@ ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_committe
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_role_id_fkey FOREIGN KEY (role_id) REFERENCES org_role(role_id) ON DELETE CASCADE;
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key) ON DELETE CASCADE;
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_assigned_agent_fkey FOREIGN KEY (assigned_agent) REFERENCES org_agents(agent_key);
-ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_objective_id_fkey FOREIGN KEY (objective_id) REFERENCES department_objective(id) ON DELETE SET NULL;
 ALTER TABLE public.org_workflow_ownership ADD CONSTRAINT org_workflow_ownership_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
 ALTER TABLE public.org_workflow_step ADD CONSTRAINT org_workflow_step_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
@@ -20178,7 +20177,7 @@ CREATE OR REPLACE FUNCTION public.fn_founder_mail_route(p_kind text, p_subject t
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_pol record; v_owner_role text; v_reason text; v_agent text; v_dept text;
+  v_pol record; v_owner_role text; v_reason text; v_agent text;
   v_sig text; v_task bigint; v_new boolean := false; v_prio int; v_title text;
 begin
   select * into v_pol from public.founder_mail_policy where kind = p_kind;
@@ -20186,25 +20185,28 @@ begin
   v_reason := coalesce(v_pol.reason,
     'kind ''' || coalesce(p_kind, '(null)') || ''' is not registered in founder_mail_policy, and an unregistered kind is never emailed');
 
-  -- WHO OWNS IT: the named agent, else the policy role's runtime agent, else that department's lead, else
-  -- the lane's own picker (a05_org_task_fill_ownership) when assigned_agent is left null.
-  select r.runtime_agent_key, r.primary_department_id into v_agent, v_dept
-    from public.org_role r where r.role_id = v_owner_role and r.status = 'active';
-  if p_owner_agent is not null then
+  -- WHO OWNS IT. 7 Sep 2026: the org is exactly two agents and NO departments, so a task is owned by
+  -- an AGENT and never by a department. The named agent wins; else the policy role's runtime agent;
+  -- else the seat whose work this is — customer_support for anything customer-, comms- or
+  -- marketplace-facing, the ceo for the rest. If neither seat is active the owner is left null and
+  -- a05_org_task_fill_ownership picks, exactly as before.
+  if p_owner_agent is not null and exists (
+       select 1 from public.org_agents o
+        where o.agent_key = p_owner_agent and o.active and coalesce(o.available, true)) then
     v_agent := p_owner_agent;
-    select o.department into v_dept from public.org_agents o where o.agent_key = p_owner_agent and o.active;
+  else
+    select r.runtime_agent_key into v_agent
+      from public.org_role r
+      join public.org_agents o on o.agent_key = r.runtime_agent_key and o.active and coalesce(o.available, true)
+     where r.role_id = v_owner_role and r.status = 'active';
   end if;
-  if v_dept is null or not exists (select 1 from public.org_departments d where d.dept_key = v_dept and d.active) then
-    select o.department into v_dept from public.org_agents o where o.agent_key = v_agent and o.active;
+  if v_agent is null then
+    v_agent := case when v_owner_role ~* 'support|success|customer|communicat|deliver|marketplace|sales'
+                    then 'customer_support' else 'ceo' end;
   end if;
-  if v_dept is null or not exists (select 1 from public.org_departments d where d.dept_key = v_dept and d.active) then
-    v_dept := 'exec';
-  end if;
-  if not exists (select 1 from public.org_agents o where o.agent_key = v_agent and o.active and coalesce(o.available, true)) then
-    select d.lead_agent into v_agent from public.org_departments d where d.dept_key = v_dept;
-    if not exists (select 1 from public.org_agents o where o.agent_key = v_agent and o.active and coalesce(o.available, true)) then
-      v_agent := null;
-    end if;
+  if not exists (select 1 from public.org_agents o
+                  where o.agent_key = v_agent and o.active and coalesce(o.available, true)) then
+    v_agent := null;
   end if;
 
   -- THE CONDITION: kind + subject with a leading [TAG] removed and every number replaced by '#', so
@@ -20236,9 +20238,9 @@ begin
   else
     v_prio := case when lower(coalesce(p_level, '')) in ('critical', 'urgent', 'danger', 'high', 'error', 'action', 'alert', 'escalation', 'fail', 'failed')
                    then 2 else 1 end;
-    insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, decided_by,
+    insert into public.org_tasks (title, detail, status, tier, needs_founder, decided_by,
                                   action_class, assigned_agent, priority, result)
-    values (v_dept, left(v_title, 200),
+    values (left(v_title, 200),
             '[founder_mail:' || coalesce(p_kind, 'unregistered') || '] ' || coalesce(p_body, '')
               || E'\n\nThis signal was routed to you instead of the founder''s inbox: ' || v_reason
               || '. Resolve the condition and close this task; it re-opens only if the condition returns.',
@@ -20261,8 +20263,9 @@ begin
 
   return jsonb_build_object('mode', 'routed', 'task_id', v_task, 'new', v_new, 'signature', v_sig,
                             'kind', p_kind, 'registered', v_pol.kind is not null,
-                            'owner', v_agent, 'dept', v_dept, 'owner_role', v_owner_role);
-end $function$
+                            'owner', v_agent, 'owner_role', v_owner_role);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_founder_settings()
