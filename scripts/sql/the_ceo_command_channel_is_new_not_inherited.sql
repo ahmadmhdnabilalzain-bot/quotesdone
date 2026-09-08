@@ -60,8 +60,18 @@ insert into public.ceo_command_intent (intent_id, meaning, needs_work) values
 on conflict (intent_id) do update set needs_work = excluded.needs_work, meaning = excluded.meaning;
 
 -- ── HOW AN INSTRUCTION IS RECOGNISED ───────────────────────────────────────────────────────────
--- Matched longest-pattern-first so a specific phrase beats a general verb: "stop building" is stop,
--- not build. rank breaks ties where two patterns are the same length.
+-- Matched by RANK first, then by pattern length. rank encodes intent precedence -- stop(10) beats
+-- remove(20) beats fix(30) beats build(40) beats measure(50) -- so "stop building" is stop, and
+-- "build X and verify it" is build.
+--
+-- THREE TIERS, in rank order: FRAMING (5) beats ACTION VERBS (10-60) beats TOPIC WORDS (90). A
+-- sentence is classified by what it DOES, not by what it is about.
+--
+-- It was length-first until the live probe of ceo_agent submitted a real instruction, "build the ceo
+-- edge function and verify it end to end", and got back intent=measure: "verify" is six characters
+-- and "build" is five, so the longer pattern won and the seat would have gone off to measure
+-- something instead of building it. Length is a tie-break, not a priority; a sentence with two verbs
+-- in it is the normal case and not the exception.
 create table if not exists public.ceo_command_rule (
   rule_id    bigint generated always as identity primary key,
   pattern    text not null unique,
@@ -97,15 +107,16 @@ insert into public.ceo_command_rule (pattern, intent_id, rank, note) values
   ('verify',      'measure', 50, null),
   ('decide',      'decide',  60, null),
   ('approve',     'decide',  60, null),
-  ('refund',      'decide',  60, 'refunds are the CEO''s decision from 8 Sep 2026'),
-  ('from now on', 'inform',  70, 'a standing rule, not a task'),
-  ('the rule is', 'inform',  70, null),
-  ('remember',    'inform',  70, null),
+  ('refund',      'decide',  90, 'A TOPIC, NOT AN INSTRUCTION, so it is ranked last: it fires only when no verb matched. "refunds belong to the CEO from now on" is a standing rule about refunds, not an order to decide one -- it classified as decide until the framing markers were promoted above it.'),
+  ('from now on', 'inform',   5, 'FRAMING beats every verb and every topic: a sentence that says how things will be from now on is a standing rule, whatever it is about'),
+  ('the rule is', 'inform',   5, null),
+  ('remember',    'inform',   5, null),
   ('what is',     'ask',     80, null),
   ('what are',    'ask',     80, null),
   ('why',         'ask',     80, null),
   ('who',         'ask',     80, null)
-on conflict (pattern) do nothing;
+on conflict (pattern) do update
+  set intent_id = excluded.intent_id, rank = excluded.rank, note = excluded.note;
 
 -- ── THE CHANNEL ────────────────────────────────────────────────────────────────────────────────
 create table if not exists public.ceo_command (
@@ -194,7 +205,7 @@ as $fn$
   select r.intent_id, r.rule_id, r.pattern
     from public.ceo_command_rule r
    where position(r.pattern in lower(coalesce(p_text, ''))) > 0
-   order by length(r.pattern) desc, r.rank asc
+   order by r.rank asc, length(r.pattern) desc
    limit 1
 $fn$;
 
