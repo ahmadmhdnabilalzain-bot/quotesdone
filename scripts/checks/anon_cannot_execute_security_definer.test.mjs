@@ -192,7 +192,7 @@ const AUTHENTICATED_BY_DESIGN = {
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
 if (hasToken) {
-  const { sql } = await import('../phase_c/lib/db.mjs');
+  const { sql } = await import('../lib/db.mjs');
   rows = await sql(`
     select p.proname,
            has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can,

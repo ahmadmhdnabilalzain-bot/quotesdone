@@ -2,7 +2,7 @@
 //  1. the BEFORE statuses of the four, straight off the live function;
 //  2. no patch anchor touches the eight branches the other agent owns;
 //  3. after the patched function runs, no outbound HTTP request is attributable to the transaction.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { PATCHES } from './fourmore_patch.mjs';
 
 const live = (await sql(

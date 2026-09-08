@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = `do $p$
 declare v jsonb; v_fx jsonb; v_cands jsonb; v_rev text; v_run bigint; v_ref_key text; v_boid text;
         v_srid bigint; v_out text := ''; r record;

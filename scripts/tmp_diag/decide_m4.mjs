@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, s) => { try { const r = await sql(s); console.log('=== ' + label); console.log(JSON.stringify(r).slice(0, 8000)); } catch(e){ console.log('=== '+label+' ERR '+String(e).slice(0,600)); } };
 
 await q('whoami', `select current_user, session_user, current_setting('is_superuser') su`);

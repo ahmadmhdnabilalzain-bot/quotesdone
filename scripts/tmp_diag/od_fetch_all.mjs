@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import fs from 'node:fs';
 const n = await sql(`select count(*)::int c, sum(length(prosrc))::bigint b from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace where ns.nspname='public'`);
 console.error('funcs', JSON.stringify(n));

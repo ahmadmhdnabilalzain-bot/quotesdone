@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{const r=await sql(s);console.log('=== '+l);console.log(JSON.stringify(r).slice(0,6000));}catch(e){console.log('=== '+l+' ERR '+String(e).slice(0,400));}};
 await q('compliance steps', `select step_id, step_name, actor_role from public.phase_b_workflow_step where step_name ~* 'complian' or actor_role ~* 'complian' limit 20`);
 await q('compliance roles', `select role_id from public.org_role where role_id ~* 'complian' limit 20`);

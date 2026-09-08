@@ -1,5 +1,5 @@
 // Aborted-transaction probe A: can each candidate injection be ATTEMPTED, and is there a control?
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const body = `
 do $emit$

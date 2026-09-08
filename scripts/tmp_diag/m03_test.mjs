@@ -2,7 +2,7 @@
 //   node m03_test.mjs tally
 //   node m03_test.mjs slice <from> <len>   -- window over the concatenated observed text of the 8
 import fs from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const CAND = fs.readFileSync('scripts/tmp_diag/m03_injected_defects_candidate.sql', 'utf8');
 const EIGHT = process.env.ONLY ? '('+process.env.ONLY.split(',').map(x=>"'"+x+"'").join(',')+')' : "('PD-IDEM-002','PD-REV-002','PD-REV-004','PD-REV-005','PD-STATE-002','PD-STATE-003','PD-TRACE-003','PD-TRACE-004')";

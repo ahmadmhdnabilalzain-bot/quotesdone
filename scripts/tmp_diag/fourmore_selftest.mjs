@@ -5,7 +5,7 @@
 //
 //   node scripts/tmp_diag/fourmore_selftest.mjs           statuses for all 75
 //   node scripts/tmp_diag/fourmore_selftest.mjs --detail  the four branches' full observed text
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { PATCHES } from './fourmore_patch.mjs';
 
 const DETAIL = process.argv.includes('--detail');

@@ -24,7 +24,7 @@ if (!(process.env.SUPABASE_ACCESS_TOKEN
   process.exit(0);
 }
 
-const { sql } = await import('../phase_b/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 // Ids are DERIVED from the live registry, never hard-coded.  The first version of this test
 // used 'H-W12-01-02', which does not exist: the UPDATE matched zero rows, raised nothing, and

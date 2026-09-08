@@ -1,5 +1,5 @@
 import { writeFileSync, appendFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const out='scripts/tmp_diag/probe_tail2.txt'; writeFileSync(out,'');
 const cases=[['W12','W12-S06'],['W05','W05-S07'],['W16','W16-S05'],['W01','W01-S07'],['W09','W09-S03']];
 for (const [id,step] of cases) {

@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q=async(l,t)=>{try{const r=await sql(t);console.log(`${l}: ${JSON.stringify(r).slice(0,400)}`);}catch(e){console.log(`${l}: ERR ${String(e.message).slice(0,200)}`)}};
 await q('phaseA', `select count(*) n from public.fn_phase_a_baseline_drift()`);
 await q('phaseB', `select count(*) n from public.fn_phase_b_baseline_drift()`);

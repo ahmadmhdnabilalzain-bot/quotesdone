@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import fs from 'node:fs';
 const all = JSON.parse(fs.readFileSync(new URL('./allfns.json', import.meta.url)));
 const names = new Set(Object.keys(all));

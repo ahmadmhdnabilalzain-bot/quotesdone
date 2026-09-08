@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- G07 — a run the kernel carried to completion by itself was counted by nobody
 --

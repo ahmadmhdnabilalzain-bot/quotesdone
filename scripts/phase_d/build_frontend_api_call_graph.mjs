@@ -98,7 +98,7 @@
 // only live-data channel in the application is not a call graph.
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { outPath, provenance } from './lib/deliverable.mjs';
 
 // THE FLOOR. Independently measured 20 Aug 2026 against this working tree and used as a floor, not

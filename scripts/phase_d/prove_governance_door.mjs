@@ -40,7 +40,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const RECORD = process.argv.includes('--record');
 const PROJECT = 'htdblwldjkcgjvmqkbeh';

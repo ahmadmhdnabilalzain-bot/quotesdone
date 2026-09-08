@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, s) => { try { const r = await sql(s); console.log('##', label); console.log(JSON.stringify(r).slice(0, 12000)); } catch (e) { console.log('##', label, 'ERR', String(e.message).slice(0, 400)); } };
 await q('step effect cols', `select column_name from information_schema.columns where table_name='phase_d_step_effect' order by ordinal_position`);
 await q('step effects of interest', `select e.step_id, e.expected_effect_type, e.effect_object_id, e.effect_operation, e.expected_state_transition, e.completion_condition, e.implementation_depth, e.object_resolution from public.phase_d_step_effect e where e.step_id in ('W17-S01','W17-S02','W17-S03','W17-S06','W17-S07','W17-S08','W17-S10','W01-S03','W01-S07','W04-S01','W04-S03','W04-S04','W04-S05','W15-S02','W15-S05','W15-S06','W15-S08','W12-S06','W28-S01','W28-S02','W28-S07','W30-S10','W07-S04','W07-S05','W25-S06','W16-S02','W16-S06','W14-S01','W14-S02','W09-S03','W03-S06','W20-S04','W26-S05','W05-S04') order by 1`);

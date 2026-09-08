@@ -7,7 +7,7 @@
 //   node scripts/phase_d/build_outcome_overdue_report.mjs
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const rows = await sql('select * from public.fn_phase_d_outcome_overdue_report()');
 const total = (await sql('select count(*) n from public.outcome_record'))[0].n;

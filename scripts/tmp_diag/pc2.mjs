@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, text) => {
   try { const r = await sql(text); console.log(`\n### ${label}`); console.log(JSON.stringify(r, null, 1).slice(0, 12000)); }
   catch (e) { console.log(`\n### ${label}\nERROR ${String(e.message).slice(0,600)}`); }

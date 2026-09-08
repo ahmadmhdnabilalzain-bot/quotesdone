@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log('--- fn security/volatility ---');
 console.log(JSON.stringify(await sql(`
 select p.proname, p.prosecdef, p.provolatile, pg_get_userbyid(p.proowner) as owner

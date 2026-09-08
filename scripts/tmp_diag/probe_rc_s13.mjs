@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log('MAP', JSON.stringify(await sql(`select object_id, target_relation, key_column, owner_column, column_map from public.phase_d_object_write_map where object_id in ('review_record','initiative','invoice_receipt')`)));
 console.log('REVIEW_CHAIN NN', JSON.stringify(await sql(`select column_name, is_nullable, column_default from information_schema.columns where table_name='review_chain' and table_schema='public' and is_nullable='NO' order by ordinal_position`)));
 console.log('CAT subject', JSON.stringify(await sql(`select fixture_id, workflow_id, step_id, field_key, value from public.phase_d_fixture_catalogue where field_key in ('subject_type','subject_id','author_agent','stage') order by field_key`)));

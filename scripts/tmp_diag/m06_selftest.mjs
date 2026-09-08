@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync } from 'node:fs';
 const body = readFileSync('scripts/tmp_diag/m06_merged_body.sql', 'utf8');
 const q = `do $emit$

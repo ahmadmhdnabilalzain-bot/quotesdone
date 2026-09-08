@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, s) => { try { const r = await sql(s); console.log('##', label); console.log(JSON.stringify(r).slice(0, 9000)); } catch (e) { console.log('##', label, 'ERR', String(e.message).slice(0, 400)); } };
 await q('s8 map', `select * from public.phase_d_section8_defect_map order by 1`);
 await q('s8 results', `select probe_id, verdict, http_status, ran_at, left(observed,120) obs from public.phase_d_section8_probe_result order by 1`);

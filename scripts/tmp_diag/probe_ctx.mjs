@@ -1,6 +1,6 @@
 // Probe the step context of the FIRST step run of one workflow, in an aborted transaction.
 //   node scripts/tmp_diag/probe_ctx.mjs W14
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const WF = process.argv[2] || 'W14';
 const q = `
 do $emit$

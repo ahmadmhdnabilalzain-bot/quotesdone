@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const WF = process.argv[2] || 'W02';
 const q = `do $emit$
 declare v_fx jsonb; v3 jsonb; v_cands jsonb; v_rev text; v_out text := ''; r record; v_err text;

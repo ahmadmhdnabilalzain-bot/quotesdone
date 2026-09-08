@@ -61,7 +61,7 @@
 //           fn_phase_d_run_injected_defects() reads.
 
 import { readFileSync } from 'node:fs';
-import { sql, lit } from '../phase_c/lib/db.mjs';
+import { sql, lit } from '../lib/db.mjs';
 
 const WRITE = process.argv.includes('--write');
 const PROJECT = 'htdblwldjkcgjvmqkbeh';

@@ -3,7 +3,7 @@
 // statuses. Nothing is written: the CREATE OR REPLACE and every row the probes insert roll back.
 //
 //   node scripts/tmp_diag/decide_selftest.mjs
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { PATCHES } from './decide_patch.mjs';
 
 const live = (await sql(`select pg_get_functiondef(p.oid) d

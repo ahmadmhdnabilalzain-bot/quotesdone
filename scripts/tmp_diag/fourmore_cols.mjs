@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`select table_name, string_agg(column_name, ', ' order by ordinal_position) cols
  from information_schema.columns where table_schema='public'
  and table_name in ('leads','supplier_accounts','inquiries','notifications')

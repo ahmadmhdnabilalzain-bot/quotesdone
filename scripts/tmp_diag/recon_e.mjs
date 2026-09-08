@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import fs from 'node:fs';
 const names = ['fn_phase_c_trace_append_only','fn_phase_c_trace_advance','fn_phase_c_trace_write','fn_seal_decision_trace','fn_decision_trace_immutable','fn_kernel_write_guard','fn_phase_c_step_run_trace_guard'];
 const r = await sql(`select p.proname, pg_get_functiondef(p.oid) as def from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname = any(array[${names.map(n=>`'${n}'`).join(',')}]) order by 1`);

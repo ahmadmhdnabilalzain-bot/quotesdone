@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const HEAD = `-- H11 — a gate that needed a reviewer refused before the reviewer could be recorded
 --
 -- GATE-021 (marketing artifact approval, W03;W20) and GATE-026 (knowledge validation, W26) declare

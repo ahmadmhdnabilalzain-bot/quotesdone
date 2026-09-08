@@ -1,7 +1,7 @@
 // H10 generator: fn_phase_d_effect_produce — the review_record write fills review_chain's four
 // mandatory columns from facts the run already holds, not from a catalogue it never consulted.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H10 — the review verdict wrote a chain row with no subject, no author and no stage type
 --

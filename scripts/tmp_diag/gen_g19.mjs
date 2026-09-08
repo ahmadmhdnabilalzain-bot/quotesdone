@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- G19 — a founder command born without the trace that lets it ever move
 --

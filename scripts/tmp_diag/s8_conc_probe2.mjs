@@ -2,7 +2,7 @@
 // transaction-scoped advisory lock and holding it 2s. If each call is its own transaction and the
 // two are genuinely concurrent, they SERIALISE: total wall ~4s, not ~2s. xact locks release at
 // commit, so nothing is left behind.
-import { sql, lit } from '../phase_b/lib/db.mjs';
+import { sql, lit } from '../lib/db.mjs';
 const q = (tag) => `do $$
 declare t0 timestamptz := clock_timestamp();
 begin

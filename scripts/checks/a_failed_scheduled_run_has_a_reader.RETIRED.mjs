@@ -315,7 +315,7 @@ const DISCLOSED_AFTER_THE_WATERMARK = [
 
 let cronRows = [], agentRows = [], watcher = null, activeWatchers = [];
 if (hasToken) {
-  const { sql } = await import('../phase_c/lib/db.mjs');
+  const { sql } = await import('../lib/db.mjs');
   cronRows = await sql(`
     select coalesce(j.jobname, 'jobid ' || d.jobid::text) as jobname,
            count(*)::int as failures,

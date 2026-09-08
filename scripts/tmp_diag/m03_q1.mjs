@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`
 select s.workflow_id, count(*) n,
   count(*) filter (where coalesce(btrim(s.independent_reviewer_role_id),'')<>'') rev,

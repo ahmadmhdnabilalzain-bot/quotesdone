@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, s) => { const r = await sql(s); console.log('=== ' + label); console.log(JSON.stringify(r, null, 1).slice(0, 6000)); };
 
 await q('phase_d functions', `select p.proname, pg_get_function_identity_arguments(p.oid) as args

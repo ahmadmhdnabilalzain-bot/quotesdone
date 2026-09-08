@@ -2,7 +2,7 @@
 // 23 KB routine moves. Two branches change; every anchor is an exact, complete substring of the
 // live body and the script refuses if any of them is not found exactly once.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const [{ def }] = await sql(
   `select pg_get_functiondef('public.fn_phase_d_handler_execute(jsonb)'::regprocedure) as def`);

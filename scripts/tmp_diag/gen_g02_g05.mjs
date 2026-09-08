@@ -1,6 +1,6 @@
 // Generate G02–G05 by splicing the LIVE definitions. Each anchor must match exactly once.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const live = async (name) => {
   const r = await sql(`select pg_get_functiondef(p.oid) as def from pg_proc p

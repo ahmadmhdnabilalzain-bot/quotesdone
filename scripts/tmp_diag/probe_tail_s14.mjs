@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const J = (x) => JSON.stringify(x);
 // static facts
 console.log('reveal_invoices pkey', J(await sql(`select conname, pg_get_constraintdef(oid) d from pg_constraint where conrelid='public.reveal_invoices'::regclass and contype in ('p','u')`)));

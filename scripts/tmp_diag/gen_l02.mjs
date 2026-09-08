@@ -1,5 +1,5 @@
 // Candidate fn_phase_d_rule_applies, generated from the LIVE body.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 let ra = (await sql(`select pg_get_functiondef('public.fn_phase_d_rule_applies(text,text)'::regprocedure) def`))[0].def;
 

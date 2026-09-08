@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = `do $p$
 declare v_fx jsonb; v_out text := '';
 begin

@@ -1,7 +1,7 @@
 // H06 generator: fn_phase_d_drive_workflow — a run the scenario's own arrival started before the
 // scenario was complete gets its open step dispatched again, through the same kernel door.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H06 — the scenario's own arrival started the run before the scenario was finished building
 --

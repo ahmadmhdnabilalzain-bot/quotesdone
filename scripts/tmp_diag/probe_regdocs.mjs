@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = `do $p$
 declare v_id bigint; v_out text := ''; n0 int; n1 int; n2 int;
 begin

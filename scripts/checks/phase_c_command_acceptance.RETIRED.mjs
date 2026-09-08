@@ -32,7 +32,7 @@ if (!hasToken) {
   process.exit(0);
 }
 
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 const { readCSV } = await import('../phase_c/lib/package.mjs');
 
 const cases = readCSV(join(REPO, 'docs', 'phase-c', 'package', 'PHASE_C_COMMAND_ROUTING_ACCEPTANCE_CASES.csv'));

@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log('--- NON-LEAF stages that a workflow produces (withhold CANNOT skip these) ---');
 console.log(JSON.stringify(await sql(`
  select st.stage_no, st.stage_key, st.object_id,

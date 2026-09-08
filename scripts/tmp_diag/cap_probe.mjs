@@ -1,6 +1,6 @@
 // What the capability path actually did, per step, for the workflows whose first refusal is
 // pd_capability_unavailable. Reads fn_phase_d_drive_workflow's own 'capability' report.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const DRIVE = `
 do $emit$

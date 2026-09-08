@@ -27,7 +27,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
   || existsSync(join(homedir(), '.supabase', 'access-token'));

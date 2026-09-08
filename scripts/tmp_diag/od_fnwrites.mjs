@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const seeds = process.argv.slice(2);
 const seen = new Map();
 const q = [...seeds];

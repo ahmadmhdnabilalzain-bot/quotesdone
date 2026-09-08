@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 let out = '';
 const q = async (label, s) => { try { const r = await sql(s); out += `## ${label}\n${JSON.stringify(r).slice(0, 14000)}\n`; } catch (e) { out += `## ${label} ERR ${String(e.message).slice(0, 400)}\n`; } };

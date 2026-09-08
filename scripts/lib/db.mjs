@@ -1,6 +1,12 @@
-// Read-only SQL reader for Phase B scripts.  One project: htdblwldjkcgjvmqkbeh.
+// The repository's SQL reader.  One project: htdblwldjkcgjvmqkbeh.
 //
-// Every Phase B check must verify by execution, so the validators talk to the live
+// Lived at scripts/phase_b/lib/db.mjs until 9 Sep 2026, with scripts/phase_c/lib/db.mjs as a
+// re-export so Phase C scripts need not reach into Phase B's tree. Neither location was ever
+// true of what it is: deploy_functions.mjs, every file in scripts/kb/ and a dozen checks import
+// it, and none of them is a phase script. It moved here so the phase directories can be deleted
+// without taking the deployer and the knowledge tooling with them.
+//
+// Every check here must verify by execution, so the validators talk to the live
 // database rather than to a cached dump.  The 429 backoff is here for the same
 // reason it is in scripts/qsql.mjs: a bare throttle reads exactly like a broken
 // query, and that has been misdiagnosed as a defect before.

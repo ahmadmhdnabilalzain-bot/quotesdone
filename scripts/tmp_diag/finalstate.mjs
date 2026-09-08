@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q=async(l,t)=>{try{const r=await sql(t);console.log(`${l}: ${JSON.stringify(r).slice(0,300)}`);}catch(e){console.log(`${l}: ERR ${String(e.message).slice(0,160)}`)}};
 await q('now utc', `select now() at time zone 'utc' n`);
 await q('phaseA drift', `select count(*) n from public.fn_phase_a_baseline_drift()`);

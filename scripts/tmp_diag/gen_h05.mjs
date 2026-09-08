@@ -1,6 +1,6 @@
 // H05 generator: fn_phase_d_dispatch_step — an APPEND_ONLY object gets a new key per appending step.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H05 — an append-only object was written under the key it had already been written under
 --

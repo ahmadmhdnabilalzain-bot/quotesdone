@@ -2,7 +2,7 @@
 // scripts/tmp_diag/fourmore_branches.sql, so every `find` anchor is an exact substring of the live
 // body rather than something retyped by hand.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const live = (await sql(
   `select pg_get_functiondef('public.fn_phase_d_run_injected_defects()'::regprocedure) as d`))[0].d;

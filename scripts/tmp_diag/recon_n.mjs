@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import fs from 'node:fs';
 const r = await sql(`select p.oid::regprocedure::text sig, pg_get_functiondef(p.oid) def from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('fn_phase_d_object_write','fn_phase_d_gate_eval','fn_phase_c_gate_eval') order by 1`);
 let out=''; for(const x of r) out+='\n\n=========== '+x.sig+'\n'+x.def;

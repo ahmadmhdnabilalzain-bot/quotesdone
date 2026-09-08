@@ -31,7 +31,7 @@ if (!hasToken) {
   console.log('SKIP phase_c_founder_chain: no Supabase management token in this environment.');
   process.exit(0);
 }
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 // Taken BEFORE anything runs, so the closing assertion can compare a delta instead of asserting
 // that the company has never received a founder command.

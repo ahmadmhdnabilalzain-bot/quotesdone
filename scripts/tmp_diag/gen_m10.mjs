@@ -1,6 +1,6 @@
 // M10 — the probe that reached a kernel-internal primitive.
 // Returns PD-AUTH-005 and PD-LEGAL-005 to exemptions and states why.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 
 let live = (await sql(`select pg_get_functiondef('public.fn_phase_d_run_injected_defects()'::regprocedure) def`))[0].def;

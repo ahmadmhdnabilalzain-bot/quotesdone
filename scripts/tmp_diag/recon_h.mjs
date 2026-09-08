@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`select table_name, routine_name from public.kernel_write_authority where table_name in ('phase_c_task','phase_c_workflow_run','phase_c_workflow_step_run','phase_c_trace') order by table_name, routine_name`);
 console.log(JSON.stringify(r));
 const s = await sql(`select column_name from information_schema.columns where table_schema='public' and table_name='phase_c_workflow_run' order by ordinal_position`);

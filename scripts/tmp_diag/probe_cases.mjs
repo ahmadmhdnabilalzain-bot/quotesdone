@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const STEP = process.argv[2] || 'W03-S02';
 const WF = STEP.slice(0,3);
 const q = `do $p$

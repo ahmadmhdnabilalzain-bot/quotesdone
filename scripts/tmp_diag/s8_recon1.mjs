@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const out = {};
 out.schema = await sql(`select column_name, data_type, is_nullable, column_default
   from information_schema.columns where table_schema='public' and table_name='phase_d_section8_probe_result'

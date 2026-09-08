@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const J=x=>JSON.stringify(x);
 console.log('org_role cols', J(await sql(`select column_name from information_schema.columns where table_name='org_role' and table_schema='public' order by ordinal_position`)));
 console.log('cos dept', J(await sql("select role_id, primary_department_id from public.org_role where role_id='chief_of_staff'")));

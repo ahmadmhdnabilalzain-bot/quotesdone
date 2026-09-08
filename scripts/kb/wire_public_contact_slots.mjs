@@ -14,7 +14,7 @@
 //   node scripts/kb/wire_public_contact_slots.mjs [--apply]
 
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const APPLY = process.argv.includes('--apply');
 

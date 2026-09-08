@@ -22,7 +22,7 @@
 //   V  the resolved version equals the one the reference carries
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql, PROJECT_REF } from '../phase_c/lib/db.mjs';
+import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const RS = String.fromCharCode(30);
 const US = String.fromCharCode(31);

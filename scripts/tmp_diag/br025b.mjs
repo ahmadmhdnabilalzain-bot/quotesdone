@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,t)=>{try{console.log(`\n### ${l}`);console.log(JSON.stringify(await sql(t),null,1).slice(0,7000));}catch(e){console.log(`\n### ${l}\nERR ${String(e.message).slice(0,400)}`)}};
 await q('terms stages', `select stage_no, stage_key, object_id, contributes_ref, requires_stages from public.phase_d_fixture_stage where stage_key ilike '%terms%' or object_id ilike '%terms%'`);
 await q('who requires terms stages (leaf?)', `select stage_key, requires_stages from public.phase_d_fixture_stage where 'customer_terms_acceptance' = any(requires_stages) or 'supplier_terms_acceptance' = any(requires_stages)`);

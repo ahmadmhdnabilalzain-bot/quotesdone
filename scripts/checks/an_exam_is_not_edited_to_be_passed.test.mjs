@@ -35,7 +35,7 @@
 
 // A REPO-RELATIVE IMPORT. This was an absolute file:///C:/Users/... URL, which resolves on one
 // laptop and on no CI runner anywhere.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';

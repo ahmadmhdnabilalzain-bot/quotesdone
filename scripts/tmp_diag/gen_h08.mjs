@@ -1,7 +1,7 @@
 // H08 generator: fn_phase_d_fixture_scenario — the F15 settling write addresses the row the first
 // write returned, not the key the stage was called with.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H08 — the settling write looked for the row by the key the stage was called with, and for a
 --       generated-key relation that key names nothing

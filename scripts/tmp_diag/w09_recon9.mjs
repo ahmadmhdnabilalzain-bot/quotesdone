@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const p = (t, r) => { console.log('=== ' + t + ' (' + (r ? r.length : 0) + ') ==='); console.log(JSON.stringify(r, null, 1)); };
 
 p('handler_binding W09 rule/gate ids', await sql(`select step_id, handler_class, handler_routine, rule_ids, gate_ids from public.phase_d_handler_binding where step_id like 'W09-%' order by step_id`));

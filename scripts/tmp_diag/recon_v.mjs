@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q=async(l,s)=>{try{console.log('\n=== '+l);console.log(JSON.stringify(await sql(s),null,1));}catch(e){console.log('\n=== '+l+' ERR '+e.message);}};
 await q('run states', `select state, count(*) n, max(opened_at) last from public.phase_c_workflow_run group by 1 order by 2 desc`);
 await q('step run states', `select state, count(*) n, max(started_at) last from public.phase_c_workflow_step_run group by 1 order by 2 desc`);

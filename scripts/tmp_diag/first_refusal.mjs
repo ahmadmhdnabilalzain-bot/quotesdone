@@ -1,7 +1,7 @@
 // Diagnostic: drive one workflow exactly as the deliverable builder does, and dump the FIRST
 // refused dispatch together with the step context the handler was given. Aborted transaction.
 //   node scripts/tmp_diag/first_refusal.mjs W03
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const WF = process.argv[2] || 'W03';
 const US = String.fromCharCode(31);

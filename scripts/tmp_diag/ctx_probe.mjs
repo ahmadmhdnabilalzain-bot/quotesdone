@@ -1,5 +1,5 @@
 // Resolved context + provenance for the FIRST step of a workflow, inside a fixture scenario.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const KEYS = process.argv[3] ? process.argv[3].split(',') : null;
 

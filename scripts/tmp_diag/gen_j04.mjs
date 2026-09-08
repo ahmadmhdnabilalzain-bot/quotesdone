@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const src = async (n) => (await sql(
   `select prosrc from pg_proc p join pg_namespace x on x.oid=p.pronamespace

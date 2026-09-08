@@ -2,7 +2,7 @@
 // splicing in the hold-at-an-open-step mode. Generated, never hand-edited, so the rest of the
 // routine is byte-identical to what production runs today.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const [{ prosrc }] = await sql(
   `select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace

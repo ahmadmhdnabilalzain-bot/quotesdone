@@ -1,7 +1,7 @@
 // H02 generator: fn_phase_d_object_write — no invented state, an identity probe by the caller's key,
 // and an idempotent confirmation instead of a refusal when the row already carries what was asked.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H02 — the writer invented a state, could not find the row it was told about, and refused a
 --        write that asked for exactly what the row already was

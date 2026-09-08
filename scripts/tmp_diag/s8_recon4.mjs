@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const out = {};
 out.safe_view_cols = await sql(`select column_name, data_type from information_schema.columns
   where table_schema='public' and table_name='inquiries_supplier_safe' order by ordinal_position`);

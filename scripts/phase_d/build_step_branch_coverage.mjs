@@ -40,7 +40,7 @@
 // handler could have failed.
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const arg = (k, d) => (process.argv.find(a => a.startsWith(`--${k}=`)) || `--${k}=${d}`).split('=').slice(1).join('=');
 const ONLY = arg('only', '').split(',').filter(Boolean);

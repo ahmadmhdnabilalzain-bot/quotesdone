@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 let d = (await sql(`select pg_get_functiondef('public.fn_phase_d_external_deliver(jsonb)'::regprocedure) def`))[0].def;
 const A = `  v_sha := encode(sha256(convert_to(v_payload::text,'UTF8')),'hex');`;

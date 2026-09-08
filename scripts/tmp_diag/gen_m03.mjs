@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync, readFileSync } from 'node:fs';
 let d = (await sql(`select pg_get_functiondef('public.fn_phase_d_outbound_state()'::regprocedure) def`))[0].def;
 const lines = d.split('\n');

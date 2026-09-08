@@ -12,7 +12,7 @@
 
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const argOut = process.argv.indexOf('--out');
 const OUT = argOut >= 0 ? process.argv[argOut + 1] : 'drop_list.json';

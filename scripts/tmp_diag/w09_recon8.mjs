@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import fs from 'node:fs';
 const r = await sql(`select p.oid::regprocedure::text as sig, pg_get_functiondef(p.oid) as def
   from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace

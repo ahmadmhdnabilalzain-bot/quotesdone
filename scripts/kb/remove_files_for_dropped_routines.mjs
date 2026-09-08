@@ -16,7 +16,7 @@
 
 import { readFileSync, writeFileSync, unlinkSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const APPLY = process.argv.includes('--apply');
 const D = 'scripts/sql';

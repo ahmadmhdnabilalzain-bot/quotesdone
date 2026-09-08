@@ -1,6 +1,6 @@
 // Merge every injected-defect branch patch set onto the LIVE body and write the migration.
 //   node scripts/tmp_diag/gen_m06.mjs
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync, existsSync, readFileSync } from 'node:fs';
 
 let body = (await sql(`select pg_get_functiondef('public.fn_phase_d_run_injected_defects()'::regprocedure) def`))[0].def;

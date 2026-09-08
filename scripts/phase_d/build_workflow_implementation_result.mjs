@@ -36,7 +36,7 @@ import { outPath, provenance } from './lib/deliverable.mjs';
 // door scripts/phase_c and scripts/checks already use for exactly this. Nothing is weakened:
 // assertNotProduction still guards every migration and rebuild path, and the residue assertion
 // below still reads the tables back and proves the probe left nothing.
-import { sql, PROJECT_REF } from '../phase_c/lib/db.mjs';
+import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const DRIVE = `
 do $emit$

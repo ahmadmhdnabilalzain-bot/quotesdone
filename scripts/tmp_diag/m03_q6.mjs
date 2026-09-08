@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log(JSON.stringify(await sql(`
 select s.step_id, s.step_no, c.kind, c.next_step_id, s.independent_reviewer_role_id, s.accountable_role_id
 from public.phase_b_workflow_step s cross join lateral public.fn_kernel_step_successor(s.step_id) c

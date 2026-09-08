@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const cfg = JSON.parse(readFileSync('scripts/checks/kernel-boards.json', 'utf8'));
 const RATCHET = cfg.ratchet || cfg.disclosed || [];
 const boards = await sql('select * from public.fn_kernel_all_boards()');

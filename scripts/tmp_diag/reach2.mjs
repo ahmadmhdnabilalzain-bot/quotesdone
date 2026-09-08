@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`select
   substring(prosrc from 415 for 60) ctx,
   (prosrc ~ 'fn_provision_category_call[[:space:]]*[(]') a,

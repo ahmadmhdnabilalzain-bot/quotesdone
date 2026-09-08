@@ -31,7 +31,7 @@
 //   node --test scripts/checks/every_position_sits_its_certifications.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';

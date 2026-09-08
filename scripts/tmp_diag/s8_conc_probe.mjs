@@ -1,4 +1,4 @@
-import { sql, lit } from '../phase_b/lib/db.mjs';
+import { sql, lit } from '../lib/db.mjs';
 const q = (tag) => `select ${lit(tag)} as tag,
   pg_backend_pid() as pid,
   clock_timestamp()::text as t_start,

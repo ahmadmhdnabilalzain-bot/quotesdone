@@ -1,5 +1,5 @@
 // Full refusal reasons for one workflow, one refusal code. Aborted transaction.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const CODE = process.argv[2];
 const DRIVE = `

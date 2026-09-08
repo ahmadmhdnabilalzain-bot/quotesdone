@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const WFS = process.argv[2]
   ? process.argv[2].split(',')
   : (await sql('select workflow_id from public.phase_b_workflow order by workflow_id')).map(r => r.workflow_id);

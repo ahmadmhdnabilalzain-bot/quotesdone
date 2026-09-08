@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`select b.object_id, b.ownership_scope, b.relation_kind, b.governing_workflow_id,
    (select w.primary_object from public.phase_b_workflow w where w.workflow_id=b.governing_workflow_id) prim,
    (select count(*) from public.phase_d_object_write_map m where m.object_id=b.object_id) wm

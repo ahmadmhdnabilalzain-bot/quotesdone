@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = `do $emit$
 declare v_fx jsonb; v jsonb; v_out text := ''; v_cands jsonb; v_sr bigint; v_cx jsonb;
 begin

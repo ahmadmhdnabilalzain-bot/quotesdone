@@ -50,7 +50,7 @@ if (!(process.env.SUPABASE_ACCESS_TOKEN
   console.log('SKIPPED: no management token, so production cannot be read. Not asserting anything.');
   process.exit(0);
 }
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 let pass = 0, fail = 0;
 const line = (ok, name, detail) => {

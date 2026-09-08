@@ -27,7 +27,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { inflateSync } from 'node:zlib';
-import { sql, PROJECT_REF } from '../phase_c/lib/db.mjs';
+import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const tokenPath = join(homedir(), '.supabase', 'access-token');
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(tokenPath);

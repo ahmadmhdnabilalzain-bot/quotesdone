@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`
   select p.oid::text as oid,
          pg_get_function_identity_arguments(p.oid) as args,

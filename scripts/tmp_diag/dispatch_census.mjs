@@ -1,7 +1,7 @@
 // Diagnostic: drive each frozen workflow through the kernel doors in an aborted transaction and
 // dump EVERY phase_d_dispatch row it produced, so the refusal work-list is measured, not guessed.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const RS = '';
 const US = '';

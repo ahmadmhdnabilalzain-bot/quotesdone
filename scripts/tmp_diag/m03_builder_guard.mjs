@@ -3,7 +3,7 @@
 // free-text field at 240 characters. This computes the same payload length for all 15 categories
 // from a single run of the report wrapper.
 import fs from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const CAND = fs.readFileSync('scripts/tmp_diag/m03_injected_defects_candidate.sql', 'utf8');
 const q = `do $emit$
 declare v_out text := '';

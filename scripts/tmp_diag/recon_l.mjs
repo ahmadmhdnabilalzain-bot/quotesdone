@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{console.log('\n=== '+l);console.log(JSON.stringify(await sql(s),null,1));}catch(e){console.log('\n=== '+l+' ERR '+e.message);}};
 await q('check constraints on phase_c_trace / decision_trace / phase_c_step_completion', `
 select rel.relname, con.conname, con.contype, pg_get_constraintdef(con.oid) as def

@@ -15,7 +15,7 @@
 // works. If a new bypass appears the verdict is NOT_REFUSED and the case reopens, which is the
 // point of recording it rather than asserting it.
 import { execFileSync } from 'node:child_process';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const TEST = 'scripts/checks/no_edge_function_calls_a_provider_directly.test.mjs';
 

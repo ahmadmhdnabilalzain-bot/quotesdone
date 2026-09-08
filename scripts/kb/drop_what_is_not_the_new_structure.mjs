@@ -15,7 +15,7 @@
 //   node scripts/kb/drop_what_is_not_the_new_structure.mjs --list <drop_list.json> [--apply]
 
 import { readFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const at = (f) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : null; };
 const LIST = at('--list');

@@ -49,7 +49,7 @@
 // event id was emitted AND the canonical consumer answered handled on it. An event no drive emits
 // is NOT_EMITTED and is closed on the frozen structural reason its registry row already carries --
 // never on silence.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const arg = (k, d) => (process.argv.find(a => a.startsWith(`--${k}=`)) || `--${k}=${d}`).split('=').slice(1).join('=');
 const ONLY = arg('only', '').split(',').filter(Boolean);

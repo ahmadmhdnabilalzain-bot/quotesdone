@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, s) => { try { const r = await sql(s); console.log('##', label); console.log(JSON.stringify(r).slice(0, 9000)); } catch (e) { console.log('##', label, 'ERR', String(e.message).slice(0, 400)); } };
 await q('gate contracts', `select gate_id, evidence_keys, refusal_code, left(note,200) note from public.phase_d_gate_contract where gate_id in ('GATE-005','GATE-011','GATE-019','GATE-020','GATE-021','GATE-026','GATE-004','GATE-013') order by 1`);
 await q('gate contract cols', `select column_name from information_schema.columns where table_name='phase_d_gate_contract' order by ordinal_position`);

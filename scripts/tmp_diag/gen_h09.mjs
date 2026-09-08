@@ -1,7 +1,7 @@
 // H09 generator: fn_phase_d_object_write — H02's "state not carried" refusal refused the 41 review
 // verdicts; it becomes a reported fact instead of a refusal.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H09 — a refusal H02 added that fired on the one object whose state was never a column
 --

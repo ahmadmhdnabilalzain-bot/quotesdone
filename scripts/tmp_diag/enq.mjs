@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 const d = (await sql(`select pg_get_functiondef(p.oid) def from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='fn_enqueue_doc_backups'`));
 writeFileSync('scripts/tmp_diag/enq_body.txt', d.map(x=>x.def).join('\n\n'));

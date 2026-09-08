@@ -1,6 +1,6 @@
 // Generates scripts/sql/phase_d_j02_*.sql from the LIVE body of fn_kernel_cancel.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const [{ prosrc }] = await sql(
   `select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace

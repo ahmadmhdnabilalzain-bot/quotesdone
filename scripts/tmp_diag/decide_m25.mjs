@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{const r=await sql(s);console.log('=== '+l);console.log(JSON.stringify(r).slice(0,2500));}catch(e){console.log('=== '+l+' ERR '+String(e).slice(0,300));}};
 await q('drawing/redaction objects', `select count(*) n from public.phase_d_object_state_contract where object_id ~* 'draw|redact|metadata'`);
 await q('render routines', `select count(*) n from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace where ns.nspname='public' and p.proname like 'fn_phase_d%' and p.prosrc ~* 'render|pdf|exif|docx|html'`);

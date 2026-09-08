@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const J=x=>JSON.stringify(x);
 // role -> dept mapping candidates
 console.log('org_roles cols', J(await sql(`select column_name from information_schema.columns where table_name='org_roles' and table_schema='public'`)).slice(0,600));

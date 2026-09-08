@@ -1,5 +1,5 @@
 // L01 candidate, all parts, generated from the LIVE bodies.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 const get = async sig => (await sql(`select pg_get_functiondef('${sig}'::regprocedure) def`))[0].def;
 

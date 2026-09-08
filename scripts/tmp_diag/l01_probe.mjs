@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync } from 'node:fs';
 const ra = readFileSync('scripts/tmp_diag/l01_rule_applies.sql','utf8');
 const sc = readFileSync('scripts/tmp_diag/l01_step_context.sql','utf8');

@@ -1,6 +1,6 @@
 // Build the candidate fn_phase_d_rule_applies (step-position instead of whole-workflow for the
 // PRODUCER branch) from the LIVE body, and run the applicability delta in one aborted transaction.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 
 const live = (await sql(`select pg_get_functiondef('public.fn_phase_d_rule_applies(text,text)'::regprocedure) def`))[0].def;

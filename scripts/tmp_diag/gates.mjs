@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`select * from public.fn_os_portals_gates()`);
 const met = r.filter(x => x.met === true || x.state === 'MET' || x.ok === true).length;
 console.log('rows ' + r.length);

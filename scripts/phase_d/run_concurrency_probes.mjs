@@ -43,7 +43,7 @@
 // cannot tell a dead guard from an idle system. So after the race, a third session claims the same
 // canary ALONE and must get exactly 1. Without that arm, "B claimed nothing" and "there was
 // nothing to claim" are the same observation.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { randomUUID } from 'node:crypto';
 
 const AUDIT = randomUUID();

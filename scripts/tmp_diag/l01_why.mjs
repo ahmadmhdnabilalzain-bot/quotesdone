@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync } from 'node:fs';
 const R = f => readFileSync('scripts/tmp_diag/' + f, 'utf8');
 const WF = process.argv[2], STEP = process.argv[3];

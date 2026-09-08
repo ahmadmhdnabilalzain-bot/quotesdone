@@ -1,7 +1,7 @@
 // Diagnostic: why is the scenario door silent at kernel dispatch time? Re-dispatch the same step
 // run from the probe and compare; also print the manifest entries for the supplier stages.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const run = async (q, tag) => {
   try { await sql(q); return 'no raise'; }
   catch (e) { const m = String(e.message); const a = m.indexOf(tag + '<<'); return a < 0 ? m.slice(0, 2500) : m.slice(a + tag.length + 2, m.lastIndexOf('>>')).replace(/\\n/g, '\n').replace(/\\"/g, '"'); }

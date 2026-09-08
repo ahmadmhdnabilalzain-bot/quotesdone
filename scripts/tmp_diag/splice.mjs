@@ -4,7 +4,7 @@
 // anchor matched exactly once, and returns the new body.  A splice that matched zero or twice is a
 // stop, not a warning: the whole point of generating from the live body is that the file that lands
 // is the file that was measured.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 export async function liveBody(name, args) {
   const rows = await sql(`select pg_get_functiondef(p.oid) d

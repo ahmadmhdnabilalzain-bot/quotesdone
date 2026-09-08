@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const step = process.argv[2] || 'W09-S03', wf = step.slice(0,3);
 const q = `do $emit$
 declare v jsonb; v_fx jsonb; v_cands jsonb; v_rev text; v_out text:=''; v_ref_key text; v_boid text; v_ctx jsonb; v_srid bigint;

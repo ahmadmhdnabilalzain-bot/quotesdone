@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync } from 'node:fs';
 const cand = readFileSync('scripts/tmp_diag/l01_candidate.sql','utf8');
 const q = `do $emit$

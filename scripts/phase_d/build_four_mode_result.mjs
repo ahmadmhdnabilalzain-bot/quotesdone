@@ -28,7 +28,7 @@
 //                 that produced a second effect would show here as a positive delta.
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const WFS = (await sql('select workflow_id from public.phase_b_workflow order by workflow_id'))
   .map(r => r.workflow_id);

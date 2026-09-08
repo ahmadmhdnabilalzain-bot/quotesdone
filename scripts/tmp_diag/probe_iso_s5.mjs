@@ -3,7 +3,7 @@
 // read the temp table, raise. DDL is transactional, so the live routine is untouched afterwards; the
 // read-back at the end of this file asserts it.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`select pg_get_functiondef(p.oid) as def, md5(p.prosrc) h from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='fn_phase_d_step_context'`);
 let def = r[0].def; const h0 = r[0].h;
 const anchor = `        select sc.canonical_ref into v_scn_ref

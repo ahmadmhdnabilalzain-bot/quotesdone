@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const p = (t, r) => { console.log('=== ' + t + ' (' + (r ? r.length : 0) + ') ==='); console.log(JSON.stringify(r, null, 1)); };
 
 p('phase_d_rule_enforcement BR-025 & BR-026', await sql(`select * from public.phase_d_rule_enforcement where rule_id in ('BR-025','BR-026') order by rule_id`));

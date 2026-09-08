@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const FILE = 'scripts/sql/phase_d_g12_the_three_objects_only_the_kernel_may_create.sql';
 const base = readFileSync(FILE, 'utf8');

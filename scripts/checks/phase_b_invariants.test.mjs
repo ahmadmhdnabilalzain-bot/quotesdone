@@ -25,7 +25,7 @@ if (!(process.env.SUPABASE_ACCESS_TOKEN
   process.exit(0);
 }
 
-const { sql } = await import('../phase_b/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 const { REPO, verifyChecksums } = await import('../phase_b/lib/package.mjs');
 const { MIGRATION_FILES } = await import('../phase_b/rehearse.mjs');
 

@@ -45,7 +45,7 @@
 import { readFileSync, readdirSync, existsSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const PROJECT = 'htdblwldjkcgjvmqkbeh';
 const FN_DIR = 'supabase/functions';

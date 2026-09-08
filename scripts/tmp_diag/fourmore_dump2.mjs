@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const names = [
  'public.fn_phase_d_gate_evaluate',
  'public.trg_gate_incomplete_match',

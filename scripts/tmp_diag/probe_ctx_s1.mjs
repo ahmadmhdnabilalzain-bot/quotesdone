@@ -4,7 +4,7 @@
 // message at 2000 characters, so every probe here stays under it.
 //   node scripts/tmp_diag/probe_ctx_s1.mjs W14 W14-S01
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const WF = process.argv[2];
 const STEP = process.argv[3];
 

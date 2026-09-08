@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log(JSON.stringify(await sql(`
 select s.workflow_id, s.step_id, s.step_no, coalesce(s.independent_reviewer_role_id,'-') rev,
   (select count(*) from public.phase_b_workflow_step z where z.workflow_id=s.workflow_id) n

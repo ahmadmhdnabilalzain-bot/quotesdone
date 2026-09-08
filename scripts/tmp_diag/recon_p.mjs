@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q=async(l,s)=>{try{console.log('\n=== '+l);console.log(JSON.stringify(await sql(s),null,1));}catch(e){console.log('\n=== '+l+' ERR '+e.message);}};
 await q('routines implementing gate011 refusal', `select p.oid::regprocedure::text sig from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prolang<>12 and pg_get_functiondef(p.oid) like '%gate011_inquiry_not_ready%' order by 1`);
 await q('notifications append-only trigger', `select c.relname tbl, t.tgname, p.proname, pg_get_triggerdef(t.oid) def from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace join pg_proc p on p.oid=t.tgfoid where not t.tgisinternal and n.nspname='public' and c.relname in ('notifications','inquiry_matches','phase_d_object_record') order by 1,2`);

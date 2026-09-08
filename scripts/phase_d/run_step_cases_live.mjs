@@ -35,7 +35,7 @@
 // handler: the handler BUILDS its own output from the frozen registry and a caller has no lever on
 // it, so there is no input that makes a handler produce an output its own contract rejects. The row
 // records decided_at = 'kernel_boundary' and says so.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const arg = (k, d) => (process.argv.find(a => a.startsWith(`--${k}=`)) || `--${k}=${d}`).split('=').slice(1).join('=');
 const ONLY = arg('only', '').split(',').filter(Boolean);

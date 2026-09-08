@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (s,l)=>{console.log('\n### '+l); console.log(JSON.stringify(await sql(s),null,1));};
 await q(`select t.tgname, p.proname, pg_get_triggerdef(t.oid) as def
  from pg_trigger t join pg_proc p on p.oid=t.tgfoid

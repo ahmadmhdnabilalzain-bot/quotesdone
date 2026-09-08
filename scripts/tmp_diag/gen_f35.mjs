@@ -1,6 +1,6 @@
 // Build F35 by splicing the LIVE fn_phase_d_drive_workflow definition.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const [{ def }] = await sql(
   `select pg_get_functiondef('public.fn_phase_d_drive_workflow(jsonb)'::regprocedure) as def`);

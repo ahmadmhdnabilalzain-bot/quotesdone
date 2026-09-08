@@ -8,7 +8,7 @@
 //   node scripts/kb/probe_org_task_lane.mjs            # 5 open tasks per (event, department) cluster
 //   node scripts/kb/probe_org_task_lane.mjs 3          # n per cluster
 //   node scripts/kb/probe_org_task_lane.mjs 5 kpi      # only clusters whose event matches
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const PER = Math.max(1, Math.min(Number(process.argv[2]) || 5, 20));

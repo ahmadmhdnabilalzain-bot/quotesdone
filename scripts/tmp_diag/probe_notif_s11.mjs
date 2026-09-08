@@ -1,4 +1,4 @@
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log(JSON.stringify(await sql(`select * from public.phase_d_object_reference_strategy where object_id='notification'`)));
 console.log('--- notifications columns ---');
 console.log(JSON.stringify(await sql(`select column_name, is_nullable, column_default from information_schema.columns where table_name='notifications' and table_schema='public' order by ordinal_position`)).slice(0,2500));

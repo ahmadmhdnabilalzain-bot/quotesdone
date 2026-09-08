@@ -1,7 +1,7 @@
 // Diagnostic: one drive per workflow, print the FIRST refusal (dispatch order) with its full reason,
 // and the ordered outcome list. node scripts/tmp_diag/first_refusal_s1.mjs W04,W05,...
 import { writeFileSync, appendFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const only = (process.argv[2] || '').split(',').filter(Boolean);
 const out = 'scripts/tmp_diag/first_refusal_s1.txt';
 writeFileSync(out, '');

@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const cols = await sql(`
  select table_name, ordinal_position, column_name, data_type, is_nullable, column_default
  from information_schema.columns

@@ -1,5 +1,5 @@
 // What kernel-owned rows does the fixture scenario itself cause to exist? Aborted transaction.
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = `
 do $emit$
 declare v_fx jsonb; v_out text := '';

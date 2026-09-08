@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 let inp = (await sql(
   `select pg_get_functiondef('public.fn_phase_d_fixture_input(bigint,text,text)'::regprocedure) as def`))[0].def;

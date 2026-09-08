@@ -16,7 +16,7 @@
 //   node scripts/kb/support_capability_inventory.mjs
 
 import { existsSync, readdirSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const tables = new Set((await sql(`select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
   where n.nspname='public' and c.relkind in ('r','v','m')`)).map((x) => x.relname));

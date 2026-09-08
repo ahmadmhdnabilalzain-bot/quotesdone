@@ -12,7 +12,7 @@
 // paged by this probe. The counts come out in the exception message.
 //
 //   node scripts/checks/red_view_alerter_pages_once_per_episode.mjs
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const probe = `
 do $probe$

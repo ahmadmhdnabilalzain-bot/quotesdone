@@ -53,7 +53,7 @@ if (!hasToken) {
   console.log('SKIP phase_c_guards_reject_injected_defects: no Supabase management token here.');
   process.exit(0);
 }
-const { sql } = await import('../phase_c/lib/db.mjs');
+const { sql } = await import('../lib/db.mjs');
 
 /**
  * Each case supplies a body that must RAISE.  `expect` is a substring the raised message must

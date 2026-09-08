@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log(JSON.stringify(await sql(`
 select source_component_id, source_class, target_workflow, target_step_or_signal, current_activation
   from public.phase_c_source_cutover

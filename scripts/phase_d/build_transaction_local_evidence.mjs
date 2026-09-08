@@ -22,7 +22,7 @@
 // make it a leak.
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql, PROJECT_REF } from '../phase_c/lib/db.mjs';
+import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 // P05. THE SEPARATORS COST MORE THAN THE DATA.
 // chr(30) and chr(31) are JSON-escaped to six bytes each by the management transport, so ~108

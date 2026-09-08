@@ -1,6 +1,6 @@
 // Generate the L-series migrations from the LIVE bodies on htdblwldjkcgjvmqkbeh.
 //   node scripts/tmp_diag/gen_l_series.mjs
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { writeFileSync } from 'node:fs';
 
 const get = async sig => (await sql(`select pg_get_functiondef('${sig}'::regprocedure) def`))[0].def;

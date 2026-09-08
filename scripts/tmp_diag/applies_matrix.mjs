@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 // Full (rule, step) applicability matrix, current live function.
 const r = await sql(`
   select r.rule_id, s.step_id, s.workflow_id, a.applies

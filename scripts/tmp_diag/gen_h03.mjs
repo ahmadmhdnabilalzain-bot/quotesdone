@@ -1,7 +1,7 @@
 // H03 generator: fn_phase_d_step_context — reviewer_role_id for a step that is not itself a review
 // is the reviewer of the review this run actually recorded.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H03 — a gate about the review that happened, asked at a step that did not do the reviewing
 --

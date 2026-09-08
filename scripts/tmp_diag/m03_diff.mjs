@@ -1,6 +1,6 @@
 // Before/after per-defect status diff: live body vs candidate, both in aborted transactions.
 import { readFileSync } from 'node:fs';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const CAND = readFileSync('scripts/tmp_diag/m03_injected_defects_candidate.sql', 'utf8');
 
 async function run(withCandidate) {

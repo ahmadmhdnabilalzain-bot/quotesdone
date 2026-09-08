@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const p = (t, r) => { console.log('=== ' + t + ' (' + (r ? r.length : 0) + ') ==='); console.log(JSON.stringify(r, null, 1)); };
 
 p('cols phase_b_business_rule', await sql(`select column_name, data_type from information_schema.columns where table_schema='public' and table_name='phase_b_business_rule' order by ordinal_position`));

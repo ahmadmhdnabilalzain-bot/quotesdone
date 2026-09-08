@@ -1,6 +1,6 @@
 // node scripts/tmp_diag/dump_fn.mjs <proname> [outfile]
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const name = process.argv[2];
 const out = process.argv[3] || `scripts/tmp_diag/${name}.txt`;
 const r = await sql(`select pg_get_functiondef(p.oid) as def from pg_proc p

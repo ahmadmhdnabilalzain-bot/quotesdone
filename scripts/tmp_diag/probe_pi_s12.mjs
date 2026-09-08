@@ -1,6 +1,6 @@
 // Full reason for pd_effect_payload_incomplete / value_malformed / identity_collision steps, per workflow.
 import { writeFileSync, appendFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const only = (process.argv[2]||'').split(',').filter(Boolean);
 const out='scripts/tmp_diag/probe_pi_s12.txt'; writeFileSync(out,'');
 for (const id of only) {

@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log('--- net tables ---');
 console.log(JSON.stringify(await sql(`select table_name from information_schema.tables where table_schema='net' order by 1`)));
 for (const t of ['http_request_queue', '_http_response']) {

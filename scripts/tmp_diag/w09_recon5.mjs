@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import fs from 'node:fs';
 const names = ['fn_phase_d_rule_check','fn_phase_d_rule_applies'];
 let out = '';

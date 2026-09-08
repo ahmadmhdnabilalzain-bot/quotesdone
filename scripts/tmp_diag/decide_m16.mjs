@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{const r=await sql(s);console.log('=== '+l);console.log(JSON.stringify(r).slice(0,5000));}catch(e){console.log('=== '+l+' ERR '+String(e).slice(0,400));}};
 await q('object_record counts', `select object_id, count(*) n, count(*) filter (where state='approved') appr from public.phase_d_object_record group by 1 order by 1`);
 await q('founder identity', `select identity, kind, active, auth_user_id is not null has_sub from public.phase_c_founder_identity`);

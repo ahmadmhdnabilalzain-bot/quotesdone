@@ -11,7 +11,7 @@
 //   node scripts/phase_d/approve_pccr008.mjs --record  # execute
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const RECORD = process.argv.includes('--record');
 const PROJECT = 'htdblwldjkcgjvmqkbeh';

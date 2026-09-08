@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const p = (t, r) => { console.log('=== ' + t + ' (' + (r ? r.length : 0) + ') ==='); console.log(JSON.stringify(r, null, 1)); };
 
 p('legal_documents supplier-agreement', await sql(`select slug, version, encode(sha256(convert_to(coalesce(body_html,''),'UTF8')),'hex') as body_sha from public.legal_documents where slug in ('supplier-agreement','customer-terms') order by slug, version`));

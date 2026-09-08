@@ -9,7 +9,7 @@
 //   node scripts/phase_d/build_fixture_catalogue.mjs
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const cols = ['fixture_id','fixture_version','workflow_id','step_id','scope','field_key','value',
   'value_kind','currency','expected_schema','expected_result','prohibited_external_use',

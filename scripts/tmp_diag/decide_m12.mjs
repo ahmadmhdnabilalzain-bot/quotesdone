@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{const r=await sql(s);console.log('=== '+l);console.log(JSON.stringify(r).slice(0,6000));}catch(e){console.log('=== '+l+' ERR '+String(e).slice(0,400));}};
 await q('fixture stages', `select stage_no, stage_key, object_id from public.phase_d_fixture_stage order by stage_no`);
 await q('object state contracts drawing/redaction/safe/acceptance', `select object_id, policy_family from public.phase_d_object_state_contract where object_id ~* 'draw|redact|safe|accept|certificat|quote|quotation' order by 1`);

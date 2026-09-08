@@ -1,7 +1,7 @@
 // Diagnostic: (1) parent_refs and the non-CREATED manifest entries of one scenario; (2) leads
 // unique indexes; (3) W14 first-step dispatch: unresolved keys and fixture_context at dispatch time.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const run = async (q, tag) => {
   try { await sql(q); return 'no raise'; }
   catch (e) { const m = String(e.message); const a = m.indexOf(tag + '<<'); return a < 0 ? m.slice(0, 2500) : m.slice(a + tag.length + 2, m.lastIndexOf('>>')).replace(/\\n/g, '\n').replace(/\\"/g, '"'); }

@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 let sc = readFileSync('scripts/tmp_diag/l01_step_context.sql','utf8');
 const OLD = `      select cko.object_id into v_key_obj

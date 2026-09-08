@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log(JSON.stringify(await sql(`
 select
  (select count(*) from public.phase_b_workflow_step) steps,

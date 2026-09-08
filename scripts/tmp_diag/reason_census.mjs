@@ -1,7 +1,7 @@
 // Like dispatch_census but with the FULL reason (up to 900 chars) per non-EXECUTED dispatch, one probe per workflow,
 // one message per dispatch row to dodge the 2000-char transport cap.
 import { writeFileSync, appendFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const ids = (await sql('select workflow_id from public.phase_b_workflow order by workflow_id')).map((r) => r.workflow_id);
 const only = process.argv[2] ? process.argv[2].split(',') : ids;
 const out = process.argv[3] || 'scripts/tmp_diag/reason_census.txt';

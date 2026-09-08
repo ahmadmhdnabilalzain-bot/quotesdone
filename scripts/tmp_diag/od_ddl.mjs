@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log('--- constraints on phase_d_outbound_door ---');
 console.log(JSON.stringify(await sql(`select conname, pg_get_constraintdef(oid) as def from pg_constraint where conrelid='public.phase_d_outbound_door'::regclass order by 1`), null, 1));
 console.log('--- grants ---');

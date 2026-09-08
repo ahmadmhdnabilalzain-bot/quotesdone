@@ -1,7 +1,7 @@
 // Diagnostic, FULLY ROLLED BACK: instrument fn_phase_d_dispatch_step AND fn_phase_d_step_context in
 // the aborted transaction; run the W14 kernel start; see which one logs at kernel time.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const defOf = async (n) => (await sql(`select pg_get_functiondef(p.oid) as def, md5(p.prosrc) h from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='${n}'`))[0];
 const sc = await defOf('fn_phase_d_step_context');
 const ds = await defOf('fn_phase_d_dispatch_step');

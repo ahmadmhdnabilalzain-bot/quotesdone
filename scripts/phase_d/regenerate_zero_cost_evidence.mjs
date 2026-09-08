@@ -23,7 +23,7 @@
 //
 // ZERO COST, ZERO EFFECT: it reads six counts and writes one file in the repository.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const DOC = 'docs/phase-d/PHASE_D_ZERO_COST_EVIDENCE.md';
 const WRITE = process.argv.includes('--write');

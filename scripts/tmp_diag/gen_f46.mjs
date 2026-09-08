@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const get = async (sig) => (await sql(`select pg_get_functiondef('${sig}'::regprocedure) as def`))[0].def;
 
 // ---------- fn_phase_d_ref: one field that always holds the identity ---------------------------

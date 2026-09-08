@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 // EVERY TEST HERE READS PRODUCTION, and the checks job does not hold the management credential.
 // A file that threw would be a red nobody could fix from CI; a file that VANISHED would be worse --

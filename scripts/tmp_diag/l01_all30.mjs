@@ -1,6 +1,6 @@
 // Drive every workflow with the candidate L01-L04 bodies applied inside one aborted transaction
 // per workflow, withholding the object the workflow under test produces on ALL 30.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync } from 'node:fs';
 const R = f => readFileSync('scripts/tmp_diag/' + f, 'utf8');
 const CAND = process.argv.includes('--baseline') ? '' : `

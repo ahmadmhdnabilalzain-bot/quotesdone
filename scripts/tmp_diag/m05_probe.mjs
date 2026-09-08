@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync } from 'node:fs';
 const body = readFileSync('scripts/sql/phase_d_m05_the_rule_that_would_have_refused_the_send_was_never_asked.sql','utf8')
   .replace(/^--[^\n]*\n/gm, '').trim();

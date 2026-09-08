@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const tables = ['customers','leads','inquiries','inquiry_matches','documents','quotes',
   'phase_c_workflow_run','phase_c_workflow_step_run','workflow_run','workflow_step_run',
   'org_tasks','notifications','company_event','doc_backups','phase_c_event_outbox','event_delivery'];

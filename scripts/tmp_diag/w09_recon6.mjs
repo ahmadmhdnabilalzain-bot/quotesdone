@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const p = (t, r) => { console.log('=== ' + t + ' (' + (r ? r.length : 0) + ') ==='); console.log(JSON.stringify(r, null, 1)); };
 
 p('fixture_stage all (compact)', await sql(`select stage_no, stage_key, object_id, contributes_ref, contributes_kind, reference_relation, requires_stages, working_state from public.phase_d_fixture_stage order by stage_no`));

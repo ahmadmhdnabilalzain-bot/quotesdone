@@ -1,7 +1,7 @@
 // Splice the eight branches from the eight-injection candidate onto the CURRENT live body.
 // The candidate was generated from the body BEFORE M06, so it carries the old text for M06's
 // sixteen; only the eight it owns are taken from it.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const IDS = ['PD-IDEM-002','PD-REV-002','PD-REV-004','PD-REV-005',

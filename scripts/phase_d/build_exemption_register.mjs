@@ -13,7 +13,7 @@
 //   node scripts/phase_d/build_exemption_register.mjs
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const rows = await sql(`select defect_id, category, disposition, reason,
                                what_would_make_it_executable, decided_at

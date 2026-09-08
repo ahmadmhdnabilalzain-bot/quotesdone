@@ -6,7 +6,7 @@
 // expected_machine_result; this script supplies status, observed and blocker from the live run and
 // refuses to write if the two disagree on the population.
 import { writeFileSync, readFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { outPath, provenance } from './lib/deliverable.mjs';
 
 const CAT = 'QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/registries/PHASE_D_INJECTED_DEFECT_CATALOG.csv';

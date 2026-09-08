@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{const r=await sql(s);console.log('=== '+l);console.log(JSON.stringify(r).slice(0,3500));}catch(e){console.log('=== '+l+' ERR '+String(e).slice(0,300));}};
 await q('inquiries triggers', `select tgname, tgfoid::regproc::text f from pg_trigger where tgrelid='public.inquiries'::regclass and not tgisinternal order by tgname`);
 await q('object_write kernel owned', `select (prosrc ~ 'pd_object_kernel_owned') hit, substring(prosrc from '.{0,140}pd_object_kernel_owned.{0,60}') frag from pg_proc where proname='fn_phase_d_object_write'`);

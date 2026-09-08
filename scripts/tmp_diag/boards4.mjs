@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = `
   select p.proname as caller, r.path_name as primitive
     from public.kernel_retired_path r

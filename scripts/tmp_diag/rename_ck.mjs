@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 await sql(`alter table public.phase_d_injected_defect_disposition
   drop constraint if exists phase_d_injected_defect_disposition_disposition_check,
   drop constraint if exists phase_d_injected_defect_disp_what_would_make_it_executabl_check,

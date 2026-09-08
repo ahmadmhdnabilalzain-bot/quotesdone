@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (label, s) => { try { const r = await sql(s); console.log('=== ' + label); console.log(JSON.stringify(r).slice(0, 9000)); } catch(e){ console.log('=== '+label+' ERR '+String(e).slice(0,600)); } };
 
 await q('quotes policies', `select polname, polcmd, pg_get_expr(polqual, polrelid) as using_x, pg_get_expr(polwithcheck, polrelid) as check_x, (select array_agg(rolname) from pg_roles where oid = any(polroles)) roles

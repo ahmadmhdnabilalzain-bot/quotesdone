@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const r = await sql(`
   select p.proname caller, r.path_name primitive
     from public.kernel_retired_path r

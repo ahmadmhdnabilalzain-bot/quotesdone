@@ -1,7 +1,7 @@
 // H04 generator: fn_phase_d_fixture_effect_payload — three corrections to what the committed
 // catalogue and the scenario supply to an effect payload, all fixture-context only.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H04 — a key that names a row was asked of a resolver that had not been told to resolve it; a
 --        constant was handed to a column that must be unique; and a relation with nothing

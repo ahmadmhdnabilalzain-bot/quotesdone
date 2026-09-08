@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const q = async (l,s)=>{try{const r=await sql(s);console.log('=== '+l);console.log(JSON.stringify(r).slice(0,7000));}catch(e){console.log('=== '+l+' ERR '+String(e).slice(0,400));}};
 await q('phase_b rule tables', `select table_name from information_schema.tables where table_schema='public' and table_name like 'phase_b%rule%'`);
 await q('rule enforcement cols', `select column_name from information_schema.columns where table_schema='public' and table_name='phase_d_rule_enforcement' order by ordinal_position`);

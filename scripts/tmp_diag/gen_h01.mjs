@@ -1,7 +1,7 @@
 // H01 generator: splice four corrections into the live fn_phase_d_handler_execute and write the
 // migration file. Anchors must each match exactly once; the rest of the routine is byte-identical.
 import { writeFileSync } from 'node:fs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const HEAD = `-- H01 — the handler asked the kernel for a verdict it could have asked the estate for, and handed
 --        the effect a review it had already read

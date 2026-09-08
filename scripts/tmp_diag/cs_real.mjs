@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 const label = process.argv[2] || 'phase-d-closing-2026-08-24';
 const r1 = await sql(`select public.fn_phase_d_committed_scenario_open('{"label":${JSON.stringify(label)}}'::jsonb) as v`);
 console.log('OPEN  ' + JSON.stringify(r1[0].v));

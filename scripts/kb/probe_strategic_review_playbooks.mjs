@@ -11,7 +11,7 @@
 //
 //   node scripts/kb/probe_strategic_review_playbooks.mjs
 //   node scripts/kb/probe_strategic_review_playbooks.mjs --all-runs   # every running run, not one per context
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const ALL = process.argv.includes('--all-runs');

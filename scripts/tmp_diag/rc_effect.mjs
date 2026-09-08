@@ -1,4 +1,4 @@
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 console.log('--- phase_d_step_effect columns ---');
 console.log(JSON.stringify(await sql(`select column_name,data_type from information_schema.columns where table_schema='public' and table_name='phase_d_step_effect' order by ordinal_position`)));
 console.log('--- rows whose effect_object_id relates to terms acceptance ---');

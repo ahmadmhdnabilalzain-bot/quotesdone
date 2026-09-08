@@ -33,7 +33,7 @@
 //   node scripts/phase_d/prove_capability_boundary.mjs
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const steps = (await sql(`select b.step_id, b.workflow_id, b.capability_dependency
   from public.phase_d_handler_binding b where b.capability_dependency <> 'NONE' order by b.step_id`))

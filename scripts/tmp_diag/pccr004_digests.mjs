@@ -1,5 +1,5 @@
 // Computes the digests PCCR-004's amendment table must state. Reads only; writes nothing.
-import { sql } from '../phase_b/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 import { createHash } from 'node:crypto';
 const sha = s => createHash('sha256').update(s, 'utf8').digest('hex');
 

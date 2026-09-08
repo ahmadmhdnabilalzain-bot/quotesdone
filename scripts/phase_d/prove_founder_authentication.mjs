@@ -6,7 +6,7 @@
 //   node scripts/phase_d/prove_founder_authentication.mjs
 import { writeFileSync } from 'node:fs';
 import { outPath, provenance } from './lib/deliverable.mjs';
-import { sql } from '../phase_c/lib/db.mjs';
+import { sql } from '../lib/db.mjs';
 
 const q = `do $emit$
 declare
