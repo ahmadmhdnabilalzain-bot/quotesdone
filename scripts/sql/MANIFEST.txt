@@ -1585,3 +1585,5 @@ scripts/sql/the_cutover_register_stops_claiming_deleted_sources.sql
 [OK] Command outcome recorded
 scripts/sql/retire_the_routines_no_seat_can_reach.sql
 scripts/sql/the_tools_the_maintenance_runs_on_are_not_dead_code.sql
+scripts/sql/the_ceo_gets_its_own_command_machine_not_phase_cs.sql
+scripts/sql/every_approval_is_the_ceos_now_including_the_money.sql
