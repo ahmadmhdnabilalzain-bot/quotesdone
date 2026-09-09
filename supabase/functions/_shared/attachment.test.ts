@@ -176,3 +176,20 @@ Deno.test('an unidentifiable file is refused rather than waved through', () => {
   assert(!r.ok);
   assertEquals(sniff(u8(0x00, 0x01, 0x02, 0x03)), 'application/octet-stream');
 });
+
+// ---------------------------------------------------------------- CAD (cad_convert)
+// The ASCII variant is the one people actually export. Only the binary sentinel was recognised, so
+// every real .dxf was refused as unsupported_type before CloudConvert was ever asked.
+Deno.test('an ASCII DXF is recognised, in both the bare and the right-aligned group-code form', () => {
+  assertEquals(sniff(enc('0\r\nSECTION\r\n2\r\nHEADER\r\n9\r\n$ACADVER\r\n1\r\nAC1015\r\n')), 'image/vnd.dxf');
+  assertEquals(sniff(enc('  0\n  SECTION\n  2\nENTITIES\n')), 'image/vnd.dxf');
+  assertEquals(sniff(enc('AutoCAD Binary DXF\r\n\x1a\x00rest')), 'image/vnd.dxf');
+  assertEquals(sniff(enc('AC1032nnnnnnnnnnnn')), 'image/vnd.dwg');
+});
+
+Deno.test('the DXF signature does not swallow ordinary text', () => {
+  // Anything whose first line is not exactly the group code 0 followed by SECTION.
+  assert(sniff(enc('0\r\nSECTIONAL SOFA QUOTE\r\n')) !== 'image/vnd.dxf');
+  assert(sniff(enc('10\r\nSECTION\r\n')) !== 'image/vnd.dxf');
+  assert(sniff(enc('SECTION\r\n0\r\n')) !== 'image/vnd.dxf');
+});

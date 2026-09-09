@@ -1381,7 +1381,35 @@ function NewRequest({ token, onDone, onCancel }) {
       setDrawing(dr);
       const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
       if (n >= 1) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
-      push({ role: 'assistant', text: n ? ('Got it — I read ' + n + ' line item' + (n > 1 ? 's' : '') + ' from your file' + (res.boq.category ? ' (' + res.boq.category + ')' : '') + '. Add anything else, or tap Send to suppliers below.') : 'Thanks — I\'ve attached your file for suppliers. Tell me a little about the job so I can brief them properly.' });
+      // TELL THE TRUTH ABOUT THE DRAWING (9 Sep 2026). This branch used to say "Thanks — I've
+      // attached your file for suppliers" whenever the BOQ came back empty, and it said it whether
+      // or not anything had been attached. It never read res.ok (drawing_boq answers HTTP 200 with
+      // ok:false, so an analysis failure was completely invisible) and never read
+      // redaction_complete, which customer_api computes precisely so the caller can know whether
+      // every page survived redaction. A drawing that is not redacted is NOT sent to suppliers —
+      // customer_api drops the paths and create_inquiry refuses unrecorded ones — so the old
+      // sentence was telling the buyer their drawing had reached suppliers when it had reached
+      // nobody. A customer must not be told that.
+      const pagesIn = Number((res && res.redaction_pages_in) || 0);
+      const pagesOut = Number((res && res.redaction_pages_out) || 0);
+      const attached = pagesIn > 0 && res.redaction_complete === true;
+      const partial = pagesIn > 0 && !attached;
+      let text;
+      if (n >= 1) {
+        text = 'Got it — I read ' + n + ' line item' + (n > 1 ? 's' : '') + ' from your file' + (res.boq.category ? ' (' + res.boq.category + ')' : '') + '.'
+          + (partial ? ' I could not prepare ' + (pagesOut ? 'all of' : 'any of') + ' the drawing for sharing, so ' + (pagesOut ? 'only ' + pagesOut + ' of ' + pagesIn + ' page' + (pagesIn > 1 ? 's' : '') + ' will go to suppliers' : 'the drawing itself will not go to suppliers') + ' — the details below still will.' : '')
+          + ' Add anything else, or tap Send to suppliers below.';
+      } else if (res && res.advice) {
+        // customer_api names the real reason (CAD not converted, archive, unreadable pages).
+        text = res.advice;
+      } else if (attached) {
+        text = 'Thanks — I could not pull a bill of quantities out of this file, but I have prepared '
+          + pagesIn + ' page' + (pagesIn > 1 ? 's' : '') + ' of it to share with suppliers. Tell me a little about the job so I can brief them properly.';
+      } else {
+        text = 'Thanks — I have your file, but I could not prepare it to share with suppliers, so it will not go out with your request. Please tell me about the job here and I will brief them from that'
+          + (partial ? ', or re-upload the drawing as a clear PDF and I will try again.' : '.');
+      }
+      push({ role: 'assistant', text });
     } catch (_e) { push({ role: 'assistant', text: 'I could not read that file, but you can still describe the job here in the chat.' }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };

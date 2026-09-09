@@ -1241,3 +1241,4 @@ scripts/sql/the_os_is_open_to_every_signed_in_person.sql
 scripts/sql/the_demo_guard_keeps_rehearsals_out_of_notifications.sql
 scripts/sql/the_company_gets_a_third_seat_and_it_is_a_sales_engineer.sql
 scripts/sql/the_sales_engineer_gets_its_own_knowledge_body.sql
+scripts/sql/five_document_functions_come_back_with_owners.sql

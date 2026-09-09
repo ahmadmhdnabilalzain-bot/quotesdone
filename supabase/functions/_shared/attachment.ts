@@ -114,6 +114,16 @@ export function sniff(b: Uint8Array): string {
   // means a newer AutoCAD release does not silently become an unrecognised upload.
   if (/^AC10\d\d$/.test(asciiAt(b, 0, 6))) return 'image/vnd.dwg';
   if (asciiAt(b, 0, 18) === 'AutoCAD Binary DXF') return 'image/vnd.dxf';
+  // ASCII DXF, added 9 Sep 2026 while restoring cad_convert. Only the BINARY variant was
+  // recognised, and binary DXF is rare: every DXF an architect or a supplier actually exports is
+  // ASCII, so sniff() answered application/octet-stream and sanitizeOrMessage refused the file as
+  // unsupported_type before CloudConvert was ever asked. cad_convert's own extension check
+  // (`ext === 'dxf' ? 'dxf' : 'dwg'`) proves ASCII DXF was always meant to be accepted.
+  //
+  // The signature is the DXF file structure itself, not a guess: a DXF begins with group code 0
+  // then the string SECTION, one per line, and the code may be right-aligned in a 3-character
+  // field ('  0'), which is why the leading run of spaces is allowed and nothing else is.
+  if (/^[ \t]*0\r?\n[ \t]*SECTION\r?\n/.test(asciiAt(b, 0, 24))) return 'image/vnd.dxf';
 
   if (startsWith(b, [0x50, 0x4b, 0x03, 0x04]) || startsWith(b, [0x50, 0x4b, 0x05, 0x06])) return 'application/zip';
   if (startsWith(b, [0x1f, 0x8b])) return 'application/gzip';
