@@ -80,6 +80,29 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     form.set('line_items[0][price_data][unit_amount]', String(fils));
     form.set('line_items[0][price_data][product_data][name]', 'QuotesDone reveal fee');
     form.set('line_items[0][price_data][product_data][description]', 'One-time fee to reveal the chosen supplier contact details');
+    // STRIPE ISSUES THE INVOICE (9 Sep 2026). The founder: "stripe automatically generates an
+    // invoice as far as i know, our accountant need to retrieve that and be connected, then add it
+    // to his records". He is right that Stripe does this and I was wrong to describe it as
+    // unavailable — it is a setting, and it was off. A `mode=payment` Checkout Session creates no
+    // Invoice object unless invoice_creation is enabled, which is why the only artefact the estate
+    // could hold was a link to the hosted receipt page.
+    //
+    // With this on, every reveal fee produces a real Stripe Invoice with an `invoice_pdf` the
+    // accountant can fetch, store in finance-docs and mirror to Dropbox, exactly like the 48
+    // expense receipts it already holds. The customer also gets a proper tax-style document rather
+    // than a receipt page.
+    //
+    // The description is what appears on the customer's invoice, so it says what they bought in
+    // their words, not ours: they paid to unlock a supplier's details on a specific request.
+    form.set('invoice_creation[enabled]', 'true');
+    form.set('invoice_creation[invoice_data][description]',
+      'QuotesDone reveal fee — unlocking the contact details of your chosen supplier');
+    form.set('invoice_creation[invoice_data][metadata][quote_id]', qid);
+    form.set('invoice_creation[invoice_data][metadata][inquiry_id]', String(q.inquiry_id));
+    // The footer carries the licence, because a UAE buyer's finance team will ask who issued this.
+    form.set('invoice_creation[invoice_data][footer]',
+      'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+
     form.set('metadata[quote_id]', qid);
     form.set('metadata[inquiry_id]', String(q.inquiry_id));
     form.set('metadata[customer_id]', String(cust.id));
