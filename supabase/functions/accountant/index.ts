@@ -49,6 +49,8 @@ import { parseReceipt } from '../_shared/receipt_parse.ts';
 import { pdfText } from '../_shared/pdf_text.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 import { safeFetch } from '../_shared/safe_url.ts';
+// A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
+import { emailPrintPdf } from '../_shared/email_print.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -213,6 +215,54 @@ Deno.serve(async (req) => {
               note: 'fn_kernel_paid_provider_gate denies globally while any route is held. No action in this function calls a model, so nothing here is blocked by it.' }
           : null,
       });
+    }
+
+    // ── DOCUMENT ───────────────────────────────────────────────────────────────────────────────
+    // THE OS'S WAY FROM AN EXPENSE ROW TO SOMETHING IT CAN OPEN. The founder, 9 Sep 2026: "later
+    // when we build the OS i wanna be able to click any record and see the actual invoice or receipt
+    // or email print pdf if none exist".
+    //
+    // receipt-files is a PRIVATE bucket, so a path is not a link — it has to be signed. That signing
+    // needs the service role, which no browser may hold, and Postgres cannot mint one (there is no
+    // pgjwt in this project; `sign` in pg_catalog is the arithmetic sign function). So the door is
+    // here, and it is a door rather than a directory: the caller names an ENTRY, never a path, and
+    // fn_expense_document decides what that entry's document is. A caller who could name its own
+    // path could read any object in the bucket.
+    //
+    // A row with no document is answered, not 404'd: ok:false with `state` and the reason in words,
+    // so the OS can render "no document" instead of a broken link. `action: 'documents'` lists the
+    // whole book's coverage in one call for the same reason.
+    if (action === 'document' || action === 'documents') {
+      if (action === 'documents') {
+        const { data: cov } = await admin.rpc('fn_expense_document_coverage');
+        const { data: rows } = await admin.from('v_expense_documents')
+          .select('id,vendor,charged_on,amount,currency,source_channel,document_state,doc_kind,doc_name,doc_note')
+          .order('id');
+        await run('documents', 'ok', (cov || {}) as Record<string, unknown>);
+        return J({ ok: true, seat: 'accountant', coverage: cov, entries: rows || [],
+          basis: 'public.v_expense_documents, read at call time. document_state is vendor_document, '
+            + 'email_print, unclassified or missing — never inferred from a filename.' });
+      }
+      const entryId = Number(body.entry_id);
+      if (!Number.isFinite(entryId) || entryId <= 0) return J({ ok: false, error: 'entry_id is required' }, 400);
+      const { data: doc, error: docErr } = await admin.rpc('fn_expense_document', { p_entry_id: entryId });
+      if (docErr) return J({ ok: false, error: docErr.message }, 500);
+      const d0 = (doc || {}) as Record<string, unknown>;
+      if (d0.ok !== true) { await run('document', 'ok', { entry_id: entryId, state: d0.state }); return J({ ok: false, ...d0 }); }
+      const ttl = Math.min(Math.max(Number(body.expires_in) || 3600, 60), 7 * 24 * 3600);
+      const { data: signed, error: sErr } = await admin.storage
+        .from(String(d0.bucket)).createSignedUrl(String(d0.path), ttl);
+      if (sErr || !signed?.signedUrl) {
+        // A path that will not sign is a path pointing at nothing. Say that, rather than handing
+        // back a dead link — a broken document is worse than a declared absence.
+        await run('document', 'error', { entry_id: entryId, path: d0.path },
+          'expense #' + entryId + ' names a document that could not be signed: ' + String(sErr?.message || 'no url returned')
+          + '. The object is missing from receipt-files or the path is wrong.');
+        return J({ ok: false, ...d0, state: 'object_unreachable',
+          reason: 'The record names a document but the object could not be signed: ' + String(sErr?.message || 'no url returned') }, 502);
+      }
+      await run('document', 'ok', { entry_id: entryId, kind: d0.kind });
+      return J({ ok: true, ...d0, url: signed.signedUrl, expires_in: ttl });
     }
 
     // ── GRANTS ─────────────────────────────────────────────────────────────────────────────────
@@ -631,22 +681,49 @@ Deno.serve(async (req) => {
         // The evidence, archived where the accountant looks for it. A booking is NOT blocked by a
         // failed archive — an expense with no document is a VAT-record gap, an unbooked expense is
         // a hole in the accounts — but the failure is said out loud rather than swallowed.
-        let docBytes: Uint8Array | null = att ? att.bytes : null;
-        const docName = att ? att.name : 'receipt.html';
-        const docType = att ? att.mime : 'text/html';
-        if (!docBytes) {
-          const html = String(d.html || text || subject);
-          docBytes = new TextEncoder().encode('<meta charset="utf-8"><pre style="font:14px/1.5 monospace;white-space:pre-wrap">' + html.replace(/</g, '&lt;') + '</pre>');
-        }
-        const ext = att ? att.ext : 'html';
+        // 9 SEP 2026 — AND IT IS A DOCUMENT, NOT A .HTML BLOB. The founder: "i wanna be able to
+        // click any record and see the actual invoice or receipt or email print pdf if none exist".
+        // The vendor's own attachment is the document when there is one; when there is not, the
+        // email is PRINTED TO PDF rather than dumped as raw HTML, and doc_kind records which of the
+        // two this row holds so the OS never has to infer provenance from a filename. The HTML
+        // upload survives only as the fallback-of-the-fallback: a pdf_native outage must degrade
+        // the document, never lose the email.
         let docPath: string | null = null; let upErr = '';
-        for (let attempt = 1; attempt <= 3 && !docPath; attempt++) {
-          const rp = 'receipts/' + charged + '/' + Date.now() + '_' + vendor.replace(/[^A-Za-z0-9._-]/g, '_') + '.' + ext;
-          try {
-            const up = await admin.storage.from('receipt-files').upload(rp, docBytes, { contentType: docType, upsert: true });
-            if (!up.error) docPath = rp; else upErr = String(up.error.message || '').slice(0, 150);
-          } catch (e) { upErr = String((e as Error)?.message || e).slice(0, 150); }
-          if (!docPath && attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+        let docName = att ? att.name : 'receipt.html';
+        let docType = att ? att.mime : 'text/html';
+        let docKind: 'vendor_document' | 'email_print' = att ? 'vendor_document' : 'email_print';
+        let docNote: string | null = att
+          ? "The vendor's own file, taken off the source email (Resend inbound " + emailId + ').'
+          : null;
+        let printBytes: Uint8Array | null = null;
+        if (!att) {
+          const printed = await emailPrintPdf(admin, SUPA_URL, {
+            entryId: null, vendor, amount, currency, chargedOn: charged,
+            sourceMsgId: msgKey, subject, from, to, date: seenAt,
+            text, html: String(d.html || ''), attachmentNames: [],
+          });
+          if (printed.ok) {
+            docPath = printed.path;            // pdf_native NAMED this path; used exactly as returned
+            docName = printed.name; docType = 'application/pdf';
+            docNote = 'The source email carried no vendor file, so this is a PDF print of the email itself.';
+          } else {
+            const html = String(d.html || text || subject);
+            printBytes = new TextEncoder().encode('<meta charset="utf-8"><pre style="font:14px/1.5 monospace;white-space:pre-wrap">' + html.replace(/</g, '&lt;') + '</pre>');
+            docNote = 'The source email carried no vendor file, and the email could not be printed to PDF ('
+              + printed.reason + '), so the message body is archived as HTML instead.';
+          }
+        }
+        const uploadBytes = att ? att.bytes : printBytes;
+        const ext = att ? att.ext : 'html';
+        if (uploadBytes && !docPath) {
+          for (let attempt = 1; attempt <= 3 && !docPath; attempt++) {
+            const rp = 'receipts/' + charged + '/' + Date.now() + '_' + vendor.replace(/[^A-Za-z0-9._-]/g, '_') + '.' + ext;
+            try {
+              const up = await admin.storage.from('receipt-files').upload(rp, uploadBytes, { contentType: docType, upsert: true });
+              if (!up.error) docPath = rp; else upErr = String(up.error.message || '').slice(0, 150);
+            } catch (e) { upErr = String((e as Error)?.message || e).slice(0, 150); }
+            if (!docPath && attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+          }
         }
 
         const { data: insRow } = await admin.from('expense_entries')
@@ -654,6 +731,7 @@ Deno.serve(async (req) => {
             vendor, category: recurring ? 'Subscription' : 'Usage', amount, currency, charged_on: charged,
             note: ('accountant historical sweep of the expenses mailbox: ' + subject + ' [' + det.basis + (docText ? ' src=pdf_text' : '') + ']').slice(0, 300),
             source: 'receipt', doc_path: docPath, doc_name: docName.slice(0, 180), doc_content_type: docType,
+            doc_kind: docPath ? docKind : null, doc_note: docPath ? docNote : null,
             source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn,
           }, { onConflict: 'source_msg_id', ignoreDuplicates: true })
           .select('id').maybeSingle();
@@ -744,13 +822,90 @@ Deno.serve(async (req) => {
       }
       const rep = (repRaw || {}) as Record<string, unknown>;
 
+      // ── THE DOCUMENT LINKS ───────────────────────────────────────────────────────────────────
+      // The founder, 9 Sep 2026: "can the pdf have clickable links for the actual invoices or
+      // receipts or at least a pdf print of the email".
+      //
+      // fn_accountant_spend_report marks every cell it wants clickable as
+      // {text, link_entry: <expense id>}. It cannot do more than MARK it: receipt-files is a private
+      // bucket, a URL into it must be signed with the service role, and there is no pgjwt in this
+      // project. So the resolution happens here, in the one place that holds the key — one read of
+      // v_expense_documents and ONE batch signing call, not forty-five round trips.
+      //
+      // LIFETIME, DECIDED DELIBERATELY. The signed URL is the CONVENIENCE; the record number printed
+      // in the first column of every row is the PERMANENT handle. A year is long enough that the
+      // founder is not chasing dead links next quarter, and short enough that a leaked copy of this
+      // report is not a standing grant over the whole receipt archive. The exact expiry date is
+      // printed on the document under the table — a link whose death date is unstated is a link that
+      // gets discovered dead — together with the two routines that turn a record number back into a
+      // fresh one. The full reasoning, including the two options not taken, is in the header of
+      // scripts/sql/the_spend_report_links_every_line_to_the_document_behind_it.sql.
+      const LINK_TTL = 365 * 24 * 3600;
+      const linkExpiry = new Date(Date.now() + LINK_TTL * 1000);
+      let linksResolved = 0, linksUnavailable = 0, linkErr: string | null = null;
+      const blocks = rep.blocks;
+      const wanted = new Set<number>();
+      const collect = (v: unknown): void => {
+        if (Array.isArray(v)) { for (const x of v) collect(x); return; }
+        if (v && typeof v === 'object') {
+          const o = v as Record<string, unknown>;
+          if (typeof o.link_entry === 'number') wanted.add(o.link_entry);
+          for (const x of Object.values(o)) collect(x);
+        }
+      };
+      collect(blocks);
+      const urlFor = new Map<number, string>();
+      if (wanted.size) {
+        try {
+          const { data: docRows, error: dErr } = await admin.from('v_expense_documents')
+            .select('id,doc_bucket,doc_path').in('id', [...wanted]);
+          if (dErr) throw new Error(dErr.message);
+          const withDoc = (docRows || []).filter((r: Record<string, unknown>) => !!r.doc_path);
+          if (withDoc.length) {
+            const bucket = String(withDoc[0].doc_bucket || 'receipt-files');
+            const { data: signed, error: sErr } = await admin.storage.from(bucket)
+              .createSignedUrls(withDoc.map((r: Record<string, unknown>) => String(r.doc_path)), LINK_TTL);
+            if (sErr) throw new Error(sErr.message);
+            const byPath = new Map((signed || []).map((s: Record<string, unknown>) => [String(s.path), s.signedUrl as string | null]));
+            for (const r of withDoc) { const u = byPath.get(String(r.doc_path)); if (u) urlFor.set(Number(r.id), u); }
+          }
+        } catch (e) { linkErr = String((e as Error)?.message || e); }
+      }
+      // A mark that could not be signed LOSES its link and says so in the cell. The founder's own
+      // condition for this document: a row that cannot be opened must read as such, never as a link
+      // that goes nowhere.
+      const resolveLinks = (v: unknown): void => {
+        if (Array.isArray(v)) { for (const x of v) resolveLinks(x); return; }
+        if (v && typeof v === 'object') {
+          const o = v as Record<string, unknown>;
+          if (typeof o.link_entry === 'number') {
+            const u = urlFor.get(o.link_entry);
+            if (u) { o.link = u; linksResolved++; }
+            else { o.text = String(o.text ?? '') + ' (link unavailable)'; linksUnavailable++; }
+            delete o.link_entry;
+          }
+          for (const x of Object.values(o)) resolveLinks(x);
+        }
+      };
+      resolveLinks(blocks);
+      if (Array.isArray(blocks) && wanted.size) {
+        blocks.push({ t: 'note', text: linksResolved + ' link(s) above were signed on '
+          + new Date().toISOString().slice(0, 10) + ' and stop working after '
+          + linkExpiry.toISOString().slice(0, 10) + '. After that date the Record number in the first '
+          + 'column is still the way to the document: public.fn_expense_document(<record>) names the '
+          + 'bucket and the object, and this seat returns a fresh link for it on request. '
+          + (linksUnavailable ? linksUnavailable + ' line(s) could not be signed and say so in the row. ' : '')
+          + (linkErr ? 'The signing call reported: ' + linkErr + '. ' : '')
+          + 'Nothing in this report stops being useful when the links expire.' });
+      }
+
       const secret = await sec('cred_fn_accountant');
       // glyphs_dropped is carried through because ok:true alone cannot tell a correct document from
       // one rendered on the WinAnsi fallback with characters missing from a money line. It should
       // always be 0 here — strict_glyphs below makes pdf_native refuse rather than degrade — and
       // reporting the measured number is cheaper than trusting that it did.
-      let pdf: { bucket: string | null; path: string | null; url: string | null; bytes: number | null; glyphs_dropped: number | null } =
-        { bucket: null, path: null, url: null, bytes: null, glyphs_dropped: null };
+      let pdf: { bucket: string | null; path: string | null; url: string | null; bytes: number | null; glyphs_dropped: number | null; links: number | null } =
+        { bucket: null, path: null, url: null, bytes: null, glyphs_dropped: null, links: null };
       let pdfErr: string | null = null;
       if (!secret) {
         pdfErr = 'app_secrets.cred_fn_accountant is unreadable, so this seat could not authenticate to pdf_native.';
@@ -771,7 +926,10 @@ Deno.serve(async (req) => {
           // THE PATH pdf_native RETURNS IS THE ONLY PATH. It names its own object (bucket + a
           // timestamped folder key); supplying one here and hoping they agree is how an attachment
           // reference comes to point at nothing.
-          if (r.ok && j?.ok && j?.path) pdf = { bucket: String(j.bucket || 'finance-reports'), path: String(j.path), url: j.url ?? null, bytes: j.bytes ?? null, glyphs_dropped: j.glyphs_dropped ?? null };
+          // `links` is what pdf_native ACTUALLY wrote as /Annot /Link dictionaries. Carried through
+          // because "the seat resolved 45 links" and "the document has 45 clickable links" are two
+          // different facts, and only the second one is the founder's request.
+          if (r.ok && j?.ok && j?.path) pdf = { bucket: String(j.bucket || 'finance-reports'), path: String(j.path), url: j.url ?? null, bytes: j.bytes ?? null, glyphs_dropped: j.glyphs_dropped ?? null, links: j.links ?? null };
           else pdfErr = 'pdf_native ' + r.status + ': ' + JSON.stringify(j ?? {}).slice(0, 400);
         } catch (e) { pdfErr = 'pdf_native unreachable: ' + String((e as Error)?.message || e); }
       }
@@ -792,11 +950,18 @@ Deno.serve(async (req) => {
       await run('spend_report', pdfErr ? 'error' : 'ok', {
         as_of: rep.as_of ?? null, entries: (rep.figures as Record<string, unknown> | undefined)?.entries ?? null,
         pdf_path: pdf.path, delivered: delivery?.ok === true,
+        links_in_pdf: pdf.links, links_resolved: linksResolved, links_unavailable: linksUnavailable,
       }, pdfErr ?? undefined);
 
       return J({
         ok: true, seat: 'accountant', caller: caller.kind,
         report: rep, pdf, pdf_error: pdfErr, delivery,
+        links: { resolved: linksResolved, unavailable: linksUnavailable, in_pdf: pdf.links,
+                 expires_at: linkExpiry.toISOString(), ttl_seconds: LINK_TTL, error: linkErr,
+                 basis: 'Each Evidence cell the report marked with an expense id was signed against '
+                   + 'the private receipt-files bucket. A cell that could not be signed prints '
+                   + '"(link unavailable)" instead of a dead link, and every row carries the expense '
+                   + 'record number, which does not expire.' },
         delivery_armed: body.deliver === true,
         note: body.deliver === true ? null : 'The document was rendered and stored. No mail was inserted: pass deliver:true to send it from this seat.',
       });

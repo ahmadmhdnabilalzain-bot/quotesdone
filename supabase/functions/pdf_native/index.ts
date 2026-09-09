@@ -1,7 +1,10 @@
 // pdf_native v14 - serverless PDF (pdf-lib). Premium dark header band (site theme) + clean light body.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
+// PDFArray/PDFName/PDFString are the low-level side of pdf-lib, and they are here because pdf-lib
+// has NO link API: a clickable link is a separate /Annot dictionary on the page, not a property of
+// drawn text. See `linkAt` below (9 Sep 2026).
+import { PDFDocument, StandardFonts, rgb, PDFArray, PDFName, PDFString } from 'https://esm.sh/pdf-lib@1.17.1';
 // The published fontkit.d.ts has no default export (TS1192) even though the CJS module esm.sh
 // serves does. Import the namespace and take .default when it is there, so the runtime value is
 // exactly what it was before and the types stop lying about it.
@@ -166,9 +169,45 @@ Deno.serve(async (req) => {
     let page = armPage(pdf.addPage([PW, PH])); let y = PH - M; let pageNo = 1;
     function fontFor(s:any, b:boolean){ return hasAr(s) ? (b?arBold:arReg) : (b?bold:font); }
     function W(text:string,f:any,s:number){ try{ return f.widthOfTextAtSize(text,s); }catch(_e){ return text.length*s*0.5; } }
+    // ── LINKS ──────────────────────────────────────────────────────────────────────────────────
+    // 9 Sep 2026, the founder: "can the pdf have clickable links for the actual invoices or
+    // receipts". Before today this renderer could not produce a clickable anything — pdf-lib draws
+    // glyphs and has no link API, and a grep for href/Annot/URI over this file returned nothing.
+    //
+    // A PDF link is NOT a property of the text. It is a /Annot dictionary hung on the page whose
+    // /Rect is a rectangle in page coordinates; a viewer makes clickable whatever falls inside it,
+    // whether or not any text is there. Nothing in the format binds the two together, so the rect
+    // MUST be computed from the same x, baseline, width and size the draw used — computed any other
+    // way it lands beside the words and the link is invisible or, worse, catches the wrong line.
+    //
+    // ADDITIVE BY CONSTRUCTION. A caller that passes no link creates no annotation object, so a
+    // document without links is the document this renderer produced yesterday. `links` on the
+    // response says how many were actually written, so "I passed a link" and "the PDF has a link"
+    // stay two different statements.
+    let linkCount = 0;
+    // deno-lint-ignore no-explicit-any
+    function linkAt(p:any, x:number, baseline:number, w:number, size:number, uri:unknown){
+      const u = String(uri==null?'':uri).trim();
+      // http(s) only. A javascript:, file: or data: URI inside a document this company signs and
+      // mails is not a feature, and a viewer that follows one is a viewer we armed.
+      if (!/^https?:\/\/\S+$/i.test(u) || !(w > 0) || !(size > 0)) return;
+      try {
+        const ctx = pdf.context;
+        const ref = ctx.register(ctx.obj({
+          Type: 'Annot', Subtype: 'Link',
+          // /Border [0 0 0] — no visible frame. The link is shown by the ink, not by a box.
+          Border: ctx.obj([0, 0, 0]),
+          Rect: ctx.obj([x, baseline - size * 0.25, x + w, baseline + size * 0.9]),
+          A: ctx.obj({ Type: 'Action', S: 'URI', URI: PDFString.of(u) }),
+        }));
+        const arr = p.node.lookupMaybe(PDFName.of('Annots'), PDFArray);
+        if (arr) arr.push(ref); else p.node.set(PDFName.of('Annots'), ctx.obj([ref]));
+        linkCount++;
+      } catch (_e) { /* a link is never worth losing the document over */ }
+    }
     function measRTL(s:string,f:any,size:number){ let w=0; for(const r of bidiRuns(s)) w+=W(r.t,f,size); return w; }
     function drawRTL(s:string,size:number,f:any,color:any,yy:number,xRight:number){ const runs=bidiRuns(s); let tot=0; const ws=runs.map(r=>{const w=W(r.t,f,size);tot+=w;return w;}); let x=xRight-tot; for(let i=0;i<runs.length;i++){ if(runs[i].t.trim()!=='') page.drawText(runs[i].t,{x,y:yy,size,font:f,color}); x+=ws[i]; } }
-    function putLine(text:string, size:number, b:boolean, color:any, align:'l'|'r', yy:number, x0=M, w=CW){ const f=fontFor(text,b); if(align==='r' && hasAr(text)){ drawRTL(text,size,f,color,yy,x0+w); return measRTL(text,f,size); } const ww=W(text,f,size); const x = align==='r' ? (x0+w-ww) : x0; page.drawText(text,{x,y:yy,size,font:f,color}); return ww; }
+    function putLine(text:string, size:number, b:boolean, color:any, align:'l'|'r', yy:number, x0=M, w=CW, link?:unknown){ const f=fontFor(text,b); if(align==='r' && hasAr(text)){ drawRTL(text,size,f,color,yy,x0+w); const wr=measRTL(text,f,size); if(link) linkAt(page, x0+w-wr, yy, wr, size, link); return wr; } const ww=W(text,f,size); const x = align==='r' ? (x0+w-ww) : x0; page.drawText(text,{x,y:yy,size,font:f,color}); if(link) linkAt(page, x, yy, ww, size, link); return ww; }
     const [fl1, fl2] = footerLines(CO);
     const footerEn = letterhead ? fl1 : 'QuotesDone · quotesdone.com';
     const footerEn2 = letterhead ? fl2 : '';
@@ -179,17 +218,25 @@ Deno.serve(async (req) => {
     function newSection(){ page = armPage(pdf.addPage([PW,PH])); pageNo++; y=PH-M; }
     function ensure(h:number){ if (y - h < 70){ page = armPage(pdf.addPage([PW,PH])); pageNo++; const by=headerBand(true); drawFooter(); y=by-18; } }
     function wrap(t:string, f:any, s:number, w:number){ const isAr=hasAr(t); const meas=(str:string)=> isAr?measRTL(str,f,s):W(str,f,s); const words=String(t==null?'':t).split(/\s+/); const lines:string[]=[]; let cur=''; for(const wd0 of words){ const test=cur?cur+' '+wd0:wd0; if(meas(test)>w && cur){ lines.push(cur); cur=wd0; } else cur=test; } if(cur)lines.push(cur); return lines.length?lines:['']; }
-    function para(t:string, s=11, b=false, color=INK, lh=1.45, x0=M, w=CW){ const isAr=hasAr(t); const f=fontFor(t,b); for(const ln of wrap(t,f,s,w)){ ensure(s*lh); if(isAr) drawRTL(ln,s,f,color,y-s,x0+w); else page.drawText(ln,{x:x0,y:y-s,size:s,font:f,color}); y-=s*lh; } }
-    function bullet(t:string, s=11){ const isAr=hasAr(t); if(isAr){ para(t+' •',s,false,INK,1.4,M,CW-4); } else { para('•  '+t,s,false,INK,1.4,M+10,CW-12); } }
+    function para(t:string, s=11, b=false, color=INK, lh=1.45, x0=M, w=CW, link?:unknown){ const isAr=hasAr(t); const f=fontFor(t,b); for(const ln of wrap(t,f,s,w)){ ensure(s*lh); if(isAr){ const wr=measRTL(ln,f,s); drawRTL(ln,s,f,color,y-s,x0+w); if(link) linkAt(page, x0+w-wr, y-s, wr, s, link); } else { page.drawText(ln,{x:x0,y:y-s,size:s,font:f,color}); if(link) linkAt(page, x0, y-s, W(ln,f,s), s, link); } y-=s*lh; } }
+    function bullet(t:string, s=11, link?:unknown){ const isAr=hasAr(t); if(isAr){ para(t+' •',s,false,INK,1.4,M,CW-4,link); } else { para('•  '+t,s,false,INK,1.4,M+10,CW-12,link); } }
     function headingBi(en:string, ar:string){ ensure(28); y-=8; if(L==='ar'){ putLine(ar||en,11,true,TEAL,'r',y-11); } else { page.drawText(String(en).toUpperCase(),{x:M,y:y-11,size:11,font:bold,color:TEAL}); } y-=13; page.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:0.6,color:LINE}); page.drawLine({start:{x:M,y},end:{x:M+34,y},thickness:1.6,color:GOLD}); y-=10; }
-    function headingAuto(t:string){ const isAr=hasAr(t); ensure(28); y-=8; putLine(t,11,true,TEAL,isAr?'r':'l',y-11); y-=13; page.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:0.6,color:LINE}); page.drawLine({start:{x:M,y},end:{x:M+34,y},thickness:1.6,color:GOLD}); y-=10; }
-    function h3(t:string){ ensure(20); putLine(t,13,true,NAVY,hasAr(t)?'r':'l',y-12); y-=20; }
+    function headingAuto(t:string, link?:unknown){ const isAr=hasAr(t); ensure(28); y-=8; putLine(t,11,true,TEAL,isAr?'r':'l',y-11,M,CW,link); y-=13; page.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:0.6,color:LINE}); page.drawLine({start:{x:M,y},end:{x:M+34,y},thickness:1.6,color:GOLD}); y-=10; }
+    function h3(t:string, link?:unknown){ ensure(20); putLine(t,13,true,NAVY,hasAr(t)?'r':'l',y-12,M,CW,link); y-=20; }
     function space(h=8){ ensure(h); y-=h; }
-    function blockTable(head:string[], rows:string[][], widths:number[], rtl=false){ let H=head.slice(), R=rows.map(r=>r.slice()), Wd=widths.slice(); if(rtl){ H.reverse(); R=R.map(r=>r.slice().reverse()); Wd=Wd.slice().reverse(); } const colW=Wd.map(w=>w*CW); ensure(22); page.drawRectangle({x:M,y:y-20,width:CW,height:20,color:NAVY}); let cx=M; H.forEach((h,i)=>{ const isAr=hasAr(h); const f=isAr?arBold:bold; if(isAr) drawRTL(String(h),9,f,WHITE,y-14,cx+colW[i]-8); else page.drawText(String(h),{x:cx+8,y:y-14,size:9,font:f,color:WHITE}); cx+=colW[i]; }); y-=20; page.drawLine({start:{x:M,y},end:{x:M+CW,y},thickness:1.4,color:GOLD}); R.forEach((r)=>{ const cl=r.map((c,i)=>{ const isAr=hasAr(c); const f=isAr?arReg:font; return { isAr, f, lines: wrap(String(c==null?'':c), f, 10, colW[i]-14) }; }); const rh=Math.max(1,...cl.map(c=>c.lines.length))*13+8; ensure(rh); cx=M; r.forEach((c,i)=>{ const cell=cl[i]; let ly=y-14; for(const ln of cell.lines){ if(cell.isAr) drawRTL(ln,10,cell.f,INK,ly,cx+colW[i]-8); else page.drawText(ln,{x:cx+8,y:ly,size:10,font:cell.f,color:INK}); ly-=13; } cx+=colW[i]; }); y-=rh; page.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:0.5,color:LINE}); }); y-=2; }
+    // A CELL IS A STRING, OR A STRING WITH A LINK ON IT. `{ text, link }` is the whole extension;
+    // a plain string behaves exactly as it did. cellText/cellLink exist because hasAr(c) and
+    // String(c) on an object both quietly produce "[object Object]", which would have printed.
+    // deno-lint-ignore no-explicit-any
+    const cellText=(c:any)=> (c && typeof c==='object' && !Array.isArray(c)) ? String(c.text==null?'':c.text) : String(c==null?'':c);
+    // deno-lint-ignore no-explicit-any
+    const cellLink=(c:any)=> (c && typeof c==='object' && !Array.isArray(c) && typeof c.link==='string') ? c.link : null;
+    // deno-lint-ignore no-explicit-any
+    function blockTable(head:string[], rows:any[][], widths:number[], rtl=false){ let H=head.slice(), R=rows.map(r=>r.slice()), Wd=widths.slice(); if(rtl){ H.reverse(); R=R.map(r=>r.slice().reverse()); Wd=Wd.slice().reverse(); } const colW=Wd.map(w=>w*CW); ensure(22); page.drawRectangle({x:M,y:y-20,width:CW,height:20,color:NAVY}); let cx=M; H.forEach((h,i)=>{ const isAr=hasAr(h); const f=isAr?arBold:bold; if(isAr) drawRTL(String(h),9,f,WHITE,y-14,cx+colW[i]-8); else page.drawText(String(h),{x:cx+8,y:y-14,size:9,font:f,color:WHITE}); cx+=colW[i]; }); y-=20; page.drawLine({start:{x:M,y},end:{x:M+CW,y},thickness:1.4,color:GOLD}); R.forEach((r)=>{ const cl=r.map((c,i)=>{ const tx=cellText(c); const isAr=hasAr(tx); const f=isAr?arReg:font; return { isAr, f, link: cellLink(c), lines: wrap(tx, f, 10, colW[i]-14) }; }); const rh=Math.max(1,...cl.map(c=>c.lines.length))*13+8; ensure(rh); cx=M; r.forEach((_c,i)=>{ const cell=cl[i]; const col = cell.link ? TEAL : INK; let ly=y-14; for(const ln of cell.lines){ if(cell.isAr){ const wr=measRTL(ln,cell.f,10); drawRTL(ln,10,cell.f,col,ly,cx+colW[i]-8); if(cell.link) linkAt(page, cx+colW[i]-8-wr, ly, wr, 10, cell.link); } else { page.drawText(ln,{x:cx+8,y:ly,size:10,font:cell.f,color:col}); if(cell.link) linkAt(page, cx+8, ly, W(ln,cell.f,10), 10, cell.link); } ly-=13; } cx+=colW[i]; }); y-=rh; page.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:0.5,color:LINE}); }); y-=2; }
     function blockKV(pairs:[string,string][]){ const colW=CW/2; const rows=Math.ceil(pairs.length/2); for(let r=0;r<rows;r++){ let maxLines=1; for(let c=0;c<2;c++){ const idx=r*2+c; if(idx>=pairs.length)continue; const vv=String(pairs[idx][1]); const vfm=hasAr(vv)?arBold:bold; const n=wrap(vv,vfm,11,colW-12).length; if(n>maxLines) maxLines=n; } const rowH=29+maxLines*13; ensure(rowH); for(let c=0;c<2;c++){ const idx=r*2+c; if(idx>=pairs.length)continue; const x=M+c*colW; const [k,v]=pairs[idx]; const kAr=hasAr(k); putLine(String(k), 8, false, MUT, kAr?'r':'l', y-12, x+4, colW-8); const vAr=hasAr(v); const vf=vAr?arBold:bold; const vlines=wrap(String(v),vf,11,colW-12); let vy=y-26; for(const ln of vlines){ if(vAr) drawRTL(ln,11,vf,NAVY,vy,x+colW-8); else page.drawText(ln,{x:x+4,y:vy,size:11,font:vf,color:NAVY}); vy-=13; } } y-=rowH; } }
     function blockTotal(value:string){ ensure(64); const bw=270, bx=PW-M-bw; const qt = L==='ar'?'القيمة المعروضة':'Quoted total'; const lab = L==='ar'?'الإجمالي':'TOTAL'; page.drawRectangle({x:bx,y:y-58,width:bw,height:58,borderColor:TEAL,borderWidth:2}); page.drawRectangle({x:bx,y:y-4,width:bw,height:4,color:GOLD}); const qf=hasAr(qt)?arReg:font; if(hasAr(qt)) drawRTL(qt,11,qf,INK,y-22,bx+bw-14); else page.drawText(qt,{x:bx+14,y:y-22,size:11,font:qf,color:INK}); page.drawText(value,{x: hasAr(qt)?(bx+14):(bx+bw-14-font.widthOfTextAtSize(value,11)),y:y-22,size:11,font,color:INK}); page.drawRectangle({x:bx,y:y-58,width:bw,height:30,color:NAVY}); const lf=hasAr(lab)?arBold:bold; if(hasAr(lab)) drawRTL(lab,13,lf,WHITE,y-49,bx+bw-14); else page.drawText(lab,{x:bx+14,y:y-49,size:13,font:lf,color:WHITE}); page.drawText(value,{x: hasAr(lab)?(bx+14):(bx+bw-14-bold.widthOfTextAtSize(value,15)),y:y-50,size:15,font:bold,color:WHITE}); y-=66; }
     function blockBadge(en:string, ar:string, subEn:string, subAr:string){ ensure(46); const lab = L==='ar'? ('الجهة مقدّمة العرض'):'QUOTING PARTY'; putLine(lab,8,false,MUT,L==='ar'?'r':'l',y-10); const txt = L==='ar'? ar : en; const tAr=hasAr(txt); const f=tAr?arBold:bold; const bw=(tAr?measRTL(txt,f,12):W(txt,f,12))+24; const bx = L==='ar' ? (PW-M-bw) : M; page.drawRectangle({x:bx,y:y-34,width:bw,height:22,color:NAVY}); if(tAr) drawRTL(txt,12,f,WHITE,y-29,bx+bw-12); else page.drawText(txt,{x:bx+12,y:y-29,size:12,font:f,color:WHITE}); const sub = L==='ar'? subAr : subEn; if(sub){ putLine(sub,9,false,MUT, L==='ar'?'r':'l', y-28, L==='ar'?M:(bx+bw+14), L==='ar'?(PW-2*M-bw-14):(CW-bw-14)); } y-=46; }
-    function renderBlocks(blocks:any[]){ for(const b of blocks){ const t=b.t||b.type; if(t==='h2'||t==='heading') headingAuto(b.text||''); else if(t==='h3') h3(b.text||''); else if(t==='p'||t==='para') para(b.text||'', b.size||11, !!b.bold); else if(t==='li') bullet(b.text||''); else if(t==='kv') blockKV(b.pairs||[]); else if(t==='table'){ const rtl = hasAr((b.head||[]).join(' ')+' '+(b.rows||[]).flat().join(' ')); blockTable(b.head||[], b.rows||[], b.widths||(b.head||[]).map(()=>1/Math.max(1,(b.head||[]).length)), rtl); } else if(t==='total') blockTotal(b.value||''); else if(t==='note') para(b.text||'',9,false,MUT); else if(t==='space') space(b.h||10); } }
+    function renderBlocks(blocks:any[]){ for(const b of blocks){ const t=b.t||b.type; if(t==='h2'||t==='heading') headingAuto(b.text||'', b.link); else if(t==='h3') h3(b.text||'', b.link); else if(t==='p'||t==='para') para(b.text||'', b.size||11, !!b.bold, INK, 1.45, M, CW, b.link); else if(t==='li') bullet(b.text||'', 11, b.link); else if(t==='kv') blockKV(b.pairs||[]); else if(t==='table'){ const rtl = hasAr((b.head||[]).join(' ')+' '+(b.rows||[]).flat().map(cellText).join(' ')); blockTable(b.head||[], b.rows||[], b.widths||(b.head||[]).map(()=>1/Math.max(1,(b.head||[]).length)), rtl); } else if(t==='total') blockTotal(b.value||''); else if(t==='note') para(b.text||'',9,false,MUT,1.45,M,CW,b.link); else if(t==='space') space(b.h||10); } }
     const disEn="This quotation is presented in QuotesDone's standardized format from the supplier's submitted quote. Figures and scope are as quoted by the supplier; verify final details before ordering. QuotesDone charges the customer a 3% facilitation fee on the quoted value at the point of contact reveal.";
     const disAr='هذا العرض مقدّم بصيغة QuotesDone الموحّدة استناداً إلى عرض المورّد. القيم والنطاق كما وردت من المورّد؛ يُرجى التحقق من التفاصيل النهائية قبل الطلب. تتقاضى QuotesDone رسوم تيسير بنسبة 3% من قيمة العرض عند كشف بيانات التواصل.';
     function renderQuote(q:any){ const rtlT = L==='ar';
@@ -236,6 +283,9 @@ Deno.serve(async (req) => {
       // Say what the document actually got. `ok:true` alone could not tell a correct PDF from one
       // rendered on the WinAnsi fallback with characters missing (9 Sep 2026).
       fonts: { latin: latinFull, arabic: arFull }, glyphs_dropped: dropped,
+      // How many /Annot /Link dictionaries were actually written. A caller passing a link and a
+      // document carrying one are two different facts; this is the second one (9 Sep 2026).
+      links: linkCount,
       glyph_check: glyphCheck ? 'fontkit' : 'unavailable',
       lockup_trimmed: lockupTrimmed, letterhead_source: CO.source });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }

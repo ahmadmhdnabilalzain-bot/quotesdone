@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T03:10:11.776Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T06:02:22.171Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27,6 +27,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
 
 -- ===== SEQUENCES =====
+CREATE SEQUENCE IF NOT EXISTS public.accountant_spend_report_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.accountant_weekly_report_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.agent_actions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.agent_command_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.agent_context_retrieval_id_seq;
@@ -88,6 +90,7 @@ CREATE SEQUENCE IF NOT EXISTS public.event_assessment_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.event_delivery_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.evolution_proposal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.expense_entries_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.expense_vendor_billing_mailbox_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.expenses_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.feedback_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.finance_reports_id_seq;
@@ -126,6 +129,7 @@ CREATE SEQUENCE IF NOT EXISTS public.mdm_brands_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_manufacturers_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_standards_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.metric_snapshot_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.openrouter_meter_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.opportunity_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.os_fresh_start_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.os_interface_id_seq;
@@ -172,7 +176,90 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (443) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
+-- ===== TABLES (452) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+  record_id text NOT NULL,
+  record_type text NOT NULL,
+  domain text,
+  title text NOT NULL,
+  content text NOT NULL,
+  structured_data jsonb DEFAULT '{}'::jsonb NOT NULL,
+  source_ids text[] DEFAULT '{}'::text[] NOT NULL,
+  epistemic_status text NOT NULL,
+  jurisdiction text,
+  pack_id text NOT NULL,
+  pack_version text NOT NULL,
+  body_sha256 text NOT NULL,
+  runtime_index_eligible boolean DEFAULT true NOT NULL,
+  authority_effect text DEFAULT 'none'::text NOT NULL,
+  tags text[] DEFAULT '{}'::text[] NOT NULL,
+  updated_at timestamp with time zone,
+  ingested_at timestamp with time zone DEFAULT now() NOT NULL,
+  embedding_gte vector(384),
+  search tsvector
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_spend_report (
+  id bigint DEFAULT nextval('accountant_spend_report_id_seq'::regclass) NOT NULL,
+  company_key text DEFAULT 'quotesdone'::text NOT NULL,
+  as_of date NOT NULL,
+  period_start date,
+  period_end date,
+  local_timezone text DEFAULT 'Asia/Dubai'::text NOT NULL,
+  entries integer,
+  total_aed numeric(18,2),
+  vat_stated_aed numeric(18,2),
+  usd_to_aed numeric(18,6),
+  complete boolean,
+  shortfalls jsonb,
+  figures jsonb DEFAULT '{}'::jsonb NOT NULL,
+  coverage jsonb,
+  subject text,
+  body text,
+  pdf_bucket text,
+  pdf_path text,
+  pdf_url text,
+  pdf_bytes bigint,
+  notification_id bigint,
+  generated_at timestamp with time zone DEFAULT now() NOT NULL,
+  delivered_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_weekly_report (
+  id bigint DEFAULT nextval('accountant_weekly_report_id_seq'::regclass) NOT NULL,
+  company_key text DEFAULT 'quotesdone'::text NOT NULL,
+  iso_year integer NOT NULL,
+  iso_week integer NOT NULL,
+  week_start date NOT NULL,
+  week_end date NOT NULL,
+  local_timezone text DEFAULT 'Asia/Dubai'::text NOT NULL,
+  report_key text NOT NULL,
+  revision integer DEFAULT 1 NOT NULL,
+  revision_note text,
+  subject text,
+  body text,
+  figures jsonb DEFAULT '{}'::jsonb NOT NULL,
+  pdf_blocks jsonb,
+  pdf_bucket text,
+  pdf_path text,
+  pdf_url text,
+  pdf_bytes integer,
+  pdf_generated_at timestamp with time zone,
+  pdf_error text,
+  status text DEFAULT 'generated'::text NOT NULL,
+  generated_at timestamp with time zone DEFAULT now() NOT NULL,
+  founder_submitted_at timestamp with time zone,
+  ceo_submitted_at timestamp with time zone,
+  delivered_at timestamp with time zone,
+  notification_id bigint,
+  ceo_report_id bigint,
+  delivery_attempts integer DEFAULT 0 NOT NULL,
+  last_delivery_error text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.action_class_gate (
   action_class text NOT NULL,
   gate_action_class text,
   rationale text NOT NULL,
@@ -545,7 +632,11 @@ CREATE TABLE IF NOT EXISTS public.ai_cost_log (
   cheaper_reason text,
   ok boolean DEFAULT true NOT NULL,
   cached_in_tokens integer DEFAULT 0 NOT NULL,
-  cache_write_tokens integer DEFAULT 0 NOT NULL
+  cache_write_tokens integer DEFAULT 0 NOT NULL,
+  generation_id text,
+  cost_usd_reported numeric,
+  seat text,
+  seat_basis text
 );
 
 CREATE TABLE IF NOT EXISTS public.ai_model_register (
@@ -2302,6 +2393,16 @@ CREATE TABLE IF NOT EXISTS public.exec_reports (
   pdf_generated_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.expense_billing_mailbox (
+  mailbox text NOT NULL,
+  description text NOT NULL,
+  reachable_by text,
+  is_swept boolean DEFAULT false NOT NULL,
+  last_swept_on date,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.expense_entries (
   id bigint DEFAULT nextval('expense_entries_id_seq'::regclass) NOT NULL,
   vendor text NOT NULL,
@@ -2314,7 +2415,24 @@ CREATE TABLE IF NOT EXISTS public.expense_entries (
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   doc_path text,
   doc_name text,
-  doc_content_type text
+  doc_content_type text,
+  source_msg_id text,
+  vat_amount numeric(18,2),
+  vendor_trn text,
+  doc_kind text,
+  doc_note text
+);
+
+CREATE TABLE IF NOT EXISTS public.expense_vendor_billing_mailbox (
+  id bigint DEFAULT nextval('expense_vendor_billing_mailbox_id_seq'::regclass) NOT NULL,
+  vendor text NOT NULL,
+  mailbox text NOT NULL,
+  in_ledger_scope boolean,
+  first_seen date,
+  last_seen date,
+  evidence text NOT NULL,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.expenses (
@@ -3569,6 +3687,13 @@ CREATE TABLE IF NOT EXISTS public.llm_route_health (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.llm_seat_binding (
+  fn text NOT NULL,
+  seat text NOT NULL,
+  note text,
+  declared_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.market_intel (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   kind text NOT NULL,
@@ -3838,7 +3963,40 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   last_error text,
   html text,
   cc_emails text[] DEFAULT '{}'::text[] NOT NULL,
-  kind text
+  kind text,
+  attachments jsonb,
+  provider_message_id text
+);
+
+CREATE TABLE IF NOT EXISTS public.openrouter_day (
+  day date NOT NULL,
+  authoritative_usd numeric,
+  authoritative_basis text NOT NULL,
+  attributed_usd numeric DEFAULT 0 NOT NULL,
+  unattributed_usd numeric,
+  calls integer DEFAULT 0 NOT NULL,
+  calls_priced integer DEFAULT 0 NOT NULL,
+  calls_free integer DEFAULT 0 NOT NULL,
+  calls_unpriced integer DEFAULT 0 NOT NULL,
+  breakdown jsonb DEFAULT '{}'::jsonb NOT NULL,
+  meter_open_id bigint,
+  meter_close_id bigint,
+  expense_entry_id bigint,
+  note text,
+  reconciled_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.openrouter_meter (
+  id bigint DEFAULT nextval('openrouter_meter_id_seq'::regclass) NOT NULL,
+  read_at timestamp with time zone DEFAULT now() NOT NULL,
+  ok boolean NOT NULL,
+  cumulative_usd numeric,
+  credits_total_usd numeric,
+  usage_daily_usd numeric,
+  usage_monthly_usd numeric,
+  limit_remaining_usd numeric,
+  key_label text,
+  err text
 );
 
 CREATE TABLE IF NOT EXISTS public.operating_system (
@@ -5895,6 +6053,15 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
   added_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.vendor_billing_ended (
+  vendor text NOT NULL,
+  ended_after date NOT NULL,
+  basis text NOT NULL,
+  note text,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  kind text DEFAULT 'ended'::text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.vision_horizon (
   year_no integer NOT NULL,
   label text NOT NULL,
@@ -6104,6 +6271,9 @@ CREATE TABLE IF NOT EXISTS public.yello_staging (
 );
 
 -- ===== CONSTRAINTS =====
+ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_pkey PRIMARY KEY (record_id);
+ALTER TABLE public.accountant_spend_report ADD CONSTRAINT accountant_spend_report_pkey PRIMARY KEY (id);
+ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_pkey PRIMARY KEY (id);
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_pkey PRIMARY KEY (action_class);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_pkey PRIMARY KEY (id);
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_pkey PRIMARY KEY (campaign_id);
@@ -6276,7 +6446,9 @@ ALTER TABLE public.event_rollup ADD CONSTRAINT event_rollup_pkey PRIMARY KEY (co
 ALTER TABLE public.event_subscription ADD CONSTRAINT event_subscription_pkey PRIMARY KEY (agent_key, event_type);
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.exec_reports ADD CONSTRAINT exec_reports_pkey PRIMARY KEY (id);
+ALTER TABLE public.expense_billing_mailbox ADD CONSTRAINT expense_billing_mailbox_pkey PRIMARY KEY (mailbox);
 ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_pkey PRIMARY KEY (id);
+ALTER TABLE public.expense_vendor_billing_mailbox ADD CONSTRAINT expense_vendor_billing_mailbox_pkey PRIMARY KEY (id);
 ALTER TABLE public.expenses ADD CONSTRAINT expenses_pkey PRIMARY KEY (id);
 ALTER TABLE public.feedback ADD CONSTRAINT feedback_pkey PRIMARY KEY (id);
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_pkey PRIMARY KEY (field_id);
@@ -6365,6 +6537,7 @@ ALTER TABLE public.llm_cache ADD CONSTRAINT llm_cache_pkey PRIMARY KEY (cache_ke
 ALTER TABLE public.llm_calls ADD CONSTRAINT llm_calls_pkey PRIMARY KEY (id);
 ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_pkey PRIMARY KEY (class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_pkey PRIMARY KEY (model_id);
+ALTER TABLE public.llm_seat_binding ADD CONSTRAINT llm_seat_binding_pkey PRIMARY KEY (fn);
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_library ADD CONSTRAINT marketing_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
@@ -6386,6 +6559,8 @@ ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_ident
 ALTER TABLE public.model_rate ADD CONSTRAINT model_rate_pkey PRIMARY KEY (model);
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_pkey PRIMARY KEY (model_id);
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_pkey PRIMARY KEY (day);
+ALTER TABLE public.openrouter_meter ADD CONSTRAINT openrouter_meter_pkey PRIMARY KEY (id);
 ALTER TABLE public.operating_system ADD CONSTRAINT operating_system_pkey PRIMARY KEY (os_key);
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_pkey PRIMARY KEY (id);
 ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_pkey PRIMARY KEY (record_id);
@@ -6532,6 +6707,7 @@ ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_pkey PRIMARY KEY (domain, key);
 ALTER TABLE public.undo_log ADD CONSTRAINT undo_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_pkey PRIMARY KEY (email, role);
+ALTER TABLE public.vendor_billing_ended ADD CONSTRAINT vendor_billing_ended_pkey PRIMARY KEY (vendor);
 ALTER TABLE public.vision_horizon ADD CONSTRAINT vision_horizon_pkey PRIMARY KEY (year_no);
 ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_answer_log ADD CONSTRAINT wa_answer_log_pkey PRIMARY KEY (id);
@@ -6547,6 +6723,7 @@ ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_pkey PRIMARY KEY (id
 ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_pkey PRIMARY KEY (workflow_key, step_no);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.yello_staging ADD CONSTRAINT yello_staging_pkey PRIMARY KEY (company_id);
+ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_key_uniq UNIQUE (report_key);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.ai_model_register ADD CONSTRAINT ai_model_register_model_key UNIQUE (model);
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_slug_key UNIQUE (slug);
@@ -6576,6 +6753,7 @@ ALTER TABLE public.employee_knowledge_standard ADD CONSTRAINT employee_knowledge
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_agent_key_kpi_key UNIQUE (agent_key, kpi);
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_os_key_key UNIQUE (event_id, os_key);
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_agent_key_key UNIQUE (event_id, agent_key);
+ALTER TABLE public.expense_vendor_billing_mailbox ADD CONSTRAINT expense_vendor_billing_mailbox_vendor_mailbox_key UNIQUE (vendor, mailbox);
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_entry_no_key UNIQUE (entry_no);
 ALTER TABLE public.goal_period ADD CONSTRAINT goal_period_goal_key_horizon_period_label_key UNIQUE (goal_key, horizon, period_label);
 ALTER TABLE public.governance_policy ADD CONSTRAINT governance_policy_domain_policy_key UNIQUE (domain, policy);
@@ -6627,6 +6805,10 @@ ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_phone_e164_key
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_step_no_key UNIQUE (workflow_run_id, step_no);
+ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
+ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_general_accounting'::text, 'marketplace_policy_derived'::text, 'framework_shape_verify_current_text'::text, 'obligation_shape_no_figures'::text, 'resolve_from_authority'::text, 'company_record_generated'::text, 'company_governance_ruling'::text, 'authority_protocol'::text])));
+ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_status_ck CHECK ((status = ANY (ARRAY['generated'::text, 'pdf_failed'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
+ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_week_ck CHECK ((week_end > week_start));
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_known_gate CHECK (((gate_action_class IS NULL) OR (gate_action_class = ANY (ARRAY['ad_spend'::text, 'authentication_identity'::text, 'autonomy_framework'::text, 'destructive_data'::text, 'legal_commitment'::text, 'money_move'::text, 'production_deploy'::text, 'public_claim_publish'::text, 'secrets_security'::text, 'supplier_enforcement'::text]))));
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_daily_budget_aed_check CHECK ((daily_budget_aed >= (0)::numeric));
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_status_check CHECK ((status = ANY (ARRAY['ACTIVE'::text, 'PAUSED'::text])));
@@ -6664,6 +6846,7 @@ ALTER TABLE public.agent_tool_call ADD CONSTRAINT agent_tool_call_status_check C
 ALTER TABLE public.agent_training_attempt ADD CONSTRAINT agent_training_attempt_purpose_check CHECK ((purpose = ANY (ARRAY['practice'::text, 'retest'::text, 'drift_check'::text])));
 ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.agent_training_case ADD CONSTRAINT agent_training_case_scope_type_check CHECK ((scope_type = ANY (ARRAY['role'::text, 'department'::text, 'category'::text, 'company'::text])));
+ALTER TABLE public.ai_cost_log ADD CONSTRAINT ai_cost_log_seat_basis_check CHECK (((seat_basis IS NULL) OR (seat_basis = ANY (ARRAY['declared'::text, 'bound'::text, 'unattributed'::text]))));
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_status_check CHECK ((status = ANY (ARRAY['open'::text, 'partial'::text, 'paid'::text, 'void'::text, 'duplicate_hold'::text])));
 ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_verdict_check CHECK ((verdict = ANY (ARRAY['pass'::text, 'fail'::text, 'blocked'::text])));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_approval CHECK ((founder_approval_required = false));
@@ -6711,6 +6894,7 @@ ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_severity_che
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_change_class_check CHECK ((change_class = ANY (ARRAY['knowledge'::text, 'process'::text, 'code'::text, 'policy'::text, 'model_routing'::text, 'org'::text, 'prompting'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'accepted'::text, 'rejected'::text, 'implemented'::text])));
 ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_trigger_kind_check CHECK ((trigger_kind = ANY (ARRAY['repeated_failure'::text, 'metric_off_target'::text, 'cost_anomaly'::text, 'manual'::text, 'audit_gap'::text, 'review_rejection'::text, 'prompt_unmeasured'::text])));
+ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_doc_kind_ck CHECK (((doc_kind IS NULL) OR (doc_kind = ANY (ARRAY['vendor_document'::text, 'email_print'::text]))));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_shared_carries_no_trade CHECK (((scope <> 'shared'::text) OR (trade_key IS NULL)));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_subset_carries_no_trade CHECK (((scope <> 'trade_subset'::text) OR (trade_key IS NULL)));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_trade_specific_has_trade CHECK (((scope <> 'trade_specific'::text) OR (trade_key IS NOT NULL)));
@@ -6719,7 +6903,7 @@ ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check 
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_elsewhere_ck CHECK (((moves_to IS NULL) OR (moves_to <> owner)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHECK (((moves_to IS NULL) = (moves_to_note IS NULL)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
-ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'website'::text])));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'website'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
@@ -6778,6 +6962,7 @@ ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_che
 ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind_check CHECK ((kind = ANY (ARRAY['model'::text, 'deterministic'::text])));
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
+ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_basis_check CHECK ((authoritative_basis = ANY (ARRAY['measured'::text, 'true zero'::text, 'unknown'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_status_check CHECK ((status = ANY (ARRAY['open'::text, 'pursuing'::text, 'won'::text, 'dismissed'::text])));
 ALTER TABLE public.ops_knowledge ADD CONSTRAINT ops_knowledge_layer_ck CHECK (((layer IS NULL) OR (layer = ANY (ARRAY['company_core'::text, 'department_shared'::text, 'role_specific'::text, 'task_specific'::text, 'category_specialist'::text, 'validated_experience'::text, 'policy'::text, 'authority'::text, 'kpi'::text, 'decision_playbook'::text, 'case_training'::text, 'failure_mode'::text, 'remediation'::text, 'source_reference'::text, 'it_security_deep'::text]))));
@@ -6904,6 +7089,7 @@ ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_rate_source_check 
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_verdict_check CHECK ((verdict = ANY (ARRAY['ACHIEVABLE'::text, 'AT_RISK'::text, 'NOT_ACHIEVABLE'::text, 'CANNOT_ASSESS'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text, 'customer_signal'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_label_check CHECK ((btrim(label) <> ''::text));
+ALTER TABLE public.vendor_billing_ended ADD CONSTRAINT vendor_billing_ended_kind_ck CHECK ((kind = ANY (ARRAY['ended'::text, 'annual'::text, 'one_off'::text, 'portal_only'::text])));
 ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_party_kind_check CHECK ((party_kind = ANY (ARRAY['lead'::text, 'customer'::text, 'unknown'::text])));
 ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_thread_state_check CHECK ((thread_state = ANY (ARRAY['open'::text, 'awaiting_reply'::text, 'awaiting_document'::text, 'resolved'::text, 'handed_to_human'::text])));
 ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_classified_as_check CHECK ((classified_as = ANY (ARRAY['licence'::text, 'profile'::text, 'signed_terms'::text, 'unknown'::text])));
@@ -6980,6 +7166,7 @@ ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_event_id_fke
 ALTER TABLE public.event_assessment ADD CONSTRAINT event_assessment_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.event_delivery ADD CONSTRAINT event_delivery_event_id_fkey FOREIGN KEY (event_id) REFERENCES company_event(id) ON DELETE CASCADE;
 ALTER TABLE public.event_rollup ADD CONSTRAINT event_rollup_root_event_id_fkey FOREIGN KEY (root_event_id) REFERENCES company_event(id) ON DELETE SET NULL;
+ALTER TABLE public.expense_vendor_billing_mailbox ADD CONSTRAINT expense_vendor_billing_mailbox_mailbox_fkey FOREIGN KEY (mailbox) REFERENCES expense_billing_mailbox(mailbox);
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id) ON DELETE CASCADE;
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_referencing_trade_key_fkey FOREIGN KEY (referencing_trade_key) REFERENCES mep_trade(trade_key);
@@ -7157,6 +7344,12 @@ ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_workflow_key_fkey 
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_fkey FOREIGN KEY (workflow_run_id) REFERENCES workflow_run(id) ON DELETE CASCADE;
 
 -- ===== INDEXES =====
+CREATE INDEX accountant_knowledge_emb_hnsw ON public.accountant_knowledge USING hnsw (embedding_gte vector_cosine_ops);
+CREATE INDEX accountant_knowledge_epi_idx ON public.accountant_knowledge USING btree (epistemic_status);
+CREATE INDEX accountant_knowledge_search_idx ON public.accountant_knowledge USING gin (search);
+CREATE INDEX accountant_knowledge_type_idx ON public.accountant_knowledge USING btree (record_type);
+CREATE INDEX accountant_weekly_report_undelivered_idx ON public.accountant_weekly_report USING btree (week_start DESC) WHERE (delivered_at IS NULL);
+CREATE INDEX accountant_weekly_report_week_idx ON public.accountant_weekly_report USING btree (week_start DESC);
 CREATE INDEX acl_cheaper_idx ON public.ai_cost_log USING btree (could_be_cheaper) WHERE could_be_cheaper;
 CREATE INDEX acl_dept_idx ON public.ai_cost_log USING btree (dept_key, occurred_at DESC);
 CREATE INDEX ad_decision_campaign_idx ON public.ad_decision USING btree (campaign_id);
@@ -7178,6 +7371,8 @@ CREATE INDEX agent_training_case_family ON public.agent_training_case USING btre
 CREATE INDEX agent_training_case_run ON public.agent_training_case USING btree (ingestion_run_id);
 CREATE INDEX agent_training_case_scope ON public.agent_training_case USING btree (scope_type, scope_key, case_family);
 CREATE INDEX ai_cost_log_confidence_prior_idx ON public.ai_cost_log USING btree (agent_key, task_class, occurred_at DESC) WHERE (confidence IS NOT NULL);
+CREATE INDEX ai_cost_log_dubai_day_idx ON public.ai_cost_log USING btree ((((occurred_at AT TIME ZONE 'Asia/Dubai'::text))::date));
+CREATE UNIQUE INDEX ai_cost_log_generation_id_uidx ON public.ai_cost_log USING btree (generation_id) WHERE (generation_id IS NOT NULL);
 CREATE UNIQUE INDEX ai_trainer_snap_day ON public.ai_trainer_snapshots USING btree (snapshot_date);
 CREATE INDEX ai_usage_email_time_idx ON public.ai_usage USING btree (email, created_at);
 CREATE UNIQUE INDEX ap_bills_vendor_billno_uidx ON public.ap_bills USING btree (vendor_id, bill_no) WHERE ((bill_no IS NOT NULL) AND (status <> 'void'::text));
@@ -7227,6 +7422,7 @@ CREATE UNIQUE INDEX employee_kpi_history_one_per_day ON public.employee_kpi_hist
 CREATE INDEX event_delivery_agent_idx ON public.event_delivery USING btree (agent_key, delivered_at DESC);
 CREATE UNIQUE INDEX evolution_proposal_dedupe_idx ON public.evolution_proposal USING btree (trigger_kind, subject, change_class) WHERE (status = 'proposed'::text);
 CREATE INDEX exec_reports_officer ON public.exec_reports USING btree (officer, created_at DESC);
+CREATE UNIQUE INDEX expense_entries_openrouter_day_uidx ON public.expense_entries USING btree (charged_on) WHERE (source = 'accountant:openrouter_daily'::text);
 CREATE INDEX expenses_next_due_idx ON public.expenses USING btree (next_due) WHERE active;
 CREATE UNIQUE INDEX field_definition_identity_uidx ON public.field_definition USING btree (scope, COALESCE(trade_key, ''::text), label_en);
 CREATE UNIQUE INDEX finance_kpi_snap_day ON public.finance_kpi_snapshots USING btree (snapshot_date);
@@ -7340,6 +7536,7 @@ CREATE UNIQUE INDEX inquiry_trade_clarification_open_uidx ON public.inquiry_trad
 CREATE INDEX internal_credential_audit_at ON public.internal_credential_audit USING btree (at DESC);
 CREATE INDEX internal_credential_ctx_active ON public.internal_credential USING btree (context) WHERE active;
 CREATE UNIQUE INDEX internal_credential_hash_uq ON public.internal_credential USING btree (secret_hash);
+CREATE INDEX ix_accountant_spend_report_as_of ON public.accountant_spend_report USING btree (as_of DESC);
 CREATE INDEX ix_action_execution_correlation ON public.action_execution USING btree (correlation_id);
 CREATE INDEX ix_ap_bills_gl_journal_id ON public.ap_bills USING btree (gl_journal_id);
 CREATE INDEX ix_ap_bills_pay_journal_id ON public.ap_bills USING btree (pay_journal_id);
@@ -7424,8 +7621,10 @@ CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
 CREATE INDEX messaging_template_key_idx ON public.messaging_template USING btree (channel, template_key, lang);
 CREATE INDEX metric_snapshot_key_time_idx ON public.metric_snapshot USING btree (metric_key, taken_at DESC);
+CREATE INDEX notifications_provider_message_id_idx ON public.notifications USING btree (provider_message_id) WHERE (provider_message_id IS NOT NULL);
 CREATE UNIQUE INDEX notifications_rating_request_uidx ON public.notifications USING btree (quote_id) WHERE ((type = 'rating_request'::text) AND (COALESCE(channel, 'email'::text) = 'email'::text));
 CREATE INDEX notifications_status_idx ON public.notifications USING btree (status, created_at);
+CREATE INDEX openrouter_meter_read_at_idx ON public.openrouter_meter USING btree (read_at DESC);
 CREATE INDEX ops_knowledge_category ON public.ops_knowledge USING btree (category_key) WHERE (category_key IS NOT NULL);
 CREATE INDEX ops_knowledge_dept_idx ON public.ops_knowledge USING btree (dept_key, record_type);
 CREATE INDEX ops_knowledge_emb_hnsw ON public.ops_knowledge USING hnsw (embedding_gte vector_cosine_ops);
@@ -7506,8 +7705,10 @@ CREATE INDEX target_verdict_contract ON public.target_verdict USING btree (contr
 CREATE UNIQUE INDEX transactions_quote_id_uidx ON public.transactions USING btree (quote_id) WHERE (quote_id IS NOT NULL);
 CREATE UNIQUE INDEX transactions_refund_stripe_uidx ON public.transactions USING btree (refund_stripe_id) WHERE (refund_stripe_id IS NOT NULL);
 CREATE INDEX undo_log_created_idx ON public.undo_log USING btree (created_at DESC);
+CREATE UNIQUE INDEX uq_accountant_spend_report_object ON public.accountant_spend_report USING btree (pdf_bucket, pdf_path);
 CREATE UNIQUE INDEX uq_company_faq_q ON public.company_faq USING btree (question);
 CREATE UNIQUE INDEX uq_doc_backups_dedupe ON public.doc_backups USING btree (dedupe_key);
+CREATE UNIQUE INDEX uq_expense_entries_source_msg ON public.expense_entries USING btree (source_msg_id);
 CREATE UNIQUE INDEX uq_leads_email_lower ON public.leads USING btree (lower(email)) WHERE ((email IS NOT NULL) AND (email <> ''::text));
 CREATE UNIQUE INDEX ux_company_event_dedupe ON public.company_event USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
 CREATE INDEX wa_answer_log_unmatched ON public.wa_answer_log USING btree (received_at DESC) WHERE (NOT matched);
@@ -9473,6 +9674,34 @@ CREATE OR REPLACE VIEW public.v_executions_without_decision_trace AS  SELECT a.i
      LEFT JOIN decision_trace d ON ((d.correlation_id = a.correlation_id)))
   WHERE (d.id IS NULL);
 
+CREATE OR REPLACE VIEW public.v_expense_documents AS  SELECT id,
+    vendor,
+    charged_on,
+    amount,
+    currency,
+    category,
+    source_msg_id,
+        CASE
+            WHEN (source_msg_id ~~ 'resend:%'::text) THEN 'resend'::text
+            WHEN (source_msg_id ~~ 'gmail:%'::text) THEN 'gmail'::text
+            WHEN (source_msg_id ~~ 'outlook:%'::text) THEN 'outlook'::text
+            WHEN (source_msg_id IS NULL) THEN 'none'::text
+            ELSE split_part(source_msg_id, ':'::text, 1)
+        END AS source_channel,
+    'receipt-files'::text AS doc_bucket,
+    doc_path,
+    doc_name,
+    doc_content_type,
+    doc_kind,
+    doc_note,
+        CASE
+            WHEN (doc_path IS NULL) THEN 'missing'::text
+            WHEN (doc_kind IS NULL) THEN 'unclassified'::text
+            ELSE doc_kind
+        END AS document_state,
+    (doc_path IS NOT NULL) AS is_openable
+   FROM expense_entries e;
+
 CREATE OR REPLACE VIEW public.v_expense_receipt_gap AS  SELECT id,
     vendor,
     amount,
@@ -9594,6 +9823,41 @@ CREATE OR REPLACE VIEW public.v_legacy_secret_users AS  SELECT function_name,
   WHERE ((reason = 'legacy_secret_used'::text) AND (at > (now() - '7 days'::interval)))
   GROUP BY function_name
   ORDER BY (count(*)) DESC;
+
+CREATE OR REPLACE VIEW public.v_openrouter_call_log AS  SELECT c.id,
+    c.occurred_at,
+    ((c.occurred_at AT TIME ZONE 'Asia/Dubai'::text))::date AS dubai_day,
+    COALESCE(c.seat, '(unattributed)'::text) AS seat,
+    COALESCE(c.seat_basis, 'unattributed'::text) AS seat_basis,
+    c.fn AS used_by_function,
+    c.task_class AS purpose,
+    c.model_used,
+    c.tier,
+    c.prompt_tokens,
+    c.output_tokens,
+    c.cached_in_tokens,
+    c.cache_write_tokens,
+    c.generation_id,
+    c.cost_usd_reported,
+    c.cost_aed AS cost_aed_rate_card,
+        CASE
+            WHEN ((c.model_used = 'none'::text) OR c.cached) THEN 'free'::text
+            WHEN (COALESCE(c.cost_usd_reported, NULLIF(c.cost_aed, (0)::numeric)) IS NOT NULL) THEN 'priced'::text
+            ELSE 'unpriced'::text
+        END AS cost_basis,
+        CASE
+            WHEN ((c.model_used = 'none'::text) OR c.cached) THEN (0)::numeric
+            WHEN (c.cost_usd_reported IS NOT NULL) THEN c.cost_usd_reported
+            WHEN (COALESCE(c.cost_aed, (0)::numeric) > (0)::numeric) THEN round((c.cost_aed / r.fx), 6)
+            ELSE NULL::numeric
+        END AS cost_usd,
+    c.ok,
+    c.latency_ms,
+    c.model_selected_because
+   FROM (ai_cost_log c
+     CROSS JOIN ( SELECT COALESCE(max(gl_settings.num_value), 3.6725) AS fx
+           FROM gl_settings
+          WHERE (gl_settings.key = 'usd_to_aed'::text)) r);
 
 CREATE OR REPLACE VIEW public.v_org_open_tasks AS  SELECT id,
     objective_id,
@@ -10479,6 +10743,1915 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_assist(p_text text, p_embedding vector DEFAULT NULL::vector, p_min_similarity numeric DEFAULT 0.86, p_min_rank numeric DEFAULT 0.05, p_k integer DEFAULT 5, p_min_overlap numeric DEFAULT 0.60)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_k         int := greatest(1, least(coalesce(p_k, 5), 20));
+  v_wide      int := greatest(v_k * 4, 20);
+  c_lex_only  numeric := greatest(0.20, coalesce(p_min_rank, 0));
+  v_tq        tsquery;
+  v_lex       text[];
+  v_nlex      int;
+  v_need      int;
+  v_cands     jsonb  := '[]'::jsonb;
+  v_cited     text[] := '{}';
+  v_answer    jsonb  := '[]'::jsonb;
+  v_refusal   text;
+  v_best_sim  numeric;
+  v_best_rank numeric;
+  v_best_lex  int;
+  v_best_corp text;
+  v_handoff   text;
+begin
+  if coalesce(btrim(p_text), '') = '' then
+    return jsonb_build_object('ok', false, 'answered', false, 'refusal', 'empty_query');
+  end if;
+
+  v_tq := websearch_to_tsquery('english', p_text);
+  select array_agg(distinct u.lexeme) into v_lex from unnest(to_tsvector('english', p_text)) u;
+  v_nlex := coalesce(cardinality(v_lex), 0);
+  -- The greater of 60% and two lexemes, so a short question cannot be admitted on one common word.
+  v_need := case when v_nlex = 0 then 2147483647
+                 else greatest(least(2, v_nlex), ceil(coalesce(p_min_overlap, 0.60) * v_nlex)::int) end;
+
+  create temporary table if not exists _aa_cand (
+    corpus text, record_id text, title text, content text, provenance text,
+    similarity numeric, lexical_rank numeric, has_vector boolean, lex_hits int default 0
+  ) on commit drop;
+  -- truncate, not delete: the estate refuses an unqualified DELETE and a WHERE-less delete on a
+  -- scratch table is exactly what that guard exists to catch elsewhere.
+  truncate table _aa_cand;
+
+  -- accountant_knowledge -- the seat's own body.
+  if p_embedding is not null then
+    insert into _aa_cand
+    select 'accountant_knowledge', k.record_id, k.title, left(k.content, 4000),
+           coalesce(k.record_type, '') || case when k.domain is null then '' else ' · ' || k.domain end
+             || ' · ' || k.epistemic_status,
+           (1 - (k.embedding_gte <=> p_embedding))::numeric,
+           coalesce(ts_rank(k.search, v_tq), 0)::numeric * (case when k.search @@ v_tq then 1 else 0 end),
+           true,
+           (select count(*) from unnest(k.search) u where u.lexeme = any (v_lex))
+      from accountant_knowledge k
+     where k.embedding_gte is not null and k.runtime_index_eligible
+     order by k.embedding_gte <=> p_embedding
+     limit v_wide;
+  end if;
+  insert into _aa_cand
+  select 'accountant_knowledge', k.record_id, k.title, left(k.content, 4000),
+         coalesce(k.record_type, '') || ' · ' || k.epistemic_status,
+         null::numeric, ts_rank(k.search, v_tq)::numeric, false, 0
+    from accountant_knowledge k
+   where k.embedding_gte is null and k.runtime_index_eligible and k.search @@ v_tq
+   order by ts_rank(k.search, v_tq) desc
+   limit v_wide;
+
+  -- ops_knowledge -- how this company actually operates. A finance question frequently turns on a
+  -- company rule rather than on accounting, and a seat that cannot see those answers half a
+  -- question. Superseded rows are excluded: never quote a rule that has been replaced.
+  if p_embedding is not null then
+    insert into _aa_cand
+    select 'ops_knowledge', o.record_id, o.title, left(o.content, 4000),
+           coalesce(o.record_type, '') || case when o.authority_tier is null then '' else ' · authority ' || o.authority_tier end,
+           (1 - (o.embedding_gte <=> p_embedding))::numeric,
+           coalesce(ts_rank(o.tsv, v_tq), 0)::numeric * (case when o.tsv @@ v_tq then 1 else 0 end),
+           true,
+           (select count(*) from unnest(o.tsv) u where u.lexeme = any (v_lex))
+      from ops_knowledge o
+     where o.embedding_gte is not null
+       and coalesce(o.supersession_state, 'current') = 'current'
+     order by o.embedding_gte <=> p_embedding
+     limit v_wide;
+  end if;
+
+  -- ADMISSION. The cosine floor is a hard AND for every vector-bearing row; corroboration may come
+  -- from either the all-terms rank or literal lexeme overlap, and one of the two is required.
+  with judged as (
+    select c.*,
+           (c.has_vector and c.similarity >= p_min_similarity
+             and (c.lexical_rank >= p_min_rank or c.lex_hits >= v_need))     as ok_vector,
+           ((not c.has_vector) and c.lexical_rank >= c_lex_only)             as ok_lexical
+      from _aa_cand c
+  ), ranked as (
+    select j.*, (j.ok_vector or j.ok_lexical) as cited,
+           row_number() over (
+             order by (case when j.ok_vector or j.ok_lexical then 0 else 1 end),
+                      (case when j.has_vector then 0 else 1 end),
+                      j.similarity desc nulls last, j.lexical_rank desc) as rn
+      from judged j
+  )
+  select
+    coalesce(jsonb_agg(jsonb_build_object(
+      'corpus', r.corpus, 'record_id', r.record_id,
+      'similarity', round(r.similarity, 4), 'lexical_rank', round(r.lexical_rank, 4),
+      'route', case when r.has_vector then 'vector+lexical' else 'lexical_only' end,
+      'cleared_floor', coalesce(r.has_vector and r.similarity >= p_min_similarity, false),
+      'lex_hits', r.lex_hits, 'lex_needed', v_need,
+      'corroborated', case when r.has_vector then (r.lexical_rank >= p_min_rank or r.lex_hits >= v_need)
+                           else r.lexical_rank >= c_lex_only end,
+      'cited', r.cited) order by r.rn) filter (where r.rn <= 40), '[]'::jsonb),
+    coalesce(array_agg(r.corpus || ':' || r.record_id order by r.rn)
+             filter (where r.cited and r.rn <= v_k), '{}'),
+    coalesce(jsonb_agg(jsonb_build_object(
+      'corpus', r.corpus, 'record_id', r.record_id, 'title', r.title,
+      'provenance', r.provenance,
+      'similarity', round(r.similarity, 4), 'lexical_rank', round(r.lexical_rank, 4),
+      'route', case when r.has_vector then 'vector+lexical' else 'lexical_only' end,
+      'content', r.content) order by r.rn) filter (where r.cited and r.rn <= v_k), '[]'::jsonb)
+    into v_cands, v_cited, v_answer
+    from ranked r;
+
+  select max(similarity), max(lexical_rank), max(lex_hits)
+    into v_best_sim, v_best_rank, v_best_lex from _aa_cand;
+  select corpus into v_best_corp from _aa_cand
+   order by similarity desc nulls last, lexical_rank desc limit 1;
+
+  if cardinality(v_cited) = 0 then
+    v_refusal := case
+      when (select count(*) from _aa_cand) = 0 then 'no_candidates'
+      when coalesce(v_best_sim, 0) < p_min_similarity and coalesce(v_best_rank, 0) < c_lex_only
+        then 'below_similarity_floor_and_lexical_bar'
+      when coalesce(v_best_sim, 0) < p_min_similarity then 'below_similarity_floor'
+      else 'not_corroborated_lexically' end;
+    v_handoff :=
+      'I do not have a sourced answer to that, and I will not guess at a financial or tax question. '
+      || 'If it needs a rate, a threshold, a deadline or a penalty, that figure is deliberately not '
+      || 'held in my knowledge: it is published by the Federal Tax Authority and must be read from '
+      || 'its current publication for the period concerned.';
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'answered', cardinality(v_cited) > 0,
+    'records', v_answer,
+    'cited', v_cited,
+    'candidates', v_cands,
+    'corpora', jsonb_build_array('accountant_knowledge', 'ops_knowledge'),
+    'floor', jsonb_build_object(
+      'min_similarity', p_min_similarity, 'min_rank', p_min_rank, 'lexical_only', c_lex_only,
+      'min_overlap', p_min_overlap, 'lexemes_in_question', v_nlex, 'lexeme_overlap_needed', v_need,
+      'best_similarity', round(v_best_sim, 4), 'best_lexical_rank', round(v_best_rank, 4),
+      'best_lex_hits', v_best_lex, 'nearest_corpus', v_best_corp, 'k', v_k,
+      'rule', 'a row with an embedding must clear the cosine floor -- always -- AND corroborate literally by one of two routes: the all-terms lexical query at ts_rank >= min_rank, or at least lexeme_overlap_needed of the question''s own lexemes present verbatim in the row. The overlap route exists because the all-terms route was measured at exactly ts_rank 0.0000 on 9 of 35 realistic questions whose correct record sat at cosine 0.887-0.933: websearch_to_tsquery ANDs every term, so one filler adverb defeats it. A row with no embedding cannot be put to the vector floor at all and must clear the stricter lexical-only bar instead. A nearest neighbour is always found; a literal match is not.'),
+    'refusal', v_refusal,
+    'handoff', v_handoff);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_knowledge_search_vector()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.search :=
+      setweight(to_tsvector('english'::regconfig, coalesce(new.title,'')), 'A')
+   || setweight(to_tsvector('english'::regconfig, coalesce(array_to_string(new.tags,' '),'')), 'B')
+   || setweight(to_tsvector('english'::regconfig, coalesce(new.content,'')), 'C');
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_openrouter_breakdown(p_day date)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+-- A GROUP WHOSE CALLS ARE ALL UNPRICED HAS AN UNKNOWN COST, NOT A ZERO ONE.
+-- Caught by the 9 Sep probe: sales_engineer/document_extraction printed "0.000000 USD" for a single
+-- call that used a model and recorded no tokens. Read off a report that is a claim the seat spent
+-- nothing on document extraction that day, which is precisely the fabrication the founder's
+-- standing rule forbids. Every group therefore reports usd/aed as NULL when it holds no priced
+-- call and at least one unpriced one, and every group carries its own unpriced COUNT so an unknown
+-- is visible rather than silent. sum() ignoring nulls does the rest: an unpriced call can never
+-- inflate or deflate a total, and the money it did cost lands in the unattributed line against
+-- OpenRouter's own meter, where it belongs.
+with fx as (
+  select coalesce(max(num_value), 3.6725) v from public.gl_settings where key = 'usd_to_aed'
+),
+rows as (
+  select * from public.v_openrouter_call_log where dubai_day = p_day
+),
+tot as (
+  select count(*)::int calls,
+         count(*) filter (where cost_basis = 'priced')::int   priced,
+         count(*) filter (where cost_basis = 'free')::int     free,
+         count(*) filter (where cost_basis = 'unpriced')::int unpriced,
+         coalesce(sum(cost_usd),0)::numeric                    usd
+    from rows
+),
+by_seat as (
+  select jsonb_agg(x order by x->>'seat') j from (
+    select jsonb_build_object(
+      'seat', seat, 'seat_basis', min(seat_basis),
+      'calls', count(*)::int,
+      'priced', count(*) filter (where cost_basis='priced')::int,
+      'free', count(*) filter (where cost_basis='free')::int,
+      'unpriced', count(*) filter (where cost_basis='unpriced')::int,
+      'usd', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0),6) end,
+      'aed', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0) * (select v from fx), 2) end) x
+    from rows group by seat) s
+),
+by_purpose as (
+  select jsonb_agg(x order by x->>'purpose') j from (
+    select jsonb_build_object('purpose', coalesce(purpose,'(unclassified)'),
+      'calls', count(*)::int, 'usd', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0),6) end,
+      'aed', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0) * (select v from fx), 2) end,
+      'unpriced', count(*) filter (where cost_basis='unpriced')::int) x
+    from rows group by coalesce(purpose,'(unclassified)')) s
+),
+by_model as (
+  select jsonb_agg(x order by x->>'model') j from (
+    select jsonb_build_object('model', coalesce(model_used,'(none)'),
+      'calls', count(*)::int, 'usd', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0),6) end,
+      'aed', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0) * (select v from fx), 2) end,
+      'prompt_tokens', coalesce(sum(prompt_tokens),0)::bigint,
+      'output_tokens', coalesce(sum(output_tokens),0)::bigint,
+      'unpriced', count(*) filter (where cost_basis='unpriced')::int) x
+    from rows group by coalesce(model_used,'(none)')) s
+),
+by_seat_purpose as (
+  select jsonb_agg(x order by x->>'seat', x->>'purpose') j from (
+    select jsonb_build_object('seat', seat, 'purpose', coalesce(purpose,'(unclassified)'),
+      'calls', count(*)::int, 'unpriced', count(*) filter (where cost_basis='unpriced')::int, 'usd', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0),6) end,
+      'aed', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0) * (select v from fx), 2) end) x
+    from rows group by seat, coalesce(purpose,'(unclassified)')) s
+),
+unattributed_fns as (
+  select jsonb_agg(x order by x->>'fn') j from (
+    select jsonb_build_object('fn', used_by_function, 'calls', count(*)::int,
+      'usd', case when count(*) filter (where cost_basis='priced') = 0 and count(*) filter (where cost_basis='unpriced') > 0 then null else round(coalesce(sum(cost_usd),0),6) end) x
+    from rows where seat = '(unattributed)' group by used_by_function) s
+)
+select jsonb_build_object(
+  'day', p_day,
+  'timezone', 'Asia/Dubai',
+  'calls', (select calls from tot),
+  'calls_priced', (select priced from tot),
+  'calls_free', (select free from tot),
+  'calls_unpriced', (select unpriced from tot),
+  'attributed_usd', round((select usd from tot), 6),
+  'attributed_aed', round((select usd from tot) * (select v from fx), 2),
+  'unpriced_note', case when (select unpriced from tot) > 0
+      then (select unpriced from tot)::text || ' call(s) used a model and no tokens or provider cost '
+           || 'were recorded at the time. Their cost is UNKNOWN -- not recorded at the time -- and is '
+           || 'deliberately excluded from attributed_usd rather than counted as zero. They show in '
+           || 'the unattributed line against OpenRouter''s own meter.'
+      else null end,
+  'by_seat', coalesce((select j from by_seat), '[]'::jsonb),
+  'by_purpose', coalesce((select j from by_purpose), '[]'::jsonb),
+  'by_model', coalesce((select j from by_model), '[]'::jsonb),
+  'by_seat_and_purpose', coalesce((select j from by_seat_purpose), '[]'::jsonb),
+  'unattributed_functions', coalesce((select j from unattributed_fns), '[]'::jsonb));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_openrouter_tick(p_reading jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz     constant text := 'Asia/Dubai';
+  v_fx     numeric;
+  v_today  date := (now() at time zone v_tz)::date;
+  v_meter  bigint;
+  v_day    date;
+  v_open   public.openrouter_meter%rowtype;
+  v_close  public.openrouter_meter%rowtype;
+  v_auth   numeric;
+  v_basis  text;
+  v_note   text;
+  v_brk    jsonb;
+  v_attr   numeric;
+  v_exp    bigint;
+  v_done   jsonb := '[]'::jsonb;
+  v_n      int := 0;
+begin
+  select num_value into v_fx from public.gl_settings where key = 'usd_to_aed';
+  v_fx := coalesce(v_fx, 3.6725);
+
+  -- ---- the reading -------------------------------------------------------------------------
+  -- Stored whether or not it succeeded. A failed reading is the record that turns a day's basis
+  -- from measured to unknown; dropping it would let a gap look like a quiet day.
+  if p_reading ? 'ok' then
+    insert into public.openrouter_meter
+      (ok, cumulative_usd, credits_total_usd, usage_daily_usd, usage_monthly_usd,
+       limit_remaining_usd, key_label, err)
+    values (
+      coalesce((p_reading->>'ok')::boolean, false),
+      nullif(p_reading->>'cumulative_usd','')::numeric,
+      nullif(p_reading->>'credits_total_usd','')::numeric,
+      nullif(p_reading->>'usage_daily_usd','')::numeric,
+      nullif(p_reading->>'usage_monthly_usd','')::numeric,
+      nullif(p_reading->>'limit_remaining_usd','')::numeric,
+      nullif(p_reading->>'key_label',''),
+      left(nullif(p_reading->>'err',''), 500))
+    returning id into v_meter;
+  end if;
+
+  -- ---- close every past day that has evidence and no record yet ------------------------------
+  -- "Evidence" is a meter reading or a logged call. A day with neither never existed for us and is
+  -- not invented. Capped at 60 days so a first run cannot walk the whole history in one tick.
+  for v_day in
+    select d from (
+      select distinct (read_at at time zone v_tz)::date d from public.openrouter_meter
+      union
+      select distinct (occurred_at at time zone v_tz)::date from public.ai_cost_log
+    ) s
+    where d < v_today
+      and d >= v_today - 60
+      and not exists (select 1 from public.openrouter_day o where o.day = d)
+    order by d
+  loop
+    -- The meter either side of the day. open = the last good reading BEFORE the day began;
+    -- close = the last good reading taken DURING the day.
+    select * into v_open from public.openrouter_meter
+      where ok and cumulative_usd is not null
+        and read_at < (v_day::timestamp at time zone v_tz)
+      order by read_at desc limit 1;
+    select * into v_close from public.openrouter_meter
+      where ok and cumulative_usd is not null
+        and read_at >= (v_day::timestamp at time zone v_tz)
+        and read_at <  ((v_day + 1)::timestamp at time zone v_tz)
+      order by read_at desc limit 1;
+
+    if v_open.id is null or v_close.id is null then
+      v_auth  := null;
+      v_basis := 'unknown';
+      v_note  := 'UNKNOWN -- not recorded at the time. '
+              || case when v_open.id is null and v_close.id is null
+                        then 'No OpenRouter meter reading exists either side of this day'
+                      when v_open.id is null
+                        then 'No OpenRouter meter reading exists from before this day began'
+                      else 'No OpenRouter meter reading was taken during this day' end
+              || ', so the day''s provider spend cannot be derived and is NOT reported as zero. '
+              || 'The meter began on ' || coalesce((select min((read_at at time zone v_tz)::date)::text
+                                                     from public.openrouter_meter), 'never')
+              || '; GET /api/v1/activity is 403 for a non-management key, so no back-fill is possible.';
+    elsif v_close.cumulative_usd < v_open.cumulative_usd then
+      v_auth  := null;
+      v_basis := 'unknown';
+      v_note  := 'UNKNOWN -- OpenRouter''s lifetime usage counter went BACKWARDS across this day ('
+              || v_open.cumulative_usd || ' -> ' || v_close.cumulative_usd || '), which a monotonic '
+              || 'meter cannot do. The key was probably rotated or the account changed. Reported as '
+              || 'unknown rather than as a negative or a zero.';
+    else
+      v_auth  := v_close.cumulative_usd - v_open.cumulative_usd;
+      v_basis := case when v_auth = 0 then 'true zero' else 'measured' end;
+      v_note  := 'Meter reading #' || v_open.id || ' (' || v_open.read_at || ', '
+              || v_open.cumulative_usd || ' USD lifetime) to #' || v_close.id || ' ('
+              || v_close.read_at || ', ' || v_close.cumulative_usd || ' USD lifetime).';
+    end if;
+
+    v_brk  := public.fn_accountant_openrouter_breakdown(v_day);
+    v_attr := coalesce((v_brk->>'attributed_usd')::numeric, 0);
+
+    -- The expense is booked ONLY on a day whose provider spend was actually measured and is
+    -- non-zero. An unknown day and a true-zero day are both recorded above and book nothing:
+    -- a general ledger must never carry a figure nobody can walk back to a reading.
+    v_exp := null;
+    if v_basis = 'measured' and v_auth > 0 then
+      insert into public.expense_entries
+        (vendor, category, amount, currency, charged_on, note, source)
+      values ('OpenRouter', 'Usage', round(v_auth * v_fx, 2), 'AED', v_day,
+        'OpenRouter model usage, ' || v_day || ' (Asia/Dubai). ' || round(v_auth,6) || ' USD at '
+        || v_fx || ' = ' || round(v_auth * v_fx, 2) || ' AED. Attributed to seats: '
+        || round(v_attr, 6) || ' USD. Unattributed: ' || round(v_auth - v_attr, 6) || ' USD. '
+        || 'Basis: measured from the OpenRouter meter. ' || v_note
+        || ' Full per-seat breakdown in public.openrouter_day for this date.',
+        'accountant:openrouter_daily')
+      on conflict (charged_on) where source = 'accountant:openrouter_daily'
+        do update set amount = excluded.amount, note = excluded.note
+      returning id into v_exp;
+    end if;
+
+    insert into public.openrouter_day
+      (day, authoritative_usd, authoritative_basis, attributed_usd, unattributed_usd,
+       calls, calls_priced, calls_free, calls_unpriced, breakdown,
+       meter_open_id, meter_close_id, expense_entry_id, note)
+    values (v_day, v_auth, v_basis, v_attr,
+      case when v_auth is null then null else round(v_auth - v_attr, 6) end,
+      coalesce((v_brk->>'calls')::int, 0),
+      coalesce((v_brk->>'calls_priced')::int, 0),
+      coalesce((v_brk->>'calls_free')::int, 0),
+      coalesce((v_brk->>'calls_unpriced')::int, 0),
+      v_brk, v_open.id, v_close.id, v_exp, v_note)
+    on conflict (day) do nothing;
+
+    v_n := v_n + 1;
+    v_done := v_done || jsonb_build_object(
+      'day', v_day, 'basis', v_basis,
+      'authoritative_usd', v_auth, 'attributed_usd', round(v_attr,6),
+      'unattributed_usd', case when v_auth is null then null else round(v_auth - v_attr,6) end,
+      'expense_entry_id', v_exp);
+  end loop;
+
+  return jsonb_build_object(
+    'ok', true, 'agent', 'accountant', 'meter_reading_id', v_meter,
+    'today_dubai', v_today, 'days_reconciled', v_n, 'days', v_done);
+end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_cadence_gaps(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz      text := 'Asia/Dubai';
+  v_as_of   date;
+  v_gaps    jsonb;
+  v_stale   jsonb;
+  v_single  jsonb;
+  v_ended   jsonb;
+  v_n_gap   int;
+  v_n_stale int;
+  v_n_once  int;
+  v_portal   jsonb;
+  v_n_portal int;
+begin
+  v_as_of := coalesce(p_as_of, (now() at time zone v_tz)::date);
+
+  with per_vendor_month as (
+    select vendor, date_trunc('month', charged_on)::date mo, count(*) n
+      from public.expense_entries
+     group by vendor, date_trunc('month', charged_on)::date
+  ),
+  span as (
+    select vendor, min(mo) first_mo, max(mo) last_mo, count(*) months_seen, sum(n) receipts
+      from per_vendor_month group by vendor
+  ),
+  -- TWO distinct months, not three. Requiring three examined neither vendor this was written to
+  -- catch: Anthropic had two months booked and Google two. A threshold that excludes the case the
+  -- guard exists for is the guard not existing, and it fails in the flattering direction.
+  cadenced as (
+    select * from span where months_seen >= 2
+  ),
+  expected as (
+    select c.vendor, gs::date mo
+      from cadenced c
+      cross join lateral generate_series(c.first_mo, c.last_mo, interval '1 month') gs
+  ),
+  -- A month INSIDE the vendor's own run with no receipt. NEVER suppressed by an explanation: a
+  -- vendor that billed May, skipped June and billed July has a real hole whatever happened after.
+  gap as (
+    select e.vendor, to_char(e.mo, 'YYYY-MM') missing_month
+      from expected e
+      left join per_vendor_month p on p.vendor = e.vendor and p.mo = e.mo
+     where p.vendor is null
+  ),
+  -- Billed on a cadence, then silent for more than 45 days. 45 rather than 31 so a charge landing a
+  -- few days late does not cry wolf. Suppressed only by a recorded explanation.
+  stale as (
+    select c.vendor, to_char(c.last_mo, 'YYYY-MM') last_month,
+           (v_as_of - c.last_mo) days_since_last_month_started, c.receipts
+      from cadenced c
+      left join public.vendor_billing_ended e on e.vendor = c.vendor
+     where v_as_of - c.last_mo > 45 and e.vendor is null
+  ),
+  -- ONE receipt, silent, and nobody has said why. This is the STRONGEST case, not the weakest: if
+  -- that vendor is a monthly subscription then every renewal after it is missing, and no other check
+  -- here can see it, because one month is not a cadence. It fed nothing until 9 Sep 2026, which is
+  -- how a report claimed completeness while the founder's ChatGPT renewals were unaccounted for.
+  single_receipt as (
+    select s.vendor, to_char(s.first_mo, 'YYYY-MM') only_month,
+           (v_as_of - s.first_mo) days_since
+      from span s
+      left join public.vendor_billing_ended e on e.vendor = s.vendor
+     where s.receipts = 1 and v_as_of - s.first_mo > 45 and e.vendor is null
+  ),
+  -- STILL BILLING, NEVER EMAILS. The money is missing and the remedy is known: fetch the invoice
+  -- from the vendor's own portal. This is a shortfall like any other -- it just carries its answer.
+  portal_billing as (
+    select s.vendor, to_char(s.last_mo, 'YYYY-MM') last_month, s.receipts,
+           (v_as_of - s.last_mo) days_since, e.note
+      from span s
+      join public.vendor_billing_ended e on e.vendor = s.vendor and e.kind = 'portal_only'
+     where v_as_of - s.last_mo > 45
+  ),
+  explained as (
+    select vendor, to_char(ended_after, 'YYYY-MM') ended_after_month, kind, basis
+      from public.vendor_billing_ended
+  )
+  select
+    (select coalesce(jsonb_agg(jsonb_build_object('vendor', vendor, 'missing_month', missing_month)
+              order by vendor, missing_month), '[]'::jsonb) from gap),
+    (select coalesce(jsonb_agg(jsonb_build_object('vendor', vendor, 'last_month', last_month,
+              'receipts_seen', receipts, 'days_since', days_since_last_month_started)
+              order by vendor), '[]'::jsonb) from stale),
+    (select coalesce(jsonb_agg(jsonb_build_object('vendor', vendor, 'only_month', only_month,
+              'days_since', days_since) order by vendor), '[]'::jsonb) from single_receipt),
+    (select coalesce(jsonb_agg(jsonb_build_object('vendor', vendor, 'kind', kind,
+              'since', ended_after_month, 'basis', basis) order by vendor), '[]'::jsonb) from explained),
+    (select coalesce(jsonb_agg(jsonb_build_object('vendor', vendor, 'last_billed', last_month,
+              'days_since', days_since, 'remedy', note) order by vendor), '[]'::jsonb) from portal_billing)
+    into v_gaps, v_stale, v_single, v_ended, v_portal;
+
+  v_n_gap    := jsonb_array_length(v_gaps);
+  v_n_stale  := jsonb_array_length(v_stale);
+  v_n_once   := jsonb_array_length(v_single);
+  v_n_portal := jsonb_array_length(v_portal);
+
+  return jsonb_build_object(
+    'as_of', v_as_of,
+    'timezone', v_tz,
+    'basis', 'Measured from the VENDOR side: what each vendor billed, not what the mailbox received. '
+          || 'The intake-side checks (held, refused, unconvertible, unposted) cannot see a receipt '
+          || 'that never arrived, which is why a report can read complete while a subscription is '
+          || 'missing three months.',
+    'months_with_no_receipt_inside_a_run', v_gaps,
+    'vendors_gone_quiet', v_stale,
+    'vendors_seen_once_unexplained', v_single,
+    'vendors_with_a_recorded_reason', v_ended,
+    'vendors_billing_outside_email', v_portal,
+    'suspected_missing', v_n_gap + v_n_stale + v_n_once + v_n_portal,
+    'claim', case when v_n_gap + v_n_stale + v_n_once + v_n_portal = 0
+              then 'No vendor is missing a month, unexplained-quiet, or seen once without a reason. '
+                || 'That is NOT a claim that the book is complete: a vendor never forwarded even '
+                || 'once is invisible to this and to every other check here.'
+              else 'These are SUSPECTED gaps, not proven ones -- a subscription can be cancelled, '
+                || 'downgraded or paused, and a one-off purchase legitimately bills once. Each '
+                || 'carries the evidence that produced it, and any of them can be closed for good by '
+                || 'recording the vendor in vendor_billing_ended as ended, annual or one_off. The '
+                || 'book should not be called complete while one stands unexplained.' end);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_spend_report(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz        text := 'Asia/Dubai';
+  v_as_of     date;
+  v_fx        numeric;
+  v_entries   int;
+  v_first     date;
+  v_last      date;
+  v_aed       numeric(18,2);
+  v_vat       numeric(18,2);
+  v_unconv    jsonb;
+  v_unconv_n  int;
+  v_by_cur    jsonb;
+  v_by_vendor jsonb;
+  v_by_month  jsonb;
+  v_vendor_rows jsonb;
+  v_month_rows  jsonb;
+  v_held      jsonb;
+  v_held_n    int;
+  v_refused_n int;
+  v_unposted  int;
+  v_sweep     record;
+  v_cov       text;
+  v_covj      jsonb;
+  v_complete  boolean;
+  v_cadence   jsonb;
+  v_cad_gap   int;
+  v_cad_quiet int;
+  v_short     text[] := '{}';
+  v_subject   text;
+  v_body      text;
+  v_blocks    jsonb;
+  v_money     text;
+  v_rcpt      jsonb;
+  v_rcpt_rows jsonb;
+  v_receipts  jsonb;
+  v_rcpt_n    int;
+  v_rcpt_doc  int;
+begin
+  v_as_of := coalesce(p_as_of, (now() at time zone v_tz)::date);
+  select num_value into v_fx from public.gl_settings where key = 'usd_to_aed';
+  v_fx := coalesce(v_fx, 3.6725);
+
+  -- ONE conversion expression, repeated verbatim everywhere below rather than varied, so the report
+  -- cannot convert two ways in two places. NULL for a currency with no rate: such an entry then
+  -- drops out of every sum BY CONSTRUCTION, rather than by a filter somebody could forget to repeat
+  -- in the fifth query. It is counted separately and named on the document.
+  select count(*), min(charged_on), max(charged_on),
+         sum(round(amount * case upper(currency) when 'USD' then v_fx when 'AED' then 1 else null end, 2)),
+         sum(round(coalesce(vat_amount,0) * case upper(currency) when 'USD' then v_fx when 'AED' then 1 else null end, 2))
+    into v_entries, v_first, v_last, v_aed, v_vat
+    from public.expense_entries;
+  v_entries := coalesce(v_entries, 0);
+  v_aed := coalesce(v_aed, 0);
+  v_vat := coalesce(v_vat, 0);
+
+  -- ---- by currency (every currency, converted or not) ----
+  select coalesce(jsonb_agg(x order by x->>'currency'), '[]'::jsonb)
+    into v_by_cur
+    from (select jsonb_build_object(
+                   'currency', upper(currency),
+                   'entries', count(*),
+                   'total', round(sum(amount), 2),
+                   'vat_stated', round(sum(coalesce(vat_amount,0)), 2),
+                   'convertible', upper(currency) in ('AED','USD'),
+                   'aed', case when upper(currency) in ('AED','USD')
+                          then round(sum(round(amount * case upper(currency) when 'USD' then v_fx else 1 end, 2)), 2)
+                          else null end) as x
+            from public.expense_entries group by upper(currency)) s;
+
+  select coalesce(jsonb_agg(x order by x->>'currency'), '[]'::jsonb), count(*)
+    into v_unconv, v_unconv_n
+    from (select jsonb_build_object('currency', upper(currency), 'entries', count(*),
+                                    'total', round(sum(amount), 2)) as x
+            from public.expense_entries
+           where upper(currency) not in ('AED','USD')
+           group by upper(currency)) s;
+
+  -- ---- by vendor ----
+  select coalesce(jsonb_agg(x order by (x->>'aed')::numeric desc nulls last), '[]'::jsonb)
+    into v_by_vendor
+    from (select jsonb_build_object(
+                   'vendor', vendor,
+                   'entries', count(*),
+                   'first', min(charged_on), 'last', max(charged_on),
+                   'currencies', (select string_agg(distinct upper(e2.currency), '/' order by upper(e2.currency))
+                                    from public.expense_entries e2 where e2.vendor = e.vendor),
+                   'aed', round(sum(round(amount * case upper(currency) when 'USD' then v_fx when 'AED' then 1 else null end, 2)), 2)) as x
+            from public.expense_entries e group by vendor) s;
+
+  -- ---- by month (calendar month of the charge date, not of the forward) ----
+  select coalesce(jsonb_agg(x order by x->>'month'), '[]'::jsonb)
+    into v_by_month
+    from (select jsonb_build_object(
+                   'month', to_char(charged_on, 'YYYY-MM'),
+                   'entries', count(*),
+                   'aed', round(sum(round(amount * case upper(currency) when 'USD' then v_fx when 'AED' then 1 else null end, 2)), 2)) as x
+            from public.expense_entries group by to_char(charged_on, 'YYYY-MM')) s;
+
+  -- ---- what is NOT in the total ----
+  -- A held receipt is a receipt the parser refused to guess at. It is NAMED here, with its reason,
+  -- because "we could not read this one" is the single most important sentence a spend report can
+  -- carry and it must never be reachable only by opening a task queue.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'task_id', t.id, 'title', t.title, 'opened', t.created_at::date,
+           'assigned', t.assigned_agent,
+           'reason', left(regexp_replace(coalesce(t.detail,''), '^\[inbound_message:\d+\]\s*', ''), 400)) order by t.id), '[]'::jsonb),
+         count(*)
+    into v_held, v_held_n
+    from public.org_tasks t
+   where t.decided_by = 'fn_receipt_hand_to_bookkeeper'
+     and t.status not in ('done', 'cancelled');
+
+  select count(*) into v_refused_n
+    from public.inbound_messages
+   where to_email ilike 'expenses@%' and body like '[REFUSED%';
+
+  -- An entry that never reached the ledger is money we know about that the accounts do not.
+  select count(*) into v_unposted
+    from public.expense_entries e
+   where not exists (select 1 from public.gl_journal g
+                      where g.source = 'expense' and g.source_ref = e.id::text);
+
+  -- ---- COVERAGE. How much was LOOKED AT, not how much was booked. ----
+  --
+  -- 9 Sep 2026: this block used to quote ONLY the Resend inbound sweep, because that was the only
+  -- way an expense had ever reached the book. It is not any more -- 28 of the entries below came
+  -- from the founder's own sent-mail record of what he forwarded before Resend's ~1-month inbound
+  -- retention aged it out. Quoting one source while totalling two would have made the line that
+  -- exists to BOUND the total into one that contradicts it, so both sources are named now.
+  -- fn_accountant_spend_report_coverage owns that paragraph and its shortfalls; the arithmetic
+  -- below is untouched, and a third source can be added there without reopening this routine.
+  v_covj := public.fn_accountant_spend_report_coverage();
+  v_cov  := v_covj->>'note';
+  select v_short || coalesce(array_agg(s #>> '{}'), '{}')
+    into v_short from jsonb_array_elements(coalesce(v_covj->'shortfalls','[]'::jsonb)) s;
+
+  select r.id, r.finished_at, r.counts, r.status into v_sweep
+    from public.agent_runs r
+   where r.agent = 'accountant' and r.counts->>'action' = 'expense_sweep'
+   order by r.id desc limit 1;
+
+  if v_held_n > 0 then v_short := v_short || array[(v_held_n || ' receipt(s) HELD because no amount could be read')]; end if;
+  if v_refused_n > 0 then v_short := v_short || array[(v_refused_n || ' message(s) refused because the sender is not on the expense forwarder allowlist')]; end if;
+  if v_unconv_n > 0 then v_short := v_short || array[(v_unconv_n || ' currency/currencies with no rate in gl_settings, which are NOT converted and NOT in the AED total')]; end if;
+  if v_unposted > 0 then v_short := v_short || array[(v_unposted || ' booked entry/entries that have not reached gl_journal')]; end if;
+  -- THE VENDOR-SIDE QUESTION, asked here rather than in a routine nobody calls.
+  --
+  -- Everything above this line is INTAKE-side: held, refused, unconvertible, unposted. All four ask
+  -- "did we handle what arrived", and on 9 Sep 2026 all four were zero while the book was short
+  -- three Anthropic receipts. The founder found that, not the report.
+  -- fn_accountant_receipt_cadence_gaps was written the same day to ask the other question -- did
+  -- every vendor that bills on a cadence produce a receipt for every period -- and was then left
+  -- CALLED BY NOTHING, which is the identical defect one layer up: a check nobody runs cannot make
+  -- a report more honest than it was before the check existed.
+  --
+  -- A cadence finding is SUSPECTED, never proven: a subscription can be cancelled, downgraded or
+  -- paused. So it is NAMED as a shortfall for somebody to resolve rather than asserted as a missing
+  -- amount, no figure is invented for it, and it leaves the list when the vendor bills again, the
+  -- receipt is found, or the founder records that the vendor ended.
+  begin
+    v_cadence   := public.fn_accountant_receipt_cadence_gaps(v_as_of);
+    v_cad_gap   := coalesce(jsonb_array_length(v_cadence->'months_with_no_receipt_inside_a_run'), 0);
+    v_cad_quiet := coalesce(jsonb_array_length(v_cadence->'vendors_gone_quiet'), 0);
+
+    -- READ THE CHECK'S OWN COUNT, not a hand-picked subset of its findings. The first version of
+    -- this block listed two of the check's three lists and left `vendors_seen_once_unexplained`
+    -- feeding nothing, so the report returned complete = true while the check returned
+    -- suspected_missing = 1. Binding to suspected_missing means a finding added to the check in
+    -- future reaches the founder without anyone remembering to wire it.
+    if coalesce((v_cadence->>'suspected_missing')::int, 0) > 0 then
+      if v_cad_gap > 0 then
+        v_short := v_short || array[(
+          v_cad_gap || ' month(s) inside a vendor''s own billing run with no receipt at all ('
+          || (select string_agg((x->>'vendor') || ' ' || (x->>'missing_month'), ', ')
+                from jsonb_array_elements(v_cadence->'months_with_no_receipt_inside_a_run') x)
+          || '), so a receipt for each is probably missing rather than genuinely absent')];
+      end if;
+      if v_cad_quiet > 0 then
+        v_short := v_short || array[(
+          v_cad_quiet || ' vendor(s) that billed on a monthly cadence and have gone quiet for more than 45 days ('
+          || (select string_agg((x->>'vendor') || ', last billed ' || (x->>'last_month'), '; ')
+                from jsonb_array_elements(v_cadence->'vendors_gone_quiet') x)
+          || '); either the subscription ended and nobody recorded it, or the later receipts never reached the accountant')];
+      end if;
+      if coalesce(jsonb_array_length(v_cadence->'vendors_seen_once_unexplained'), 0) > 0 then
+        v_short := v_short || array[(
+          jsonb_array_length(v_cadence->'vendors_seen_once_unexplained')
+          || ' vendor(s) with exactly ONE receipt and no recorded reason ('
+          || (select string_agg((x->>'vendor') || ', only ' || (x->>'only_month')
+                 || ', ' || (x->>'days_since') || ' days ago', '; ')
+                from jsonb_array_elements(v_cadence->'vendors_seen_once_unexplained') x)
+          || '); if any is a monthly subscription then every renewal after it is missing')];
+      end if;
+      if coalesce(jsonb_array_length(v_cadence->'vendors_billing_outside_email'), 0) > 0 then
+        v_short := v_short || array[(
+          jsonb_array_length(v_cadence->'vendors_billing_outside_email')
+          || ' vendor(s) STILL BILLING that never email an invoice, so their charges are real and unbooked ('
+          || (select string_agg((x->>'vendor') || ', last booked ' || (x->>'last_billed'), '; ')
+                from jsonb_array_elements(v_cadence->'vendors_billing_outside_email') x)
+          || '); the invoices must be fetched from the vendor''s own billing portal by hand')];
+      end if;
+    end if;
+  exception when others then
+    -- The cadence check must never take the report down, and must never fail OPEN: a report may not
+    -- claim completeness on the strength of a check that did not run.
+    v_short := v_short || array['the vendor-side completeness check could not run (' || sqlerrm
+      || '), so this total is NOT claiming to be complete'];
+  end;
+
+  v_complete := array_length(v_short, 1) is null;
+
+  v_money := 'AED ' || to_char(v_aed, 'FM999,999,990.00');
+
+  -- ---- the table rows the document prints ----
+  select coalesce(jsonb_agg(jsonb_build_array(
+           v->>'vendor',
+           case when v->>'aed' is null then 'not converted' else 'AED ' || to_char((v->>'aed')::numeric, 'FM999,999,990.00') end,
+           v->>'entries', coalesce(v->>'currencies',''),
+           coalesce(v->>'first','') || ' to ' || coalesce(v->>'last',''))
+         ), '[]'::jsonb)
+    into v_vendor_rows
+    from jsonb_array_elements(v_by_vendor) v;
+
+  select coalesce(jsonb_agg(jsonb_build_array(
+           m->>'month',
+           case when m->>'aed' is null then 'not converted' else 'AED ' || to_char((m->>'aed')::numeric, 'FM999,999,990.00') end,
+           m->>'entries')
+         ), '[]'::jsonb)
+    into v_month_rows
+    from jsonb_array_elements(v_by_month) m;
+
+  -- ---- THE RECEIPT REGISTER: one line per booked receipt, each carrying its own document ----
+  -- The founder, 9 Sep 2026: "can the pdf have clickable links for the actual invoices or receipts
+  -- or at least a pdf print of the email". Until now this report totalled the spend and named the
+  -- vendors, and the evidence for any single line was not reachable from the document at all.
+  --
+  -- THE ROUTINE DOES NOT MINT THE LINK, AND CANNOT. receipt-files is a PRIVATE bucket; a URL into
+  -- it has to be signed with the service role, and there is no pgjwt in this project (`sign` in
+  -- pg_catalog is the arithmetic sign function). So each cell that should be clickable is emitted
+  -- as {"text": ..., "link_entry": <expense id>} -- a REQUEST for a link, addressed to the seat that
+  -- can sign one. supabase/functions/accountant resolves it immediately before rendering. A cell
+  -- that is never resolved still prints its text, so the worst case is a report that reads exactly
+  -- as it did yesterday rather than one carrying a link to nothing.
+  --
+  -- A ROW WITH NO DOCUMENT SAYS SO IN THE ROW. It is not blank and it is not a dead link: it reads
+  -- NO DOCUMENT, and the count of such rows is printed under the table.
+  select coalesce(jsonb_agg(x order by (x->>'charged_on'), (x->>'id')::bigint), '[]'::jsonb),
+         count(*), count(*) filter (where (x->>'document_state') <> 'missing')
+    into v_rcpt, v_rcpt_n, v_rcpt_doc
+    from (select jsonb_build_object(
+                   'id',             v.id,
+                   'charged_on',     v.charged_on,
+                   'vendor',         v.vendor,
+                   'billed',         upper(v.currency) || ' ' || to_char(v.amount, 'FM999,999,990.00'),
+                   'aed',            case when upper(v.currency) in ('AED','USD')
+                                       then round(v.amount * case upper(v.currency) when 'USD' then v_fx else 1 end, 2)
+                                       else null end,
+                   'document_state', v.document_state,
+                   'doc_bucket',     v.doc_bucket,
+                   'doc_path',       v.doc_path,
+                   'doc_name',       v.doc_name,
+                   'doc_note',       v.doc_note) as x
+            from public.v_expense_documents v) s;
+
+  select coalesce(jsonb_agg(jsonb_build_array(
+           r->>'id',
+           to_char((r->>'charged_on')::date, 'DD Mon YYYY'),
+           r->>'vendor',
+           r->>'billed',
+           case when r->>'aed' is null then 'not converted'
+                else to_char((r->>'aed')::numeric, 'FM999,999,990.00') end,
+           case r->>'document_state'
+             when 'vendor_document' then jsonb_build_object('text', coalesce(nullif(r->>'doc_name',''), 'The vendor invoice'),
+                                                            'link_entry', (r->>'id')::bigint)
+             when 'email_print'     then jsonb_build_object('text', 'Email print',
+                                                            'link_entry', (r->>'id')::bigint)
+             when 'unclassified'    then jsonb_build_object('text', coalesce(nullif(r->>'doc_name',''), 'The stored document'),
+                                                            'link_entry', (r->>'id')::bigint)
+             else to_jsonb('NO DOCUMENT'::text)
+           end)
+         order by (r->>'charged_on'), (r->>'id')::bigint), '[]'::jsonb)
+    into v_rcpt_rows
+    from jsonb_array_elements(v_rcpt) r;
+
+  v_receipts := jsonb_build_array(
+    jsonb_build_object('t','space','h',10),
+    jsonb_build_object('t','h3','text','Every receipt, and the document behind it'),
+    jsonb_build_object('t','p','text',
+      'One line per booked receipt. The Evidence column opens that receipt''s own stored document: '
+      || 'the vendor''s invoice where the source email carried one, otherwise a PDF print of the '
+      || 'email itself. A line with no stored document reads NO DOCUMENT rather than carrying a link '
+      || 'to nothing. ' || v_rcpt_doc || ' of ' || v_rcpt_n || ' receipt(s) have a document.'),
+    jsonb_build_object('t','table',
+      'head', jsonb_build_array('Record','Charged','Vendor','As billed','AED','Evidence'),
+      'rows', v_rcpt_rows,
+      'widths', jsonb_build_array(0.08,0.15,0.22,0.15,0.13,0.27)),
+    -- WHY THE RECORD NUMBER IS PRINTED, AND WHY IT IS THE FIRST COLUMN.
+    -- A signed URL expires. This document is a financial record the founder keeps for years, and a
+    -- PDF whose every link has quietly rotted is worse than one that never had links, because it
+    -- still LOOKS like it can be opened. So the link is the convenience and the record number is the
+    -- permanent handle: it never expires, it is the primary key of public.expense_entries, and both
+    -- public.fn_expense_document(<record>) and the accountant seat's document action take it and
+    -- return a fresh link on demand. The paragraph below says that in words, on the document,
+    -- because a reader in 2028 will have this PDF and not this file.
+    jsonb_build_object('t','note','text',
+      'HOW LONG THESE LINKS LIVE. The documents are held in the private receipt-files bucket, so each '
+      || 'link above is a signed URL with an expiry stamped into it -- the seat prints the exact '
+      || 'expiry date under this table when it renders. AFTER THAT DATE THE RECORD NUMBER IN THE '
+      || 'FIRST COLUMN IS STILL THE WAY IN: public.fn_expense_document(<record>) names the bucket and '
+      || 'object for that receipt, and the accountant seat''s document action returns a fresh link '
+      || 'for it. Nothing about this report stops being useful when the links expire.'));
+
+  v_subject := 'QuotesDone - everything spent since day one, to ' || to_char(v_as_of, 'DD Mon YYYY')
+            || ' (' || v_money || ')' || case when v_complete then '' else ' - INCOMPLETE, see the report' end;
+
+  v_body := 'Everything the company has spent since day one, read from the receipts forwarded to '
+    || 'expenses@mail.quotesdone.com.' || E'\n\n'
+    || 'TOTAL: ' || v_money || ' across ' || v_entries || ' booked receipt(s)'
+    || case when v_first is null then '.' else ', ' || to_char(v_first,'DD Mon YYYY') || ' to ' || to_char(v_last,'DD Mon YYYY') || '.' end
+    || E'\n'
+    || 'Input VAT stated on those receipts: AED ' || to_char(v_vat, 'FM999,999,990.00') || '.' || E'\n\n'
+    || case when v_complete
+         then 'THIS TOTAL IS COMPLETE as far as the mailbox goes: nothing was held, nothing was refused, every currency converted, and every booked entry reached the ledger.'
+         else 'THIS TOTAL IS INCOMPLETE, and here is exactly how: ' || array_to_string(v_short, '; ') || '. Each is named in the attached report.' end
+    || E'\n\n' || 'COVERAGE. ' || v_cov || E'\n\n'
+    || 'CURRENCY. AED is itself. USD is converted at gl_settings.usd_to_aed = ' || v_fx
+    || ', the same rate the ledger uses. A currency with no rate is NOT converted and NOT included - '
+    || 'an understated total that says so is worth more than a wrong one that does not.' || E'\n\n'
+    || 'No model was used to produce any figure in this report. The receipts were read by '
+    || 'supabase/functions/_shared/receipt_parse.ts, the ledger posting is public.fn_expense_post_to_gl, '
+    || 'and every number above is arithmetic over public.expense_entries.';
+
+  v_blocks := jsonb_build_array(
+    jsonb_build_object('t','h2','text','Everything spent since day one'),
+    jsonb_build_object('t','p','text','QuotesDone - Dorata Trading Co. L.L.C.   Prepared by the accountant seat   As at ' || to_char(v_as_of,'DD Mon YYYY') || ' (Asia/Dubai)'),
+    jsonb_build_object('t','note','text','Source: the receipts forwarded to expenses@mail.quotesdone.com, read deterministically. No model was used to produce any figure in this document.'),
+    jsonb_build_object('t','space','h',6),
+    jsonb_build_object('t','total','value', v_money),
+    jsonb_build_object('t','kv','pairs', jsonb_build_array(
+      jsonb_build_array('Booked receipts', v_entries::text),
+      jsonb_build_array('Period covered', case when v_first is null then 'nothing booked' else to_char(v_first,'DD Mon YYYY') || ' - ' || to_char(v_last,'DD Mon YYYY') end),
+      jsonb_build_array('Input VAT stated on receipts', 'AED ' || to_char(v_vat,'FM999,999,990.00')),
+      jsonb_build_array('Is this total complete?', case when v_complete then 'Yes' else 'NO - see "What is not in this total"' end))),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','By vendor'),
+    jsonb_build_object('t','table','head', jsonb_build_array('Vendor','Spent (AED)','Receipts','Billed in','First to last'),
+                       'rows', v_vendor_rows, 'widths', jsonb_build_array(0.26,0.22,0.12,0.14,0.26)),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','By month'),
+    jsonb_build_object('t','table','head', jsonb_build_array('Month','Spent (AED)','Receipts'),
+                       'rows', v_month_rows, 'widths', jsonb_build_array(0.34,0.4,0.26)),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','How currency was handled'),
+    jsonb_build_object('t','li','text','AED is itself; no conversion is applied and none is implied.'),
+    jsonb_build_object('t','li','text','USD is converted at gl_settings.usd_to_aed = ' || v_fx || ', per entry, rounded to two places - the same rate and the same rounding fn_expense_post_to_gl applies, so this report and the general ledger agree to the fils.'),
+    jsonb_build_object('t','li','text', case when v_unconv_n = 0
+      then 'Every receipt was billed in AED or USD, so nothing was left out of the total for want of a rate.'
+      else 'A currency with no rate in gl_settings is NOT converted and NOT included in the total above. ' || v_unconv_n || ' such currency/currencies appear below, in their own units.' end),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','What is not in this total'),
+    jsonb_build_object('t','p','bold',true,'text', case when v_complete
+      then 'Nothing. Nothing was held, nothing was refused, every currency converted, and every booked entry reached the ledger.'
+      else 'This total is INCOMPLETE. ' || array_to_string(v_short, '; ') || '.' end),
+    jsonb_build_object('t','space','h',4),
+    jsonb_build_object('t','p','bold',true,'text','Receipts HELD because no amount could be read: ' || v_held_n),
+    jsonb_build_object('t','note','text','A held receipt is one the deterministic parser refused to guess at. It is not booked, not estimated and not counted as zero - it is money we know we have spent and cannot yet state.'));
+
+  if v_held_n > 0 then
+    select v_blocks || coalesce(jsonb_agg(jsonb_build_object('t','li','text',
+             'Task #' || (h->>'task_id') || ' (opened ' || (h->>'opened') || ', owner ' || coalesce(h->>'assigned','none') || '): ' || (h->>'title') || ' - ' || (h->>'reason'))), '[]'::jsonb)
+      into v_blocks from jsonb_array_elements(v_held) h;
+  end if;
+
+  v_blocks := v_blocks || jsonb_build_array(
+    jsonb_build_object('t','space','h',4),
+    jsonb_build_object('t','p','bold',true,'text','Messages refused because the sender is not a permitted forwarder: ' || v_refused_n),
+    jsonb_build_object('t','p','bold',true,'text','Booked entries that have not reached the general ledger: ' || v_unposted),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','Coverage of the mailbox'),
+    jsonb_build_object('t','p','text', v_cov),
+    jsonb_build_object('t','note','text','This line is what bounds the total. Without it the report could say how much was booked but not how much was looked at, and a total nobody can bound is a guess with a decimal point on it.'));
+
+  v_blocks := v_blocks || v_receipts;
+
+  return jsonb_build_object(
+    'as_of', v_as_of,
+    'subject', v_subject,
+    'body', v_body,
+    'blocks', v_blocks,
+    'doc_name', 'QuotesDone_Spend_Since_Day_One_' || to_char(v_as_of, 'YYYY-MM-DD'),
+    'complete', v_complete,
+    -- The same lines the table prints, with the storage path on each, so a caller that is not a PDF
+    -- (the OS, a check, the seat's own run record) never has to parse the document to find them.
+    'receipt_lines', v_rcpt,
+    'receipts_with_document', v_rcpt_doc,
+    'receipts_without_document', v_rcpt_n - v_rcpt_doc,
+    'shortfalls', to_jsonb(v_short),
+    'figures', jsonb_build_object(
+      'total_aed', v_aed, 'vat_stated_aed', v_vat, 'entries', v_entries,
+      'first_charge', v_first, 'last_charge', v_last,
+      'usd_to_aed', v_fx,
+      'by_currency', v_by_cur, 'by_vendor', v_by_vendor, 'by_month', v_by_month,
+      'unconvertible_currencies', v_unconv,
+      'held_receipts', v_held, 'held_count', v_held_n,
+      'refused_messages', v_refused_n, 'entries_not_in_ledger', v_unposted),
+    'coverage', jsonb_build_object('note', v_cov,
+      'last_sweep_run_id', v_sweep.id, 'last_sweep_at', v_sweep.finished_at,
+      'last_sweep_counts', v_sweep.counts, 'last_sweep_status', v_sweep.status));
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_spend_report_coverage()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz    text := 'Asia/Dubai';
+  v_sweep record;
+  v_back  record;
+  v_cov   text := '';
+  v_short text[] := '{}';
+  v_mb        record;
+  v_mb_seen   int := 0;
+  v_mb_blind  int := 0;
+  v_undecided int := 0;
+  v_names     text;
+begin
+  select r.id, r.finished_at, r.counts, r.status into v_sweep
+    from public.agent_runs r
+   where r.agent = 'accountant' and r.counts->>'action' = 'expense_sweep'
+   order by r.id desc limit 1;
+
+  select r.id, r.finished_at, r.counts, r.status into v_back
+    from public.agent_runs r
+   where r.agent = 'accountant' and r.counts->>'action' = 'expense_backfill'
+   order by r.id desc limit 1;
+
+  -- ---- SOURCE 1: Resend's inbound history, which is what the live webhook and the sweep see. ----
+  if v_sweep.id is null then
+    v_cov := 'RESEND INBOUND: never swept. The expenses mailbox has never been read by this seat '
+          || 'through Resend, so nothing here bounds how many messages arrived that way.';
+    v_short := v_short || array['the Resend inbound mailbox has never been swept'];
+  else
+    v_cov := 'RESEND INBOUND: the last sweep (agent_runs #' || v_sweep.id || ', '
+          || to_char(v_sweep.finished_at at time zone v_tz, 'DD Mon YYYY HH24:MI') || ' Asia/Dubai) read '
+          || coalesce(v_sweep.counts->>'history_messages','?') || ' message(s) from Resend''s inbound history, of which '
+          || coalesce(v_sweep.counts->>'to_expense_mailbox','?') || ' were addressed to expenses@mail.quotesdone.com. It booked '
+          || coalesce(v_sweep.counts->>'booked','?') || ', found ' || coalesce(v_sweep.counts->>'already_booked','?')
+          || ' already booked, held ' || coalesce(v_sweep.counts->>'held','?') || ', refused '
+          || coalesce(v_sweep.counts->>'refused','?') || ' and failed on ' || coalesce(v_sweep.counts->>'failed','?') || '.'
+          || ' Resend''s inbound retention is roughly one month, so that history is a WINDOW on recent '
+          || 'mail, never the whole of it. Nothing older than the window was misaddressed or lost by us '
+          || '- the provider simply stops keeping it.';
+    if coalesce((v_sweep.counts->>'pages_capped')::boolean, false) then
+      v_cov := v_cov || ' PAGING WAS CAPPED, so the history itself may be incomplete.';
+      v_short := v_short || array['the sweep stopped at its page cap, so older messages may never have been read'];
+    end if;
+    if coalesce(v_sweep.counts->>'list_error','') <> '' then
+      v_cov := v_cov || ' The listing reported an error: ' || (v_sweep.counts->>'list_error') || '.';
+      v_short := v_short || array['the mailbox listing errored during the last sweep'];
+    end if;
+  end if;
+
+  -- ---- SOURCE 2: the founder's own SENT folder, which is what survived the retention window. ----
+  if v_back.id is null then
+    v_cov := v_cov || E'\n\n' || 'FORWARDED HISTORY: never read. Everything the founder forwarded '
+          || 'before Resend''s retention window has NOT been examined, so the total below covers only '
+          || 'recent mail and is expected to be short.';
+    v_short := v_short || array['the forwarded history older than Resend''s retention window has never been read'];
+  else
+    v_cov := v_cov || E'\n\n' || 'FORWARDED HISTORY: on '
+          || to_char(v_back.finished_at at time zone v_tz, 'DD Mon YYYY HH24:MI') || ' Asia/Dubai (agent_runs #'
+          || v_back.id || ') the accountant read the founder''s own record of what he forwarded - a '
+          || 'search of his sent mail for ' || coalesce(v_back.counts->>'query','the expenses address')
+          || ' returning ' || coalesce(v_back.counts->>'threads_found','?') || ' thread(s) covering '
+          || coalesce(v_back.counts->>'period','the whole period') || '. All '
+          || coalesce(v_back.counts->>'threads_read','?') || ' were opened and read. '
+          || coalesce(v_back.counts->>'amounts_read','?') || ' printed an amount that could be read directly off the receipt; '
+          || coalesce(v_back.counts->>'booked','?') || ' were booked here, '
+          || coalesce(v_back.counts->>'already_booked','?') || ' were already in the book under their Resend keys, and '
+          || coalesce(v_back.counts->>'held','?') || ' were held.';
+    if coalesce(v_back.counts->>'date_by_corroboration','0') <> '0' then
+      v_cov := v_cov || ' ' || (v_back.counts->>'date_by_corroboration')
+            || ' receipt(s) printed an amount but no date, and were dated by matching to the unique '
+            || 'source message in the same mailbox rather than by estimate; each says so in its own note.';
+    end if;
+    if coalesce((v_back.counts->>'more_pages')::boolean, false) then
+      v_cov := v_cov || ' THE SEARCH REPORTED MORE RESULTS THAN IT RETURNED, so the forwarded history may be incomplete.';
+      v_short := v_short || array['the forwarded-history search did not reach the end of its results'];
+    end if;
+  end if;
+
+  -- ---- SOURCE 3: the mailboxes vendors bill DIRECTLY, which nobody has to remember to forward. ----
+  --
+  -- Added 9 Sep 2026. Sources 1 and 2 both describe the same pipe from a different end: mail that
+  -- SOMEBODY FORWARDED. Neither can see a vendor that bills an address the accountant does not read,
+  -- and neither would ever report that vendor as missing, because a source nobody looks at produces
+  -- no evidence of its own absence. Anthropic billed management@doratajewelries.com for four months
+  -- and three of its six receipts simply never existed as far as this book was concerned.
+  --
+  -- So coverage is now stated per MAILBOX, from a register, and a mailbox that is known but unread
+  -- makes the report say so out loud instead of quietly totalling what it happens to hold.
+  select count(*) filter (where is_swept),
+         count(*) filter (where not is_swept)
+    into v_mb_seen, v_mb_blind
+    from public.expense_billing_mailbox;
+
+  if v_mb_seen + v_mb_blind = 0 then
+    v_cov := v_cov || E'\n\n' || 'BILLING MAILBOXES: no mailbox register exists, so nothing states '
+          || 'which addresses a vendor bill can even arrive at. The total below is bounded by what '
+          || 'was forwarded, which is not the same thing as what was spent.';
+    v_short := v_short || array['there is no register of which mailboxes a vendor bills'];
+  else
+    select string_agg(mailbox || case when is_swept
+                       then ' (read' || coalesce(' ' || to_char(last_swept_on, 'DD Mon YYYY'), '') || ')'
+                       else ' (NOT READ)' end, '; ' order by is_swept desc, mailbox)
+      into v_names from public.expense_billing_mailbox;
+
+    v_cov := v_cov || E'\n\n' || 'BILLING MAILBOXES: a vendor bill only reaches this book if it lands '
+          || 'somewhere the accountant reads. ' || v_mb_seen || ' of ' || (v_mb_seen + v_mb_blind)
+          || ' known mailbox(es) were read: ' || v_names || '.';
+
+    if v_mb_blind > 0 then
+      v_cov := v_cov || ' A mailbox marked NOT READ receives vendor bills that this total CANNOT include.';
+      v_short := v_short || array[(v_mb_blind || ' known billing mailbox(es) that the accountant cannot read')];
+    end if;
+
+    -- A charge that was SEEN but whose entity is undecided is the honest middle case. It is neither
+    -- booked (which would claim it is ours) nor forgotten (which would claim it does not exist).
+    select count(*) into v_undecided
+      from public.expense_vendor_billing_mailbox where in_ledger_scope is null;
+
+    if v_undecided > 0 then
+      select string_agg(vendor, ', ' order by vendor) into v_names
+        from public.expense_vendor_billing_mailbox where in_ledger_scope is null;
+      v_cov := v_cov || ' ' || v_undecided || ' vendor(s) bill a mailbox that is read but have NOT been '
+            || 'attributed to this company rather than to a sibling entity, so their spend is deliberately '
+            || 'absent from the total above: ' || v_names || '. Each is recorded in '
+            || 'public.expense_vendor_billing_mailbox with the evidence that was actually read.';
+      v_short := v_short || array[(v_undecided || ' vendor(s) seen billing a read mailbox whose attribution to this company is undecided, so their spend is NOT in the total')];
+    end if;
+  end if;
+
+  return jsonb_build_object('note', v_cov, 'shortfalls', to_jsonb(v_short),
+    'sweep_run_id', v_sweep.id, 'sweep_at', v_sweep.finished_at, 'sweep_counts', v_sweep.counts,
+    'backfill_run_id', v_back.id, 'backfill_at', v_back.finished_at, 'backfill_counts', v_back.counts,
+    'mailboxes_read', v_mb_seen, 'mailboxes_unread', v_mb_blind, 'vendors_undecided', v_undecided);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_spend_report_deliver(p_bucket text, p_path text, p_url text DEFAULT NULL::text, p_bytes bigint DEFAULT NULL::bigint, p_as_of text DEFAULT NULL::text, p_subject text DEFAULT NULL::text, p_body text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_owner text;
+  v_file  text;
+  v_notif bigint;
+  v_prior bigint;
+  v_body  text;
+  v_report jsonb;
+  v_kept_err text;
+  v_rev int;
+begin
+  -- THE DOCUMENT IS THE DELIVERABLE. He asked for a report; mailing a covering note and recording
+  -- it as delivered would close the loop on something he did not ask for.
+  if coalesce(p_path, '') = '' then
+    return jsonb_build_object('ok', false, 'reason',
+      'not delivered: no PDF path was supplied, and the report IS the document. Render it first and pass the path pdf_native returned.');
+  end if;
+  if coalesce(p_bucket, '') not in ('finance-reports','finance-docs','agent-docs','reports','compliance-docs') then
+    return jsonb_build_object('ok', false, 'reason',
+      'not delivered: ' || coalesce(p_bucket,'(null)') || ' is not a bucket notifications.attachments accepts. Refused here with a reason rather than at the trigger with a raise.');
+  end if;
+
+  -- How many reports for THIS as-of date have already been put on his mail lane? The first keeps
+  -- its plain name because it was delivered under it; every later one is numbered, so two files on
+  -- the same date can never be confused for one another.
+  select count(*) into v_rev from public.notifications n
+   where n.kind = 'accountant_spend_report'
+     and n.attachments->0->>'filename' like 'QuotesDone_Spend_Since_Day_One_'
+         || regexp_replace(coalesce(nullif(p_as_of,''), to_char((now() at time zone 'Asia/Dubai')::date,'YYYY-MM-DD')), '[^A-Za-z0-9_-]', '_', 'g') || '%';
+
+  v_file := 'QuotesDone_Spend_Since_Day_One_'
+         || regexp_replace(coalesce(nullif(p_as_of, ''), to_char((now() at time zone 'Asia/Dubai')::date, 'YYYY-MM-DD')), '[^A-Za-z0-9_-]', '_', 'g')
+         || case when v_rev > 0 then '_revision_' || (v_rev + 1) else '' end
+         || '.pdf';
+
+  -- Already sent for THIS document? The object path is the identity: a new render is a new report.
+  select n.id into v_prior
+    from public.notifications n
+   where n.kind = 'accountant_spend_report'
+     and n.attachments @> jsonb_build_array(jsonb_build_object('bucket', p_bucket, 'path', p_path))
+   order by n.id limit 1;
+  if v_prior is not null then
+    return jsonb_build_object('ok', true, 'already_sent', true, 'notification_id', v_prior,
+      'attachment', jsonb_build_object('bucket', p_bucket, 'path', p_path, 'filename', v_file),
+      'reason', 'this exact document was already put on the founder''s mail lane; a second row would be a second copy of the same report');
+  end if;
+
+  select nullif(btrim(split_part(coalesce(value, ''), ',', 1)), '') into v_owner
+    from public.app_secrets where key = 'admin_emails';
+  if v_owner is null then
+    return jsonb_build_object('ok', false, 'reason', 'not delivered: no recipient is configured in app_secrets.admin_emails');
+  end if;
+
+  v_body := coalesce(p_body, '')
+    || E'\n\n' || 'The full report is attached as ' || v_file
+    || case when coalesce(p_bytes, 0) > 0 then ' (' || round(p_bytes / 1024.0) || ' KB)' else '' end || '.'
+    || case when p_url is not null
+         then E'\n' || 'If your mail client has stripped it, the same document is here: ' || p_url
+              || E'\n' || '(That link is signed and expires seven days from generation; the document itself is retained at ' || p_bucket || '/' || p_path || '.)'
+         else E'\n' || 'It is retained at ' || p_bucket || '/' || p_path || '.' end;
+
+  begin
+    insert into public.notifications(type, kind, to_email, to_role, channel, subject, body, attachments)
+    values ('accountant_spend_report', 'accountant_spend_report', v_owner, 'admin', 'email',
+            -- The subject carries the revision too. A founder scanning an inbox reads subjects, not
+            -- attachment names, and "which of these two is the current number" must be answerable
+            -- without opening either.
+            case when v_rev > 0
+              then 'REVISION ' || (v_rev + 1) || ' (supersedes the earlier report of the same date) — '
+                || coalesce(p_subject, 'QuotesDone - everything spent since day one')
+              else coalesce(p_subject, 'QuotesDone - everything spent since day one') end, v_body,
+            jsonb_build_array(jsonb_build_object('bucket', p_bucket, 'path', p_path, 'filename', v_file)))
+    returning id into v_notif;
+  exception when others then
+    -- a20_notifications_attachment_policy RAISES on a bad reference rather than dropping the row,
+    -- so a malformed attachment lands here by name instead of vanishing.
+    return jsonb_build_object('ok', false, 'reason', 'the insert raised: ' || sqlerrm);
+  end;
+
+  if v_notif is null then
+    -- The a10 gate returned NULL: a REFUSAL, not an error. Name it; never let it read as sent.
+    return jsonb_build_object('ok', false, 'reason',
+      'the founder-mail gate did not accept the row (kind accountant_spend_report). Nothing was queued and nothing will be sent.');
+  end if;
+
+  -- ---- "AND KEEP IT IN HIS RECORD AS WELL" ----------------------------------------------------
+  -- The founder asked for the report to be RETAINED, not merely sent. The object in the bucket is
+  -- the document; this row is the record OF the document -- what was reported, when, and over which
+  -- period -- so a figure he was given in September can be produced again and audited later without
+  -- re-reading a mailbox the provider no longer holds. The whole figures payload is stored, not just
+  -- the headline, because a total with no breakdown behind it cannot be checked.
+  --
+  -- Recorded AFTER the notification row exists, so the record can never claim a report was kept
+  -- that was never actually queued. A failure to retain is reported alongside the send rather than
+  -- swallowed: the mail did go, and he should be told the record did not.
+  begin
+    v_report := public.fn_accountant_spend_report(nullif(p_as_of,'')::date);
+    insert into public.accountant_spend_report
+      (as_of, period_start, period_end, entries, total_aed, vat_stated_aed, usd_to_aed,
+       complete, shortfalls, figures, coverage, subject, body,
+       pdf_bucket, pdf_path, pdf_url, pdf_bytes, notification_id, delivered_at)
+    values (
+      coalesce(nullif(p_as_of,'')::date, (now() at time zone 'Asia/Dubai')::date),
+      nullif(v_report->'figures'->>'first_charge','')::date,
+      nullif(v_report->'figures'->>'last_charge','')::date,
+      nullif(v_report->'figures'->>'entries','')::int,
+      nullif(v_report->'figures'->>'total_aed','')::numeric,
+      nullif(v_report->'figures'->>'vat_stated_aed','')::numeric,
+      nullif(v_report->'figures'->>'usd_to_aed','')::numeric,
+      (v_report->>'complete')::boolean,
+      v_report->'shortfalls', coalesce(v_report->'figures','{}'::jsonb), v_report->'coverage',
+      coalesce(p_subject, v_report->>'subject'), coalesce(p_body, v_report->>'body'),
+      p_bucket, p_path, p_url, p_bytes, v_notif, now())
+    on conflict (pdf_bucket, pdf_path) do update
+      set notification_id = excluded.notification_id,
+          delivered_at    = coalesce(public.accountant_spend_report.delivered_at, excluded.delivered_at);
+  exception when others then
+    v_kept_err := sqlerrm;
+  end;
+
+  return jsonb_build_object('ok', true, 'notification_id', v_notif, 'to', v_owner,
+    'retained', v_kept_err is null,
+    'retention_error', v_kept_err,
+    'attachment', jsonb_build_object('bucket', p_bucket, 'path', p_path, 'filename', v_file),
+    'status', 'pending - send_outbox will download the object, base64 it onto the Resend payload and fail the row rather than send a covering note without it');
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_weekly_report(p_week_start date DEFAULT NULL::date, p_revise boolean DEFAULT false, p_revision_note text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz      text := 'Asia/Dubai';
+  v_company text := 'quotesdone';
+  v_start   date;
+  v_end     date;
+  v_key     text;
+  v_row     public.accountant_weekly_report%rowtype;
+  v_now     jsonb;
+  v_prev    jsonb;
+  v_subject text;
+  v_body    text;
+  v_blocks  jsonb;
+  v_rows    jsonb := '[]'::jsonb;
+  v_k       text;
+  v_ln      jsonb;
+  v_pn      jsonb;
+  v_val     text;
+  v_mov     text;
+  v_unknown int := 0;
+  v_truezero int := 0;
+  v_measured int := 0;
+  -- The line order the report prints in. Insertion order of a jsonb object is not preserved, so it
+  -- is stated here rather than discovered.
+  v_order text[] := array[
+    'reveal_fee_revenue','stripe_settlement_events',
+    'expenses_filed_to_ledger','receipts_received_at_the_expenses_inbox','cash_out_this_week',
+    'recurring_cost_schedule','refunds_requested','outstanding_bills','cash_position',
+    'journal_entries_posted','ai_and_model_cost'];
+  v_label jsonb := jsonb_build_object(
+    'reveal_fee_revenue','Revenue - reveal fees (Stripe in)',
+    'stripe_settlement_events','Stripe settlement events seen',
+    'expenses_filed_to_ledger','Expenses filed to the ledger',
+    'receipts_received_at_the_expenses_inbox','Receipts received at the expenses inbox',
+    'cash_out_this_week','Cash out this week',
+    'recurring_cost_schedule','Recurring cost schedule',
+    'refunds_requested','Refunds requested',
+    'outstanding_bills','Outstanding bills (accounts payable)',
+    'cash_position','Cash position',
+    'journal_entries_posted','Journal entries posted',
+    'ai_and_model_cost','AI and model cost');
+begin
+  -- Default: the week that CLOSED. Never the week in progress -- a partial week reported as a week
+  -- is a figure that will be wrong by Sunday and nobody will go back and correct it.
+  v_start := coalesce(p_week_start,
+                      (date_trunc('week', (now() at time zone v_tz)::date) - interval '7 days')::date);
+  v_start := date_trunc('week', v_start::timestamp)::date;   -- normalise to the Monday
+  v_end   := v_start + 6;
+  v_key   := v_company||':'||to_char(v_start,'IYYY-"W"IW');
+
+  -- UNFILTERED. Never `and status in (...)`.
+  select * into v_row from public.accountant_weekly_report where report_key = v_key;
+
+  if found and not p_revise then
+    return jsonb_build_object(
+      'report_key', v_row.report_key, 'id', v_row.id, 'revision', v_row.revision,
+      'status', v_row.status, 'generated', false, 'reason', 'already generated for this ISO week',
+      'week_start', v_row.week_start, 'week_end', v_row.week_end,
+      'pdf_pending', v_row.pdf_path is null,
+      'pdf_blocks', case when v_row.pdf_path is null then v_row.pdf_blocks else null end,
+      'subject', v_row.subject,
+      'delivered', v_row.delivered_at is not null,
+      'delivery_attempts', v_row.delivery_attempts);
+  end if;
+
+  v_now  := public.fn_accountant_weekly_report_figures(v_start, v_end);
+  v_prev := public.fn_accountant_weekly_report_figures(v_start - 7, v_end - 7);
+
+  -- BUILD THE TABLE. One row per line item: what it is, what it says, on what basis, and how it
+  -- moved. A line whose basis is 'unknown' prints the word and never a number.
+  foreach v_k in array v_order loop
+    v_ln := v_now->'lines'->v_k;
+    v_pn := v_prev->'lines'->v_k;
+    if v_ln is null then continue; end if;
+
+    if (v_ln->>'basis') = 'unknown' then
+      v_val := 'UNKNOWN';
+      v_unknown := v_unknown + 1;
+    elsif v_ln ? 'aed' then
+      v_val := 'AED '||to_char((v_ln->>'aed')::numeric, 'FM999,999,990.00')
+               || case when v_ln ? 'n' then ' ('||(v_ln->>'n')||')' else '' end;
+    else
+      v_val := coalesce(v_ln->>'n', '-');
+    end if;
+    if (v_ln->>'basis') = 'true zero' then v_truezero := v_truezero + 1;
+    elsif (v_ln->>'basis') = 'measured' then v_measured := v_measured + 1; end if;
+
+    -- WEEK-OVER-WEEK. A movement is only stated when BOTH weeks carry a comparable number.
+    if v_pn is null or (v_pn->>'basis') = 'unknown' or (v_ln->>'basis') = 'unknown' then
+      v_mov := 'not comparable';
+    elsif v_ln ? 'aed' and v_pn ? 'aed' then
+      v_mov := case when (v_ln->>'aed')::numeric - (v_pn->>'aed')::numeric >= 0 then '+' else '' end
+               || to_char((v_ln->>'aed')::numeric - (v_pn->>'aed')::numeric, 'FM999,999,990.00');
+    elsif v_ln ? 'n' and v_pn ? 'n' then
+      v_mov := case when (v_ln->>'n')::int - (v_pn->>'n')::int >= 0 then '+' else '' end
+               || ((v_ln->>'n')::int - (v_pn->>'n')::int)::text;
+    else
+      v_mov := 'not comparable';
+    end if;
+
+    v_rows := v_rows || jsonb_build_array(jsonb_build_array(
+      coalesce(v_label->>v_k, v_k), v_val, upper(coalesce(v_ln->>'basis','?')), v_mov));
+  end loop;
+
+  v_subject := 'QuotesDone weekly financial report - '||to_char(v_start,'IYYY-"W"IW')
+               ||' ('||to_char(v_start,'DD Mon')||' to '||to_char(v_end,'DD Mon YYYY')||')';
+
+  v_body :=
+    'WEEKLY FINANCIAL REPORT'||E'\n'||
+    to_char(v_start,'Dy DD Mon YYYY')||' to '||to_char(v_end,'Dy DD Mon YYYY')||' (Asia/Dubai) - ISO '||to_char(v_start,'IYYY-"W"IW')||E'\n'||
+    'Prepared by the accountant seat. Informational: nothing here asks you for a decision.'||E'\n\n'||
+    'HOW TO READ THE BASIS COLUMN'||E'\n'||
+    '- MEASURED   the figure was computed over source rows that exist.'||E'\n'||
+    '- TRUE ZERO  the source table holds no rows at all, so the figure is zero over a zero denominator.'||E'\n'||
+    '- UNKNOWN    no record exists from which the figure could be derived. It is NOT zero.'||E'\n\n';
+
+  foreach v_k in array v_order loop
+    v_ln := v_now->'lines'->v_k;
+    if v_ln is null then continue; end if;
+    v_body := v_body || upper(coalesce(v_label->>v_k, v_k))||E'\n'||
+      '  '||case when (v_ln->>'basis') = 'unknown' then 'UNKNOWN'
+                 when v_ln ? 'aed' then 'AED '||to_char((v_ln->>'aed')::numeric,'FM999,999,990.00')
+                 else coalesce(v_ln->>'n','-') end||
+      '   ['||upper(v_ln->>'basis')||']'||E'\n'||
+      '  '||coalesce(v_ln->>'note','')||E'\n\n';
+  end loop;
+
+  v_body := v_body ||
+    'RECONCILIATION OF THE TWO CASHFLOW SOURCES'||E'\n'||
+    'The founder named two, and only two: Stripe in, the expenses mailbox out. Against the ledger:'||E'\n'||
+    '- Stripe in:  '||coalesce(v_now->'lines'->'stripe_settlement_events'->>'note','')||E'\n'||
+    '- Mailbox out: '||coalesce(v_now->'lines'->'cash_out_this_week'->>'note','')||E'\n'||
+    '- Ledger:     '||coalesce(v_now->'lines'->'journal_entries_posted'->>'note','')||E'\n\n'||
+    'BASIS SUMMARY: '||v_measured||' measured, '||v_truezero||' true zero, '||v_unknown||' unknown, of '||
+      (v_measured + v_truezero + v_unknown)||' line item(s).'||E'\n'||
+    case when v_unknown > 0
+      then 'An unknown is not a gap in this report. It is the report refusing to publish a number it cannot bind to a source row.'
+      else 'Every line item on this report binds to a source row.' end;
+
+  -- THE PDF BLOCKS. pdf_native's own block vocabulary; letterhead on, strict glyphs on.
+  v_blocks := jsonb_build_array(
+    jsonb_build_object('t','h2','text','Weekly financial report'),
+    jsonb_build_object('t','p','text', to_char(v_start,'Dy DD Mon YYYY')||' to '||to_char(v_end,'Dy DD Mon YYYY')||
+                                       '  (Asia/Dubai)   ISO '||to_char(v_start,'IYYY-"W"IW')||'   Revision '||
+                                       coalesce(v_row.revision + 1, 1)::text),
+    jsonb_build_object('t','note','text','Prepared by the accountant seat and reported to the CEO. Informational: nothing in this document asks for a decision or an approval.'),
+    jsonb_build_object('t','space','h',6),
+    jsonb_build_object('t','h3','text','Position'),
+    jsonb_build_object('t','table',
+      'head', jsonb_build_array('Line item','This week','Basis','vs prior week'),
+      'rows', v_rows,
+      'widths', jsonb_build_array(0.42, 0.24, 0.16, 0.18)),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','What the basis column means'),
+    jsonb_build_object('t','li','text','MEASURED - computed over source rows that exist.'),
+    jsonb_build_object('t','li','text','TRUE ZERO - the source table holds no rows at all; the figure is zero over a zero denominator.'),
+    jsonb_build_object('t','li','text','UNKNOWN - no record exists from which the figure could be derived. It is not zero, and it is not an omission.'),
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','Every figure, and the rows it binds to'));
+
+  foreach v_k in array v_order loop
+    v_ln := v_now->'lines'->v_k;
+    if v_ln is null then continue; end if;
+    v_blocks := v_blocks || jsonb_build_array(
+      jsonb_build_object('t','p','bold',true,'text', coalesce(v_label->>v_k, v_k)||
+        ' - '||case when (v_ln->>'basis') = 'unknown' then 'UNKNOWN'
+                    when v_ln ? 'aed' then 'AED '||to_char((v_ln->>'aed')::numeric,'FM999,999,990.00')
+                    else coalesce(v_ln->>'n','-') end||'  ['||upper(v_ln->>'basis')||']'),
+      jsonb_build_object('t','note','text', coalesce(v_ln->>'note','')));
+  end loop;
+
+  v_blocks := v_blocks || jsonb_build_array(
+    jsonb_build_object('t','space','h',8),
+    jsonb_build_object('t','h3','text','Reconciliation of the two cashflow sources'),
+    jsonb_build_object('t','p','text','The founder named two, and only two: Stripe in, the expenses mailbox out. Reconciled against the general ledger, this week reads as follows.'),
+    jsonb_build_object('t','li','text','Stripe in - '||coalesce(v_now->'lines'->'stripe_settlement_events'->>'note','')),
+    jsonb_build_object('t','li','text','Mailbox out - '||coalesce(v_now->'lines'->'cash_out_this_week'->>'note','')),
+    jsonb_build_object('t','li','text','Ledger - '||coalesce(v_now->'lines'->'journal_entries_posted'->>'note','')),
+    jsonb_build_object('t','space','h',6),
+    jsonb_build_object('t','p','bold',true,'text','Basis summary: '||v_measured||' measured, '||v_truezero||
+      ' true zero, '||v_unknown||' unknown, of '||(v_measured+v_truezero+v_unknown)||' line items.'),
+    jsonb_build_object('t','note','text', case when v_unknown > 0
+      then 'An unknown is not a gap in this report. It is the report refusing to publish a number it cannot bind to a source row.'
+      else 'Every line item on this report binds to a source row.' end));
+
+  if p_revise and v_row.id is not null then
+    update public.accountant_weekly_report
+       set revision = revision + 1, revision_note = p_revision_note,
+           subject = v_subject, body = v_body,
+           figures = jsonb_build_object('this_week', v_now, 'prior_week', v_prev,
+                                        'basis_counts', jsonb_build_object('measured', v_measured,
+                                          'true_zero', v_truezero, 'unknown', v_unknown)),
+           pdf_blocks = v_blocks,
+           -- A correction regenerates the document. The old PDF is not the new report.
+           pdf_path = null, pdf_url = null, pdf_bytes = null, pdf_generated_at = null, pdf_error = null,
+           status = 'generated', generated_at = now(), updated_at = now(),
+           -- A CORRECTION MUST BE ABLE TO REACH THE PEOPLE WHO GOT THE ORIGINAL. deliver() skips
+           -- the founder lane when founder_submitted_at is set and the CEO lane when
+           -- ceo_submitted_at is, so bumping the revision without clearing these left every
+           -- correction unreachable behind the copy it replaces: regenerated, re-rendered,
+           -- reported ok, delivered to nobody. The CEO idempotency key already carries
+           -- ':r'||revision, so a re-opened lane cannot collide with the report it supersedes.
+           founder_submitted_at = null, ceo_submitted_at = null,
+           notification_id = null, ceo_report_id = null,
+           delivered_at = null, delivery_attempts = 0, last_delivery_error = null
+     where id = v_row.id
+    returning * into v_row;
+  else
+    insert into public.accountant_weekly_report(
+      company_key, iso_year, iso_week, week_start, week_end, local_timezone, report_key,
+      revision, revision_note, subject, body, figures, pdf_blocks, status)
+    values (
+      v_company, extract(isoyear from v_start)::int, extract(week from v_start)::int,
+      v_start, v_end, v_tz, v_key, 1, p_revision_note, v_subject, v_body,
+      jsonb_build_object('this_week', v_now, 'prior_week', v_prev,
+                         'basis_counts', jsonb_build_object('measured', v_measured,
+                           'true_zero', v_truezero, 'unknown', v_unknown)),
+      v_blocks, 'generated')
+    returning * into v_row;
+  end if;
+
+  return jsonb_build_object(
+    'report_key', v_row.report_key, 'id', v_row.id, 'revision', v_row.revision,
+    'status', v_row.status, 'generated', true,
+    'week_start', v_row.week_start, 'week_end', v_row.week_end,
+    'subject', v_row.subject,
+    'basis', jsonb_build_object('measured', v_measured, 'true_zero', v_truezero, 'unknown', v_unknown),
+    'pdf_pending', true, 'pdf_blocks', v_blocks);
+end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_weekly_report_attach_pdf(p_id bigint, p_bucket text DEFAULT NULL::text, p_path text DEFAULT NULL::text, p_url text DEFAULT NULL::text, p_bytes integer DEFAULT NULL::integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_row public.accountant_weekly_report%rowtype;
+begin
+  select * into v_row from public.accountant_weekly_report where id = p_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such report'); end if;
+
+  if p_path is null or coalesce(p_error,'') <> '' then
+    update public.accountant_weekly_report
+       set pdf_error = coalesce(nullif(p_error,''), 'pdf_native returned no path'),
+           status = case when delivered_at is null then 'pdf_failed' else status end,
+           delivery_attempts = delivery_attempts + 1,
+           last_delivery_error = 'the PDF could not be rendered: '||coalesce(nullif(p_error,''),'no path returned'),
+           updated_at = now()
+     where id = p_id returning * into v_row;
+    -- RETAINED, NOT LOST. The next tick re-renders from the stored blocks.
+    return jsonb_build_object('ok', false, 'report_key', v_row.report_key, 'retained', true,
+      'reason', v_row.pdf_error, 'delivery_attempts', v_row.delivery_attempts);
+  end if;
+
+  update public.accountant_weekly_report
+     set pdf_bucket = p_bucket, pdf_path = p_path, pdf_url = p_url, pdf_bytes = p_bytes,
+         pdf_generated_at = now(), pdf_error = null,
+         status = case when status = 'pdf_failed' then 'generated' else status end,
+         updated_at = now()
+   where id = p_id returning * into v_row;
+
+  return public.fn_accountant_weekly_report_deliver(p_id);
+end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_weekly_report_deliver(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_row     public.accountant_weekly_report%rowtype;
+  v_owner   text;
+  v_parent  text;
+  v_notif   bigint;
+  v_ceo_id  bigint;
+  v_errs    text[] := '{}';
+  v_link    text;
+  v_body    text;
+  v_file    text;
+  v_attach  jsonb;
+begin
+  select * into v_row from public.accountant_weekly_report where id = p_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such report'); end if;
+
+  -- THE PDF IS THE DELIVERABLE. He asked for the report AS a PDF; mailing the text alone and
+  -- marking the week delivered would close the key on something he did not ask for.
+  if v_row.pdf_path is null then
+    update public.accountant_weekly_report
+       set delivery_attempts = delivery_attempts + 1,
+           last_delivery_error = 'not delivered: the PDF has not been rendered yet. The report is retained and the next tick retries.',
+           updated_at = now()
+     where id = p_id returning * into v_row;
+    return jsonb_build_object('ok', false, 'report_key', v_row.report_key, 'retained', true,
+      'reason', 'pdf not yet rendered', 'delivery_attempts', v_row.delivery_attempts);
+  end if;
+
+  -- The attachment the founder actually opens. Built from the row so the name cannot drift from
+  -- the week it reports, and stripped to what the attachment guard accepts.
+  v_file := 'QuotesDone_Weekly_Financial_Report_'
+         || regexp_replace(replace(v_row.report_key, 'quotesdone:', ''), '[^A-Za-z0-9_-]', '_', 'g')
+         || case when coalesce(v_row.revision, 1) > 1 then '_revision_'||v_row.revision else '' end
+         || '.pdf';
+  v_attach := jsonb_build_array(jsonb_build_object(
+    'bucket',   coalesce(v_row.pdf_bucket, 'agent-docs'),
+    'path',     v_row.pdf_path,
+    'filename', v_file));
+
+  -- The link stays, underneath the attachment rather than instead of it.
+  v_link := case when v_row.pdf_url is not null
+    then E'\n\n'||'The report is attached as '||v_file||'.'||E'\n'
+       ||'If your mail client has stripped it, the same document is here: '||v_row.pdf_url||E'\n'
+       ||'(That link is signed and expires seven days from generation; the document itself is retained at '||coalesce(v_row.pdf_bucket,'agent-docs')||'/'||v_row.pdf_path||'.)'
+    else E'\n\n'||'The report is attached as '||v_file||'. It is retained at '||coalesce(v_row.pdf_bucket,'agent-docs')||'/'||v_row.pdf_path||'.' end;
+  v_body := coalesce(v_row.body,'') || v_link;
+
+  -- ---- LANE 1: THE FOUNDER -------------------------------------------------------------------
+  if v_row.founder_submitted_at is null then
+    select nullif(btrim(split_part(coalesce(value,''), ',', 1)), '') into v_owner
+      from public.app_secrets where key = 'admin_emails';
+    if v_owner is null then
+      v_errs := v_errs || 'no recipient configured in app_secrets.admin_emails';
+    else
+      begin
+        insert into public.notifications(type, kind, to_email, to_role, channel, subject, body, attachments)
+        values ('accountant_weekly_report', 'accountant_weekly_report', v_owner, 'admin', 'email',
+                v_row.subject, v_body, v_attach)
+        returning id into v_notif;
+        if v_notif is null then
+          -- The gate returned NULL: a refusal, not an error. Name it, do not swallow it.
+          v_errs := v_errs || 'the founder-mail gate did not accept the row (kind accountant_weekly_report)';
+        end if;
+      exception when others then
+        -- a20_notifications_attachment_policy RAISES on a bad reference rather than dropping the
+        -- row, so a malformed attachment lands here by name instead of vanishing.
+        v_errs := v_errs || ('founder submission raised: '||sqlerrm);
+      end;
+    end if;
+  end if;
+
+  -- ---- LANE 2: THE CEO -----------------------------------------------------------------------
+  if v_row.ceo_submitted_at is null then
+    select e.parent_role_id into v_parent
+      from public.org_reporting_edge e
+      join public.org_role r on r.role_id = e.parent_role_id and r.status = 'active'
+     where e.child_role_id = 'accountant';
+    if v_parent is null then
+      v_errs := v_errs || 'no active reporting parent for accountant; the CEO copy is NOT redirected to anyone else';
+    else
+      begin
+        insert into public.support_ceo_report
+          (idempotency_key, source_agent, severity, subject, verified_evidence, attempted_actions,
+           requested_outcome, owner_role_id, next_review_at)
+        values
+          ('accountant_weekly_report:'||v_row.report_key||':r'||v_row.revision,
+           'accountant', 'routine', v_row.subject,
+           jsonb_build_object(
+             'report_key', v_row.report_key, 'revision', v_row.revision,
+             'week_start', v_row.week_start, 'week_end', v_row.week_end,
+             'pdf', coalesce(v_row.pdf_bucket,'agent-docs')||'/'||v_row.pdf_path,
+             'pdf_filename', v_file,
+             'pdf_bytes', v_row.pdf_bytes,
+             'basis_counts', v_row.figures->'basis_counts',
+             'figures', v_row.figures->'this_week'->'lines'),
+           '[]'::jsonb,
+           'Note the week''s financial position. NOTHING IS REQUESTED: this is the informational weekly report the founder asked for on 9 Sep 2026, delivered to the CEO because the accountant reports to the CEO. It carries no decision, no approval and no deadline. Refund and Meta-ads approvals reach the CEO through their own lanes, never through this one.',
+           'accountant',
+           now() + interval '7 days')
+        returning id into v_ceo_id;
+      exception
+        when unique_violation then
+          -- This revision was already reported. The original IS the delivery.
+          select id into v_ceo_id from public.support_ceo_report
+           where idempotency_key = 'accountant_weekly_report:'||v_row.report_key||':r'||v_row.revision;
+        when others then
+          v_errs := v_errs || ('CEO submission raised: '||sqlerrm);
+      end;
+    end if;
+  end if;
+
+  update public.accountant_weekly_report
+     set notification_id      = coalesce(v_notif, notification_id),
+         founder_submitted_at = case when v_notif is not null then now() else founder_submitted_at end,
+         ceo_report_id        = coalesce(v_ceo_id, ceo_report_id),
+         ceo_submitted_at     = case when v_ceo_id is not null then now() else ceo_submitted_at end,
+         delivery_attempts    = delivery_attempts + 1,
+         last_delivery_error  = nullif(array_to_string(v_errs, ' | '), ''),
+         updated_at           = now()
+   where id = p_id returning * into v_row;
+
+  update public.accountant_weekly_report
+     set status = case
+           when v_row.founder_submitted_at is not null and v_row.ceo_submitted_at is not null then 'delivered'
+           when v_row.founder_submitted_at is not null or  v_row.ceo_submitted_at is not null then 'partial'
+           else 'delivery_failed' end,
+         delivered_at = case
+           when v_row.founder_submitted_at is not null and v_row.ceo_submitted_at is not null
+           then coalesce(delivered_at, now()) else delivered_at end
+   where id = p_id returning * into v_row;
+
+  return jsonb_build_object(
+    'ok', v_row.status in ('delivered','partial'),
+    'report_key', v_row.report_key, 'id', v_row.id, 'revision', v_row.revision,
+    'status', v_row.status,
+    'founder_submitted', v_row.founder_submitted_at is not null,
+    'ceo_submitted', v_row.ceo_submitted_at is not null,
+    'ceo_report_id', v_row.ceo_report_id,
+    'pdf_filename', v_file,
+    'delivery_attempts', v_row.delivery_attempts,
+    'error', v_row.last_delivery_error);
+end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_weekly_report_figures(p_start date, p_end date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz text := 'Asia/Dubai';
+  v_from timestamptz := (p_start::timestamp) at time zone v_tz;
+  v_to   timestamptz := ((p_end + 1)::timestamp) at time zone v_tz;
+  -- revenue
+  v_txn_all int; v_txn_n int; v_rev numeric;
+  v_stripe_all int; v_stripe_n int; v_stripe_last timestamptz;
+  -- expenses
+  v_ee_all int; v_ee_n int; v_ee_aed numeric;
+  v_rcpt_all int; v_rcpt_n int;
+  v_exp_all int; v_exp_active int;
+  -- refunds
+  v_ref_all int; v_ref_n int; v_ref_aed numeric; v_ref_settled int;
+  -- payables
+  v_ap_all int; v_ap_open int; v_ap_due numeric;
+  -- ledger
+  v_gl_all int; v_gl_lines int; v_gl_n int; v_dr numeric; v_cr numeric;
+  v_cash numeric;
+  -- platform cost
+  v_ai_all int; v_ai_n int; v_ai_aed numeric; v_ai_models text;
+  v_lines jsonb;
+begin
+  select count(*) into v_txn_all from transactions;
+  select count(*), coalesce(sum(coalesce(reveal_fee, app_fee, 0)), 0)
+    into v_txn_n, v_rev
+    from transactions
+   where revealed_at >= v_from and revealed_at < v_to
+     and coalesce(fee_status,'') <> 'refunded' and coalesce(refund_status,'') <> 'approved';
+
+  select count(*), max(last_seen_at) into v_stripe_all, v_stripe_last from stripe_events;
+  select count(*) into v_stripe_n from stripe_events
+   where first_seen_at >= v_from and first_seen_at < v_to;
+
+  select count(*) into v_ee_all from expense_entries;
+  select count(*), coalesce(sum(amount), 0) into v_ee_n, v_ee_aed
+    from expense_entries where charged_on between p_start and p_end;
+
+  -- The receipts that ARRIVED. This is the counter-evidence to a zero on the line above, and it is
+  -- why money-out can be 'unknown' rather than a comfortable 0.
+  select count(*) into v_rcpt_all from inbound_messages where coalesce(to_email,'') ilike '%expense%';
+  select count(*) into v_rcpt_n from inbound_messages
+   where coalesce(to_email,'') ilike '%expense%' and created_at >= v_from and created_at < v_to;
+
+  select count(*), count(*) filter (where active) into v_exp_all, v_exp_active from expenses;
+
+  select count(*) into v_ref_all from refunds;
+  select count(*), coalesce(sum(amount_fils), 0) / 100.0, count(*) filter (where settled_at is not null)
+    into v_ref_n, v_ref_aed, v_ref_settled
+    from refunds where requested_at >= v_from and requested_at < v_to;
+
+  select count(*) into v_ap_all from ap_bills;
+  select count(*), coalesce(sum(greatest(total - coalesce(amount_paid,0), 0)), 0)
+    into v_ap_open, v_ap_due
+    from ap_bills where coalesce(status,'') not in ('paid','void','cancelled');
+
+  select count(*) into v_gl_all from gl_journal;
+  select count(*) into v_gl_lines from gl_journal_lines;
+  select count(*) into v_gl_n from gl_journal where entry_date between p_start and p_end;
+  select coalesce(sum(l.debit),0), coalesce(sum(l.credit),0) into v_dr, v_cr
+    from gl_journal_lines l join gl_journal j on j.id = l.journal_id
+   where j.entry_date between p_start and p_end;
+  select coalesce(sum(balance),0) into v_cash from gl_account_balances where code in ('1000','1050');
+
+  select count(*) into v_ai_all from ai_cost_log;
+  select count(*), coalesce(sum(cost_aed),0), coalesce(string_agg(distinct coalesce(model_used,'?'), ', '), '')
+    into v_ai_n, v_ai_aed, v_ai_models
+    from ai_cost_log where occurred_at >= v_from and occurred_at < v_to;
+
+  v_lines := jsonb_build_object(
+
+    -- MONEY IN -------------------------------------------------------------------------------
+    'reveal_fee_revenue', jsonb_build_object(
+      'aed', v_rev, 'n', v_txn_n, 'denom', v_txn_all,
+      'basis', case when v_txn_all = 0 then 'true zero' else 'measured' end,
+      'note', case when v_txn_all = 0
+        then 'public.transactions holds 0 rows in total, so no reveal fee has been recorded for this week or any other. The denominator is zero, not the numerator only.'
+        else v_txn_n||' reveal(s) settled in the window, of '||v_txn_all||' transaction row(s) on record; refunded and refund-approved rows excluded.' end),
+
+    'stripe_settlement_events', jsonb_build_object(
+      'n', v_stripe_n, 'denom', v_stripe_all,
+      'basis', case when v_stripe_all = 0 then 'true zero' else 'measured' end,
+      -- ZERO CANNOT TELL A DEAD FEED FROM AN IDLE ONE. Say which this is.
+      'note', case when v_stripe_all = 0
+        then 'public.stripe_events holds 0 rows and has never recorded one, so 0 events this week is NOT evidence that the Stripe webhook is live and the week was quiet. It is equally consistent with the feed never having delivered. Treat the revenue line above as bounded by that.'
+        else v_stripe_n||' event(s) first seen in the window, of '||v_stripe_all||' ever recorded; most recent activity '||coalesce(v_stripe_last::text,'unknown')||'.' end),
+
+    -- MONEY OUT ------------------------------------------------------------------------------
+    'expenses_filed_to_ledger', jsonb_build_object(
+      'aed', v_ee_aed, 'n', v_ee_n, 'denom', v_ee_all,
+      'basis', case when v_ee_all = 0 then 'true zero' else 'measured' end,
+      'note', case when v_ee_all = 0
+        then 'public.expense_entries holds 0 rows in total. Nothing has ever been filed against the chart of accounts. This is a statement about the bookkeeping, not about the spending.'
+        else v_ee_n||' receipt(s) filed with a charge date in the window, of '||v_ee_all||' entr(ies) on record.' end),
+
+    'receipts_received_at_the_expenses_inbox', jsonb_build_object(
+      'n', v_rcpt_n, 'denom', v_rcpt_all,
+      'basis', case when v_rcpt_all = 0 then 'true zero' else 'measured' end,
+      'note', v_rcpt_n||' message(s) reached the expenses inbox inside the window; '||v_rcpt_all||' have reached it in total. Counted from public.inbound_messages, which records arrival, not amount.'),
+
+    -- THE HONEST ONE. If receipts arrived and none was filed, the amount spent is NOT derivable,
+    -- and printing 0 would be false in the direction that flatters the company.
+    'cash_out_this_week', case
+      when v_rcpt_n > v_ee_n then jsonb_build_object(
+        'basis', 'unknown',
+        'note', v_rcpt_n||' receipt(s) arrived at the expenses inbox inside this window and '||v_ee_n||
+                ' were filed to the ledger, so the amount actually spent cannot be derived from any row. '||
+                'It is UNKNOWN. It is not zero, and the gap ('||(v_rcpt_n - v_ee_n)||' unfiled receipt(s)) is the reason.')
+      when v_ee_all = 0 and v_rcpt_all > 0 then jsonb_build_object(
+        'basis', 'unknown',
+        'note', 'No receipt has ever been filed to the ledger while '||v_rcpt_all||' have arrived at the expenses inbox. '||
+                'Spending for this window is UNKNOWN; a zero here would assert the company spent nothing, which the inbox contradicts.')
+      when v_ee_all = 0 and v_rcpt_all = 0 then jsonb_build_object(
+        'aed', 0, 'basis', 'true zero',
+        'note', 'Both public.expense_entries and the expenses inbox hold 0 rows, so nothing was spent as far as any source row can say, over a denominator of zero.')
+      else jsonb_build_object(
+        'aed', v_ee_aed, 'n', v_ee_n, 'denom', v_ee_all, 'basis', 'measured',
+        'note', 'Every receipt that arrived in the window ('||v_rcpt_n||') has a filed entry; the total is the sum of those entries.') end,
+
+    'recurring_cost_schedule', case
+      when v_exp_all = 0 and v_rcpt_all > 0 then jsonb_build_object(
+        'basis', 'unknown',
+        'note', 'public.expenses holds 0 rows, so no recurring cost is on record -- while the expenses inbox holds '||v_rcpt_all||
+                ' vendor receipt(s), which is direct evidence that recurring costs exist. The monthly run rate is UNKNOWN, not zero.')
+      when v_exp_all = 0 then jsonb_build_object(
+        'n', 0, 'denom', 0, 'basis', 'true zero',
+        'note', 'public.expenses holds 0 rows and no receipt has arrived to contradict that.')
+      else jsonb_build_object(
+        'n', v_exp_active, 'denom', v_exp_all, 'basis', 'measured',
+        'note', v_exp_active||' active recurring cost(s) of '||v_exp_all||' on record.') end,
+
+    -- REFUNDS --------------------------------------------------------------------------------
+    'refunds_requested', jsonb_build_object(
+      'aed', v_ref_aed, 'n', v_ref_n, 'denom', v_ref_all, 'settled', v_ref_settled,
+      'basis', case when v_ref_all = 0 then 'true zero' else 'measured' end,
+      'note', case when v_ref_all = 0
+        then 'public.refunds holds 0 rows in total. No refund has ever been requested, so nothing was decided and nothing was declined -- this is an empty table, not a clean queue.'
+        else v_ref_n||' requested in the window ('||v_ref_settled||' settled), of '||v_ref_all||' on record. Every refund decision belongs to the CEO (ceo_standing_grant accountant.refund_decision, max_amount_aed 0).' end),
+
+    -- PAYABLES -------------------------------------------------------------------------------
+    'outstanding_bills', jsonb_build_object(
+      'aed', v_ap_due, 'n', v_ap_open, 'denom', v_ap_all,
+      'basis', case when v_ap_all = 0 then 'true zero' else 'measured' end,
+      'note', case when v_ap_all = 0
+        then 'public.ap_bills holds 0 rows, so 0 outstanding means NO BILL HAS BEEN ENTERED -- it is not a statement that nothing is owed. The '||v_rcpt_all||' receipt(s) in the expenses inbox are evidence to the contrary.'
+        else v_ap_open||' open bill(s) of '||v_ap_all||' on record, '||to_char(v_ap_due,'FM999,999,990.00')||' AED still due.' end),
+
+    -- CASH -----------------------------------------------------------------------------------
+    'cash_position', case
+      when v_gl_lines = 0 then jsonb_build_object(
+        'basis', 'unknown',
+        'note', 'The general ledger holds 0 posted lines, and the database carries no bank feed or statement balance. The 1000 Cash & Bank and 1050 Stripe Clearing accounts therefore read 0.00 because NOTHING HAS BEEN POSTED, which is the absence of bookkeeping and not a bank balance. Cash position is UNKNOWN.')
+      else jsonb_build_object(
+        'aed', v_cash, 'denom', v_gl_lines, 'basis', 'measured',
+        'note', 'Sum of the 1000 Cash & Bank and 1050 Stripe Clearing balances across '||v_gl_lines||' posted ledger line(s). It is a book balance, not a confirmed bank statement.') end,
+
+    -- LEDGER ---------------------------------------------------------------------------------
+    'journal_entries_posted', jsonb_build_object(
+      'n', v_gl_n, 'denom', v_gl_all, 'debits', v_dr, 'credits', v_cr,
+      'basis', case when v_gl_all = 0 then 'true zero' else 'measured' end,
+      'note', case when v_gl_all = 0
+        then 'public.gl_journal holds 0 entries. Debits 0.00 equal credits 0.00, and a trial balance that balances across ZERO entries proves nothing about the books -- it proves there are none. 30 accounts and 6 expense mappings are configured and unused.'
+        else v_gl_n||' entr(ies) dated inside the window, of '||v_gl_all||' on record; debits '||to_char(v_dr,'FM999,999,990.00')||' against credits '||to_char(v_cr,'FM999,999,990.00')||
+             case when v_dr = v_cr then ' -- balanced.' else ' -- OUT OF BALANCE by '||to_char(abs(v_dr-v_cr),'FM999,999,990.00')||'.' end end),
+
+    -- PLATFORM COST --------------------------------------------------------------------------
+    'ai_and_model_cost', jsonb_build_object(
+      'aed', v_ai_aed, 'n', v_ai_n, 'denom', v_ai_all, 'models', v_ai_models,
+      'basis', case when v_ai_all = 0 then 'true zero' else 'measured' end,
+      'note', case when v_ai_all = 0
+        then 'public.ai_cost_log holds 0 rows.'
+        else v_ai_n||' model call(s) inside the window, of '||v_ai_all||' logged in total, costing '||to_char(v_ai_aed,'FM999,999,990.00')||
+             ' AED. Models used: '||coalesce(nullif(v_ai_models,''),'none in this window')||
+             case when v_ai_models = 'none' then '. Every logged call resolved to model_used=''none'', so this zero is a real measured zero: the paid route was refused, not that the work was free.' else '.' end end)
+  );
+
+  return jsonb_build_object(
+    'window', jsonb_build_object('start', p_start, 'end', p_end, 'timezone', v_tz,
+                                 'iso', to_char(p_start,'IYYY-"W"IW')),
+    'lines', v_lines,
+    'measured_at', now());
+end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_weekly_report_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tz    text := 'Asia/Dubai';
+  v_local timestamp;
+  v_at    time;
+  v_dow   int;
+  v_start date;
+  v_key   text;
+  v_row   public.accountant_weekly_report%rowtype;
+begin
+  v_local := now() at time zone v_tz;
+  v_start := (date_trunc('week', v_local::date) - interval '7 days')::date;   -- the week that closed
+  v_key   := 'quotesdone:'||to_char(v_start,'IYYY-"W"IW');
+
+  begin
+    select coalesce(nullif(btrim(value),''),'09:00')::time into v_at
+      from public.app_secrets where key = 'accountant_weekly_report_local_time';
+  exception when others then v_at := time '09:00'; end;
+  v_at := coalesce(v_at, time '09:00');
+
+  begin
+    select coalesce(nullif(btrim(value),''),'1')::int into v_dow
+      from public.app_secrets where key = 'accountant_weekly_report_local_dow';
+  exception when others then v_dow := 1; end;
+  v_dow := coalesce(v_dow, 1);
+
+  select * into v_row from public.accountant_weekly_report where report_key = v_key;
+
+  -- A REPORT ALREADY IN FLIGHT IS FINISHED WHATEVER DAY IT IS. The schedule decides when a week's
+  -- report STARTS, not when a half-delivered one may be retried -- otherwise a Monday failure would
+  -- wait a week, which is precisely the "retained but never retried" state this shape exists to
+  -- prevent.
+  if found then
+    if v_row.pdf_path is null then
+      return jsonb_build_object('fired', true, 'reason', 'the PDF for this week is still outstanding',
+        'report_key', v_key, 'id', v_row.id, 'revision', v_row.revision, 'status', v_row.status,
+        'pdf_pending', true, 'pdf_blocks', v_row.pdf_blocks, 'subject', v_row.subject);
+    end if;
+    if v_row.delivered_at is null then
+      return public.fn_accountant_weekly_report_deliver(v_row.id)
+             || jsonb_build_object('fired', true, 'reason', 'retrying an undelivered lane');
+    end if;
+    return jsonb_build_object('fired', false, 'reason', 'already generated and delivered for this ISO week',
+      'report_key', v_key, 'id', v_row.id, 'revision', v_row.revision, 'status', v_row.status);
+  end if;
+
+  if extract(isodow from v_local)::int < v_dow or (extract(isodow from v_local)::int = v_dow and v_local::time < v_at) then
+    return jsonb_build_object('fired', false, 'reason', 'before the configured local day/time',
+      'local_now', to_char(v_local,'Dy YYYY-MM-DD HH24:MI'), 'configured_dow', v_dow,
+      'configured_at', v_at::text, 'report_key', v_key);
+  end if;
+
+  return public.fn_accountant_weekly_report(v_start)
+         || jsonb_build_object('fired', true, 'configured_at', v_at::text, 'configured_dow', v_dow);
+end;$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_action_authority_rank(p_level text)
  RETURNS integer
  LANGUAGE sql
@@ -11188,16 +13361,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -11223,6 +13386,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -20139,6 +22312,117 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_expense_document(p_entry_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select coalesce(
+    (select jsonb_build_object(
+       'ok',            v.doc_path is not null,
+       'entry_id',      v.id,
+       'vendor',        v.vendor,
+       'charged_on',    v.charged_on,
+       'amount',        v.amount,
+       'currency',      v.currency,
+       'bucket',        v.doc_bucket,
+       'path',          v.doc_path,
+       'name',          v.doc_name,
+       'content_type',  v.doc_content_type,
+       'kind',          v.doc_kind,
+       'note',          v.doc_note,
+       'state',         v.document_state,
+       'reason',        case
+                          when v.doc_path is not null then null
+                          else 'This expense has no stored document. Its source message carried no '
+                               || 'vendor file that could be retrieved and no email print has been '
+                               || 'rendered for it yet.'
+                        end)
+     from public.v_expense_documents v where v.id = p_entry_id),
+    jsonb_build_object('ok', false, 'entry_id', p_entry_id, 'state', 'no_such_entry',
+                       'reason', 'There is no expense_entries row with that id.'));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_expense_document_coverage()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select jsonb_build_object(
+    'entries',          count(*),
+    'vendor_document',  count(*) filter (where document_state = 'vendor_document'),
+    'email_print',      count(*) filter (where document_state = 'email_print'),
+    'unclassified',     count(*) filter (where document_state = 'unclassified'),
+    'missing',          count(*) filter (where document_state = 'missing'),
+    'openable',         count(*) filter (where is_openable),
+    'missing_ids',      coalesce(jsonb_agg(id order by id) filter (where document_state = 'missing'), '[]'::jsonb),
+    'by_channel',       (select coalesce(jsonb_object_agg(source_channel, n), '{}'::jsonb)
+                         from (select source_channel, count(*) n
+                               from public.v_expense_documents group by 1) s))
+  from public.v_expense_documents;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_expense_post_to_gl(p_entry_id bigint)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e record; fx numeric; acct text; amt_aed numeric(18,2); vat_aed numeric(18,2);
+        net_aed numeric(18,2); jid bigint; lines jsonb;
+begin
+  select id, vendor, category, amount, upper(coalesce(currency,'AED')) as cur, vat_amount,
+         coalesce(charged_on, created_at::date) as d
+    into e
+    from public.expense_entries where id = p_entry_id;
+  if not found or coalesce(e.amount,0) <= 0 then return null; end if;
+
+  -- already posted (by this routine or by fn_gl_sync_business): return it, never post twice
+  select g.id into jid from public.gl_journal g
+   where g.source='expense' and g.source_ref = e.id::text limit 1;
+  if jid is not null then return jid; end if;
+
+  select num_value into fx from public.gl_settings where key='usd_to_aed';
+  fx := coalesce(fx, 3.6725);
+
+  -- Same refusal as fn_gl_sync_business: a currency with no rate is NOT booked at 1:1. An
+  -- understated ledger that says so beats a wrong one that does not.
+  if e.cur not in ('AED','USD') then
+    begin
+      insert into public.founder_alerts(level, event, detail, channel)
+      values ('warn','gl_unconvertible_currency',
+              'Expense #'||e.id||' from '||coalesce(e.vendor,'?')||' is in '||e.cur||
+              ', which has no rate in gl_settings, so it was NOT posted to the ledger.','system');
+    exception when others then null; end;
+    return null;
+  end if;
+
+  amt_aed := round(e.amount * case when e.cur='USD' then fx else 1 end, 2);
+  vat_aed := round(coalesce(e.vat_amount,0) * case when e.cur='USD' then fx else 1 end, 2);
+  if vat_aed <= 0 or vat_aed >= amt_aed then vat_aed := 0; end if;
+  net_aed := amt_aed - vat_aed;
+
+  acct := coalesce((select m.account_code from public.gl_expense_map m where m.category = e.category), '6300');
+
+  lines := jsonb_build_array(jsonb_build_object('account', acct, 'debit', net_aed,
+             'memo', coalesce(e.vendor,'')||' '||coalesce(e.category,'G&A')));
+  if vat_aed > 0 then
+    lines := lines || jsonb_build_array(jsonb_build_object('account','1150','debit',vat_aed,
+               'memo','Input VAT stated on the receipt'));
+  end if;
+  lines := lines || jsonb_build_array(jsonb_build_object('account','1000','credit',amt_aed));
+
+  return public.fn_gl_entry(e.d,
+    'Expense: '||coalesce(e.vendor,'?')||' - '||coalesce(e.category,'G&A')
+      ||case when e.cur='USD' then ' ('||e.amount||' USD @ '||fx||')' else '' end
+      ||case when vat_aed > 0 then ' incl VAT '||vat_aed||' AED' else '' end,
+    'expense', e.id::text, lines, 'expenses_inbox');
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_expiring_docs(p_days integer DEFAULT 60)
  RETURNS TABLE(id bigint, company_name text, sector text, doc text, expiry date, days_left integer, status text)
  LANGUAGE sql
@@ -20936,6 +23220,76 @@ begin
    where id=p_journal;
   return p_journal;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_gl_reverse(p_journal_id bigint, p_reason text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_orig  public.gl_journal%rowtype;
+  v_lines jsonb;
+  v_new   bigint;
+  v_dr    numeric;
+  v_cr    numeric;
+begin
+  -- A REASON IS NOT OPTIONAL. Undoing a posted entry is a decision, and a ledger that records the
+  -- reversal without the reason records that something was changed and hides why.
+  if p_reason is null or btrim(p_reason) = '' then
+    raise exception 'a reversal needs a reason: reversing a posted entry is a decision and the ledger must carry why';
+  end if;
+
+  select * into v_orig from public.gl_journal where id = p_journal_id;
+  if not found then
+    raise exception 'no journal %', p_journal_id;
+  end if;
+  if v_orig.status <> 'posted' then
+    raise exception 'journal % has status %, not posted; only a posted entry can be reversed', p_journal_id, v_orig.status;
+  end if;
+  if exists (select 1 from public.gl_journal where reverses = p_journal_id) then
+    raise exception 'journal % has already been reversed; reversing it twice would double the correction', p_journal_id;
+  end if;
+
+  -- Every line, with debit and credit exchanged. Built from the stored lines rather than recomputed,
+  -- so a reversal cannot disagree with what was actually posted.
+  select coalesce(jsonb_agg(jsonb_build_object(
+             'account', l.account_code,
+             'debit',   l.credit,
+             'credit',  l.debit,
+             'memo',    'Reversal of journal ' || p_journal_id || coalesce(': ' || l.memo, '')
+           ) order by l.line_no), '[]'::jsonb)
+    into v_lines
+    from public.gl_journal_lines l
+   where l.journal_id = p_journal_id;
+
+  if jsonb_array_length(v_lines) = 0 then
+    raise exception 'journal % has no lines, so there is nothing to reverse', p_journal_id;
+  end if;
+
+  v_new := public.fn_gl_entry(
+    (now() at time zone 'Asia/Dubai')::date,
+    'REVERSAL of journal ' || p_journal_id || ' (' || coalesce(v_orig.memo, '') || ') — ' || p_reason,
+    'reversal', p_journal_id::text, v_lines, 'fn_gl_reverse');
+
+  -- The exemption the immutability trigger allows: posted -> void, with reverses set.
+  update public.gl_journal
+     set status = 'void', reverses = v_new
+   where id = p_journal_id;
+
+  -- THE PAIR MUST NET TO ZERO. If it does not, the correction is itself a defect and must not stand.
+  select sum(l.debit), sum(l.credit) into v_dr, v_cr
+    from public.gl_journal_lines l
+   where l.journal_id in (p_journal_id, v_new);
+  if round(coalesce(v_dr, 0), 2) <> round(coalesce(v_cr, 0), 2) then
+    raise exception 'the reversal did not net to zero: DR % CR % across journals % and %',
+      v_dr, v_cr, p_journal_id, v_new;
+  end if;
+
+  return v_new;
+end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_gl_sync_business()
@@ -22789,17 +25143,17 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_llm_log(p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean, p_confidence numeric DEFAULT NULL::numeric, p_cached_in integer DEFAULT 0, p_cache_write integer DEFAULT 0)
+CREATE OR REPLACE FUNCTION public.fn_llm_log(p_fn text, p_dept text, p_agent text, p_task_class text, p_model text, p_because text, p_tier text, p_prompt_tokens integer, p_output_tokens integer, p_cached boolean, p_cache_key text, p_latency_ms integer, p_ok boolean, p_confidence numeric DEFAULT NULL::numeric, p_cached_in integer DEFAULT 0, p_cache_write integer DEFAULT 0, p_generation_id text DEFAULT NULL::text, p_cost_usd_reported numeric DEFAULT NULL::numeric)
  RETURNS numeric
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_cost numeric := 0; v_in numeric; v_out numeric; v_cr numeric; v_cw numeric;
         v_cheaper boolean := false; v_reason text; v_alt text; v_class text;
         v_plain int; v_read int; v_write int;
-        -- Added 11 Aug 2026 for the could_be_cheaper rewrite below.
         v_alt_model text; v_alt_rate numeric; v_used_rate numeric;
+        v_seat text; v_seat_basis text := 'unattributed';
 begin
   v_class := coalesce(nullif(trim(coalesce(p_task_class,'')), ''), case
     when p_fn ~* 'agent_brain|dept_plan|exec_agents|reflect|conductor'   then 'agent_reasoning'
@@ -22810,6 +25164,15 @@ begin
     when p_fn ~* 'draft|content|blog|marketing|social'                    then 'content_drafting'
     when p_fn ~* 'quote|rfq|supplier|procure'                             then 'procurement_reasoning'
     else 'general_drafting' end);
+
+  -- WHO SPENT IT. Declaration first, standing binding second, honest silence third.
+  if nullif(btrim(coalesce(p_agent,'')),'') is not null
+     and exists (select 1 from public.org_agents a where a.agent_key = btrim(p_agent)) then
+    v_seat := btrim(p_agent); v_seat_basis := 'declared';
+  else
+    select b.seat into v_seat from public.llm_seat_binding b where b.fn = p_fn;
+    if v_seat is not null then v_seat_basis := 'bound'; else v_seat_basis := 'unattributed'; end if;
+  end if;
 
   v_read  := greatest(coalesce(p_cached_in,0), 0);
   v_write := greatest(coalesce(p_cache_write,0), 0);
@@ -22830,25 +25193,6 @@ begin
   select deterministic_alternative into v_alt from model_policy where task_class = v_class;
   if v_alt is not null and v_alt <> '' then
     v_cheaper := true; v_reason := 'A deterministic path exists for this task class: ' || v_alt;
-  -- THE WASTE DETECTOR NEVER LOOKED AT THE MODEL DOING THE SPENDING (fixed 11 Aug 2026).
-  --
-  -- The comparator was hardcoded to claude-sonnet-5 as the CHEAP side of the test:
-  --     exists (... alt.model = 'anthropic/claude-sonnet-5'
-  --              where used.model = p_model and alt.in_aed_per_mtok < used.in_aed_per_mtok)
-  -- so it could only ever fire for a model more expensive than sonnet-5, and by the input-rate
-  -- ladder in model_rate that is exactly one model:
-  --     flash-lite 0.92 < qwen 1.18 < haiku 3.67 < gemini-flash 5.51 < SONNET-5 7.35 < opus 18.36
-  -- That was a reasonable rule when sonnet-5 was the cheap tier. It is not one now.
-  --
-  -- Measured over the 7 days to 11 Aug: could_be_cheaper fired on 179 calls - 175 of them on
-  -- gemini-3.1-flash-lite (the CHEAPEST model in the fleet, 1.1% of spend, flagged by the
-  -- deterministic branch above), 4 on opus, and ZERO on claude-sonnet-5 across 622 calls carrying
-  -- 84% of all spend. The one field built to find waste was structurally blind to it.
-  --
-  -- Now it asks the actual question - is there a materially cheaper model than the one used - and
-  -- names the cheapest so the reason is actionable rather than a boolean. The 2x threshold is
-  -- deliberate: qwen at 1.18 against flash-lite at 0.92 is a 1.3x difference and flagging it would
-  -- be noise, while sonnet-5 against flash-lite is 8x and is the finding.
   elsif not coalesce(p_cached,false) then
     select mr.model, mr.in_aed_per_mtok into v_alt_model, v_alt_rate
       from model_rate mr
@@ -22869,7 +25213,8 @@ begin
 
   insert into ai_cost_log (fn, dept_key, agent_key, task_class, model_used, model_selected_because,
     tier, prompt_tokens, output_tokens, cached, cache_hit_key, latency_ms, cost_aed,
-    could_be_cheaper, cheaper_reason, ok, confidence, cached_in_tokens, cache_write_tokens)
+    could_be_cheaper, cheaper_reason, ok, confidence, cached_in_tokens, cache_write_tokens,
+    generation_id, cost_usd_reported, seat, seat_basis)
   values (p_fn, p_dept, p_agent, v_class, p_model, p_because, p_tier,
     coalesce(p_prompt_tokens,0), coalesce(p_output_tokens,0), coalesce(p_cached,false),
     p_cache_key, p_latency_ms, v_cost, v_cheaper, v_reason, coalesce(p_ok,true),
@@ -22877,7 +25222,11 @@ begin
          when p_confidence >= 0 and p_confidence <= 1   then p_confidence
          when p_confidence > 1  and p_confidence <= 100 then round(p_confidence / 100.0, 4)
          else null end,
-    v_read, v_write);
+    v_read, v_write,
+    nullif(btrim(coalesce(p_generation_id,'')),''), p_cost_usd_reported, v_seat, v_seat_basis)
+  -- The generation id is unique. A retried write of the SAME provider charge must not create a
+  -- second row that the reconciliation would then count twice.
+  on conflict (generation_id) where generation_id is not null do nothing;
 
   return v_cost;
 end $function$
@@ -23344,6 +25693,58 @@ BEGIN
   IF lower(coalesce(NEW.level,'')) = 'crit' THEN NEW.level := 'critical'; END IF;
   RETURN NEW;
 END
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notification_attachment_policy()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_a jsonb; v_bucket text; v_path text; v_file text; v_n int;
+begin
+  if new.attachments is null then return new; end if;
+
+  if jsonb_typeof(new.attachments) <> 'array' then
+    raise exception 'notifications.attachments must be a jsonb ARRAY of {bucket, path, filename}, got %',
+      jsonb_typeof(new.attachments);
+  end if;
+
+  v_n := jsonb_array_length(new.attachments);
+  if v_n = 0 then
+    -- An empty array is the caller saying "attach nothing", which is what NULL means. Normalise it
+    -- so send_outbox has one shape to read and cannot tell the two apart.
+    new.attachments := null;
+    return new;
+  end if;
+  if v_n > 5 then
+    raise exception 'notifications.attachments holds % entries; a covering email carries at most 5', v_n;
+  end if;
+
+  for v_a in select jsonb_array_elements(new.attachments) loop
+    v_bucket := v_a->>'bucket'; v_path := v_a->>'path'; v_file := v_a->>'filename';
+
+    if v_bucket is null or v_path is null or v_file is null then
+      raise exception 'each attachment needs bucket, path and filename; got %', v_a::text;
+    end if;
+
+    -- The allow-list. Every bucket here holds documents THIS COMPANY generated for itself.
+    if v_bucket not in ('finance-reports','finance-docs','agent-docs','reports','compliance-docs') then
+      raise exception 'attachment bucket % is not attachable. Allowed: finance-reports, finance-docs, agent-docs, reports, compliance-docs', v_bucket;
+    end if;
+
+    if v_path = '' or v_path like '%..%' then
+      raise exception 'attachment path % is refused (empty, or contains "..")', v_path;
+    end if;
+
+    if v_file !~ '^[A-Za-z0-9 ._-]{1,120}$' then
+      raise exception 'attachment filename % is refused: only letters, digits, space, dot, underscore and hyphen, up to 120 characters', v_file;
+    end if;
+  end loop;
+
+  return new;
+end;
 $function$
 
 
@@ -27551,7 +29952,7 @@ CREATE OR REPLACE FUNCTION public.fn_receipt_hand_to_bookkeeper(p_inbound_id big
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare m record; v_owner text := 'bookkeeper'; v_task bigint;
+declare m record; v_owner text; v_task bigint;
 begin
   select * into m from public.inbound_messages where id = p_inbound_id;
   if not found then return null; end if;
@@ -27563,9 +29964,13 @@ begin
    order by t.id limit 1;
 
   if v_task is null then
-    if not exists (select 1 from public.org_agents o where o.agent_key = v_owner and o.active and coalesce(o.available, true)) then
-      v_owner := null;   -- a05_org_task_fill_ownership picks the least-loaded finance colleague
-    end if;
+    -- 9 SEP 2026: 'bookkeeper' has never been a row in org_agents, so every held receipt became an
+    -- UNOWNED task. The accountant seat now exists and this is its named work; the old key is kept
+    -- first so nothing changes if that seat is ever created.
+    select o.agent_key into v_owner from public.org_agents o
+     where o.agent_key in ('bookkeeper','accountant') and o.active and coalesce(o.available, true)
+     order by case o.agent_key when 'bookkeeper' then 0 else 1 end limit 1;
+
     insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, decided_by,
                                   action_class, assigned_agent, priority, result)
     values ('finance',
@@ -27583,8 +29988,8 @@ begin
     returning id into v_task;
   end if;
 
-  update public.inbound_messages set owner_role = 'bookkeeper' where id = p_inbound_id and owner_role is null;
-  update public.doc_reviews set owner_role = 'bookkeeper'
+  update public.inbound_messages set owner_role = coalesce(v_owner, 'accountant') where id = p_inbound_id and owner_role is null;
+  update public.doc_reviews set owner_role = coalesce(v_owner, 'accountant')
    where id = any(coalesce(p_review_ids, '{}'::bigint[])) and owner_role is null;
   return v_task;
 end
@@ -41324,27 +43729,28 @@ end $function$
 
 
 -- ===== TRIGGERS =====
+CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
-CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
+CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
+CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
-CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
+CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
+CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
-CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
+CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
-CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
@@ -41357,17 +43763,17 @@ CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON 
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
-CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
+CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
+CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
@@ -41386,6 +43792,9 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
@@ -41393,9 +43802,6 @@ CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EA
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
 CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -41405,44 +43811,45 @@ CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
+CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
-CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
+CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
+CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
-CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
+CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
@@ -41450,25 +43857,25 @@ CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON publ
 CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
-CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
 CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
 CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
 CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
-CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
+CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a10_sales_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.sales_knowledge FOR EACH ROW EXECUTE FUNCTION fn_sales_knowledge_search_vector();
@@ -41479,13 +43886,16 @@ CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_cate
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
-CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
 CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
+CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
+ALTER TABLE public.accountant_knowledge ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_spend_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_weekly_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_class_gate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_execution ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_campaign_state ENABLE ROW LEVEL SECURITY;
@@ -41658,7 +44068,9 @@ ALTER TABLE public.event_rollup ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_subscription ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evolution_proposal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exec_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expense_billing_mailbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expense_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expense_vendor_billing_mailbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.field_definition ENABLE ROW LEVEL SECURITY;
@@ -41747,6 +44159,7 @@ ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_failure_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_route_health ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.llm_seat_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.market_intel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
@@ -41768,6 +44181,8 @@ ALTER TABLE public.model_policy_by_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_rate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.openrouter_day ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.openrouter_meter ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operating_system ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.opportunity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ops_knowledge ENABLE ROW LEVEL SECURITY;
@@ -41914,6 +44329,7 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ui_label ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.undo_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vendor_billing_ended ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vision_horizon ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vt_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wa_answer_log ENABLE ROW LEVEL SECURITY;
@@ -41961,6 +44377,8 @@ select cron.schedule('wa_flush','*/2 * * * *',$CRON$
 $CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
+--   accountant_weekly_report_local_dow
+--   accountant_weekly_report_local_time
 --   admin_emails
 --   admin_mfa_phone
 --   agent_autonomy_enabled
@@ -41999,6 +44417,7 @@ $CRON$);
 --   cred_cron_monitoring
 --   cred_cron_notifications
 --   cred_db_internal
+--   cred_fn_accountant
 --   cred_fn_action_worker
 --   cred_fn_agent_act
 --   cred_fn_agent_brain
@@ -42180,5 +44599,6 @@ $CRON$);
 --   wa_autoreply_enabled
 --   wa_daily_cap
 --   wa_per_recipient_24h
+--   wa_stale_hours
 --   wa_template_sids
 --   wa_templates_ready
