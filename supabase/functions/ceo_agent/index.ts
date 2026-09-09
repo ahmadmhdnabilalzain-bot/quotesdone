@@ -54,8 +54,18 @@ async function sec(k: string): Promise<string | undefined> {
 // is looked up in the database from the secret's hash. An unrecognised context is refused rather
 // than defaulted, so minting a new credential does not silently grant a seat: it has to be added
 // here deliberately.
+//
+// UNTIL 9 SEP 2026 THIS MAP HELD ONLY THE FOUNDER, and the seat it was supposed to authenticate had
+// no credential at all — every other seat has one (fn.accountant, fn.sales_engineer,
+// fn.it_engineer). The effect was not that the CEO could not log in. It was that the ONLY entity
+// able to reach `decide` was the founder, while the row it wrote hardcoded decided_by 'ceo'. His
+// approvals were being recorded as the CEO's, which points his own 8 September ruling backwards.
+// fn.ceo_agent is minted in
+// scripts/sql/the_ceo_seat_gets_its_own_credential_and_the_tray_its_staff_file_into.sql and its
+// value lives in app_secrets.cred_fn_ceo_agent.
 const SEAT_BY_CREDENTIAL: Record<string, 'founder' | 'ceo'> = {
   'fn.founder_channel': 'founder', // his WhatsApp, email and API channel
+  'fn.ceo_agent': 'ceo', // the seat acting on its own behalf
 };
 
 async function whoami(req: Request, body: Record<string, unknown>): Promise<'founder' | 'ceo' | null> {
@@ -100,10 +110,43 @@ Deno.serve(observe('ceo_agent', async (req) => {
       return J({ ok: true, command_id: r?.command_id, intent: r?.intent_id, state: r?.state, matched: r?.matched });
     }
 
+    // ── CONTEXT ────────────────────────────────────────────────────────────────────────────────
+    // THE CEO SEAT COULD NOT READ ITS OWN PACK, OR THE COMPANY'S FACTS. Measured 9 Sep 2026: this
+    // file called exactly one routine, fn_ceo_command_submit. public.ceo_knowledge and the two
+    // routines written to read it -- fn_ceo_context and fn_ceo_knowledge_search -- had no caller
+    // anywhere in the deployed estate. Founder, the same day: "the company knowledge is literally
+    // connected to every seat automatically. Any seat that we made, the company knowledge should be
+    // there. Otherwise, those agents wouldn't know where they work or what they do or what is our
+    // company about."
+    //
+    // fn_ceo_context now pins public.fn_company_context() into its return, so this one call carries
+    // both: the CEO pack's advisory records, and the company block -- identity, what we sell, the
+    // hard rules, the licence and tax position, the seats, the founder's standing decisions and the
+    // active targets, every figure read from its own table at call time.
+    if (action === 'context') {
+      const query = String(body.query || body.text || '').trim();
+      if (!query) return J({ error: 'query_required' }, 400);
+      const { data, error } = await admin.rpc('fn_ceo_context', {
+        p_query: query,
+        p_max_chars: Number.isFinite(Number(body.max_chars)) ? Number(body.max_chars) : 18000,
+        p_limit: Number.isFinite(Number(body.limit)) ? Number(body.limit) : 8,
+      });
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, seat: 'ceo', ...(data || {}) });
+    }
+
     // ── INBOX ──────────────────────────────────────────────────────────────────────────────────
     // What the seat is carrying. Open work, open commands, and the refunds waiting on a decision.
+    //
+    // AND THE TRAY ITS STAFF FILE INTO. Until 9 Sep 2026 this read three sources and none of them
+    // was support_ceo_report — the table fn_ceo_request_decision, fn_support_report_to_ceo and
+    // fn_accountant_weekly_report_deliver all deliver into. Two rows sat in it status='sent',
+    // accepted_at=null, one of them the accountant's weekly financial report, while
+    // fn_support_open_reports and fn_ceo_accept_support_report existed with no caller anywhere in
+    // the estate. A manager whose inbox does not show what his staff sent him is not a manager who
+    // is behind; he is a manager who never received it.
     if (action === 'inbox') {
-      const [cmds, tasks, refunds] = await Promise.all([
+      const [cmds, tasks, refunds, reports] = await Promise.all([
         admin.from('ceo_command')
           .select('command_id,received_at,channel,body,intent_id,state')
           .not('state', 'in', '("completed","failed","cancelled","superseded","refused")')
@@ -115,13 +158,44 @@ Deno.serve(observe('ceo_agent', async (req) => {
         admin.from('refunds')
           .select('id,amount_fils,reason_code,requested_by,requested_at,within_auto_window')
           .eq('status', 'requested').order('requested_at', { ascending: true }).limit(25),
+        admin.rpc('fn_support_open_reports'),
       ]);
       return J({
         ok: true,
         commands: cmds.data || [],
         tasks: tasks.data || [],
         refunds_awaiting_decision: refunds.data || [],
+        // Severity-ordered by the database, oldest first within a severity. The seat is told when
+        // the read itself failed rather than being shown an empty tray, because an empty tray and
+        // an unreadable one look identical and mean opposite things.
+        reports_from_staff: reports.data || [],
+        reports_error: reports.error?.message ?? null,
       });
+    }
+
+    // ── ACCEPT ─────────────────────────────────────────────────────────────────────────────────
+    // Taking ownership of a report a subordinate seat filed. The database refuses an acceptance
+    // with no receipt — "an acceptance with no receipt is the accepting party's assumption, not
+    // their agreement" — and that refusal is returned verbatim rather than smoothed over.
+    if (action === 'accept') {
+      if (who !== 'ceo') {
+        return J({
+          error: 'only the ceo accepts its own reports',
+          detail: 'These reports are addressed to the CEO seat. Present the fn.ceo_agent credential.',
+        }, 403);
+      }
+      const reportId = Number(body.report_id);
+      if (!Number.isFinite(reportId)) return J({ error: 'report_id_required' }, 400);
+      const receipt = String(body.receipt || '').trim();
+      if (!receipt) return J({ error: 'receipt_required', detail: 'say what you are accepting, in a sentence' }, 400);
+      const { data, error } = await admin.rpc('fn_ceo_accept_support_report', {
+        p_report_id: reportId, p_receipt: receipt,
+        p_note: body.note === undefined ? null : String(body.note || ''),
+      });
+      if (error) return J({ ok: false, refused: error.message }, 400);
+      const r = data as { ok?: boolean; reason?: string };
+      if (r?.ok !== true) return J({ ok: false, refused: r?.reason ?? 'refused' }, 400);
+      return J({ ok: true, accepted: data });
     }
 
     // ── TASK ───────────────────────────────────────────────────────────────────────────────────
@@ -148,7 +222,24 @@ Deno.serve(observe('ceo_agent', async (req) => {
     // the CEO deciding, not the founder being asked. The decision is written to ceo_approval and, for
     // a refund, the refund row is pointed at it — the guards on public.refunds refuse the money
     // moving any other way, so this endpoint cannot approve a payment by itself even if it wanted to.
+    //
+    // AND THE SEAT THAT DECIDES IS THE SEAT THAT IS RECORDED. Until 9 Sep 2026 there was no
+    // fn.ceo_agent credential, so the founder was the only caller who could reach here — and the
+    // row written said decided_by 'ceo'. The register named a decider who had not decided. The
+    // founder is now refused by name instead: his ruling was that approvals leave him, and a
+    // channel that quietly relabels him as the CEO honours the letter of it while inverting it.
+    //
+    // He is deliberately NOT added to ceo_identity to let decided_by read 'founder' honestly —
+    // that table is what the refund guards check, so the honest record would have handed back the
+    // authority he gave away. He commands; the seat decides.
     if (action === 'decide') {
+      if (who !== 'ceo') {
+        return J({
+          error: 'only the ceo decides',
+          detail: 'Founder ruling, 8 September 2026: "all approvals are from CEO. nothing goes to '
+            + 'me." Issue action=command instead; the seat decides and is recorded as having done so.',
+        }, 403);
+      }
       const kind = String(body.subject_kind || 'refund');
       const subject = String(body.subject_id || '').trim();
       const decision = String(body.decision || '').trim();
@@ -160,7 +251,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
       if (rationale.length < 12) return J({ error: 'rationale_required', detail: 'say why, in a sentence' }, 400);
 
       const { data: dec, error: decErr } = await admin.from('ceo_approval').insert({
-        subject_kind: kind, subject_id: subject, decision, decided_by: 'ceo',
+        subject_kind: kind, subject_id: subject, decision, decided_by: who,
         amount_aed: body.amount_aed ?? null, rationale,
       }).select('decision_id').maybeSingle();
       if (decErr) return J({ ok: false, refused: decErr.message }, 400);
@@ -168,7 +259,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
       let refundLinked: unknown = null;
       if (kind === 'refund' && decision === 'approved' && body.refund_id) {
         const { data: rf, error: rfErr } = await admin.from('refunds')
-          .update({ refund_decision_id: dec?.decision_id, decided_by: 'ceo', decided_at: new Date().toISOString() })
+          .update({ refund_decision_id: dec?.decision_id, decided_by: who, decided_at: new Date().toISOString() })
           .eq('id', Number(body.refund_id)).select('id,status,refund_decision_id').maybeSingle();
         // Surfaced, never swallowed: if the refund guards refuse the link, the decision still stands
         // as a record and the caller is told exactly what refused it.
@@ -177,7 +268,12 @@ Deno.serve(observe('ceo_agent', async (req) => {
       return J({ ok: true, decision_id: dec?.decision_id, refund: refundLinked });
     }
 
-    return J({ error: 'unknown_action', actions: ['command', 'inbox', 'task', 'decide'] }, 400);
+    // `task` is deliberately open to BOTH seats and carries no guard of its own. whoami returns
+    // only 'founder', 'ceo' or null, the null is already refused above, and both remaining seats
+    // legitimately touch ceo_task — the CEO working it, the founder unblocking or cancelling work
+    // his own command created. A `who !== 'ceo' && who !== 'founder'` check here would be a
+    // condition that cannot occur, which reads as protection and provides none.
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'accept'] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }

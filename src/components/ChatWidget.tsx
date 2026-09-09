@@ -70,7 +70,10 @@ export function ChatWidget() {
       const r = await fetch(FN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
-        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname })
+        // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
+        // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
+        // was unreachable code. useLocale() already knows; the value simply never left the browser.
+        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale })
       });
       const j = await r.json();
       setMsgs([...next, { role: 'assistant', content: (j && j.reply) || t.err }]);

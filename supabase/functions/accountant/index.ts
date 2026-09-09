@@ -269,6 +269,53 @@ Deno.serve(observe('accountant', async (req) => {
       return J({ ok: true, ...d0, url: signed.signedUrl, expires_in: ttl });
     }
 
+    // ── THE SAME DOOR, FOR A REFUND (9 Sep 2026) ───────────────────────────────────────────────
+    // The founder: "when a refund is issued, it's issued against that exact invoice reference ...
+    // which also should be available with the accountant and the CEO as a PDF as it is from Stripe."
+    // finance-docs is private, so the path has to be signed, and signing needs the service role
+    // that no browser may hold. Identical shape to the expense door above and for the same reason:
+    // the caller names a REFUND, never a path — a caller who could name its own path could read any
+    // object in finance-docs.
+    //
+    // A refund with no stored file is ANSWERED, not 404'd. `state` distinguishes three real things:
+    // 'reference_only' (Stripe's own hosted receipt for the payment is known but has not been
+    // fetched into the bucket), 'missing' (nothing at all), and a doc_kind (a file is held). The
+    // reply also carries `stripe_binding`, which says whether the refund names the exact Stripe
+    // payment of the transaction it reverses.
+    if (action === 'refund_document' || action === 'refund_documents') {
+      if (action === 'refund_documents') {
+        const { data: cov } = await admin.rpc('fn_refund_document_coverage');
+        const { data: rows } = await admin.from('v_refund_documents')
+          .select('id,transaction_id,status,amount_fils,currency,stripe_payment_intent,stripe_refund_id,stripe_binding,document_state,doc_kind,doc_name,doc_note')
+          .order('id');
+        await run('refund_documents', 'ok', (cov || {}) as Record<string, unknown>);
+        return J({ ok: true, seat: 'accountant', coverage: cov, refunds: rows || [],
+          basis: 'public.v_refund_documents, read at call time. document_state is the doc_kind, '
+            + '\'unclassified\', \'reference_only\' or \'missing\' — never inferred from a filename. '
+            + 'stripe_binding is measured against transactions.payment_ref, never asserted.' });
+      }
+      const refundId = Number(body.refund_id);
+      if (!Number.isFinite(refundId) || refundId <= 0) return J({ ok: false, error: 'refund_id is required' }, 400);
+      const { data: doc, error: docErr } = await admin.rpc('fn_refund_document', { p_refund_id: refundId });
+      if (docErr) return J({ ok: false, error: docErr.message }, 500);
+      const r0 = (doc || {}) as Record<string, unknown>;
+      if (r0.ok !== true) { await run('refund_document', 'ok', { refund_id: refundId, state: r0.state }); return J({ ok: false, ...r0 }); }
+      const rTtl = Math.min(Math.max(Number(body.expires_in) || 3600, 60), 7 * 24 * 3600);
+      const { data: rSigned, error: rErr } = await admin.storage
+        .from(String(r0.bucket)).createSignedUrl(String(r0.path), rTtl);
+      if (rErr || !rSigned?.signedUrl) {
+        // A path that will not sign is a path pointing at nothing. Say so rather than hand back a
+        // dead link — a broken document is worse than a declared absence.
+        await run('refund_document', 'error', { refund_id: refundId, path: r0.path },
+          'refund #' + refundId + ' names a document that could not be signed: ' + String(rErr?.message || 'no url returned')
+          + '. The object is missing from finance-docs or the path is wrong.');
+        return J({ ok: false, ...r0, state: 'object_unreachable',
+          reason: 'The record names a document but the object could not be signed: ' + String(rErr?.message || 'no url returned') }, 502);
+      }
+      await run('refund_document', 'ok', { refund_id: refundId, kind: r0.kind });
+      return J({ ok: true, ...r0, url: rSigned.signedUrl, expires_in: rTtl });
+    }
+
     // ── GRANTS ─────────────────────────────────────────────────────────────────────────────────
     // What may this seat do RIGHT NOW, answered by the database at call time — active state, expiry
     // and the amount ceiling are all evaluated inside fn_agent_may_act, so a revoked grant cannot be
