@@ -25,6 +25,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -95,7 +96,7 @@ async function buildRegister(): Promise<{ count: number; url: string | null; byt
   return { count: rows.length, url: signed?.signedUrl || null, bytes };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('compliance_archive', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -189,4 +190,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'unknown_action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

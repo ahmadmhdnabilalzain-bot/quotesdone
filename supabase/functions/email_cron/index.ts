@@ -6,6 +6,7 @@
 //     idle runs are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -35,7 +36,7 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
   await logRun(status, { ...counts, signal }, note);
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('email_cron', async (req) => {
   try {
     const body = await req.json().catch(()=>({}));
     const secret = await sec('cred_fn_email_cron');
@@ -73,4 +74,4 @@ Deno.serve(async (req) => {
     if (flushErr) await logRun('error', { enabled, verified }, 'outbox flush failed: ' + flushErr);
     return J({ ok:true, enabled, verified, flush });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-});
+}));

@@ -68,13 +68,50 @@ const S = (name, expect, critical = false) => ({ name, expect, critical });
 // expression was 0 whatever the database held. An instrument on the wrong subject AND the wrong
 // table name: a scenario that could only ever return 0, which is why it always "passed". It now
 // counts public.org_departments rows for real, and would fail if a department came back.
+// 9 SEPTEMBER 2026, LATER AGAIN — A FIFTH SEAT IS AUTHORISED, AND IT IS THE FIRST ONE THAT DOES NOT
+// REPORT TO THE CEO.
+//
+// The founder: "fine then we build the it engineer to monitor everything. once their is an issue, he
+// will email me directly so i can open a session with you to fix it... he reports to me directly
+// only. however he monitor literally everything in the app and the website"
+//
+// Production now reads: org_agents 5, org_role 5 (accountant, ceo, customer_support, it_engineer,
+// sales_engineer), org_reporting_edge STILL 3 — all three terminating at ceo — and org_departments 0.
+// Measured before this edit, not assumed: the roster assertion failed with exactly those five names
+// and the off-roster count read 1 on the run immediately preceding it, while every_edge_reports_to_
+// the_ceo was UNCHANGED at 0, because the new seat holds no edge.
+//
+// THE ROSTER IS WIDENED BY ONE NAME. IT IS NOT LOOSENED INTO A COUNT, AND THE EDGE TEST IS NOT
+// RELAXED TO LET A SEAT OFF. Every property the 4-seat version held is held here, and a SIXTH seat
+// still fails through all three of the same instruments:
+//   * inserted active                     → the_roster_is_exactly_the_five_authorised_seats
+//                                           (v_names is a sorted string; a sixth name changes it)
+//                                           AND no_seat_exists_outside_the_authorised_roster
+//   * inserted 'retired' and never edged  → no_seat_exists_outside_the_authorised_roster ALONE
+//   * edged to the ceo                    → every_edge_reports_to_the_ceo
+// Measured 9 Sep 2026 inside an aborted transaction against production, with the positive control
+// taken in the same block: a sixth seat 'zz_demo_seat' moved v_names, v_off_roster and (when edged)
+// v_bad_edges away from their passing values, while the control read them unchanged first.
+//
+// WHY THE EDGE TEST STILL PASSES, AND WHY THAT IS NOT AN ACCIDENT. every_edge_reports_to_the_ceo
+// counts edges whose parent is not the ceo or whose child is not on the authorised child list. The
+// IT engineer has NO edge at all, so it contributes nothing to that count — the check would have
+// gone on passing whether or not anybody had thought about it. An exception nobody asserts is
+// indistinguishable from an omission, so the founder-reporting exception is made EXPLICIT and NAMED
+// in its own scenario, the_it_engineer_reports_to_the_founder_and_has_no_edge, which fails if the
+// seat is ever quietly edged under the CEO — and equally if it stops naming the founder, because a
+// seat with no edge and no named escalation reports to nobody at all.
+//
+// The authorised-child list in v_bad_edges is DELIBERATELY not widened to include it_engineer: that
+// list is what may hold an edge, and this seat may not.
 export const G9 = {
-  title: '9. An authenticated four-seat roster, every edge to the CEO, and no departments',
+  title: '9. An authenticated five-seat roster, every edge to the CEO except the founder-reporting seat, and no departments',
   scenarios: [
-    S('the_roster_is_exactly_the_four_authorised_seats', 'accountant,ceo,customer_support,sales_engineer', true),
+    S('the_roster_is_exactly_the_five_authorised_seats', 'accountant,ceo,customer_support,it_engineer,sales_engineer', true),
     S('no_seat_exists_outside_the_authorised_roster', '0', true),
     S('support_reports_directly_to_the_ceo', '1', true),
     S('every_edge_reports_to_the_ceo', '0', true),
+    S('the_it_engineer_reports_to_the_founder_and_has_no_edge', 'true', true),
     S('no_departments_remain', '0', true),
     S('a_report_to_a_retired_role_is_refused', 'false', true),
     S('every_report_is_visible_in_the_ceo_queue', 'true', true),
@@ -89,17 +126,30 @@ declare
   v_off_roster int; v_names text; v_bad_edges int; v_direct int; v_depts int;
   r1 jsonb; r2 jsonb; r3 jsonb; v_open jsonb; v_visible boolean; v_still_open boolean;
   v_phone text; v_from text; v_alerts_before int; v_alerts_after int; v_rid bigint;
+  v_it_edges int; v_it_esc text[]; v_it_founder boolean;
 begin
-  -- THE AUTHENTICATED ROSTER. The active seats must be exactly these four names in this order;
-  -- a fifth seat, a renamed seat or a missing seat all change this string.
+  -- THE AUTHENTICATED ROSTER. The active seats must be exactly these five names in this order;
+  -- a sixth seat, a renamed seat or a missing seat all change this string.
   select string_agg(role_id, ',' order by role_id) into v_names
     from public.org_role where status = 'active';
 
   -- And no seat may exist OUTSIDE the roster under any status -- a role parked as 'retired' or
   -- 'inactive' is still an organisation growing back, just quietly. This is the ONLY assertion
-  -- that sees a fifth seat inserted retired and never edged.
+  -- that sees a sixth seat inserted retired and never edged.
   select count(*) into v_off_roster from public.org_role
-   where role_id not in ('accountant','ceo','customer_support','sales_engineer');
+   where role_id not in ('accountant','ceo','customer_support','it_engineer','sales_engineer');
+
+  -- THE FOUNDER-REPORTING EXCEPTION, ASSERTED RATHER THAN ASSUMED. The founder, 9 Sep 2026: the IT
+  -- engineer "reports to me directly only". org_reporting_edge.parent_role_id is a foreign key to
+  -- org_role and the founder is a human, not a role, so the exception is expressed as NO EDGE AT ALL
+  -- plus escalation_targets naming him. Both halves are required here:
+  --   * an edge appearing later is a silent reorganisation that every_edge_reports_to_the_ceo would
+  --     NOT catch on its own -- it would see a well-formed edge to the ceo and pass.
+  --   * an escalation_targets that stops naming the founder leaves a seat with no edge and no route,
+  --     which is not "reports to the founder", it is "reports to nobody".
+  select count(*) into v_it_edges from public.org_reporting_edge where child_role_id = 'it_engineer';
+  select escalation_targets into v_it_esc from public.org_role where role_id = 'it_engineer';
+  v_it_founder := (v_it_edges = 0) and ('founder' = any(coalesce(v_it_esc, array[]::text[])));
 
   select count(*) into v_direct from public.org_reporting_edge
    where child_role_id = 'customer_support' and parent_role_id = 'ceo';
@@ -152,8 +202,8 @@ begin
     'Visibility only.');
   select count(*) into v_alerts_after from public.founder_alerts;
 
-  raise exception 'CHK<<the_roster_is_exactly_the_four_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
-    v_names, v_off_roster, v_direct, v_bad_edges, v_depts,
+  raise exception 'CHK<<the_roster_is_exactly_the_five_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||the_it_engineer_reports_to_the_founder_and_has_no_edge=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
+    v_names, v_off_roster, v_direct, v_bad_edges, v_it_founder, v_depts,
     r1->>'ok', v_visible, v_still_open, r3->>'ok',
     (coalesce(v_phone,'') <> ''),
     (regexp_replace(coalesce(v_from,''),'[^0-9]','','g') <> regexp_replace(coalesce(v_phone,''),'[^0-9]','','g')),

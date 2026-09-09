@@ -1,5 +1,10 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
+// storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
+// forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -234,7 +239,7 @@ async function recordLicenceGate(supplierId: number, companyName: unknown, reaso
   } catch (_e) { /* the review row must never break the save - the gate itself already held approval */ }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('supplier_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -332,8 +337,10 @@ Deno.serve(async (req) => {
       //     SILENT - the supplier saw success, license_doc_path was never set, and the document
       //     review queue simply never saw a licence.
       else if (lic.original_b64) {
-        const s = sanitizeUpload({ input: String(lic.original_b64), declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD });
-        if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, s.error === 'file_too_large' ? 413 : 415);
+        const sc = await sanitizeAndScan({ input: String(lic.original_b64), declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD,
+                                           scan: { source: 'supplier_api.license', subject: String(sup.id), filename: lic.filename, bucket: 'supplier-docs' } });
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, sc.status);
+        const s = sc.result;
         const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your trade licence. Please try again.' }, 502);
@@ -364,8 +371,10 @@ Deno.serve(async (req) => {
       if (prof.path) { upd.company_profile_doc_path = String(prof.path); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
-        const s = sanitizeUpload({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD });
-        if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'That company profile cannot be accepted. Please upload a PDF or an image (JPEG or PNG).' }, s.error === 'file_too_large' ? 413 : 415);
+        const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD,
+                                           scan: { source: 'supplier_api.company_profile', subject: String(sup.id), filename: prof.filename, bucket: 'supplier-docs' } });
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That company profile cannot be accepted. Please upload a PDF or an image (JPEG or PNG).' }, sc.status);
+        const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your company profile. Please try again.' }, 502);
@@ -378,8 +387,10 @@ Deno.serve(async (req) => {
       for (const c of cats) {
         if (c?.path) { catPaths.push(String(c.path)); }
         else if (c?.original_b64) {
-          const s = sanitizeUpload({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD });
-          if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'One of your catalogue files cannot be accepted. Please upload PDFs or images (JPEG or PNG).' }, s.error === 'file_too_large' ? 413 : 415);
+          const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD,
+                                             scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
+          if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'One of your catalogue files cannot be accepted. Please upload PDFs or images (JPEG or PNG).' }, sc.status);
+          const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
           if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store one of your catalogue files. Please try again.' }, 502);
@@ -776,8 +787,10 @@ Deno.serve(async (req) => {
         original_file_path = String(orig.path);
         original_file_name = safeFilename(orig.filename || 'quotation', 'application/pdf');
       } else if (orig.b64) {
-        const s = sanitizeUpload({ input: String(orig.b64), declaredMime: orig.mime, filename: orig.filename || 'quotation', allow: SAFE_UPLOAD });
-        if (!s.ok) return J({ error: s.error, detail: s.detail, message: 'That quotation file cannot be accepted. Please attach a PDF or a clear photo (JPEG or PNG).' }, s.error === 'file_too_large' ? 413 : 415);
+        const sc = await sanitizeAndScan({ input: String(orig.b64), declaredMime: orig.mime, filename: orig.filename || 'quotation', allow: SAFE_UPLOAD,
+                                           scan: { source: 'supplier_api.quotation', subject: String(sup.id), filename: orig.filename, bucket: 'quote-files' } });
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That quotation file cannot be accepted. Please attach a PDF or a clear photo (JPEG or PNG).' }, sc.status);
+        const s = sc.result;
         original_file_name = safeFilename(orig.filename || 'quotation', s.mime);
         original_file_path = `quotes/${sup.id}/${inquiry_id}/${Date.now()}_${original_file_name}`;
         const up = await admin.storage.from('quote-files').upload(original_file_path, s.bytes, { contentType: s.mime, upsert: true });
@@ -908,4 +921,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String(e) }, 500);
   }
-});
+}));

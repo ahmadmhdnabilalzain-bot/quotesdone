@@ -40,6 +40,8 @@
 // sites use; the archive is costed before it is expanded; and a refused upload fails loudly.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, zipExpansionWithinLimits, SAFE_SHEET, SAFE_DOCUMENT, SAFE_IMAGE, SAFE_CAD } from '../_shared/attachment.ts';
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -133,7 +135,7 @@ function rowsToProducts(rows: Record<string, unknown>[]) {
   return out;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('supplier_catalog_ingest', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -151,8 +153,13 @@ Deno.serve(async (req) => {
     // THE GATE. Shape, size and safety are decided here, before a byte is stored or parsed, by the
     // same module the other thirteen upload sites use. It refuses executables, HTML, SVG and script
     // by CONTENT whatever the file was named, and it strips EXIF/GPS from photographed price lists.
-    const san = sanitizeUpload({ input: dataB64, declaredMime: String(b.content_type || ''), filename: fileName, allow: ACCEPT, maxBytes: MAX_UPLOAD_BYTES });
-    if (!san.ok) return J({ ok: false, error: san.error, detail: san.detail, file_name: fileName }, san.error === 'file_too_large' ? 413 : 415);
+    // MALWARE WATCH, 9 Sep 2026. This is the ONE path that accepts a spreadsheet, which is the file
+    // type a macro actually travels in — looksMacroEnabled() in attachment.ts now refuses a workbook
+    // carrying a VBA project, and the hash lookup here refuses a file VirusTotal already knows.
+    const sc = await sanitizeAndScan({ input: dataB64, declaredMime: String(b.content_type || ''), filename: fileName, allow: ACCEPT, maxBytes: MAX_UPLOAD_BYTES,
+                                       scan: { source: 'supplier_catalog_ingest', subject: String(supId), filename: fileName, bucket: 'supplier-docs' } });
+    if (!sc.ok) return J({ ok: false, ...sc.body, file_name: fileName }, sc.status);
+    const san = sc.result;
     const kind = san.mime;
     const bytes = san.bytes;
 
@@ -273,4 +280,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

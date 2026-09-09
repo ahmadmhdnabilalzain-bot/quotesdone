@@ -4,6 +4,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { sanitizeOrMessage, SAFE_UPLOAD } from '../_shared/attachment.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -12,7 +13,7 @@ async function authed(req: Request, body: any){ if(body?.__secret && (await requ
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const PROMPT = 'Extract ALL readable text and content from this document faithfully, as clean plain text / markdown. Preserve tables (as markdown tables), headings, figures and key numbers. Do not summarise, do not add commentary — output ONLY the extracted content.';
 
-Deno.serve(async (req) => {
+Deno.serve(observe('extract_text', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(()=>({} as any));
@@ -59,4 +60,4 @@ Deno.serve(async (req) => {
       truncated_by: modelTruncated ? 'model_token_ceiling' : (clipped ? 'result_buffer_16000_chars' : null),
       full_length: text.length });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }
-});
+}));

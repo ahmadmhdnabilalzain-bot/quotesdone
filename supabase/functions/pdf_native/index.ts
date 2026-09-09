@@ -16,6 +16,7 @@ import bidiFactory from 'https://esm.sh/bidi-js@1.0.3';
 // here: see _shared/doc_template.ts for what each line comes from and what was measurably wrong in
 // the constant it replaces (9 Sep 2026).
 import { docIdentity, footerLines, FALLBACK, LOCKUP, lockupWidthFor } from '../_shared/doc_template.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -38,7 +39,7 @@ function decodeEnt(s:string){ return String(s||'').replace(/<br\s*\/?>/gi,' ').r
 function stripTags(s:string){ return decodeEnt(String(s||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim(); }
 function parseHtml(frag:string){ const blocks:any[]=[]; const re=/<(h2|h3|p|ul|ol|table)\b[^>]*>([\s\S]*?)<\/\1>/gi; let m:any; while((m=re.exec(frag))){ const tag=m[1].toLowerCase(); const inner=m[2]; if(tag==='h2') blocks.push({t:'h2',text:stripTags(inner)}); else if(tag==='h3') blocks.push({t:'h3',text:stripTags(inner)}); else if(tag==='p'){ const tx=stripTags(inner); if(tx) blocks.push({t:'p',text:tx}); } else if(tag==='ul'||tag==='ol'){ const lis=inner.match(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)||[]; lis.forEach((li:string)=>{ const tx=stripTags(li.replace(/<\/?li[^>]*>/gi,'')); if(tx) blocks.push({t:'li',text:tx}); }); } else if(tag==='table'){ const trs=inner.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)||[]; let head:string[]=[]; const rows:string[][]=[]; trs.forEach((tr:string,ri:number)=>{ const cells=(tr.match(/<(th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi)||[]).map((c:string)=>stripTags(c.replace(/<\/?(th|td)[^>]*>/gi,''))); if(ri===0 && /<th\b/i.test(tr)) head=cells; else rows.push(cells); }); if(!head.length&&rows.length) head=rows.shift() as string[]; if(head.length||rows.length) blocks.push({t:'table',head,rows,widths:head.map(()=>1/Math.max(1,head.length))}); } } return blocks; }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('pdf_native', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     let body = await req.json().catch(()=>({} as any));
@@ -289,4 +290,4 @@ Deno.serve(async (req) => {
       glyph_check: glyphCheck ? 'fontkit' : 'unavailable',
       lockup_trimmed: lockupTrimmed, letterhead_source: CO.source });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }
-});
+}));

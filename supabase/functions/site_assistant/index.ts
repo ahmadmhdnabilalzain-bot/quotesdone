@@ -13,6 +13,7 @@
 //     halt and cache. The local per-IP and global-day ceilings below are KEPT deliberately - they
 //     refuse a caller before we even open a socket, which is cheaper still.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -106,7 +107,7 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
   } catch (_e) { return null; }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('site_assistant', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const b = await req.json().catch(()=>({} as any));
@@ -302,4 +303,4 @@ Deno.serve(async (req) => {
     // wonder whether it can see them - which is the thing that made it feel like a stranger.
     return J({ reply, scope: live ? audience : 'public' });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

@@ -4,6 +4,10 @@
 // Routed through ai_gateway (v3 multimodal passthrough carries the input_audio block verbatim).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeOrMessage, SAFE_AUDIO } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A signed-in customer's voice note is still a
+// customer file entering the estate, and it is billed to a model, so it gets the same verdict.
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -11,7 +15,7 @@ async function sec(k: string): Promise<string | null> { const { data } = await a
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const PROMPT = 'Transcribe the spoken words in this audio EXACTLY as spoken, word for word. The speaker may talk in Arabic, English, or a mix of both (United Arab Emirates). Output ONLY the transcribed words and nothing else. Do NOT translate, summarise, correct, complete, punctuate creatively, or invent anything. Keep numbers, measurements and units as spoken. If the audio contains no clear human speech - for example silence, background noise, music, or a tone - output an empty string only, and never guess or fabricate any sentence.';
 
-Deno.serve(async (req) => {
+Deno.serve(observe('transcribe', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -25,9 +29,10 @@ Deno.serve(async (req) => {
     // own claim — and the bytes were never looked at, so anything at all could be sent as
     // "audio/wav" and billed for. sniff() now knows the audio magics, so the real container
     // decides and a PDF or an executable dressed as a voice note is refused.
-    const __san = sanitizeOrMessage({ input: b64, declaredMime: mime, filename: 'voice-note',
-                                      allow: SAFE_AUDIO, maxBytes: 17 * 1024 * 1024,
-                                      stripMetadata: false });
+    const __san = await sanitizeAndScan({ input: b64, declaredMime: mime, filename: 'voice-note',
+                                          allow: SAFE_AUDIO, maxBytes: 17 * 1024 * 1024,
+                                          stripMetadata: false,
+                                          scan: { source: 'transcribe.voice_note', subject: user.id, filename: 'voice-note' } });
     if (!__san.ok) return J(__san.body, __san.status);
     const format = __san.result.mime === 'audio/mpeg' ? 'mp3' : 'wav';   // sniffed, not claimed
     if (!b64 || b64.length < 100) return J({ error: 'empty_audio' }, 400);
@@ -51,4 +56,4 @@ Deno.serve(async (req) => {
     if (text === null) return J({ error: 'transcription_failed', detail: lastErr }, 502);
     return J({ ok: true, text });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

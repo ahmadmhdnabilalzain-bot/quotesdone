@@ -20,6 +20,10 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. WhatsApp media arrives from any number that
+// can reach the API line, which makes it the least-authenticated file entry in the estate.
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -258,8 +262,12 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
 
   // The mime came from a header a sender controls. Sniff the bytes, refuse anything that is not a
   // PDF or a real image, and strip EXIF/GPS off a photographed document before it is stored.
-  const san = sanitizeUpload({ input: got.bytes, declaredMime: mime, filename: fname, allow: SAFE_UPLOAD });
-  if (!san.ok) return { ok: false, applied: [], note: 'that file type is not accepted — please send a PDF or a photo of the licence' };
+  const sc = await sanitizeAndScan({ input: got.bytes, declaredMime: mime, filename: fname, allow: SAFE_UPLOAD,
+                                     scan: { source: 'wa_inbound.supplier_doc', subject: fromPhone, filename: fname, bucket: 'supplier-docs' } });
+  if (!sc.ok) return { ok: false, applied: [], note: sc.body.error === 'malware_detected'
+    ? 'that file was refused by our malware scanner — please check it and send a clean copy'
+    : 'that file type is not accepted — please send a PDF or a photo of the licence' };
+  const san = sc.result;
 
   const path = 'inbound/' + leadId + '/' + Date.now() + '_' + fname;
   const up = await admin.storage.from('supplier-docs').upload(path, san.bytes, { contentType: san.mime, upsert: true });
@@ -388,7 +396,7 @@ async function sendWa(to: string, body: string, mediaUrl?: string | null): Promi
   } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 300) }; }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('wa_inbound', async (req) => {
   const logRun = mkLog(Date.now());
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
@@ -1006,4 +1014,4 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     await logRun('error', {}, 'exception (message dropped, Twilio still got 200): ' + String((e as Error)?.message || e));
     return TW(200);
   }
-});
+}));

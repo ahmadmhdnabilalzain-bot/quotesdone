@@ -15,6 +15,7 @@
 // A missing event is now a thing you can ASK about, in the same place you can fix it.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { HANDLED_STRIPE_EVENTS } from '../_shared/stripe_events.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, content-type, apikey', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
 const J=(o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{'Content-Type':'application/json',...CORS}});
@@ -45,7 +46,7 @@ function drift(ep:any){
   return { missing: wildcard ? [] : REQUIRED_EVENTS.filter(e=>!have.has(e)), wildcard };
 }
 
-Deno.serve(async (req)=>{
+Deno.serve(observe('stripe_setup', async (req) => {
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
   try{
     const b=await req.json().catch(()=>({} as any));
@@ -122,4 +123,4 @@ Deno.serve(async (req)=>{
     try{ const ar=await fetch('https://api.stripe.com/v1/account',{headers:{'Authorization':'Bearer '+cur}}); const aj=await ar.json(); charges=aj?.charges_enabled??null; payouts=aj?.payouts_enabled??null; country=aj?.country||null; cur3=aj?.default_currency||null; }catch(_e){}
     return J({ ok:true, saved, warnings:warn, key_mode:mode, charges_enabled:charges, payouts_enabled:payouts, country, default_currency:cur3 });
   }catch(e){ return J({ ok:false, error:String((e as Error)?.message||e) },500); }
-});
+}));

@@ -20,6 +20,7 @@
 // requests: [] and no invented chain. A customer with no orders gets orders: []. Nothing here
 // implies a workflow that does not exist.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
@@ -45,7 +46,7 @@ async function orgIds(customerId: string): Promise<string[]> {
   return [...new Set([...(owned || []).map((o: any) => o.id), ...(member || []).map((m: any) => m.organization_id)])];
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('procurement_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -100,4 +101,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

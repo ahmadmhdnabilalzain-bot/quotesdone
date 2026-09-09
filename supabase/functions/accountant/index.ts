@@ -48,9 +48,13 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { parseReceipt } from '../_shared/receipt_parse.ts';
 import { pdfText } from '../_shared/pdf_text.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. The historical sweep pulls attachments out of
+// a mailbox anybody can send to, so the same verdict applies here as on the live inbound path.
+import { sanitizeAndScan } from '../_shared/malware.ts';
 import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -169,7 +173,7 @@ async function book(table: string, dateCol: string | null): Promise<Record<strin
   return { table, basis: 'measured', rows, window: { column: dateCol, from: pick(lo), to: pick(hi) } };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('accountant', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -614,8 +618,10 @@ Deno.serve(async (req) => {
           if (!url) { fileNotes.push(fn + ': no download url'); continue; }
           const got = await safeFetch(url, { timeoutMs: 15_000, maxBytes: 25 * 1024 * 1024 });
           if (!got.ok) { fileNotes.push(fn + ': ' + got.error + ' ' + String(got.detail || '')); continue; }
-          const san = sanitizeUpload({ input: got.bytes, declaredMime: mm, filename: fn, allow: SAFE_UPLOAD });
-          if (!san.ok) { fileNotes.push(fn + ': refused by sanitizeUpload (' + san.error + ')'); continue; }
+          const sc = await sanitizeAndScan({ input: got.bytes, declaredMime: mm, filename: fn, allow: SAFE_UPLOAD,
+                                             scan: { source: 'accountant.receipt_sweep', subject: String(from || ''), filename: fn, bucket: 'receipt-files' } });
+          if (!sc.ok) { fileNotes.push(fn + ': refused (' + sc.body.error + ': ' + sc.body.detail + ')'); continue; }
+          const san = sc.result;
           fileNotes.push(fn + ': ' + san.bytes.length + ' bytes');
           att = { bytes: san.bytes, name: fn || ('receipt.' + san.ext), mime: san.mime, ext: san.ext };
           if (san.mime === 'application/pdf') break;   // the PDF is the receipt; an image is a fallback
@@ -971,4 +977,4 @@ Deno.serve(async (req) => {
     await run('error', 'error', {}, String((e as Error).message || e));
     return J({ error: String((e as Error).message || e) }, 500);
   }
-});
+}));

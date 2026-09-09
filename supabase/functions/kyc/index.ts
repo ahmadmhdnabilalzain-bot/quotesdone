@@ -1,5 +1,6 @@
 // kyc — passwordless account completion: mobile (SMS) + email verification, optional DOB profile, terms->signed PDF.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -56,7 +57,7 @@ function mkLog(t0: number) {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('kyc', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
@@ -234,4 +235,4 @@ Deno.serve(async (req) => {
     await logRun('error', { action }, 'unknown_action');
     return J({ error: 'unknown_action' }, 400);
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-});
+}));

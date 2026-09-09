@@ -1,5 +1,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, SAFE_IMAGE } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. These images are forwarded to a model and
+// can reach a person; a refused one is counted in attachmentsRefused exactly as a bad shape is.
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-webhook-secret' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -34,7 +38,7 @@ function inferSector(text: string): string | null {
 function domainOf(email: string): string { const m = String(email || '').toLowerCase().match(/@([^>\s]+)/); return m ? m[1].trim() : ''; }
 const empty = (v: unknown) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
 
-Deno.serve(async (req) => {
+Deno.serve(observe('inbound_email', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return J({ error: 'POST only' }, 405);
   try {
@@ -64,9 +68,11 @@ Deno.serve(async (req) => {
     let attachmentsRefused = 0;
     for (const a of atts as { mime?: string; content_type?: string; data?: string }[]) {
       if (!a?.data) continue;
-      const san = sanitizeUpload({ input: a.data, declaredMime: a.mime || a.content_type || null,
-                                   allow: SAFE_IMAGE, maxBytes: 10 * 1024 * 1024 });
-      if (!san.ok) { attachmentsRefused++; continue; }
+      const sc = await sanitizeAndScan({ input: a.data, declaredMime: a.mime || a.content_type || null,
+                                         allow: SAFE_IMAGE, maxBytes: 10 * 1024 * 1024,
+                                         scan: { source: 'inbound_email.image', subject: String(body.from || ''), filename: null } });
+      if (!sc.ok) { attachmentsRefused++; continue; }
+      const san = sc.result;
       let bin = '';
       for (let i = 0; i < san.bytes.length; i += 0x8000) {
         bin += String.fromCharCode(...san.bytes.subarray(i, i + 0x8000));
@@ -164,4 +170,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

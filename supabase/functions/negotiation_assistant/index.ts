@@ -16,6 +16,7 @@
 // The response always carries `empty_reason` when a figure is withheld, and the surface must render
 // that sentence rather than a zero.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -35,7 +36,7 @@ async function customer(req: Request): Promise<{ id: string; email: string } | n
   return { id: c.id as string, email: c.email as string };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('negotiation_assistant', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -97,4 +98,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

@@ -56,6 +56,16 @@ jobs:
           deno-version: v2.x
       - name: Run checks
         run: npm test
+      # 9 SEP 2026 — REGISTERED, at last. scripts/checks/ssrf_guard_refuses_private_addresses.mjs
+      # (until today reg_fetch_refuses_private_addresses.mjs) appeared in NO workflow. reg_fetch was
+      # deleted on 8 Sep and took the guard with it, so from that day the check crashed ENOENT and
+      # exited 1 before its first assertion — and nothing noticed, because a check no job runs cannot
+      # go red. It belongs HERE and not in project-parity.yml: it reads a committed source file, and
+      # this job carries no Supabase token precisely because nothing in it needs one. It is a
+      # separate step rather than a *.test.mjs so that a failure names the SSRF guard by itself
+      # instead of arriving inside a suite of ninety other files.
+      - name: The SSRF guard fires on a private address, a file:// URL and a metadata endpoint
+        run: node scripts/checks/ssrf_guard_refuses_private_addresses.mjs
 
   # 8 Aug 2026. Squawk lints migration SQL for operations that take locks on a table with live
   # traffic — an index built without CONCURRENTLY, a NOT NULL column that rewrites the table, a
@@ -138,8 +148,17 @@ jobs:
       # compile error is a silent 500 rather than a visible failure. The money paths, the founder's
       # only command channel, and the two portal backends whose absence 404'd every button on /me and
       # /portal for ninety minutes on 8 September.
+      # 9 SEP 2026 — resend_inbound and supplier_catalog_ingest ADDED, on the list's own rule.
+      # Both take UNTRUSTED BYTES from outside the estate, and both now depend on shared modules
+      # (_shared/safe_url.ts, _shared/attachment.ts) that until today were only advisory-checked. A
+      # compile error in either is exactly the silent-500 shape this step exists for: resend_inbound
+      # answers a Resend webhook, so a broken deploy drops inbound supplier documents and forwarded
+      # receipts with no operator anywhere in the loop, and supplier_catalog_ingest is the first
+      # caller of the SSRF guard and the sheet sanitiser the Sales Engineer's document pipeline will
+      # sit on. Both were measured `deno check`-clean at the moment they were added, so this does not
+      # land the step red — the failure mode the original comment warns about.
       - name: Check the gated functions
-        run: deno check --no-lock --node-modules-dir=auto supabase/functions/ceo_agent/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts supabase/functions/customer_api/index.ts supabase/functions/supplier_api/index.ts
+        run: deno check --no-lock --node-modules-dir=auto supabase/functions/ceo_agent/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts supabase/functions/customer_api/index.ts supabase/functions/supplier_api/index.ts supabase/functions/resend_inbound/index.ts supabase/functions/supplier_catalog_ingest/index.ts
       - name: Check every other edge function (advisory)
         continue-on-error: true
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts

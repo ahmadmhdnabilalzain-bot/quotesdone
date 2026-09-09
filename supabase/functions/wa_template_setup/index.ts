@@ -11,6 +11,7 @@
 // Keep that shape if you edit the copy.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string | undefined) || undefined; }
@@ -53,7 +54,7 @@ const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sa
   },
 };
 
-Deno.serve(async (req) => {
+Deno.serve(observe('wa_template_setup', async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -171,4 +172,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'unknown action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

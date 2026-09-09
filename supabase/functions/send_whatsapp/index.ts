@@ -21,6 +21,7 @@
 //     made for a template Meta has not approved, so a pending template never pages anyone.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -119,7 +120,7 @@ async function templateStatus(auth:string, sid:string, key:string, lang:string):
     approved_at: st === 'approved' ? (row?.approved_at || now) : null }, { onConflict: 'sid' });
   return { status: st, reason: j?.whatsapp?.rejection_reason || null };
 }
-Deno.serve(async (req) => {
+Deno.serve(observe('send_whatsapp', async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -295,4 +296,4 @@ Deno.serve(async (req) => {
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
     return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, held_founder: heldFounder, held_stale: heldStale, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-});
+}));

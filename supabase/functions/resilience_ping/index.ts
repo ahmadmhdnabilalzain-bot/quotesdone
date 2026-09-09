@@ -6,6 +6,7 @@
 // Public + secretless by design (returns only liveness; pages only when genuinely down, deduped 30min)
 // so any external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -202,7 +203,128 @@ async function openrouterMeterTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e), reading }; }
 }
 
-Deno.serve(async (req) => {
+// THE IT ENGINEER'S ALERT HANGS HERE FOR THE SIXTH TIME, AND FOR THE SAME REASON.
+// The founder, 9 Sep 2026: "once their is an issue, he will email me directly so i can open a
+// session with you to fix it ... he reports to me directly only". The delivery is deterministic and
+// lives entirely in Postgres (fn_it_engineer_alert_tick, scripts/sql/
+// the_it_engineer_hands_the_founder_a_session_he_can_start_from.sql); this call is only the clock.
+//
+// IT IS SAFE TO CALL EVERY 15 MINUTES, and that is the point rather than a tolerance: dedupe is on
+// the ISSUE, not on the tick, so a problem open for a week produces ONE email, and a second only
+// when a fact he was already told has changed (severity rose, affected at least doubled, it closed,
+// it came back). A tick with nothing to say returns sent:0 and writes nothing.
+//
+// IT IS THE ONE TICK HERE THAT MUST NOT BE FULLY SWALLOWED. The other five are informational -- a
+// digest or a report that fails is a missing document. This one is the monitor, and a monitor that
+// fails open is worse than no monitor, because zero findings then reads as a quiet night. So the
+// routine itself never raises (it records partial failure into founder_alerts and returns it), and
+// its result is carried in this function's response either way, so the failure is visible in the
+// watchdog's own output instead of vanishing into a catch. The watchdog still cannot be taken down
+// by it: an unreachable RPC returns ok:false here rather than throwing.
+async function itEngineerAlertTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_it_engineer_alert_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE IT ENGINEER'S DETECTION TICK — "is anything wrong, in the app or on the website".
+//
+// Founder, 9 Sep 2026: the IT engineer must "monitor literally everything in the app and the
+// website". Everything he can be asked about the DATABASE side — edge functions failing or failing
+// more than usual, a subject that has gone silent past its own cadence, the scheduler skipping
+// beats, error_events, a queue nobody is draining, latency departing a subject's own baseline —
+// is decided deterministically inside fn_it_detect. No model call is anywhere on this path.
+//
+// This function exists only because Postgres cannot make an HTTP request and the website can only
+// be judged by making one. So the split is the same one the OpenRouter meter already uses in this
+// file: the tick MEASURES and Postgres DECIDES. Nothing here has an opinion about severity.
+//
+// THREE READINGS, and each one says honestly when it could not be taken:
+//   home        GET public_site_url, status + milliseconds. The site's latency baseline is built
+//               from these very samples in it_watch_tick, so it needs ~5 hours of ticks before it
+//               can call anything slow, and reports insufficient_history until then.
+//   deployment  the latest PRODUCTION deployment's state. NOTE app_secrets.vercel_project holds
+//               'qd-site', a NAME, and /v6/deployments 404s on it — measured 9 Sep 2026. The id
+//               lives in vercel_project_id; the name is kept as a fallback rather than deleted.
+//   runtime     NOT AVAILABLE to the stored token. /v1/projects/<id>/runtime-logs,
+//               /v1/deployments/<uid>/runtime-logs and /v1/observability/runtime-logs all 404, and
+//               the deployment `events` endpoints return build output only. So this reading is
+//               passed as {basis:'unavailable'} and fn_it_detect reports that it did not look —
+//               it is never allowed to read as "no runtime errors". Give the token runtime-log
+//               scope, or attach a log drain, and swap the basis for a count; nothing else changes.
+//
+// Swallowed like every other tick in this file: monitoring must never take the watchdog down.
+async function itDetectTick(): Promise<unknown> {
+  const web: Record<string, unknown> = {
+    probed_at: new Date().toISOString(),
+    runtime_errors: {
+      basis: 'unavailable',
+      reason: 'no runtime-log endpoint is reachable with app_secrets.vercel_token (runtime-logs and observability both 404); the website\'s runtime errors were NOT checked',
+    },
+  };
+  try {
+    const site = await sec('public_site_url');
+    if (site) {
+      const t0 = Date.now();
+      try {
+        const r = await fetch(site, { redirect: 'follow', signal: AbortSignal.timeout(20000) });
+        web.home = { url: site, status: r.status, ms: Date.now() - t0 };
+      } catch (e) {
+        // A fetch that threw is the site being DOWN, and is reported with no status at all rather
+        // than a made-up one, because fn_it_detect treats a missing status as unreachable.
+        web.home = { url: site, error: String((e as Error)?.message || e).slice(0, 300), ms: Date.now() - t0 };
+      }
+    } else {
+      web.home = { error: 'app_secrets.public_site_url is missing or empty, so the site was not probed' };
+    }
+
+    const [token, team, prj, prjName] = await Promise.all([
+      sec('vercel_token'), sec('vercel_team_id'), sec('vercel_project_id'), sec('vercel_project'),
+    ]);
+    const project = prj || prjName;
+    if (token && project) {
+      const q = `projectId=${encodeURIComponent(project)}&target=production&limit=1`
+              + (team ? `&teamId=${encodeURIComponent(team)}` : '');
+      try {
+        const r = await fetch(`https://api.vercel.com/v6/deployments?${q}`, {
+          headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(20000),
+        });
+        const j = await r.json().catch(() => null);
+        // deno-lint-ignore no-explicit-any
+        const d = (j as any)?.deployments?.[0];
+        if (r.ok && d) {
+          web.deployment = { uid: d.uid, state: d.state ?? d.readyState, readyState: d.readyState,
+                             created: d.created, url: d.url, target: d.target ?? 'production' };
+        } else {
+          // An unreadable deployments API is reported as a reading we could not take, NOT as READY.
+          web.deployment = { basis: 'unavailable', status: r.status,
+                             reason: 'Vercel deployments API returned ' + r.status + ': ' + JSON.stringify(j ?? {}).slice(0, 200) };
+        }
+      } catch (e) {
+        web.deployment = { basis: 'unavailable', reason: 'Vercel deployments API unreachable: ' + String((e as Error)?.message || e).slice(0, 200) };
+      }
+    } else {
+      web.deployment = { basis: 'unavailable', reason: 'app_secrets.vercel_token or vercel_project_id is missing, so the deployment was not checked' };
+    }
+  } catch (e) {
+    web.probe_error = String((e as Error)?.message || e).slice(0, 300);
+  }
+
+  try {
+    const { data, error } = await admin.rpc('fn_it_detect', { p_web: web, p_persist: true });
+    if (error) return { ok: false, error: error.message, web };
+    // deno-lint-ignore no-explicit-any
+    const v = data as any;
+    // The findings themselves are NOT returned into this response body: this endpoint is public
+    // and secretless, and the findings name failing internals. The verdict is the summary; the
+    // detail is in public.it_watch_finding for whoever owns delivery.
+    return { worst: v?.worst, finding_count: v?.finding_count, persisted: v?.persisted };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+Deno.serve(observe('resilience_ping', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
     // 0. The CEO's end-of-day digest, before any early return below.
@@ -212,12 +334,16 @@ Deno.serve(async (req) => {
     const weekly = await accountantWeeklyTick();
     const openrouter = await openrouterMeterTick();
     const whatsapp = await whatsappTick();
+    // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
+    // first would deliver the previous tick's picture of the estate.
+    const itdetect = await itDetectTick();
+    const it = await itEngineerAlertTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -241,6 +367,6 @@ Deno.serve(async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
-});
+}));

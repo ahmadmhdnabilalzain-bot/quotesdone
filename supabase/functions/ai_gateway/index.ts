@@ -35,6 +35,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -187,7 +188,7 @@ function inferCaps(msgs: Msg[], tools?: any[]): { caps: string[]; hasBinary: boo
   return { caps: Array.from(caps), hasBinary };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('ai_gateway', async (req) => {
   const t0 = Date.now();
   try {
     const body = (await req.json().catch(() => ({}))) as Body;
@@ -765,4 +766,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

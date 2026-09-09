@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T06:02:22.171Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T07:31:53.126Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -176,7 +176,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (452) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (462) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -2497,6 +2497,27 @@ CREATE TABLE IF NOT EXISTS public.field_definition_trade (
   trade_key text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.file_scan (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  sha256 text NOT NULL,
+  verdict text NOT NULL,
+  source text NOT NULL,
+  subject text,
+  filename text,
+  mime text,
+  size_bytes bigint,
+  bucket text,
+  path text,
+  engines_malicious integer DEFAULT 0 NOT NULL,
+  engines_suspicious integer DEFAULT 0 NOT NULL,
+  engines_total integer DEFAULT 0 NOT NULL,
+  vt_status integer,
+  blocked boolean DEFAULT false NOT NULL,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  rechecked_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.finance_kpi_snapshots (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   snapshot_date date DEFAULT CURRENT_DATE NOT NULL,
@@ -3177,6 +3198,106 @@ CREATE TABLE IF NOT EXISTS public.invite_schedule (
   status text DEFAULT 'pending'::text NOT NULL,
   note text,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.it_engineer_finding (
+  issue_key text NOT NULL,
+  title text NOT NULL,
+  where_it_is text NOT NULL,
+  blast text NOT NULL,
+  affected integer DEFAULT 0 NOT NULL,
+  evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+  ruled_out text[] DEFAULT '{}'::text[] NOT NULL,
+  undetermined text[] DEFAULT '{}'::text[] NOT NULL,
+  raised_by text DEFAULT 'it_engineer'::text NOT NULL,
+  started_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  seen_count integer DEFAULT 1 NOT NULL,
+  closed_at timestamp with time zone,
+  close_note text,
+  alerted_at timestamp with time zone,
+  alerted_severity text,
+  alerted_affected integer,
+  alert_count integer DEFAULT 0 NOT NULL,
+  close_notified_at timestamp with time zone,
+  notification_id bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.it_engineer_knowledge (
+  record_id text NOT NULL,
+  record_type text NOT NULL,
+  domain text,
+  title text NOT NULL,
+  content text NOT NULL,
+  structured_data jsonb DEFAULT '{}'::jsonb NOT NULL,
+  source_ids text[] DEFAULT '{}'::text[] NOT NULL,
+  epistemic_status text NOT NULL,
+  jurisdiction text,
+  pack_id text NOT NULL,
+  pack_version text NOT NULL,
+  body_sha256 text NOT NULL,
+  runtime_index_eligible boolean DEFAULT true NOT NULL,
+  authority_effect text DEFAULT 'none'::text NOT NULL,
+  tags text[] DEFAULT '{}'::text[] NOT NULL,
+  updated_at timestamp with time zone,
+  ingested_at timestamp with time zone DEFAULT now() NOT NULL,
+  embedding_gte vector(384),
+  search tsvector
+);
+
+CREATE TABLE IF NOT EXISTS public.it_engineer_scanner (
+  scanner text NOT NULL,
+  last_beat_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_ok_at timestamp with time zone,
+  last_error text,
+  max_gap_minutes integer DEFAULT 60 NOT NULL,
+  registered_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_watch_finding (
+  detector_key text NOT NULL,
+  detector text NOT NULL,
+  subject text NOT NULL,
+  state text NOT NULL,
+  severity text NOT NULL,
+  title text NOT NULL,
+  evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  seen_count integer DEFAULT 1 NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  resolved_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.it_watch_queue (
+  queue_key text NOT NULL,
+  table_name text NOT NULL,
+  pending_predicate text NOT NULL,
+  ts_column text DEFAULT 'created_at'::text NOT NULL,
+  stall_minutes integer NOT NULL,
+  surface text DEFAULT 'internal'::text NOT NULL,
+  enabled boolean DEFAULT true NOT NULL,
+  note text
+);
+
+CREATE TABLE IF NOT EXISTS public.it_watch_subject (
+  subject text NOT NULL,
+  kind text DEFAULT 'edge_function'::text NOT NULL,
+  public_surface boolean DEFAULT false NOT NULL,
+  source text DEFAULT 'supabase/config.toml verify_jwt'::text NOT NULL,
+  note text,
+  verify_jwt boolean,
+  secret_gated boolean
+);
+
+CREATE TABLE IF NOT EXISTS public.it_watch_tick (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  ran_at timestamp with time zone DEFAULT now() NOT NULL,
+  findings integer DEFAULT 0 NOT NULL,
+  worst text,
+  site_ms integer,
+  site_status integer,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.kb_category_aliases (
@@ -5390,6 +5511,18 @@ CREATE TABLE IF NOT EXISTS public.screening_run (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.security_advisor_baseline (
+  cache_key text NOT NULL,
+  name text NOT NULL,
+  level text NOT NULL,
+  title text,
+  metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+  first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  in_baseline boolean DEFAULT true NOT NULL,
+  cleared_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.security_audit_log (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   at timestamp with time zone DEFAULT now() NOT NULL,
@@ -5408,7 +5541,17 @@ CREATE TABLE IF NOT EXISTS public.security_events (
   source text,
   subject text,
   detail jsonb,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  fingerprint text
+);
+
+CREATE TABLE IF NOT EXISTS public.security_gap (
+  name text NOT NULL,
+  description text NOT NULL,
+  what_would_close_it text NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  measured_at timestamp with time zone DEFAULT now() NOT NULL,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.security_kpi_snapshots (
@@ -6454,6 +6597,7 @@ ALTER TABLE public.feedback ADD CONSTRAINT feedback_pkey PRIMARY KEY (id);
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_pkey PRIMARY KEY (field_id);
 ALTER TABLE public.field_definition_reference ADD CONSTRAINT field_definition_reference_pkey PRIMARY KEY (field_id, referencing_trade_key);
 ALTER TABLE public.field_definition_trade ADD CONSTRAINT field_definition_trade_pkey PRIMARY KEY (field_id, trade_key);
+ALTER TABLE public.file_scan ADD CONSTRAINT file_scan_pkey PRIMARY KEY (id);
 ALTER TABLE public.finance_kpi_snapshots ADD CONSTRAINT finance_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.finance_reports ADD CONSTRAINT finance_reports_pkey PRIMARY KEY (id);
 ALTER TABLE public.finance_snapshots ADD CONSTRAINT finance_snapshots_pkey PRIMARY KEY (id);
@@ -6506,6 +6650,13 @@ ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_pkey P
 ALTER TABLE public.internal_credential_audit ADD CONSTRAINT internal_credential_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_pkey PRIMARY KEY (id);
 ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY KEY (day);
+ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey PRIMARY KEY (issue_key);
+ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_pkey PRIMARY KEY (record_id);
+ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_pkey PRIMARY KEY (scanner);
+ALTER TABLE public.it_watch_finding ADD CONSTRAINT it_watch_finding_pkey PRIMARY KEY (detector_key);
+ALTER TABLE public.it_watch_queue ADD CONSTRAINT it_watch_queue_pkey PRIMARY KEY (queue_key);
+ALTER TABLE public.it_watch_subject ADD CONSTRAINT it_watch_subject_pkey PRIMARY KEY (subject);
+ALTER TABLE public.it_watch_tick ADD CONSTRAINT it_watch_tick_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_category_aliases ADD CONSTRAINT kb_category_aliases_pkey PRIMARY KEY (category, maps_to);
 ALTER TABLE public.kb_category_stats ADD CONSTRAINT kb_category_stats_pkey PRIMARY KEY (category, source_kind);
 ALTER TABLE public.kb_chunks ADD CONSTRAINT kb_chunks_pkey PRIMARY KEY (id);
@@ -6664,8 +6815,10 @@ ALTER TABLE public.scope_disposition_kind ADD CONSTRAINT scope_disposition_kind_
 ALTER TABLE public.scrape_runs ADD CONSTRAINT scrape_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_pkey PRIMARY KEY (id);
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_pkey PRIMARY KEY (id);
+ALTER TABLE public.security_advisor_baseline ADD CONSTRAINT security_advisor_baseline_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.security_audit_log ADD CONSTRAINT security_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_events ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
+ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_pkey PRIMARY KEY (name);
 ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
@@ -6900,10 +7053,11 @@ ALTER TABLE public.field_definition ADD CONSTRAINT fd_subset_carries_no_trade CH
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_trade_specific_has_trade CHECK (((scope <> 'trade_specific'::text) OR (trade_key IS NOT NULL)));
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'question_for_founder'::text])));
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check CHECK ((scope = ANY (ARRAY['shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
+ALTER TABLE public.file_scan ADD CONSTRAINT file_scan_verdict_check CHECK ((verdict = ANY (ARRAY['clean'::text, 'malicious'::text, 'suspicious'::text, 'unknown'::text, 'unavailable'::text])));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_elsewhere_ck CHECK (((moves_to IS NULL) OR (moves_to <> owner)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHECK (((moves_to IS NULL) = (moves_to_note IS NULL)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
-ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'website'::text])));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'website'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
@@ -6936,6 +7090,11 @@ ALTER TABLE public.inquiry_trade_candidate_evidence ADD CONSTRAINT inquiry_trade
 ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_group_rfq_mode_check CHECK ((rfq_mode = ANY (ARRAY['coordinated'::text, 'linked'::text])));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_context_check CHECK ((length(btrim(context)) > 2));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_scope_check CHECK ((array_length(scope, 1) >= 1));
+ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_affected_ck CHECK ((affected >= 0));
+ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_blast_ck CHECK ((blast = ANY (ARRAY['customer_facing'::text, 'security'::text, 'agent_facing'::text, 'internal'::text, 'monitor'::text])));
+ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
+ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_engineering'::text, 'diagnostic_lens'::text, 'estate_architecture_measured'::text, 'failure_signature'::text, 'security_posture_no_version_claim'::text, 'resolve_from_live_system'::text, 'company_governance_ruling'::text, 'company_record_generated'::text])));
+ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck CHECK (((max_gap_minutes >= 5) AND (max_gap_minutes <= 1440)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
@@ -7046,6 +7205,7 @@ ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck C
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unparseable'::text])));
+ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
@@ -7362,6 +7522,7 @@ CREATE UNIQUE INDEX agent_knowledge_cat_topic_uidx ON public.agent_knowledge USI
 CREATE INDEX agent_knowledge_review_due_idx ON public.agent_knowledge USING btree (review_due) WHERE (validation_status <> 'quarantined'::text);
 CREATE INDEX agent_knowledge_search_idx ON public.agent_knowledge USING gin (search);
 CREATE INDEX agent_remediation_open ON public.agent_remediation USING btree (agent_key) WHERE (status <> 'passed'::text);
+CREATE INDEX agent_runs_agent_started_idx ON public.agent_runs USING btree (agent, started_at DESC);
 CREATE INDEX agent_tool_call_agent_idx ON public.agent_tool_call USING btree (agent_key, created_at DESC);
 CREATE INDEX agent_tool_call_corr_idx ON public.agent_tool_call USING btree (correlation_id);
 CREATE INDEX agent_tool_call_tool_idx ON public.agent_tool_call USING btree (tool_id, created_at DESC);
@@ -7425,6 +7586,9 @@ CREATE INDEX exec_reports_officer ON public.exec_reports USING btree (officer, c
 CREATE UNIQUE INDEX expense_entries_openrouter_day_uidx ON public.expense_entries USING btree (charged_on) WHERE (source = 'accountant:openrouter_daily'::text);
 CREATE INDEX expenses_next_due_idx ON public.expenses USING btree (next_due) WHERE active;
 CREATE UNIQUE INDEX field_definition_identity_uidx ON public.field_definition USING btree (scope, COALESCE(trade_key, ''::text), label_en);
+CREATE INDEX file_scan_created_at_idx ON public.file_scan USING btree (created_at DESC);
+CREATE INDEX file_scan_sha256_idx ON public.file_scan USING btree (sha256);
+CREATE INDEX file_scan_verdict_idx ON public.file_scan USING btree (verdict, created_at DESC);
 CREATE UNIQUE INDEX finance_kpi_snap_day ON public.finance_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX founder_alerts_dedupe_idx ON public.founder_alerts USING btree (dedupe_key, created_at DESC) WHERE (dedupe_key IS NOT NULL);
 CREATE INDEX founder_directive_received_idx ON public.founder_directive USING btree (received_at DESC);
@@ -7435,6 +7599,7 @@ CREATE INDEX handoff_contract_owner_idx ON public.handoff_contract USING btree (
 CREATE INDEX handoff_contract_to_idx ON public.handoff_contract USING btree (to_dept, status, deadline);
 CREATE INDEX idx_agent_knowledge_key ON public.agent_knowledge USING btree (agent_key);
 CREATE INDEX idx_agent_memory_key ON public.agent_memory USING btree (agent_key, created_at DESC);
+CREATE INDEX idx_agent_runs_agent_started ON public.agent_runs USING btree (agent, started_at DESC);
 CREATE INDEX idx_ap_bills_status ON public.ap_bills USING btree (status);
 CREATE INDEX idx_ap_bills_vendor ON public.ap_bills USING btree (vendor_id);
 CREATE INDEX idx_budget_lines_budget ON public.budget_lines USING btree (budget_id);
@@ -7536,6 +7701,13 @@ CREATE UNIQUE INDEX inquiry_trade_clarification_open_uidx ON public.inquiry_trad
 CREATE INDEX internal_credential_audit_at ON public.internal_credential_audit USING btree (at DESC);
 CREATE INDEX internal_credential_ctx_active ON public.internal_credential USING btree (context) WHERE active;
 CREATE UNIQUE INDEX internal_credential_hash_uq ON public.internal_credential USING btree (secret_hash);
+CREATE INDEX it_engineer_finding_open_idx ON public.it_engineer_finding USING btree (closed_at, blast) WHERE (closed_at IS NULL);
+CREATE INDEX it_engineer_knowledge_emb_hnsw ON public.it_engineer_knowledge USING hnsw (embedding_gte vector_cosine_ops);
+CREATE INDEX it_engineer_knowledge_epi_idx ON public.it_engineer_knowledge USING btree (epistemic_status);
+CREATE INDEX it_engineer_knowledge_search_idx ON public.it_engineer_knowledge USING gin (search);
+CREATE INDEX it_engineer_knowledge_type_idx ON public.it_engineer_knowledge USING btree (record_type);
+CREATE INDEX it_watch_finding_open_idx ON public.it_watch_finding USING btree (severity, last_seen_at DESC) WHERE (status = 'open'::text);
+CREATE INDEX it_watch_tick_ran_at_idx ON public.it_watch_tick USING btree (ran_at DESC);
 CREATE INDEX ix_accountant_spend_report_as_of ON public.accountant_spend_report USING btree (as_of DESC);
 CREATE INDEX ix_action_execution_correlation ON public.action_execution USING btree (correlation_id);
 CREATE INDEX ix_ap_bills_gl_journal_id ON public.ap_bills USING btree (gl_journal_id);
@@ -7681,6 +7853,8 @@ CREATE INDEX sales_knowledge_type_idx ON public.sales_knowledge USING btree (rec
 CREATE INDEX sales_qualification_field_sector_idx ON public.sales_qualification_field USING btree (sector_id);
 CREATE INDEX screening_entry_norm_idx ON public.screening_entry USING btree (name_norm);
 CREATE INDEX screening_entry_run_idx ON public.screening_entry USING btree (run_id);
+CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseline USING btree (in_baseline, cleared_at);
+CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btree (spec_ref) WHERE (spec_ref IS NOT NULL);
@@ -9633,6 +9807,74 @@ CREATE OR REPLACE VIEW public.v_digital_twin AS  SELECT ( SELECT count(*) AS cou
            FROM spec_backlog
           WHERE ((spec_backlog.status = 'pending'::text) AND (spec_backlog.priority = 1))) AS open_p1;
 
+CREATE OR REPLACE VIEW public.v_edge_function_health AS  WITH runs AS (
+         SELECT SUBSTRING(agent_runs.agent FROM 4) AS fn,
+            agent_runs.started_at,
+            agent_runs.status,
+            (NULLIF((agent_runs.counts ->> 'ms'::text), ''::text))::numeric AS ms,
+            (NULLIF((agent_runs.counts ->> 'http'::text), ''::text))::integer AS http,
+            agent_runs.note
+           FROM agent_runs
+          WHERE ((agent_runs.agent ~~ 'fn:%'::text) AND (agent_runs.started_at > (now() - '8 days'::interval)))
+        ), recent AS (
+         SELECT runs.fn,
+            count(*) AS runs_1h,
+            count(*) FILTER (WHERE (runs.status = 'error'::text)) AS errors_1h,
+            count(*) FILTER (WHERE (runs.status = 'warn'::text)) AS warns_1h,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((runs.ms)::double precision)) FILTER (WHERE (runs.status <> 'error'::text)) AS p50_ms_1h,
+            percentile_cont((0.95)::double precision) WITHIN GROUP (ORDER BY ((runs.ms)::double precision)) FILTER (WHERE (runs.status <> 'error'::text)) AS p95_ms_1h,
+            max(runs.ms) AS max_ms_1h
+           FROM runs
+          WHERE (runs.started_at > (now() - '01:00:00'::interval))
+          GROUP BY runs.fn
+        ), baseline AS (
+         SELECT runs.fn,
+            count(*) AS runs_7d,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((runs.ms)::double precision)) FILTER (WHERE (runs.status <> 'error'::text)) AS p50_ms_7d,
+            percentile_cont((0.95)::double precision) WITHIN GROUP (ORDER BY ((runs.ms)::double precision)) FILTER (WHERE (runs.status <> 'error'::text)) AS p95_ms_7d
+           FROM runs
+          WHERE ((runs.started_at >= ((now() - '7 days'::interval) - '01:00:00'::interval)) AND (runs.started_at <= (now() - '01:00:00'::interval)))
+          GROUP BY runs.fn
+        ), day AS (
+         SELECT runs.fn,
+            count(*) AS runs_24h,
+            count(*) FILTER (WHERE (runs.status = 'error'::text)) AS errors_24h,
+            count(*) FILTER (WHERE (runs.status = 'warn'::text)) AS warns_24h,
+            max(runs.started_at) AS last_run_at,
+            max(runs.started_at) FILTER (WHERE (runs.status = 'error'::text)) AS last_error_at,
+            (array_agg(runs.note ORDER BY runs.started_at DESC) FILTER (WHERE (runs.status = 'error'::text)))[1] AS last_error_note,
+            (array_agg(runs.http ORDER BY runs.started_at DESC) FILTER (WHERE (runs.status = 'error'::text)))[1] AS last_error_http
+           FROM runs
+          WHERE (runs.started_at > (now() - '24:00:00'::interval))
+          GROUP BY runs.fn
+        )
+ SELECT COALESCE(d.fn, r.fn, b.fn) AS fn,
+    COALESCE(d.runs_24h, (0)::bigint) AS runs_24h,
+    COALESCE(d.errors_24h, (0)::bigint) AS errors_24h,
+    COALESCE(d.warns_24h, (0)::bigint) AS warns_24h,
+    COALESCE(r.runs_1h, (0)::bigint) AS runs_1h,
+    COALESCE(r.errors_1h, (0)::bigint) AS errors_1h,
+    COALESCE(r.warns_1h, (0)::bigint) AS warns_1h,
+    round(r.p50_ms_1h) AS p50_ms_1h,
+    round(r.p95_ms_1h) AS p95_ms_1h,
+    r.max_ms_1h,
+    COALESCE(b.runs_7d, (0)::bigint) AS baseline_runs_7d,
+    round(b.p50_ms_7d) AS baseline_p50_ms,
+    round(b.p95_ms_7d) AS baseline_p95_ms,
+        CASE
+            WHEN ((b.p95_ms_7d IS NOT NULL) AND (b.p95_ms_7d > (0)::double precision) AND (r.p95_ms_1h IS NOT NULL)) THEN round(((r.p95_ms_1h / b.p95_ms_7d))::numeric, 2)
+            ELSE NULL::numeric
+        END AS lag_ratio,
+    COALESCE(r.runs_1h, (0)::bigint) AS lag_sample_n,
+    COALESCE(b.runs_7d, (0)::bigint) AS lag_baseline_n,
+    d.last_run_at,
+    d.last_error_at,
+    d.last_error_http,
+    d.last_error_note
+   FROM ((day d
+     FULL JOIN recent r ON ((r.fn = d.fn)))
+     FULL JOIN baseline b ON ((b.fn = COALESCE(d.fn, r.fn))));
+
 CREATE OR REPLACE VIEW public.v_event_backbone AS  SELECT event_type,
     count(DISTINCT agent_key) AS subscribers,
     ( SELECT count(*) AS count
@@ -9719,6 +9961,28 @@ CREATE OR REPLACE VIEW public.v_expense_receipt_gap AS  SELECT id,
    FROM expense_entries e
   WHERE (doc_path IS NULL)
   ORDER BY charged_on DESC;
+
+CREATE OR REPLACE VIEW public.v_file_quarantine AS  SELECT id,
+    sha256,
+    verdict,
+    source,
+    subject,
+    filename,
+    mime,
+    size_bytes,
+    bucket,
+    path,
+    engines_malicious,
+    engines_suspicious,
+    engines_total,
+    vt_status,
+    blocked,
+    detail,
+    created_at,
+    rechecked_at
+   FROM file_scan f
+  WHERE (verdict <> 'clean'::text)
+  ORDER BY created_at DESC;
 
 CREATE OR REPLACE VIEW public.v_internal_credential_health AS  SELECT id,
     context,
@@ -13361,6 +13625,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -13386,16 +13660,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -14107,135 +14371,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -14751,6 +14886,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -18867,17 +19131,49 @@ CREATE OR REPLACE FUNCTION public.fn_cron_liveness()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_catalog', 'cron'
 AS $function$
-declare v_age numeric; v_last timestamptz;
+declare
+  v_tick  timestamptz;
+  v_cron  timestamptz;
+  v_last  timestamptz;
+  v_src   text;
+  v_age   numeric;
 begin
-  select max(start_time) into v_last from cron.job_run_details;
+  -- The last tick BEFORE this request's own. See the note above: reading the newest row would
+  -- measure a row resilience_ping inserted seconds ago and could never report an outage.
+  select ran_at into v_tick
+  from public.it_watch_tick
+  order by ran_at desc
+  offset 1 limit 1;
+
+  begin
+    select max(start_time) into v_cron from cron.job_run_details;
+  exception when others then
+    v_cron := null;   -- pg_cron absent or unreadable is not an outage of the live scheduler
+  end;
+
+  -- greatest() IGNORES nulls in Postgres, which is what is wanted here: with only one source
+  -- populated it returns that one, and with neither it returns null and is handled below.
+  v_last := greatest(v_tick, v_cron);
+  v_src  := case
+              when v_last is null then null
+              when v_tick is not null and v_last = v_tick then 'resilience tick (it_watch_tick)'
+              else 'pg_cron (cron.job_run_details)' end;
+
   if v_last is null then
-    return jsonb_build_object('healthy', false, 'newest_run_age_min', null, 'note', 'no cron run history');
+    -- Said out loud rather than returned as a clean bill: with no tick history and no cron
+    -- history there is nothing to measure, and "no evidence of a scheduler" is not "healthy".
+    return jsonb_build_object(
+      'healthy', false, 'newest_run_age_min', null, 'source', null, 'checked_at', now(),
+      'note', 'no completed scheduler tick has ever been recorded, in it_watch_tick or in cron.job_run_details');
   end if;
+
   v_age := extract(epoch from (now() - v_last))/60.0;
   return jsonb_build_object(
-    'healthy', v_age <= 20,               -- crons run every few minutes; >20min silence = scheduler down
-    'newest_run_age_min', round(v_age,1),
-    'checked_at', now());
+    'healthy',             v_age <= 45,     -- the live scheduler runs every 15 min; 45 = three missed ticks
+    'newest_run_age_min',  round(v_age,1),
+    'source',              v_src,
+    'threshold_min',       45,
+    'checked_at',          now());
 exception when others then
   return jsonb_build_object('healthy', null, 'error', sqlerrm);
 end $function$
@@ -22500,6 +22796,18 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_file_is_cleared(p_sha256 text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select coalesce(
+    (select bool_or(verdict = 'clean') from public.file_scan where sha256 = p_sha256),
+    false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_finance_forecast()
  RETURNS jsonb
  LANGUAGE sql
@@ -24140,6 +24448,1244 @@ CREATE OR REPLACE FUNCTION public.fn_is_working_day(p_date date)
 AS $function$
   select extract(isodow from p_date) < 6
      and not exists (select 1 from public.public_holidays h where h.holiday_date = p_date);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_detect(p_web jsonb DEFAULT NULL::jsonb, p_persist boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  -- The window is one hour and the baseline is the seven days BEFORE it. The window has to be
+  -- long enough that a 30-minute job appears in it and short enough that a fault is news.
+  c_win       constant interval := interval '60 minutes';
+  c_base      constant interval := interval '7 days';
+  -- Statuses agent_runs uses for "this run did its job". Anything else, NULL included, is a
+  -- failure: a run that started and never recorded an outcome is not a success.
+  c_ok        constant text[] := array['ok','success','completed','skipped','warn','held','noop'];
+  v_now       timestamptz := now();
+  v_find      jsonb := '[]'::jsonb;
+  v_notes     jsonb := '{}'::jsonb;
+  v_keys      text[] := '{}';
+  v_worst     text := 'none';
+  r           record;
+  v_rate      numeric;
+  v_brate     numeric;
+  v_state     text;
+  v_sev       text;
+  v_key       text;
+  v_prev      timestamptz;
+  v_gap       numeric;
+  v_cnt       bigint;
+  v_oldest    timestamptz;
+  v_age       numeric;
+  v_basis     jsonb;
+  v_opened    int := 0;
+  v_resolved  int := 0;
+  v_watched   int;
+  v_site_ms   integer;
+  v_site_st   integer;
+begin
+
+-- ══ D1. EDGE FUNCTIONS / AGENTS FAILING, OR FAILING MORE THAN USUAL ═════════════════════════
+-- Reads: public.agent_runs (window vs the 7 days before it), public.it_watch_subject.
+-- Fires when every attempt in the window failed ('stopped'), or when the window's failure rate is
+-- at least 20 percentage points above this subject's own baseline rate ('degraded').
+-- ON AN IDLE ESTATE: an agent with no runs in the window is not evaluated at all, and an agent
+-- whose runs all succeeded produces nothing. Silence here means "nothing failed", and D2 below is
+-- what stops that being confused with "nothing ran".
+-- The `fn:<name>` telemetry rows and the bare `<name>` semantic rows are two logs of the SAME
+-- subject, so the prefix is stripped before grouping: otherwise one function appears as two, and
+-- neither half can be looked up in it_watch_subject to find out whether it is customer-facing.
+for r in
+  with runs as (
+    select regexp_replace(agent, '^fn:', '')                       subject,
+           agent, started_at,
+           coalesce(status,'error') <> all (c_ok)                  bad,
+           public.fn_it_run_is_refusal(agent, started_at, counts)  refused
+    from public.agent_runs
+    where started_at > v_now - c_base),
+  w as (
+    select subject,
+           count(*) filter (where not refused)::int              n,
+           count(*) filter (where bad and not refused)::int      f,
+           count(*) filter (where refused)::int                  refused
+    from runs where started_at > v_now - c_win group by subject),
+  b as (
+    select subject,
+           count(*) filter (where not refused)::int              n,
+           count(*) filter (where bad and not refused)::int      f
+    from runs where started_at <= v_now - c_win group by subject)
+  select w.subject agent, w.n, w.f, w.refused, coalesce(b.n,0) bn, coalesce(b.f,0) bf,
+         coalesce(s.public_surface,false) pub, (s.subject is not null) known
+  from w
+  left join b on b.subject = w.subject
+  left join public.it_watch_subject s on s.subject = w.subject
+  where w.f > 0 and w.n > 0
+loop
+  v_rate  := r.f::numeric / r.n;
+  v_brate := case when r.bn >= 10 then r.bf::numeric / r.bn else null end;
+  v_state := case
+               when r.f = r.n then 'stopped'
+               when r.n >= 3 and (v_rate - coalesce(v_brate, 0)) >= 0.20 then 'degraded'
+               else null end;
+  continue when v_state is null;
+  v_sev := public.fn_it_severity(v_state, r.pub);
+  v_key := 'run_failure:' || r.agent;
+  v_keys := v_keys || v_key;
+  v_find := v_find || jsonb_build_object(
+    'detector_key', v_key, 'detector', 'run_failure', 'subject', r.agent,
+    'state', v_state, 'severity', v_sev,
+    'title', case when v_state = 'stopped'
+                  then r.agent || ' failed every one of its ' || r.n || ' attempts in the last hour'
+                  else r.agent || ' is failing ' || round(v_rate*100) || '% of attempts, against a baseline of '
+                       || coalesce(round(coalesce(v_brate,0)*100)::text,'?') || '%' end,
+    'evidence', jsonb_build_object(
+      'window_runs', r.n, 'window_failed', r.f, 'window_rate', round(v_rate,4),
+      -- Counted, reported, and excluded from the rate above. A caller turned away is not a fault
+      -- of this subject; a SURGE of them is a signal the security build owns, not this one.
+      'window_refused', r.refused,
+      'baseline_runs', r.bn, 'baseline_failed', r.bf,
+      'baseline_rate', case when v_brate is null then null else round(v_brate,4) end,
+      'baseline_basis', case when r.bn >= 10 then 'measured' else 'insufficient_history' end,
+      'public_surface', r.pub,
+      'surface_basis', case when r.known then 'supabase/config.toml verify_jwt'
+                            else 'subject not in it_watch_subject; treated as internal' end));
+end loop;
+
+-- ══ D2. A SUBJECT THAT HAS STOPPED RUNNING WHEN IT SHOULD BE RUNNING ═══════════════════════
+-- Reads: public.agent_runs, seven days of it.
+-- The hard part is telling a SCHEDULED subject from an EVENT-DRIVEN one, because a subject that
+-- only runs when a customer does something is supposed to be silent on a quiet day, and a
+-- detector that cannot tell the difference is the "guard that fires when the system works" this
+-- estate keeps paying for. Measured 9 Sep 2026, sales_engineer had 105 runs about a minute apart
+-- inside a single two-hour burst and had then been silent for four hours — legitimately, because
+-- it is event-driven. So a subject qualifies for silence monitoring only when its own history
+-- shows a RHYTHM, on all three counts:
+--   >= 10 gaps      — enough samples for a median to mean anything
+--   >= 12 distinct hours with a run over 7 days — it recurs across time, it is not one burst
+--   p90 gap <= 3x p50 gap — the gaps are TIGHT; a bursty subject has p90 far above p50
+-- Then it is silent when it has been quiet for more than 4x its own median gap (floor 30 min).
+-- ON AN IDLE ESTATE, measured on the live data: exactly ONE of the eight subjects in agent_runs
+-- qualifies today — send_outbox (37 distinct hours, p50 30.1 min, p90 45.0 min, ratio 1.5).
+-- login_otp (ratio 187), sales_engineer and accountant (2 and 4 distinct hours) are correctly
+-- excluded as event-driven. The count of qualifying subjects is reported in notes.cadence, so
+-- "no silence findings" can never be mistaken for "nothing is being watched".
+v_watched := 0;
+for r in
+  with s0 as (
+    select regexp_replace(agent, '^fn:', '') agent, started_at
+    from public.agent_runs where started_at > v_now - c_base),
+  g as (
+    select agent, started_at,
+           extract(epoch from (started_at - lag(started_at) over (partition by agent order by started_at)))/60 gap
+    from s0),
+  c as (
+    select agent,
+           count(*) filter (where gap > 0)::int                                   samples,
+           count(distinct date_trunc('hour', started_at))::int                    hours,
+           (percentile_cont(0.5) within group (order by gap) filter (where gap > 0))::numeric p50,
+           (percentile_cont(0.9) within group (order by gap) filter (where gap > 0))::numeric p90,
+           max(started_at)                                                        last_run
+    from g group by agent)
+  select c.*, coalesce(s.public_surface,false) pub,
+         extract(epoch from (v_now - c.last_run))/60 silent_min
+  from c left join public.it_watch_subject s on s.subject = c.agent
+  where c.samples >= 10 and c.hours >= 12 and c.p50 > 0 and c.p90 <= c.p50 * 3
+loop
+  v_watched := v_watched + 1;
+  continue when r.silent_min <= greatest(r.p50 * 4, 30);
+  v_sev := public.fn_it_severity('stopped', r.pub);
+  v_key := 'run_silent:' || r.agent;
+  v_keys := v_keys || v_key;
+  v_find := v_find || jsonb_build_object(
+    'detector_key', v_key, 'detector', 'run_silent', 'subject', r.agent,
+    'state', 'stopped', 'severity', v_sev,
+    'title', r.agent || ' has not run for ' || round(r.silent_min) || ' minutes; it normally runs every '
+             || round(r.p50) || ' minutes',
+    'evidence', jsonb_build_object(
+      'silent_minutes', round(r.silent_min,1), 'last_run', r.last_run,
+      'cadence_p50_min', round(r.p50,2), 'cadence_p90_min', round(r.p90,2),
+      'cadence_samples', r.samples, 'distinct_hours_7d', r.hours,
+      'threshold_min', round(greatest(r.p50 * 4, 30),1),
+      'basis', 'measured from this subject''s own inter-run gaps over 7 days',
+      'public_surface', r.pub));
+end loop;
+v_notes := v_notes || jsonb_build_object('cadence', jsonb_build_object(
+  'subjects_with_a_measurable_rhythm', v_watched,
+  'basis', case when v_watched = 0
+                then 'no subject in agent_runs yet recurs regularly enough to have a cadence; silence cannot be detected for any subject'
+                else 'measured' end));
+
+-- ══ D3. THE SCHEDULER ITSELF ════════════════════════════════════════════════════════════════
+-- Reads: public.it_watch_tick — its own previous row.
+-- The live scheduler is Vercel cron -> /api/resilience-ping -> resilience_ping, every 15 minutes.
+-- pg_cron is dead by founder instruction (one inactive job; 234 deleted on 7 Sep), so any check
+-- that reads cron.job_run_details to judge scheduler health is now reading a table nothing writes
+-- — a guard that cannot fire. The gap between two rows of this table cannot be fooled that way:
+-- if the tick did not happen, there is no row, and the next tick reports the hole it fell into.
+-- ON AN IDLE ESTATE: silent, because the tick still runs on an idle estate. On the very first
+-- tick there is no previous row, and it reports basis 'first_tick' rather than a clean bill.
+select max(ran_at) into v_prev from public.it_watch_tick;
+if v_prev is null then
+  v_notes := v_notes || jsonb_build_object('scheduler', jsonb_build_object(
+    'basis','first_tick','detail','no previous tick recorded; the gap detector arms from the next tick onward'));
+else
+  v_gap := extract(epoch from (v_now - v_prev))/60;
+  v_notes := v_notes || jsonb_build_object('scheduler', jsonb_build_object(
+    'basis','measured','gap_minutes', round(v_gap,1), 'expected_minutes', 15, 'threshold_minutes', 45));
+  if v_gap > 45 then
+    v_sev := public.fn_it_severity('stopped', false);
+    v_key := 'scheduler_gap';
+    v_keys := v_keys || v_key;
+    v_find := v_find || jsonb_build_object(
+      'detector_key', v_key, 'detector', 'scheduler_gap', 'subject', 'scheduler',
+      'state', 'stopped', 'severity', v_sev,
+      'title', 'the 15-minute scheduler went ' || round(v_gap) || ' minutes without a tick — at least three were missed',
+      'evidence', jsonb_build_object(
+        'gap_minutes', round(v_gap,1), 'previous_tick', v_prev, 'expected_every_minutes', 15,
+        'path','Vercel cron -> /api/resilience-ping -> resilience_ping',
+        'basis','measured from the interval between this tick and the previous one'));
+  end if;
+end if;
+
+-- ══ D4. DATABASE AND FUNCTION ERRORS ════════════════════════════════════════════════════════
+-- Reads: public.error_events (the capture a sibling build is filling right now).
+-- THIS IS THE DETECTOR MOST AT RISK OF THE "zero cannot tell a dead guard from an idle system"
+-- failure, because error_events has held 0 rows for its entire existence. So it never reports a
+-- clean bill from emptiness: capture_alive is computed from whether ANY row landed in seven days,
+-- and while that is false the engine says 'no_capture_yet' out loud.
+select count(*) into v_cnt from public.error_events where created_at > v_now - c_base;
+v_notes := v_notes || jsonb_build_object('error_capture', jsonb_build_object(
+  'capture_alive', v_cnt > 0, 'rows_7d', v_cnt,
+  'basis', case when v_cnt > 0 then 'measured'
+                else 'no_capture_yet — error_events is empty, so an absence of findings here proves nothing' end));
+for r in
+  select e.source, e.kind,
+         count(*)::int n,
+         count(*) filter (where lower(coalesce(e.severity,'error')) in ('critical','fatal'))::int crit,
+         coalesce(s.public_surface,false) pub
+  from public.error_events e
+  left join public.it_watch_subject s on s.subject = e.source
+  where e.created_at > v_now - c_win
+    and lower(coalesce(e.severity,'error')) <> all (array['info','debug','notice','warn','warning'])
+  group by e.source, e.kind, s.public_surface
+loop
+  v_state := case when r.crit > 0 then 'stopped' else 'degraded' end;
+  v_sev   := public.fn_it_severity(v_state, r.pub);
+  v_key   := 'error_events:' || coalesce(r.source,'?') || ':' || coalesce(r.kind,'?');
+  v_keys  := v_keys || v_key;
+  v_find  := v_find || jsonb_build_object(
+    'detector_key', v_key, 'detector', 'error_events', 'subject', coalesce(r.source,'unknown'),
+    'state', v_state, 'severity', v_sev,
+    'title', r.n || ' ' || coalesce(r.kind,'error') || ' error(s) from ' || coalesce(r.source,'an unnamed source')
+             || ' in the last hour' || case when r.crit > 0 then ', ' || r.crit || ' of them critical' else '' end,
+    'evidence', jsonb_build_object(
+      'window_errors', r.n, 'critical', r.crit, 'kind', r.kind,
+      'public_surface', r.pub, 'basis','measured from error_events rows in the window'));
+end loop;
+
+-- ══ D5. A QUEUE NOBODY IS DRAINING ══════════════════════════════════════════════════════════
+-- Reads: public.it_watch_queue, and each registered table by its own predicate.
+-- The test is the AGE of the oldest pending row against that queue's own threshold — never the
+-- depth. A backlog of 400 rows that is one minute old is a busy queue; one row that is nine weeks
+-- old is a dead consumer.
+-- ON AN IDLE ESTATE: a queue with nothing pending is skipped before any threshold is consulted,
+-- so an empty estate produces nothing. The two queues that are genuinely stalled today
+-- (exec_reports at status='new' since 6 July, doc_backups at status='error' since 11 July) do
+-- fire, correctly — they are real, and neither is a business volume.
+for r in select * from public.it_watch_queue where enabled order by queue_key loop
+  begin
+    execute format('select count(*), min(%I) from public.%I where %s', r.ts_column, r.table_name, r.pending_predicate)
+      into v_cnt, v_oldest;
+  exception when others then
+    v_notes := v_notes || jsonb_build_object('queue_' || r.queue_key,
+      jsonb_build_object('basis','unreadable','error', sqlerrm));
+    continue;
+  end;
+  continue when coalesce(v_cnt,0) = 0 or v_oldest is null;
+  v_age := extract(epoch from (v_now - v_oldest))/60;
+  continue when v_age <= r.stall_minutes;
+  v_state := case when v_age > r.stall_minutes * 4 then 'stopped' else 'degraded' end;
+  v_sev   := public.fn_it_severity(v_state, r.surface = 'customer');
+  v_key   := 'queue_stalled:' || r.queue_key;
+  v_keys  := v_keys || v_key;
+  v_find  := v_find || jsonb_build_object(
+    'detector_key', v_key, 'detector', 'queue_stalled', 'subject', r.queue_key,
+    'state', v_state, 'severity', v_sev,
+    'title', r.table_name || ': ' || v_cnt || ' undrained row(s), the oldest waiting '
+             || round(v_age/60) || ' hours against a ' || round(r.stall_minutes/60.0) || '-hour threshold',
+    'evidence', jsonb_build_object(
+      'pending_rows', v_cnt, 'oldest_pending', v_oldest, 'oldest_age_minutes', round(v_age,1),
+      'threshold_minutes', r.stall_minutes, 'predicate', r.pending_predicate,
+      'public_surface', r.surface = 'customer',
+      'basis','measured from the age of the oldest row matching the predicate'));
+end loop;
+
+-- ══ D6. LATENCY — THE FOUNDER'S OWN EXAMPLE ═════════════════════════════════════════════════
+-- Reads: public.agent_runs, finished_at - started_at.
+-- "Lagging" is meaningless without a baseline, so the baseline is each subject's own trailing
+-- seven days ENDING at the start of the window (the window cannot pollute its own reference).
+-- A departure has to clear three bars at once, and the three exist to stop three different false
+-- positives: above the subject's own p95 (not just above typical), at least double its median
+-- (not a 5% drift), and at least one second in absolute terms (so a 2ms -> 5ms move on a subject
+-- that does nothing is not an incident).
+--
+-- WHAT IT DOES ON DAY ONE, said plainly rather than implied. Measured on the live data, 9 Sep:
+--   send_outbox   65 samples, p50 9,956ms, p95 21,320ms -> 'measured'. Armed. Fires above ~21.3s.
+--   sales_engineer / accountant / compliance_archive — every duration is exactly 0ms, because
+--       their writer sets finished_at = started_at. Zero spread is not a fast subject, it is NO
+--       SIGNAL, and it is reported as 'no_latency_signal' rather than as a healthy baseline.
+--   login_otp / dropbox_backup / quote_extract / doc_extract — under 20 samples ->
+--       'insufficient_history'.
+-- So exactly ONE subject has a real latency baseline today. Every subject the sibling build
+-- instruments with timing will arm itself here automatically once it has 20 runs; nothing needs
+-- editing. The per-subject basis is returned in notes.latency every tick, so the founder's
+-- "the comparison report is lagging" can be answered with either a departure or an honest "there
+-- is not enough history of that report yet to know", and never with a false all-clear.
+v_basis := '{}'::jsonb;
+for r in
+  -- A 403 returned in four milliseconds is not a measurement of how long this subject's work
+  -- takes, so refusals are excluded from the baseline as well as from the failure rate. Left in,
+  -- they would drag the baseline down and make ordinary work look like a departure.
+  with d as (
+    select regexp_replace(agent, '^fn:', '') agent, started_at,
+           extract(epoch from (finished_at - started_at)) * 1000 ms
+    from public.agent_runs
+    where finished_at is not null and finished_at >= started_at and started_at > v_now - c_base
+      and not public.fn_it_run_is_refusal(agent, started_at, counts)),
+  b as (
+    select agent, count(*)::int n,
+           (percentile_cont(0.50) within group (order by ms))::numeric p50,
+           (percentile_cont(0.95) within group (order by ms))::numeric p95,
+           min(ms)::numeric mn, max(ms)::numeric mx
+    from d where started_at <= v_now - c_win group by agent),
+  w as (
+    select agent, count(*)::int n,
+           (percentile_cont(0.50) within group (order by ms))::numeric p50
+    from d where started_at > v_now - c_win group by agent)
+  select b.agent, b.n bn, b.p50 bp50, b.p95 bp95, b.mn bmn, b.mx bmx,
+         w.n wn, w.p50 wp50, coalesce(s.public_surface,false) pub
+  from b
+  left join w on w.agent = b.agent
+  left join public.it_watch_subject s on s.subject = b.agent
+loop
+  v_state := null;
+  if r.bn < 20 then
+    v_basis := v_basis || jsonb_build_object(r.agent, jsonb_build_object(
+      'basis','insufficient_history','baseline_samples', r.bn, 'samples_needed', 20));
+  elsif r.bmx = r.bmn then
+    v_basis := v_basis || jsonb_build_object(r.agent, jsonb_build_object(
+      'basis','no_latency_signal','constant_ms', round(r.bmn),
+      'detail','every recorded duration is identical, so this subject reports no timing to depart from'));
+  elsif coalesce(r.wn,0) < 3 then
+    v_basis := v_basis || jsonb_build_object(r.agent, jsonb_build_object(
+      'basis','insufficient_window','window_samples', coalesce(r.wn,0), 'samples_needed', 3,
+      'baseline_p50_ms', round(r.bp50), 'baseline_p95_ms', round(r.bp95)));
+  else
+    v_basis := v_basis || jsonb_build_object(r.agent, jsonb_build_object(
+      'basis','measured','baseline_p50_ms', round(r.bp50), 'baseline_p95_ms', round(r.bp95),
+      'window_p50_ms', round(r.wp50), 'window_samples', r.wn,
+      'fires_above_ms', round(greatest(r.bp95, r.bp50 * 2, 1000))));
+    if r.wp50 > r.bp95 and r.wp50 >= r.bp50 * 2 and r.wp50 >= 1000 then
+      v_state := 'delayed';
+    end if;
+  end if;
+  continue when v_state is null;
+  v_sev  := public.fn_it_severity(v_state, r.pub);
+  v_key  := 'latency:' || r.agent;
+  v_keys := v_keys || v_key;
+  v_find := v_find || jsonb_build_object(
+    'detector_key', v_key, 'detector', 'latency', 'subject', r.agent,
+    'state', v_state, 'severity', v_sev,
+    'title', r.agent || ' is taking ' || round(r.wp50) || 'ms, against its own baseline of '
+             || round(r.bp50) || 'ms (p95 ' || round(r.bp95) || 'ms)',
+    'evidence', jsonb_build_object(
+      'window_p50_ms', round(r.wp50), 'window_samples', r.wn,
+      'baseline_p50_ms', round(r.bp50), 'baseline_p95_ms', round(r.bp95), 'baseline_samples', r.bn,
+      'rule','window p50 > baseline p95 AND >= 2x baseline p50 AND >= 1000ms',
+      'public_surface', r.pub, 'basis','measured against this subject''s own trailing 7 days'));
+end loop;
+v_notes := v_notes || jsonb_build_object('latency', v_basis);
+
+-- ══ D7. THE WEBSITE ═════════════════════════════════════════════════════════════════════════
+-- Reads: p_web, the reading the caller took this tick. Postgres cannot fetch, so the tick fetches
+-- and Postgres judges — the same division this estate already uses for the OpenRouter meter.
+-- Four separate questions, because they fail separately:
+--   is it up            home.status outside 2xx/3xx, or a fetch that threw   -> stopped -> CRITICAL
+--   did a deploy fail   latest production deployment state ERROR/CANCELED    -> degraded -> HIGH
+--   runtime errors      Vercel's runtime error count in the window           -> degraded -> HIGH
+--   is it slow          home.ms against the site's own history in it_watch_tick -> delayed
+-- The website is public_surface = true by definition, which is why a site that does not answer
+-- outranks everything else the engine can find.
+-- ON AN IDLE ESTATE: an idle site still answers, so silence here means the site answered. When no
+-- reading was taken it reports 'not_probed_this_tick' and NEVER reads as a clean bill.
+if p_web is null then
+  v_notes := v_notes || jsonb_build_object('website', jsonb_build_object(
+    'basis','not_probed_this_tick',
+    'detail','no reading was passed to fn_it_detect; the site was not checked and is NOT being reported as healthy'));
+else
+  v_site_st := nullif(p_web #>> '{home,status}','')::int;
+  v_site_ms := nullif(p_web #>> '{home,ms}','')::numeric::int;
+
+  if v_site_st is null or v_site_st < 200 or v_site_st >= 400 then
+    v_sev  := public.fn_it_severity('stopped', true);
+    v_key  := 'website_down';
+    v_keys := v_keys || v_key;
+    v_find := v_find || jsonb_build_object(
+      'detector_key', v_key, 'detector', 'website_down', 'subject', 'website',
+      'state','stopped','severity', v_sev,
+      'title', case when v_site_st is null
+                    then 'the website did not answer at all: ' || coalesce(p_web #>> '{home,error}','no status and no error was reported')
+                    else 'the website answered HTTP ' || v_site_st end,
+      'evidence', jsonb_build_object(
+        'status', v_site_st, 'url', p_web #>> '{home,url}', 'error', p_web #>> '{home,error}',
+        'ms', v_site_ms, 'public_surface', true, 'basis','measured by HTTP request this tick'));
+  end if;
+
+  if upper(coalesce(p_web #>> '{deployment,state}','')) in ('ERROR','CANCELED') then
+    v_sev  := public.fn_it_severity('degraded', true);
+    v_key  := 'website_deploy_failed';
+    v_keys := v_keys || v_key;
+    v_find := v_find || jsonb_build_object(
+      'detector_key', v_key, 'detector', 'website_deploy_failed', 'subject', 'website',
+      'state','degraded','severity', v_sev,
+      'title', 'the latest production deployment is ' || (p_web #>> '{deployment,state}')
+               || ' — the site is still serving the previous build, so new work is not live',
+      'evidence', jsonb_build_object(
+        'deployment', p_web -> 'deployment', 'public_surface', true,
+        'basis','measured from the Vercel deployments API this tick'));
+  end if;
+
+  -- Runtime errors. Probed 9 Sep 2026 with the stored app_secrets.vercel_token: there is no
+  -- runtime-log endpoint this token can read — /v1/projects/<id>/runtime-logs,
+  -- /v1/deployments/<uid>/runtime-logs and /v1/observability/runtime-logs all return 404, and the
+  -- deployment `events` endpoints return BUILD output only. So the caller may legitimately be
+  -- unable to supply a count, and when it cannot, THIS IS SAID rather than counted as zero: a
+  -- monitor that reports "no runtime errors" because it could not look is the exact failure this
+  -- whole file is built to avoid.
+  if (p_web -> 'runtime_errors') ? 'count' then
+    v_notes := v_notes || jsonb_build_object('website_runtime_errors', jsonb_build_object(
+      'basis','measured', 'count', (p_web #>> '{runtime_errors,count}')::int,
+      'window_minutes', coalesce(p_web #>> '{runtime_errors,window_minutes}','60')));
+    if (p_web #>> '{runtime_errors,count}')::int > 0 then
+      v_sev  := public.fn_it_severity('degraded', true);
+      v_key  := 'website_runtime_errors';
+      v_keys := v_keys || v_key;
+      v_find := v_find || jsonb_build_object(
+        'detector_key', v_key, 'detector', 'website_runtime_errors', 'subject', 'website',
+        'state','degraded','severity', v_sev,
+        'title', (p_web #>> '{runtime_errors,count}') || ' runtime error(s) on the website in the last '
+                 || coalesce(p_web #>> '{runtime_errors,window_minutes}','60') || ' minutes',
+        'evidence', jsonb_build_object(
+          'runtime_errors', p_web -> 'runtime_errors', 'public_surface', true,
+          'basis','measured from the Vercel runtime error API this tick'));
+    end if;
+  else
+    v_notes := v_notes || jsonb_build_object('website_runtime_errors', jsonb_build_object(
+      'basis', coalesce(p_web #>> '{runtime_errors,basis}', 'not_reported'),
+      'reason', coalesce(p_web #>> '{runtime_errors,reason}',
+                'the caller supplied no runtime error count; the website''s runtime errors were NOT checked and are NOT being reported as absent')));
+  end if;
+
+  -- Site latency, on the same terms as D6: the site's own history, or an honest refusal.
+  -- The samples are the site_ms column of this very table, which is why the tick stores it.
+  if v_site_ms is null then
+    v_notes := v_notes || jsonb_build_object('website_latency', jsonb_build_object(
+      'basis','not_timed','detail','the reading carried no home.ms'));
+  else
+    declare
+      s_n int; s_p50 numeric; s_p95 numeric;
+    begin
+      select count(*)::int,
+             (percentile_cont(0.50) within group (order by site_ms))::numeric,
+             (percentile_cont(0.95) within group (order by site_ms))::numeric
+        into s_n, s_p50, s_p95
+      from public.it_watch_tick
+      where ran_at > v_now - c_base and ran_at <= v_now - c_win and site_ms is not null and site_status between 200 and 399;
+      if coalesce(s_n,0) < 20 then
+        v_notes := v_notes || jsonb_build_object('website_latency', jsonb_build_object(
+          'basis','insufficient_history','samples', coalesce(s_n,0), 'samples_needed', 20,
+          'current_ms', v_site_ms,
+          'detail','the site has no baseline yet; it needs 20 timed ticks, which is about five hours at one tick every fifteen minutes'));
+      else
+        v_notes := v_notes || jsonb_build_object('website_latency', jsonb_build_object(
+          'basis','measured','baseline_p50_ms', round(s_p50), 'baseline_p95_ms', round(s_p95),
+          'current_ms', v_site_ms, 'samples', s_n,
+          'fires_above_ms', round(greatest(s_p95, s_p50 * 2, 1000))));
+        if v_site_ms > s_p95 and v_site_ms >= s_p50 * 2 and v_site_ms >= 1000 then
+          v_sev  := public.fn_it_severity('delayed', true);
+          v_key  := 'website_slow';
+          v_keys := v_keys || v_key;
+          v_find := v_find || jsonb_build_object(
+            'detector_key', v_key, 'detector', 'website_slow', 'subject', 'website',
+            'state','delayed','severity', v_sev,
+            'title','the website answered in ' || v_site_ms || 'ms, against its own baseline of '
+                    || round(s_p50) || 'ms (p95 ' || round(s_p95) || 'ms)',
+            'evidence', jsonb_build_object(
+              'current_ms', v_site_ms, 'baseline_p50_ms', round(s_p50), 'baseline_p95_ms', round(s_p95),
+              'baseline_samples', s_n, 'public_surface', true,
+              'rule','current > baseline p95 AND >= 2x baseline p50 AND >= 1000ms',
+              'basis','measured against the site''s own timed ticks over 7 days'));
+        end if;
+      end if;
+    end;
+  end if;
+end if;
+
+-- ══ THE VERDICT ═════════════════════════════════════════════════════════════════════════════
+select coalesce(
+  (select f ->> 'severity' from jsonb_array_elements(v_find) f
+    order by case f ->> 'severity' when 'critical' then 0 when 'high' then 1 when 'medium' then 2 else 3 end
+    limit 1), 'none')
+into v_worst;
+
+-- ══ THE LEDGER — open while true, resolved the tick after it stops being true ═══════════════
+if p_persist then
+  insert into public.it_watch_finding
+    (detector_key, detector, subject, state, severity, title, evidence, opened_at, last_seen_at, seen_count, status, resolved_at)
+  select f ->> 'detector_key', f ->> 'detector', f ->> 'subject', f ->> 'state', f ->> 'severity',
+         f ->> 'title', f -> 'evidence', v_now, v_now, 1, 'open', null
+  from jsonb_array_elements(v_find) f
+  on conflict (detector_key) do update set
+    -- A finding that reappears after being resolved is a NEW occurrence, so opened_at restarts.
+    -- One that never closed keeps its original opened_at, which is what makes "how long has this
+    -- been broken" answerable.
+    opened_at    = case when public.it_watch_finding.status = 'resolved' then excluded.opened_at
+                        else public.it_watch_finding.opened_at end,
+    seen_count   = case when public.it_watch_finding.status = 'resolved' then 1
+                        else public.it_watch_finding.seen_count + 1 end,
+    detector     = excluded.detector,
+    subject      = excluded.subject,
+    state        = excluded.state,
+    severity     = excluded.severity,
+    title        = excluded.title,
+    evidence     = excluded.evidence,
+    last_seen_at = excluded.last_seen_at,
+    status       = 'open',
+    resolved_at  = null;
+  get diagnostics v_opened = row_count;
+
+  update public.it_watch_finding
+     set status = 'resolved', resolved_at = v_now
+   where status = 'open' and not (detector_key = any (v_keys));
+  get diagnostics v_resolved = row_count;
+
+  insert into public.it_watch_tick (ran_at, findings, worst, site_ms, site_status, detail)
+  values (v_now, jsonb_array_length(v_find), v_worst, v_site_ms, v_site_st,
+          jsonb_build_object('findings', v_find, 'notes', v_notes, 'web', p_web));
+end if;
+
+return jsonb_build_object(
+  'ok', true,
+  'at', v_now,
+  'window_minutes', 60,
+  'baseline_days', 7,
+  'worst', v_worst,
+  'finding_count', jsonb_array_length(v_find),
+  'findings', v_find,
+  'notes', v_notes,
+  'persisted', p_persist,
+  'ledger_upserted', v_opened,
+  'ledger_resolved', v_resolved);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_alert_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_admin text; v_gap_min numeric; v_last_beat timestamptz;
+  r record; v_sev text; v_reason text; v_body text; v_subject text; v_id bigint;
+  v_sent int := 0; v_silent int := 0; v_resolved int := 0; v_refused int := 0;
+  v_monitor int := 0; v_errors jsonb := '[]'::jsonb; v_ingest jsonb := '{}'::jsonb;
+begin
+  select lower(nullif(split_part(coalesce(value,''), ',', 1), '')) into v_admin
+    from public.app_secrets where key = 'admin_emails';
+  if v_admin is null then
+    insert into public.founder_alerts (level, event, detail, channel)
+    values ('high','it_engineer:no_admin_address',
+            'fn_it_engineer_alert_tick cannot address the founder: app_secrets.admin_emails is empty.','os');
+    return jsonb_build_object('ok', false, 'reason', 'no admin address');
+  end if;
+
+  ---------------------------------------------------------------------------------------------
+  -- 0. PULL FROM THE DETECTORS FIRST. The detection engine writes to it_watch_finding; this ledger
+  --    holds only what the founder has been told. Without this call the tick reports
+  --    monitor_findings: 0 — true of the table it reads, and false about the estate.
+  --    Wrapped: a failed intake must not take the alerting down, but it must be VISIBLE, because a
+  --    tick that quietly saw nothing looks exactly like a tick with nothing to see.
+  ---------------------------------------------------------------------------------------------
+  begin
+    v_ingest := public.fn_it_engineer_ingest_watch_findings();
+  exception when others then
+    v_ingest := jsonb_build_object('ok', false, 'error', sqlerrm);
+    v_errors := v_errors || to_jsonb('ingest failed: ' || sqlerrm);
+    begin
+      insert into public.founder_alerts (level, event, detail, channel)
+      values ('high','it_engineer:ingest_failed',
+              'fn_it_engineer_ingest_watch_findings raised (' || sqlerrm || '), so this tick decided '
+              || 'what to send you from a ledger that may be missing newly detected faults.','os');
+    exception when others then null; end;
+  end;
+
+  ---------------------------------------------------------------------------------------------
+  -- A. THE MONITOR WATCHES ITSELF FIRST. A blind detection engine is an alert, not a quiet night.
+  --    The gap is read BEFORE this tick's own beat is stamped, or it would always read zero.
+  --    (What this cannot catch is the tick never running again at all. That is not left uncovered:
+  --    it is the platform_down / uptime_alert path -- resilience_ping via Vercel cron every 15 min
+  --    and the once-a-day GitHub Action outside both Supabase and Vercel -- which already emails
+  --    him under kinds that are already allowed. This does not duplicate that.)
+  ---------------------------------------------------------------------------------------------
+  begin
+    select last_beat_at into v_last_beat from public.it_engineer_scanner where scanner = 'it_engineer_alert_tick';
+    if v_last_beat is not null then
+      v_gap_min := extract(epoch from (now() - v_last_beat)) / 60.0;
+      if v_gap_min > 60 then
+        perform public.fn_it_engineer_finding_upsert(
+          'monitor:alert_tick_blind',
+          'The IT engineer''s alert tick did not run for ' || round(v_gap_min) || ' minutes',
+          'public.fn_it_engineer_alert_tick, called from supabase/functions/resilience_ping',
+          'monitor', 1,
+          jsonb_build_object('gap_minutes', round(v_gap_min), 'last_beat_at', v_last_beat,
+                             'expected_every', '15 minutes (Vercel cron -> /api/resilience-ping)'),
+          array['the tick is running now, so the routine itself still executes'],
+          array['whether any finding was raised and missed during the gap',
+                'whether the 15-minute Vercel cron or the whole edge function was the part that stopped'],
+          'fn_it_engineer_alert_tick');
+      else
+        perform public.fn_it_engineer_finding_close('monitor:alert_tick_blind', 'the tick is running on cadence again');
+      end if;
+    end if;
+    perform public.fn_it_engineer_scanner_beat('it_engineer_alert_tick', null, 60);
+  exception when others then
+    v_errors := v_errors || jsonb_build_object('section','self_watch','error', sqlerrm);
+  end;
+
+  ---------------------------------------------------------------------------------------------
+  -- B. EVERY REGISTERED SCANNER. Stale beat OR a recorded error becomes a finding of its own.
+  ---------------------------------------------------------------------------------------------
+  begin
+    for r in select * from public.it_engineer_scanner where scanner <> 'it_engineer_alert_tick' loop
+      if r.last_error is not null then
+        perform public.fn_it_engineer_finding_upsert(
+          'monitor:' || r.scanner,
+          'Detector ' || r.scanner || ' is failing, so its silence proves nothing',
+          'IT engineer scanner ' || r.scanner, 'monitor', 1,
+          jsonb_build_object('last_error', r.last_error, 'last_beat_at', r.last_beat_at, 'last_ok_at', r.last_ok_at),
+          array['the scanner is still being invoked -- it beat at ' || to_char(r.last_beat_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC'],
+          array['what this detector would have found while it was erroring'],
+          'fn_it_engineer_alert_tick');
+        v_monitor := v_monitor + 1;
+      elsif now() - r.last_beat_at > make_interval(mins => r.max_gap_minutes) then
+        perform public.fn_it_engineer_finding_upsert(
+          'monitor:' || r.scanner,
+          'Detector ' || r.scanner || ' has not reported for ' || round(extract(epoch from (now() - r.last_beat_at))/60.0) || ' minutes',
+          'IT engineer scanner ' || r.scanner, 'monitor', 1,
+          jsonb_build_object('gap_minutes', round(extract(epoch from (now() - r.last_beat_at))/60.0),
+                             'max_gap_minutes', r.max_gap_minutes, 'last_beat_at', r.last_beat_at),
+          array['nothing -- this detector has reported nothing to rule anything out with'],
+          array['everything this detector covers is currently unwatched'],
+          'fn_it_engineer_alert_tick');
+        v_monitor := v_monitor + 1;
+      else
+        perform public.fn_it_engineer_finding_close('monitor:' || r.scanner, 'the detector is reporting on cadence and without error');
+      end if;
+    end loop;
+  exception when others then
+    v_errors := v_errors || jsonb_build_object('section','scanner_watch','error', sqlerrm);
+  end;
+
+  ---------------------------------------------------------------------------------------------
+  -- C. OPEN FINDINGS -> the dedupe/escalation rule of section 3.
+  ---------------------------------------------------------------------------------------------
+  begin
+    for r in select * from public.it_engineer_finding where closed_at is null order by started_at loop
+      v_sev := public.fn_it_engineer_severity(r.blast, r.affected, r.started_at);
+      v_reason := null;
+      if v_sev = 'warn' then
+        null;                                                        -- never emails. Recorded only.
+      elsif r.alerted_at is null then
+        v_reason := case when r.alert_count > 0 then 'recurred' else 'first' end;
+      elsif array_position(array['warn','high','critical'], v_sev)
+          > array_position(array['warn','high','critical'], coalesce(r.alerted_severity,'warn')) then
+        v_reason := 'severity_rose';                                  -- no floor: this is new information
+      elsif r.affected > coalesce(r.alerted_affected, 0)
+        and r.affected >= 2 * greatest(coalesce(r.alerted_affected,0), 1)
+        and now() - r.alerted_at >= interval '30 minutes' then
+        v_reason := 'blast_grew';
+      end if;
+
+      if v_reason is null then v_silent := v_silent + 1; continue; end if;
+
+      v_body    := public.fn_it_engineer_handover_body(r.issue_key, v_reason);
+      v_subject := '[' || upper(v_sev) || '] QuotesDone IT: ' || r.title
+                   || case when v_reason = 'severity_rose' then ' (escalated)'
+                           when v_reason = 'blast_grew'    then ' (now ' || r.affected || ' affected)'
+                           when v_reason = 'recurred'      then ' (recurred)' else '' end;
+
+      v_id := null;
+      insert into public.notifications (type, kind, to_email, to_role, channel, subject, body)
+      values ('it_engineer_handover', 'it_engineer_handover', v_admin, 'admin', 'email',
+              left(v_subject, 200), v_body)
+      returning id into v_id;
+
+      if v_id is null then
+        -- the a10 gate refused the row. It does NOT raise, so without this the alert would vanish.
+        v_refused := v_refused + 1;
+        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+        values ('critical', 'it_engineer:handover_refused_by_gate',
+                'a10_notifications_founder_mail_policy dropped an it_engineer_handover for issue '
+                || r.issue_key || ' (severity ' || v_sev || '). Check founder_mail_policy.it_engineer_handover.',
+                'os', 'it_handover_refused');
+      else
+        update public.it_engineer_finding
+           set alerted_at = now(), alerted_severity = v_sev, alerted_affected = r.affected,
+               alert_count = alert_count + 1, notification_id = v_id
+         where issue_key = r.issue_key;
+        v_sent := v_sent + 1;
+      end if;
+    end loop;
+  exception when others then
+    v_errors := v_errors || jsonb_build_object('section','open_findings','error', sqlerrm);
+  end;
+
+  ---------------------------------------------------------------------------------------------
+  -- D. CLOSED FINDINGS HE WAS TOLD ABOUT -> one RESOLVED note, so silence is not ambiguous.
+  ---------------------------------------------------------------------------------------------
+  begin
+    for r in select * from public.it_engineer_finding
+              where closed_at is not null and alert_count > 0 and close_notified_at is null loop
+      v_body := public.fn_it_engineer_handover_body(r.issue_key, 'resolved');
+      v_id := null;
+      insert into public.notifications (type, kind, to_email, to_role, channel, subject, body)
+      values ('it_engineer_handover', 'it_engineer_handover', v_admin, 'admin', 'email',
+              left('[RESOLVED] QuotesDone IT: ' || r.title, 200), v_body)
+      returning id into v_id;
+      if v_id is null then
+        v_refused := v_refused + 1;
+      else
+        update public.it_engineer_finding set close_notified_at = now() where issue_key = r.issue_key;
+        v_resolved := v_resolved + 1;
+      end if;
+    end loop;
+  exception when others then
+    v_errors := v_errors || jsonb_build_object('section','resolved','error', sqlerrm);
+  end;
+
+  -- A tick that half-failed must SAY so rather than returning a clean-looking zero.
+  if jsonb_array_length(v_errors) > 0 then
+    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+    values ('high', 'it_engineer:alert_tick_partial', v_errors::text, 'os', 'it_tick_partial');
+  end if;
+
+  return jsonb_build_object('ok', jsonb_array_length(v_errors) = 0,
+                            'sent', v_sent, 'resolved', v_resolved, 'silent', v_silent,
+                            'monitor_findings', v_monitor, 'ingested_from_detectors', v_ingest, 'refused_by_gate', v_refused,
+                            'errors', v_errors);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_assist(p_text text, p_embedding vector DEFAULT NULL::vector, p_min_similarity numeric DEFAULT 0.83, p_min_rank numeric DEFAULT 0.05, p_k integer DEFAULT 5, p_min_overlap numeric DEFAULT 0.60)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_k         int := greatest(1, least(coalesce(p_k, 5), 20));
+  v_wide      int := greatest(v_k * 4, 20);
+  c_lex_only  numeric := greatest(0.20, coalesce(p_min_rank, 0));
+  v_tq        tsquery;
+  v_lex       text[];
+  v_nlex      int;
+  v_need      int;
+  v_cands     jsonb  := '[]'::jsonb;
+  v_cited     text[] := '{}';
+  v_answer    jsonb  := '[]'::jsonb;
+  v_refusal   text;
+  v_best_sim  numeric;
+  v_best_rank numeric;
+  v_best_lex  int;
+  v_best_corp text;
+  v_handoff   text;
+begin
+  if coalesce(btrim(p_text), '') = '' then
+    return jsonb_build_object('ok', false, 'answered', false, 'refusal', 'empty_query');
+  end if;
+
+  v_tq := websearch_to_tsquery('english', p_text);
+  select array_agg(distinct u.lexeme) into v_lex from unnest(to_tsvector('english', p_text)) u;
+  v_nlex := coalesce(cardinality(v_lex), 0);
+  -- The greater of 60% and two lexemes, so a short question cannot be admitted on one common word.
+  v_need := case when v_nlex = 0 then 2147483647
+                 else greatest(least(2, v_nlex), ceil(coalesce(p_min_overlap, 0.60) * v_nlex)::int) end;
+
+  create temporary table if not exists _ite_cand (
+    corpus text, record_id text, title text, content text, provenance text,
+    similarity numeric, lexical_rank numeric, has_vector boolean, lex_hits int default 0
+  ) on commit drop;
+  -- truncate, not delete: the estate refuses an unqualified DELETE, and a WHERE-less delete on a
+  -- scratch table is exactly the shape that guard exists to catch elsewhere.
+  truncate table _ite_cand;
+
+  -- it_engineer_knowledge -- the seat's own body.
+  if p_embedding is not null then
+    insert into _ite_cand
+    select 'it_engineer_knowledge', k.record_id, k.title, left(k.content, 4000),
+           coalesce(k.record_type, '') || case when k.domain is null then '' else ' · ' || k.domain end
+             || ' · ' || k.epistemic_status,
+           (1 - (k.embedding_gte <=> p_embedding))::numeric,
+           coalesce(ts_rank(k.search, v_tq), 0)::numeric * (case when k.search @@ v_tq then 1 else 0 end),
+           true,
+           (select count(*) from unnest(k.search) u where u.lexeme = any (v_lex))
+      from it_engineer_knowledge k
+     where k.embedding_gte is not null and k.runtime_index_eligible
+     order by k.embedding_gte <=> p_embedding
+     limit v_wide;
+  end if;
+  insert into _ite_cand
+  select 'it_engineer_knowledge', k.record_id, k.title, left(k.content, 4000),
+         coalesce(k.record_type, '') || ' · ' || k.epistemic_status,
+         null::numeric, ts_rank(k.search, v_tq)::numeric, false, 0
+    from it_engineer_knowledge k
+   where k.embedding_gte is null and k.runtime_index_eligible and k.search @@ v_tq
+   order by ts_rank(k.search, v_tq) desc
+   limit v_wide;
+
+  -- ops_knowledge -- the 165 it_security_deep rows plus how this company actually operates.
+  if p_embedding is not null then
+    insert into _ite_cand
+    select 'ops_knowledge', o.record_id, o.title, left(o.content, 4000),
+           coalesce(o.layer, '') || case when o.module is null then '' else ' · ' || o.module end
+             || case when o.authority_tier is null then '' else ' · authority ' || o.authority_tier end,
+           (1 - (o.embedding_gte <=> p_embedding))::numeric,
+           coalesce(ts_rank(o.tsv, v_tq), 0)::numeric * (case when o.tsv @@ v_tq then 1 else 0 end),
+           true,
+           (select count(*) from unnest(o.tsv) u where u.lexeme = any (v_lex))
+      from ops_knowledge o
+     where o.embedding_gte is not null
+       and coalesce(o.supersession_state, 'current') = 'current'
+     order by o.embedding_gte <=> p_embedding
+     limit v_wide;
+  end if;
+
+  -- ADMISSION. The cosine floor is a hard AND for every vector-bearing row; corroboration may come
+  -- from either the all-terms rank or literal lexeme overlap, and one of the two is required.
+  with judged as (
+    select c.*,
+           (c.has_vector and c.similarity >= p_min_similarity
+             and (c.lexical_rank >= p_min_rank or c.lex_hits >= v_need))     as ok_vector,
+           ((not c.has_vector) and c.lexical_rank >= c_lex_only)             as ok_lexical
+      from _ite_cand c
+  ), ranked as (
+    select j.*, (j.ok_vector or j.ok_lexical) as cited,
+           row_number() over (
+             order by (case when j.ok_vector or j.ok_lexical then 0 else 1 end),
+                      (case when j.has_vector then 0 else 1 end),
+                      j.similarity desc nulls last, j.lexical_rank desc) as rn
+      from judged j
+  )
+  select
+    coalesce(jsonb_agg(jsonb_build_object(
+      'corpus', r.corpus, 'record_id', r.record_id,
+      'similarity', round(r.similarity, 4), 'lexical_rank', round(r.lexical_rank, 4),
+      'route', case when r.has_vector then 'vector+lexical' else 'lexical_only' end,
+      'cleared_floor', coalesce(r.has_vector and r.similarity >= p_min_similarity, false),
+      'lex_hits', r.lex_hits, 'lex_needed', v_need,
+      'corroborated', case when r.has_vector then (r.lexical_rank >= p_min_rank or r.lex_hits >= v_need)
+                           else r.lexical_rank >= c_lex_only end,
+      'cited', r.cited) order by r.rn) filter (where r.rn <= 40), '[]'::jsonb),
+    coalesce(array_agg(r.corpus || ':' || r.record_id order by r.rn)
+             filter (where r.cited and r.rn <= v_k), '{}'),
+    coalesce(jsonb_agg(jsonb_build_object(
+      'corpus', r.corpus, 'record_id', r.record_id, 'title', r.title,
+      'provenance', r.provenance,
+      'similarity', round(r.similarity, 4), 'lexical_rank', round(r.lexical_rank, 4),
+      'route', case when r.has_vector then 'vector+lexical' else 'lexical_only' end,
+      'content', r.content) order by r.rn) filter (where r.cited and r.rn <= v_k), '[]'::jsonb)
+    into v_cands, v_cited, v_answer
+    from ranked r;
+
+  select max(similarity), max(lexical_rank), max(lex_hits)
+    into v_best_sim, v_best_rank, v_best_lex from _ite_cand;
+  select corpus into v_best_corp from _ite_cand
+   order by similarity desc nulls last, lexical_rank desc limit 1;
+
+  if cardinality(v_cited) = 0 then
+    v_refusal := case
+      when (select count(*) from _ite_cand) = 0 then 'no_candidates'
+      when coalesce(v_best_sim, 0) < p_min_similarity and coalesce(v_best_rank, 0) < c_lex_only
+        then 'below_similarity_floor_and_lexical_bar'
+      when coalesce(v_best_sim, 0) < p_min_similarity then 'below_similarity_floor'
+      else 'not_corroborated_lexically' end;
+    v_handoff :=
+      'I do not have a sourced answer to that, and I will not guess during an incident. '
+      || 'If the question is whether a specific published vulnerability reaches this estate, that '
+      || 'is deliberately not held in my knowledge: I hold no CVE identifier, no version-specific '
+      || 'vulnerability claim and no patch level, because I cannot read a vulnerability feed and an '
+      || 'invented one is worse than none. Determine it against the component''s own advisory and '
+      || 'the version the platform actually reports. If the question is about live state, read the '
+      || 'live state: the answer is in the database, the edge logs or the deploy history, not here.';
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'answered', cardinality(v_cited) > 0,
+    'records', v_answer,
+    'cited', v_cited,
+    'candidates', v_cands,
+    'corpora', jsonb_build_array('it_engineer_knowledge', 'ops_knowledge'),
+    'floor', jsonb_build_object(
+      'min_similarity', p_min_similarity, 'min_rank', p_min_rank, 'lexical_only', c_lex_only,
+      'min_overlap', p_min_overlap, 'lexemes_in_question', v_nlex, 'lexeme_overlap_needed', v_need,
+      'best_similarity', round(v_best_sim, 4), 'best_lexical_rank', round(v_best_rank, 4),
+      'best_lex_hits', v_best_lex, 'nearest_corpus', v_best_corp, 'k', v_k,
+      'rule', 'a row with an embedding must clear the cosine floor -- always -- AND corroborate literally by one of two routes: the all-terms lexical query at ts_rank >= min_rank, or at least lexeme_overlap_needed of the question''s own lexemes present verbatim in the row. A row with no embedding cannot be put to the vector floor at all and must clear the stricter lexical-only bar instead. A nearest neighbour is always found; a literal match is not.'),
+    'refusal', v_refusal,
+    'handoff', v_handoff);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_close(p_issue_key text, p_note text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v public.it_engineer_finding;
+begin
+  update public.it_engineer_finding
+     set closed_at = coalesce(closed_at, now()), close_note = left(coalesce(p_note, close_note), 2000)
+   where issue_key = p_issue_key
+  returning * into v;
+  if v.issue_key is null then return jsonb_build_object('closed', false, 'reason', 'no such issue_key'); end if;
+  -- the RESOLVED note is not sent here: fn_it_engineer_alert_tick sends it, and only if he was
+  -- actually emailed about this issue. Closing something he never heard about is not news.
+  return jsonb_build_object('closed', true, 'issue_key', v.issue_key,
+                            'was_alerted', v.alert_count > 0, 'open_for', (v.closed_at - v.started_at)::text);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_upsert(p_issue_key text, p_title text, p_where text, p_blast text, p_affected integer DEFAULT 0, p_evidence jsonb DEFAULT '{}'::jsonb, p_ruled_out text[] DEFAULT '{}'::text[], p_undetermined text[] DEFAULT '{}'::text[], p_raised_by text DEFAULT 'it_engineer'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v public.it_engineer_finding; v_reopened boolean := false;
+begin
+  if coalesce(btrim(p_issue_key),'') = '' then
+    raise exception 'fn_it_engineer_finding_upsert: p_issue_key is the dedupe identity and cannot be blank';
+  end if;
+
+  select * into v from public.it_engineer_finding where issue_key = p_issue_key;
+  v_reopened := (v.issue_key is not null and v.closed_at is not null);
+
+  insert into public.it_engineer_finding as f
+    (issue_key, title, where_it_is, blast, affected, evidence, ruled_out, undetermined, raised_by)
+  values
+    (p_issue_key, left(p_title, 300), left(p_where, 300), p_blast, greatest(coalesce(p_affected,0),0),
+     coalesce(p_evidence,'{}'::jsonb), coalesce(p_ruled_out,'{}'), coalesce(p_undetermined,'{}'),
+     coalesce(nullif(btrim(p_raised_by),''),'it_engineer'))
+  on conflict (issue_key) do update set
+    title         = excluded.title,
+    where_it_is   = excluded.where_it_is,
+    blast         = excluded.blast,
+    affected      = excluded.affected,
+    evidence      = excluded.evidence,
+    ruled_out     = excluded.ruled_out,
+    undetermined  = excluded.undetermined,
+    raised_by     = excluded.raised_by,
+    last_seen_at  = now(),
+    seen_count    = f.seen_count + 1,
+    -- A RECURRENCE IS NEWS. Reopening restarts the clock and the alert state, so a problem that
+    -- came back is told once more rather than being suppressed by the alert he got last week.
+    started_at        = case when f.closed_at is not null then now() else f.started_at end,
+    closed_at         = null,
+    close_note        = null,
+    alerted_at        = case when f.closed_at is not null then null else f.alerted_at end,
+    alerted_severity  = case when f.closed_at is not null then null else f.alerted_severity end,
+    alerted_affected  = case when f.closed_at is not null then null else f.alerted_affected end,
+    -- alert_count is deliberately NOT reset: it is how the tick knows a reopened issue is a
+    -- RECURRENCE rather than a first sighting, and says so on the face of the email.
+    close_notified_at = null
+  returning * into v;
+
+  return jsonb_build_object(
+    'issue_key', v.issue_key, 'reopened', v_reopened, 'seen_count', v.seen_count,
+    'started_at', v.started_at,
+    'severity', public.fn_it_engineer_severity(v.blast, v.affected, v.started_at));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_handover_body(p_issue_key text, p_reason text DEFAULT 'first'::text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding; v_sev text; v_age interval; b text; e text; x text;
+begin
+  select * into f from public.it_engineer_finding where issue_key = p_issue_key;
+  if f.issue_key is null then return null; end if;
+  v_sev := public.fn_it_engineer_severity(f.blast, f.affected, f.started_at);
+  v_age := coalesce(f.closed_at, now()) - f.started_at;
+
+  select coalesce(string_agg('  ' || k || ': ' || left(val, 500), E'\n' order by k), '  (none recorded)')
+    into e from jsonb_each_text(coalesce(f.evidence,'{}'::jsonb)) as t(k, val);
+
+  b := case p_reason
+         when 'resolved'      then 'RESOLVED. Nothing to do -- this is the close-out of an issue you were emailed about.'
+         when 'severity_rose' then 'ESCALATION. You were told about this at ' || coalesce(f.alerted_severity,'?') || '; it is now ' || v_sev || '.'
+         when 'blast_grew'    then 'THIS GOT BIGGER. You were told ' || coalesce(f.alerted_affected::text,'?') || ' affected; it is now ' || f.affected || '.'
+         when 'recurred'      then 'THIS CAME BACK. The same issue was closed and has re-opened.'
+         else                      'NEW. This is the first time you are hearing about this issue.'
+       end;
+
+  x := b || E'\n\n'
+    || 'WHAT BROKE' || E'\n  ' || f.title || E'\n\n'
+    || 'WHERE' || E'\n  ' || f.where_it_is || E'\n\n'
+    || 'WHEN IT STARTED' || E'\n'
+    || '  first seen  ' || to_char(f.started_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC ('
+       || to_char(f.started_at at time zone 'Asia/Dubai','HH24:MI') || ' Dubai), '
+       || trim(to_char(extract(epoch from v_age)/3600, '9990.9')) || ' hours ago' || E'\n'
+    || '  last seen   ' || to_char(f.last_seen_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC'
+       || ', observed on ' || f.seen_count || ' scan(s)' || E'\n'
+    || case when f.closed_at is not null
+            then '  closed      ' || to_char(f.closed_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC' || E'\n' else '' end
+    || E'\n'
+    || 'HOW BAD, AND WHY THAT SEVERITY' || E'\n'
+    || '  ' || upper(v_sev) || ' -- derived, not typed: a ' || f.blast || ' path, ' || f.affected
+       || ' subject(s) measured as affected, open ' || trim(to_char(extract(epoch from v_age)/3600, '9990.9')) || ' hours.' || E'\n'
+    || '  (fn_it_engineer_severity is the rule; nothing hand-sets this.)' || E'\n\n'
+    || 'EVIDENCE' || E'\n' || e || E'\n\n'
+    || 'ALREADY CHECKED AND RULED OUT -- do not repeat this work' || E'\n'
+    || coalesce(nullif((select string_agg('  - ' || r, E'\n') from unnest(f.ruled_out) r), ''),
+                '  (nothing was ruled out -- treat every cause as open)') || E'\n\n'
+    || 'COULD NOT DETERMINE -- start here' || E'\n'
+    || coalesce(nullif((select string_agg('  - ' || u, E'\n') from unnest(f.undetermined) u), ''),
+                '  (nothing recorded as undetermined)') || E'\n\n'
+    || 'RAISED BY' || E'\n  ' || f.raised_by || '   issue key: ' || f.issue_key || E'\n\n'
+    || 'TO PICK THIS UP' || E'\n'
+    || '  Open a session on the quotesdone repository and paste this email. The full row, including' || E'\n'
+    || '  anything added since this was sent:' || E'\n'
+    || '    select * from public.it_engineer_finding where issue_key = ' || quote_literal(f.issue_key) || ';' || E'\n\n'
+    || 'YOU WILL NOT GET THIS TWICE' || E'\n'
+    || '  One email per issue. Another arrives only if the severity rises, the number affected at' || E'\n'
+    || '  least doubles, the issue closes, or it comes back after being closed. Silence from here' || E'\n'
+    || '  means the detectors are running and clean -- a detector that stops reporting raises its' || E'\n'
+    || '  own finding rather than passing for a quiet night.';
+  return x;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_ingest_watch_findings()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_row      record;
+  v_ingested int := 0;
+  v_closed   int := 0;
+  v_blast    text;
+  v_affected int;
+  v_errors   text[] := '{}';
+begin
+  -- OPEN FINDINGS BECOME, OR STAY, ISSUES.
+  for v_row in
+    select * from public.it_watch_finding where status = 'open'
+     order by case severity when 'critical' then 0 when 'high' then 1 when 'medium' then 2 else 3 end,
+              opened_at
+  loop
+    begin
+      -- The detector's severity, reproduced through the alert's own rule rather than asserted.
+      -- 'blast' is what fn_it_engineer_severity reasons about; these are the classes that make its
+      -- output match what the detector already decided from the numbers.
+      v_blast := case v_row.severity
+        when 'critical' then 'customer_facing'   -- critical here means a public surface is affected
+        when 'high'     then 'agent_facing'      -- the machine is degraded; people are not yet stuck
+        when 'medium'   then 'internal'
+        else 'internal' end;
+
+      -- AFFECTED IS A COUNT OF SUBJECTS, NOT A COUNT OF ROWS. A queue holding 1,433 items is one
+      -- broken queue, not 1,433 casualties, and feeding the row count in would make every stalled
+      -- queue read as a catastrophe and drown the one that is.
+      v_affected := case when v_row.severity in ('critical','high') then 1 else 0 end;
+
+      perform public.fn_it_engineer_finding_upsert(
+        'watch:' || v_row.detector_key,
+        v_row.title,
+        v_row.detector || ' / ' || coalesce(v_row.subject, '(no subject)'),
+        v_blast,
+        v_affected,
+        coalesce(v_row.evidence, '{}'::jsonb)
+          || jsonb_build_object(
+               'detector', v_row.detector,
+               'detector_state', v_row.state,
+               'detector_severity', v_row.severity,
+               'first_detected', v_row.opened_at,
+               'times_seen', v_row.seen_count),
+        -- NOTHING was ruled out. A detector measures; it does not eliminate causes, and a
+        -- fabricated "already checked" line is worse than an empty one because it would be believed.
+        array[]::text[],
+        array[
+          'This came from an automatic detector (' || v_row.detector || '). It established the '
+          || 'SYMPTOM and not the cause — no hypothesis has been tested and nothing has been ruled out.',
+          'The detector''s own row, including anything seen since this was sent: '
+          || 'select * from public.it_watch_finding where detector_key = ' || quote_literal(v_row.detector_key) || ';'
+        ],
+        'it_engineer.' || v_row.detector);
+
+      v_ingested := v_ingested + 1;
+    exception when others then
+      v_errors := v_errors || (v_row.detector_key || ': ' || sqlerrm);
+    end;
+  end loop;
+
+  -- RESOLVED FINDINGS CLOSE THEIR ISSUE. Without this the founder is told a fault appeared and
+  -- never told it went away, which is how a person learns to ignore the sender.
+  for v_row in
+    select w.* from public.it_watch_finding w
+     join public.it_engineer_finding f on f.issue_key = 'watch:' || w.detector_key
+    where w.status <> 'open' and f.closed_at is null
+  loop
+    begin
+      perform public.fn_it_engineer_finding_close('watch:' || v_row.detector_key,
+        'The detector no longer sees it: ' || v_row.detector || ' resolved '
+        || coalesce(v_row.resolved_at::text, 'at an unrecorded time') || '.');
+      v_closed := v_closed + 1;
+    exception when others then
+      v_errors := v_errors || (v_row.detector_key || ' (close): ' || sqlerrm);
+    end;
+  end loop;
+
+  return jsonb_build_object(
+    'ingested', v_ingested,
+    'closed', v_closed,
+    'errors', to_jsonb(v_errors),
+    'basis', 'Bridges public.it_watch_finding (what the detectors measured) to '
+          || 'public.it_engineer_finding (what the founder has been told). The detector owns '
+          || 'whether a fault is present; the alert owns only whether he has heard about it.');
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_search_vector()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.search :=
+      setweight(to_tsvector('english'::regconfig, coalesce(new.title,'')), 'A')
+   || setweight(to_tsvector('english'::regconfig, coalesce(array_to_string(new.tags,' '),'')), 'B')
+   || setweight(to_tsvector('english'::regconfig, coalesce(new.content,'')), 'C');
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_scanner_beat(p_scanner text, p_error text DEFAULT NULL::text, p_max_gap_minutes integer DEFAULT 60)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v public.it_engineer_scanner;
+begin
+  insert into public.it_engineer_scanner as s (scanner, last_beat_at, last_ok_at, last_error, max_gap_minutes)
+  values (p_scanner, now(), case when p_error is null then now() end, left(p_error, 1000),
+          least(greatest(coalesce(p_max_gap_minutes,60), 5), 1440))
+  on conflict (scanner) do update set
+    last_beat_at    = now(),
+    last_ok_at      = case when p_error is null then now() else s.last_ok_at end,
+    last_error      = left(p_error, 1000),
+    max_gap_minutes = least(greatest(coalesce(p_max_gap_minutes, s.max_gap_minutes), 5), 1440)
+  returning * into v;
+  return jsonb_build_object('scanner', v.scanner, 'ok', p_error is null, 'max_gap_minutes', v.max_gap_minutes);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_severity(p_blast text, p_affected integer, p_started_at timestamp with time zone)
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    -- data or credentials exposed: there is no count at which this waits
+    when p_blast = 'security' then 'critical'
+    -- a customer cannot complete something. Someone is actually stuck -> critical;
+    -- the path is broken but nobody has hit it yet -> high (still same-day work)
+    when p_blast = 'customer_facing' then case when coalesce(p_affected,0) > 0 then 'critical' else 'high' end
+    -- a blind detector. High from the first tick, because its silence is now worthless;
+    -- critical once we have been blind for 6h, because by then "nothing was reported" means nothing
+    when p_blast = 'monitor' then case when now() - p_started_at >= interval '6 hours' then 'critical' else 'high' end
+    -- an agent cannot do its job: no customer is stuck yet, but work is not happening
+    when p_blast = 'agent_facing' then case when coalesce(p_affected,0) > 0 or now() - p_started_at >= interval '6 hours' then 'high' else 'warn' end
+    -- internal only. Quiet by default; a thing still broken six hours later is not routine
+    else case when coalesce(p_affected,0) > 0 and now() - p_started_at >= interval '6 hours' then 'high' else 'warn' end
+  end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_run_is_refusal(p_agent text, p_started timestamp with time zone, p_counts jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  -- THE coalesce IS THE WHOLE FUNCTION'S CORRECTNESS, and it is not decoration.
+  -- Caught by the positive control on 9 Sep 2026 before this shipped. Without it, a run whose
+  -- counts carry no `signal` key returns `false OR NULL OR NULL OR false OR false` = NULL, and in
+  -- D1 the filter `where bad and not refused` evaluates `not NULL` = NULL and DROPS THE ROW. The
+  -- effect was total and silent: an injected run of three genuine HTTP 500s on login_otp produced
+  -- no finding at all, because most functions' counts have no `signal` key. A detector that goes
+  -- quiet on the majority of real faults, while still looking like it works on the minority that
+  -- happen to log a signal, is worse than no detector. Three-valued logic has to be closed here,
+  -- once, rather than at each of the three call sites.
+  select coalesce(
+       -- the row's own telemetry says the caller was turned away
+       (p_counts ->> 'http') ~ '^4[0-9][0-9]$'
+       -- or the function's own log says so, in the four shapes this estate actually writes
+    or (p_counts ->> 'signal') in ('forbidden','bad_secret')
+    or (p_counts ->> 'authorised') = '0'
+    or coalesce(nullif(p_counts ->> 'forbidden','')::int, 0) > 0
+       -- or the paired fn:<name> telemetry row, written within milliseconds, carries a 4xx.
+       -- stripe_webhook and refunds_api are only caught by this arm: their own counts say nothing.
+    or exists (
+         select 1 from public.agent_runs t
+         where t.agent = 'fn:' || regexp_replace(p_agent, '^fn:', '')
+           and t.started_at between p_started - interval '5 seconds' and p_started + interval '5 seconds'
+           and (t.counts ->> 'http') ~ '^4[0-9][0-9]$')
+  , false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_severity(p_state text, p_public boolean)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public'
+AS $function$
+  select case
+    when p_state = 'stopped'  and p_public then 'critical'
+    when p_state = 'stopped'               then 'high'
+    when p_state = 'degraded' and p_public then 'high'
+    when p_state = 'degraded'              then 'medium'
+    when p_state = 'delayed'  and p_public then 'medium'
+    when p_state = 'delayed'               then 'low'
+    else 'low'
+  end
 $function$
 
 
@@ -32199,7 +33745,12 @@ begin
   with runs as (
     select agent, started_at, counts,
            started_at - lag(started_at) over (partition by agent order by started_at) gap
-      from agent_runs where started_at > now() - interval '30 days'),
+      from agent_runs
+     where started_at > now() - interval '30 days'
+       -- 9 SEP 2026: `fn:<slug>` rows are edge-function REQUESTS, written by _shared/observe.ts.
+       -- An HTTP endpoint has no cadence — its gaps measure how often somebody called it, not
+       -- whether it is working — so learning one here would page about a quiet weekend.
+       and agent not like 'fn:%'),
   agg as (
     select agent,
            count(*) as n,
@@ -33034,6 +34585,286 @@ AS $function$
 begin
   raise exception 'security_audit_log is append-only; % is not permitted', tg_op;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_security_detect(p_window interval DEFAULT '24:00:00'::interval)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare
+  v_since timestamptz := now() - p_window;
+  v jsonb := '{}'::jsonb;
+  n int;
+begin
+  -- D1 MALWARE. A recorded malicious verdict is the highest-confidence detection this estate has.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'malware_file', 'high', f.source, coalesce(f.subject, f.filename),
+           jsonb_build_object('file_scan_id', f.id, 'sha256', f.sha256, 'filename', f.filename,
+                              'mime', f.mime, 'bucket', f.bucket, 'path', f.path,
+                              'engines_malicious', f.engines_malicious,
+                              'engines_total', f.engines_total, 'blocked', f.blocked),
+           'file_scan:' || f.id
+      from public.file_scan f
+     where f.verdict in ('malicious','suspicious')
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('malware_file', n);
+
+  -- D2 UNJUDGED. A file that entered and still has no clean verdict after 24h is sitting in the
+  -- estate unscanned. Low severity, but it must be VISIBLE — an unknown must never render as safe.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'file_unscanned', 'low', f.source, coalesce(f.subject, f.filename),
+           jsonb_build_object('file_scan_id', f.id, 'sha256', f.sha256, 'verdict', f.verdict,
+                              'filename', f.filename, 'bucket', f.bucket, 'path', f.path),
+           'file_unscanned:' || f.id
+      from public.file_scan f
+     where f.verdict in ('unknown','unavailable')
+       and f.created_at < now() - interval '24 hours'
+       and not public.fn_file_is_cleared(f.sha256)
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('file_unscanned', n);
+
+  -- D3 CREDENTIAL MISUSE. internal_credential_audit.allowed=false is a presented secret that was
+  -- REFUSED: a wrong secret, a retired one, or one used outside its scope. 11 such rows exist today.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'credential_refused', 'medium', a.function_name, a.context,
+           jsonb_build_object('audit_id', a.id, 'credential_id', a.credential_id,
+                              'reason', a.reason, 'at', a.at, 'detail', a.detail),
+           'cred_audit:' || a.id
+      from public.internal_credential_audit a
+     where a.allowed = false
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('credential_refused', n);
+
+  -- D4 A DEAD CREDENTIAL THAT STILL WORKS. last_used_at after retired_at or after expires_at means
+  -- a secret that should have stopped being accepted was accepted. That is containment-worthy:
+  -- 83 of the 90 rows in internal_credential are active, so revoking one is a real action available
+  -- today, and this detection is the trigger for it.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'credential_used_after_end', 'high', c.last_function, c.context,
+           jsonb_build_object('credential_id', c.id, 'label', c.label, 'active', c.active,
+                              'retired_at', c.retired_at, 'expires_at', c.expires_at,
+                              'last_used_at', c.last_used_at, 'use_count', c.use_count),
+           'cred_after_end:' || c.id || ':' || to_char(c.last_used_at at time zone 'utc','YYYYMMDDHH24')
+      from public.internal_credential c
+     where c.last_used_at is not null
+       and ( (c.retired_at is not null and c.last_used_at > c.retired_at)
+          or (c.expires_at is not null and c.last_used_at > c.expires_at)
+          or (c.active = false and c.last_used_at > coalesce(c.retired_at, c.rotated_at, c.created_at)) )
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('credential_used_after_end', n);
+
+  -- D5 OTP BRUTE FORCE. The login is a mobile number and a one-time code (there is no observe mode
+  -- and no password), so guessing the code IS the attack on customer identity. attempts is
+  -- incremented per wrong code by the verifier.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'otp_brute_force', 'medium', 'customer_phone_otps', o.phone,
+           jsonb_build_object('otp_id', o.id, 'attempts', o.attempts, 'consumed', o.consumed,
+                              'customer_id', o.customer_id, 'created_at', o.created_at),
+           'otp_attempts:' || o.id
+      from public.customer_phone_otps o
+     where o.attempts >= 5
+       and o.created_at >= v_since
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('otp_brute_force', n);
+
+  -- D6 OTP ENUMERATION. Many codes ISSUED to one number in a short window is a different attack
+  -- from many codes guessed: it is someone using our SMS to hammer a phone, or mapping which
+  -- numbers exist. Bucketed to the hour so the fingerprint is stable across re-runs.
+  with agg as (
+    select o.phone, date_trunc('hour', o.created_at) as hr, count(*) as issued
+      from public.customer_phone_otps o
+     where o.created_at >= v_since
+     group by 1,2
+    having count(*) >= 5),
+  ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'otp_enumeration', 'medium', 'customer_phone_otps', agg.phone,
+           jsonb_build_object('issued', agg.issued, 'hour', agg.hr),
+           'otp_issued:' || agg.phone || ':' || to_char(agg.hr at time zone 'utc','YYYYMMDDHH24')
+      from agg
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('otp_enumeration', n);
+
+  -- D7 SSRF. resend_inbound records a refused attachment URL into agent_runs with
+  -- counts.ssrf_refused; accountant reports the same refusal in its run note. Both are read here
+  -- rather than adding a second write path to two deployed functions.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'ssrf_refused', 'medium', r.agent, r.counts->>'stage',
+           jsonb_build_object('agent_run_id', r.id, 'counts', r.counts,
+                              'note', left(coalesce(r.note,''), 500), 'at', r.started_at),
+           'agent_run_ssrf:' || r.id
+      from public.agent_runs r
+     where r.started_at >= v_since
+       and ( r.counts ? 'ssrf_refused'
+          or r.note ilike '%url_refused%'
+          or r.note ilike '%url_refused_after_redirect%' )
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('ssrf_refused', n);
+
+  -- D8 A REFUSED UPLOAD SHAPE. sanitizeUpload refusing an executable, an HTML polyglot or a zip
+  -- bomb is the guard working — and a run of them from one sender is someone probing what we
+  -- accept. Recorded low, because a single refusal is far more often a careless browser.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'upload_shape_refused', 'low', r.agent, null,
+           jsonb_build_object('agent_run_id', r.id, 'counts', r.counts,
+                              'note', left(coalesce(r.note,''), 500), 'at', r.started_at),
+           'agent_run_upload:' || r.id
+      from public.agent_runs r
+     where r.started_at >= v_since
+       and ( r.counts ? 'attachment_refused'
+          or r.note ilike '%refused by sanitizeUpload%'
+          or r.note ilike '%unsafe_file_type%'
+          or r.note ilike '%unsafe_file_content%'
+          or r.note ilike '%zip_expands_too_far%' )
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('upload_shape_refused', n);
+
+  -- D9 SECRETS. security_audit_log is trigger-written and had 76 rows that nothing ever read.
+  --
+  -- THE FIRST VERSION OF THIS BRANCH WAS WRONG AND THE EXECUTION SHOWED IT. It raised one medium
+  -- event per row, which on the first run produced 76 'secret_table_written' events against ONE
+  -- malware event — a guard that fires when the system works, burying the signal it exists to
+  -- surface. Measured: all 76 rows are app_secrets INSERT/UPDATE by db_user `postgres`, which is
+  -- how EVERY secret in this estate is written, so "a secret was written" carries no information.
+  -- The 76 noise rows were deleted with this correction; nothing else in security_events was
+  -- touched, and the corrected rules below use different fingerprints so they evaluate freely.
+  --
+  -- What DOES carry information, and is rare enough to mean something:
+  --   * a DELETE — no routine in this estate deletes a secret or a credential row;
+  --   * a write by a db_user that is not one of ours;
+  --   * a BURST. Measured over the whole table: the busiest hour ever recorded is 5 writes. 25 in
+  --     one hour is five times the observed peak, so it cannot fire on ordinary operation, and it
+  --     is raised ONCE per hour rather than once per row.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select case when s.action = 'DELETE' then 'secret_deleted' else 'secret_written_by_unexpected_role' end,
+           'high', 'security_audit_log', s.db_user,
+           jsonb_build_object('audit_id', s.id, 'action', s.action, 'table', s.table_name,
+                              'row_pk', s.row_pk, 'at', s.at, 'old', s.old_data),
+           'sec_audit:' || s.id
+      from public.security_audit_log s
+     where s.at >= v_since
+       and s.table_name in ('app_secrets','internal_credential','internal_credential_audit')
+       and ( s.action = 'DELETE'
+          or s.db_user is null
+          or s.db_user not in ('postgres','supabase_admin','supabase_storage_admin','service_role') )
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('secret_anomaly', n);
+
+  with agg as (
+    select date_trunc('hour', s.at) as hr, count(*) as writes
+      from public.security_audit_log s
+     where s.at >= v_since
+       and s.table_name in ('app_secrets','internal_credential')
+     group by 1
+    having count(*) >= 25),
+  ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'secret_write_burst', 'medium', 'security_audit_log', null,
+           jsonb_build_object('writes', agg.writes, 'hour', agg.hr,
+                              'observed_peak_before_this_rule', 5),
+           'secret_burst:' || to_char(agg.hr at time zone 'utc','YYYYMMDDHH24')
+      from agg
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('secret_write_burst', n);
+
+  -- D10 A NEW SECURITY ADVISOR FINDING. in_baseline=false means the finding appeared after the
+  -- baseline was taken. WARN is medium, INFO is low — a new table with RLS on and no policy is
+  -- worth seeing but is not an intrusion.
+  with ins as (
+    insert into public.security_events (kind, severity, source, subject, detail, fingerprint)
+    select 'new_security_advisor',
+           case when b.level in ('WARN','ERROR') then 'medium' else 'low' end,
+           'supabase_advisors', b.name,
+           jsonb_build_object('cache_key', b.cache_key, 'level', b.level, 'title', b.title,
+                              'metadata', b.metadata, 'first_seen_at', b.first_seen_at),
+           'advisor:' || b.cache_key
+      from public.security_advisor_baseline b
+     where b.in_baseline = false
+       and b.cleared_at is null
+    on conflict (fingerprint) do nothing
+    returning 1)
+  select count(*) into n from ins;  v := v || jsonb_build_object('new_security_advisor', n);
+
+  return v || jsonb_build_object(
+    'window', p_window::text,
+    'at', now(),
+    'total_new', (select coalesce(sum((value)::int), 0)
+                    from jsonb_each_text(v) where key <> 'window'));
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_security_detect_on_evidence()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+begin
+  -- Never let the watch break the thing it watches: a detector that raises stops a supplier
+  -- registering, which is a worse outcome than a late event.
+  begin
+    perform public.fn_security_detect(interval '1 hour');
+  exception when others then
+    null;
+  end;
+  return null;
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_security_watch(p_window interval DEFAULT '7 days'::interval)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select jsonb_build_object(
+    'at', now(),
+    'window', p_window::text,
+    'events_by_kind', coalesce((
+        select jsonb_object_agg(kind, c) from (
+          select kind, count(*) c from public.security_events
+           where created_at >= now() - p_window group by 1) t), '{}'::jsonb),
+    'events_by_severity', coalesce((
+        select jsonb_object_agg(severity, c) from (
+          select severity, count(*) c from public.security_events
+           where created_at >= now() - p_window group by 1) t), '{}'::jsonb),
+    'files_scanned', (select count(*) from public.file_scan where created_at >= now() - p_window),
+    'files_by_verdict', coalesce((
+        select jsonb_object_agg(verdict, c) from (
+          select verdict, count(*) c from public.file_scan
+           where created_at >= now() - p_window group by 1) t), '{}'::jsonb),
+    'files_blocked', (select count(*) from public.file_scan
+                       where blocked and created_at >= now() - p_window),
+    'quarantined_total', (select count(*) from public.v_file_quarantine),
+    'advisors_baseline', (select count(*) from public.security_advisor_baseline where in_baseline),
+    'advisors_new', (select count(*) from public.security_advisor_baseline
+                      where not in_baseline and cleared_at is null),
+    'advisors_last_refreshed', (select max(last_seen_at) from public.security_advisor_baseline),
+    'gaps_open', (select jsonb_agg(jsonb_build_object('name', name, 'status', status,
+                                                      'needs', what_would_close_it))
+                    from public.security_gap where status <> 'closed')
+  );
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_select_model(p_task_class text, p_dept_key text DEFAULT NULL::text, p_confidence numeric DEFAULT NULL::numeric)
@@ -43732,25 +45563,25 @@ end $function$
 CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
+CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
-CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
-CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
+CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
+CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
 CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
-CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
-CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
+CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER trg_blog_dirty AFTER INSERT OR DELETE OR UPDATE ON public.blog_posts FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
@@ -43763,17 +45594,17 @@ CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON 
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
-CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
+CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
+CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
+CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
-CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
@@ -43784,6 +45615,7 @@ CREATE TRIGGER trg_undo_employee_kpi BEFORE DELETE OR UPDATE ON public.employee_
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.exec_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_emit_invoice_received_expense AFTER INSERT ON public.expense_entries FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received_from_expense();
 CREATE TRIGGER t_emit_customer_complaint AFTER INSERT ON public.feedback FOR EACH ROW WHEN ((((new.rating IS NOT NULL) AND (new.rating <= (2)::numeric)) OR ((new.source IS NOT NULL) AND (lower(new.source) ~~ '%complaint%'::text)))) EXECUTE FUNCTION fn_emit_customer_complaint();
+CREATE TRIGGER z90_security_detect AFTER INSERT ON public.file_scan FOR EACH ROW WHEN ((new.verdict = ANY (ARRAY['malicious'::text, 'suspicious'::text]))) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.finance_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
 CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
@@ -43792,16 +45624,16 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
-CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
 CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER trg_approval_raise_on_award AFTER UPDATE OF hired_supplier_id ON public.inquiries FOR EACH ROW WHEN (((new.hired_supplier_id IS NOT NULL) AND (new.hired_supplier_id IS DISTINCT FROM old.hired_supplier_id))) EXECUTE FUNCTION fn_approval_raise_on_award();
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
+CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -43811,67 +45643,69 @@ CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
+CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
+CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
+CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
 CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
-CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
-CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
-CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
+CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
 CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
-CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
+CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER trg_pages_dirty AFTER INSERT OR DELETE OR UPDATE ON public.pages FOR EACH STATEMENT EXECUTE FUNCTION mark_site_dirty();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
-CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_pricing_config_facts AFTER INSERT OR UPDATE ON public.pricing_config FOR EACH STATEMENT EXECUTE FUNCTION trg_pricing_facts();
+CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
-CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
+CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
 CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
-CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
-CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
+CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
 CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
+CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
@@ -43886,9 +45720,9 @@ CREATE TRIGGER trg_seo_dirty AFTER INSERT OR DELETE OR UPDATE ON public.seo_cate
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
 CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
@@ -44076,6 +45910,7 @@ ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.field_definition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.field_definition_reference ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.field_definition_trade ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.file_scan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_snapshots ENABLE ROW LEVEL SECURITY;
@@ -44128,6 +45963,13 @@ ALTER TABLE public.internal_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_engineer_knowledge ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_engineer_scanner ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_watch_finding ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_watch_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_watch_subject ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_watch_tick ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_category_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_category_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunks ENABLE ROW LEVEL SECURITY;
@@ -44286,8 +46128,10 @@ ALTER TABLE public.scope_disposition_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scrape_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.screening_entry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.screening_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.security_advisor_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.security_gap ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.self_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
@@ -44452,6 +46296,7 @@ $CRON$);
 --   cred_fn_gen_category_personas
 --   cred_fn_inbound_email
 --   cred_fn_intent_router
+--   cred_fn_it_engineer
 --   cred_fn_kb_autofill_gaps
 --   cred_fn_kb_deepen
 --   cred_fn_kb_research_test
@@ -44591,6 +46436,7 @@ $CRON$);
 --   unsubscribe_signing_key_legacy
 --   uptime_last_autoheal
 --   vercel_project
+--   vercel_project_id
 --   vercel_team_id
 --   vercel_token
 --   virustotal_api_key

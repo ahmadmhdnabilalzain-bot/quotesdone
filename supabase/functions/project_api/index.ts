@@ -1,6 +1,7 @@
 // project_api — Procurement Projects for customers. Groups multiple RFQs (inquiries) under a project.
 // Auth: customer Supabase JWT -> email -> customers row (same model as customer_api).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -15,7 +16,7 @@ async function customer(req: Request): Promise<{ id: string; email: string } | n
   return { id: c.id as string, email: c.email as string };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('project_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -134,4 +135,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

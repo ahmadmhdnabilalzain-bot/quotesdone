@@ -25,11 +25,16 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. Inbound mail is the classic malware carrier
+// and this function archives what arrives, so the verdict has to be taken before the object is
+// written, not after.
+import { sanitizeAndScan } from '../_shared/malware.ts';
 import { parseReceipt } from '../_shared/receipt_parse.ts';
 import { pdfText } from '../_shared/pdf_text.ts';
 import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -123,7 +128,7 @@ function isReceiptish(toLocal:string, subject:string, from:string){
   if (/(billing|invoice|receipts?|no-?reply.*(pay|billing)|stripe)/i.test(from)) return true;
   return false;
 }
-Deno.serve(async (req) => {
+Deno.serve(observe('resend_inbound', async (req) => {
   try {
     const url = new URL(req.url);
     const s = url.searchParams.get('s');
@@ -223,8 +228,10 @@ Deno.serve(async (req) => {
           if (!(/pdf|^image\//i.test(mm) || /\.(pdf|jpe?g|png|webp)$/i.test(fn))) continue;
           const by = await attachmentBytes(a, emailId, rkey);
           if (!by || !by.length) continue;
-          const san = sanitizeUpload({ input: by, declaredMime: mm, filename: fn, allow: SAFE_UPLOAD });
-          if (!san.ok) { await logRun('ok', { receipt: true, attachment_refused: san.error, file: fn.slice(0, 80) }, 'a receipt attachment was refused by sanitizeUpload (' + san.error + ': ' + san.detail + '); it was not archived and its text was not read'); continue; }
+          const sc = await sanitizeAndScan({ input: by, declaredMime: mm, filename: fn, allow: SAFE_UPLOAD,
+                                             scan: { source: 'resend_inbound.receipt', subject: String(from || ''), filename: fn, bucket: 'receipt-files' } });
+          if (!sc.ok) { await logRun('ok', { receipt: true, attachment_refused: sc.body.error, file: fn.slice(0, 80) }, 'a receipt attachment was refused (' + sc.body.error + ': ' + sc.body.detail + '); it was not archived and its text was not read'); continue; }
+          const san = sc.result;
           att = { bytes: san.bytes, name: fn || ('receipt.' + san.ext), mime: san.mime, ext: san.ext };
           if (san.mime === 'application/pdf') break;   // a PDF is the receipt; an image is a fallback
         }
@@ -514,8 +521,10 @@ Deno.serve(async (req) => {
       // anything that is not a PDF or a real image, strip EXIF/GPS from photographed documents.
       // A refusal is counted separately from a LOST attachment: they are different failures and an
       // operator needs to tell "we would not accept it" from "we could not fetch it".
-      const __san = sanitizeUpload({ input: rawBytes, declaredMime: mime, filename: fname, allow: SAFE_UPLOAD });
-      if (!__san.ok) { refusedAttachments++; continue; }
+      const __sc = await sanitizeAndScan({ input: rawBytes, declaredMime: mime, filename: fname, allow: SAFE_UPLOAD,
+                                           scan: { source: 'resend_inbound.supplier_doc', subject: String(from || ''), filename: fname, bucket: 'supplier-docs' } });
+      if (!__sc.ok) { refusedAttachments++; continue; }
+      const __san = __sc.result;
       const bytes = __san.bytes;
       const sniffedMime = __san.mime;
       const path = `inbound/${lead?.id||'unknown'}/${Date.now()}_${fname.replace(/[^A-Za-z0-9._-]/g,'_')}`;
@@ -599,4 +608,4 @@ Deno.serve(async (req) => {
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));
     return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception (inbound email dropped): ' + m); return J({ error: m }, 500); }
-});
+}));

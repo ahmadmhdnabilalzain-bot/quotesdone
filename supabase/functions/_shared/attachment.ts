@@ -24,8 +24,12 @@
 //     rewrite JPEG APPn segments and PNG ancillary chunks out of the file entirely.
 //
 // WHAT IT DOES NOT DO, so nobody assumes otherwise:
-//   * No malware scanning. Detecting a known-bad payload needs a signature database this codebase
-//     does not have. The existing post-hoc scan stays the control for that.
+//   * No malware scanning, and this file stays that way on purpose — it is pure, so it can be unit
+//     tested and cannot be handed a half-configured client. Signature-based detection lives in
+//     _shared/malware.ts (9 Sep 2026), which hashes the bytes, asks VirusTotal what it already
+//     knows about that hash, and records the verdict in public.file_scan. sanitizeAndScan() there
+//     is the entry point every inbound customer/supplier file should use; this function remains the
+//     first and cheapest stage of it.
 //   * No re-encode. Re-encoding a PDF or an image needs a decoder that Deno does not ship. Metadata
 //     is stripped by rewriting the container, which removes EXIF/XMP/ICC but not content embedded
 //     in the image data itself. drawing_redact's render-to-JPEG path remains the stronger control
@@ -227,6 +231,50 @@ export function looksPolyglot(b: Uint8Array, mime: string): string | null {
   return null;
 }
 
+/** Byte-for-byte search. Used instead of decoding a multi-megabyte upload into a string. */
+function indexOfBytes(hay: Uint8Array, needle: number[], limit = hay.length): number {
+  const end = Math.min(hay.length, limit) - needle.length;
+  outer: for (let i = 0; i <= end; i++) {
+    for (let j = 0; j < needle.length; j++) if (hay[i + j] !== needle[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
+const ascii = (s: string) => Array.from(s).map((c) => c.charCodeAt(0));
+/** The same string as OLE2 stores a directory entry name: UTF-16LE. */
+const utf16le = (s: string) => Array.from(s).flatMap((c) => [c.charCodeAt(0), 0]);
+
+/**
+ * A MACRO-BEARING WORKBOOK OR DOCUMENT, added 9 Sep 2026 with the malware watch.
+ *
+ * looksPolyglot() closes the PDF carrier. This closes the OFFICE one, which is the carrier that
+ * actually reaches a building-materials marketplace: a supplier emails a price list, and an .xlsm
+ * renamed .xlsx sniffs as an OOXML workbook because it genuinely IS one — the ZIP still carries
+ * `xl/workbook.xml`, so every check above passes and SheetJS then reads a file whose real payload
+ * is a VBA project. The macro does not execute in Deno; it executes on the laptop of whoever opens
+ * the copy we stored and forwarded, which is worse, because by then it carries our name.
+ *
+ * The test is the presence of the macro container itself, not a heuristic:
+ *   OOXML  — the part `vbaProject.bin`. A ZIP stores every entry's name uncompressed in its local
+ *            header and again in the central directory, so it is findable without inflating.
+ *   OLE2   — the stream `_VBA_PROJECT`, whose directory entry name is stored UTF-16LE.
+ * A file with neither is not macro-bearing; a file with either is, whatever it was named.
+ */
+export function looksMacroEnabled(b: Uint8Array, mime: string): string | null {
+  const isOoxml = mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const isOle2  = mime === 'application/vnd.ms-excel';
+  if (!isOoxml && !isOle2) return null;
+  const LIMIT = 16 * 1024 * 1024;
+  if (isOoxml && indexOfBytes(b, ascii('vbaProject.bin'), LIMIT) >= 0) {
+    return 'the workbook contains a VBA macro project (xl/vbaProject.bin)';
+  }
+  if (isOle2 && (indexOfBytes(b, utf16le('_VBA_PROJECT'), LIMIT) >= 0 ||
+                 indexOfBytes(b, ascii('_VBA_PROJECT'), LIMIT) >= 0)) {
+    return 'the workbook contains a VBA macro project (_VBA_PROJECT stream)';
+  }
+  return null;
+}
+
 /**
  * Remove EXIF, XMP, ICC and comment segments from a JPEG by rebuilding the segment chain and
  * dropping every APPn and COM marker. Image data (SOS onward) is copied byte for byte, so the
@@ -363,6 +411,9 @@ export function sanitizeUpload(opts: SanitizeOptions): SanitizeResult {
 
   const poly = looksPolyglot(bytes, mime);
   if (poly) return { ok: false, error: 'unsafe_file_content', mime, detail: poly };
+
+  const macro = looksMacroEnabled(bytes, mime);
+  if (macro) return { ok: false, error: 'unsafe_file_content', mime, detail: macro };
 
   // Recorded rather than refused. A wrong declared type is usually a careless browser, not an
   // attack - and the decision has already been made on the bytes, so it changes nothing.

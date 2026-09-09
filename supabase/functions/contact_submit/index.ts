@@ -1,11 +1,12 @@
 // contact_submit - public contact form handler. Stores the message, emails the founder (best-effort). Honeypot spam guard. verify_jwt=false.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function esc(s: string){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-Deno.serve(async (req) => {
+Deno.serve(observe('contact_submit', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const b = await req.json().catch(()=>({} as any));
@@ -46,4 +47,4 @@ Deno.serve(async (req) => {
     } catch(_e){ /* email is best-effort; the row is stored regardless */ }
     return J({ ok: true });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

@@ -7,6 +7,7 @@
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -64,7 +65,7 @@ function buildContent(mode: string, images: any[], body: any): any[] {
   return content;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('license_extract', async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -147,4 +148,4 @@ Deno.serve(async (req) => {
     };
     return J({ ok: true, mode, profile });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));
