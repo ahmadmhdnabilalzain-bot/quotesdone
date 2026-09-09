@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T21:40:44.626Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T22:23:58.683Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -13985,6 +13985,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -14010,16 +14020,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -14731,135 +14731,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -15375,6 +15246,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -32591,6 +32591,16 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32761,16 +32771,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -38585,12 +38585,12 @@ AS $function$
   ),
   -- Only inquiries this supplier could actually work: open, and not their own demo fence.
   cand as (
-    select i.id, i.category, i.emirate, i.summary, i.scope_type, i.created_at, i.budget,
+    select i.id, i.category, i.emirate, i.summary_masked as summary, i.scope_type, i.created_at, i.budget_masked as budget,
            -- WHAT THE CUSTOMER ACTUALLY NEEDS, which is not the project's title. raw_input is what
            -- they typed, in their words. `spec` is jsonb — the structured brief intake derived —
            -- and pouring that through ::text would put raw JSON in front of a supplier, so it is
            -- deliberately not a fallback. No brief typed means NULL, and the surface says so.
-           nullif(btrim(coalesce(i.raw_input, '')), '') requirement,
+           nullif(btrim(coalesce(i.raw_input_masked, '')), '') requirement,
            lower(coalesce(i.category, '')) cat
       from public.inquiries i
      where coalesce(i.status, 'open') = 'open'
@@ -46790,6 +46790,90 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.mask_project_identity(t text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s text := t;
+begin
+  if s is null or s = '' then return s; end if;
+
+  -- 1. LABELLED FIELDS. A title block labels its own secrets, in every format and every CAD
+  --    template: "PROJECT:", "CLIENT:", "CONSULTANT:", "LOCATION:". The label is the reliable
+  --    signal — far more reliable than trying to recognise the value — so the value after it is
+  --    removed to end of line. This is what makes the rule format-independent, which is the
+  --    founder's own requirement ("no matter what format it is").
+  s := regexp_replace(s,
+    '(?in)^[[:space:]]*(project|client|employer|owner|developer|consultant|architect|engineer|'
+    || 'main[[:space:]]+contractor|contractor|sub[- ]?contractor|designer|surveyor|site|location|'
+    || 'address|plot|building|tower|villa|community|district|drawing[[:space:]]*(no|number)?|'
+    || 'dwg[[:space:]]*(no|number)?|sheet|makani|title|prepared[[:space:]]+by|issued[[:space:]]+to|'
+    || 'checked[[:space:]]+by|approved[[:space:]]+by|drawn[[:space:]]+by)[[:space:]]*[:#][^\n]*',
+    '[hidden]', 'g');
+
+  -- Same labels appearing mid-line ("... | DRAWING No: AH-2024-A-102 | REV: C"), bounded to the
+  -- segment so the rest of a sentence survives.
+  --
+  -- THE PEOPLE LABELS ARE IN THIS LIST BECAUSE THE FIRST VERSION MISSED THEM. Run over the real
+  -- drawing, everything above was correctly hidden and this line came through untouched:
+  --     DATE: 12/03/2024 | DRAWN BY: R. Fernandes | APPROVED: Eng. S. Malik
+  -- The line-start rule did not fire because the line starts with DATE:, and the mid-line rule did
+  -- not carry "drawn by" or "approved". Two named individuals — the draughtsman and the approving
+  -- engineer — survived into the supplier-facing copy. A person's name is identity as surely as the
+  -- consultant firm's is, and it is the kind of thing that identifies a project to anyone in the
+  -- trade. Every label that can be followed by a person or a firm now appears in BOTH rules.
+  s := regexp_replace(s,
+    '(?i)(project|client|employer|consultant|architect|engineer|developer|owner|contractor|'
+    || 'designer|surveyor|location|address|plot|building|tower|villa|community|makani|'
+    || 'drawing[[:space:]]*no|dwg[[:space:]]*no|sheet[[:space:]]*no|'
+    || 'drawn[[:space:]]+by|checked[[:space:]]+by|approved[[:space:]]+by|prepared[[:space:]]+by|'
+    || 'reviewed[[:space:]]+by|issued[[:space:]]+to|approved|verified[[:space:]]+by)'
+    || '[[:space:]]*[:#][[:space:]]*[^|\n]{1,80}', '[hidden]', 'g');
+
+  -- 2. IDENTIFIERS WITH A SHAPE.
+  --    Makani is Dubai's 10-digit address code, written 1234-56789 or as ten digits.
+  s := regexp_replace(s, '(?i)\ymakani[[:space:]]*[:#]?[[:space:]]*[0-9]{4}[[:space:]-]?[0-9]{5,6}\y', '[hidden]', 'g');
+  --    Plot / parcel numbers: "Plot 234-11", "Parcel 345-6789".
+  s := regexp_replace(s, '(?i)\y(plot|parcel|land)[[:space:]]*(no\.?|number|#)?[[:space:]]*[0-9]{1,6}(-[0-9]{1,6})*\y', '[hidden]', 'g');
+  --    Drawing / sheet numbers: "AH-2024-A-102", "DWG-01-A-203". Two or more hyphen-joined groups
+  --    with at least one letter group, so a plain measurement or a date is not caught.
+  s := regexp_replace(s, '\y[A-Z]{1,4}-[A-Z0-9]{1,6}-[A-Z0-9]{1,6}(-[A-Z0-9]{1,6})*\y', '[hidden]', 'g');
+
+  -- 3. COMPANY NAMES BY THEIR SUFFIX. A UAE entity almost always announces itself: L.L.C, LLC,
+  --    FZE, FZ-LLC, DMCC, Est., Trading, Contracting, Consultants, Consulting Engineers. Capture
+  --    the run of capitalised words immediately before the suffix, which is the name itself.
+  s := regexp_replace(s,
+    '(?i)\y([A-Z][A-Za-z&''.\-]*[[:space:]]+){1,6}'
+    || '(l\.?l\.?c\.?|llc|fz[- ]?llc|fze|fzco|dmcc|est\.?|establishment|trading|general[[:space:]]+trading|'
+    || 'contracting|contractors?|consultants?|consulting[[:space:]]+engineers?|engineering[[:space:]]+consultants?|'
+    || 'architects?|technical[[:space:]]+services|building[[:space:]]+materials)\y',
+    '[hidden]', 'g');
+
+  return s;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.mask_project_identity_jsonb(j jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if j is null then return j; end if;
+  case jsonb_typeof(j)
+    when 'string' then return to_jsonb(public.mask_project_identity(j #>> '{}'));
+    when 'array'  then return (select coalesce(jsonb_agg(public.mask_project_identity_jsonb(e)), '[]'::jsonb)
+                                 from jsonb_array_elements(j) e);
+    when 'object' then return (select coalesce(jsonb_object_agg(k, public.mask_project_identity_jsonb(v)), '{}'::jsonb)
+                                 from jsonb_each(j) as t(k, v));
+    else return j;
+  end case;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.match_suppliers_kw(p_keywords text[] DEFAULT '{}'::text[], p_category text DEFAULT NULL::text, p_emirate text DEFAULT NULL::text, p_role text DEFAULT NULL::text, p_min_rating numeric DEFAULT NULL::numeric, p_limit integer DEFAULT 8, p_multi boolean DEFAULT false)
  RETURNS TABLE(id bigint, company_name text, emirate text, business_role text, products text, services text, phone text, email text, whatsapp text, website text, rating numeric, reviews integer, capability_summary text, match_score integer, in_emirate boolean)
  LANGUAGE sql
@@ -47111,42 +47195,42 @@ CREATE OR REPLACE FUNCTION public.scrub_inquiry_contacts()
 AS $function$
 declare changed boolean := false; v_name text;
 begin
-  new.summary_masked      := public.mask_contacts(new.summary);
-  new.raw_input_masked    := public.mask_contacts(new.raw_input);
-  new.budget_masked       := public.mask_contacts(new.budget);
-  new.spec_masked         := public.mask_contacts_jsonb(new.spec);
-  new.boq_masked          := public.mask_contacts_jsonb(new.boq);
-  new.completeness_masked := public.mask_contacts_jsonb(new.completeness);
+  new.summary_masked      := public.mask_project_identity(public.mask_contacts(new.summary));
+  new.raw_input_masked    := public.mask_project_identity(public.mask_contacts(new.raw_input));
+  new.budget_masked       := public.mask_project_identity(public.mask_contacts(new.budget));
+  new.spec_masked         := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.spec));
+  new.boq_masked          := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.boq));
+  new.completeness_masked := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.completeness));
 
   if new.customer_id is not null then
     begin
-      select nullif(btrim(c.full_name),'') into v_name from public.customers c where c.id = new.customer_id;
+      select nullif(btrim(c.full_name), '') into v_name from public.customers c where c.id = new.customer_id;
     exception when others then v_name := null; end;
     if v_name is not null then
-      new.summary_masked   := public.mask_name(new.summary_masked,   v_name);
+      new.summary_masked   := public.mask_name(new.summary_masked, v_name);
       new.raw_input_masked := public.mask_name(new.raw_input_masked, v_name);
-      new.budget_masked    := public.mask_name(new.budget_masked,    v_name);
+      new.budget_masked    := public.mask_name(new.budget_masked, v_name);
     end if;
   end if;
 
-  changed := (new.summary_masked      is distinct from new.summary)
-          or (new.raw_input_masked    is distinct from new.raw_input)
-          or (new.budget_masked       is distinct from new.budget)
-          or (new.spec_masked         is distinct from new.spec)
-          or (new.boq_masked          is distinct from new.boq)
+  changed := (new.summary_masked is distinct from new.summary)
+          or (new.raw_input_masked is distinct from new.raw_input)
+          or (new.budget_masked is distinct from new.budget)
+          or (new.spec_masked is distinct from new.spec)
+          or (new.boq_masked is distinct from new.boq)
           or (new.completeness_masked is distinct from new.completeness);
-
   if changed then
     begin
       insert into public.founder_alerts(level, event, detail, channel)
       values ('warn', 'inquiry_contact_masked',
-              'Masked customer contact details in the supplier-facing copy of inquiry '||coalesce(new.id::text,'?')||' from customer '||coalesce(new.customer_id::text,'?')||'.',
-              'system');
+        'Masked customer contact details and/or project identity (consultant, client, building, '
+        || 'location, plot, drawing numbers) in the supplier-facing copy of inquiry '
+        || coalesce(new.id::text, '?') || ' from customer ' || coalesce(new.customer_id::text, '?') || '.',
+        'system');
     exception when others then null; end;
   end if;
   return new;
-end;
-$function$
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.scrub_quote_contacts()
