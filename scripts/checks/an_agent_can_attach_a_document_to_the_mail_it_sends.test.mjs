@@ -10,18 +10,30 @@
 // reading them is a finished capability with no entry point.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
-test('notifications can carry a document reference', async () => {
+// THE CI CHECKS JOB HAS NO MANAGEMENT TOKEN. Four of these tests read production, and without a
+// token they do not fail meaningfully -- they fail on the connection, sixty seconds each, and say
+// nothing about whether attachment carriage works. The estate's convention is to SKIP and say so
+// loudly, so a green CI run never reads as "verified against production" when it was not. The last
+// test reads the repository and runs everywhere.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
+  || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+
+test('notifications can carry a document reference', { skip: SKIP }, async () => {
   const [{ n }] = await sql(`select count(*) n from information_schema.columns
      where table_schema='public' and table_name='notifications' and column_name='attachments'`);
   assert.equal(Number(n), 1, 'notifications.attachments is missing - no agent can email a file');
 });
 
-test('the attachment guard is attached and fires before insert', async () => {
+test('the attachment guard is attached and fires before insert', { skip: SKIP }, async () => {
   const rows = await sql(`select tgname, pg_get_triggerdef(oid) def from pg_trigger
      where tgrelid='public.notifications'::regclass and not tgisinternal
        and tgname='a20_notifications_attachment_policy'`);
@@ -38,7 +50,7 @@ const REFUSALS = [
   ['a non-array attachments value', `'{"bucket":"reports"}'`],
 ];
 
-test('the guard refuses every unsafe attachment shape, and accepts a good one', async () => {
+test('the guard refuses every unsafe attachment shape, and accepts a good one', { skip: SKIP }, async () => {
   // POSITIVE CONTROL FIRST. A trigger that rejected everything would "pass" all four refusals
   // below while making the feature useless, so prove a well-formed reference is accepted.
   const good = `'[{"bucket":"finance-reports","path":"2026/w37/r.pdf","filename":"Weekly_Financial_Report.pdf"}]'`;
@@ -72,7 +84,7 @@ test('the guard refuses every unsafe attachment shape, and accepts a good one', 
   assert.equal(Number(n), 0, 'the aborted-transaction probe left rows behind');
 });
 
-test('the allow-list holds only buckets of documents this company generated for itself', async () => {
+test('the allow-list holds only buckets of documents this company generated for itself', { skip: SKIP }, async () => {
   const [{ src }] = await sql(`select prosrc src from pg_proc
      where proname='fn_notification_attachment_policy' and pronamespace='public'::regnamespace`);
   for (const forbidden of ['signed-terms', 'quote-files', 'supplier-docs', 'site', 'brand', 'demo-assets']) {

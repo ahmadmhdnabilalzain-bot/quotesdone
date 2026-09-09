@@ -24,8 +24,20 @@
 //   node scripts/expense_documents_backfill.mjs --report
 //
 // Exit 0 = every document that is claimed is really there and really says what it is.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { sql, PROJECT_REF } from '../lib/db.mjs';
+
+// THE CI CHECKS JOB HAS NO MANAGEMENT TOKEN, and every assertion below reads production. Without
+// one this does not fail meaningfully — it fails on the connection and says nothing about whether
+// the documents are really there. The estate's convention is to skip and SAY SO IN THE LOG, so a
+// green run is never mistaken for "verified against production" when nothing was verified.
+if (!(process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token')))) {
+  console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
+  console.log('skipped: no Supabase management token in this environment, so nothing was checked');
+  process.exit(0);
+}
 
 let fails = 0;
 const ok = (cond, what) => { console.log(`${cond ? 'ok  ' : 'FAIL'}  ${what}`); if (!cond) fails++; };

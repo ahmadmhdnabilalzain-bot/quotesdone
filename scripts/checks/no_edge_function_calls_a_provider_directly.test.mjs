@@ -72,8 +72,25 @@ const REGISTER = {
   // bypass that no longer exists is a reason nobody re-read". A register listing three absent files
   // is how the next person concludes a bypass was approved when it was actually buried.
   //
-  // The ratchet is turning the right way and that is worth saying plainly: the register is now one
-  // entry, the door itself. Nothing in this estate reaches a paid provider except ai_gateway.
+  // The ratchet turned the right way on 8 Sep: one entry, the door itself.
+  //
+  // IT TURNED BACK ONE NOTCH ON 9 SEP 2026, deliberately and with the reason written down, which is
+  // the whole point of this register existing.
+  'resilience_ping': {
+    kind: 'METADATA',
+    why: 'reads the OpenRouter ACCOUNT METER, never a model. The founder asked the accountant to '
+       + 'track "open router daily expense with a breakdown of where it was used", and OpenRouter '
+       + 'refuses /api/v1/activity to a non-management key (403, measured 9 Sep 2026), so the '
+       + 'authoritative daily figure has to be read like a utility meter: /api/v1/credits carries a '
+       + 'monotonic total_usage, and two readings either side of a day differ by exactly what that '
+       + 'day cost. /api/v1/key is read beside it as corroboration. Both are in METADATA_PATHS. '
+       + 'It CANNOT go through _shared/llm.ts: that file is a client for ai_gateway, which exists to '
+       + 'route an INFERENCE request to a model — it has no notion of "what does this account owe", '
+       + 'and putting a billing read through an inference door would be a lie about what the call is. '
+       + 'Reading a balance spends nothing; the risk this register guards — a function quietly buying '
+       + 'inference outside the gateway — is not present, and a grep for the host would otherwise '
+       + 'flag it forever with no way to say so.',
+  },
 };
 
 function walk(dir) {
