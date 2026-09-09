@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T20:11:26.512Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T20:59:48.869Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -180,7 +180,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (469) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (470) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -4855,6 +4855,15 @@ CREATE TABLE IF NOT EXISTS public.price_benchmark (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.price_trade_term (
+  term text NOT NULL,
+  category text NOT NULL,
+  lang text DEFAULT 'ar'::text NOT NULL,
+  item_hint text,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.pricing_config (
   id integer DEFAULT 1 NOT NULL,
   promo_reveal_rate numeric DEFAULT 0.03 NOT NULL,
@@ -6884,6 +6893,7 @@ ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_pkey PRIMARY KEY (id);
 ALTER TABLE public.po_vendors ADD CONSTRAINT po_vendors_pkey PRIMARY KEY (id);
 ALTER TABLE public.policy_rules ADD CONSTRAINT policy_rules_pkey PRIMARY KEY (id);
 ALTER TABLE public.price_benchmark ADD CONSTRAINT price_benchmark_pkey PRIMARY KEY (id);
+ALTER TABLE public.price_trade_term ADD CONSTRAINT price_trade_term_pkey PRIMARY KEY (term);
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_pkey PRIMARY KEY (id);
 ALTER TABLE public.procurement_approval_policy ADD CONSTRAINT procurement_approval_policy_pkey PRIMARY KEY (id);
 ALTER TABLE public.procurement_approval_request ADD CONSTRAINT procurement_approval_request_pkey PRIMARY KEY (id);
@@ -32554,16 +32564,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32735,6 +32735,188 @@ begin
     'reference_bands', v_ref, 'item_bands', v_items);
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_guidance(p_question text, p_limit integer DEFAULT 6)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_q         text;
+  v_terms     text[];
+  v_cat       text;
+  v_gap       text;
+  v_items     jsonb;
+  v_hit       boolean;
+  v_matched   text[];
+  v_unmatched text[];
+  v_hints     text[];
+  v_lex       text[];
+begin
+  -- THE DEFINITE ARTICLE IS STRIPPED FROM BOTH SIDES, and the probe below is why. A person does not
+  -- write "عزل حراري", they write "العزل الحراري" -- the article attaches to each word. So the
+  -- two-word lexicon term is NOT a substring of the sentence, while the bare "عزل" still is, and
+  -- the first version of this file answered a thermal-insulation question with WATERPROOFING rates.
+  -- Removing "ال" at word starts on the question and on the term makes the comparison fair; doing it
+  -- on only one side would just move the failure.
+  v_q := regexp_replace(public.fn_ar_norm(lower(coalesce(p_question, ''))),
+                        '(^|[[:space:]])ال', '\1', 'g');
+
+  -- LATIN WORDS, as before: four characters is the floor, and the words that make it a price
+  -- question rather than a gypsum question are dropped explicitly.
+  select array_agg(distinct t)
+    into v_terms
+    from regexp_split_to_table(lower(coalesce(p_question, '')), '[^a-z0-9]+') as t
+   where length(t) >= 4
+     and t not in ('what','cost','costs','much','price','prices','pricing','should','would','does',
+                   'about','around','many','rate','rates','average','typical','range','dubai','uae',
+                   'emirates','abu','dhabi','sharjah','from','with','that','this','have','need',
+                   'your','you','per','the','and','for','square','metre','meter','sqft','feet');
+  v_terms := coalesce(v_terms, '{}'::text[]);
+
+  -- THE LEXICON, matched as a SUBSTRING of the normalised question. Multi-word Arabic phrases are
+  -- the useful ones and a tokeniser destroys them. Longest term first, so that "عزل حراري"
+  -- (thermal insulation) is preferred over the bare "عزل" (insulation) it contains -- a shorter
+  -- term winning here would silently answer an insulation question with waterproofing rates.
+  select array_agg(x.category order by x.len desc), array_agg(x.item_hint) filter (where x.item_hint is not null)
+    into v_lex, v_hints
+    from (select t.category, t.item_hint, length(t.term) as len
+            from public.price_trade_term t
+           where v_q like '%' || regexp_replace(public.fn_ar_norm(lower(t.term)),
+                                                '(^|[[:space:]])ال', '\1', 'g') || '%'
+           order by length(t.term) desc) x;
+
+  if (v_lex is null or array_length(v_lex, 1) = 0) and array_length(v_terms, 1) is null then
+    return jsonb_build_object('ok', false, 'reason', 'no_substantive_terms',
+      'note', 'The question carried no trade word to look up, in either language. Ask the visitor '
+           || 'which trade they mean.');
+  end if;
+
+  -- The lexicon decides when it fired; otherwise fall back to scoring the latin words against the
+  -- trade slugs and item text.
+  if v_lex is not null and array_length(v_lex, 1) > 0 then
+    v_cat := v_lex[1];
+    -- An item hint from the lexicon joins the latin words used to pick WHICH bands to show, so an
+    -- Arabic ceiling question narrows to ceiling bands exactly as the English one does.
+    v_terms := v_terms || coalesce(v_hints, '{}'::text[]);
+  else
+    select r.category
+      into v_cat
+      from (
+        select c.category, c.n,
+               10 * (select count(distinct x) from unnest(v_terms) x
+                      where replace(c.category, '-', ' ') like '%' || x || '%')::int
+                  + (select count(distinct x) from unnest(v_terms) x
+                      where c.items like '%' || x || '%')::int as score
+          from (select pb.category,
+                       count(*) as n,
+                       lower(string_agg(coalesce(pb.item, ''), ' ')) as items
+                  from public.price_benchmark pb
+                 group by pb.category) c
+      ) r
+     where r.score > 0
+     order by r.score desc, r.n desc
+     limit 1;
+  end if;
+
+  -- NO CORROBORATION, NO ANSWER.
+  if v_cat is null then
+    return jsonb_build_object('ok', false, 'reason', 'no_trade_matched',
+      'terms_tried', to_jsonb(v_terms),
+      'note', 'No trade in the estate shares a word with this question, in either language. Do not '
+           || 'substitute a nearby trade; say the platform holds no published range for it and '
+           || 'offer to collect quotes.');
+  end if;
+
+  select pb.gap_reason into v_gap
+    from public.price_benchmark pb
+   where pb.category = v_cat and pb.source_kind = 'gap'
+   limit 1;
+  if v_gap is not null then
+    return jsonb_build_object('ok', false, 'reason', 'trade_has_a_recorded_gap',
+      'trade', v_cat, 'gap_reason', v_gap,
+      'note', 'Tell the visitor plainly that we publish no range for this trade rather than '
+           || 'estimating one, and offer to put it out to suppliers.');
+  end if;
+
+  select bool_or(q.hit) into v_hit
+    from (select exists (select 1 from unnest(v_terms) x
+                          where lower(coalesce(pb.item, '')) like '%' || x || '%') as hit
+            from public.price_benchmark pb
+           where pb.category = v_cat and pb.source_kind <> 'gap' and pb.item is not null) q;
+  v_hit := coalesce(v_hit, false);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item', i.item, 'unit', i.unit, 'basis', i.basis_kind,
+           'low', i.low, 'high', i.high, 'currency', coalesce(i.currency, 'AED'),
+           'evidence', left(i.evidence, 180),
+           'source', i.source_kind || coalesce(':' || i.source_ref, ''),
+           'as_of', i.as_of) order by i.low), '[]'::jsonb)
+    into v_items
+    from (
+      select distinct on (pb.item, pb.unit)
+             pb.item, pb.unit, pb.basis_kind, pb.low, pb.high, pb.currency, pb.evidence,
+             pb.source_kind, pb.source_ref, pb.as_of
+        from public.price_benchmark pb
+       where pb.category = v_cat and pb.source_kind <> 'gap' and pb.item is not null
+         and (not v_hit
+              or exists (select 1 from unnest(v_terms) x
+                          where lower(coalesce(pb.item, '')) like '%' || x || '%'))
+       order by pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end)
+    ) i;
+
+  select array_agg(distinct x) into v_matched
+    from unnest(v_terms) x
+   where replace(v_cat, '-', ' ') like '%' || x || '%'
+      or exists (select 1 from public.price_benchmark pb
+                  where pb.category = v_cat and lower(coalesce(pb.item, '')) like '%' || x || '%');
+
+  -- THE WORDS THE ESTATE HAD NOTHING FOR. item_specific alone was not enough: "what does an HVAC
+  -- chiller replacement cost" sets it true on the strength of 'replacement' appearing in hvac item
+  -- text, while the estate holds no chiller row at all. Naming the unmatched word beats trying to
+  -- classify 'replacement' as too generic to count.
+  select array_agg(distinct x) into v_unmatched
+    from unnest(v_terms) x
+   where not (replace(v_cat, '-', ' ') like '%' || x || '%')
+     and not exists (select 1 from public.price_benchmark pb
+                      where pb.category = v_cat and lower(coalesce(pb.item, '')) like '%' || x || '%');
+
+  return jsonb_build_object(
+    'ok', true,
+    'trade', v_cat,
+    'item_specific', v_hit,
+    'resolved_via', case when v_lex is not null and array_length(v_lex, 1) > 0
+                         then 'trade_term_lexicon' else 'latin_terms' end,
+    'matched_terms', to_jsonb(coalesce(v_matched, '{}'::text[])),
+    'unmatched_terms', to_jsonb(coalesce(v_unmatched, '{}'::text[])),
+    'band_count', jsonb_array_length(v_items),
+    'bands', case when jsonb_array_length(v_items) > greatest(1, coalesce(p_limit, 6))
+                  then (select jsonb_agg(s.e)
+                          from (select e from jsonb_array_elements(v_items) e
+                                 limit greatest(1, coalesce(p_limit, 6))) s)
+                  else v_items end,
+    'how_to_use', 'These are PUBLISHED GUIDE RANGES in AED for the UAE market, with their source '
+               || 'and date. They are orientation, never a quotation. QuotesDone does not price the '
+               || 'work - suppliers do. Give the range, name it as a guide, and offer to collect '
+               || 'real quotes. Never present a single figure as the price, never average a band '
+               || 'into one number, and never state a figure that is not in bands above. If '
+               || 'unmatched_terms is not empty, say plainly that the platform publishes no range '
+               || 'for that specific thing, rather than letting the trade-level bands stand in for '
+               || 'it. Answer in the language the visitor used; the item labels stay in English '
+               || 'because that is how the evidence is filed.');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_priority_backlog_reorder()
@@ -48475,6 +48657,7 @@ ALTER TABLE public.po_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_vendors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.policy_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.price_benchmark ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.price_trade_term ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pricing_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.procurement_approval_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.procurement_approval_request ENABLE ROW LEVEL SECURITY;
@@ -48616,6 +48799,7 @@ CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.risk_register AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.transactions AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
