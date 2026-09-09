@@ -77,4 +77,15 @@ test('the heartbeat drains the outbox on the healthy path, not only during an ou
   // And the drain must actually reach the sender rather than merely counting the queue.
   const fn = src.slice(src.indexOf('async function outboxTick'), src.indexOf('async function backupTick'));
   assert.match(fn, /\/send_outbox/, 'outboxTick does not call send_outbox');
+
+  // THE HEARTBEAT MUST BEAT WHEN THERE IS NOTHING TO DO. The first version of outboxTick returned
+  // early on an empty queue, so send_outbox only ran when there was mail — which left it with no
+  // cadence for run_silent to measure, and produced a self-feeding alarm: quiet queue, no run,
+  // detector fires, the alert itself queues a notification, the next tick sends it, the finding
+  // resolves, quiet again. Three emails to the founder in four hours with nothing wrong.
+  const callAt = fn.indexOf('/send_outbox');
+  assert.ok(!/\breturn\b/.test(fn.slice(0, callAt)),
+    'outboxTick can return before it reaches send_outbox, so the sender only runs under load. '
+    + 'A heartbeat that beats only when there is work has no cadence, and "send_outbox has not '
+    + 'run" stops meaning anything.');
 });

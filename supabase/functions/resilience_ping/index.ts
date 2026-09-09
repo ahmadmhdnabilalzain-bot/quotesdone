@@ -66,17 +66,35 @@ async function ratingTick(): Promise<unknown> {
 //
 // BEST EFFORT, DELIBERATELY. A failed flush must not change what this endpoint reports about the
 // scheduler; the result is returned in the body so a stuck flush is visible rather than assumed.
+//
+// ── AND IT CALLS UNCONDITIONALLY, WHICH IS THE SECOND HALF OF THIS FIX (15:20 UTC, same day) ──
+//
+// The first version skipped the call when nothing was pending — an obvious saving, and wrong. The
+// run log IS the heartbeat: fn_it_detect's run_silent detector learns each subject's cadence from
+// agent_runs, so a send_outbox that runs only when there is mail has no cadence, and an empty
+// queue becomes indistinguishable from a dead sender.
+//
+// It produced a self-feeding alarm within four hours. The founder got three emails:
+//   13:00  [HIGH]     send_outbox has not run for 135 minutes; it normally runs every 30 minutes
+//   13:15  [RESOLVED] the same finding
+//   15:15  [HIGH]     send_outbox has not run for 120 minutes
+// and the loop is visible in the run log: quiet queue -> no run -> detector fires -> the ALERT
+// itself queues a notification -> the next tick finds something pending -> send_outbox runs ->
+// the finding resolves -> the queue goes quiet -> it fires again. Every couple of hours, for ever,
+// with nothing wrong. The only thing keeping the sender alive was the alarm about the sender.
+//
+// So the call is made every tick, mail or none. A no-op flush is one edge invocation that runs a
+// SELECT and returns — 96 a day, sending nothing and consuming none of the daily send cap — and in
+// exchange `send_outbox has not run` becomes a sentence that is only true when something IS broken.
+// A heartbeat that beats only under load is not a heartbeat.
 async function outboxTick(): Promise<unknown> {
   try {
-    const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
-      .in('status', ['pending', 'queued']);
-    if (!count) return { pending: 0, flushed: false };
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/send_outbox', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: secret, limit: 20 }), signal: AbortSignal.timeout(20000),
     });
-    return { pending: count, flushed: true, status: r.status, result: await r.json().catch(() => null) };
+    return { flushed: true, status: r.status, result: await r.json().catch(() => null) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
