@@ -9,11 +9,18 @@ import * as fontkitMod from 'https://esm.sh/@pdf-lib/fontkit@1.1.1';
 // deno-lint-ignore no-explicit-any
 const fontkit = ((fontkitMod as any).default ?? fontkitMod) as any;
 import bidiFactory from 'https://esm.sh/bidi-js@1.0.3';
+// The letterhead and footer are the QuotesDone document template, and it is READ rather than typed
+// here: see _shared/doc_template.ts for what each line comes from and what was measurably wrong in
+// the constant it replaces (9 Sep 2026).
+import { docIdentity, footerLines, FALLBACK, LOCKUP, lockupWidthFor } from '../_shared/doc_template.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
-const CO = { name:'QuotesDone Technologies', licence:'DET E-Trader Licence No. 1633275', city:'Dubai, United Arab Emirates', email:'management@quotesdone.com', phone:'+971 50 931 9355', web:'quotesdone.com', signer:'Ahmad Alzain', title:'Founder & Managing Director' };
+// Assigned per request from public.company_registration + public.company_brand. FALLBACK is the
+// same shape and holds today's measured values, so a database blip degrades a letterhead instead of
+// blanking one. It is NOT a second palette of company facts to edit — change the rows.
+let CO = FALLBACK;
 const CO_AR = { city:'دبي، الإمارات العربية المتحدة', signer:'أحمد الزين', title:'المؤسس والمدير الإداري' };
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 async function authed(req: Request, body: any){ if (body?.__secret && (await requireInternal(admin, body.__secret, 'pdf_native')).ok) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
@@ -33,6 +40,7 @@ Deno.serve(async (req) => {
   try {
     let body = await req.json().catch(()=>({} as any));
     if (!(await authed(req, body))) return J({ error:'forbidden' }, 403);
+    CO = await docIdentity(admin);
     const lang = ['en','ar','bi'].includes(String(body.lang)) ? String(body.lang) : 'en';
     let L = lang==='bi' ? 'en' : lang;
     const pdf = await PDFDocument.create(); pdf.registerFontkit(fontkit);
@@ -60,6 +68,35 @@ Deno.serve(async (req) => {
     // ASCII always (it costs nothing when the real fonts ARE loaded and it reads better), and drop
     // only what the font actually in force cannot encode.
     const NORM: Record<string,string> = { '≠':'!=','≈':'~','≥':'>=','≤':'<=','±':'+/-','—':'-','–':'-','−':'-','‑':'-','→':'->','←':'<-','×':'x','÷':'/','·':'-','•':'-','…':'...','“':'"','”':'"','„':'"','‘':"'",'’':"'",'′':"'",'″':'"','‚':',','€':'EUR','£':'GBP','™':'(TM)','®':'(R)','©':'(C)','½':'1/2','¼':'1/4','¾':'3/4',' ':' ','​':'','‎':'','‏':'','‪':'','‫':'','‬':'' };
+    // 9 Sep 2026. safeText DROPS a character it cannot encode and says nothing, so a document whose
+    // brand fonts failed to fetch comes back ok:true with the text silently missing. On a quotation
+    // comparison that is a degraded report; on a signed Terms certificate it is a legal document in
+    // which the counterparty's Arabic company name has vanished, issued and filed as if correct.
+    // Count what is dropped, report it on every response, and refuse outright when the document
+    // carries the company signature or stamp (see `strict` below) — those are the evidence-class
+    // documents, and half of one is worse than none.
+    let dropped = 0; const droppedSample = new Set<string>();
+    // MEASURED 9 Sep 2026, and it is NOT what the trap was believed to be. The belief was "when the
+    // brand fonts are missing, text is lost". The wider truth: `latinFull` only says Sora was
+    // EMBEDDED, not that Sora contains the character. Probed against production v29 with an emoji,
+    // pdf-lib neither threw nor complained — a subsetted TrueType maps an absent code point to
+    // glyph 0 (.notdef), so the character was drawn as nothing, the armPage catch never fired, and
+    // the response was ok:true. A missing Arabic glyph in a font that IS loaded would vanish the
+    // same way. So ask the font, via the fontkit face pdf-lib embedded, whether the glyph exists.
+    // deno-lint-ignore no-explicit-any
+    function faceOf(f: any) { try { return f?.embedder?.font ?? null; } catch (_e) { return null; } }
+    // If the internal shape ever changes, hasGlyph returns true and this degrades to the old
+    // behaviour rather than dropping every non-ASCII character. `glyph_check` in the response says
+    // which of the two actually ran, so a zero can never be mistaken for a proven zero.
+    let glyphCheck = false;
+    // deno-lint-ignore no-explicit-any
+    function hasGlyph(f: any, cp: number): boolean {
+      const face = faceOf(f);
+      if (!face || typeof face.hasGlyphForCodePoint !== 'function') return true;
+      glyphCheck = true;
+      try { return !!face.hasGlyphForCodePoint(cp); } catch (_e) { return true; }
+    }
+    function drop(ch: string) { dropped++; if (droppedSample.size < 12) droppedSample.add(ch); }
     function safeText(s: string): string {
       let out = '';
       for (const ch of String(s == null ? '' : s)) {
@@ -67,9 +104,10 @@ Deno.serve(async (req) => {
         if (rep !== undefined) { out += rep; continue; }
         const cp = ch.codePointAt(0) || 0;
         if (cp > 0xff) {
-          // Arabic needs the Arabic TTF; everything else above Latin-1 needs Sora.
-          if (isArCode(cp)) { if (arFull) out += ch; continue; }
-          if (latinFull) out += ch;
+          // Arabic needs the Arabic TTF; everything else above Latin-1 needs Sora. Both must also
+          // actually carry the glyph.
+          if (isArCode(cp)) { if (arFull && hasGlyph(arReg, cp)) out += ch; else drop(ch); continue; }
+          if (latinFull && hasGlyph(font, cp)) out += ch; else drop(ch);
           continue;
         }
         out += ch;
@@ -86,6 +124,19 @@ Deno.serve(async (req) => {
     }
     body = safeDeep(body);
 
+    // STRICT BY DEFAULT FOR EVIDENCE-CLASS DOCUMENTS ONLY. A signed/stamped PDF asserts that
+    // QuotesDone issued this text; a report does not. So a report keeps degrading gracefully (a
+    // customer's Arabic comparison should not disappear because a font fetch flaked) while anything
+    // carrying the signature or the stamp refuses. `options.strict_glyphs` overrides either way.
+    const strict = opt.strict_glyphs === undefined ? (doSign || doStamp) : !!opt.strict_glyphs;
+    if (strict && dropped > 0) {
+      return J({ error: 'glyphs_unrenderable', dropped, sample: [...droppedSample].join(''),
+        fonts: { latin: latinFull, arabic: arFull }, glyph_check: glyphCheck ? 'fontkit' : 'unavailable',
+        detail: 'The brand fonts needed for this text are not embedded, so ' + dropped + ' character(s) would be '
+          + 'silently missing from a document that carries the QuotesDone signature or stamp. Refusing rather than '
+          + 'issuing an incomplete signed document. Check the brand bucket for qd_sora_*.ttf / qd_ar_*.ttf.' }, 502);
+    }
+
     // safeDeep only cleans the CALLER's text. The letterhead, footer and Arabic signer block are
     // our own constants and never pass through it, so on the fallback font they could still throw
     // and lose the whole PDF. Losing one glyph is acceptable; losing the customer's document is not.
@@ -100,8 +151,15 @@ Deno.serve(async (req) => {
     const dateEn = body.date ? String(body.date) : new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
     const dateAr = body.date_ar ? String(body.date_ar) : new Date().toLocaleDateString('ar-AE',{day:'2-digit',month:'long',year:'numeric'});
     function dateFor(){ return L==='ar'?dateAr:dateEn; }
-    const logoImg = await (async()=>{ const b=await fetchBytes('qd_lockup_dark.png'); return b?await pdf.embedPng(b):null; })();
-    const logoLightImg = await (async()=>{ const b=await fetchBytes('qd_lockup_light.png'); return b?await pdf.embedPng(b):null; })();
+    // HEIGHT IS THE UNIT (public.company_brand logo.sizing_unit / logo.never_size_by_width). The
+    // TRIMMED derivative is the one that may be sized by height: the 1859x460 masters are 38% ink
+    // and 62% empty alpha, so a height set on those sizes the padding, not the wordmark. Masters
+    // stay as the fallback so a missing derivative still prints a logo — `lockup_trimmed` in the
+    // response says which one was actually used.
+    let lockupTrimmed = true;
+    const logoLightImg = await (async()=>{ const b=await fetchBytes(LOCKUP.dark) ; return b?await pdf.embedPng(b):null; })();
+    const logoImg = await (async()=>{ const b=await fetchBytes(LOCKUP.light); return b?await pdf.embedPng(b):null; })();
+    const logoMaster = logoLightImg ? null : await (async()=>{ lockupTrimmed=false; const b=await fetchBytes('qd_lockup_dark.png'); return b?await pdf.embedPng(b):null; })();
     const sig = doSign ? await (async()=>{ const b=await fetchBytes('qd_signature.png'); return b?await pdf.embedPng(b):null; })() : null;
     const stamp = doStamp ? await (async()=>{ const b=await fetchBytes('qd_stamp.png'); return b?await pdf.embedPng(b):null; })() : null;
 
@@ -111,10 +169,11 @@ Deno.serve(async (req) => {
     function measRTL(s:string,f:any,size:number){ let w=0; for(const r of bidiRuns(s)) w+=W(r.t,f,size); return w; }
     function drawRTL(s:string,size:number,f:any,color:any,yy:number,xRight:number){ const runs=bidiRuns(s); let tot=0; const ws=runs.map(r=>{const w=W(r.t,f,size);tot+=w;return w;}); let x=xRight-tot; for(let i=0;i<runs.length;i++){ if(runs[i].t.trim()!=='') page.drawText(runs[i].t,{x,y:yy,size,font:f,color}); x+=ws[i]; } }
     function putLine(text:string, size:number, b:boolean, color:any, align:'l'|'r', yy:number, x0=M, w=CW){ const f=fontFor(text,b); if(align==='r' && hasAr(text)){ drawRTL(text,size,f,color,yy,x0+w); return measRTL(text,f,size); } const ww=W(text,f,size); const x = align==='r' ? (x0+w-ww) : x0; page.drawText(text,{x,y:yy,size,font:f,color}); return ww; }
-    const footerEn = letterhead ? `${CO.name} · ${CO.licence} · ${CO.city}` : 'QuotesDone · quotesdone.com';
-    const footerEn2 = letterhead ? `${CO.email} · ${CO.phone} · ${CO.web}` : '';
+    const [fl1, fl2] = footerLines(CO);
+    const footerEn = letterhead ? fl1 : 'QuotesDone · quotesdone.com';
+    const footerEn2 = letterhead ? fl2 : '';
     function drawFooter(){ page.drawLine({ start:{x:M,y:54}, end:{x:PW-M,y:54}, thickness:0.5, color:LINE }); page.drawLine({ start:{x:M,y:54}, end:{x:M+34,y:54}, thickness:1.6, color:GOLD }); page.drawText(footerEn, { x:M, y:42, size:7.5, font, color:MUT }); if(footerEn2) page.drawText(footerEn2, { x:M, y:32, size:7.5, font, color:MUT }); page.drawText('Page '+pageNo, { x:PW-M-40, y:42, size:7.5, font, color:MUT }); }
-    function headerBand(slim:boolean){ const h = slim?BANDSLIM:BAND; page.drawRectangle({ x:0, y:PH-h, width:PW, height:h, color:NAVY }); page.drawRectangle({ x:0, y:PH-h, width:PW, height:2.6, color:GOLD }); page.drawRectangle({ x:0, y:PH-h+2.6, width:PW, height:1, color:TEAL }); const lg = logoLightImg || logoImg; if (lg){ const w = slim?92:128; const hh=lg.height*(w/lg.width); page.drawImage(lg, { x:M, y:PH-(h/2)-(hh/2)+(slim?0:2), width:w, height:hh }); } if (!slim && letterhead){ const lines=[CO.name, CO.licence, CO.email+' · '+CO.phone]; let ly=PH-26; lines.forEach((ln,i)=>{ const f=i===0?bold:font; const s=i===0?11:8.5; page.drawText(ln,{ x:PW-M-(f.widthOfTextAtSize(ln,s)), y:ly-s, size:s, font:f, color:i===0?WHITE:BANDTXT }); ly-=(i===0?15:11.5); }); } return PH-h; }
+    function headerBand(slim:boolean){ const h = slim?BANDSLIM:BAND; page.drawRectangle({ x:0, y:PH-h, width:PW, height:h, color:NAVY }); page.drawRectangle({ x:0, y:PH-h, width:PW, height:2.6, color:GOLD }); page.drawRectangle({ x:0, y:PH-h+2.6, width:PW, height:1, color:TEAL }); const lg = logoLightImg || logoImg || logoMaster; if (lg){ const hh = lockupTrimmed ? (slim ? CO.logoPt*0.8 : CO.logoPt) : lg.height*((slim?92:128)/lg.width); const w = lockupTrimmed ? lockupWidthFor(hh) : (slim?92:128); page.drawImage(lg, { x:M, y:PH-(h/2)-(hh/2)+(slim?0:2), width:w, height:hh }); } if (!slim && letterhead){ const lines=[CO.name, CO.licence, CO.email+' · '+CO.phone]; let ly=PH-26; lines.forEach((ln,i)=>{ const f=i===0?bold:font; const s=i===0?11:8.5; page.drawText(ln,{ x:PW-M-(f.widthOfTextAtSize(ln,s)), y:ly-s, size:s, font:f, color:i===0?WHITE:BANDTXT }); ly-=(i===0?15:11.5); }); } return PH-h; }
     function quoteHeader(){ const by=headerBand(false); y=by-22; if(L==='ar'){ putLine('عرض أسعار', 22, true, NAVY, 'r', y-16, M, CW); if(refText) putLine('الرقم المرجعي: '+refText, 10, false, MUT, 'r', y-32, M, CW); putLine('التاريخ: '+dateFor(), 10, false, MUT, 'r', y-46, M, CW); } else { page.drawText('QUOTATION',{x:M,y:y-16,size:22,font:bold,color:NAVY}); if(refText) page.drawText('Ref: '+refText,{x:M,y:y-32,size:10,font,color:MUT}); page.drawText('Date: '+dateFor(),{x:M,y:y-46,size:10,font,color:MUT}); } y=y-64; drawFooter(); }
     function docHeader(){ const by=headerBand(false); y=by-24; const tAr=hasAr(title); putLine(title, 20, true, NAVY, tAr?'r':'l', y-18); y-=24; const meta = (L==='ar'? CO_AR.city : CO.city)+' · '+dateFor(); putLine(meta, 10, false, MUT, hasAr(meta)?'r':'l', y-10); y-=22; drawFooter(); }
     function newSection(){ page = armPage(pdf.addPage([PW,PH])); pageNo++; y=PH-M; }
@@ -173,6 +232,11 @@ Deno.serve(async (req) => {
     const up=await admin.storage.from(bucket).upload(path, bytes, { contentType:'application/pdf', upsert:true });
     if (up.error) return J({ error:'store_failed', detail: up.error.message }, 500);
     const { data: signed } = await admin.storage.from(bucket).createSignedUrl(path, 7*24*3600);
-    return J({ ok:true, bucket, path, url: signed?.signedUrl||null, bytes: bytes.length });
+    return J({ ok:true, bucket, path, url: signed?.signedUrl||null, bytes: bytes.length,
+      // Say what the document actually got. `ok:true` alone could not tell a correct PDF from one
+      // rendered on the WinAnsi fallback with characters missing (9 Sep 2026).
+      fonts: { latin: latinFull, arabic: arFull }, glyphs_dropped: dropped,
+      glyph_check: glyphCheck ? 'fontkit' : 'unavailable',
+      lockup_trimmed: lockupTrimmed, letterhead_source: CO.source });
   } catch (e) { return J({ error: String((e as Error)?.message||e) }, 500); }
 });

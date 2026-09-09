@@ -183,11 +183,25 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   let routerAnswered = false;
   if (useRouter) {
     try {
+      // 9 Sep 2026 — MATCHING IS THE SALES ENGINEER'S (founder: "match capability is the sales
+      // engineer task"). This called functions/v1/route_inquiry, which was DELETED in 182308b and
+      // is deployed nowhere: the fetch 404'd, rj?.ok was falsy, routerAnswered stayed false and the
+      // block below silently degraded every single inquiry to match_suppliers_kw — keyword
+      // matching — with routing.fallback = true and no exception, no alert and no stuck row, while
+      // decision_policy.use_capability_matching said true the whole time.
+      // sales_engineer's `match` action runs public.fn_match_capability and honours
+      // decision_policy's fanout ceiling, per-trade cap and relevance floor. persist:false because
+      // the write happens below, where the landed/refused split decides who is emailed.
       const secret = await getSecret('cred_fn_customer_api');
-      const rr = await fetch(`${SUPABASE_URL}/functions/v1/route_inquiry`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: inqId }) });
+      // The Authorization header is NOT optional and its absence is what the old call looked like.
+      // sales_engineer is deployed with verify_jwt = true, so a header-less POST is rejected by the
+      // gateway BEFORE the function runs — a 401 that reads exactly like the 404 this replaces:
+      // rj.ok falsy, silent degrade to keywords. The service key gets past the gateway; the
+      // __secret in the body is what actually decides the caller inside.
+      const rr = await fetch(`${SUPABASE_URL}/functions/v1/sales_engineer`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE}`, apikey: SERVICE }, body: JSON.stringify({ __secret: secret, action: 'match', inquiry_id: inqId, persist: false }) });
       const rj = await rr.json();
-      if (rj?.ok) { routerAnswered = true; routing = { job_type: rj.job_type, primary_trade: rj.primary_trade, reasoning: rj.reasoning, evaluated: rj.evaluated, note: rj.note || null, needs_detail: rj.needs_detail === true, missing: Array.isArray(rj.missing) ? rj.missing.slice(0, 6) : null, at: new Date().toISOString() }; fits = (Array.isArray(rj.fits) ? rj.fits : []).map((f: any) => ({ ...f, sim: sim01(f?.score, 100) })); }
-      else routing = { error: rj?.error || 'route_failed', at: new Date().toISOString() };
+      if (rj?.ok) { routerAnswered = true; routing = { matcher: 'sales_engineer.match', primary_trade: (rj.asked_for?.trades || [])[0] ?? null, trades: rj.asked_for?.trades ?? null, need: rj.asked_for?.need ?? null, policy: rj.policy ?? null, evaluated: rj.candidates ?? null, above_floor: rj.above_floor ?? null, note: rj.gap?.reason || null, gap: rj.gap || null, at: new Date().toISOString() }; fits = (Array.isArray(rj.matched) ? rj.matched : []).map((f: any) => ({ id: Number(f?.supplier_id), company_name: f?.company_name, reason: String(f?.reason || ''), sim: sim01(f?.score, 100) })); }
+      else routing = { error: rj?.error || 'match_failed', at: new Date().toISOString() };
     } catch (e) { routing = { error: String((e as Error)?.message || e), at: new Date().toISOString() }; }
   }
   // ROUTE_INQUIRY OVERRIDE (27 Jul 2026). This used to fall back to match_suppliers_kw whenever
@@ -210,10 +224,19 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   const supById = new Map(supRows.map((s: any) => [Number(s.id), s]));
   const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: f.sim ?? null, match_reason: String(f.reason || '').slice(0, 400) }));
   // K05 (23 Aug 2026). THE FANOUT WAS THE ROWS WE TRIED TO INSERT, NOT THE ROWS THAT LANDED.
-  // public.inquiry_matches carries two BEFORE INSERT gates — a00_unsafe_match_eligibility and
-  // gate_incomplete_match — and each refuses by returning null, which PostgREST answers as 201 with
-  // no row. So `error` was null, matchRows.length was recorded as the fanout, and a refused supplier
-  // counted as a contacted one. dispatch_inquiry had this exact defect and it was fixed on
+  //
+  // 9 SEP 2026 — THE GATES THIS PARAGRAPH NAMES ARE GONE, and asking for the rows back is kept
+  // anyway. MEASURED, not read: pg_trigger holds 4 rows for public.inquiry_matches and all 4 are
+  // internal referential-integrity triggers — 0 user triggers — and neither
+  // a00_unsafe_match_eligibility nor gate_incomplete_match exists in pg_proc. So no BEFORE INSERT
+  // gate refuses a supplier here today and `refused` below will be empty; supplier eligibility on
+  // this path is now enforced solely by fn_is_matchable INSIDE fn_match_capability, upstream. The
+  // landed/refused read stays because it is the only thing that would NOTICE a gate returning, and
+  // because it costs one `.select()`.
+  //
+  // The original defect, for the record: each gate refused by returning null, which PostgREST
+  // answers as 201 with no row. So `error` was null, matchRows.length was recorded as the fanout,
+  // and a refused supplier counted as a contacted one. dispatch_inquiry had this exact defect and it was fixed on
   // 15 Aug 2026 by asking for the rows back; this is the same fix on the other writer.
   let landedIds: number[] = [];
   if (matchRows.length) {

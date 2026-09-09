@@ -54,8 +54,18 @@ const SEAT_BY_CREDENTIAL: Record<string, 'sales_engineer'> = {
 // own questions; it may not name another party. Note customers.id is NOT auth.users.id (measured 9
 // Sep: the one real customer's id does not exist in auth.users) — the verified JWT email is the
 // join, which is the same identity rule the estate already uses: a phone may confirm, never select.
+//
+// A FOURTH KIND IS A SERVICE CALLER. customer_api hands this seat the matching decision on the
+// create_inquiry path (the founder, 9 Sep: "match capability is the sales engineer task"). It
+// presents ITS OWN credential — fn.customer_api — and must not therefore become the seat: the work
+// is still performed AS sales_engineer (grant checked, agent_runs row written) but the CALLER is
+// recorded as what it is. SERVICE_ACTIONS is the whole of what a service caller may reach, so a
+// widened credential scope cannot quietly hand customer_api the grant ledger or the sector
+// catalogue as well.
+const SERVICE_ACTIONS = new Set(['match']);
 type Caller =
   | { kind: 'sales_engineer' | 'founder' }
+  | { kind: 'service'; context: string }
   | { kind: 'customer'; customerId: string; email: string }
   | null;
 
@@ -63,6 +73,7 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<Call
   if (body?.__secret) {
     const r = await requireInternal(admin, String(body.__secret), 'sales_engineer');
     if (r.ok && SEAT_BY_CREDENTIAL[r.context]) return { kind: 'sales_engineer' };
+    if (r.ok) return { kind: 'service', context: r.context };
   }
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   if (!jwt) return null;
@@ -116,6 +127,9 @@ Deno.serve(async (req) => {
     if (!caller) return J({ error: 'unauthorized' }, 401);
 
     const action = String(body.action || '').trim();
+    if (caller.kind === 'service' && !SERVICE_ACTIONS.has(action)) {
+      return J({ error: 'forbidden', action, caller: caller.context, allowed: [...SERVICE_ACTIONS] }, 403);
+    }
 
     // ── ASSIST ─────────────────────────────────────────────────────────────────────────────────
     // The portal assistant. PortalShell.tsx called site_assistant — Support's function, and correct
@@ -218,6 +232,220 @@ Deno.serve(async (req) => {
     // sector catalogue and the format matrix. A portal customer is authenticated but is not staff,
     // and an authenticated caller reaching an operator route is how privilege quietly widens.
     if (caller.kind === 'customer') return J({ error: 'forbidden', action }, 403);
+
+    // ── MATCH ──────────────────────────────────────────────────────────────────────────────────
+    // "match capability is the sales engineer task." (founder, 9 September 2026)
+    //
+    // WHAT THIS REPLACES. customer_api:187 POSTed to functions/v1/route_inquiry inside an
+    // `if (useRouter)` try/catch. route_inquiry was deleted in 182308b and is deployed nowhere, so
+    // that fetch 404'd, `rj?.ok` was falsy, routerAnswered stayed false and the very next block
+    // degraded to match_suppliers_kw — KEYWORD matching — marking routing.fallback = true. No
+    // exception, no alert, no stuck row. decision_policy.use_capability_matching is true, so the
+    // intent was capability matching and the reality was keywords, silently, on every inquiry.
+    //
+    // NO MODEL, AND NONE IS WANTED HERE. The gates below are not judgement calls, they are facts
+    // about a supplier's declared and confirmed scope, and public.fn_match_capability already
+    // applies every one of them as hard SQL BEFORE ranking: supplier-confirmed scope
+    // (confirmed_at not null), trade intersection, declared negative scope (excluded_trades),
+    // contracted role via taxonomy_role, every taxonomy_trade.authority_required code,
+    // project-value band, and emirate coverage. It is not re-implemented here and must not be —
+    // a second matcher is a second answer.
+    //
+    // THE GRANT'S OWN WORDS ARE THE LIMIT. sales.matching carries: "Unknown mandatory evidence is
+    // not a pass. No inventing a minimum supplier count and no padding with poor matches." So
+    // nothing below ever relaxes the floor to reach a target count, ever widens the trade set to
+    // find somebody, and ever returns a supplier the SQL gates refused. A short list is the answer
+    // when the market is short.
+    if (action === 'match') {
+      const { data: mayRaw, error: mayErr } = await admin.rpc('fn_agent_may_act', {
+        p_grantee_role_id: 'sales_engineer', p_action_class: 'matching', p_amount_aed: null,
+      });
+      const may = (mayRaw || {}) as Record<string, unknown>;
+      if (mayErr || may.may_act !== true) {
+        await run('match', 'refused', {}, String(may.reason || mayErr?.message || 'no grant'));
+        return J({ ok: false, error: 'not_permitted', ...may }, 403);
+      }
+
+      const inquiryId = String(body.inquiry_id || '').trim();
+      let inq: Record<string, unknown> | null = null;
+      if (inquiryId) {
+        const { data } = await admin.from('inquiries')
+          .select('id,summary,raw_input,category,keywords,trades,emirate,scope_type,role_needed,budget,expected_value,boq')
+          .eq('id', inquiryId).maybeSingle();
+        if (!data) return J({ ok: false, error: 'inquiry_not_found', inquiry_id: inquiryId }, 404);
+        inq = data as Record<string, unknown>;
+      }
+
+      const arr = (v: unknown): string[] =>
+        (Array.isArray(v) ? v : []).map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+
+      // TRADES. The customer's own words resolved through taxonomy_trade.aliases by
+      // public.fn_norm_trades — the estate's normaliser, word-START anchored so 'sign' matches
+      // "signage" and not "design". Reused, not re-written.
+      let trades = arr(body.trades);
+      if (!trades.length) trades = arr(inq?.trades);
+      const brief = [inq?.summary, inq?.raw_input, inq?.category, arr(inq?.keywords).join(' '), body.text]
+        .map((x) => String(x ?? '')).filter(Boolean).join(' ').slice(0, 4000);
+      if (!trades.length && brief) {
+        const { data: nt } = await admin.rpc('fn_norm_trades', { p_text: brief });
+        trades = arr(nt);
+      }
+
+      // WHAT THE CUSTOMER NEEDS DONE, not what a supplier would like to sell. taxonomy_role
+      // decides which roles can serve each; this only picks the column.
+      const need = String(body.need || '').trim() ||
+        (String(inq?.scope_type || '').toLowerCase().includes('turnkey')
+          ? 'whole_scope'
+          : (/supply|material|product/i.test(String(inq?.scope_type || inq?.role_needed || '')) ? 'supplies' : 'executes'));
+
+      // VALUE. Only a number that is actually a number gates the size band; a budget we cannot read
+      // stays null, because an unreadable budget parsed as 0 would exclude every supplier with a
+      // minimum. "Unknown mandatory evidence is not a pass" cuts the other way too: it is not a
+      // fail either — it is unknown, and an unknown value simply does not gate.
+      const num = (v: unknown): number | null => {
+        const n = Number(String(v ?? '').replace(/[^0-9.]/g, ''));
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const value = num(body.value) ?? num(inq?.expected_value) ?? num(inq?.budget);
+      const emirate = String(body.emirate || inq?.emirate || '').trim() || null;
+      const products = arr(body.products);
+      const brands = arr(body.brands);
+      const projectType = String(body.project_type || inq?.scope_type || '').trim() || null;
+
+      // THE FANOUT CEILING IS READ, NOT COMPILED IN. decision_policy holds match_max_fanout = 5,
+      // match_max_fanout_per_trade = 3 and match_relevance_floor = 35 (measured 9 Sep 2026). The
+      // keyword fallback this replaces hard-coded p_limit: 8, which CONTRADICTED the ceiling of 5
+      // and had done so on every inquiry it ever handled. The configured 5 wins here; 8 was never
+      // policy, it was a literal.
+      const { data: polRows } = await admin.from('decision_policy').select('key,value')
+        .in('key', ['match_max_fanout', 'match_max_fanout_per_trade', 'match_relevance_floor']);
+      const pol = Object.fromEntries((polRows || []).map((r: { key: string; value: unknown }) => [r.key, Number(r.value)]));
+      const maxFanout = Number.isFinite(pol.match_max_fanout) ? pol.match_max_fanout : 5;
+      const perTrade = Number.isFinite(pol.match_max_fanout_per_trade) ? pol.match_max_fanout_per_trade : 3;
+      const floor = Number.isFinite(pol.match_relevance_floor) ? pol.match_relevance_floor : 35;
+
+      const policy = { max_fanout: maxFanout, max_fanout_per_trade: perTrade, relevance_floor: floor };
+      const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate };
+
+      if (!trades.length) {
+        // NOT A FAILURE AND NOT A COVERAGE GAP. Nobody was asked, because there was no question:
+        // the brief names no trade this taxonomy recognises. Widening it to "everything" to produce
+        // a list would be exactly the padding the grant forbids.
+        await run('match', 'ok', { inquiry_id: inquiryId || null, trades: 0, matched: 0, gap: 'no_trade_identified' });
+        return J({
+          ok: true, seat: 'sales_engineer', inquiry_id: inquiryId || null, asked_for: askedFor, policy,
+          candidates: 0, above_floor: 0, matched: [], persisted: 0,
+          gap: { reason: 'no_trade_identified',
+            note: 'The brief names no trade in taxonomy_trade, so fn_match_capability was not called. This is a brief that needs a question answered, not a supply gap.' },
+        });
+      }
+
+      // Headroom, then trim. Asking fn_match_capability for exactly 5 would let one over-represented
+      // trade fill the list before the per-trade cap could spread it.
+      const headroom = Math.min(60, Math.max(maxFanout, trades.length * perTrade * 2));
+      const { data: rowsRaw, error: matchErr } = await admin.rpc('fn_match_capability', {
+        p_trades: trades, p_need: need, p_products: products, p_brands: brands,
+        p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
+      });
+      if (matchErr) {
+        await run('match', 'error', { inquiry_id: inquiryId || null }, matchErr.message);
+        return J({ ok: false, error: 'match_failed', detail: matchErr.message }, 503);
+      }
+      const rows = (rowsRaw || []) as Array<Record<string, unknown>>;
+
+      // THREE DIFFERENT EMPTIES, AND THEY MUST NOT PRINT AS THE SAME 0. `candidates` is what
+      // cleared the hard gates; `above_floor` is what then cleared the relevance floor. A gap after
+      // the gates is a market fact; a gap after the floor is a policy fact; they call for different
+      // work and were previously one number.
+      const aboveFloor = rows.filter((r) => Number(r.score) >= floor);
+
+      const usedByTrade = new Map<string, number>();
+      const picked: Array<Record<string, unknown>> = [];
+      for (const r of aboveFloor) {
+        if (picked.length >= maxFanout) break;
+        const shared = arr(r.trades).filter((t) => trades.includes(t));
+        // Every trade this supplier would be picked FOR is already full. Taking it anyway is the
+        // padding the grant names.
+        if (shared.length && shared.every((t) => (usedByTrade.get(t) || 0) >= perTrade)) continue;
+        for (const t of shared) usedByTrade.set(t, (usedByTrade.get(t) || 0) + 1);
+        picked.push(r);
+      }
+
+      const matched = picked.map((r) => ({
+        supplier_id: Number(r.supplier_id),
+        company_name: r.company_name ?? null,
+        // The SAME normalisation customer_api already applies: fn_match_capability's weights come
+        // from decision_policy and sum to 100 by construction, so 100 is the denominator and the
+        // stored similarity is a 0..1 fraction on a declared scale.
+        score: Number(r.score),
+        similarity: Math.round(Math.min(1, Math.max(0, Number(r.score) / 100)) * 1000) / 1000,
+        reason: String(r.why || '').slice(0, 400),
+        trades: r.trades, roles: r.roles, product_hits: r.product_hits,
+        brand_hit: r.brand_hit, ptype_hit: r.ptype_hit, track: r.track,
+      }));
+
+      // THE MATCH RECORD. inquiry_matches carries a UNIQUE (inquiry_id, supplier_id), so this is an
+      // upsert and a re-run of the same decision is not a second fanout.
+      //
+      // MEASURED 9 SEP 2026, AND IT CONTRADICTS THE COMMENT customer_api CARRIES: the two BEFORE
+      // INSERT eligibility triggers it describes — a00_unsafe_match_eligibility and
+      // gate_incomplete_match — DO NOT EXIST on this database. pg_trigger holds 4 rows for
+      // inquiry_matches and every one is an internal referential-integrity trigger; there are 0
+      // user triggers, and neither trigger FUNCTION exists in pg_proc either. So nothing between
+      // this insert and the table refuses a supplier, and the eligibility that comment relies on is
+      // being applied ONLY by fn_match_capability's own fn_is_matchable gate above. That is a real
+      // gate and it is enough for this path — but it is one gate, not three, and it is stated here
+      // rather than assumed.
+      //
+      // customer_api passes persist:false: it performs its own write immediately afterwards
+      // because it needs the landed/refused split to decide who to email. One writer per path.
+      let persisted = 0;
+      const wantPersist = body.persist !== false && !!inquiryId;
+      if (wantPersist && matched.length) {
+        const { data: landed, error: insErr } = await admin.from('inquiry_matches')
+          .upsert(matched.map((m) => ({
+            inquiry_id: inquiryId, supplier_id: m.supplier_id,
+            similarity: m.similarity, match_reason: m.reason,
+          })), { onConflict: 'inquiry_id,supplier_id' })
+          .select('supplier_id');
+        if (insErr) {
+          await run('match', 'error', { inquiry_id: inquiryId, matched: matched.length }, insErr.message);
+          return J({ ok: false, error: 'match_record_failed', detail: insErr.message, matched }, 503);
+        }
+        persisted = (landed || []).length;
+      }
+
+      // A SUPPLY GAP IS A FINDING, NOT AN ERROR. ok stays true, the customer's intent is not
+      // distorted, the project is not silently split, and nothing is escalated to the founder. The
+      // recording and recovery path already exists and is NOT duplicated here: customer_api's
+      // flagCoverageGap() fires on exactly this condition (zero landed matches) and writes the
+      // agent_actions coverage_gap row, the founder_alerts line and the owner notification.
+      const gap = matched.length ? null : {
+        reason: rows.length === 0 ? 'no_capable_supplier' : 'below_relevance_floor',
+        candidates_before_floor: rows.length,
+        best_score: rows.length ? Number(rows[0].score) : null,
+        relevance_floor: floor,
+        note: rows.length === 0
+          ? 'No supplier cleared fn_match_capability\'s hard gates for this trade, role, authority, value band and emirate. This is a supply-coverage gap: the demand is real and the marketplace cannot serve it.'
+          : 'Suppliers cleared the hard gates but none reached the configured relevance floor. Lowering the floor to produce a list is expressly forbidden by the sales.matching grant.',
+        recovery: 'Recorded and pursued by customer_api.flagCoverageGap() on the create_inquiry path (agent_actions coverage_gap + founder_alerts + owner notification). The customer\'s scope is not widened, the project is not split, and no supplier choice is put to the founder.',
+      };
+
+      await run('match', 'ok', {
+        inquiry_id: inquiryId || null, trades: trades.length, candidates: rows.length,
+        above_floor: aboveFloor.length, matched: matched.length, persisted, gap: gap?.reason ?? null,
+      });
+
+      return J({
+        ok: true, seat: 'sales_engineer', caller: caller.kind,
+        inquiry_id: inquiryId || null,
+        asked_for: askedFor, policy,
+        candidates: rows.length, above_floor: aboveFloor.length,
+        matched, persisted, gap,
+        grant: { grant: may.grant, limit: may.limit },
+        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band and emirate coverage applied as SQL gates before ranking; then decision_policy\'s relevance floor, per-trade cap and fanout ceiling. No model was called and no supplier was added to reach a count.',
+      });
+    }
 
     // ── HEALTH ─────────────────────────────────────────────────────────────────────────────────
     // Readiness measured, not asserted. The audit of 9 Sep found the only honest liveness signal for
