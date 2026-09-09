@@ -202,7 +202,15 @@ function main() {
     // (attachment.test.ts documents itself as `deno test --allow-none ...`. That flag was removed
     // in Deno 2 and errors out - further evidence the file had never been run.)
     // --no-lock: matches the deno check steps in .github/workflows/checks.yml.
-    const denoRes = spawnSync('deno', ['test', '--no-lock', ...deno],
+    //
+    // --node-modules-dir=auto, added 9 Sep 2026, and it is not cosmetic. observe.test.ts imports
+    // _shared/observe.ts, which imports supabase-js, which pulls npm:@supabase/realtime-js. On this
+    // machine that resolved silently because node_modules already existed; the CI runner has none,
+    // so `deno test` died with "Could not find a matching package ... in the node_modules directory"
+    // BEFORE running a single assertion — the whole Deno suite reported as one failure with no test
+    // names in it. Every `deno check` step in this repo already carries this flag; the test step
+    // did not, and nothing needed it until a test reached a module with an npm dependency.
+    const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto', ...deno],
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoRes.error && denoRes.error.code === 'ENOENT') {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file
