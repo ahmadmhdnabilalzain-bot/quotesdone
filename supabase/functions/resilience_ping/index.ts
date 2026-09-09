@@ -11,15 +11,36 @@ const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 async function sec(k: string): Promise<string> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 
+// THE CEO END-OF-DAY DIGEST HANGS HERE, AND NOT ON pg_cron.
+// cron.job holds ONE row (wa_flush, active=false). 234 jobs were deleted on the founder's 7 Sep
+// instruction and 110 cron.schedule statements were stripped from 66 repo files, so a pg_cron job
+// registered for the digest would simply never fire — and reactivating pg_cron to make it fire
+// would restart machinery he removed. This path, by contrast, is demonstrably alive: send_outbox
+// has run 52 times down it since the crons died.
+// All the timezone and once-per-day logic lives in fn_ceo_daily_digest_tick, because Postgres knows
+// what Asia/Dubai means and a cron string does not. The tick is idempotent, so calling it every 15
+// minutes is correct: it returns fired:false until the configured local time and then generates
+// exactly one report for that local date. A failure here is logged and swallowed — the digest is
+// informational and must never take the watchdog down with it.
+async function digestTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_daily_digest_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
+    // 0. The CEO's end-of-day digest, before any early return below.
+    const digest = await digestTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -43,6 +64,6 @@ Deno.serve(async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 });
