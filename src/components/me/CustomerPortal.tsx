@@ -1494,7 +1494,15 @@ function NewRequest({ token, onDone, onCancel }) {
     <div className="border-t border-border px-3 py-2.5">
       {msg && <div className={cn(S.err, 'mb-1.5')}>{msg}</div>}
       <div className="flex items-end gap-2">
-        <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => onFile(e.target.files[0])} />
+        {/* CAD WAS ACCEPTED BY THE SERVER AND UNPICKABLE IN THE BROWSER. _shared/attachment.ts has
+            SAFE_CAD = ['image/vnd.dwg','image/vnd.dxf'] and customer_api has a live cad_convert
+            branch, but this input allowed only images and PDF — so the whole CAD path was
+            unreachable for the customer it was built for. The founder, 10 Sep 2026: the sales
+            engineer "need to be extremely powerful in reading CAD drawings, PDF drawing formats,
+            any format for the drawings". Extensions are listed as well as MIME types because
+            Windows and macOS report .dwg/.dxf inconsistently — some browsers send an empty type
+            for them, and an accept list of MIME types alone silently hides the files. */}
+        <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf" className="hidden" onChange={(e) => onFile(e.target.files[0])} />
         <button type="button" title="Attach a drawing, photo or quotation" className="text-primary text-xl px-1 leading-none disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}>📎</button>
         <button type="button" title="Speak your request" className={cn('text-xl px-1 leading-none', rec ? 'text-red-400' : 'text-primary')} onClick={rec ? stopRec : startRec}>{voxBusy ? '…' : (rec ? '⏺' : '🎙')}</button>
         <textarea className="flex-1 resize-none rounded-xl bg-secondary/40 border border-border px-3 py-2 text-[13.5px] outline-none focus:border-primary/60" rows={1} placeholder={rec ? 'Listening… tap the mic to stop' : 'Message the assistant…'} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />

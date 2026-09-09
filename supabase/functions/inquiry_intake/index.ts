@@ -307,6 +307,13 @@ Detected category: ${category || 'unknown'}${category ? '' : ' (infer it from th
 What suppliers ${multiTrade ? 'in each trade' : 'in this category'} need to know:
 ${checklistText}
 ${orderedQuestions ? `\nASK IN THIS ORDER (the qualification sequence our category desks use — ${ar ? 'these are already in Arabic; ' : ''}reworded naturally, never read out verbatim, and SKIPPED whenever the customer has already answered them or an attached document does). The checklist above is what makes the request dispatchable; this is the order to get there:\n${orderedQuestions}\n` : ''}
+YOU ARE TALKING TO SOMEONE WHO IS PROBABLY NOT TECHNICAL, and the questions above are written in trade language for our own desks. The founder's instruction, 10 September 2026: ask "in a very smart way because customers are not all technical".
+- TRANSLATE every question into plain words before you ask it. Not "specify the substrate condition and screed level" — "is the floor bare concrete at the moment, or is there already tiling or flooring down?". Not "confirm the BTU load" — "roughly how big is the room, and how many people use it?".
+- If a term has no plain equivalent, ask for the thing they CAN see or count: a room size, how many of something, a photo, what it looks like now, what they want it to look like.
+- NEVER ask them to look something up, measure something they would need equipment for, or produce a document they are unlikely to have. Ask what they know; our engineer infers the rest.
+- One idea per question, and at most 2-3 questions at a time. A wall of trade questions is how a customer abandons a request.
+- If they answer vaguely ("normal size", "standard"), accept it and move on rather than pressing — an approximate answer with a note is worth more than an abandoned inquiry, and suppliers can flag what they still need.
+- A customer who says they do not know is telling you something useful. Record it as unknown and let the suppliers quote against an assumption, stated as an assumption.
 ${specialistKB ? `\nFIELD EXPERTISE for this trade (the specialist knowledge our expert agents use — apply it to ask the sharpest quote-critical questions and to recognise when a customer's answer implies an approval, standard or spec they haven't mentioned; do NOT lecture the customer, quote this text, or ask about things irrelevant to their specific job):\n${specialistKB}\n` : ''}
 RULES:
 1. If the message is gibberish, a test, empty, spam, or NOT a genuine request for a construction / fit-out / maintenance / supply / trade service in the UAE, set status \"rejected\" and politely ask them to describe an actual job.
@@ -359,9 +366,30 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (!out) {
       const multi = kwTrades.length > 1;
       if (multi && validSlugs.includes('fitout') && (!category || category === 'general')) category = 'fitout';
-      const missingReq = checklist.filter((f: any) => f.required).map((f: any) => f.question);
+      // THIS IS THE LIVE PATH TODAY, NOT A RARE FALLBACK. Every model route in llm_route_health is
+      // open_until 2126 under the founder's OpenRouter hold, so `out` is null on every real intake
+      // and these questions are what a customer actually sees.
+      //
+      // They come straight out of category_specs.fields, which is written in trade language for our
+      // own desks — "confirm the substrate condition", "specify the BTU load". The founder,
+      // 10 Sep 2026: ask "in a very smart way because customers are not all technical". The model
+      // is instructed to translate; with no model there is nothing doing the translating, so the
+      // deterministic path must not simply read the trade checklist out loud.
+      //
+      // What it does instead: ask for what the customer CAN give — their own words, a photo, a
+      // drawing — and surface at most THREE checklist items as prompts rather than a wall of
+      // requirements. Fewer, softer questions that get answered beat a complete list that gets
+      // abandoned, and an attached drawing answers most of them anyway.
+      //
+      // THE REAL FIX IS DATA, NOT CODE, and it is deliberately not attempted here: category_specs
+      // needs a plain-language sibling for each of its 396 fields, written once, so both the model
+      // path and this one ask the same human question. Recorded rather than bodged.
+      const missingReq = checklist.filter((f: any) => f.required).map((f: any) => f.question).slice(0, 3);
+      const plainAsk = ar
+        ? 'صف لنا العمل بكلماتك أنت — ماذا تريد أن تنجز، وفي أي نوع من الأماكن، وما الحجم تقريباً. وإذا كان لديك صورة أو مخطط، أرفقه وسنقرأ منه التفاصيل بدلاً عنك.'
+        : 'Tell me in your own words what you need done — what the job is, what kind of space it is in, and roughly how big. If you have a photo or a drawing, attach it and I will read the details off it for you instead of asking.';
       const multiMsg = ar ? 'يبدو أن طلبك يشمل أكثر من تخصص. أخبرنا بمزيد من التفاصيل لكل جزء لنرسل طلبك للموردين المناسبين.' : 'It looks like your request covers more than one trade. Tell me a bit more about each part (scope, area/quantity and timeline for each) so I can send it to the right suppliers.';
-      if (!allText.trim() || allText.trim().length < 8) out = { category, status: 'needs_info', assistant_message: ar ? 'صف لنا العمل المطلوب بالتفصيل.' : 'Please describe the job you need in a bit more detail.', questions: missingReq.slice(0, 4), readiness: 10, missing: missingReq, brief: null };
+      if (!allText.trim() || allText.trim().length < 8) out = { category, status: 'needs_info', assistant_message: plainAsk, questions: missingReq, readiness: 10, missing: missingReq, brief: null };
       else if (multi) out = { category, status: 'needs_info', assistant_message: multiMsg, questions: missingReq.slice(0, 4), readiness: 40, missing: missingReq, brief: null };
       else if (missingReq.length) out = { category, status: 'needs_info', assistant_message: ar ? 'نحتاج بعض التفاصيل لإرسال طلبك للموردين.' : 'A few details will help suppliers quote accurately.', questions: missingReq.slice(0, 4), readiness: 40, missing: missingReq, brief: null };
       else out = { category, status: 'ready', assistant_message: ar ? 'تم — سنرسل طلبك للموردين.' : "Great — we'll send this to matching suppliers.", questions: [], readiness: 75, missing: [], brief: { summary: allText.slice(0, 160), category, scope: '', quantity: '', location: emirate || '', emirate: emirate || '', timeline: '', budget: '', details: {} } };
