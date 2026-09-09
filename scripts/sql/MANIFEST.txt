@@ -1287,3 +1287,5 @@ scripts/sql/the_report_asks_the_vendor_side_question_too.sql
 scripts/sql/a_subscription_with_one_receipt_is_a_question_not_an_answer.sql
 scripts/sql/some_vendors_never_email_a_receipt_at_all.sql
 scripts/sql/a_check_that_feeds_nothing_changes_nothing.sql
+scripts/sql/figma_was_cancelled_and_chatgpt_is_coming.sql
+scripts/sql/the_recipient_on_the_receipt_says_whose_charge_it_is.sql
