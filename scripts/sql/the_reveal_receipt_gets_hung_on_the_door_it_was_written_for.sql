@@ -114,8 +114,39 @@ begin
     raise exception 'the trigger did not attach';
   end if;
 
-  select id into v_lead from public.leads where email is not null and email like '%@%' limit 1;
-  if v_lead is null then raise exception 'POSITIVE CONTROL FAILED: no lead with an email to stand in as the supplier'; end if;
+  -- ── THIS PROBE EMAILED A REAL COMPANY, AND THAT IS WHY IT NOW BUILDS ITS OWN SUPPLIER ─────────
+  --
+  -- What stood here was:
+  --     select id into v_lead from public.leads where email is not null and email like '%@%' limit 1;
+  --
+  -- It picked a REAL supplier out of the 22,264 in public.leads, inserted a synthetic reveal against
+  -- them, and the trigger under test queued a supplier receipt addressed to their real inbox. On
+  -- 9 September 2026 at 20:08 one of those rows survived the probe's own cleanup, send_outbox picked
+  -- it up at 20:15, and MARINA OCEAN BUILDING MATERIALS L.L.C <info@marinatrans.com> was told that a
+  -- customer had paid to reveal their contact details. No customer had. There are 0 rows in
+  -- public.transactions. The message also told them a five-working-day response clock had started,
+  -- with the reveal fee plus AED 250 and 9% interest recoverable if they missed it.
+  --
+  -- A false message to a real supplier cannot be recalled, and the fault is not the cleanup — it is
+  -- that a test was ever pointed at a live address. A probe must be incapable of reaching a real
+  -- person, not merely careful to tidy up after itself: cleanup is a promise, and this one was kept
+  -- everywhere except the row that had already left. The transaction and the customer WERE removed;
+  -- 0 transactions and 0 demo customers remain. Only the supplier notification escaped.
+  --
+  -- So the probe now creates its OWN supplier, at @example.invalid, which cannot receive mail, and
+  -- removes it at the end. The estate's fixture convention (ZZ DEMO in the name, example.invalid in
+  -- the address) exists for exactly this and was not being followed here.
+  insert into public.leads (company_name, email, sector, emirate)
+  values ('ZZ DEMO — reveal receipt probe supplier', 'zz-demo-reveal-supplier@example.invalid',
+          'construction', 'Dubai')
+  returning id into v_lead;
+  if v_lead is null then raise exception 'POSITIVE CONTROL FAILED: could not create the probe supplier'; end if;
+
+  -- AND THE PROBE MUST NOT BE ABLE TO ADDRESS A REAL INBOX AT ALL. Asserted rather than assumed,
+  -- because the whole incident above was an assumption that the cleanup would hold.
+  if (select email from public.leads where id = v_lead) not like '%@example.invalid' then
+    raise exception 'the probe supplier is not on example.invalid — refusing to queue supplier mail';
+  end if;
 
   insert into public.customers (id, email, email_verified, full_name)
   values (gen_random_uuid(), 'zz-demo-reveal-probe@example.invalid', true, 'ZZ DEMO reveal probe')
@@ -165,10 +196,17 @@ begin
           or (type = 'quote_accepted' and lead_id = v_lead));
   delete from public.transactions where id = v_tx;
   delete from public.customers where id = v_cust;
+  delete from public.leads where id = v_lead;
 
+  -- THE SUPPLIER SIDE IS ASSERTED NOW TOO. The old version checked only that the CUSTOMER's probe
+  -- mail was gone, so a surviving supplier receipt passed the cleanup check silently — which is
+  -- precisely the row that reached a real company. Both directions, and the demo lead itself.
   if exists (select 1 from public.transactions where id = v_tx)
      or exists (select 1 from public.customers where id = v_cust)
-     or exists (select 1 from public.notifications where to_email = 'zz-demo-reveal-probe@example.invalid') then
+     or exists (select 1 from public.leads where id = v_lead)
+     or exists (select 1 from public.notifications where to_email = 'zz-demo-reveal-probe@example.invalid')
+     or exists (select 1 from public.notifications where lead_id = v_lead)
+     or exists (select 1 from public.notifications where to_email = 'zz-demo-reveal-supplier@example.invalid') then
     raise exception 'the probe left rows behind';
   end if;
 

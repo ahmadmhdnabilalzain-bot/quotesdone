@@ -55,3 +55,8 @@ diag*.out
 # removing 448 MB is the owner call. run.mjs already skips it via the carries-its-own-.git rule; this
 # stops git and graphify from indexing it too.
 $WT/
+
+# Agent worktrees are scratch: 79 of them were committed as gitlinks with no .gitmodules,
+# so every CI checkout printed "fatal: No url found for submodule path" and every job — including
+# the green ones — ended with "git failed with exit code 128". Scratch, never source of truth.
+.claude/worktrees/
