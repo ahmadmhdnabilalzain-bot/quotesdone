@@ -43,18 +43,42 @@ async function ratingTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE DROPBOX BACKUP HANGS HERE FOR THE THIRD TIME, AND FOR THE SAME REASON.
+// The founder, 9 Sep 2026: the sales engineer "is responsible about the organized folders back up in
+// dropbox". A daily backup needs a schedule, and pg_cron is not one any more — cron.job holds a
+// single inactive row. So the daily-ness lives in Postgres, where Asia/Dubai is a real timezone:
+// fn_dropbox_backup_due returns due:true at most once per local day, plus whenever a previous sweep
+// left rows in the queue, so a backlog drains instead of waiting for tomorrow.
+// dropbox_backup itself is idempotent — fn_enqueue_doc_backups is ON CONFLICT DO NOTHING and only
+// pending/error rows are uploaded — so a duplicate call costs one wasted invocation, never a
+// duplicate file. Swallowed like the other two: a backup must never take the watchdog down.
+async function backupTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_dropbox_backup_due');
+    if (error) return { ok: false, error: error.message };
+    if (!(data as any)?.due) return { due: false, ran_today: (data as any)?.ran_today, queued: (data as any)?.queued };
+    const secret = await sec('cred_fn_resilience_ping');
+    const r = await fetch(FN + '/dropbox_backup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(55000),
+    });
+    return { due: true, status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
     // 0. The CEO's end-of-day digest, before any early return below.
     const digest = await digestTick();
     const ratings = await ratingTick();
+    const backup = await backupTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -78,6 +102,6 @@ Deno.serve(async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 });
