@@ -27,7 +27,28 @@ const j = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:co
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
 // index these kinds into the shared KB (non customer-identifying capability text).
-const INDEX_KINDS = new Set(['catalog','profile','drawing']);
+// WHAT MAY ENTER THE SHARED LIBRARY. kb_chunks is read by kb_query, which inquiry_intake calls with
+// ANOTHER customer's words, so anything indexed here is answerable to everyone.
+//
+// 'drawing' WAS IN THIS SET AND SHOULD NEVER HAVE BEEN (removed 10 Sep 2026). A catalogue or a
+// company profile is a SUPPLIER telling us what they can do — that is capability, it is meant to be
+// matched against other people's requests, and it belongs here. A drawing is a CUSTOMER's own job:
+// their floorplan, their villa, their plot, their name. Indexing it put one customer's document in
+// the corpus every other customer is answered from. Measured before this change: kb_query('gypsum
+// false ceiling') returned a customer's villa floorplan as result #1, complete with the firm name,
+// the client's name, the plot address, a mobile number and an email.
+//
+// THE CUSTOMER'S DRAWING IS STILL READ, AND STILL BY THE SALES ENGINEER — through the scoped path
+// that already exists and is the right one: doc_extract writes the extraction to documents.extracted
+// for that document, the BOQ lands on inquiries.boq / drawing_file_path for that inquiry, and
+// inquiry_intake receives it as `drawing_boq` and tells the model "the customer also attached a
+// drawing/quotation from which we read N line items". That path is scoped to the one inquiry it
+// belongs to. Nothing about reading a customer's drawing is lost here; only the second, unscoped
+// copy is.
+//
+// Note the citation below is hard-coded 'Supplier <kind> document' — which is how a customer's
+// floorplan came to be filed under the word "Supplier". With drawings out, the label is true again.
+const INDEX_KINDS = new Set(['catalog','profile']);
 // never index (pricing tied to identity, or PII documents)
 // quote, licence, egr are intentionally excluded.
 
@@ -231,7 +252,12 @@ Deno.serve(observe('doc_extract', async (req) => {
     if(typeof extracted.text!=='string') extracted.text=String(extracted.text||'');
 
     let indexed=false;
-    if(INDEX_KINDS.has(doc.kind)){
+    // AND IT MUST BE OWNED BY A SUPPLIER, not merely be of a shareable kind. The kind list says what
+    // sort of document this is; ref_table says WHOSE it is, and that is the question that actually
+    // decides whether it may be answered to strangers. A profile uploaded against an inquiry is
+    // still one customer's file. Belt and braces on purpose: the two rows that leaked were a
+    // customer drawing AND a supplier profile whose owning lead had since been deleted.
+    if(INDEX_KINDS.has(doc.kind) && doc.ref_table==='leads'){
       const parts=[extracted.text, (extracted.specifications||[]).join('; '), (extracted.brands||[]).join(', ')].filter(Boolean).join('\n');
       if(parts.trim().length>40){
         // category from the owning lead, if any
