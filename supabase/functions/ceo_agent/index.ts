@@ -177,6 +177,21 @@ Deno.serve(observe('ceo_agent', async (req) => {
     // Taking ownership of a report a subordinate seat filed. The database refuses an acceptance
     // with no receipt — "an acceptance with no receipt is the accepting party's assumption, not
     // their agreement" — and that refusal is returned verbatim rather than smoothed over.
+    // ── THE SEAT BOARD ────────────────────────────────────────────────────────────────────────
+    // The founder, 9 Sep 2026: "support and CEO need to be connected so that the CEO is aware of
+    // all his tasks and achievement." The inbox shows what a seat CHOSE to escalate; this shows
+    // what every seat is ordinarily doing, what it has produced, and what is sitting unanswered on
+    // its desk — including the reports waiting on the CEO's own acceptance, which is its backlog
+    // rather than anyone else's. Read-only, and open to the founder as well as the seat: he is the
+    // one person entitled to see the whole company without asking it for permission.
+    if (action === 'board' || action === 'seats') {
+      const days = Number(body.days ?? 7);
+      const { data, error } = await admin.rpc('fn_ceo_seat_board', { p_days: Number.isFinite(days) ? days : 7 });
+      // No run() here: this function is wrapped in observe(), which writes the fn:ceo_agent row.
+      if (error) return J({ error: 'board_failed', detail: error.message }, 500);
+      return J({ ok: true, board: data });
+    }
+
     if (action === 'accept') {
       if (who !== 'ceo') {
         return J({
