@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T07:59:20.990Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T08:14:50.482Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16674,18 +16674,36 @@ CREATE OR REPLACE FUNCTION public.fn_backup_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
+ SET search_path TO 'public'
 AS $function$
-declare v_last timestamptz; v_status text; v_stale boolean; v_owner text; v_open int;
+declare
+  v_last timestamptz; v_status text; v_stale boolean; v_open int; v_subject_rows int;
+  -- The subject is the backup that this database can actually SEE. Managed physical backups are
+  -- not in here and this function makes no claim about them.
+  c_agents constant text[] := array['dropbox_backup','fn:dropbox_backup'];
 begin
-  select started_at, status into v_last, v_status
-    from agent_runs where agent='backup' order by started_at desc limit 1;
-  v_stale := (v_last is null) or (v_last < now() - interval '26 hours') or (coalesce(v_status,'')='error');
-  if not v_stale then
-    return jsonb_build_object('ok',true,'last',v_last,'status',v_status);
+  -- POSITIVE CONTROL FIRST, AND IT IS THE ENTIRE POINT OF THIS REVISION. The previous definition
+  -- looked for agent = 'backup', which nothing writes, got NULL, and read NULL as "no backup has
+  -- ever succeeded". A name that matches no rows is a fact about the query. Refuse to conclude.
+  select count(*) into v_subject_rows from agent_runs where agent = any(c_agents);
+  if v_subject_rows = 0 then
+    return jsonb_build_object(
+      'ok', false,
+      'reason', 'subject_not_found',
+      'watched', c_agents,
+      'detail', 'No run of any watched backup agent has ever been recorded, so this watcher cannot '
+             || 'tell a stopped backup from a renamed one. It alerts nobody rather than reporting '
+             || 'catastrophe from an empty lookup. Check the agent name before the backup.');
   end if;
-  select count(*) into v_open from agent_actions
-    where kind='backup_alert' and coalesce(status,'') in ('pending','needs_review')
+
+  select started_at, status into v_last, v_status
+    from agent_runs where agent = any(c_agents) order by started_at desc limit 1;
+
+  v_stale := (v_last < now() - interval '26 hours') or (coalesce(v_status,'') = 'error');
+  if not v_stale then
+    return jsonb_build_object('ok', true, 'last', v_last, 'status', v_status, 'watched', c_agents);
+  end if;
+
   -- A DEDUPE WINDOW THE SAME LENGTH AS THE CHECK INTERVAL SUPPRESSES ON A KNIFE EDGE (13 Aug 2026).
   -- The backup was broken from 10 to 12 August and this watcher produced exactly ONE alert:
   -- agent_action 2662 at 2026-08-11 08:00:00.63, one email, still pending. The watcher runs daily
@@ -16693,41 +16711,49 @@ begin
   -- inside `created_at > now() - 24 hours` and the second day's alert was skipped. Twenty hours is
   -- strictly shorter than the cadence, so a daily check always re-alerts on a continuing outage
   -- while a ten-minute caller still cannot spam.
-      and created_at > now()-interval '20 hours';
+  select count(*) into v_open from agent_actions
+   where kind = 'backup_alert' and coalesce(status,'') in ('pending','needs_review')
+     and created_at > now() - interval '20 hours';
 
   if v_open = 0 then
-    insert into agent_actions(agent,kind,status,risk,title,recommendation,target_table,detail)
+    insert into agent_actions(agent, kind, status, risk, title, recommendation, target_table, detail)
     values('security','backup_alert','pending','high',
-      'Backup may have failed or is overdue',
-      'The daily logical backup has not completed successfully in the last 26 hours (last: '||coalesce(v_last::text,'never')||', status: '||coalesce(v_status,'unknown')||'). Check the backup function and logs. Managed daily backups and the Dropbox mirror remain as fallbacks.',
-      'agent_runs', jsonb_build_object('last_backup',v_last,'last_status',v_status));
-    insert into security_events(kind,severity,source,subject,detail)
-    values('backup_overdue','high','backup','logical backup',
-      jsonb_build_object('last_backup',v_last,'last_status',v_status));
-    -- 6 SEP 2026: ONE page per event. The agent_action above is paged by trg_page_high_agent_action with the
-    -- backup_alert kind, which founder_mail_policy routes to the IT operations engineer as one org_task; the
-    -- direct notifications row that used to sit here was the second of THREE emails for one missed backup.
-    -- AN OUTAGE THAT LASTS MUST GET LOUDER, NOT REPEAT ITSELF. One identical email a day says the
-    -- same thing on day one and on day five, and the day-five reader has already filed the day-one
-    -- copy. Past 48 hours this also raises a founder_alert and states the age in hours, which is
-    -- the number that decides whether this is a hiccup or a company with no restorable backup.
-    if v_last is null or v_last < now() - interval '48 hours' then
-      -- backup_failed_after_retry is the kind the policy ALLOWS: two daily retries have failed and there may
-      -- be no restorable backup. Once per 24h while it lasts, and it states the age in hours each time.
+      'Document backup to Dropbox has failed or is overdue',
+      'The Dropbox document mirror has not completed successfully in the last 26 hours (last: '
+      || coalesce(v_last::text,'never') || ', status: ' || coalesce(v_status,'unknown')
+      || '). Check the dropbox_backup function and its logs. This concerns stored DOCUMENTS only — '
+      || 'the managed Postgres backups are outside this database and are not covered by this check.',
+      'agent_runs', jsonb_build_object('last_backup', v_last, 'last_status', v_status, 'watched', c_agents));
+
+    insert into security_events(kind, severity, source, subject, detail)
+    values('backup_overdue','high','backup','dropbox document mirror',
+      jsonb_build_object('last_backup', v_last, 'last_status', v_status, 'watched', c_agents));
+
+    -- 6 SEP 2026: ONE page per event. The agent_action above is paged by trg_page_high_agent_action
+    -- with the backup_alert kind, which founder_mail_policy routes as one org_task; the direct
+    -- notifications row that used to sit here was the second of THREE emails for one missed backup.
+    -- AN OUTAGE THAT LASTS MUST GET LOUDER, NOT REPEAT ITSELF. Past 48 hours this also pages the
+    -- founder and states the age in hours. v_last cannot be NULL here — the positive control above
+    -- returned early if the subject had no runs at all — so the "as long as there are records"
+    -- branch that produced today's false critical is gone with it.
+    if v_last < now() - interval '48 hours' then
       perform public.fn_notify_founder(
-        'Backup failing after retry: no successful backup for '
-        || coalesce(round(extract(epoch from (now()-v_last))/3600)::text || ' hours', 'as long as there are records'),
-        'The daily logical backup has now been failing for '
-        || coalesce(round(extract(epoch from (now()-v_last))/3600)::text || ' hours', 'as long as there are records')
-        || ' (last run: '||coalesce(v_last::text,'never')||', status: '||coalesce(v_status,'unknown')
-        || '). This is past the point where one more day of silence is acceptable: verify the backup '
-        || 'function itself, then run dr_drill to prove the newest backup still restores.',
+        'Document backup failing after retry: no successful Dropbox mirror for '
+        || round(extract(epoch from (now() - v_last)) / 3600)::text || ' hours',
+        'The Dropbox document mirror has now been failing for '
+        || round(extract(epoch from (now() - v_last)) / 3600)::text || ' hours (last run: '
+        || v_last::text || ', status: ' || coalesce(v_status,'unknown')
+        || '). This covers stored DOCUMENTS — supplier files, quotes, drawings. The managed Postgres '
+        || 'backups are a separate system outside this database and this alert says nothing about '
+        || 'them either way. Verify the dropbox_backup function.',
         'critical', p_kind => 'backup_failed_after_retry', p_dedupe_key => 'backup_failed_after_retry');
     end if;
-
   end if;
-  return jsonb_build_object('alerted',true,'last',v_last,'status',v_status,'existing_open',v_open);
-end $function$
+
+  return jsonb_build_object('alerted', true, 'last', v_last, 'status', v_status,
+                            'existing_open', v_open, 'watched', c_agents);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ban_overdue_dues()

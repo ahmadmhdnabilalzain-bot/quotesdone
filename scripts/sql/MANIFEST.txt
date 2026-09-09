@@ -1302,3 +1302,4 @@ scripts/sql/the_alert_pulls_from_the_detector_every_time.sql
 scripts/sql/the_founder_removed_the_rotation_obligation.sql
 scripts/sql/two_queues_were_waiting_for_owners_the_purge_removed.sql
 scripts/sql/the_review_queue_was_the_same_orphan_a_third_time.sql
+scripts/sql/the_backup_watcher_was_watching_a_name_nothing_writes.sql
