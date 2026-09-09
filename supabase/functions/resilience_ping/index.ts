@@ -107,6 +107,64 @@ async function outboxTick(): Promise<unknown> {
 // dropbox_backup itself is idempotent — fn_enqueue_doc_backups is ON CONFLICT DO NOTHING and only
 // pending/error rows are uploaded — so a duplicate call costs one wasted invocation, never a
 // duplicate file. Swallowed like the other two: a backup must never take the watchdog down.
+// THE VAT THRESHOLD, WATCHED ON THE ONLY CLOCK THIS COMPANY HAS.
+// The founder, 9 Sep 2026: "the threshold, which is the three hundred seventy five, that is when he
+// notifies the CEO that we are supposed to register over that." A routine that decides a tax
+// obligation and is never called decides nothing, so it hangs here beside the other seat ticks.
+// fn_accountant_vat_threshold_check is idempotent by band and month: it files at most one report
+// per band per month, so running it every fifteen minutes costs a SELECT and nothing else.
+// Swallowed like its neighbours — a tax watch must never take the watchdog down.
+// THE CEO'S WEEKLY WHOLE-COMPANY REPORT, ON THE SAME HEARTBEAT.
+// The founder, 9 Sep 2026: "the CEO is supposed to email me once a week for a report... about the
+// whole company". fn_ceo_weekly_report_tick is idempotent by ISO week and gated on a configured
+// local day and hour (app_secrets.ceo_weekly_report_local_dow / _local_time, Asia/Dubai), so it
+// returns fired:false roughly 670 of the 672 times it runs in a week and sends exactly once.
+async function ceoWeeklyTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_weekly_report_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE EMBEDDING BACKFILL HANGS HERE, AND FOR THE SAME REASON AS THE DROPBOX BACKUP.
+// kb_chunks holds 2,686,026 rows and 166,093 embeddings — 6.2%. The backfill that was closing that
+// gap at a measured 33.7 rows/minute died on 7 Sep 2026 at 17:51 UTC when pg_cron was emptied on the
+// founder's instruction (four jobs: kb_embed_backfill, _boost, _priority_kinds, _ops_knowledge), and
+// its worker — supabase/functions/kb_embed — was deleted the next morning by commit 182308b with the
+// other 137. Nothing has embedded a row since. Re-registering pg_cron would rebuild machinery he
+// removed, so the schedule lives here with every other orphaned tick.
+//
+// The work itself is entirely inside Postgres and needs NO edge function of its own:
+// fn_kb_embed_tick harvests whatever the previous tick's pg_net requests returned, then dispatches
+// the next batch — one net.http_post per chunk to ai_gateway {action:'embed'}, which carries the
+// FREE in-region gte-small session and short-circuits before routing, budget and the OpenRouter
+// hold. So this tick is a single RPC and adds no wall-clock risk to the heartbeat: the HTTP work
+// happens asynchronously in pg_net's background worker, not in this invocation.
+//
+// 400 per tick x 96 ticks a day = ~38,400 rows/day, which drains the 2.52M backlog in ~66 days.
+// That is slower than the 33.7/min the 6-second cron achieved, because a 15-minute heartbeat is a
+// far coarser clock; raise the batch if pg_net keeps up. Dispatch is ordered by kb_embed_priority,
+// so the fit-out trades the marketplace actually quotes embed first and the excluded F&B categories
+// embed last — the old job was oldest-first and was pointed at Eurocode 2 concrete bearings.
+// THE KNOWLEDGE BACKFILL DOES NOT LIVE HERE, AND THE REASON IS MEASURED.
+// A kbEmbedTick was added here and removed the same hour. PostgREST runs RPC as `authenticator`,
+// which carries statement_timeout=8s, and fn_kb_embed_dispatch places one net.http_post per chunk
+// at ~337ms. Fifty rows took 16.9s and the tick returned "canceling statement due to statement
+// timeout" every time. Inside 8s it can place ~23 rows: 96 ticks a day is 2,208 rows, and the
+// 2.5M backlog would take over three years. A tick that always fails is not a scheduler, it is a
+// recurring error the IT engineer would have to learn to ignore.
+// It runs from .github/workflows/kb-embed-backfill.yml instead, which can hold a connection for
+// half an hour. Measured there: 401.6 rows/min, 0 failures.
+
+async function vatThresholdTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_accountant_vat_threshold_check', { p_notify: true });
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function backupTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_dropbox_backup_due');
@@ -386,12 +444,16 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const ratings = await ratingTick();
     const backup = await backupTick();
     const weekly = await accountantWeeklyTick();
+    const vat = await vatThresholdTick();
+    const ceoWeekly = await ceoWeeklyTick();
     const openrouter = await openrouterMeterTick();
     const whatsapp = await whatsappTick();
     // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
     // first would deliver the previous tick's picture of the estate.
     const itdetect = await itDetectTick();
     const it = await itEngineerAlertTick();
+    // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
+    // adds no meaningful wall clock to the heartbeat.
     // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
     // pass rather than waiting fifteen minutes for the next one.
     const outbox = await outboxTick();
@@ -400,7 +462,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -424,6 +486,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

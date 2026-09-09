@@ -258,7 +258,34 @@ Deno.serve(observe('stripe_webhook', async (req) => {
             await logRun('error', { refund: String(rf?.id || ''), type: event.type },
               'REFUND NOT RECORDED - the money left Stripe but the ledger rejected it: ' + error.message);
           } else {
-            await logRun('ok', { refund: String(rf?.id || ''), result: data, type: event.type }, '');
+            // THE DOCUMENT REFERENCE (9 Sep 2026). The founder wants the Stripe document held with
+            // the record. stripe_checkout uses mode=payment with no invoice_creation, so Stripe
+            // makes no Invoice and there is no invoice_pdf to fetch; the artefact that DOES exist is
+            // the CHARGE's receipt_url, and charge.refunded is the one event that carries it (the
+            // bare refund.* payloads do not). Recorded when it is there, never invented when it is
+            // not. Best-effort: a refund that settled must not be un-settled by a missing link.
+            const receiptUrl = String(o?.receipt_url || '');
+            const settledId = Number((data as Record<string, unknown> | null)?.refund_id || 0);
+            // THE HANDLER ASKS; THE DATABASE DECIDES. This was a direct table update against the
+            // refunds table for a few hours today and the standing check
+            // (NOTE: the previous wording of this comment quoted the forbidden call shape verbatim,
+            // and the check — which greps this file — matched its own explanation. A comment is not
+            // a code path, but a text search cannot tell the difference, so the shape is described
+            // here rather than spelled.)
+            // `settlement is delegated to the database, not reimplemented in the handler` refused
+            // it. The write was benign — a link, guarded against overwrite — but the rule is that
+            // the handler does not write to `refunds` AT ALL, and it holds precisely because the
+            // next direct write would be argued for on the same "but this one is harmless" grounds.
+            // fn_refund_attach_receipt also refuses a URL that is not Stripe's, which a payload
+            // could otherwise have set on a column the founder opens as evidence.
+            if (receiptUrl && settledId > 0) {
+              try {
+                await admin.rpc('fn_refund_attach_receipt',
+                  { p_refund_id: settledId, p_receipt_url: receiptUrl });
+              } catch (_e) { /* the reference is evidence, not settlement */ }
+            }
+            await logRun('ok', { refund: String(rf?.id || ''), result: data, type: event.type,
+              receipt_url_recorded: Boolean(receiptUrl && settledId > 0) }, '');
           }
         } catch (e) {
           await logRun('error', { refund: String(rf?.id || ''), type: event.type },

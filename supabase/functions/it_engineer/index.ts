@@ -302,6 +302,40 @@ Deno.serve(async (req) => {
     // `authority_rule` — it is the same rule every seat is judged by and it is not reshaped here —
     // and this seat's own route is read from org_role.forbidden_decisions. An unknown class is
     // refused with route null rather than with an invented one.
+    // ── ASSIST ─────────────────────────────────────────────────────────────────────────────────
+    // THE SEAT COULD NOT READ ITS OWN KNOWLEDGE, OR THE COMPANY'S. Measured 9 Sep 2026: this file
+    // called exactly one routine, fn_agent_may_act, and nothing else. public.it_engineer_knowledge
+    // held 79 records written for this seat and fn_it_engineer_assist existed to retrieve them, and
+    // no deployed code had ever called either. Founder, the same day: "the company knowledge is
+    // literally connected to every seat automatically. Any seat that we made, the company knowledge
+    // should be there. Otherwise, those agents wouldn't know where they work or what they do or what
+    // is our company about."
+    //
+    // fn_it_engineer_assist now pins public.fn_company_context() onto EVERY return path, refusals
+    // included, so this one call is both halves: what the seat knows about its trade, and what the
+    // company is. The embedding is optional and is not computed here -- with none the routine falls
+    // back to the stricter lexical-only bar, which is the honest behaviour rather than a silent
+    // widening of what counts as a match.
+    if (action === 'assist') {
+      const text = String(body.text || body.question || '').trim();
+      if (!text) return J({ error: 'text_required' }, 400);
+      const { data, error } = await admin.rpc('fn_it_engineer_assist', {
+        p_text: text,
+        p_embedding: (body.embedding as number[] | undefined) ?? null,
+      });
+      if (error) {
+        await run('assist', 'error', { chars: text.length }, error.message);
+        return J({ error: error.message }, 500);
+      }
+      const r = (data || {}) as Record<string, unknown>;
+      await run('assist', 'ok', {
+        answered: r.answered ?? null,
+        cited: Array.isArray(r.cited) ? r.cited.length : 0,
+        company_block: (r.company as Record<string, unknown> | undefined)?.chars ?? 0,
+      });
+      return J({ ok: true, seat: 'it_engineer', ...r });
+    }
+
     if (action === 'authority') {
       const cls = String(body.action_class || '').trim();
       if (!cls) return J({ error: 'action_class_required', classes: CLASSES }, 400);
@@ -328,7 +362,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority'],
+    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist'],
       note: 'The monitoring, diagnosis and escalation actions are a separate build. See the seam '
         + 'described at the top of supabase/functions/it_engineer/index.ts.' }, 400);
   } catch (e) {
