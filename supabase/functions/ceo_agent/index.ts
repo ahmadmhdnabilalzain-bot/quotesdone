@@ -43,11 +43,24 @@ async function sec(k: string): Promise<string | undefined> {
 //   'founder'  the shared/scoped internal credential, or his admin JWT. He may command.
 //   'ceo'      the CEO seat acting on its own behalf (deciding, closing its own tasks).
 //   null       refused.
+// THE CREDENTIAL DECIDES THE SEAT, NOT THE CALLER. Until 9 Sep 2026 this read
+// `body?.as === 'ceo' ? 'ceo' : 'founder'` — the caller declared which seat it spoke for and was
+// believed. Any holder of a credential scoped to ceo_agent could therefore present as the CEO and
+// use `decide`, which writes ceo_approval. That is the confused-deputy shape: authentication proved
+// the caller was internal, and then the caller was allowed to choose its own authority.
+//
+// The seat is now derived from internal_credential.context, which the caller cannot influence — it
+// is looked up in the database from the secret's hash. An unrecognised context is refused rather
+// than defaulted, so minting a new credential does not silently grant a seat: it has to be added
+// here deliberately.
+const SEAT_BY_CREDENTIAL: Record<string, 'founder' | 'ceo'> = {
+  'fn.founder_channel': 'founder', // his WhatsApp, email and API channel
+};
+
 async function whoami(req: Request, body: Record<string, unknown>): Promise<'founder' | 'ceo' | null> {
-  if (body?.__secret && (await requireInternal(admin, String(body.__secret), 'ceo_agent')).ok) {
-    // An internal caller says which seat it speaks for. Default to the founder, because the internal
-    // credential is how his own channels (WhatsApp, email) reach this function.
-    return body?.as === 'ceo' ? 'ceo' : 'founder';
+  if (body?.__secret) {
+    const r = await requireInternal(admin, String(body.__secret), 'ceo_agent');
+    if (r.ok) return SEAT_BY_CREDENTIAL[r.context] ?? null;
   }
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   if (!jwt) return null;
