@@ -1334,3 +1334,4 @@ scripts/sql/a_guard_doing_its_job_is_not_a_refusal_rate.sql
 scripts/sql/d9_stops_paging_him_about_his_own_rules.sql
 scripts/sql/the_price_router_stopped_answering_strangers.sql
 scripts/sql/the_webhook_asks_the_database_to_attach_the_receipt.sql
+scripts/sql/todays_new_tables_and_routines_get_the_locks_the_estate_expects.sql
