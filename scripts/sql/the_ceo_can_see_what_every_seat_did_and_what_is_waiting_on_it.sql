@@ -63,10 +63,21 @@ begin
                          from org_tasks t
                         where t.assigned_agent = s.seat and t.status in ('assigned','in_progress')),
 
-        -- WHAT IT FILED TO THE CEO, and whether the CEO has picked it up. An unaccepted report is
-        -- the CEO's own backlog, not the seat's.
+        -- WHAT IT FILED TO THE CEO, and whether the CEO has picked it up. An unread report is the
+        -- CEO's own backlog, not the seat's.
+        --
+        -- THE NAME OF THIS FIGURE WAS WRONG AND THE FOUNDER CAUGHT IT. It read
+        -- 'awaiting_my_acceptance', and on 9 September he read the board and asked "wait is the CEO
+        -- basically waiting to approve the accountant report" -- a fair reading of that phrase, and
+        -- not what the number means. Measured: three routines read accepted_at
+        -- (fn_ceo_weekly_figures, fn_ceo_seat_board, fn_customer_mandatory_check) and all three only
+        -- COUNT it for display. Nothing gates on it. Both accountant reports say in their own
+        -- requested_outcome field "NOTHING IS REQUESTED", and one had already reached the founder.
+        -- It is a read receipt, not an approval queue, and the label now says which. A number whose
+        -- name implies work is blocked, on a board built so the chief executive knows what is
+        -- waiting on whom, is worse than no number.
         'filed_to_ceo',    (select count(*) from support_ceo_report c where c.source_agent = s.seat),
-        'awaiting_my_acceptance', (select count(*) from support_ceo_report c
+        'filed_but_not_yet_read_by_ceo', (select count(*) from support_ceo_report c
                                     where c.source_agent = s.seat and c.accepted_at is null),
 
         -- WHAT IT ACHIEVED: the question this seat's own job answers.
@@ -129,12 +140,21 @@ begin
     raise exception 'a seat has no achievement block';
   end if;
 
-  raise notice 'SEAT BOARD LIVE. sales_engineer: % open task(s), oldest % day(s). accountant: % expense record(s) with a document. it_engineer: % finding(s) closed, % alert(s) delivered. ceo: % report(s) still awaiting its acceptance.',
+  -- THE OLD NAME MUST BE GONE, not merely superseded. A board carrying both keys would let a
+  -- reader pick the misleading one.
+  if (v->'seats'->'ceo') ? 'awaiting_my_acceptance' then
+    raise exception 'the board still carries the misleading key awaiting_my_acceptance';
+  end if;
+  if not ((v->'seats'->'ceo') ? 'filed_but_not_yet_read_by_ceo') then
+    raise exception 'the renamed read-receipt figure is missing from the board';
+  end if;
+
+  raise notice 'SEAT BOARD LIVE. sales_engineer: % open task(s), oldest % day(s). accountant: % expense record(s) with a document. it_engineer: % finding(s) closed, % alert(s) delivered. ceo: % report(s) filed but not yet read (a read receipt, not an approval gate).',
     v->'seats'->'sales_engineer'->>'open_tasks',
     v->'seats'->'sales_engineer'->>'oldest_open_task_days',
     v->'seats'->'accountant'->'achievement'->>'expense_records_with_a_document',
     v->'seats'->'it_engineer'->'achievement'->>'findings_closed',
     v->'seats'->'it_engineer'->'achievement'->>'alerts_delivered',
-    v->'seats'->'ceo'->>'awaiting_my_acceptance';
+    v->'seats'->'ceo'->>'filed_but_not_yet_read_by_ceo';
 end
 $do$;
