@@ -1066,7 +1066,27 @@ Deno.serve(observe('customer_api', async (req) => {
         if (rev2) return J({ error: 'You have already rated this supplier, so the reveal fee is no longer refundable.' }, 400);
       }
       await admin.from('transactions').update({ refund_status: 'requested' }).eq('id', tx.id);
-      return J({ ok: true, refund_status: 'requested', note: 'Your refund request has been received and will be reviewed.' });
+      // AND OPEN THE REAL CASE. Until 9 Sep 2026 this action set a column on the SALE and stopped,
+      // while the chain that reviews, approves and pays a refund lives on public.refunds. So the
+      // customer was told "received and will be reviewed" and no case existed for anyone to review.
+      // The founder: "the customer always initiate the refund request... that is through the
+      // customer portal." This is that request actually starting the workflow.
+      let refundId: number | null = null;
+      let refundNote: string | null = null;
+      try {
+        const { data: rf } = await admin.rpc('fn_refund_open_from_customer',
+          { p_transaction_id: tx.id, p_requested_by: 'customer' });
+        if (rf?.ok) refundId = Number(rf.refund_id) || null;
+        else refundNote = String(rf?.reason || 'unknown');
+      } catch (e) {
+        refundNote = String((e as Error)?.message || e);
+      }
+      // customer_api has no logRun of its own — it is wrapped in observe(), which records the call.
+      // A refusal is carried back in the response instead, so a customer is never told their
+      // request is under review when no case was opened.
+      return J({ ok: true, refund_status: 'requested', refund_id: refundId,
+        not_opened: refundNote,
+        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due the fee is refunded in full.' });
     }
 
     if (action === 'rate_supplier') {
