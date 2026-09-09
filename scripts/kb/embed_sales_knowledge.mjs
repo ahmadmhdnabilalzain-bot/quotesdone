@@ -1,4 +1,5 @@
-// Embed public.sales_knowledge through the FREE in-region path.
+// Embed a knowledge body -- public.sales_knowledge by default, --table for any other -- through the
+// FREE in-region path.
 //
 // ai_gateway {action:'embed'} runs `new Supabase.ai.Session('gte-small')` inside the edge runtime
 // (supabase/functions/ai_gateway/index.ts:54-64) and returns a 384-dimension vector. It short-
@@ -8,18 +9,29 @@
 // If the gateway refuses, the column stays NULL and this says so. A fabricated vector would make
 // the HNSW index return confident nonsense; the lexical GIN index works either way.
 //
-//   node scripts/kb/embed_sales_knowledge.mjs [--limit=N]
+// GENERALISED 9 Sep 2026 by --table. Every knowledge body in this estate embeds through the same
+// free in-region path against the same three columns (record_id, title, content) and the same
+// embedding_gte vector(384), so a second copy of this file per table would be the same 45 lines
+// with one identifier changed. The table name is validated against an explicit allowlist rather
+// than interpolated: it lands inside a SQL statement, and a knowledge-table name is not user input
+// today but there is no reason to leave that as the only thing standing between here and an
+// injection.
+//
+//   node scripts/kb/embed_sales_knowledge.mjs [--table=sales_knowledge] [--limit=N]
 
 import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const arg = (n, d) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split('=').slice(1).join('=');
 const LIMIT = Number(arg('limit', 100000));
+const TABLES = ['sales_knowledge', 'accountant_knowledge'];
+const TABLE = arg('table', 'sales_knowledge');
+if (!TABLES.includes(TABLE)) { console.error(`--table must be one of: ${TABLES.join(', ')}`); process.exit(2); }
 const CONC = 6;
 
 const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
 if (!secret) { console.error('no cred_fn_ai in app_secrets'); process.exit(2); }
 
-const rows = await sql(`select record_id, title, content from public.sales_knowledge
+const rows = await sql(`select record_id, title, content from public.${TABLE}
                          where embedding_gte is null order by record_id limit ${LIMIT}`);
 console.log(`${rows.length} record(s) without an embedding`);
 if (!rows.length) process.exit(0);
@@ -31,7 +43,7 @@ async function one(r) {
   try {
     const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, fn: 'embed_sales_knowledge',
+      body: JSON.stringify({ __secret: secret, fn: 'embed_' + TABLE,
         action: 'embed', text: r.title + '\n' + r.content }),
     });
     if (!res.ok) { failed++; note('HTTP ' + res.status + ': ' + (await res.text()).slice(0, 120)); return null; }
@@ -52,7 +64,7 @@ for (let i = 0; i < rows.length; i += 25) {
   }
   if (got.length) {
     const values = got.map(([id, v]) => `(${lit(id)}, ${lit(v)}::vector(384))`).join(',');
-    await sql(`update public.sales_knowledge k set embedding_gte = v.e
+    await sql(`update public.${TABLE} k set embedding_gte = v.e
                  from (values ${values}) as v(id, e) where k.record_id = v.id`);
   }
   process.stdout.write(`${i + batch.length} `);
@@ -60,6 +72,6 @@ for (let i = 0; i < rows.length; i += 25) {
 
 console.log(`\nembedded ${ok}, failed ${failed}`);
 for (const [r, n] of reasons) console.log(`  ${n} x ${r}`);
-const c = await sql(`select count(*) total, count(embedding_gte) embedded from public.sales_knowledge`);
+const c = await sql(`select count(*) total, count(embedding_gte) embedded from public.${TABLE}`);
 console.log('IN THE DATABASE: ' + JSON.stringify(c[0]));
 process.exit(failed && !ok ? 1 : 0);
