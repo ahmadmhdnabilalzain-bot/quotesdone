@@ -16,7 +16,28 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-function parseJson(t: string) { try { return JSON.parse(t); } catch { const m = t.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch { /* */ } } return {}; } }
+// STOP REPORTING A FAILED READ AS A SUCCESSFUL ONE (9 Sep 2026).
+//
+// parseJson returned {} on unparseable model output. Every field below then read '' and the
+// function answered HTTP 200 {ok:true, doc:{legal_name:'', confidence:'low'}} — byte-identical to
+// the answer for a genuinely unreadable scan. The comment eleven lines into the handler had said
+// so, in those words, since 5 August; nothing acted on it. That matters here specifically because
+// this function is the front of supplier verification, and supplier_api's licence gate reads
+// `!!licPath` — the licence being ON FILE, not the licence being READ — so a lie about success
+// here is a lie inside an approval path.
+//
+// null now means "no usable object", and the handler turns that into a 502 with a named error
+// instead of a blank doc. Every caller already branches on `jd?.ok && jd.doc` (supplier_api:344 →
+// out.license_error, supplier_portal:421 → the "we could not read the expiry" message,
+// wa_inbound:276 → stores the file and says it was not read, resend_inbound:108 → null), so all
+// four get their existing failure path rather than a fabricated empty record.
+//
+// The approval gate itself is NOT touched — another effort owns that. This only stops the input
+// to it from claiming a read that did not happen.
+function parseJson(t: string): Record<string, unknown> | null {
+  const take = (s: string) => { try { const v = JSON.parse(s); return (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, unknown> : null; } catch { return null; } };
+  return take(t) ?? (t.match(/\{[\s\S]*\}/) ? take(t.match(/\{[\s\S]*\}/)![0]) : null);
+}
 function dataUrl(b64: string, mime: string) { return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/, '')}`; }
 function normDate(s: unknown): string | null { const v = String(s || '').trim(); if (!v) return null; let m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/); if (m) { const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); return isNaN(d.getTime()) ? null : `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`; } m = v.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/); if (m) { return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`; } const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10); }
 const EMIRATES = ['Dubai','Abu Dhabi','Sharjah','Ajman','Umm Al Quwain','Ras Al Khaimah','Fujairah'];
@@ -70,7 +91,17 @@ Deno.serve(async (req) => {
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502);
-      ai = parseJson(jd?.content || '{}');
+      // A truncation and a malformed answer are different repairs (raise the ceiling / fix the
+      // parser) and used to collapse into the same blank doc. ai_gateway has always returned both
+      // flags; read them.
+      if (jd?.truncated === true || jd?.finish_reason === 'length') {
+        return J({ error: 'extract_truncated', mode, message: 'The document was not fully read, so nothing was extracted. Please try again or upload a clearer copy.' }, 502);
+      }
+      const parsed = parseJson(String(jd?.content ?? ''));
+      if (!parsed) {
+        return J({ error: 'extract_unreadable', mode, message: 'We could not read this document. Please upload a clear copy of the full page (PDF or a sharp photo).' }, 502);
+      }
+      ai = parsed;
     } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
     if (mode === 'license') {

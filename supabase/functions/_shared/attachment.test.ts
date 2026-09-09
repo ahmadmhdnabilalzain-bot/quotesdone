@@ -6,7 +6,7 @@
 // that was never called.
 
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { sanitizeUpload, sniff, safeFilename, stripJpegMetadata, stripPngMetadata, SAFE_IMAGE } from './attachment.ts';
+import { sanitizeUpload, sniff, safeFilename, stripJpegMetadata, stripPngMetadata, zipExpansionWithinLimits, SAFE_IMAGE, SAFE_SHEET } from './attachment.ts';
 
 const enc = (s: string) => new TextEncoder().encode(s);
 const cat = (...parts: Uint8Array[]) => {
@@ -175,4 +175,138 @@ Deno.test('an unidentifiable file is refused rather than waved through', () => {
   const r = sanitizeUpload({ input: u8(0x00, 0x01, 0x02, 0x03, 0x04, 0x05), declaredMime: 'application/pdf' });
   assert(!r.ok);
   assertEquals(sniff(u8(0x00, 0x01, 0x02, 0x03)), 'application/octet-stream');
+});
+
+// ---------------------------------------------------------- spreadsheets (added 9 Sep 2026)
+//
+// supplier_catalog_ingest was the one upload site of fourteen that called nothing in this module.
+// Routing it here needed a sheet branch, and a sheet branch is only safe if it cannot be used to
+// smuggle the shapes this module already refuses. That is what these assert.
+
+/** A real ZIP with stored (uncompressed) entries, so the central-directory reader has something true to read. */
+function zip(entries: { name: string; body: Uint8Array; declaredUncompressed?: number }[]): Uint8Array {
+  const te = new TextEncoder();
+  const w16 = (n: number) => u8(n & 0xff, (n >> 8) & 0xff);
+  const w32 = (n: number) => u8(n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff);
+  const locals: Uint8Array[] = [];
+  const centrals: Uint8Array[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const name = te.encode(e.name);
+    const usize = e.declaredUncompressed ?? e.body.length;
+    const local = cat(u8(0x50, 0x4b, 0x03, 0x04), w16(20), w16(0), w16(0), w16(0), w16(0),
+                      w32(0), w32(e.body.length), w32(usize), w16(name.length), w16(0), name, e.body);
+    centrals.push(cat(u8(0x50, 0x4b, 0x01, 0x02), w16(20), w16(20), w16(0), w16(0), w16(0), w16(0),
+                      w32(0), w32(e.body.length), w32(usize), w16(name.length), w16(0), w16(0),
+                      w16(0), w16(0), w32(0), w32(offset), name));
+    locals.push(local);
+    offset += local.length;
+  }
+  const cd = cat(...centrals);
+  const eocd = cat(u8(0x50, 0x4b, 0x05, 0x06), w16(0), w16(0), w16(entries.length), w16(entries.length),
+                   w32(cd.length), w32(offset), w16(0));
+  return cat(...locals, cd, eocd);
+}
+const xlsx = (extra: { name: string; body: Uint8Array; declaredUncompressed?: number }[] = []) =>
+  zip([{ name: 'xl/workbook.xml', body: enc('<workbook/>') }, ...extra]);
+
+Deno.test('an XLSX is told apart from a plain archive by what is inside it', () => {
+  assertEquals(sniff(xlsx()), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  // A zip that does NOT carry the workbook part stays a zip, and every allow-list still refuses it.
+  assertEquals(sniff(zip([{ name: 'notes.txt', body: enc('hello') }])), 'application/zip');
+  const r = sanitizeUpload({ input: zip([{ name: 'a.txt', body: enc('x') }]), allow: SAFE_SHEET, filename: 'prices.xlsx' });
+  assert(!r.ok); assertEquals(r.error, 'file_type_not_allowed');
+});
+
+Deno.test('legacy .xls and delimited text are identified, and text is not mistaken for a sheet', () => {
+  assertEquals(sniff(u8(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0)), 'application/vnd.ms-excel');
+  assertEquals(sniff(enc('sku,name,price\r\nA1,Tile,12.50\r\n')), 'text/csv');
+  assertEquals(sniff(enc('sku\tname\tprice\nA1\tTile\t12.5\n')), 'text/csv');
+  // Prose with no delimiter is not a table, and is not claimed to be one.
+  assertEquals(sniff(enc('just some plain prose with no delimiters at all')), 'application/octet-stream');
+});
+
+Deno.test('THE DISGUISED UPLOAD: the sheet route refuses what it is really given', () => {
+  // Every one of these is named as a catalogue the ingester would have parsed by extension.
+  const disguised: [string, Uint8Array, string][] = [
+    ['catalogue.csv  (really HTML)',      enc('<!doctype html><script>fetch("/steal")</script>'), 'unsafe_file_type'],
+    ['prices.csv     (really SVG)',       enc('<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>'), 'unsafe_file_type'],
+    ['pricelist.xlsx (really a PE exe)',  cat(u8(0x4d, 0x5a, 0x90, 0x00), enc('this program cannot be run')), 'unsafe_file_type'],
+    ['products.csv   (really a shell script)', enc('#!/bin/sh\nrm -rf /\n'), 'unsafe_file_type'],
+    ['catalogue.xlsx (really a plain zip)', zip([{ name: 'payload.bin', body: enc('x') }]), 'file_type_not_allowed'],
+    ['sheet.xlsx     (really a PDF+JS)',  minimalPdf('/JavaScript (app.alert(1))'), 'file_type_not_allowed'],
+  ];
+  for (const [label, bytes, want] of disguised) {
+    const r = sanitizeUpload({ input: bytes, declaredMime: 'text/csv', filename: label.split(' ')[0], allow: SAFE_SHEET });
+    assert(!r.ok, `${label} was ACCEPTED`);
+    assertEquals(r.error, want, label);
+  }
+  // ...and the genuine article still gets through, or the guard proves nothing.
+  const good = sanitizeUpload({ input: enc('sku,name,price\nA1,Tile,12.50\n'), allow: SAFE_SHEET, filename: 'prices.csv' });
+  assert(good.ok);
+  assertEquals(good.mime, 'text/csv');
+  assert(sanitizeUpload({ input: xlsx(), allow: SAFE_SHEET, filename: 'prices.xlsx' }).ok);
+});
+
+Deno.test('adding the sheet branch did not widen any existing call site', () => {
+  // The default allow-list, and the image-only one, still refuse every sheet type by name.
+  for (const bytes of [enc('a,b,c\n1,2,3\n'), xlsx(), u8(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0)]) {
+    const d = sanitizeUpload({ input: bytes });
+    assert(!d.ok, 'a sheet reached a default-allow-list call site');
+    const i = sanitizeUpload({ input: bytes, allow: SAFE_IMAGE });
+    assert(!i.ok, 'a sheet reached an image-only call site');
+  }
+  // And the danger branches still win over the new text branch, whatever the caller allows.
+  assertEquals(sniff(enc('<!doctype html><p>,,,</p>')), 'danger/html');
+  assertEquals(sniff(enc('<?php echo 1,2,3; ?>')), 'danger/script');
+});
+
+// ------------------------------------------------------------------------- zip expansion limits
+Deno.test('a zip bomb is refused before it is expanded', () => {
+  // 4 GB declared from a handful of stored bytes: the shape that kills the isolate inside XLSX.read.
+  const bomb = xlsx([{ name: 'xl/worksheets/sheet1.xml', body: enc('x'), declaredUncompressed: 4_000_000_000 }]);
+  const v = zipExpansionWithinLimits(bomb, { maxEntries: 512, maxTotalBytes: 64 * 1024 * 1024, maxRatio: 120 });
+  assert(!v.ok);
+  assertEquals(v.error, 'zip_expands_too_far');
+});
+
+Deno.test('an archive with too many entries is refused, and counted not guessed', () => {
+  const many = xlsx(Array.from({ length: 40 }, (_, i) => ({ name: `xl/media/i${i}.bin`, body: enc('x') })));
+  const v = zipExpansionWithinLimits(many, { maxEntries: 8 });
+  assert(!v.ok);
+  assertEquals(v.error, 'zip_too_many_entries');
+  assert(v.detail.includes('41'), `expected the real entry count in: ${v.detail}`);
+});
+
+Deno.test('an unreadable or truncated archive is refused, never waved through', () => {
+  assert(!zipExpansionWithinLimits(enc('not a zip at all')).ok);
+  const good = xlsx();
+  assert(!zipExpansionWithinLimits(good.subarray(0, good.length - 10)).ok);   // EOCD chopped off
+});
+
+Deno.test('an ordinary workbook passes the caps - a limit that refuses everything is not a limit', () => {
+  const ordinary = xlsx([
+    { name: 'xl/worksheets/sheet1.xml', body: enc('<sheetData>' + 'row,'.repeat(500) + '</sheetData>') },
+    { name: '[Content_Types].xml', body: enc('<Types/>') },
+  ]);
+  const v = zipExpansionWithinLimits(ordinary, { maxEntries: 512, maxTotalBytes: 64 * 1024 * 1024, maxRatio: 120 });
+  assert(v.ok, `an ordinary workbook was refused: ${JSON.stringify(v)}`);
+  assertEquals(v.entries, 3);
+});
+
+// ---------------------------------------------------------------- CAD (cad_convert)
+// The ASCII variant is the one people actually export. Only the binary sentinel was recognised, so
+// every real .dxf was refused as unsupported_type before CloudConvert was ever asked.
+Deno.test('an ASCII DXF is recognised, in both the bare and the right-aligned group-code form', () => {
+  assertEquals(sniff(enc('0\r\nSECTION\r\n2\r\nHEADER\r\n9\r\n$ACADVER\r\n1\r\nAC1015\r\n')), 'image/vnd.dxf');
+  assertEquals(sniff(enc('  0\n  SECTION\n  2\nENTITIES\n')), 'image/vnd.dxf');
+  assertEquals(sniff(enc('AutoCAD Binary DXF\r\n\x1a\x00rest')), 'image/vnd.dxf');
+  assertEquals(sniff(enc('AC1032nnnnnnnnnnnn')), 'image/vnd.dwg');
+});
+
+Deno.test('the DXF signature does not swallow ordinary text', () => {
+  // Anything whose first line is not exactly the group code 0 followed by SECTION.
+  assert(sniff(enc('0\r\nSECTIONAL SOFA QUOTE\r\n')) !== 'image/vnd.dxf');
+  assert(sniff(enc('10\r\nSECTION\r\n')) !== 'image/vnd.dxf');
+  assert(sniff(enc('SECTION\r\n0\r\n')) !== 'image/vnd.dxf');
 });

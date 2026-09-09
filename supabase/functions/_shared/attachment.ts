@@ -48,6 +48,24 @@ export const SAFE_UPLOAD   = [...SAFE_DOCUMENT, ...SAFE_IMAGE] as const;
 export const SAFE_AUDIO = ['audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/webm', 'audio/flac'] as const;
 export const SAFE_CAD   = ['image/vnd.dwg', 'image/vnd.dxf'] as const;
 
+// 9 SEP 2026 — SPREADSHEETS. supplier_catalog_ingest was the one upload site of fourteen that
+// called nothing in this file: it atob()'d the body straight into .upload(), decided the format from
+// the FILENAME EXTENSION, applied no size limit of any kind, and handed a ZIP container to
+// XLSX.read() with no entry-count, decompressed-size or ratio cap — a zip bomb, on a path a
+// registered supplier can reach with one POST. Routing it here needed a sheet branch, because
+// sniff() knew PDF, images, audio and CAD and nothing else, so sanitizeUpload would have refused
+// every legitimate price list.
+//
+// This WIDENS NOTHING on its own. A type is only ever accepted when the CALLER passes an allow-list
+// containing it, and no existing call site passes SAFE_SHEET. Every danger/* branch in sniff()
+// still runs FIRST and still wins: an HTML file named catalogue.csv is refused as HTML, not read as
+// a table. That precedence is the property, and attachment.test.ts asserts it.
+export const SAFE_SHEET = [
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+  'application/vnd.ms-excel',                                          // xls (OLE2)
+  'text/csv',                                                          // csv / tsv / txt
+] as const;
+
 const EXT: Record<string, string> = {
   'application/pdf': 'pdf',
   'image/jpeg': 'jpg',
@@ -62,6 +80,9 @@ const EXT: Record<string, string> = {
   'audio/flac': 'flac',
   'image/vnd.dwg': 'dwg',
   'image/vnd.dxf': 'dxf',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-excel': 'xls',
+  'text/csv': 'csv',
 };
 
 function startsWith(b: Uint8Array, sig: number[], at = 0): boolean {
@@ -72,6 +93,23 @@ function startsWith(b: Uint8Array, sig: number[], at = 0): boolean {
 
 function asciiAt(b: Uint8Array, at: number, len: number): string {
   return new TextDecoder('latin1').decode(b.subarray(at, at + len));
+}
+
+/**
+ * Is this plausibly a text file? A NUL byte or a run of control characters means binary; a decoder
+ * that rejects the bytes as UTF-8 means binary. Samples the first 8 KB — enough to catch a binary
+ * that opens with a text-looking preamble, cheap on a 20 MB upload.
+ */
+function isProbablyText(b: Uint8Array): boolean {
+  const n = Math.min(b.length, 8192);
+  if (n === 0) return false;
+  let control = 0;
+  for (let i = 0; i < n; i++) {
+    const c = b[i];
+    if (c === 0) return false;                                   // NUL — never a text file
+    if (c < 0x20 && c !== 0x09 && c !== 0x0a && c !== 0x0d) control++;
+  }
+  return control <= n / 100;
 }
 
 /**
@@ -114,8 +152,32 @@ export function sniff(b: Uint8Array): string {
   // means a newer AutoCAD release does not silently become an unrecognised upload.
   if (/^AC10\d\d$/.test(asciiAt(b, 0, 6))) return 'image/vnd.dwg';
   if (asciiAt(b, 0, 18) === 'AutoCAD Binary DXF') return 'image/vnd.dxf';
+  // ASCII DXF, added 9 Sep 2026 while restoring cad_convert. Only the BINARY variant was
+  // recognised, and binary DXF is rare: every DXF an architect or a supplier actually exports is
+  // ASCII, so sniff() answered application/octet-stream and sanitizeOrMessage refused the file as
+  // unsupported_type before CloudConvert was ever asked. cad_convert's own extension check
+  // (`ext === 'dxf' ? 'dxf' : 'dwg'`) proves ASCII DXF was always meant to be accepted.
+  //
+  // The signature is the DXF file structure itself, not a guess: a DXF begins with group code 0
+  // then the string SECTION, one per line, and the code may be right-aligned in a 3-character
+  // field ('  0'), which is why the leading run of spaces is allowed and nothing else is.
+  if (/^[ \t]*0\r?\n[ \t]*SECTION\r?\n/.test(asciiAt(b, 0, 24))) return 'image/vnd.dxf';
 
-  if (startsWith(b, [0x50, 0x4b, 0x03, 0x04]) || startsWith(b, [0x50, 0x4b, 0x05, 0x06])) return 'application/zip';
+  // OLE2 compound document. Legacy .xls (and .doc, .ppt) share this header; the caller's allow-list
+  // decides whether that is acceptable, and supplier_catalog_ingest hands whatever comes back to
+  // SheetJS, which reads the workbook stream or fails honestly.
+  if (startsWith(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) return 'application/vnd.ms-excel';
+
+  // XLSX is a ZIP. Distinguishing it from a plain archive means looking at what is INSIDE: an OOXML
+  // workbook always carries the part `xl/workbook.xml`, and a zip stores every entry's name
+  // uncompressed in its local header and again in the central directory, so the name is findable in
+  // the raw bytes without inflating anything. A zip that does not carry it stays application/zip and
+  // is refused by every allow-list in this file.
+  if (startsWith(b, [0x50, 0x4b, 0x03, 0x04]) || startsWith(b, [0x50, 0x4b, 0x05, 0x06])) {
+    const scan = asciiAt(b, 0, Math.min(b.length, 4 * 1024 * 1024));
+    if (scan.includes('xl/workbook.xml')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    return 'application/zip';
+  }
   if (startsWith(b, [0x1f, 0x8b])) return 'application/gzip';
   if (startsWith(b, [0x52, 0x61, 0x72, 0x21])) return 'application/x-rar-compressed';
   if (startsWith(b, [0x7b, 0x5c, 0x72, 0x74, 0x66])) return 'application/rtf';       // {\rtf
@@ -136,6 +198,12 @@ export function sniff(b: Uint8Array): string {
   if (/^0\s+SECTION/.test(head) && /\$ACADVER|\bHEADER\b|\bENTITIES\b/.test(head.toUpperCase())) {
     return 'image/vnd.dxf';
   }
+
+  // Delimited text. CSV has no magic number — it is text, and the only honest identification is
+  // "these bytes are text and they have a delimiter". It sits LAST on purpose: every danger/*
+  // branch, and every binary and DXF branch, has already had its say, so an HTML document, an SVG
+  // or a PHP file named .csv is refused as what it is rather than read as a table here.
+  if (isProbablyText(b) && /[,;\t]/.test(head.slice(0, 512))) return 'text/csv';
 
   return 'application/octet-stream';
 }
@@ -310,6 +378,85 @@ export function sanitizeUpload(opts: SanitizeOptions): SanitizeResult {
 
   return { ok: true, mime, ext: EXT[mime] || 'bin', bytes: out, size: out.length,
            strippedMetadata: stripped, declaredMismatch };
+}
+
+// ── ZIP EXPANSION LIMITS ────────────────────────────────────────────────────────────────────────
+//
+// An XLSX is a ZIP, and handing a ZIP to a parser is handing it a DECOMPRESSION RATIO. A 40 KB file
+// can declare 4 GB of contents; SheetJS will try to produce them, and the isolate dies before any
+// size check written AFTER the parse ever runs. So the check has to happen BEFORE, and it can:
+// a zip's central directory states every entry's uncompressed size in plain bytes, uncompressed. No
+// inflation is needed to read the bill.
+//
+// WHAT THIS IS NOT: it is not a timeout. XLSX.read() is synchronous and CPU-bound, and nothing in
+// JavaScript can abort a synchronous call from the same isolate — an AbortController cannot reach
+// it. The entry count, the total and the ratio ARE the control, chosen so the work is bounded before
+// it starts rather than interrupted after. Said plainly rather than implied by a signal that would
+// do nothing.
+
+export interface ZipLimits {
+  /** Refuse an archive with more entries than this. */
+  maxEntries?: number;
+  /** Refuse an archive whose entries sum to more than this uncompressed. */
+  maxTotalBytes?: number;
+  /** Refuse an archive that claims to expand by more than this multiple of its own size. */
+  maxRatio?: number;
+}
+
+export type ZipVerdict =
+  | { ok: true; entries: number; totalUncompressed: number; ratio: number }
+  | { ok: false; error: string; detail: string };
+
+/**
+ * Read a zip's central directory and decide whether it is worth expanding. Reads sizes only; never
+ * inflates anything. An archive whose directory cannot be read is REFUSED, not waved through: a
+ * container this cannot account for is exactly the one not to hand to a parser.
+ */
+export function zipExpansionWithinLimits(b: Uint8Array, limits: ZipLimits = {}): ZipVerdict {
+  const maxEntries = limits.maxEntries ?? 512;
+  const maxTotalBytes = limits.maxTotalBytes ?? 64 * 1024 * 1024;
+  const maxRatio = limits.maxRatio ?? 120;
+
+  const u32 = (at: number) => (b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24)) >>> 0;
+  const u16 = (at: number) => b[at] | (b[at + 1] << 8);
+
+  // End of Central Directory: 'PK\x05\x06', within the last 64 KB + 22 header bytes.
+  let eocd = -1;
+  for (let i = b.length - 22; i >= Math.max(0, b.length - 65557); i--) {
+    if (b[i] === 0x50 && b[i + 1] === 0x4b && b[i + 2] === 0x05 && b[i + 3] === 0x06) { eocd = i; break; }
+  }
+  if (eocd < 0) return { ok: false, error: 'zip_unreadable', detail: 'no end-of-central-directory record; this is not a readable archive' };
+
+  const entries = u16(eocd + 10);
+  const cdOffset = u32(eocd + 16);
+  if (entries === 0xffff || cdOffset === 0xffffffff) {
+    return { ok: false, error: 'zip_unreadable', detail: 'ZIP64 archive; this path does not accept one' };
+  }
+  if (entries > maxEntries) {
+    return { ok: false, error: 'zip_too_many_entries', detail: `${entries} entries exceeds the ${maxEntries} allowed` };
+  }
+
+  let total = 0, seen = 0, at = cdOffset;
+  while (seen < entries && at + 46 <= b.length) {
+    if (!(b[at] === 0x50 && b[at + 1] === 0x4b && b[at + 2] === 0x01 && b[at + 3] === 0x02)) {
+      return { ok: false, error: 'zip_unreadable', detail: `central directory entry ${seen + 1} has no PK\\x01\\x02 signature` };
+    }
+    total += u32(at + 24);                                    // uncompressed size, as the archive states it
+    if (total > maxTotalBytes) {
+      return { ok: false, error: 'zip_expands_too_far',
+               detail: `the archive declares more than ${maxTotalBytes} bytes uncompressed` };
+    }
+    at += 46 + u16(at + 28) + u16(at + 30) + u16(at + 32);    // + name + extra + comment
+    seen++;
+  }
+  if (seen !== entries) return { ok: false, error: 'zip_unreadable', detail: `directory ended after ${seen} of ${entries} entries` };
+
+  const ratio = b.length ? total / b.length : 0;
+  if (ratio > maxRatio) {
+    return { ok: false, error: 'zip_expands_too_far',
+             detail: `${total} bytes from a ${b.length} byte archive is a ${ratio.toFixed(0)}:1 ratio; the cap is ${maxRatio}:1` };
+  }
+  return { ok: true, entries, totalUncompressed: total, ratio };
 }
 
 /** Convenience for the many call sites that just need a yes/no plus a message for the user. */
