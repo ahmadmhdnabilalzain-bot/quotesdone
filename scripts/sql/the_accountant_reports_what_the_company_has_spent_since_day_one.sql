@@ -112,6 +112,7 @@ declare
   v_unposted  int;
   v_sweep     record;
   v_cov       text;
+  v_covj      jsonb;
   v_complete  boolean;
   v_short     text[] := '{}';
   v_subject   text;
@@ -390,6 +391,8 @@ declare
   v_notif bigint;
   v_prior bigint;
   v_body  text;
+  v_report jsonb;
+  v_kept_err text;
 begin
   -- THE DOCUMENT IS THE DELIVERABLE. He asked for a report; mailing a covering note and recording
   -- it as delivered would close the loop on something he did not ask for.
@@ -450,7 +453,44 @@ begin
       'the founder-mail gate did not accept the row (kind accountant_spend_report). Nothing was queued and nothing will be sent.');
   end if;
 
+  -- ---- "AND KEEP IT IN HIS RECORD AS WELL" ----------------------------------------------------
+  -- The founder asked for the report to be RETAINED, not merely sent. The object in the bucket is
+  -- the document; this row is the record OF the document -- what was reported, when, and over which
+  -- period -- so a figure he was given in September can be produced again and audited later without
+  -- re-reading a mailbox the provider no longer holds. The whole figures payload is stored, not just
+  -- the headline, because a total with no breakdown behind it cannot be checked.
+  --
+  -- Recorded AFTER the notification row exists, so the record can never claim a report was kept
+  -- that was never actually queued. A failure to retain is reported alongside the send rather than
+  -- swallowed: the mail did go, and he should be told the record did not.
+  begin
+    v_report := public.fn_accountant_spend_report(nullif(p_as_of,'')::date);
+    insert into public.accountant_spend_report
+      (as_of, period_start, period_end, entries, total_aed, vat_stated_aed, usd_to_aed,
+       complete, shortfalls, figures, coverage, subject, body,
+       pdf_bucket, pdf_path, pdf_url, pdf_bytes, notification_id, delivered_at)
+    values (
+      coalesce(nullif(p_as_of,'')::date, (now() at time zone 'Asia/Dubai')::date),
+      nullif(v_report->'figures'->>'first_charge','')::date,
+      nullif(v_report->'figures'->>'last_charge','')::date,
+      nullif(v_report->'figures'->>'entries','')::int,
+      nullif(v_report->'figures'->>'total_aed','')::numeric,
+      nullif(v_report->'figures'->>'vat_stated_aed','')::numeric,
+      nullif(v_report->'figures'->>'usd_to_aed','')::numeric,
+      (v_report->>'complete')::boolean,
+      v_report->'shortfalls', coalesce(v_report->'figures','{}'::jsonb), v_report->'coverage',
+      coalesce(p_subject, v_report->>'subject'), coalesce(p_body, v_report->>'body'),
+      p_bucket, p_path, p_url, p_bytes, v_notif, now())
+    on conflict (pdf_bucket, pdf_path) do update
+      set notification_id = excluded.notification_id,
+          delivered_at    = coalesce(public.accountant_spend_report.delivered_at, excluded.delivered_at);
+  exception when others then
+    v_kept_err := sqlerrm;
+  end;
+
   return jsonb_build_object('ok', true, 'notification_id', v_notif, 'to', v_owner,
+    'retained', v_kept_err is null,
+    'retention_error', v_kept_err,
     'attachment', jsonb_build_object('bucket', p_bucket, 'path', p_path, 'filename', v_file),
     'status', 'pending - send_outbox will download the object, base64 it onto the Resend payload and fail the row rather than send a covering note without it');
 end
