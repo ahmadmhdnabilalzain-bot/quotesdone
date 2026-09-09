@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T01:20:01.802Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T01:29:05.529Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -22639,8 +22639,10 @@ cand as (
     and (p_value is null or (                               -- GATE: job size inside their range
           (sc.min_project_value is null or p_value >= sc.min_project_value)
       and (sc.max_project_value is null or p_value <= sc.max_project_value)))
-    and (p_emirate is null or                               -- GATE: they cover the emirate asked for
-         coalesce(cardinality(sc.coverage_emirates), 0) = 0
+    -- GATE: they cover the emirate asked for, and SAY SO somewhere.
+    -- The branch that passed an empty coverage_emirates is gone: unknown evidence is not a pass.
+    -- The lead-row emirate is still honoured, because that is a stated fact in another column.
+    and (p_emirate is null
       or exists (select 1 from unnest(sc.coverage_emirates) ce where ce ilike p_emirate)
       or l.emirate ilike p_emirate)
 ),

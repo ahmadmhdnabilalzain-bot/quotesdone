@@ -75,14 +75,27 @@ export const NAV_GROUPS = [
 const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 
 // ── THE ASSISTANT, AS A SURFACE ────────────────────────────────────────────────────────────────
-// site_assistant now takes the customer's session token and answers from fn_wa_context — their own
-// requests, their own quotes, and a ROUNDED BAND before a reveal, scoped in SQL. Passing the token
-// is what turns "I can't see your account" into an answer; it is not optional decoration.
+// THE SEAT CHANGED ON 9 SEPTEMBER 2026, and the endpoint had to change with it. The founder, asked
+// where the chat widget routes: "if its on the home page then the support replies. but if its on
+// the customer or supplier portal then its the sales engineer cause he is much stronger
+// technically." site_assistant is Customer Support's function — correct for ChatWidget on the
+// public site, wrong here. This panel is INSIDE the portal, so it goes to the Sales Engineer.
+//
+// The token still goes with it, and for the same reason it always did: sales_engineer resolves the
+// verified session to the caller's OWN customer row and scopes the answer to it. Passing the token
+// is what turns "I can't see your account" into an answer; it is not optional decoration, and the
+// function will not accept a party named in the body from a portal caller.
+//
+// WHAT THE ANSWER IS NOW. There is no model available — every LLM route is held by the founder
+// until 2126 — so the Sales Engineer retrieves from its own 1,136-record knowledge body under a
+// 0.86 similarity floor corroborated by a lexical match, and REFUSES when nothing clears it. A
+// refusal arrives as a normal reply that says so and hands off to Support; the widget needs no
+// special case for it.
 async function askAssistant(message, history, token, lang, path) {
-  const r = await fetch(FN + '/site_assistant', {
+  const r = await fetch(FN + '/sales_engineer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify({ message, history, path: path || '/me', lang }),
+    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang }),
   });
   return r.json();
 }

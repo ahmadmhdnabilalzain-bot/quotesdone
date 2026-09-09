@@ -26,6 +26,7 @@ import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 import { parseReceipt } from '../_shared/receipt_parse.ts';
+import { safeFetch } from '../_shared/safe_url.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -79,8 +80,31 @@ function pickBody(d:any){ const t = d?.text || d?.plain || d?.['body-plain'] || 
 function b64ToBytes(b64:string){ const bin=atob(b64.replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 function bytesToB64(u8:Uint8Array){ let bin=''; const c=0x8000; for(let i=0;i<u8.length;i+=c){ bin+=String.fromCharCode.apply(null, Array.from(u8.subarray(i,i+c))); } return btoa(bin); }
 async function fetchInboundEmail(emailId:string, rkey:string){ try{ const r=await fetch(`https://api.resend.com/emails/inbound/${emailId}`,{headers:{Authorization:`Bearer ${rkey}`}}); if(!r.ok) return null; return await r.json(); }catch{ return null; } }
-async function fetchInboundAttachmentBytes(emailId:string, attId:string, rkey:string){ try{ const r=await fetch(`https://api.resend.com/emails/inbound/${emailId}/attachments/${attId}`,{headers:{Authorization:`Bearer ${rkey}`}}); if(!r.ok) return null; const j=await r.json(); const o=j.data||j; const u=o.download_url||o.url; if(!u) return null; const f=await fetch(u); if(!f.ok) return null; return new Uint8Array(await f.arrayBuffer()); }catch{ return null; } }
-async function attachmentBytes(a:any, emailId:string, rkey:string|undefined){ if (a.content) return b64ToBytes(String(a.content)); if (a.url || a.download_url) { try { const rr = await fetch(a.url||a.download_url); return new Uint8Array(await rr.arrayBuffer()); } catch {} } if (a.id && emailId && rkey) return await fetchInboundAttachmentBytes(emailId, String(a.id), rkey); return null; }
+// SSRF FIX 9 Sep 2026 -------------------------------------------------------------------------
+// Both fetch sites below took a URL out of a REQUEST BODY field and handed it to bare fetch() —
+// no scheme check, no host check, no timeout, no size cap — inside a service_role function sitting
+// on the same network as Supabase's internal endpoints. `http://169.254.169.254/…`,
+// `http://127.0.0.1:54321/…` and `file://` were all reachable. The endpoint is Svix-HMAC verified
+// with a 5-minute skew window, so an arbitrary internet caller could not reach it: the attacker had
+// to control what Resend forwarded as attachment metadata. That is why this is moderate and not
+// critical, and it is not a reason to leave it. _shared/safe_url.ts refuses the target, re-checks
+// the FINAL url after redirects, aborts after 15s and stops reading at 25 MB — the same ceiling
+// sanitizeUpload applies to the bytes a few lines further down.
+//
+// A REFUSAL IS RECORDED, never a silent null. The caller counts a null as a LOST attachment, and
+// "we would not fetch that URL" is a different event from "Resend would not give us the file".
+const ATTACH_FETCH = { timeoutMs: 15_000, maxBytes: 25 * 1024 * 1024 };
+async function fetchAttachmentUrl(u: string, where: string): Promise<Uint8Array|null> {
+  const r = await safeFetch(u, ATTACH_FETCH);
+  if (r.ok) return r.bytes;
+  if (r.error === 'url_refused' || r.error === 'url_refused_after_redirect') {
+    await logRun('error', { ssrf_refused: 1, stage: where, reason: r.detail, url: String(u).slice(0, 120) },
+      'resend_inbound REFUSED to fetch an attachment URL (' + r.detail + ') at ' + where + '. Until 9 Sep 2026 this function fetched that URL unchecked from inside the service-role network, so the cloud metadata address and loopback services were reachable through attachment metadata. If this fires on genuine Resend traffic the attachment host has changed and the allow rules need widening — it has NOT fired on a real delivery as of this writing.');
+  }
+  return null;
+}
+async function fetchInboundAttachmentBytes(emailId:string, attId:string, rkey:string){ try{ const r=await fetch(`https://api.resend.com/emails/inbound/${emailId}/attachments/${attId}`,{headers:{Authorization:`Bearer ${rkey}`}}); if(!r.ok) return null; const j=await r.json(); const o=j.data||j; const u=o.download_url||o.url; if(!u) return null; return await fetchAttachmentUrl(String(u), 'resend_download_url'); }catch{ return null; } }
+async function attachmentBytes(a:any, emailId:string, rkey:string|undefined){ if (a.content) return b64ToBytes(String(a.content)); if (a.url || a.download_url) { const by = await fetchAttachmentUrl(String(a.url||a.download_url), 'webhook_attachment_url'); if (by) return by; } if (a.id && emailId && rkey) return await fetchInboundAttachmentBytes(emailId, String(a.id), rkey); return null; }
 async function extractDoc(mode:string, bytes:Uint8Array, mime:string, fname:string, inbSecret:string){ try{ const isImg=/^image\//.test(mime); const payload:any = isImg ? { __secret:inbSecret, mode, images:[{ b64: bytesToB64(bytes), mime }] } : { __secret:inbSecret, mode, file_b64: bytesToB64(bytes), mime, filename: fname }; const r=await fetch(`${SUPA_URL}/functions/v1/license_extract`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const j=await r.json(); return (j&&j.ok)?j:null; }catch{ return null; } }
 const SYS = `You classify a document a supplier emailed to QuotesDone, a UAE building & fit-out marketplace. Decide if it relates to the supplier's company profile and what it is. Return STRICT JSON only: {\"relevant\":boolean,\"category\":\"trade_license\"|\"company_profile\"|\"catalogue\"|\"certificate\"|\"vat_trn\"|\"bank_letter\"|\"insurance\"|\"other\",\"summary\":string,\"suggested_field\":string|null,\"confidence\":\"low\"|\"medium\"|\"high\"}. suggested_field = the profile detail it informs or null.`;
 const RECEIPT_SYS = `You extract a business expense from a vendor receipt/invoice/subscription email for QuotesDone bookkeeping. The email is usually a FORWARD; identify the ORIGINAL vendor (Supabase, Vercel, Resend, GoDaddy, Apify, OpenRouter, CloudConvert, Anthropic, OpenAI, Microsoft, Google, Google Play, Dropbox, Adobe, Twilio, Rork, Netflix, Tasjeel, DubaiPay, etc.), NOT the person who forwarded it. If a payment is for a product sold THROUGH a platform (e.g. \"subscription from Dropbox on Google Play\"), the vendor is the actual product (Dropbox). Return STRICT JSON only: {\"is_receipt\":boolean,\"vendor\":string,\"amount\":number,\"currency\":string,\"date\":\"YYYY-MM-DD\",\"recurring\":boolean,\"period\":\"monthly\"|\"annual\"|\"one_off\",\"note\":string}. amount = TOTAL actually charged (incl tax). currency = 3-letter code. IMPORTANT: report the amount in the currency the vendor actually billed, and do not convert between currencies. recurring=true for any subscription/plan/renewal that repeats; period=monthly or annual accordingly; one-off purchases use period=one_off. If there is genuinely no charged amount, set is_receipt=false.`;

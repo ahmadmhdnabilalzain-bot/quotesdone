@@ -30,17 +30,31 @@ async function digestTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// SUPPORT'S RATING REQUEST HANGS HERE FOR THE SAME REASON THE DIGEST DOES.
+// The founder, 9 Sep 2026: "support should send an email after 3 weeks from the reveal date."
+// fn_support_request_ratings_due is idempotent on notifications_rating_request_uidx, so calling it
+// every 15 minutes enqueues each reveal's ask exactly once and returns asked:0 the rest of the time.
+// Swallowed the same way: a rating survey must never take the watchdog down.
+async function ratingTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_support_request_ratings_due');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
     // 0. The CEO's end-of-day digest, before any early return below.
     const digest = await digestTick();
+    const ratings = await ratingTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -64,6 +78,6 @@ Deno.serve(async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 });
