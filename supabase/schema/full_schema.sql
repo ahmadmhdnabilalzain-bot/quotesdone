@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T08:14:50.482Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T08:23:40.166Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -24516,6 +24516,13 @@ declare
   v_watched   int;
   v_site_ms   integer;
   v_site_st   integer;
+  -- D8, the backup chain. Read from pg_stat_archiver, which needs no credential.
+  v_arch_n       bigint;
+  v_arch_at      timestamptz;
+  v_arch_fail    bigint;
+  v_arch_fail_at timestamptz;
+  v_arch_reset   timestamptz;
+  v_arch_age     numeric;
 begin
 
 -- ══ D1. EDGE FUNCTIONS / AGENTS FAILING, OR FAILING MORE THAN USUAL ═════════════════════════
@@ -24963,6 +24970,96 @@ else
     end;
   end if;
 end if;
+
+-- ══ D8. THE DATABASE BACKUP CHAIN ═══════════════════════════════════════════════════════════
+-- Reads: pg_stat_archiver. Added 9 September 2026.
+--
+-- WHY THIS DETECTOR EXISTS. fn_backup_watch spent its whole life reading `agent_runs where
+-- agent = 'backup'` — a name nothing has ever written — so it reported "no successful backup for
+-- as long as there are records" on every single call, at severity critical. That was fixed the
+-- same day, and fixing it exposed the real hole underneath: NOTHING watched the Postgres backups
+-- at all. The document mirror had a watcher. The database that holds the company did not.
+--
+-- WHY pg_stat_archiver AND NOT THE MANAGEMENT API. The daily physical backups are taken outside
+-- this database and their status is only readable through the Supabase management API, which needs
+-- a personal access token this estate does not hold and which would give an edge function full
+-- project admin. But those backups are built on continuous WAL archiving, and pg_stat_archiver is
+-- the archiver's own counter, readable from inside with no credential at all. If archiving stops,
+-- the backup chain stops, and this sees it within the hour. It is the mechanism rather than the
+-- report, which makes it earlier and cheaper — and it is honest about being a proxy.
+--
+-- WHAT IT CANNOT SEE, SAID OUT LOUD: whether a nightly snapshot COMPLETED. Healthy archiving with
+-- a broken snapshot pipeline would read clean here. That gap is real and is named in the note
+-- rather than left for someone to discover the way I discovered the last one.
+--
+-- ON AN IDLE ESTATE. archived_count is cumulative since stats_reset, so a database that has never
+-- archived a segment reports 0 — and 0 means "this instrument has never seen the thing work",
+-- which is exactly the shape that produced today's false critical. So zero is NOT a finding here.
+-- It goes to notes as unproven, and the detector declines to conclude.
+begin
+  select archived_count, last_archived_time, failed_count, last_failed_time, stats_reset
+    into v_arch_n, v_arch_at, v_arch_fail, v_arch_fail_at, v_arch_reset
+    from pg_stat_archiver;
+
+  if v_arch_n is null or v_arch_n = 0 then
+    -- POSITIVE CONTROL, and the whole lesson of the backup watcher in one branch: an instrument
+    -- that has never once seen success cannot tell you about failure.
+    v_notes := v_notes || jsonb_build_object('wal_archiving', jsonb_build_object(
+      'basis','unproven',
+      'detail','pg_stat_archiver reports no archived segment since ' || coalesce(v_arch_reset::text,'(no reset recorded)')
+            || '. That means this instrument has never observed archiving working, so it declines to '
+            || 'report a fault it could not distinguish from its own blindness.'));
+  else
+    v_arch_age := extract(epoch from (v_now - v_arch_at))/60;
+
+    -- FAILING NOW: the archiver recorded a failure inside the window. failed_count is cumulative
+    -- and would be true forever after one bad hour in May, so the test is the TIME of the last
+    -- failure, not the count.
+    if v_arch_fail_at is not null and v_arch_fail_at > v_now - c_win then
+      v_key  := 'backup_chain:wal_archiving_failing';
+      v_keys := v_keys || v_key;
+      v_find := v_find || jsonb_build_object(
+        'detector_key', v_key, 'detector', 'backup_chain', 'subject', 'wal_archiving',
+        'state', 'stopped', 'severity', 'critical',
+        'title', 'WAL archiving failed at ' || v_arch_fail_at::text
+                 || ' — the database backup chain is breaking, and every daily snapshot is built on it',
+        'evidence', jsonb_build_object(
+          'archived_count', v_arch_n, 'last_archived_time', v_arch_at,
+          'failed_count', v_arch_fail, 'last_failed_time', v_arch_fail_at,
+          'stats_reset', v_arch_reset, 'public_surface', false,
+          'basis','measured from pg_stat_archiver; the test is the TIME of the last failure inside the window, never the cumulative count',
+          'not_covered','whether a nightly physical snapshot COMPLETED — that is only readable through the management API'));
+
+    -- STALLED: nothing archived for an hour. Over the recorded life of this instrument the estate
+    -- archives roughly one segment every few minutes, so an hour of silence is not quiet traffic.
+    elsif v_arch_age > 60 then
+      v_key  := 'backup_chain:wal_archiving_stalled';
+      v_keys := v_keys || v_key;
+      v_find := v_find || jsonb_build_object(
+        'detector_key', v_key, 'detector', 'backup_chain', 'subject', 'wal_archiving',
+        'state', case when v_arch_age > 240 then 'stopped' else 'degraded' end,
+        'severity', case when v_arch_age > 240 then 'critical' else 'high' end,
+        'title', 'No WAL segment archived for ' || round(v_arch_age/60) || ' hour(s) — the backup chain may have stopped',
+        'evidence', jsonb_build_object(
+          'archived_count', v_arch_n, 'last_archived_time', v_arch_at,
+          'age_minutes', round(v_arch_age,1), 'threshold_minutes', 60,
+          'failed_count', v_arch_fail, 'stats_reset', v_arch_reset, 'public_surface', false,
+          'basis','measured from pg_stat_archiver.last_archived_time',
+          'not_covered','whether a nightly physical snapshot COMPLETED — that is only readable through the management API'));
+    else
+      v_notes := v_notes || jsonb_build_object('wal_archiving', jsonb_build_object(
+        'basis','measured','archived_count', v_arch_n,
+        'last_archived_minutes_ago', round(v_arch_age,1),
+        'failures_ever', v_arch_fail,
+        'not_covered','whether a nightly physical snapshot COMPLETED — only the management API can say'));
+    end if;
+  end if;
+exception when others then
+  -- pg_stat_archiver is a system view; if it ever becomes unreadable that is worth SEEING rather
+  -- than swallowing, but it must not take the other seven detectors down with it.
+  v_notes := v_notes || jsonb_build_object('wal_archiving',
+    jsonb_build_object('basis','unreadable','error', sqlerrm));
+end;
 
 -- ══ THE VERDICT ═════════════════════════════════════════════════════════════════════════════
 select coalesce(
