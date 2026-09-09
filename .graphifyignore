@@ -62,3 +62,10 @@ docs/sessions/NEXT_SESSION_BRIEF_WORD_BY_WORD_AUDIT.md
 # ---- graphify's own output ----------------------------------------------------------------------
 # A graph that ingests its own last report grows a second, fainter copy of itself every run.
 graphify-out/
+# A broken shell expansion mkdir-ed a directory literally named $WT and filled it with a copy of
+# this repository. Measured 9 Sep 2026: 448 MB, 4,324 files, untracked — and GROWING (scripts/checks/
+# run.mjs records it at 159 MB on 14 Aug). It is a stale snapshot: it still holds files deleted from
+# main today. Ignored rather than deleted, because untracked bytes are not recoverable from git and
+# removing 448 MB is the owner call. run.mjs already skips it via the carries-its-own-.git rule; this
+# stops git and graphify from indexing it too.
+$WT/
