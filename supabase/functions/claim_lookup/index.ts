@@ -21,6 +21,7 @@
 //     https://quotesdone.com/claim?t=<leads.claim_token>
 // Never put leads.id in a supplier invitation.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -36,7 +37,7 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-Deno.serve(async (req) => {
+Deno.serve(observe('claim_lookup', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -77,4 +78,4 @@ Deno.serve(async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'claim_lookup threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - a supplier trying to claim their listing was blocked for an internal reason.');
     return J({ ok: false, error: 'error' }, 500);
   }
-});
+}));

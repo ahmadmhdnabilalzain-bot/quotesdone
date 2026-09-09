@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 async function tok(email: string, secret: string) {
@@ -20,7 +21,7 @@ function esc(s: string) { return String(s || '').replace(/&/g, '&amp;').replace(
 function btn(href: string, label: string, colour: string) {
   return `<form method="post" action="${esc(href)}" style="margin:18px 0 0"><button type="submit" style="background:${colour};color:#fff;border:0;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:700;cursor:pointer">${esc(label)}</button></form>`;
 }
-Deno.serve(async (req) => {
+Deno.serve(observe('unsubscribe', async (req) => {
   const url = new URL(req.url);
   const e = (url.searchParams.get('e') || '').toLowerCase().trim();
   const t = url.searchParams.get('t') || '';
@@ -69,4 +70,4 @@ Deno.serve(async (req) => {
   } catch (_e) {
     return new Response(page('Something went wrong', 'We could not process that right now. Please reply to any of our emails and we will remove you manually.'), { status: 200, headers: H });
   }
-});
+}));

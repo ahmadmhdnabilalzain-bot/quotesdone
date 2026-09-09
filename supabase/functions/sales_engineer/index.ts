@@ -24,6 +24,7 @@
 // reports the honest per-format status the build prompt demands rather than a list of intentions).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -119,7 +120,7 @@ async function run(action: string, status: string, counts: Record<string, unknow
   } catch { /* an unwritten log must not turn a good answer into a 500 */ }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('sales_engineer', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -605,4 +606,4 @@ Deno.serve(async (req) => {
     await run('error', 'error', {}, String((e as Error).message || e));
     return J({ error: String((e as Error).message || e) }, 500);
   }
-});
+}));

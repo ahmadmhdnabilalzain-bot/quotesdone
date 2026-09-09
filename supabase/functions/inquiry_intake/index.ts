@@ -5,6 +5,7 @@
 // Once the category is known, the matching category_agents specialist takes over the conversation.
 // COST: prompt caching (cache_control ephemeral) on the system prompt — multi-turn chats bill it at ~10% on repeat turns.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -77,7 +78,7 @@ async function llm(messages: any[]): Promise<string | null> {
 }
 function parseJson(s: string): any { try { return JSON.parse(s); } catch (_e) {} const m = String(s || '').match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch (_e2) {} } return null; }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('inquiry_intake', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -519,4 +520,4 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
 
     return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief, agent: specialist ? specialist.slug : null, agent_name: specialist ? specialist.name : null });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

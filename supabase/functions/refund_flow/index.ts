@@ -17,12 +17,13 @@
 //     transaction internally but does NOT expose transaction_id on the quote it returns, so the
 //     portal only ever holds a quote id. Resolving here avoids redeploying 64KB for one field.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 
-Deno.serve(async (req) => {
+Deno.serve(observe('refund_flow', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const auth = req.headers.get('Authorization') || '';
@@ -87,4 +88,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'unknown_action', allowed: ['list', 'state', 'notify'] }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

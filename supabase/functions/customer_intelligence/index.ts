@@ -19,6 +19,7 @@
 // customer_api action=supplier_history enforces — a revealed transaction between this customer and
 // that supplier. The customer's OWN relationship figures are theirs either way.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -44,7 +45,7 @@ async function revealed(customerId: string): Promise<number[]> {
   return [...new Set((data || []).map((t: Record<string, unknown>) => Number(t.supplier_id)).filter(Boolean))];
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('customer_intelligence', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -136,4 +137,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

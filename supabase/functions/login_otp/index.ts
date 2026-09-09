@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -115,7 +116,7 @@ async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwn
 }
 const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number, so we cannot tell which one is yours. Please sign in with your email address instead.';
 
-Deno.serve(async (req) => {
+Deno.serve(observe('login_otp', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
@@ -299,4 +300,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'Unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

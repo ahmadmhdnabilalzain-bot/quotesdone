@@ -21,6 +21,7 @@
 // work is done, not in whether he was understood.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -71,7 +72,7 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<'fou
   return allow.includes(email) ? 'founder' : null;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('ceo_agent', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -180,4 +181,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

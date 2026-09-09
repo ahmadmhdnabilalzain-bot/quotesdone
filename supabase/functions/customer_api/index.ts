@@ -1,5 +1,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
+// supplier to quote from, so a malicious file here would be forwarded by us, under our name.
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -318,11 +322,13 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
     // sniffer validates both formats structurally (DWG by its AC10xx magic, ASCII DXF by its
     // SECTION/HEADER shape, and it prefers the dangerous reading on ambiguity), so this widens the
     // accepted set without trusting the caller's declared type.
-    const s = sanitizeUpload({ input: b64, declaredMime: mime, filename: name, allow: [...SAFE_UPLOAD, ...SAFE_CAD], maxBytes: 25 * 1024 * 1024 });
-    if (!s.ok) {
-      console.warn(`[9.1] drawing rejected: ${s.error} - ${s.detail}${s.mime ? ` (sniffed ${s.mime}, declared ${mime})` : ''}`);
+    const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename: name, allow: [...SAFE_UPLOAD, ...SAFE_CAD], maxBytes: 25 * 1024 * 1024,
+                                       scan: { source: 'customer_api.drawing', subject: String(custId || email || ''), filename: name, bucket: 'drawing-files' } });
+    if (!sc.ok) {
+      console.warn(`[9.1] drawing rejected: ${sc.body.error} - ${sc.body.detail} (declared ${mime})`);
       return null;
     }
+    const s = sc.result;
     if (s.declaredMismatch) console.warn(`[9.1] drawing declared ${mime} but is ${s.mime}; stored as ${s.mime}`);
     const path = `drawings/${custId}/${Date.now()}_${safeFilename(name, s.mime)}`;
     const up = await admin.storage.from('drawing-files').upload(path, s.bytes, { contentType: s.mime, upsert: false });
@@ -563,7 +569,7 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
   return { paths };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('customer_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
@@ -1342,4 +1348,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

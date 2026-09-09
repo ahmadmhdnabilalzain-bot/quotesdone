@@ -6,7 +6,7 @@
 // that was never called.
 
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { sanitizeUpload, sniff, safeFilename, stripJpegMetadata, stripPngMetadata, zipExpansionWithinLimits, SAFE_IMAGE, SAFE_SHEET } from './attachment.ts';
+import { sanitizeUpload, sniff, safeFilename, stripJpegMetadata, stripPngMetadata, zipExpansionWithinLimits, looksMacroEnabled, SAFE_IMAGE, SAFE_SHEET } from './attachment.ts';
 
 const enc = (s: string) => new TextEncoder().encode(s);
 const cat = (...parts: Uint8Array[]) => {
@@ -309,4 +309,44 @@ Deno.test('the DXF signature does not swallow ordinary text', () => {
   assert(sniff(enc('0\r\nSECTIONAL SOFA QUOTE\r\n')) !== 'image/vnd.dxf');
   assert(sniff(enc('10\r\nSECTION\r\n')) !== 'image/vnd.dxf');
   assert(sniff(enc('SECTION\r\n0\r\n')) !== 'image/vnd.dxf');
+});
+
+// ---------------------------------------------------------------- macro-bearing office files
+// 9 SEP 2026, with the malware watch. An .xlsm renamed .xlsx is a genuine OOXML workbook — the ZIP
+// still carries xl/workbook.xml — so every check that existed before passed it, SheetJS read it,
+// and we stored and forwarded a file whose payload runs on the laptop of whoever opens it next.
+// The macro container itself is the test, not a heuristic, and these assert the guard fires ONLY on
+// a file that actually has one: a guard that refuses every workbook would be caught here too.
+Deno.test('POSITIVE CONTROL: a macro-bearing workbook is refused, whatever it was named', () => {
+  const macro = xlsx([{ name: 'xl/vbaProject.bin', body: enc('\0\x01macro payload') }]);
+  assertEquals(sniff(macro), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  assertEquals(looksMacroEnabled(macro, sniff(macro)),
+               'the workbook contains a VBA macro project (xl/vbaProject.bin)');
+  const r = sanitizeUpload({ input: macro, allow: SAFE_SHEET, filename: 'price-list-2026.xlsx',
+                             declaredMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  assert(!r.ok, 'a workbook carrying a VBA project was ACCEPTED');
+  assertEquals(r.error, 'unsafe_file_content');
+});
+
+Deno.test('NEGATIVE CONTROL: an ordinary workbook is still accepted', () => {
+  const plain = xlsx([{ name: 'xl/worksheets/sheet1.xml', body: enc('<sheetData/>') }]);
+  assertEquals(looksMacroEnabled(plain, sniff(plain)), null);
+  const r = sanitizeUpload({ input: plain, allow: SAFE_SHEET, filename: 'price-list-2026.xlsx' });
+  assert(r.ok, `an ordinary workbook was refused: ${JSON.stringify(r)}`);
+});
+
+Deno.test('a legacy .xls carrying _VBA_PROJECT is refused, and one without it is not', () => {
+  const ole = (tail: Uint8Array) => cat(u8(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1), tail);
+  // OLE2 stores a directory entry name as UTF-16LE, which is how Excel actually writes it.
+  const utf16 = (s: string) => u8(...Array.from(s).flatMap((c) => [c.charCodeAt(0), 0]));
+  const withMacro = ole(utf16('_VBA_PROJECT'));
+  assertEquals(looksMacroEnabled(withMacro, 'application/vnd.ms-excel'),
+               'the workbook contains a VBA macro project (_VBA_PROJECT stream)');
+  assertEquals(looksMacroEnabled(ole(enc('Workbook')), 'application/vnd.ms-excel'), null);
+});
+
+Deno.test('the macro check does not fire on file types that cannot carry one', () => {
+  // A PDF containing the literal string is still a PDF; /JavaScript is what looksPolyglot covers.
+  assertEquals(looksMacroEnabled(minimalPdf('vbaProject.bin'), 'application/pdf'), null);
+  assertEquals(looksMacroEnabled(enc('sku,name\nA1,Tile\n'), 'text/csv'), null);
 });

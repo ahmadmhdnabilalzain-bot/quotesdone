@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -20,7 +21,7 @@ function mkLog(t0: number) {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('stripe_checkout', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -92,4 +93,4 @@ Deno.serve(async (req) => {
     await logRun('ok', { quote_id: qid, fee, session: String(sj?.id || '') }, '');
     return J({ ok: true, url: sj.url, fee, currency: 'AED' });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-});
+}));

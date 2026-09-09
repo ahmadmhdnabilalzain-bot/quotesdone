@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
@@ -20,7 +21,7 @@ function mkLog(t0: number) {
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('reveal_invoice', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -80,4 +81,4 @@ Deno.serve(async (req) => {
     await logRun('ok', { quote_id: qid, invoice_no: invNo, cached: false, is_tax_invoice: isTax }, '');
     return J({ ok: true, url, invoice_no: invNo });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-});
+}));

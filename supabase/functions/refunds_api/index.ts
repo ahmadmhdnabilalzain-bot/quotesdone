@@ -16,6 +16,7 @@
 //    Idempotency-Key is the transaction id, so a double-click or a retry cannot refund twice.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -106,7 +107,7 @@ async function enrich(txs: any[]) {
   }; });
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('refunds_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -227,4 +228,4 @@ Deno.serve(async (req) => {
     await logRun('error', { action }, 'unknown_action');
     return J({ error: 'unknown_action' }, 400);
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
-});
+}));

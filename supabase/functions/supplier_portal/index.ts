@@ -1,6 +1,11 @@
 // supplier_portal v5 — advanced supplier dashboard API. Supplier-authed (own leads row via claimed_by).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
+// MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A refused file is reported in `failed`
+// exactly as a refused SHAPE already was, so a supplier is never told a document is on file when
+// the scanner refused it.
+import { sanitizeAndScan } from '../_shared/malware.ts';
+import { observe } from '../_shared/observe.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -31,7 +36,7 @@ const DOC_KINDS: Record<string, { pathCol: string; nameCol?: string; expCol: str
 };
 const DOC_ORDER = ['license','profile','catalogs','vat','insurance','iso','manufacturer','egr','iban'];
 
-Deno.serve(async (req) => {
+Deno.serve(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -377,8 +382,10 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
             // in `failed` rather than swallowed, so they are never told a document is on file
             // when it was refused.
             try {
-              const s = sanitizeUpload({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || 'catalog', allow: SAFE_UPLOAD });
-              if (!s.ok) { failed.push({ kind: 'catalogs', reason: s.detail }); continue; }
+              const sc = await sanitizeAndScan({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || 'catalog', allow: SAFE_UPLOAD,
+                                                 scan: { source: 'supplier_portal.catalogs', subject: String(sup.id), filename: it.filename, bucket: 'supplier-docs' } });
+              if (!sc.ok) { failed.push({ kind: 'catalogs', reason: String(sc.body.detail || sc.body.error) }); continue; }
+              const s = sc.result;
               const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(it.filename || 'catalog', s.mime)}`;
               const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
               if (upErr) { failed.push({ kind: 'catalogs', reason: upErr.message }); continue; }
@@ -398,8 +405,10 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
             // were stored as whatever the caller declared, defaulting to application/octet-stream,
             // with the extension taken from the caller's filename. The type is now decided from the
             // bytes and the extension is forced to match it.
-            const s = sanitizeUpload({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || kindStr, allow: SAFE_UPLOAD });
-            if (!s.ok) { failed.push({ kind: kindStr, reason: s.detail }); continue; }
+            const sc = await sanitizeAndScan({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || kindStr, allow: SAFE_UPLOAD,
+                                               scan: { source: 'supplier_portal.' + kindStr, subject: String(sup.id), filename: it.filename, bucket: 'supplier-docs' } });
+            if (!sc.ok) { failed.push({ kind: kindStr, reason: String(sc.body.detail || sc.body.error) }); continue; }
+            const s = sc.result;
             const clean = safeFilename(it.filename || kindStr, s.mime);
             const p = `${kind.folder}/${sup.id}/${Date.now()}_${clean}`;
             const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
@@ -589,4 +598,4 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
 
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

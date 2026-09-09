@@ -22,6 +22,7 @@
 //    identifier and per caller IP via the existing rl_check RPC. A blocked caller gets a neutral
 //    response, never a different answer, so the limiter cannot itself be used as an oracle.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -42,7 +43,7 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
   catch (_e) { return true; } // limiter unavailable must not block genuine sign-ups
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('role_guard', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const b = await req.json().catch(() => ({} as any));
@@ -82,4 +83,4 @@ Deno.serve(async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'role_guard threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - the sign-up flow could not check for a cross-role conflict, so a person may be allowed to register in both roles.');
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

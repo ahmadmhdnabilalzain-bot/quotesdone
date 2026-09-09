@@ -19,6 +19,7 @@
 // every other pre-reveal surface. Empty vault returns an empty list and says why; it never claims
 // documents were found.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -80,7 +81,7 @@ function answerLine(d: ReturnType<typeof shape>): string {
   return bits.join(' · ');
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('customer_documents', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     // FAIL CLOSED, AND FAIL FIRST. Without the anon key there is no way to reach PostgREST AS THE
@@ -155,8 +156,10 @@ Deno.serve(async (req) => {
       const terms = [q, ...new Set(q.toLowerCase().split(/[^a-z0-9]+/i).filter((w) => w.length >= 3))].slice(0, 7);
       let related: string[] = [];
       try {
+        // Promise.resolve(): a PostgREST builder is a PromiseLike, not a Promise, so it carries
+        // .then but NOT .catch — `deno check` has refused this file since the line was written.
         const answers = await Promise.all(terms.map((term) =>
-          admin.rpc('fn_memory_search', { p_q: term, p_kinds: ['rfq', 'quote'], p_lim: 20 })
+          Promise.resolve(admin.rpc('fn_memory_search', { p_q: term, p_kinds: ['rfq', 'quote'], p_lim: 20 }))
             .then((r) => (r.data || []) as { kind: string; ref: string }[])
             .catch(() => [] as { kind: string; ref: string }[])));
         related = [...new Set(answers.flat()
@@ -218,4 +221,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ error: 'exception', detail: String((e as Error)?.message || e) }, 500);
   }
-});
+}));

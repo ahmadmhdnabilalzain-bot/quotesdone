@@ -15,6 +15,7 @@
 // be replayed outside a 5-minute window. The ?key= check is KEPT as a second factor, so both must
 // pass - the query secret alone is no longer sufficient.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -64,7 +65,7 @@ async function verifySvix(secret: string, rawBody: string, h: Headers): Promise<
   } catch (e) { return { ok: false, reason: 'verification error: ' + String((e as Error)?.message || e).slice(0, 120) }; }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('resend_webhook', async (req) => {
   try {
     const url = new URL(req.url);
     const key = url.searchParams.get('key') || '';
@@ -117,4 +118,4 @@ Deno.serve(async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'resend_webhook threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - a bounce or complaint may not have been suppressed, so we could keep emailing a dead address and damage sender reputation.');
     return J({ error: String((e as Error)?.message || e) }, 200);
   }
-});
+}));

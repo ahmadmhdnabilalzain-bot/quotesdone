@@ -19,6 +19,7 @@
 // conversation can ask for it. An extraction that guesses "Dubai" because most suppliers are in
 // Dubai is worse than an empty field: the supplier would have to notice the error to correct it.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -116,7 +117,7 @@ const fillState = (p: Record<string, unknown>) => {
   return { filled, missing: FIELDS.filter((f) => !filled.includes(f)) };
 };
 
-Deno.serve(async (req) => {
+Deno.serve(observe('supplier_onboard', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     // Supplier-authed, like the rest of the portal. Onboarding deliberately does NOT require an
@@ -214,4 +215,4 @@ Deno.serve(async (req) => {
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e), fallback: true });
   }
-});
+}));

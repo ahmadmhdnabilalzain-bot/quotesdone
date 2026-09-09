@@ -1,6 +1,7 @@
 // supplier_ack v1 — one-click 'I have contacted the customer' from the nudge email.
 // GET ?tx=<transaction_id>&token=<ack_token> -> sets transactions.supplier_ack_at, stops nudges.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const NAVY = '#0c2330';
 function page(title: string, msg: string, ok: boolean){
@@ -13,7 +14,7 @@ a{color:#2DD4BF}</style></head><body><div class="card"><div class="hd"><b>Quotes
 <div class="bd"><div class="ic">${ok?'✅':'⚠️'}</div><div style="font-size:17px;font-weight:600;margin-bottom:6px">${title}</div><div>${msg}</div>
 <div class="mut">If you have any issue, email <a href="mailto:supplier@quotesdone.com">supplier@quotesdone.com</a>.</div></div></div></body></html>`;
 }
-Deno.serve(async (req) => {
+Deno.serve(observe('supplier_ack', async (req) => {
   const url = new URL(req.url);
   const tx = (url.searchParams.get('tx') || '').trim();
   const token = (url.searchParams.get('token') || '').trim();
@@ -31,4 +32,4 @@ Deno.serve(async (req) => {
   } catch (_e) {
     return new Response(page('Something went wrong','We could not record your confirmation right now. Please try again shortly, or reply to the reminder email.',false), { status: 500, headers: H });
   }
-});
+}));

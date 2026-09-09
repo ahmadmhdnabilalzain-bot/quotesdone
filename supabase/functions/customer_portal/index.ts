@@ -17,6 +17,7 @@
 // every list below comes back empty — an empty recommendation feed is the honest output of a
 // database with no traffic, and none of these branches invents a number to avoid one.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -31,7 +32,7 @@ async function rpc(name: string, args: Record<string, unknown>): Promise<{ data:
   } catch (e) { return { data: null, err: String((e as Error)?.message || e) }; }
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('customer_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -225,4 +226,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

@@ -2,11 +2,12 @@
 // Records a founder escalation (agent_actions) and notifies the customer so they
 // can add detail (self-correcting a weak Smart Engine brief). Supplier-JWT auth.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-Deno.serve(async (req) => {
+Deno.serve(observe('rfq_flag', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -33,4 +34,4 @@ Deno.serve(async (req) => {
     try { const { data: c } = await admin.from('customers').select('email,full_name').eq('id', inq.customer_id).maybeSingle(); if (c?.email && /@/.test(c.email)) { await admin.from('notifications').insert({ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, channel: 'email', status: 'queued', subject: 'A supplier needs a quick clarification on your request', body: 'Hi ' + (c.full_name || 'there') + ',\n\nA supplier reviewing your request' + (inq.summary ? ' “' + inq.summary + '”' : '') + ' asked for a small clarification so they can quote accurately. Please open your request on QuotesDone and add any missing detail (scope, quantities, location or timeline).\n\nThis helps you get sharper, comparable quotes. Thank you!' }); } } catch (_e) { /* */ }
     return J({ ok: true, flagged: true });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 500); }
-});
+}));

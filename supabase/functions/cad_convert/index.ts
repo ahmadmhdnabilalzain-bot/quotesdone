@@ -18,6 +18,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 import { sanitizeOrMessage, SAFE_CAD } from '../_shared/attachment.ts';
+import { observe } from '../_shared/observe.ts';
 function toB64(buf: Uint8Array): string { let s = ''; const CH = 0x8000; for (let i = 0; i < buf.length; i += CH) { s += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CH))); } return btoa(s); }
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
@@ -28,7 +29,7 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 async function jf(url: string, opts: any, ms: number){ const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); try { return await fetch(url, { ...opts, signal: c.signal }); } finally { clearTimeout(t); } }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-Deno.serve(async (req) => {
+Deno.serve(observe('cad_convert', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -113,4 +114,4 @@ Deno.serve(async (req) => {
       return J({ ok: true, images, pages: images.length, raster_preview_only: true });
     } catch (e) { return J({ ok: false, error: 'exception', detail: String((e as Error)?.message || e) }, 200); }
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

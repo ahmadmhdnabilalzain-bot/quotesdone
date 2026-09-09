@@ -88,6 +88,32 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/checks/export_from_either_source_is_identical.mjs
+      # 9 SEP 2026 — THE ADVISORS BECOME A GATE INSTEAD OF A HABIT. Supabase computes 543 security
+      # advisor findings for this project and nothing read them; "run the advisors and look" is a
+      # habit, and a habit is not a control. This step records the baseline per cache_key (not per
+      # rule name — a new table with RLS and no policy would otherwise hide behind a rule already
+      # in the list) and fails the merge on a finding that was not there before. It lives HERE and
+      # not in the checks job for the reason stated above: the advisors are readable only with the
+      # management token, and a check that cannot reach its subject reports a green over nothing.
+      - name: No NEW Supabase security advisor finding since the baseline
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/checks/security_advisors_match_the_baseline.mjs --refresh
+      # The edge logs, read for the two attack shapes that reach an API before it has customers:
+      # a burst of 401/403 from one address, and one address walking paths that do not exist.
+      # Exit 1 means a PATTERN WAS FOUND, which is not a reason to fail somebody's pull request —
+      # the fix is not in the diff. Exit 2 means the LOG COULD NOT BE READ, which IS a broken gate
+      # and must go red, because a detector reporting "no attack" against a log it never reached is
+      # indistinguishable from one that is switched off. The findings are recorded either way.
+      - name: The edge logs show no attack pattern (and the log is actually readable)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          node scripts/checks/edge_requests_show_no_attack_pattern.mjs --record || {
+            status=$?
+            [ "$status" = "1" ] || exit "$status"
+            echo "::warning::an attack pattern was detected and recorded in security_events"
+          }
       # LAUNCH STEP 1 — the four org signal paths, proven against production on every PR. It needs the
       # credential, so per the rule above it belongs in a token-holding job or it "runs when somebody
       # remembers, which is not a gate". Every write is an aborted-transaction probe (RAISE rolls it

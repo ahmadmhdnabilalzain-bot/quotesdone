@@ -19,6 +19,7 @@
 // paid. supplier_dues is settled solely by stripe_webhook once Stripe confirms payment on a
 // signature-verified event, so a supplier cannot clear their own debt by calling the API.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -38,7 +39,7 @@ function owed(d: any): number {
     + Number(d.interest_amount || 0) + Number(d.fine_amount || 0)) * 100) / 100;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('supplier_pay', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -127,4 +128,4 @@ Deno.serve(async (req) => {
     await logRun('error', { unhandled_exception: 1 }, 'supplier_pay threw: ' + m.slice(0, 200));
     return J({ error: m }, 500);
   }
-});
+}));

@@ -1,11 +1,12 @@
 // wa_optin_set - records a user's WhatsApp opt-in consent (service messages only). Sets wa_optin on customers/leads by email.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, content-type, apikey', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
 const J = (o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{'Content-Type':'application/json',...CORS}});
 async function sec(k:string){ const { data } = await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string | undefined; }
-Deno.serve(async (req)=>{
+Deno.serve(observe('wa_optin_set', async (req) => {
   if (req.method==='OPTIONS') return new Response('ok',{headers:CORS});
   try{
     const b = await req.json().catch(()=>({} as any));
@@ -38,4 +39,4 @@ Deno.serve(async (req)=>{
       return J({ ok:true, updated: !!data, wa_optin:optin });
     }
   }catch(e){ return J({ error:String((e as Error)?.message||e) },500); }
-});
+}));

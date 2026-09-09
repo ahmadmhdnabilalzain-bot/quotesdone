@@ -14,6 +14,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b). Nothing else wrote
 // documents.extracted, so customer_documents has been reading a column with no writer since.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { observe } from '../_shared/observe.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -72,7 +73,7 @@ async function llmJSON(apiKey:string, content:unknown):Promise<any>{
   return null;
 }
 
-Deno.serve(async (req)=>{
+Deno.serve(observe('doc_extract', async (req) => {
   if(req.method==='OPTIONS') return new Response('ok',{headers:cors});
   const sb=createClient(SUPABASE_URL,SERVICE_KEY);
   const T0 = Date.now();
@@ -251,4 +252,4 @@ Deno.serve(async (req)=>{
     await logThrottled('doc_error',60,'error',{stage:'extract',document_id:doc.id,kind:doc.kind},'doc_extract failed on document '+doc.id+' ('+doc.kind+'); after 3 attempts it stops being retried, so this supplier document is never read and its specs never reach the knowledge base. '+String(e).slice(0,200));
     return j({error:String(e)},500);
   }
-});
+}));

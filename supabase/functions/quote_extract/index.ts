@@ -12,6 +12,7 @@
 // best: supplier_api saw a 502 and showed the manual form.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -41,7 +42,7 @@ const SYS = `You read a supplier's price QUOTATION for a UAE building / fit-out 
 
 function dataUrl(b64: string, mime: string){ return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/,'')}`; }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('quote_extract', async (req) => {
   try {
     const body = await req.json().catch(() => ({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -105,4 +106,4 @@ Deno.serve(async (req) => {
     // an extraction that produced no parseable JSON or no total is a failure, not a success.
     return J({ ok: _okRun, proposal: ai, error: _okRun ? undefined : (aiParseOk ? 'no_amount' : 'unreadable_quotation'), detail: _okRun ? undefined : _note.slice(0, 200) });
   } catch (e) { await logRun('error', { quote_extracted: 0, unhandled_exception: 1 }, 'quote_extract threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — a supplier quotation was not converted into a comparable quote and will be missing from the customer\'s comparison.'); return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

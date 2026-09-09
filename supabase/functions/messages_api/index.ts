@@ -4,6 +4,7 @@
 // v4: llm() iterates single model (OpenRouter 'models' plural param was rejected).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -116,7 +117,7 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
   return out;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('messages_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -308,4 +309,4 @@ Deno.serve(async (req) => {
 
     return J({ error: 'unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

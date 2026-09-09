@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { CHECKOUT_EVENTS, REFUND_EVENTS } from '../_shared/stripe_events.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -36,7 +37,7 @@ async function verifySig(sigHeader: string, payload: string, key: string): Promi
   let diff = 0; for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
   return diff === 0;
 }
-Deno.serve(async (req) => {
+Deno.serve(observe('stripe_webhook', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
   const raw = await req.text();
@@ -267,4 +268,4 @@ Deno.serve(async (req) => {
     }
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return new Response('handler error: ' + m, { status: 500 }); }
   return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-});
+}));

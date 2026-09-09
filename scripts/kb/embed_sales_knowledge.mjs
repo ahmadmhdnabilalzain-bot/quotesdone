@@ -23,7 +23,7 @@ import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const arg = (n, d) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split('=').slice(1).join('=');
 const LIMIT = Number(arg('limit', 100000));
-const TABLES = ['sales_knowledge', 'accountant_knowledge'];
+const TABLES = ['sales_knowledge', 'accountant_knowledge', 'it_engineer_knowledge'];
 const TABLE = arg('table', 'sales_knowledge');
 if (!TABLES.includes(TABLE)) { console.error(`--table must be one of: ${TABLES.join(', ')}`); process.exit(2); }
 const CONC = 6;

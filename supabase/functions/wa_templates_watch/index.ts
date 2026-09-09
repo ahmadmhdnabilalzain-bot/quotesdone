@@ -1,6 +1,7 @@
 // wa_templates_watch - polls Twilio for WhatsApp template approval; when ALL approved, flips wa_templates_ready='true' and emails the founder.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -22,7 +23,7 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 async function sec(k:string){ const {data}=await sb.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const J=(o:unknown,s=200)=>new Response(JSON.stringify(o,null,2),{status:s,headers:{'Content-Type':'application/json'}});
 
-Deno.serve(async (req)=>{
+Deno.serve(observe('wa_templates_watch', async (req)=>{
   try{
     // AUDIT 9.5 (4 Aug 2026). This handler never read the request. It had NO internal gate at all -
     // `Deno.serve(async ()=>{...})` - and ran as the service role. Its only protection was
@@ -79,4 +80,4 @@ Deno.serve(async (req)=>{
     }
     return J({ ok:true, total:sids.length, approved, rejected, all_approved:allApproved, statuses });
   }catch(e){ await logRun('error', { stage:'run' }, 'wa_templates_watch crashed: '+String((e as Error)?.message||e)+'; WhatsApp template approval was not checked this cycle, so wa_templates_ready may stay false and WhatsApp alerts to suppliers and customers stay off'); return J({ ok:false, error:String((e as Error)?.message||e) }, 500); }
-});
+}));

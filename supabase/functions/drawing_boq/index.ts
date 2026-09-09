@@ -7,6 +7,7 @@
 // calling it — the buyer got HTTP 200 with ok:false and was told nothing).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -26,7 +27,7 @@ const CATS = 'civil_construction, fit_out_interior, mep_electrical, mep_plumbing
 
 const SYS = `You are a UAE quantity surveyor. You read CONSTRUCTION / FIT-OUT / MEP / architectural drawings (floor plans, elevations, sections, layouts, schedules, single-line diagrams) and produce a DRAFT Bill of Quantities (BOQ) that a contractor could price.\n\nPRIVACY (CRITICAL): your output is shown to competing suppliers who must NOT be able to identify the client or project. NEVER read out, copy or include ANY identifying information from the drawing. Specifically ignore and never repeat: the title block's company / consultant / architect / contractor names, client or owner names, any person names, phone numbers, emails, websites, the project name or title, drawing or project numbers, plot / parcel / makani numbers, and the site or project address. You MAY use the title block ONLY for scale, drawing type and dimensions. Output ONLY generic technical scope. If any text field (summary, descriptions, basis, keywords, assumptions, missing_info) would contain a name, company, phone, email or address, leave it out or generalise it (e.g. say 'a villa', not the address; 'ground floor', not the project name).\n\nRead EVERY drawing page. Use the title block, scale bar, stated dimensions, room/area labels, schedules (door/window/finish/fixture schedules), legends and symbol counts. Where a scale or explicit dimensions are given, compute areas (sqm), lengths (m) and counts (nos). Where you must assume, say so and lower the confidence.\n\nProduce measurable BOQ line items grouped into sections (e.g. Demolition, Blockwork, Flooring, Painting, Doors, Electrical points, Plumbing fixtures, HVAC, Ceiling). For each item give: a clear generic description, quantity, unit (sqm / m / nos / lot), the dimensions or basis used, and a per-item confidence. Keep to the most relevant items (aim for under 40). Be concise in every text field.\n\nIMPORTANT: this is an AI ESTIMATE for guidance and supplier matching, NOT a certified take-off. Be honest. Never invent quantities you cannot see. Flag everything you assumed and everything you could not determine.\n\nOutput ONLY the JSON object, no markdown, no prose before or after:\n{\"drawing_type\":string,\"category\":one of [${CATS}] or \"\",\"summary\":string,\"scale_detected\":string,\"total_area_sqm\":number|null,\"boq\":[{\"section\":string,\"description\":string,\"qty\":number|null,\"unit\":string,\"basis\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}],\"keywords\":[string],\"assumptions\":[string],\"missing_info\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\ncategory = best single match from the list for supplier matching. keywords = 4-10 short terms describing the trades/materials shown (for matching). If you cannot read the drawing at all, return confidence \"low\", empty boq, and explain in missing_info.`;
 
-Deno.serve(async (req) => {
+Deno.serve(observe('drawing_boq', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as any));
@@ -74,4 +75,4 @@ Deno.serve(async (req) => {
     if (!['low','medium','high'].includes(ai.confidence)) ai.confidence = 'low';
     return J({ ok: true, boq: ai });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-});
+}));

@@ -23,6 +23,7 @@
 //    PDPL erasure, not a side effect of restoring a backup.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -113,7 +114,7 @@ async function renderGenerated(row: any): Promise<{bucket:string, path:string}>{
   return { bucket: 'backups', path: String(jd.path) };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(observe('dropbox_backup', async (req) => {
   try {
     const body = await req.json().catch(()=>({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -183,4 +184,4 @@ Deno.serve(async (req) => {
     }
     return J({ ok:true, enqueued, processed:(rows||[]).length, done, failed, skipped, results });
   } catch (e){ await logRun('error', { stage:'fatal' }, 'dropbox_backup crashed before completing; the Dropbox backup run did not finish and documents from this window are not backed up. ' + String((e as Error)?.message||e).slice(0,200)); return J({ error:String((e as Error)?.message||e) }, 500); }
-});
+}));
