@@ -44,6 +44,42 @@ async function ratingTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// DRAIN THE OUTBOX EVERY TICK, NOT ONLY DURING AN OUTAGE.
+//
+// 9 September 2026. Until today the ONLY call to send_outbox in this file sat inside the
+// scheduler-is-down branch, below an `if (healthy) return`. So on a healthy estate this endpoint —
+// the one thing that actually runs every fifteen minutes — never drained the mail queue, and a
+// notification left the building only if whatever created it pushed it itself. Every path that
+// wrote a row and trusted "the outbox will send it" was wrong, and silently: the row sits at
+// status 'pending' with no error, which reads as queued rather than as stuck.
+//
+// FOUND BY MEASUREMENT, not by reading. The IT engineer's two [RESOLVED] close notices (21252,
+// 21253) were written at 08:00:40 and were still 'pending' at 08:35 with send_outbox last having
+// run at 07:25:45 — 70 minutes earlier — while resilience_ping itself had ticked at 07:30, 07:45,
+// 08:00 and 08:15. Four ticks passed over a queue they were not looking at. Mail that DOES go out
+// fast (avg 1.7 min today) goes out because its creator pushed it, which is exactly what disguises
+// this: the queue looks healthy right up until something queues without pushing.
+//
+// WHY HERE AND NOT IN EVERY CALLER. Making each writer push its own row is the same fix repeated at
+// N call sites, and the N+1th will forget — this one did. The outbox is the shared choke point and
+// the tick is the thing with a heartbeat, so the drain belongs at their intersection.
+//
+// BEST EFFORT, DELIBERATELY. A failed flush must not change what this endpoint reports about the
+// scheduler; the result is returned in the body so a stuck flush is visible rather than assumed.
+async function outboxTick(): Promise<unknown> {
+  try {
+    const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+      .in('status', ['pending', 'queued']);
+    if (!count) return { pending: 0, flushed: false };
+    const secret = await sec('cred_fn_resilience_ping');
+    const r = await fetch(FN + '/send_outbox', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, limit: 20 }), signal: AbortSignal.timeout(20000),
+    });
+    return { pending: count, flushed: true, status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE DROPBOX BACKUP HANGS HERE FOR THE THIRD TIME, AND FOR THE SAME REASON.
 // The founder, 9 Sep 2026: the sales engineer "is responsible about the organized folders back up in
 // dropbox". A daily backup needs a schedule, and pg_cron is not one any more — cron.job holds a
@@ -338,12 +374,15 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // first would deliver the previous tick's picture of the estate.
     const itdetect = await itDetectTick();
     const it = await itEngineerAlertTick();
+    // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
+    // pass rather than waiting fifteen minutes for the next one.
+    const outbox = await outboxTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -367,6 +406,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
