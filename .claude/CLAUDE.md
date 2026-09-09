@@ -46,3 +46,21 @@ Load this alongside `quotesdone-session` at the START of every session on this r
 
 Load this before applying SQL, creating a routine or a table, or committing. The pattern behind
 every item is the same — the check caught it, not the session. These steps move the catch earlier.
+
+# quotesdone-organised-like-an-auditor-will-read-it — ALWAYS APPLY
+- **quotesdone-organised-like-an-auditor-will-read-it**
+  (`.claude/skills/quotesdone-organised-like-an-auditor-will-read-it/SKILL.md`) — the founder's
+  ruling of 10 Sep 2026: the code must be organised as though a real software engineer built it,
+  because one day he will hand it to an external auditor, and *"I can't understand shit, it's all
+  mixed everywhere"* is not an acceptable outcome. He tied this directly to a repeated failure —
+  decisions we finalise get forgotten and he has to re-state them — because **a decision with no
+  obvious home is a decision that will be lost**. Covers: his words go into
+  `public.founder_instruction` the moment he says them, not at session end; one subject one file;
+  the index must not point at nothing, and a count is not a finding until you know what you counted
+  (a quick loop reported 348 dead MANIFEST entries; they were comment lines, and the index is
+  clean); where each kind of thing lives; comments carry the measurement; look for what already owns
+  the subject
+  before writing a second one; scratch never enters the repository; and a probe must be incapable
+  of reaching a real person rather than merely careful to clean up.
+
+Load this before creating any file, routine, table or check, and before closing any session.
