@@ -251,7 +251,16 @@ async function getCfg(): Promise<Cfg> { const { data } = await admin.from('prici
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
 function revealFee(amount: number, cfg: Cfg): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
-function ratingOf(l: Record<string, any>) { const appN = Number(l.app_reviews || 0); if (appN > 0) return { value: l.app_rating != null ? Number(l.app_rating) : null, count: appN, source: 'QuotesDone' }; const g = l.rating ?? l.rating_maps; const gn = l.reviews ?? l.reviews_maps; return { value: g != null ? Number(g) : null, count: gn != null ? Number(gn) : 0, source: 'Google' }; }
+// A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
+// from customers after they tried them", "google review shouldnt be counted". This used to fall
+// back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has
+// never worked with — and label it source:'Google', which the portal then showed as the supplier's
+// rating and scored in its value ranking. 4,477 suppliers carry that scraped number and 0 have ever
+// been rated by a customer here, so the fallback WAS the rating on every quote ever compared.
+// It is gone. app_rating/app_reviews are written by recompute_supplier_rating() from public.reviews
+// and nothing else. No platform review means value null and count 0, which the surface renders as
+// "not yet rated on QuotesDone" — an honest absence beats a number that means something else.
+function ratingOf(l: Record<string, any>) { const appN = Number(l.app_reviews || 0); const v = (appN > 0 && l.app_rating != null) ? Number(l.app_rating) : null; return { value: v, count: appN, source: v != null ? 'QuotesDone' : null }; }
 function band(n: number) { n = Number(n || 0); if (n < 1000) return '< AED 1k'; if (n < 5000) return 'AED 1–5k'; if (n < 20000) return 'AED 5–20k'; if (n < 50000) return 'AED 20–50k'; return 'AED 50k+'; }
 // PRE-REVEAL FINGERPRINT (27 Jul 2026). my_inquiries used to return the supplier's exact rating,
 // exact review count, emirate, years-since-founding and win rate on EVERY quote, revealed or not.
@@ -261,7 +270,10 @@ function band(n: number) { n = Number(n || 0); if (n < 1000) return '< AED 1k'; 
 // coarse bands that fit hundreds of firms, plus the verified flag (a trust signal that identifies
 // nobody). Emirate, win rate and rating source are withheld until a transaction exists.
 function ratingBand(v: unknown): string | null { const n = Number(v); if (v == null || !isFinite(n) || n <= 0) return null; if (n >= 4.5) return '4.5+'; if (n >= 4) return '4.0-4.5'; if (n >= 3.5) return '3.5-4.0'; return 'below 3.5'; }
-function reviewCountBand(v: unknown): string { const n = Number(v || 0); if (n >= 50) return '50+'; if (n >= 20) return '20-49'; if (n >= 5) return '5-19'; return 'under 5'; }
+// 9 Sep 2026: 'under 5' was returned for a count of ZERO, so a supplier nobody has ever rated on
+// QuotesDone read as "has a few reviews" instead of "has none". Zero is now null, the same answer
+// the band gives for an absent rating, and the portal renders the pair as "not yet rated".
+function reviewCountBand(v: unknown): string | null { const n = Number(v || 0); if (n >= 50) return '50+'; if (n >= 20) return '20-49'; if (n >= 5) return '5-19'; return n > 0 ? 'under 5' : null; }
 function yearsBand(v: unknown): string | null { if (v == null) return null; const n = Number(v); if (!isFinite(n)) return null; if (n >= 10) return '10+ years'; if (n >= 5) return '5-9 years'; return 'under 5 years'; }
 
 // AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
@@ -872,7 +884,7 @@ Deno.serve(async (req) => {
       if (ids.length) { try { const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids); for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ } }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
-      if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,rating,rating_maps,reviews,reviews_maps,app_rating,app_reviews,emirate,verified,founded_year').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null }; }
+      if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,app_rating,app_reviews,emirate,verified,founded_year').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
       // public.transactions HAS NO created_at COLUMN - in staging or in production. Selecting it
       // made PostgREST answer 400, so `txs` came back null, `for (const t of txs || [])` iterated
@@ -1075,7 +1087,7 @@ Deno.serve(async (req) => {
       const { data: q } = await admin.from('quotes').select('id,supplier_id,original_file_path,original_file_name').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
       const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
       if (!tx) return J({ error: 'Reveal this supplier first to see their profile.' }, 403);
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,phone,whatsapp,email,website,rating,rating_maps,reviews,reviews_maps,app_rating,app_reviews,description,capability_summary,founded_year,company_type').eq('id', q.supplier_id).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,phone,whatsapp,email,website,app_rating,app_reviews,description,capability_summary,founded_year,company_type').eq('id', q.supplier_id).maybeSingle();
       const { data: projs } = await admin.from('transactions').select('revealed_at,quote_amount,inquiries(category,emirate)').eq('supplier_id', q.supplier_id).order('revealed_at', { ascending: false }).limit(20);
       const projects = (projs || []).map((p: any) => ({ category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, month: p.revealed_at ? new Date(p.revealed_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null, value_band: band(Number(p.quote_amount)) }));
       // §13 "History: 17 RFQs, 8 Orders" — TWO DIFFERENT NUMBERS, and this action served only the

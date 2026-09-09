@@ -185,7 +185,10 @@ export function SupplierRelationshipCard({
 
   const ratingText =
     quote.rating == null || quote.rating === ''
-      ? null
+      // 9 Sep 2026 (founder): "google review shouldnt be counted". customer_api no longer falls back
+      // to the scraped Google star, so rating is null for every supplier nobody has rated here. A
+      // blank Rating stat reads as a broken field; the absence is stated instead.
+      ? ar(lang, 'لم يُقيَّم بعد على QuotesDone', 'Not yet rated on QuotesDone')
       : typeof quote.rating === 'number'
         ? `★ ${quote.rating.toFixed(1)}`
         : `★ ${quote.rating}`;
@@ -450,7 +453,7 @@ export function SupplierHistoryPanel({
           {` · ${rd.count ?? 0} ${ar(lang, 'تقييم', 'reviews')}${rd.source ? ` (${rd.source})` : ''}`}
         </div>
       ) : (
-        <div className={cn(S.note, 'mt-1')}>{ar(lang, 'لا توجد تقييمات لهذا المورّد بعد.', 'No reviews for this supplier yet.')}</div>
+        <div className={cn(S.note, 'mt-1')}>{ar(lang, 'لم يُقيّم أي عميل هذا المورّد على QuotesDone بعد. لا نحتسب تقييمات المواقع الأخرى.', 'No QuotesDone customer has rated this supplier yet. Ratings from other websites are not counted.')}</div>
       )}
 
       {sup.capability_summary || sup.description ? (

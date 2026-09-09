@@ -3,11 +3,11 @@
 #
 # Why this file exists (decision D1, 3 Aug 2026). Without it, `supabase functions deploy`
 # sets verify_jwt from whatever CLI flag it is passed, and the deploy scripts pass a blanket
-# --no-verify-jwt. 17 of these 54 functions REQUIRE a JWT, so one routine redeploy
+# --no-verify-jwt. 18 of these 60 functions REQUIRE a JWT, so one routine redeploy
 # could silently strip that requirement with nothing failing and nothing logged. Pinning the
 # value here makes the auth posture reviewable in git: an unintended change shows up as a diff.
 #
-# Functions that require a JWT (17):
+# Functions that require a JWT (18):
 #   ceo_agent
 #   contact_submit
 #   customer_api
@@ -18,6 +18,7 @@
 #   procurement_api
 #   project_api
 #   quote_compare
+#   sales_engineer
 #   stripe_setup
 #   supplier_api
 #   supplier_catalog_ingest
@@ -29,6 +30,9 @@
 project_id = "htdblwldjkcgjvmqkbeh"
 
 [functions.ai_gateway]
+verify_jwt = false
+
+[functions.cad_convert]
 verify_jwt = false
 
 [functions.ceo_agent]
@@ -50,6 +54,15 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.customer_portal]
+verify_jwt = false
+
+[functions.doc_extract]
+verify_jwt = false
+
+[functions.drawing_boq]
+verify_jwt = false
+
+[functions.drawing_redact]
 verify_jwt = false
 
 [functions.email_cron]
@@ -96,6 +109,9 @@ verify_jwt = true
 
 [functions.quote_compare]
 verify_jwt = true
+
+[functions.quote_extract]
+verify_jwt = false
 
 [functions.refund_flow]
 verify_jwt = false

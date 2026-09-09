@@ -21,7 +21,25 @@
 // Anything else is stored and marked `unsupported_format` with the reason. It is never silently
 // treated as empty, because "we extracted 0 products" and "we cannot read this file" look identical
 // to a supplier and mean completely different things.
+//
+// ── 9 SEP 2026: THIS WAS THE ONE UPLOAD SITE OF FOURTEEN WITH NO VALIDATION ─────────────────────
+// Measured, not asserted. Before this change the function:
+//   * atob()'d the request body straight into .upload() — no shape check of any kind;
+//   * chose the extraction route from the FILENAME EXTENSION, so `bomb.zip` renamed `prices.xlsx`
+//     took the sheet route and `payload.svg` renamed `sheet.png` was announced to the model as an
+//     image, because readableMime was literally `image/${ext}`;
+//   * applied NO size limit anywhere;
+//   * handed the ZIP container to XLSX.read() with no entry-count, decompressed-size or ratio cap
+//     — a zip bomb, reachable by any registered supplier with one POST;
+//   * discarded the upload result (`.catch(() => null)`, and `up.error` never read). .upload()
+//     RESOLVES with `{ error }` rather than rejecting, so that .catch() could never fire. The
+//     supplier-docs bucket allows only PDF/JPEG/PNG/WebP, so every CSV and XLSX upload was rejected
+//     by storage and supplier_catalog.source_document_path was written pointing at an object that
+//     does not exist — silently, every time.
+// The format now comes from the BYTES via _shared/attachment.ts, the same module the other thirteen
+// sites use; the archive is costed before it is expanded; and a refused upload fails loudly.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sanitizeUpload, zipExpansionWithinLimits, SAFE_SHEET, SAFE_DOCUMENT, SAFE_IMAGE, SAFE_CAD } from '../_shared/attachment.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -33,12 +51,31 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 
-const ext = (name: string) => (name.split('.').pop() || '').toLowerCase();
-const TEXTUAL = ['csv', 'tsv', 'txt'];
-const SHEET = ['xlsx', 'xls'];
-const VISUAL = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
-const CAD = ['dwg', 'dxf'];
-const BIM = ['ifc', 'rvt'];
+// THE ROUTE IS CHOSEN BY THE SNIFFED MIME, NEVER BY THE FILENAME. Everything this function accepts
+// is a type _shared/attachment.ts can identify from magic bytes, which is what makes the choice
+// trustworthy. 25 MB matches the supplier-docs bucket; a catalogue larger than that is a
+// conversation, not an upload.
+const ACCEPT = [...SAFE_SHEET, ...SAFE_DOCUMENT, ...SAFE_IMAGE, ...SAFE_CAD] as const;
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const TEXTUAL = ['text/csv'];
+const SHEET = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+const VISUAL = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+const CAD = ['image/vnd.dwg', 'image/vnd.dxf'];
+// IFC and RVT are gone from the accepted set, and that is a NARROWING, not an oversight. Neither can
+// be identified by shape here — an .rvt is an OLE2 compound document, byte-identical in its header
+// to a legacy .xls, so accepting it on trust would mean handing an unidentified binary to SheetJS on
+// the strength of its filename, which is the exact defect this change removes. supplier_catalog and
+// supplier_product are both 0 rows, so no catalogue loses a route it ever used. Restore them by
+// giving sniff() a real signature for each, never by trusting the extension again.
+
+// The zip caps, and why these numbers. A genuine supplier price list is a few hundred KB of XML plus
+// a logo: SheetJS's own test corpus tops out around 40 entries, and a workbook with images still
+// sits far under 200. 512 entries and 64 MB leave a wide margin over anything legitimate while
+// putting a hard ceiling on the work XLSX.read() can be made to do; 120:1 is roughly four times the
+// ratio ordinary XML-plus-images compresses at, and far below the ~1000:1 a bomb needs to be worth
+// building. A file that trips any of the three is refused with its own reason, so a big honest
+// catalogue and a hostile one do not look alike in the log.
+const ZIP_CAPS = { maxEntries: 512, maxTotalBytes: 64 * 1024 * 1024, maxRatio: 120 };
 
 const EXTRACTION_PROMPT = `You are reading a UAE construction supplier's own product catalogue, price list or drawing schedule.
 Extract the PRODUCTS it lists. Return STRICT JSON only:
@@ -110,13 +147,25 @@ Deno.serve(async (req) => {
     const fileName = String(b.file_name || '').slice(0, 200);
     const dataB64 = String(b.data || '');
     if (!fileName || !dataB64) return J({ error: 'file_name and data required' }, 400);
-    const kind = ext(fileName);
+
+    // THE GATE. Shape, size and safety are decided here, before a byte is stored or parsed, by the
+    // same module the other thirteen upload sites use. It refuses executables, HTML, SVG and script
+    // by CONTENT whatever the file was named, and it strips EXIF/GPS from photographed price lists.
+    const san = sanitizeUpload({ input: dataB64, declaredMime: String(b.content_type || ''), filename: fileName, allow: ACCEPT, maxBytes: MAX_UPLOAD_BYTES });
+    if (!san.ok) return J({ ok: false, error: san.error, detail: san.detail, file_name: fileName }, san.error === 'file_too_large' ? 413 : 415);
+    const kind = san.mime;
+    const bytes = san.bytes;
 
     // The catalogue row exists BEFORE extraction, so an upload that later fails to parse is still a
-    // file the supplier can see we hold, with a status explaining what happened to it.
+    // file the supplier can see we hold, with a status explaining what happened to it. It must NOT
+    // exist before the upload, though: a row whose source_document_path names an object storage
+    // refused is a lie the supplier cannot see and nothing downstream can detect.
     const path = `catalog/${supId}/${Date.now()}-${fileName.replace(/[^\w.\-]/g, '_')}`;
-    const bytes = Uint8Array.from(atob(dataB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
-    await admin.storage.from('supplier-docs').upload(path, bytes, { upsert: true }).catch(() => null);
+    const up = await admin.storage.from('supplier-docs').upload(path, bytes, { contentType: san.mime, upsert: true });
+    if (up.error) {
+      return J({ ok: false, error: 'storage_refused', detail: String(up.error.message || up.error).slice(0, 200),
+                 hint: 'the file was accepted but could not be stored; no catalogue row was created', file_name: fileName }, 502);
+    }
     const { data: cat } = await admin.from('supplier_catalog')
       .insert({ supplier_id: supId, source_document_path: path, version: 1, status: 'ingesting' })
       .select('id').maybeSingle();
@@ -134,14 +183,24 @@ Deno.serve(async (req) => {
       products = rowsToProducts(parseDelimited(new TextDecoder().decode(bytes)));
       note = `parsed ${kind} directly — a price list is a table and needs no model`;
     } else if (SHEET.includes(kind)) {
+      // COST THE ARCHIVE BEFORE EXPANDING IT. XLSX.read() is synchronous and CPU-bound: nothing in
+      // JavaScript can abort it once it starts, so the only place a limit can work is here, reading
+      // the declared uncompressed sizes out of the zip's central directory without inflating a byte.
+      if (kind === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        const z = zipExpansionWithinLimits(bytes, ZIP_CAPS);
+        if (!z.ok) return await fail('refused_archive', `${z.error}: ${z.detail}`);
+      }
       const XLSX = await import('https://esm.sh/xlsx@0.18.5');
       const wb = XLSX.read(bytes, { type: 'array' });
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }) as Record<string, unknown>[];
       products = rowsToProducts(rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [String(k).toLowerCase(), v]))));
       note = `parsed sheet "${wb.SheetNames[0]}"`;
-    } else if (VISUAL.includes(kind) || CAD.includes(kind) || BIM.includes(kind)) {
-      let readable = bytes; let readableMime = kind === 'pdf' ? 'application/pdf' : `image/${kind === 'jpg' ? 'jpeg' : kind}`;
-      if (CAD.includes(kind) || BIM.includes(kind)) {
+    } else if (VISUAL.includes(kind) || CAD.includes(kind)) {
+      // readableMime was `image/${ext}` — the FILENAME decided what was announced to the model, so
+      // `x.svg` renamed `x.png` was presented as a PNG. It is now the sniffed type, which is the
+      // only one that reflects the bytes actually being sent.
+      let readable = bytes; let readableMime = kind;
+      if (CAD.includes(kind)) {
         // A drawing is geometry. cad_convert (CloudConvert) renders it to PDF; what comes back is a
         // SHEET, and what is extractable from a sheet is its schedule and title block — which is
         // exactly what a human reads off it. Nothing here claims to mine a 3D model.
@@ -174,7 +233,10 @@ Deno.serve(async (req) => {
         note = [note, parsed.note].filter(Boolean).join('; ');
       } catch { return await fail('extraction_failed', 'the extractor did not return readable structure'); }
     } else {
-      return await fail('unsupported_format', `.${kind} is not a format this ingester can read. It is stored, not extracted.`);
+      // Defensive, and no longer the way an unreadable file is rejected: sanitizeUpload refuses an
+      // unaccepted type above, before anything is stored. This fires only if ACCEPT and the four
+      // route lists ever drift apart, and says so rather than reporting an empty catalogue.
+      return await fail('unsupported_format', `${kind} is accepted by the upload gate but no extraction route claims it — ACCEPT and the route lists have drifted.`);
     }
 
     // WRITE THE STRUCTURED STORE. external_key makes a re-upload of the same catalogue update rather
@@ -184,7 +246,9 @@ Deno.serve(async (req) => {
     for (const p of products.slice(0, 500)) {
       const name = String(p.name || '').trim();
       if (!name) continue;
-      const key = `${kind}:${(String(p.model || p.name)).slice(0, 80)}`.toLowerCase();
+      // san.ext, not san.mime: external_key keeps the short `xlsx:`/`csv:` prefix it always had, so
+      // a re-upload of the same catalogue still collides with its own earlier rows and updates them.
+      const key = `${san.ext}:${(String(p.model || p.name)).slice(0, 80)}`.toLowerCase();
       const { error } = await admin.from('supplier_product').upsert({
         supplier_id: supId, catalog_id: catalogId, external_key: key,
         name: name.slice(0, 200), brand: p.brand ?? null, model: p.model ?? null,

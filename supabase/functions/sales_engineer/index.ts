@@ -47,10 +47,22 @@ const SEAT_BY_CREDENTIAL: Record<string, 'sales_engineer'> = {
   'fn.sales_engineer': 'sales_engineer',
 };
 
-async function whoami(req: Request, body: Record<string, unknown>): Promise<'sales_engineer' | 'founder' | null> {
+// A PORTAL CALLER IS A THIRD KIND OF CALLER, and it is the one the founder's 9 Sep ruling adds:
+// "if its on the home page then the support replies. but if its on the customer or supplier portal
+// then its the sales engineer". PortalShell already sends the customer's own session token; this
+// resolves it to a customer row and NOTHING WIDER. `customer` may read its own report and ask its
+// own questions; it may not name another party. Note customers.id is NOT auth.users.id (measured 9
+// Sep: the one real customer's id does not exist in auth.users) — the verified JWT email is the
+// join, which is the same identity rule the estate already uses: a phone may confirm, never select.
+type Caller =
+  | { kind: 'sales_engineer' | 'founder' }
+  | { kind: 'customer'; customerId: string; email: string }
+  | null;
+
+async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {
   if (body?.__secret) {
     const r = await requireInternal(admin, String(body.__secret), 'sales_engineer');
-    if (r.ok) return SEAT_BY_CREDENTIAL[r.context] ?? null;
+    if (r.ok && SEAT_BY_CREDENTIAL[r.context]) return { kind: 'sales_engineer' };
   }
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   if (!jwt) return null;
@@ -58,7 +70,25 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<'sal
   const email = String((data as { user?: { email?: string } })?.user?.email || '').toLowerCase();
   if (!email) return null;
   const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return allow.includes(email) ? 'founder' : null;
+  if (allow.includes(email)) return { kind: 'founder' };
+  const { data: cust } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
+  return cust?.id ? { kind: 'customer', customerId: String(cust.id), email } : null;
+}
+
+// EMBEDDING IS FREE AND IS NOT OpenRouter. ai_gateway serves {action:'embed'} at its line 204,
+// BEFORE routing and before fn_kernel_paid_provider_gate, from Supabase.ai.Session('gte-small') —
+// an in-region 384-dim model with no bill and no route. Those are the same six lines, run here
+// rather than across a network hop that would also need a second scoped credential for a local
+// model. Verified 9 Sep 2026 by reading ai_gateway/index.ts:54-63.
+// deno-lint-ignore no-explicit-any
+let _emb: any = null;
+async function embed(text: string): Promise<string | null> {
+  try {
+    // deno-lint-ignore no-explicit-any
+    if (_emb === null) _emb = new (globalThis as any).Supabase.ai.Session('gte-small');
+    const v = await _emb.run(String(text).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+    return '[' + v.join(',') + ']';
+  } catch (_e) { return null; }
 }
 
 // EVERY CALL LEAVES A ROW. fn_agents_board LEFT JOINs agent_runs on agent = agent_key, so a seat
@@ -82,10 +112,112 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const who = await whoami(req, body);
-    if (!who) return J({ error: 'unauthorized' }, 401);
+    const caller = await whoami(req, body);
+    if (!caller) return J({ error: 'unauthorized' }, 401);
 
     const action = String(body.action || '').trim();
+
+    // ── ASSIST ─────────────────────────────────────────────────────────────────────────────────
+    // The portal assistant. PortalShell.tsx called site_assistant — Support's function, and correct
+    // on the public homepage but wrong inside the customer portal by the founder's ruling of 9 Sep.
+    //
+    // NO MODEL, so the answer is RETRIEVED OR ESCALATED. fn_sales_assist reads SEVEN corpora, not
+    // one: sales_knowledge (1,136), ops_knowledge (9,139), kb_chunks (2,686,026), agent_knowledge
+    // (2,556, of which 1,627 are the live 'cat:' technical body), support_knowledge (408),
+    // category_specs (56) and category_quote_specs (141). The first build of this handler searched
+    // sales_knowledge alone — 0.042% of what the seat is entitled to — and the founder rejected the
+    // refusal that produced on 9 Sep: "there is no reason for him not to know whatsoever."
+    //
+    // THE FLOORS DID NOT MOVE, because a nearest neighbour is ALWAYS found and an unfiltered vector
+    // search answers nonsense as confidently as it answers a real question. A row that HAS an
+    // embedding must clear cosine 0.86 (fn_faq_answer's number) AND match the tsvector. A row that
+    // has NO embedding — 93.8% of kb_chunks, all of support_knowledge, all 1,627 'cat:' rows —
+    // cannot be put to the vector floor at all, so it must clear a stricter lexical-only bar
+    // instead. The lexical index is the only instrument in this estate that returns nothing for
+    // nothing, which is why it gates both routes.
+    //
+    // WHEN NOTHING CLEARS, SOMETHING STILL HAPPENS. The refusal string is gone. The routine records
+    // the question in sales_knowledge_gap (deduplicated, counted — the acquisition backlog) and
+    // opens an org_tasks row owned by sales_engineer, and the asker is given the task number and
+    // the owner. Which records were retrieved, how close each was and which were cited are written
+    // to sales_decision_log from INSIDE the retrieval routine, so this handler cannot forget to.
+    if (action === 'assist') {
+      const message = String(body.message || '').trim();
+      if (!message) return J({ error: 'message_required' }, 400);
+
+      const vec = await embed(message);
+      const { data, error } = await admin.rpc('fn_sales_assist', {
+        p_text: message, p_embedding: vec,
+        p_min_similarity: Number(body.min_similarity ?? 0.86),
+        p_min_rank: Number(body.min_rank ?? 0.05),
+        p_k: Number(body.k ?? 5),
+        p_actor: 'sales_engineer',
+      });
+      if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
+
+      const r = data as Record<string, unknown>;
+      const recs = (r.records || []) as Array<Record<string, unknown>>;
+      // Plain text: the widget renders a string, not markdown. Deterministic assembly of the cited
+      // records — no generation step, nothing to hallucinate with. Each passage now names the body
+      // it came from, because a cross-corpus answer that does not say whether it is quoting the
+      // company's own policy or a trade standard is a worse answer than one that does.
+      const reply = r.answered
+        ? recs.map((x) =>
+            String(x.title || '(untitled)') + '\n' +
+            '[' + String(x.corpus) + (x.provenance ? ' · ' + String(x.provenance) : '') + ']\n' +
+            String(x.content)).join('\n\n')
+        : String(r.handoff || 'I do not have that yet.');
+
+      await run('assist', 'ok', {
+        answered: r.answered === true,
+        cited: Array.isArray(r.cited) ? r.cited.length : 0,
+        refusal: r.refusal ?? null,
+        task_id: r.task_id ?? null,
+      });
+
+      return J({
+        ok: true,
+        seat: 'sales_engineer',
+        answered: r.answered === true,
+        reply,
+        cited: r.cited,
+        corpora: r.corpora,
+        floor: r.floor,
+        refusal: r.refusal ?? null,
+        // The fallback is an action now, not a sentence. Surfaced so a caller can show the task.
+        task_id: r.task_id ?? null,
+        gap_recorded: r.gap_recorded === true,
+        // Never claimed, always stated: this seat has no model today.
+        basis: 'retrieved across sales_knowledge, ops_knowledge, kb_chunks, agent_knowledge, support_knowledge, category_specs and category_quote_specs under a similarity floor with lexical corroboration (embedded rows) or a stricter lexical-only bar (rows with no embedding); no model was called, so passages are quoted, never fused or restated',
+        scope: caller.kind === 'customer' ? { customer_id: caller.customerId } : { caller: caller.kind },
+      });
+    }
+
+    // ── REPORT ─────────────────────────────────────────────────────────────────────────────────
+    // "he does the comparison reports, he basically fill the reports for suppliers and customers
+    // about jobs won / supplier ratings / customer total spend literally everything related to
+    // both portals." Every figure carries its basis — true_zero / measured / unknown /
+    // derived_not_earned — because three different facts print as the character 0 on this
+    // database today and collapsing them would be the misinformation, not the zero.
+    //
+    // A CUSTOMER CALLER MAY ONLY READ ITSELF. The party is taken from the resolved session, not
+    // from the body, so a portal caller cannot widen what it can see by renaming the subject.
+    if (action === 'report') {
+      let kind = String(body.party_kind || '').trim().toLowerCase();
+      let id = String(body.party_id ?? '').trim();
+      if (caller.kind === 'customer') { kind = 'customer'; id = caller.customerId; }
+      if (!kind || !id) return J({ error: 'party_kind_and_party_id_required' }, 400);
+
+      const { data, error } = await admin.rpc('fn_sales_portal_report', { p_party_kind: kind, p_party_id: id });
+      if (error) return J({ ok: false, error: 'report_failed', detail: error.message }, 503);
+      await run('report', 'ok', { party_kind: kind });
+      return J(data);
+    }
+
+    // Everything below `assist` and `report` is INTERNAL: seat readiness, the grant ledger, the
+    // sector catalogue and the format matrix. A portal customer is authenticated but is not staff,
+    // and an authenticated caller reaching an operator route is how privilege quietly widens.
+    if (caller.kind === 'customer') return J({ error: 'forbidden', action }, 403);
 
     // ── HEALTH ─────────────────────────────────────────────────────────────────────────────────
     // Readiness measured, not asserted. The audit of 9 Sep found the only honest liveness signal for
@@ -110,7 +242,7 @@ Deno.serve(async (req) => {
       return J({
         ok: true,
         seat: 'sales_engineer',
-        caller: who,
+        caller: caller.kind,
         seated: agent.data?.active === true && agent.data?.available === true,
         grants: (grants.data || []).map((g: { grant_key: string; action_class: string; active: boolean }) =>
           ({ grant: g.grant_key, class: g.action_class, active: g.active })),
