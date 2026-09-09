@@ -657,6 +657,16 @@ Deno.serve(observe('supplier_api', async (req) => {
       form.set('line_items[0][price_data][unit_amount]', String(Math.round(fee * 100)));
       form.set('line_items[0][price_data][product_data][name]', 'QuotesDone supplier registration');
       form.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
+      // STRIPE ISSUES THE INVOICE (9 Sep 2026). Registration revenue books to 4200 and, like the
+      // reveal fee and the penalty settlement, must produce a document the accountant files and
+      // mirrors to Dropbox. Enabled on all three money-in paths so no revenue stream is the one
+      // without paperwork.
+      form.set('invoice_creation[enabled]', 'true');
+      form.set('invoice_creation[invoice_data][description]',
+        'QuotesDone supplier registration — annual listing fee');
+      form.set('invoice_creation[invoice_data][footer]',
+        'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+
       form.set('metadata[kind]', 'supplier_registration');
       form.set('metadata[supplier_id]', String(sup.id));
       form.set('payment_intent_data[metadata][kind]', 'supplier_registration');

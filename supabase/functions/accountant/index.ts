@@ -316,6 +316,56 @@ Deno.serve(observe('accountant', async (req) => {
       return J({ ok: true, ...r0, url: rSigned.signedUrl, expires_in: rTtl });
     }
 
+    // ── THE SAME DOOR, FOR THE REVENUE SIDE (9 Sep 2026) ───────────────────────────────────────
+    // The founder, instruction 28: "stripe automatically generates an invoice as far as i know, our
+    // accountant need to retrieve that and be connected, then add it to his records."
+    //
+    // Retrieval is stripe_webhook's job and the record is public.transactions; THIS is the part
+    // where the accountant can actually open what was filed. Without it the invoices would be a
+    // finished capability with no entry point - stored, mirrored to Dropbox, and unreachable from
+    // the seat whose books cite them.
+    //
+    // Identical shape to the expense and refund doors above, for the identical reason: finance-docs
+    // is private, signing needs the service role no browser may hold, and the caller names a SALE
+    // rather than a path. A sale with no stored file is ANSWERED, not 404'd - 'reference_only' says
+    // Stripe issued the invoice and the PDF has not been fetched, which is a different fact from
+    // 'missing', which is a different fact again from a reveal that was never charged.
+    if (action === 'revenue_document' || action === 'revenue_documents') {
+      if (action === 'revenue_documents') {
+        const { data: cov } = await admin.rpc('fn_revenue_document_coverage');
+        const { data: rows } = await admin.from('v_revenue_documents')
+          .select('id,quote_id,revealed_at,fee_status,reveal_fee,payment_ref,stripe_invoice_id,stripe_invoice_number,stripe_invoice_status,stripe_invoice_total_fils,stripe_invoice_currency,invoice_agrees_with_fee,document_state,doc_kind,doc_name,doc_note')
+          .eq('fee_was_taken', true).order('revealed_at');
+        await run('revenue_documents', 'ok', (cov || {}) as Record<string, unknown>);
+        return J({ ok: true, seat: 'accountant', coverage: cov, sales: rows || [],
+          basis: 'public.v_revenue_documents, read at call time, restricted to sales that actually '
+            + 'took a fee. document_state is the doc_kind, \'unclassified\', \'reference_only\' '
+            + '(Stripe issued the invoice, the PDF is not in finance-docs) or \'missing\'. '
+            + 'invoice_agrees_with_fee compares Stripe\'s own total against reveal_fee rather than '
+            + 'assuming they match.' });
+      }
+      const txId = String(body.transaction_id || '').trim();
+      if (!txId) return J({ ok: false, error: 'transaction_id is required' }, 400);
+      const { data: doc, error: docErr } = await admin.rpc('fn_revenue_document', { p_transaction_id: txId });
+      if (docErr) return J({ ok: false, error: docErr.message }, 500);
+      const t0 = (doc || {}) as Record<string, unknown>;
+      if (t0.ok !== true) { await run('revenue_document', 'ok', { transaction_id: txId, state: t0.state }); return J({ ok: false, ...t0 }); }
+      const tTtl = Math.min(Math.max(Number(body.expires_in) || 3600, 60), 7 * 24 * 3600);
+      const { data: tSigned, error: tErr } = await admin.storage
+        .from(String(t0.bucket)).createSignedUrl(String(t0.path), tTtl);
+      if (tErr || !tSigned?.signedUrl) {
+        // A path that will not sign is a path pointing at nothing. Say so rather than hand back a
+        // dead link — a broken document is worse than a declared absence.
+        await run('revenue_document', 'error', { transaction_id: txId, path: t0.path },
+          'sale ' + txId + ' names an invoice that could not be signed: ' + String(tErr?.message || 'no url returned')
+          + '. The object is missing from finance-docs or the path is wrong.');
+        return J({ ok: false, ...t0, state: 'object_unreachable',
+          reason: 'The record names a document but the object could not be signed: ' + String(tErr?.message || 'no url returned') }, 502);
+      }
+      await run('revenue_document', 'ok', { transaction_id: txId, kind: t0.kind });
+      return J({ ok: true, ...t0, url: tSigned.signedUrl, expires_in: tTtl });
+    }
+
     // ── GRANTS ─────────────────────────────────────────────────────────────────────────────────
     // What may this seat do RIGHT NOW, answered by the database at call time — active state, expiry
     // and the amount ceiling are all evaluated inside fn_agent_may_act, so a revoked grant cannot be
@@ -1019,7 +1069,9 @@ Deno.serve(observe('accountant', async (req) => {
         note: body.deliver === true ? null : 'The document was rendered and stored. No mail was inserted: pass deliver:true to send it from this seat.',
       });
     }
-    return J({ error: 'unknown_action', action, actions: ['health', 'grants', 'ledger', 'refund_request', 'expense_sweep', 'spend_report', 'assist'] }, 400);
+    // The document doors were missing from this list until 9 Sep 2026, which made them unreachable
+    // to anyone who asked the function what it could do rather than reading its source.
+    return J({ error: 'unknown_action', action, actions: ['health', 'grants', 'ledger', 'refund_request', 'expense_sweep', 'spend_report', 'assist', 'document', 'documents', 'refund_document', 'refund_documents', 'revenue_document', 'revenue_documents'] }, 400);
   } catch (e) {
     await run('error', 'error', {}, String((e as Error).message || e));
     return J({ error: String((e as Error).message || e) }, 500);
