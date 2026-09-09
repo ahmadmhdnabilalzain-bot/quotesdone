@@ -109,6 +109,19 @@ Deno.serve(observe('supplier_pay', async (req) => {
     // terms - NOT commission. Suppliers keep 100% of the value of jobs they win.
     form.set('line_items[0][price_data][product_data][name]', 'QuotesDone account settlement');
     form.set('line_items[0][price_data][product_data][description]', 'Settlement of ' + ids.length + ' outstanding charge(s): refunded reveal fee, administration fee and any accrued interest');
+    // STRIPE ISSUES THE INVOICE (9 Sep 2026). The founder wants every payment into the company to
+    // produce a document the accountant can file. This one matters most of the three: a supplier
+    // settling a non-response penalty is paying a recovered reveal fee plus AED 250 administration
+    // plus accrued interest, and will need a proper invoice for their own books — a hosted receipt
+    // page is not something a UAE company can file against a debt.
+    form.set('invoice_creation[enabled]', 'true');
+    form.set('invoice_creation[invoice_data][description]',
+      'Settlement of outstanding charges under the QuotesDone supplier terms: refunded reveal fee, administration fee and accrued interest');
+    form.set('invoice_creation[invoice_data][metadata][due_ids]', ids.join(','));
+    form.set('invoice_creation[invoice_data][metadata][supplier_id]', String(lead.id));
+    form.set('invoice_creation[invoice_data][footer]',
+      'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+
     form.set('metadata[due_ids]', ids.join(','));
     form.set('metadata[supplier_id]', String(lead.id));
     form.set('metadata[kind]', 'supplier_dues');

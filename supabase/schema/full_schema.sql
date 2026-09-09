@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T19:22:13.070Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T19:44:29.510Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6276,7 +6276,19 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   customer_notified_at timestamp with time zone,
   refund_stripe_id text,
   refund_amount_aed numeric,
-  refund_confirmed_at timestamp with time zone
+  refund_confirmed_at timestamp with time zone,
+  stripe_invoice_id text,
+  stripe_invoice_number text,
+  stripe_invoice_status text,
+  stripe_invoice_total_fils bigint,
+  stripe_invoice_currency text,
+  stripe_invoice_pdf_url text,
+  stripe_invoice_hosted_url text,
+  doc_path text,
+  doc_name text,
+  doc_content_type text,
+  doc_kind text,
+  doc_note text
 );
 
 CREATE TABLE IF NOT EXISTS public.ui_label (
@@ -10427,6 +10439,43 @@ CREATE OR REPLACE VIEW public.v_resource_pressure AS  WITH live AS (
     note
    FROM live;
 
+CREATE OR REPLACE VIEW public.v_revenue_documents AS  SELECT id,
+    quote_id,
+    customer_id,
+    supplier_id,
+    revealed_at,
+    fee_status,
+    reveal_fee,
+    payment_ref,
+    refund_status,
+    stripe_invoice_id,
+    stripe_invoice_number,
+    stripe_invoice_status,
+    stripe_invoice_total_fils,
+    stripe_invoice_currency,
+    stripe_invoice_pdf_url,
+    stripe_invoice_hosted_url,
+    'finance-docs'::text AS doc_bucket,
+    doc_path,
+    doc_name,
+    doc_content_type,
+    doc_kind,
+    doc_note,
+        CASE
+            WHEN ((doc_path IS NOT NULL) AND (doc_kind IS NULL)) THEN 'unclassified'::text
+            WHEN (doc_path IS NOT NULL) THEN doc_kind
+            WHEN (stripe_invoice_id IS NOT NULL) THEN 'reference_only'::text
+            ELSE 'missing'::text
+        END AS document_state,
+    (doc_path IS NOT NULL) AS is_openable,
+        CASE
+            WHEN (stripe_invoice_total_fils IS NULL) THEN 'unknown'::text
+            WHEN (stripe_invoice_total_fils = (round((COALESCE(reveal_fee, (0)::numeric) * (100)::numeric)))::bigint) THEN 'agrees'::text
+            ELSE 'disagrees'::text
+        END AS invoice_agrees_with_fee,
+    ((fee_status = 'paid'::text) AND (COALESCE(reveal_fee, (0)::numeric) > (0)::numeric)) AS fee_was_taken
+   FROM transactions t;
+
 CREATE OR REPLACE VIEW public.v_supplier_billing AS  WITH cfg AS (
          SELECT s_1.start_date,
             s_1.fee,
@@ -13910,16 +13959,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -13945,6 +13984,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -22599,6 +22648,26 @@ begin
   get diagnostics m = row_count; n := n + m;
 
   -- The gen_kind='comparison' block that stood here is deliberately absent. See the header.
+
+  -- ============ REVENUE INVOICES (9 SEP 2026) ============
+  -- The founder: "our accountant need to retrieve that and be connected, then add it to his
+  -- records, sync it with back up on dropbox." This is the sync half. The trigger is doc_path
+  -- being non-null, NOT who wrote it, so a backfill or a hand-repair mirrors on the same rule as
+  -- the webhook. They are filed under Finance rather than under the customer, because the person
+  -- who opens this folder is the accountant reconciling a month, not someone reading one customer.
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'transaction', t.id::text, 'Stripe invoice', 'finance-docs', t.doc_path,
+         coalesce(t.doc_name, regexp_replace(t.doc_path,'^.*/','')),
+         '/QuotesDone Backup/Finance/Revenue Invoices/'
+           || to_char(coalesce(t.revealed_at, now()), 'YYYY') || '/'
+           || to_char(coalesce(t.revealed_at, now()), 'YYYY-MM') || '/'
+           || public.fn_dbx_safe(coalesce(t.stripe_invoice_number, t.stripe_invoice_id, left(t.id::text,8)))
+           || ' - ' || coalesce(t.doc_name, regexp_replace(t.doc_path,'^.*/','')),
+         'storage', 'T:'||t.id||':invoice:'||t.doc_path
+  from public.transactions t
+  where t.doc_path is not null and length(t.doc_path) > 0
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
 
   return n;
 end $function$
@@ -32410,6 +32479,16 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32580,16 +32659,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -34934,6 +35003,78 @@ begin
     order by length(slug) desc limit 1;
   return k;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_revenue_document(p_transaction_id uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+    (select jsonb_build_object(
+       'ok',              v.doc_path is not null,
+       'transaction_id',  v.id,
+       'quote_id',        v.quote_id,
+       'revealed_at',     v.revealed_at,
+       'reveal_fee',      v.reveal_fee,
+       'payment_ref',     v.payment_ref,
+       'invoice_id',      v.stripe_invoice_id,
+       'invoice_number',  v.stripe_invoice_number,
+       'invoice_status',  v.stripe_invoice_status,
+       'invoice_total_fils', v.stripe_invoice_total_fils,
+       'invoice_currency',   v.stripe_invoice_currency,
+       'invoice_pdf_url',    v.stripe_invoice_pdf_url,
+       'invoice_hosted_url', v.stripe_invoice_hosted_url,
+       'invoice_agrees_with_fee', v.invoice_agrees_with_fee,
+       'bucket',          v.doc_bucket,
+       'path',            v.doc_path,
+       'name',            v.doc_name,
+       'content_type',    v.doc_content_type,
+       'kind',            v.doc_kind,
+       'note',            v.doc_note,
+       'state',           v.document_state,
+       'reason',          case
+                            when v.doc_path is not null then null
+                            when v.stripe_invoice_id is not null
+                              then 'Stripe issued invoice ' || coalesce(v.stripe_invoice_number, v.stripe_invoice_id)
+                                || ' for this sale, but its PDF has not been fetched into finance-docs yet.'
+                            else 'This sale has no Stripe invoice on record. Reveal fees paid before '
+                              || 'invoice_creation was enabled on 9 Sep 2026 produced no Invoice '
+                              || 'object at all, so there is nothing to fetch for those.'
+                          end)
+     from public.v_revenue_documents v where v.id = p_transaction_id),
+    jsonb_build_object('ok', false, 'transaction_id', p_transaction_id, 'state', 'no_such_transaction',
+                       'reason', 'There is no public.transactions row with that id.'));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_revenue_document_coverage()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'sales',              count(*),
+    'fees_taken',         count(*) filter (where fee_was_taken),
+    'invoiced',           count(*) filter (where fee_was_taken and stripe_invoice_id is not null),
+    'openable',           count(*) filter (where fee_was_taken and is_openable),
+    'reference_only',     count(*) filter (where fee_was_taken and document_state = 'reference_only'),
+    'unclassified',       count(*) filter (where fee_was_taken and document_state = 'unclassified'),
+    'missing',            count(*) filter (where fee_was_taken and document_state = 'missing'),
+    'missing_ids',        coalesce(jsonb_agg(id order by revealed_at)
+                            filter (where fee_was_taken and document_state = 'missing'), '[]'::jsonb),
+    'reference_only_ids', coalesce(jsonb_agg(id order by revealed_at)
+                            filter (where fee_was_taken and document_state = 'reference_only'), '[]'::jsonb),
+    'total_disagrees_ids', coalesce(jsonb_agg(id order by revealed_at)
+                            filter (where fee_was_taken and invoice_agrees_with_fee = 'disagrees'), '[]'::jsonb),
+    'by_state',           (select coalesce(jsonb_object_agg(document_state, n), '{}'::jsonb)
+                           from (select document_state, count(*) n
+                                 from public.v_revenue_documents
+                                 where fee_was_taken group by 1) s))
+  from public.v_revenue_documents;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_review_decide(p_kind text, p_ref_id bigint, p_decision text, p_comment text DEFAULT NULL::text, p_by text DEFAULT 'founder'::text)
@@ -41307,6 +41448,94 @@ begin
     'owner_agent',    v_own_agent,
     'owns_responsibility', v_own_resp,
     'blocked',        v_blocked);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_transaction_attach_invoice(p_transaction_id uuid, p_invoice jsonb, p_doc_path text DEFAULT NULL::text, p_doc_name text DEFAULT NULL::text, p_doc_content_type text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_inv_id   text := nullif(btrim(coalesce(p_invoice->>'id','')), '');
+  v_pdf      text := nullif(btrim(coalesce(p_invoice->>'invoice_pdf','')), '');
+  v_hosted   text := nullif(btrim(coalesce(p_invoice->>'hosted_invoice_url','')), '');
+  v_path     text := nullif(btrim(coalesce(p_doc_path,'')), '');
+  v_existing public.transactions%rowtype;
+  v_rows     integer;
+begin
+  if p_transaction_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'no transaction id');
+  end if;
+  if v_inv_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'the invoice object carries no id');
+  end if;
+  -- A Stripe Invoice id is in_...; anything else is not the object this column names, and a column
+  -- the accountant reconciles against Stripe must not hold something Stripe cannot resolve.
+  if v_inv_id !~ '^in_[A-Za-z0-9_]+$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a stripe invoice id',
+                              'given', left(v_inv_id, 60));
+  end if;
+
+  -- Both links are opened as evidence by the founder and the CEO. A spoofed payload may not aim
+  -- them anywhere but Stripe. Same pattern fn_refund_attach_receipt uses, and it refuses lookalikes
+  -- such as stripe.com.evil.example because the host must END at stripe.com before the first slash.
+  if v_pdf is not null and v_pdf !~ '^https://[a-z0-9.-]*\.?stripe\.com/' then
+    return jsonb_build_object('ok', false, 'reason', 'invoice_pdf is not a stripe.com url',
+                              'given', left(v_pdf, 120));
+  end if;
+  if v_hosted is not null and v_hosted !~ '^https://[a-z0-9.-]*\.?stripe\.com/' then
+    return jsonb_build_object('ok', false, 'reason', 'hosted_invoice_url is not a stripe.com url',
+                              'given', left(v_hosted, 120));
+  end if;
+
+  -- The stored object is named by its PREFIX, not by a free path. A caller that could name any path
+  -- in finance-docs could make this row point at another record's document.
+  if v_path is not null and v_path !~ '^invoices/' then
+    return jsonb_build_object('ok', false, 'reason', 'a stored invoice must live under invoices/ in finance-docs',
+                              'given', left(v_path, 120));
+  end if;
+
+  select * into v_existing from public.transactions where id = p_transaction_id;
+  if not found then
+    return jsonb_build_object('ok', false,
+             'reason', format('no transaction %s', p_transaction_id));
+  end if;
+
+  -- WRITE-ONCE ON IDENTITY. The first invoice a sale was billed under is the one it stays billed
+  -- under; a second, different invoice id is a fact about a different sale and is refused rather
+  -- than allowed to overwrite the reference the books were reconciled against.
+  if coalesce(v_existing.stripe_invoice_id, '') <> '' and v_existing.stripe_invoice_id <> v_inv_id then
+    return jsonb_build_object('ok', false, 'reason', 'this transaction is already billed under another invoice',
+                              'existing', v_existing.stripe_invoice_id, 'given', v_inv_id);
+  end if;
+
+  -- The FILE may arrive after the REFERENCE -- Stripe finalises the PDF moments after the session
+  -- completes -- so the document columns fill in on a later call without disturbing what is set.
+  update public.transactions t set
+    stripe_invoice_id         = v_inv_id,
+    stripe_invoice_number     = coalesce(nullif(btrim(coalesce(p_invoice->>'number','')),''), t.stripe_invoice_number),
+    stripe_invoice_status     = coalesce(nullif(btrim(coalesce(p_invoice->>'status','')),''), t.stripe_invoice_status),
+    stripe_invoice_total_fils = coalesce((p_invoice->>'total')::bigint, t.stripe_invoice_total_fils),
+    stripe_invoice_currency   = coalesce(upper(nullif(btrim(coalesce(p_invoice->>'currency','')),'')), t.stripe_invoice_currency),
+    stripe_invoice_pdf_url    = coalesce(v_pdf, t.stripe_invoice_pdf_url),
+    stripe_invoice_hosted_url = coalesce(v_hosted, t.stripe_invoice_hosted_url),
+    doc_path                  = coalesce(t.doc_path, v_path),
+    doc_name                  = coalesce(t.doc_name, nullif(btrim(coalesce(p_doc_name,'')),'')),
+    doc_content_type          = coalesce(t.doc_content_type, nullif(btrim(coalesce(p_doc_content_type,'')),'')),
+    doc_kind                  = case when t.doc_path is null and v_path is not null then 'stripe_invoice'
+                                     else t.doc_kind end
+  where t.id = p_transaction_id;
+  get diagnostics v_rows = row_count;
+
+  return jsonb_build_object(
+    'ok', v_rows > 0,
+    'transaction_id', p_transaction_id,
+    'invoice_id', v_inv_id,
+    'stored', v_path is not null or coalesce(v_existing.doc_path,'') <> '',
+    'state', (select document_state from public.v_revenue_documents where id = p_transaction_id));
 end
 $function$
 

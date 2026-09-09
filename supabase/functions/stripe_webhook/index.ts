@@ -6,6 +6,89 @@ const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is old
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 function toHex(buf: ArrayBuffer) { return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
 
+// THE STRIPE INVOICE, FETCHED AND FILED (9 Sep 2026). The founder, instruction 28: "stripe
+// automatically generates an invoice as far as i know, our accountant need to retrieve that and be
+// connected, then add it to his records, sync it with back up on dropbox."
+//
+// stripe_checkout now sets invoice_creation[enabled]=true on the reveal-fee session, so
+// checkout.session.completed carries an `invoice` id. Retrieval happens HERE, on the one
+// signature-verified path a reveal fee travels, rather than on a poll: a payment and its document
+// arrive together or the gap is visible in fn_revenue_document_coverage.
+//
+// THREE THINGS THIS DELIBERATELY DOES NOT DO.
+//   1. It does not write to public.transactions. fn_transaction_attach_invoice owns the rules --
+//      the in_... id shape, the stripe.com URL guard on both links, the invoices/ path prefix, and
+//      write-once on the invoice identity. Same delegation as fn_refund_attach_receipt, same
+//      reason: a second implementation in TypeScript is a second set of rules to keep in step.
+//   2. It never throws into the payment path. A reveal fee that was RECORDED must not be un-recorded
+//      because Stripe was slow to finalise a PDF. Every failure is logged and returns; the sale
+//      stands and reads 'missing' or 'reference_only' in the coverage function until it is repaired.
+//   3. It does not enqueue the Dropbox mirror. fn_enqueue_doc_backups queues on doc_path being
+//      non-null, so the mirror follows from the record rather than from this handler remembering.
+//
+// The reference is attached even when the file cannot be fetched, because "Stripe billed this sale
+// under invoice X and we have not got the PDF" is a strictly better record than silence.
+async function captureInvoice(
+  sk: string, txId: string, invoiceId: string,
+  logRun: (s: string, c: Record<string, unknown>, n: string) => Promise<void>,
+): Promise<void> {
+  try {
+    const r = await fetch('https://api.stripe.com/v1/invoices/' + encodeURIComponent(invoiceId),
+      { headers: { Authorization: 'Bearer ' + sk } });
+    const inv = await r.json().catch(() => ({}));
+    if (!r.ok || !inv?.id) {
+      await logRun('error', { transaction: txId, invoice: invoiceId, http: r.status },
+        'INVOICE NOT RETRIEVED - the sale is recorded but Stripe would not return invoice ' + invoiceId
+        + '. It reads as missing in fn_revenue_document_coverage until refetched.');
+      return;
+    }
+    // The FILE. A finalised invoice carries invoice_pdf; a moment-old one may not yet, and that is
+    // a wait rather than an error - the reference below still lands.
+    let docPath: string | null = null, docName: string | null = null;
+    const pdfUrl = String(inv.invoice_pdf || '');
+    if (pdfUrl) {
+      try {
+        const pr = await fetch(pdfUrl);
+        const buf = pr.ok ? new Uint8Array(await pr.arrayBuffer()) : null;
+        if (buf && buf.length) {
+          const day = new Date().toISOString().slice(0, 10);
+          const label = String(inv.number || inv.id).replace(/[^A-Za-z0-9._-]/g, '_');
+          docName = label + '.pdf';
+          const path = 'invoices/stripe/' + day + '/' + String(inv.id) + '_' + docName;
+          const { error: upErr } = await admin.storage.from('finance-docs')
+            .upload(path, buf, { contentType: 'application/pdf', upsert: true });
+          if (upErr) {
+            await logRun('error', { transaction: txId, invoice: invoiceId, path },
+              'INVOICE PDF NOT STORED - fetched from Stripe but finance-docs refused it: ' + upErr.message);
+          } else { docPath = path; }
+        } else {
+          await logRun('error', { transaction: txId, invoice: invoiceId, http: pr.status },
+            'INVOICE PDF NOT DOWNLOADED - invoice_pdf returned no bytes; the reference is recorded without the file.');
+        }
+      } catch (e) {
+        await logRun('error', { transaction: txId, invoice: invoiceId },
+          'invoice pdf download failed: ' + String((e as Error)?.message || e));
+      }
+    }
+    const { data: att, error: attErr } = await admin.rpc('fn_transaction_attach_invoice', {
+      p_transaction_id: txId, p_invoice: inv,
+      p_doc_path: docPath, p_doc_name: docName,
+      p_doc_content_type: docPath ? 'application/pdf' : null,
+    });
+    if (attErr || (att as Record<string, unknown> | null)?.ok !== true) {
+      await logRun('error', { transaction: txId, invoice: invoiceId, result: att },
+        'INVOICE NOT ATTACHED - the database refused it: '
+        + String(attErr?.message || (att as Record<string, unknown> | null)?.reason || 'unknown'));
+      return;
+    }
+    await logRun('ok', { transaction: txId, invoice: invoiceId, number: String(inv.number || ''),
+      stored: Boolean(docPath), state: (att as Record<string, unknown>).state }, '');
+  } catch (e) {
+    await logRun('error', { transaction: txId, invoice: invoiceId },
+      'invoice capture threw: ' + String((e as Error)?.message || e));
+  }
+}
+
 // Observability: every exit path leaves a row in agent_runs so a payment that lands but
 // records nothing is visible instead of silent. Fire-and-forget so it can never fail the webhook.
 function mkLog(t0: number) {
@@ -148,7 +231,7 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         // ---- CUSTOMER REVEAL FEE (existing behaviour) ---------------------------------------
         const qid = String(md.quote_id || '');
         if (qid) {
-          const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
+          const { data: existing } = await admin.from('transactions').select('id,doc_path').eq('quote_id', qid).maybeSingle();
           if (!existing) {
             const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount').eq('id', qid).maybeSingle();
             if (q) {
@@ -160,8 +243,23 @@ Deno.serve(observe('stripe_webhook', async (req) => {
               const payRef = String(s.payment_intent || s.id);
               await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
               await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-              const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
+              const { data: tx, error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl }).select('id').single();
               if (e2) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - transaction insert failed: ' + e2.message + ' | payment_ref: ' + payRef); return new Response('insert failed: ' + e2.message, { status: 500 }); }
+              // THE INVOICE (9 Sep 2026). invoice_creation is on for reveal-fee sessions, so a paid
+              // session names its Invoice. Awaited rather than fired-and-forgotten, because an edge
+              // function that has already returned 200 is a function that may be frozen mid-fetch -
+              // and the whole point is that the document arrives with the payment. It cannot fail
+              // the payment: captureInvoice swallows everything into agent_runs.
+              const invoiceId = String(s.invoice || '');
+              if (invoiceId && tx?.id) {
+                const invKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+                if (invKey) await captureInvoice(invKey, String(tx.id), invoiceId, logRun);
+                else await logRun('error', { quote_id: qid, invoice: invoiceId }, 'INVOICE NOT RETRIEVED - no Stripe secret key for the ' + sigMode + ' mode this event arrived on.');
+              } else if (!invoiceId) {
+                // Said out loud rather than assumed. A paid reveal with no invoice id means
+                // invoice_creation was off for that session, and the sale will read 'missing'.
+                await logRun('error', { quote_id: qid, session: String(s.id || '') }, 'NO INVOICE ON A PAID REVEAL - checkout.session.completed carried no invoice id, so nothing can be filed for the accountant. Check invoice_creation on stripe_checkout.');
+              }
               // 3 SEP 2026: the supplier's email used to be queued HERE, which meant a reveal recorded by
               // any other path told the supplier nothing. All four reveal messages (email + WhatsApp to
               // both parties) are queued by trg_reveal_receipt on transactions.revealed_at — the one
@@ -173,7 +271,20 @@ Deno.serve(observe('stripe_webhook', async (req) => {
               await logRun('error', { quote_id: qid, amount_total: s.amount_total }, 'PAID BUT NOT RECORDED - quote_id not found in quotes: ' + qid);
             }
           } else {
-            await logRun('ok', { quote_id: qid, duplicate: true }, 'duplicate delivery ignored (transaction already exists)');
+            // A RE-DELIVERY IS THE REPAIR PATH (9 Sep 2026). The sale is already recorded and stays
+            // recorded — that part is still ignored. But if it carries no stored invoice, this is
+            // the chance to fetch one: Stripe finalises the invoice PDF moments after the session
+            // completes, so a first delivery that arrived a beat too early leaves a sale reading
+            // 'reference_only' with nothing to fix it. Resending the event from the Stripe dashboard
+            // now repairs it, using machinery that already exists rather than a new endpoint.
+            // fn_transaction_attach_invoice is write-once on identity, so this can never rewrite an
+            // invoice that is already attached.
+            const dupInvoice = String(s.invoice || '');
+            if (dupInvoice && existing?.id && !existing?.doc_path) {
+              const dupKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+              if (dupKey) await captureInvoice(dupKey, String(existing.id), dupInvoice, logRun);
+            }
+            await logRun('ok', { quote_id: qid, duplicate: true, invoice_repair_attempted: Boolean(dupInvoice && existing?.id && !existing?.doc_path) }, 'duplicate delivery ignored (transaction already exists)');
           }
         } else {
           // Paid session with no quote_id and no supplier_dues marker - previously silent.
