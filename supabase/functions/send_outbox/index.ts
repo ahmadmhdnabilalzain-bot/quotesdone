@@ -5,6 +5,7 @@
 //      while mail silently piled up. Recurring config states are throttled to one row per hour so the
 //      2-minute cadence cannot bury the signal; idle runs with no work are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { BRAND, lockupImg } from '../_shared/brand.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -29,6 +30,46 @@ function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 // The body colour had the same fault: #1f2937 is dark grey, which on navy is grey on black.
 const DARK_LINK = '#6EE7D4', DARK_INK = '#EAF4F2';
 function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + DARK_LINK + '">$1</a>'); }
+
+// ATTACHMENTS (9 Sep 2026) ---------------------------------------------------
+// Until today this function could not email a file. The Resend payload below was built as
+// { from, to, reply_to, subject, html } and nothing else, so every agent that produces a document
+// -- the accountant's weekly financial report above all -- could send a LINK and never the thing
+// itself. The founder asked for the report as a PDF; a signed URL that expires in seven days is
+// not a PDF.
+//
+// notifications.attachments holds REFERENCES ({bucket, path, filename}), never bytes, and the
+// database trigger a20_notifications_attachment_policy has already refused an unsafe bucket, a
+// traversal path or a hostile filename before the row could be written. This side re-checks the
+// bucket anyway -- the row is data, and a function that reads storage with the service role should
+// not trust a jsonb field just because a trigger was supposed to have looked at it.
+//
+// The byte ceiling lives HERE and not in the trigger, because only this side knows the size: the
+// row holds a reference, not the object. Resend's own limit is 40 MB across the message; 20 MB
+// leaves room for the HTML body and base64's 4/3 expansion.
+const ATTACH_BUCKETS = new Set(['finance-reports', 'finance-docs', 'agent-docs', 'reports', 'compliance-docs']);
+const MAX_ATTACH_BYTES = 20 * 1024 * 1024;
+type Attach = { filename: string; content: string };
+async function resolveAttachments(spec: unknown): Promise<{ ok: true; list: Attach[] } | { ok: false; err: string }> {
+  if (spec === null || spec === undefined) return { ok: true, list: [] };
+  if (!Array.isArray(spec)) return { ok: false, err: 'attachments is not an array' };
+  const list: Attach[] = [];
+  let total = 0;
+  for (const a of spec) {
+    const bucket = String((a as any)?.bucket || ''), path = String((a as any)?.path || ''), filename = String((a as any)?.filename || '');
+    if (!ATTACH_BUCKETS.has(bucket)) return { ok: false, err: `attachment bucket not attachable: ${bucket}` };
+    if (!path || path.includes('..')) return { ok: false, err: `attachment path refused: ${path}` };
+    if (!/^[A-Za-z0-9 ._-]{1,120}$/.test(filename)) return { ok: false, err: `attachment filename refused: ${filename}` };
+    const { data, error } = await admin.storage.from(bucket).download(path);
+    if (error || !data) return { ok: false, err: `attachment unreadable ${bucket}/${path}: ${error?.message || 'no data returned'}` };
+    const bytes = new Uint8Array(await data.arrayBuffer());
+    if (!bytes.byteLength) return { ok: false, err: `attachment is empty: ${bucket}/${path}` };
+    total += bytes.byteLength;
+    if (total > MAX_ATTACH_BYTES) return { ok: false, err: `attachments total ${total} bytes, over the ${MAX_ATTACH_BYTES} ceiling` };
+    list.push({ filename, content: encodeBase64(bytes) });
+  }
+  return { ok: true, list };
+}
 
 // Observability -------------------------------------------------------------
 const T0 = Date.now();
@@ -151,7 +192,7 @@ Deno.serve(async (req) => {
     const toEmails = [...new Set(rows.map((r: any) => r.to_email).filter(Boolean))];
     let supSet = new Set<string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email').in('email', toEmails); supSet = new Set((sup || []).map((s: any) => s.email)); }
-    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0;
+    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0;
     const failNote = async (n: any, msg: string) => {
       const att = (Number(n.attempts) || 0) + 1;
       const dead = att >= MAX_ATTEMPTS;
@@ -188,11 +229,32 @@ Deno.serve(async (req) => {
       const unsub = (supplierSide && unsubKey) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       const htmlBody = tmpl({ body: n.body || '', logo, name: sigName, title: sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
+      // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
+      // founder would read "here is this week's report", find no report, and have no way to tell
+      // that from a report saying nothing happened. Failing the row keeps it queued for retry and
+      // records why in last_error.
+      const att = await resolveAttachments(n.attachments);
+      if (!att.ok) {
+        lastErr = att.err.slice(0, 200);
+        await failNote(n, 'attachment could not be prepared, so the email was NOT sent: ' + att.err);
+        continue;
+      }
       try {
         const mail: Record<string, unknown> = { from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody };
+        if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         if (unsub) mail.headers = { 'List-Unsubscribe': `<${unsub}>, <mailto:${reply}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
         const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
-        if (r.ok) { await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', n.id); sent++; }
+        // KEEP THE PROVIDER'S OWN NAME FOR THE MESSAGE. status='sent' only ever meant "Resend
+        // answered 2xx"; without the id, that claim could never be taken back to the provider and
+        // checked. This is what makes "the accountant sent the founder his report" verifiable
+        // against Resend instead of against a column this company writes itself.
+        if (r.ok) {
+          let providerId: string | null = null;
+          try { providerId = ((await r.json()) as { id?: string })?.id ?? null; } catch (_e) { /* a 2xx with no body is still an acceptance */ }
+          await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: providerId }).eq('id', n.id);
+          sent++;
+        }
         else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
       } catch (e) { lastErr = String((e as Error)?.message || e).slice(0, 200); await failNote(n, String((e as Error)?.message || e)); console.error(e); }
     }
@@ -202,7 +264,7 @@ Deno.serve(async (req) => {
     if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 });
 const RESERVED_TEST_DOMAIN = /@(?:[a-z0-9_-]+[.])*(?:example[.](?:com|net|org)|test|example|invalid|localhost)$/i;

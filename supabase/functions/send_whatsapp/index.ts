@@ -212,10 +212,22 @@ Deno.serve(async (req) => {
         'WhatsApp daily cap of ' + dayCap + ' reached. Queued messages are held, not dropped, and resume automatically. Raise app_secrets.wa_daily_cap only while Twilio reports sender quality High.');
       return J({ ok:true, sent:0, failed:0, skipped:0, requeued:0, unmapped:0, capped:true, cap:dayCap, sent_last_24h:Number(sentLast24||0) });
     }
-    const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
-    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body,created_at').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
+    const staleH = Number(await sec('wa_stale_hours') || 24);
+    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0; let lastErr=''; const unmappedTypes = new Set<string>();
     for (const n of (rows||[])) {
       const to = normPhone(String(n.to_phone||'')); if(!to){ await admin.from('notifications').update({status:'failed'}).eq('id',n.id); failed++; continue; }
+      // A STALE ALERT IS A LIE, NOT A BACKLOG. Nothing drained this queue between 7 Sep 2026 (when
+      // pg_cron was removed and its wa_flush job with it) and 9 Sep, so a 'SCHEDULER DOWN' message
+      // sat here for two days while the scheduler was in fact fine. Delivering it on the first tick
+      // after the drainer is restored would page the founder about an outage that had already ended.
+      // send_outbox has held stale email on the same reasoning since July; this channel never did.
+      const ageH = (Date.now() - Date.parse(String(n.created_at))) / 3.6e6;
+      if (ageH > staleH) {
+        await admin.from('notifications').update({ status: 'held', last_error:
+          ('held: this WhatsApp message was ' + Math.round(ageH) + 'h old when the queue was drained, past the ' + staleH + 'h staleness bar. An alert this old describes a situation that has probably changed, so it is retained and NOT delivered.').slice(0,500) }).eq('id', n.id);
+        heldStale++; continue;
+      }
       if (budget <= 0) { capped++; requeued++; continue; }
       const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
         .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
@@ -271,8 +283,16 @@ Deno.serve(async (req) => {
       requeued + ' WhatsApp notification(s) cannot be sent yet because the matching template is missing or still awaiting Meta approval. They stay queued and are rescanned every run, so this backlog will keep growing until the template SIDs are live.');
     if (unmapped) await logThrottled('unmapped_type', 60, 'error', { unmapped, types: [...unmappedTypes] },
       unmapped + ' WhatsApp notification(s) had a message type with no template mapping in tmplKey(), so they were dropped. Types: ' + [...unmappedTypes].join(', '));
-    if (failed) await logRun('error', { sent, failed, skipped, templates_ready: ready }, 'Twilio rejected ' + failed + ' WhatsApp message(s). Last error: ' + lastErr);
+    // A RUN THAT ONLY HELD IS STILL A RUN. Before 9 Sep 2026 this function had never executed at
+    // all — agent_runs held zero rows for it, because pg_cron's wa_flush was deleted on 7 Sep and
+    // nothing replaced it. When the drainer was restored, its first real action was to HOLD a
+    // 35-hour-old alert, and neither branch below logged that: heldStale was in neither condition,
+    // so the run that proved the fix worked would have left no trace. A seat whose only work is
+    // refusing looks exactly like a seat that is down.
+    if (failed) await logRun('error', { sent, failed, skipped, held_stale: heldStale, templates_ready: ready }, 'Twilio rejected ' + failed + ' WhatsApp message(s). Last error: ' + lastErr);
+    else if (heldStale) await logRun('ok', { sent, failed, skipped, held_stale: heldStale, templates_ready: ready },
+      heldStale + ' WhatsApp message(s) were held as stale: older than ' + staleH + 'h when the queue was drained. They are retained, not sent — an alert that old describes a situation that has probably changed.');
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, held_founder: heldFounder, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
+    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, held_founder: heldFounder, held_stale: heldStale, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 });

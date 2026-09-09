@@ -34,3 +34,26 @@ Deno.test('no amount, or a bare number, is null — never a guessed booking', ()
   eq(parseReceipt({ from: 'billing@apify.com', subject: 'Your invoice', body: 'Total 3 items. Thanks.' }), null, 'bare number');
   eq(parseReceipt({ from: FROM, subject: 'Fw: receipt', body: 'From: someone@gmail.com\nno money here' }), null, 'no vendor no amount');
 });
+
+// 9 SEP 2026 — THE UAE RECEIPT THAT WAS INVISIBLE.
+// The founder forwarded a Google Play receipt on 13 Aug 2026. It states a real total and a real
+// VAT figure, and the parser read NEITHER: the amount is wrapped in U+200F right-to-left marks
+// (which are not \s, so `Total:\s*<figure>` never reached the digits) and the currency is written
+// `د.إ.` rather than AED. Held as unreadable — and so would be every UAE-issued invoice printing
+// the dirham the way UAE invoices print it. Nothing here supplies a figure the document does not
+// state; it only stops the formatting hiding one.
+Deno.test('UAE dirham symbol and bidi marks: the stated total and the stated VAT are both read', () => {
+  const RLM = '‏';
+  const body = `From: Google Play <googleplay-noreply@google.com>\n`
+    + `Sent: Thursday, 13 August 2026 14:19:45\n\n`
+    + `Your subscription from Dropbox, Inc. on Google Play has renewed.\n`
+    + `Item    Price\nDropbox Simple  ${RLM}26.99 د.إ.${RLM}/month\n`
+    + `Auto-renewing subscription\nTotal: ${RLM}26.99 د.إ.${RLM}/month\n`
+    + `(Includes VAT of ${RLM}1.29 د.إ.${RLM})\n`;
+  const r = parseReceipt({ from: FROM, subject: 'Fw: Your Google Play Order Receipt from 13 Aug 2026', body })!;
+  eq([r.vendor, r.amount, r.currency, r.date, r.period, r.vat], ['Google', 26.99, 'AED', '2026-08-13', 'monthly', 1.29], 'google play AED');
+});
+
+Deno.test('the normaliser adds no currency of its own — a bare figure is still not money', () => {
+  eq(parseReceipt({ from: 'billing@apify.com', subject: 'x', body: 'Total: ‏26.99‏/month' }), null, 'no currency mark, no booking');
+});

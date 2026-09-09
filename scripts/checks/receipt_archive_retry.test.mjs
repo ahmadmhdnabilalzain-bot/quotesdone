@@ -36,11 +36,40 @@ test('the dedup lookup reads doc_path, so it can tell a duplicate from a missing
 });
 
 test('a same-day entry that is missing its receipt is NOT discarded as a duplicate', () => {
-  assert.match(receipt, /const gapRow[^\n]*=\s*\(sameDay \|\| \[\]\)\.find\(/,
+  // 9 Sep 2026: gapRow may now be preceded by `priorRow ||` - the row holding this message's own
+  // idempotency key, which is a STRONGER identification of "this exact receipt" than vendor+date.
+  // The property being guarded is unchanged: a gapRow is computed from the same-day rows, and the
+  // dedup early-return is skipped when one is found.
+  assert.match(receipt, /const gapRow[^\n]*=\s*(?:priorRow \|\| )?\(sameDay \|\| \[\]\)\.find\(/,
     'no gapRow is computed. Without it the dedup guard cannot let a retry through.');
-  assert.match(receipt, /if \(sameDay && sameDay\.length && !gapRow\) \{/,
+  assert.match(receipt, /if \((?:!priorRow && )?sameDay && sameDay\.length && !gapRow\) \{/,
     'the dedup early-return is not conditioned on !gapRow, so a re-forwarded receipt for an entry with ' +
     'doc_path NULL is still discarded and v_expense_receipt_gap\'s printed remedy is a no-op.');
+});
+
+test('idempotency is keyed on the message, and the key is looked up unfiltered', () => {
+  // The vendor+date guard above is derived from the EXTRACTION, so it cannot tell a redelivery that
+  // parsed differently from a genuine second same-day charge. source_msg_id can.
+  assert.match(receipt, /\.eq\('source_msg_id', msgKey\)/,
+    'the receipt path does not look up expense_entries by source_msg_id, so a redelivery is judged only by ' +
+    'what the extractor happened to read from it.');
+  assert.doesNotMatch(receipt, /\.eq\('source_msg_id', msgKey\)[^\n]*\.eq\('(?:status|source)'/,
+    'the message-key lookup is filtered by another column. A status-filtered guard over a unique key is the ' +
+    'fn_agent_action_work_sweep trap: an earlier failed row occupies the key without satisfying the guard, the ' +
+    'insert then violates the index, and the receipt is lost with no record of why.');
+  assert.match(receipt, /onConflict: 'source_msg_id', ignoreDuplicates: true/,
+    'the booking insert does not carry an on-conflict clause on source_msg_id, so two concurrent redeliveries ' +
+    'of one email can both insert and the same cost is counted twice.');
+});
+
+test('a booked receipt reaches the ledger and the off-site archive', () => {
+  // gl_journal had 0 rows on 9 Sep 2026 and cron.job holds exactly one job in this project, which is
+  // not fn_gl_sync_business - so a booked expense that is not posted here never reaches the ledger.
+  assert.match(receipt, /rpc\('fn_expense_post_to_gl'/,
+    'a booked expense is never posted to gl_journal. Nothing on a schedule calls fn_gl_sync_business, so the ' +
+    'chart of accounts would stay empty however many receipts are booked.');
+  assert.match(receipt, /from\('doc_backups'\)\.insert\(\{[\s\S]{0,120}entity: 'expense'/,
+    'the receipt is not queued for the Dropbox archive, so the only copy of a VAT record lives in one bucket.');
 });
 
 test('the v14 shape that made the documented remedy impossible cannot come back', () => {

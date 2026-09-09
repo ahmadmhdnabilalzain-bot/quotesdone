@@ -538,6 +538,15 @@ Deno.serve(async (req) => {
     // deno-lint-ignore no-explicit-any
     let outMsg: any = null;
     let used = model, usage: Record<string, number> = {}, lastErr = '';
+    // THE TWO FACTS THE COMPLETION CARRIED AND THIS FUNCTION THREW AWAY (9 Sep 2026).
+    //   genId       - OpenRouter's own id for the generation. It is the ONLY key to their
+    //                 per-generation record at GET /api/v1/generation?id=, so without it a row in
+    //                 our ledger can never be reconciled against a line on their side.
+    //   reportedUsd - what OpenRouter says the call cost, from usage.cost (requested above).
+    // Both go onto the ai_cost_log row. Both stay null when no provider call was made, which is
+    // exactly right: a policy answer has no generation and no charge.
+    let genId: string | null = null;
+    let reportedUsd: number | null = null;
     // 5 Aug 2026. The gateway read choices[0].message and threw away choices[0].finish_reason, so a
     // reply cut off at max_tokens arrived at the caller as ordinary content. Every caller that
     // expects JSON then reports "unparseable output" and the real cause - the budget in
@@ -576,6 +585,19 @@ Deno.serve(async (req) => {
         try {
           const payload: Record<string, unknown> = {
             model: m, max_tokens: maxTok, messages: outbound,
+            // ASK OPENROUTER WHAT IT ACTUALLY CHARGED (9 Sep 2026).
+            //
+            // Everything in ai_cost_log.cost_aed is DERIVED: fn_llm_log multiplies the token
+            // counts by public.model_rate, which is OUR price list, not OpenRouter's invoice. The
+            // two can differ - provider surcharges, BYOK routing, a mid-flight price change - and
+            // nothing recorded the difference, so the accountant had no way to tell a pricing
+            // drift from an unattributed call.
+            //
+            // `usage: { include: true }` makes OpenRouter return usage.cost on the completion
+            // itself, so the authoritative per-call figure arrives with the answer and costs no
+            // second round trip. GET /api/v1/generation?id= remains the fallback for a call whose
+            // cost has to be re-read later, which is why j.id is now kept below.
+            usage: { include: true },
           };
           if (body.temperature != null) payload.temperature = body.temperature;
           if (wantStream) payload.stream = true;
@@ -624,6 +646,8 @@ Deno.serve(async (req) => {
               // deno-lint-ignore no-explicit-any
               : (Array.isArray(c) ? c.map((p: any) => p?.text || '').join('') : '');
             outMsg = msg; used = m; usage = j?.usage || {};
+            genId = typeof j?.id === 'string' && j.id ? j.id : null;
+            reportedUsd = Number.isFinite(Number(j?.usage?.cost)) ? Number(j.usage.cost) : null;
             finishReason = String(j?.choices?.[0]?.finish_reason
                                   || j?.choices?.[0]?.native_finish_reason || '');
             await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason, j?.usage);
@@ -706,6 +730,10 @@ Deno.serve(async (req) => {
       // Setting p_cached true here booked 90%-off prompts at exactly zero.
       p_cached: false, p_cached_in: cachedIn, p_cache_write: cacheWrite,
       p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: !!outMsg,
+      // The generation id and OpenRouter's own charge. fn_llm_log stores both and treats the
+      // generation id as unique, so a retried write of the same provider charge cannot be counted
+      // twice by the accountant's daily reconciliation.
+      p_generation_id: genId, p_cost_usd_reported: reportedUsd,
     });
 
     if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',

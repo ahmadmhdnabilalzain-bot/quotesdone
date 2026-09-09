@@ -31,10 +31,36 @@ const S = (name, expect, critical = false) => ({ name, expect, critical });
 // org_departments 0. Measured before this edit, not assumed.
 //
 // A count of 3 would have satisfied the letter and lost the point: it accepts ANY three seats.
-// So the count became an exact roster — the active seats must be exactly the three named ones,
+// So the count became an exact roster — the active seats must be exactly the named ones,
 // no seat may exist outside them under any status, and every reporting edge must terminate at
-// the ceo with no duplicate. A fourth seat now fails LOUDER than before, because it fails
-// whether it is active, retired, or merely edged into the tree.
+// the ceo with no duplicate. An unauthorised seat fails LOUDER than a count would, because it
+// fails whether it is active, retired, or merely edged into the tree.
+//
+// 9 SEPTEMBER 2026, LATER THE SAME DAY — A FOURTH SEAT IS AUTHORISED, AND ONLY THE FOURTH.
+//
+// The founder added an accountant by name: "any financial thing on the platform including refunds.
+// reports to CEO." Production now reads: org_agents 4, org_role 4 (accountant, ceo,
+// customer_support, sales_engineer), org_reporting_edge 3 (all three terminating at ceo),
+// org_departments 0. Measured before this edit, not assumed — the three assertions below failed
+// with exactly those values on the run immediately preceding it.
+//
+// THE ROSTER IS WIDENED BY ONE NAME, NOT LOOSENED INTO A COUNT. Every property the 3-seat version
+// held is held here. A FIFTH seat still fails, and each of the three ways it could appear is
+// caught by a named assertion:
+//   * inserted active                     → the_roster_is_exactly_the_four_authorised_seats
+//                                           (v_names is a sorted string; a fifth name changes it)
+//                                           AND no_seat_exists_outside_the_authorised_roster
+//   * inserted 'retired' and never edged  → no_seat_exists_outside_the_authorised_roster ALONE.
+//                                           v_names reads status='active' only and the edge test
+//                                           sees nothing, so this off-roster count is the only
+//                                           instrument that can see a seat parked out of sight.
+//   * edged to the ceo                    → every_edge_reports_to_the_ceo (the child is not in the
+//                                           authorised child list, so the edge is a bad edge even
+//                                           though its parent IS the ceo)
+// Measured 9 Sep 2026 inside an aborted transaction against production: a fifth seat 'zz_demo_seat'
+// inserted retired and never edged left v_names and v_bad_edges unchanged and moved v_off_roster
+// from 0 to 1. The retired case is the one a roster-of-active-names alone would miss, which is why
+// the off-roster count exists.
 //
 // SEPARATE DEFECT, FIXED HERE: no_departments_remain never measured departments. It counted
 // roles outside two hard-coded names, gated on a table called 'org_department' — and the real
@@ -43,9 +69,9 @@ const S = (name, expect, critical = false) => ({ name, expect, critical });
 // table name: a scenario that could only ever return 0, which is why it always "passed". It now
 // counts public.org_departments rows for real, and would fail if a department came back.
 export const G9 = {
-  title: '9. An authenticated three-seat roster, every edge to the CEO, and no departments',
+  title: '9. An authenticated four-seat roster, every edge to the CEO, and no departments',
   scenarios: [
-    S('the_roster_is_exactly_the_three_authorised_seats', 'ceo,customer_support,sales_engineer', true),
+    S('the_roster_is_exactly_the_four_authorised_seats', 'accountant,ceo,customer_support,sales_engineer', true),
     S('no_seat_exists_outside_the_authorised_roster', '0', true),
     S('support_reports_directly_to_the_ceo', '1', true),
     S('every_edge_reports_to_the_ceo', '0', true),
@@ -64,15 +90,16 @@ declare
   r1 jsonb; r2 jsonb; r3 jsonb; v_open jsonb; v_visible boolean; v_still_open boolean;
   v_phone text; v_from text; v_alerts_before int; v_alerts_after int; v_rid bigint;
 begin
-  -- THE AUTHENTICATED ROSTER. The active seats must be exactly these three names in this order;
-  -- a fourth seat, a renamed seat or a missing seat all change this string.
+  -- THE AUTHENTICATED ROSTER. The active seats must be exactly these four names in this order;
+  -- a fifth seat, a renamed seat or a missing seat all change this string.
   select string_agg(role_id, ',' order by role_id) into v_names
     from public.org_role where status = 'active';
 
   -- And no seat may exist OUTSIDE the roster under any status -- a role parked as 'retired' or
-  -- 'inactive' is still an organisation growing back, just quietly.
+  -- 'inactive' is still an organisation growing back, just quietly. This is the ONLY assertion
+  -- that sees a fifth seat inserted retired and never edged.
   select count(*) into v_off_roster from public.org_role
-   where role_id not in ('ceo','customer_support','sales_engineer');
+   where role_id not in ('accountant','ceo','customer_support','sales_engineer');
 
   select count(*) into v_direct from public.org_reporting_edge
    where child_role_id = 'customer_support' and parent_role_id = 'ceo';
@@ -81,7 +108,7 @@ begin
   -- duplicate edge, which an "all parents are ceo" test alone would happily accept.
   select (select count(*) from public.org_reporting_edge
            where parent_role_id <> 'ceo'
-              or child_role_id not in ('customer_support','sales_engineer'))
+              or child_role_id not in ('accountant','customer_support','sales_engineer'))
        + (select count(*) - count(distinct child_role_id) from public.org_reporting_edge)
     into v_bad_edges;
 
@@ -125,7 +152,7 @@ begin
     'Visibility only.');
   select count(*) into v_alerts_after from public.founder_alerts;
 
-  raise exception 'CHK<<the_roster_is_exactly_the_three_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
+  raise exception 'CHK<<the_roster_is_exactly_the_four_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
     v_names, v_off_roster, v_direct, v_bad_edges, v_depts,
     r1->>'ok', v_visible, v_still_open, r3->>'ok',
     (coalesce(v_phone,'') <> ''),

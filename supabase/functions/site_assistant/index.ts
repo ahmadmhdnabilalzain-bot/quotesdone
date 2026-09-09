@@ -239,10 +239,35 @@ Deno.serve(async (req) => {
     //    this states it at the call site so a future policy edit cannot turn it on by accident.
     let reply=''; const t0 = Date.now(); let usedModel: string | null = null; let usage: any = null; let errText: string | null = null;
     try {
-      const r = await fetch(GATEWAY, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn: 'site_assistant', task_class: live ? 'customer_portal_assistant' : 'visitor_chat', sys, input: [...history, { role:'user', content: message }], max: live ? 600 : 320, temperature: 0.3, cache_ttl_min: 0, try_faq: !live, faq_text: message, rate_key: rlKey, rate_limit: rlLimit, rate_window_s: 3600 }) });
+      // 4. THE SEAT THAT IS SPENDING THE MONEY, DECLARED (9 Sep 2026).
+      //
+      //    ai_cost_log.agent_key was NULL on 11 of 11 rows because nothing on this path ever told
+      //    the gateway who was asking, and the founder wants the OpenRouter log to say "which
+      //    agent used it and for what". This endpoint is the ONE surface that straddles two seats,
+      //    so it is deliberately absent from public.llm_seat_binding and declares its seat per
+      //    request instead - it is the only place that can see whose session this is.
+      //
+      //    The split is the founder's own ruling of 9 Sep: the homepage widget is Support, either
+      //    PORTAL is Sales. `live` is exactly "signed into a portal", which is the same line.
+      const seat = live ? 'sales_engineer' : 'customer_support';
+      const r = await fetch(GATEWAY, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn: 'site_assistant', agent: seat, task_class: live ? 'customer_portal_assistant' : 'visitor_chat', sys, input: [...history, { role:'user', content: message }], max: live ? 600 : 320, temperature: 0.3, cache_ttl_min: 0, try_faq: !live, faq_text: message, rate_key: rlKey, rate_limit: rlLimit, rate_window_s: 3600 }) });
       const jd = await r.json();
       reply = typeof jd?.content === 'string' ? jd.content.trim() : '';
       usedModel = jd?.model || null;
+      // `usage` WAS DECLARED AND NEVER ASSIGNED, AND THAT IS THE WHOLE "NULL TOKENS" DEFECT.
+      //
+      // The founder measured 86 llm_calls rows whose model_used, prompt_tokens and output_tokens
+      // are all NULL and read it as "the call log cannot cost itself". This line is why. The
+      // gateway has always returned prompt_tokens, output_tokens, cached_input_tokens and cost_usd
+      // in its response body; this function read `jd.model` and nothing else, then logged
+      // `usage?.prompt_tokens` off a variable that was still the `null` it was declared as. Three
+      // columns were structurally null on every row this table will ever hold.
+      //
+      // llm_calls remains a SIDE-LOG - the accounting ledger is ai_cost_log, written by
+      // fn_llm_log inside the gateway - but a side-log that reports null where a number exists is
+      // worse than no side-log, because it reads as missing telemetry rather than as a mis-wire.
+      usage = { prompt_tokens: jd?.prompt_tokens ?? null, completion_tokens: jd?.output_tokens ?? null,
+                prompt_tokens_details: { cached_tokens: jd?.cached_input_tokens ?? null } };
       if (!reply) errText = String(jd?.outcome || jd?.error || 'no content').slice(0,300);
     } catch(e){ reply=''; errText = String((e as Error)?.message || e).slice(0,300); }
 
