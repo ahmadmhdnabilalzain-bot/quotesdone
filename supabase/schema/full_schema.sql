@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T07:31:53.126Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T07:59:20.990Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -10001,8 +10001,11 @@ CREATE OR REPLACE VIEW public.v_internal_credential_health AS  SELECT id,
     ((EXTRACT(epoch FROM (now() - created_at)) / (86400)::numeric))::integer AS age_days,
     rotated_at,
     expires_at,
-    (active AND ((last_used_at IS NULL) OR (last_used_at < (now() - '30 days'::interval)))) AS unused_30d,
-    (active AND (NOT is_legacy) AND (created_at < (now() - '90 days'::interval)) AND ((rotated_at IS NULL) OR (rotated_at < (now() - '90 days'::interval)))) AS rotation_due
+        CASE
+            WHEN (expires_at IS NULL) THEN NULL::integer
+            ELSE ((EXTRACT(epoch FROM (expires_at - now())) / (86400)::numeric))::integer
+        END AS days_until_expiry,
+    (active AND ((last_used_at IS NULL) OR (last_used_at < (now() - '30 days'::interval)))) AS unused_30d
    FROM internal_credential c;
 
 CREATE OR REPLACE VIEW public.v_internal_secret_migration_progress AS  WITH j AS (
