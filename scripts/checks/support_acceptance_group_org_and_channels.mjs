@@ -22,13 +22,33 @@
 
 const S = (name, expect, critical = false) => ({ name, expect, critical });
 
+// 9 SEPTEMBER 2026 — A ROSTER REPLACES A COUNT, AND ONE INSTRUMENT IS REPAIRED.
+//
+// The founder explicitly added a THIRD seat, a sales engineer, and asked for "an authenticated
+// roster in which this explicitly requested third actor is allowed" — not for automatic role
+// creation and not for the old organisation back. Production now reads: org_agents 3, org_role 3
+// (ceo, customer_support, sales_engineer), org_reporting_edge 2 (both terminating at ceo),
+// org_departments 0. Measured before this edit, not assumed.
+//
+// A count of 3 would have satisfied the letter and lost the point: it accepts ANY three seats.
+// So the count became an exact roster — the active seats must be exactly the three named ones,
+// no seat may exist outside them under any status, and every reporting edge must terminate at
+// the ceo with no duplicate. A fourth seat now fails LOUDER than before, because it fails
+// whether it is active, retired, or merely edged into the tree.
+//
+// SEPARATE DEFECT, FIXED HERE: no_departments_remain never measured departments. It counted
+// roles outside two hard-coded names, gated on a table called 'org_department' — and the real
+// table is 'org_departments', plural, so information_schema matched nothing and the whole
+// expression was 0 whatever the database held. An instrument on the wrong subject AND the wrong
+// table name: a scenario that could only ever return 0, which is why it always "passed". It now
+// counts public.org_departments rows for real, and would fail if a department came back.
 export const G9 = {
-  title: '9. Two seats, one reporting edge, and nothing else in the organisation',
+  title: '9. An authenticated three-seat roster, every edge to the CEO, and no departments',
   scenarios: [
-    S('exactly_two_active_roles', '2', true),
-    S('the_two_are_the_ceo_and_support', 'ceo,customer_support', true),
+    S('the_roster_is_exactly_the_three_authorised_seats', 'ceo,customer_support,sales_engineer', true),
+    S('no_seat_exists_outside_the_authorised_roster', '0', true),
     S('support_reports_directly_to_the_ceo', '1', true),
-    S('no_other_reporting_edge_exists', '1', true),
+    S('every_edge_reports_to_the_ceo', '0', true),
     S('no_departments_remain', '0', true),
     S('a_report_to_a_retired_role_is_refused', 'false', true),
     S('every_report_is_visible_in_the_ceo_queue', 'true', true),
@@ -40,21 +60,40 @@ export const G9 = {
   ],
   sql: `do $p$
 declare
-  v_roles int; v_names text; v_edges int; v_direct int; v_depts int;
+  v_off_roster int; v_names text; v_bad_edges int; v_direct int; v_depts int;
   r1 jsonb; r2 jsonb; r3 jsonb; v_open jsonb; v_visible boolean; v_still_open boolean;
   v_phone text; v_from text; v_alerts_before int; v_alerts_after int; v_rid bigint;
 begin
-  select count(*), string_agg(role_id, ',' order by role_id) into v_roles, v_names
+  -- THE AUTHENTICATED ROSTER. The active seats must be exactly these three names in this order;
+  -- a fourth seat, a renamed seat or a missing seat all change this string.
+  select string_agg(role_id, ',' order by role_id) into v_names
     from public.org_role where status = 'active';
-  select count(*) into v_edges from public.org_reporting_edge;
+
+  -- And no seat may exist OUTSIDE the roster under any status -- a role parked as 'retired' or
+  -- 'inactive' is still an organisation growing back, just quietly.
+  select count(*) into v_off_roster from public.org_role
+   where role_id not in ('ceo','customer_support','sales_engineer');
+
   select count(*) into v_direct from public.org_reporting_edge
    where child_role_id = 'customer_support' and parent_role_id = 'ceo';
 
-  -- "No departments from now." Counted rather than asserted; the table may still exist as history.
-  select count(*) into v_depts from information_schema.tables t
-   where t.table_schema = 'public' and t.table_name = 'org_department'
-     and (select count(*) from public.org_role where status = 'active'
-           and role_id not in ('ceo','customer_support')) > 0;
+  -- EVERY EDGE TERMINATES AT THE CEO, and no child is edged twice. The second term catches a
+  -- duplicate edge, which an "all parents are ceo" test alone would happily accept.
+  select (select count(*) from public.org_reporting_edge
+           where parent_role_id <> 'ceo'
+              or child_role_id not in ('customer_support','sales_engineer'))
+       + (select count(*) - count(distinct child_role_id) from public.org_reporting_edge)
+    into v_bad_edges;
+
+  -- "No departments from now." FIXED 9 Sep 2026: this counted roles outside two hard-coded names,
+  -- gated on a table name that does not exist ('org_department' vs the real 'org_departments'),
+  -- so it could only ever return 0. It now counts the real rows. The table may legitimately be
+  -- gone, which is zero departments too.
+  if to_regclass('public.org_departments') is null then
+    v_depts := 0;
+  else
+    execute 'select count(*) from public.org_departments' into v_depts;
+  end if;
 
   -- A REPORT TO A ROLE THAT IS NOT ACTIVE. The reporting contract must read the org, not a constant.
   update public.org_role set status = 'retired' where role_id = 'ceo';
@@ -86,8 +125,8 @@ begin
     'Visibility only.');
   select count(*) into v_alerts_after from public.founder_alerts;
 
-  raise exception 'CHK<<exactly_two_active_roles=%||the_two_are_the_ceo_and_support=%||support_reports_directly_to_the_ceo=%||no_other_reporting_edge_exists=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
-    v_roles, v_names, v_direct, v_edges, v_depts,
+  raise exception 'CHK<<the_roster_is_exactly_the_three_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
+    v_names, v_off_roster, v_direct, v_bad_edges, v_depts,
     r1->>'ok', v_visible, v_still_open, r3->>'ok',
     (coalesce(v_phone,'') <> ''),
     (regexp_replace(coalesce(v_from,''),'[^0-9]','','g') <> regexp_replace(coalesce(v_phone,''),'[^0-9]','','g')),

@@ -121,6 +121,9 @@ verify_jwt = false
 [functions.role_guard]
 verify_jwt = false
 
+[functions.sales_engineer]
+verify_jwt = true
+
 [functions.send_outbox]
 verify_jwt = false
 
