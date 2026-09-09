@@ -28,6 +28,8 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 import { parseReceipt } from '../_shared/receipt_parse.ts';
 import { pdfText } from '../_shared/pdf_text.ts';
 import { safeFetch } from '../_shared/safe_url.ts';
+// A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
+import { emailPrintPdf } from '../_shared/email_print.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -329,22 +331,64 @@ Deno.serve(async (req) => {
           // stripped). Re-fetching it here was a second download of the same file and, worse, the
           // old loop wrote the SENDER'S declared content-type onto the storage object — this was
           // the one upload site in the function that did not go through _shared/attachment.ts.
-          let docBytes: Uint8Array | null = att ? att.bytes : null;
-          let docName = att ? att.name : 'receipt.html';
-          let docType = att ? att.mime : 'text/html';
-          if (!docBytes) { const html = String((d.html)|| text || subject); docBytes = new TextEncoder().encode('<meta charset=\"utf-8\"><pre style=\"font:14px/1.5 monospace;white-space:pre-wrap\">'+html.replace(/</g,'&lt;')+'</pre>'); docName = 'receipt.html'; docType = 'text/html'; }
-          const ext = att ? att.ext : 'html';
-          const rp = `receipts/${charged}/${Date.now()}_${vendor.replace(/[^A-Za-z0-9._-]/g,'_')}.${ext}`;
-          // v15: three attempts. A refused archive is usually transient, and a receipt that is
-          // separated from the expense it evidences is a VAT-record gap, not a cosmetic one.
-          let docPath: string | null = null; let upErr = ''; let upAttempts = 0;
-          for (let attempt = 1; attempt <= 3 && !docPath; attempt++) {
-            upAttempts = attempt;
-            const rpN = attempt === 1 ? rp : `receipts/${charged}/${Date.now()}_${vendor.replace(/[^A-Za-z0-9._-]/g,'_')}.${ext}`;
-            try { const up = await admin.storage.from('receipt-files').upload(rpN, docBytes, { contentType: docType, upsert: true }); if (!up.error) docPath = rpN; else upErr = String(up.error.message||'').slice(0,150); }
-            catch (e) { upErr = String((e as Error)?.message||e).slice(0,150); }
-            if (!docPath && attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+          // 9 SEP 2026 — EVERY EXPENSE RECORD CARRIES A DOCUMENT YOU CAN OPEN, AND THE RECORD SAYS
+          // WHICH KIND IT IS. The founder: "i wanna be able to click any record and see the actual
+          // invoice or receipt or email print pdf if none exist".
+          //
+          // Until today the no-attachment branch stored `receipt.html`, text/html — the raw message
+          // body in a <pre>. Five of the nine receipts booked through this function held exactly
+          // that. It is not a document anyone can hand to an auditor, and nothing in the schema
+          // could tell it apart from the vendor's real invoice: both were just "the doc_path".
+          // Now the fallback is a PDF PRINT of the email, rendered by pdf_native, and doc_kind
+          // records WHICH of the two classes of evidence this row holds. The HTML upload survives
+          // only as the fallback-of-the-fallback, so a pdf_native outage degrades the document
+          // rather than losing the email.
+          let docPath: string | null = null;
+          let docName = 'receipt.html';
+          let docType = 'text/html';
+          let docKind: 'vendor_document' | 'email_print' = 'email_print';
+          let docNote: string | null = null;
+          let upErr = ''; let upAttempts = 0;
+
+          if (att) {
+            docName = att.name; docType = att.mime; docKind = 'vendor_document';
+            docNote = "The vendor's own file, taken off the source email (Resend inbound " + (emailId || 'delivery') + ').';
+            // v15: three attempts. A refused archive is usually transient, and a receipt that is
+            // separated from the expense it evidences is a VAT-record gap, not a cosmetic one.
+            for (let attempt = 1; attempt <= 3 && !docPath; attempt++) {
+              upAttempts = attempt;
+              const rpN = `receipts/${charged}/${Date.now()}_${vendor.replace(/[^A-Za-z0-9._-]/g,'_')}.${att.ext}`;
+              try { const up = await admin.storage.from('receipt-files').upload(rpN, att.bytes, { contentType: docType, upsert: true }); if (!up.error) docPath = rpN; else upErr = String(up.error.message||'').slice(0,150); }
+              catch (e) { upErr = String((e as Error)?.message||e).slice(0,150); }
+              if (!docPath && attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+            }
+          } else {
+            upAttempts = 1;
+            const printed = await emailPrintPdf(admin, SUPA_URL, {
+              entryId: gapRow?.id ?? null, vendor, amount, currency, chargedOn: charged,
+              sourceMsgId: msgKey, subject, from, to, date: new Date().toISOString(),
+              text, html: String(d.html || ''), attachmentNames: [],
+            });
+            if (printed.ok) {
+              // pdf_native NAMED this path; it is used exactly as returned.
+              docPath = printed.path; docName = printed.name; docType = 'application/pdf';
+              docNote = 'The source email carried no vendor file, so this is a PDF print of the email itself.';
+              if (printed.glyphsDropped) await logRun('error', { receipt: true, glyphs_dropped: printed.glyphsDropped, entry: msgKey }, 'the email print for ' + vendor + ' dropped ' + printed.glyphsDropped + ' character(s) the brand fonts could not render; the invisible inbox padding is stripped before rendering, so this count is real content missing from the printed document.');
+            } else {
+              const html = String((d.html)|| text || subject);
+              const bytes = new TextEncoder().encode('<meta charset=\"utf-8\"><pre style=\"font:14px/1.5 monospace;white-space:pre-wrap\">'+html.replace(/</g,'&lt;')+'</pre>');
+              docNote = 'The source email carried no vendor file, and the email could not be printed to PDF ('
+                + printed.reason + '), so the message body is archived as HTML instead.';
+              for (let attempt = 1; attempt <= 3 && !docPath; attempt++) {
+                upAttempts = attempt;
+                const rpN = `receipts/${charged}/${Date.now()}_${vendor.replace(/[^A-Za-z0-9._-]/g,'_')}.html`;
+                try { const up = await admin.storage.from('receipt-files').upload(rpN, bytes, { contentType: 'text/html', upsert: true }); if (!up.error) docPath = rpN; else upErr = String(up.error.message||'').slice(0,150); }
+                catch (e) { upErr = String((e as Error)?.message||e).slice(0,150); }
+                if (!docPath && attempt < 3) await new Promise((r) => setTimeout(r, 400 * attempt));
+              }
+            }
           }
+          const ext = docType === 'application/pdf' ? 'pdf' : (att ? att.ext : 'html');
           // ---- The two things every booked receipt owes the company ----
           // 1. THE LEDGER. fn_gl_sync_business() already knows how to post an expense_entries row
           //    (gl_expense_map -> account, 6300 fallback, USD at gl_settings.usd_to_aed) — but
@@ -379,7 +423,7 @@ Deno.serve(async (req) => {
             // BACKFILL ONLY. The expense is already booked and the subscription row already
             // exists; attaching the evidence must not book it a second time and must not re-run
             // the subscription upsert. Nothing below this branch runs.
-            if (docPath && !gapRow.doc_path) await admin.from('expense_entries').update({ doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType, source_msg_id: msgKey }).eq('id', gapRow.id);
+            if (docPath && !gapRow.doc_path) await admin.from('expense_entries').update({ doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType, doc_kind: docKind, doc_note: docNote, source_msg_id: msgKey }).eq('id', gapRow.id);
             // idempotent: posts only if this entry has no journal yet, files only if not filed yet
             const rep = await fileAndPost(gapRow.id, docPath || gapRow.doc_path || null, docName, docType);
             await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt archive ${docPath?'backfilled':'RETRY FAILED'}] entry #${gapRow.id} ${vendor} ${amount} ${currency} on ${charged}${rep.journal?` journal #${rep.journal}`:''}`, attachments_count: docPath?1:0, matched_existing: true, needs_review: !docPath });
@@ -398,6 +442,7 @@ Deno.serve(async (req) => {
             .upsert({ vendor, category: recurring ? 'Subscription' : 'Usage', amount, currency, charged_on: charged,
               note: ('auto from forwarded ' + (recurring?'subscription':'receipt') + ': ' + String(ex.note||subject)).slice(0,300),
               source: 'receipt', doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType,
+              doc_kind: docPath ? docKind : null, doc_note: docPath ? docNote : null,
               source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn },
               { onConflict: 'source_msg_id', ignoreDuplicates: true })
             .select('id').maybeSingle();
