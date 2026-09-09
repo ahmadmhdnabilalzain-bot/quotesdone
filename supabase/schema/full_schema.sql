@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T20:59:48.869Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-09T21:19:27.899Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -18262,10 +18262,21 @@ begin
                          from org_tasks t
                         where t.assigned_agent = s.seat and t.status in ('assigned','in_progress')),
 
-        -- WHAT IT FILED TO THE CEO, and whether the CEO has picked it up. An unaccepted report is
-        -- the CEO's own backlog, not the seat's.
+        -- WHAT IT FILED TO THE CEO, and whether the CEO has picked it up. An unread report is the
+        -- CEO's own backlog, not the seat's.
+        --
+        -- THE NAME OF THIS FIGURE WAS WRONG AND THE FOUNDER CAUGHT IT. It read
+        -- 'awaiting_my_acceptance', and on 9 September he read the board and asked "wait is the CEO
+        -- basically waiting to approve the accountant report" -- a fair reading of that phrase, and
+        -- not what the number means. Measured: three routines read accepted_at
+        -- (fn_ceo_weekly_figures, fn_ceo_seat_board, fn_customer_mandatory_check) and all three only
+        -- COUNT it for display. Nothing gates on it. Both accountant reports say in their own
+        -- requested_outcome field "NOTHING IS REQUESTED", and one had already reached the founder.
+        -- It is a read receipt, not an approval queue, and the label now says which. A number whose
+        -- name implies work is blocked, on a board built so the chief executive knows what is
+        -- waiting on whom, is worse than no number.
         'filed_to_ceo',    (select count(*) from support_ceo_report c where c.source_agent = s.seat),
-        'awaiting_my_acceptance', (select count(*) from support_ceo_report c
+        'filed_but_not_yet_read_by_ceo', (select count(*) from support_ceo_report c
                                     where c.source_agent = s.seat and c.accepted_at is null),
 
         -- WHAT IT ACHIEVED: the question this seat's own job answers.
@@ -32774,6 +32785,33 @@ begin
   v_q := regexp_replace(public.fn_ar_norm(lower(coalesce(p_question, ''))),
                         '(^|[[:space:]])ال', '\1', 'g');
 
+  -- ── IS THIS EVEN A PRICE QUESTION? ────────────────────────────────────────────────────────────
+  --
+  -- IT MUST BE ASKED FIRST, and skipping it caused a live regression that two real visitor questions
+  -- exposed within minutes of the price answer going up:
+  --
+  --   "does a Dubai supplier cover Abu Dhabi as well"          -> AED 40-80/sqm for ceramic tiles
+  --   "what documents does a supplier need for verification"   -> AED 65-290/sqm for vinyl plank
+  --
+  -- Both were answered with FLOORING PRICES. The word 'supplier' appears in this estate's item
+  -- labels ("Flooring Suppliers specialist — …"), so it corroborated a trade, and because the price
+  -- answer runs before the FAQ fallback it pre-empted the correct answer entirely. The routine was
+  -- confidently answering a question nobody asked.
+  --
+  -- The lexical-corroboration guard could not catch this: corroboration proves the question mentions
+  -- something the estate knows about, never that the question is ABOUT WHAT IT COSTS. Those are two
+  -- different tests and only one of them was being run.
+  --
+  -- 'fee' and 'fees' are deliberately absent from the intent list. On this platform they mean the
+  -- 3% reveal fee and the supplier subscription -- a settled FAQ answer, not a trade rate -- so a
+  -- fee question must fall through to the FAQ rather than be met with tiling bands.
+  if not (v_q ~ '(cost|price|pricing|how much|charge|rate per|per sqm|per square|budget|estimate|quote for)'
+          or v_q ~ '(سعر|اسعار|تكلفة|تكاليف|بكم|كم يكلف|كم تكلف|ميزانية)') then
+    return jsonb_build_object('ok', false, 'reason', 'not_a_price_question',
+      'note', 'Nothing in this question asks what something costs. Answer it from the FAQ and the '
+           || 'support corpus; do not offer price bands to a question that did not ask for them.');
+  end if;
+
   -- LATIN WORDS, as before: four characters is the floor, and the words that make it a price
   -- question rather than a gypsum question are dropped explicitly.
   select array_agg(distinct t)
@@ -32783,7 +32821,13 @@ begin
      and t not in ('what','cost','costs','much','price','prices','pricing','should','would','does',
                    'about','around','many','rate','rates','average','typical','range','dubai','uae',
                    'emirates','abu','dhabi','sharjah','from','with','that','this','have','need',
-                   'your','you','per','the','and','for','square','metre','meter','sqft','feet');
+                   'your','you','per','the','and','for','square','metre','meter','sqft','feet',
+                   -- PLATFORM WORDS ARE NOT TRADE WORDS. 'supplier' and 'specialist' appear in this
+                   -- estate's own item labels ("Flooring Suppliers specialist — …"), so they
+                   -- corroborate a trade that the visitor never named. Same reasoning as the
+                   -- question words above: they say what KIND of question it is, not what it is about.
+                   'supplier','suppliers','specialist','specialists','quote','quotes','quotation',
+                   'company','companies','service','services','knowledge','work','works','job','jobs');
   v_terms := coalesce(v_terms, '{}'::text[]);
 
   -- THE LEXICON, matched as a SUBSTRING of the normalised question. Multi-word Arabic phrases are
@@ -32874,7 +32918,19 @@ begin
          and (not v_hit
               or exists (select 1 from unnest(v_terms) x
                           where lower(coalesce(pb.item, '')) like '%' || x || '%'))
-       order by pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end)
+       -- THE TIEBREAK IS NOT DECORATION. `distinct on (item, unit)` keeps ONE row per item, and
+       -- several rows genuinely share an item and unit -- the same "False Ceiling specialist —
+       -- Gypsum Partitions and Drywall" per sqm exists more than once with different figures.
+       -- Preferring blog_post is not enough to pick between two kb_chunk rows, so Postgres was free
+       -- to return either: the identical question answered AED 15-30 on one call and AED 25-45 on
+       -- the next, minutes apart, measured over HTTP. A published price that moves between two
+       -- identical questions is worse than no published price. Newest evidence first, then the
+       -- lowest id, so the same question always gets the same answer and the answer is auditable
+       -- back to one row.
+       order by pb.item, pb.unit,
+                (case when pb.source_kind = 'blog_post' then 0 else 1 end),
+                pb.as_of desc nulls last,
+                pb.id
     ) i;
 
   select array_agg(distinct x) into v_matched

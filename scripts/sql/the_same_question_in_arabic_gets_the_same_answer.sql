@@ -157,6 +157,33 @@ begin
   v_q := regexp_replace(public.fn_ar_norm(lower(coalesce(p_question, ''))),
                         '(^|[[:space:]])ال', '\1', 'g');
 
+  -- ── IS THIS EVEN A PRICE QUESTION? ────────────────────────────────────────────────────────────
+  --
+  -- IT MUST BE ASKED FIRST, and skipping it caused a live regression that two real visitor questions
+  -- exposed within minutes of the price answer going up:
+  --
+  --   "does a Dubai supplier cover Abu Dhabi as well"          -> AED 40-80/sqm for ceramic tiles
+  --   "what documents does a supplier need for verification"   -> AED 65-290/sqm for vinyl plank
+  --
+  -- Both were answered with FLOORING PRICES. The word 'supplier' appears in this estate's item
+  -- labels ("Flooring Suppliers specialist — …"), so it corroborated a trade, and because the price
+  -- answer runs before the FAQ fallback it pre-empted the correct answer entirely. The routine was
+  -- confidently answering a question nobody asked.
+  --
+  -- The lexical-corroboration guard could not catch this: corroboration proves the question mentions
+  -- something the estate knows about, never that the question is ABOUT WHAT IT COSTS. Those are two
+  -- different tests and only one of them was being run.
+  --
+  -- 'fee' and 'fees' are deliberately absent from the intent list. On this platform they mean the
+  -- 3% reveal fee and the supplier subscription -- a settled FAQ answer, not a trade rate -- so a
+  -- fee question must fall through to the FAQ rather than be met with tiling bands.
+  if not (v_q ~ '(cost|price|pricing|how much|charge|rate per|per sqm|per square|budget|estimate|quote for)'
+          or v_q ~ '(سعر|اسعار|تكلفة|تكاليف|بكم|كم يكلف|كم تكلف|ميزانية)') then
+    return jsonb_build_object('ok', false, 'reason', 'not_a_price_question',
+      'note', 'Nothing in this question asks what something costs. Answer it from the FAQ and the '
+           || 'support corpus; do not offer price bands to a question that did not ask for them.');
+  end if;
+
   -- LATIN WORDS, as before: four characters is the floor, and the words that make it a price
   -- question rather than a gypsum question are dropped explicitly.
   select array_agg(distinct t)
@@ -166,7 +193,13 @@ begin
      and t not in ('what','cost','costs','much','price','prices','pricing','should','would','does',
                    'about','around','many','rate','rates','average','typical','range','dubai','uae',
                    'emirates','abu','dhabi','sharjah','from','with','that','this','have','need',
-                   'your','you','per','the','and','for','square','metre','meter','sqft','feet');
+                   'your','you','per','the','and','for','square','metre','meter','sqft','feet',
+                   -- PLATFORM WORDS ARE NOT TRADE WORDS. 'supplier' and 'specialist' appear in this
+                   -- estate's own item labels ("Flooring Suppliers specialist — …"), so they
+                   -- corroborate a trade that the visitor never named. Same reasoning as the
+                   -- question words above: they say what KIND of question it is, not what it is about.
+                   'supplier','suppliers','specialist','specialists','quote','quotes','quotation',
+                   'company','companies','service','services','knowledge','work','works','job','jobs');
   v_terms := coalesce(v_terms, '{}'::text[]);
 
   -- THE LEXICON, matched as a SUBSTRING of the normalised question. Multi-word Arabic phrases are
@@ -257,7 +290,19 @@ begin
          and (not v_hit
               or exists (select 1 from unnest(v_terms) x
                           where lower(coalesce(pb.item, '')) like '%' || x || '%'))
-       order by pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end)
+       -- THE TIEBREAK IS NOT DECORATION. `distinct on (item, unit)` keeps ONE row per item, and
+       -- several rows genuinely share an item and unit -- the same "False Ceiling specialist —
+       -- Gypsum Partitions and Drywall" per sqm exists more than once with different figures.
+       -- Preferring blog_post is not enough to pick between two kb_chunk rows, so Postgres was free
+       -- to return either: the identical question answered AED 15-30 on one call and AED 25-45 on
+       -- the next, minutes apart, measured over HTTP. A published price that moves between two
+       -- identical questions is worse than no published price. Newest evidence first, then the
+       -- lowest id, so the same question always gets the same answer and the answer is auditable
+       -- back to one row.
+       order by pb.item, pb.unit,
+                (case when pb.source_kind = 'blog_post' then 0 else 1 end),
+                pb.as_of desc nulls last,
+                pb.id
     ) i;
 
   select array_agg(distinct x) into v_matched
@@ -307,7 +352,7 @@ revoke execute on function public.fn_price_guidance(text, int) from public, anon
 -- notice. A raise here would roll the DDL back with it and the apply would report success over an
 -- un-built function.
 do $do$
-declare ar jsonb; en jsonb; ins jsonb; wp jsonb; n jsonb;
+declare ar jsonb; en jsonb; ins jsonb; wp jsonb; n jsonb; det jsonb; i int;
 begin
   -- 1. THE QUESTION THAT CAME BACK EMPTY, verbatim.
   ar := public.fn_price_guidance('كم تكلفة السقف الجبسي المستعار للمتر المربع في دبي');
@@ -350,6 +395,49 @@ begin
   if ins->>'reason' <> 'trade_has_a_recorded_gap' then
     raise exception 'the Arabic elevator question refused as % rather than the recorded gap', ins->>'reason';
   end if;
+
+  -- 3c. A QUESTION THAT IS NOT ABOUT MONEY MUST NOT BE ANSWERED WITH PRICES. Both of these were
+  --     asked by real visitors and both came back as flooring rates before the intent test existed,
+  --     because 'supplier' appears in this estate's own item labels.
+  ins := public.fn_price_guidance('does a Dubai supplier cover Abu Dhabi as well');
+  if (ins->>'ok')::boolean then
+    raise exception 'a coverage question was answered with prices for trade %', ins->>'trade';
+  end if;
+  if ins->>'reason' <> 'not_a_price_question' then
+    raise exception 'the coverage question was refused as % rather than not_a_price_question', ins->>'reason';
+  end if;
+  ins := public.fn_price_guidance('what documents does a supplier need for verification');
+  if (ins->>'ok')::boolean then
+    raise exception 'a verification question was answered with prices for trade %', ins->>'trade';
+  end if;
+  -- And a fee question belongs to the FAQ, not to trade bands.
+  ins := public.fn_price_guidance('what fees do I pay as a customer');
+  if (ins->>'ok')::boolean then
+    raise exception 'a platform-fee question was answered with trade prices for %', ins->>'trade';
+  end if;
+
+  -- 3d. …AND THE INTENT TEST MUST NOT SWALLOW REAL PRICE QUESTIONS. A guard that refuses everything
+  --     is not a guard, and this one sits in front of the whole feature.
+  if not ((public.fn_price_guidance('what should a gypsum false ceiling cost per square metre in Dubai'))->>'ok')::boolean then
+    raise exception 'the intent test now refuses the English price question';
+  end if;
+  if not ((public.fn_price_guidance('كم تكلفة السقف الجبسي المستعار للمتر المربع في دبي'))->>'ok')::boolean then
+    raise exception 'the intent test now refuses the Arabic price question';
+  end if;
+  if not ((public.fn_price_guidance('ما هو سعر الرخام للمتر المربع'))->>'ok')::boolean then
+    raise exception 'the intent test now refuses the Arabic marble question';
+  end if;
+
+  -- 3e. THE SAME QUESTION MUST GIVE THE SAME PRICE. Ten consecutive calls, byte-identical payloads,
+  --     or the tiebreak above is not doing its job and a customer can be quoted two different
+  --     published ranges for one question.
+  det := public.fn_price_guidance('what should a gypsum false ceiling cost per square metre in Dubai');
+  for i in 1..10 loop
+    if (public.fn_price_guidance('what should a gypsum false ceiling cost per square metre in Dubai'))->'bands'
+       is distinct from det->'bands' then
+      raise exception 'the same price question returned different bands on call %', i;
+    end if;
+  end loop;
 
   -- 4. ARABIC DOES NOT LOWER THE BAR. A question in Arabic about something the estate has no trade
   --    for must still refuse rather than reach for the nearest lexicon entry.
