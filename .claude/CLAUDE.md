@@ -33,3 +33,16 @@ Load this alongside `quotesdone-session` at the START of every session on this r
   genuinely depends on the one before it, and NEVER for production writes, applies or git.
 
 Load this alongside `quotesdone-session` at the START of every session on this repository.
+
+# quotesdone-apply-discipline — ALWAYS APPLY
+- **quotesdone-apply-discipline** (`.claude/skills/quotesdone-apply-discipline/SKILL.md`) — the
+  mechanical checklist for changing production, written 9 Sep 2026 on the founder's instruction
+  after CI caught the same four omissions three times in one session: an apply without its MANIFEST
+  line, a new routine without a revoke and a pinned `search_path`, a new table with RLS on and no
+  policy, and a commit missing a directory the change touched. Also: a probe that `raise exception`s
+  rolls back the DDL in its own file, `CREATE` grants EXECUTE to PUBLIC where `CREATE OR REPLACE`
+  does not, a revoke names a signature so every overload must be enumerated, and a check that greps
+  source will match your own comment.
+
+Load this before applying SQL, creating a routine or a table, or committing. The pattern behind
+every item is the same — the check caught it, not the session. These steps move the catch earlier.
