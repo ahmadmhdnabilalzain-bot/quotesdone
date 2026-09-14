@@ -1095,7 +1095,6 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     if (action === 'my_inquiries') {
-      const cfg = await getCfg();
       // rfq_no is the human reference (spec §8, "RFQ #88291"). The primary key is a uuid, which is
       // not a number a customer can read out on the phone or quote in an email to a supplier.
       // §7 spec, §8 stage, §9 applied filters. THREE THINGS WERE COMPUTED AND NEVER SERVED:
@@ -1105,15 +1104,35 @@ Deno.serve(observe('customer_api', async (req) => {
       //     Spec §9 shows them back to the customer; they never left the database.
       //   floor / required_by / delivery_window — added 7 Aug for §6 and §7.
       const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id';
-      const { data: tops } = await admin.from('inquiries').select(cols).eq('customer_id', cust.id).is('parent_inquiry_id', null).order('created_at', { ascending: false }).limit(25);
+      // ONE READ AT A TIME WAS THE OVERVIEW'S CRITICAL PATH (15 Sep 2026). Measured with the e2e
+      // harness's per-call timing on production (smoke run 34888342875 and a probe of 8 page loads):
+      // the six dashboard calls already start together, and my_inquiries answers last (1.40-1.61 s
+      // warm) because it made eleven database reads one after another. Each read below waits only for
+      // what it needs, so they run in four waves: [cfg, requests, sales, reviews] -> children ->
+      // [quotes, matches, open offers, refunds] -> [supplier rows, supplier performance].
+      // The answer is unchanged; only the waiting is.
+      const [cfg, { data: tops }, txRes, { data: revs }] = await Promise.all([
+        getCfg(),
+        admin.from('inquiries').select(cols).eq('customer_id', cust.id).is('parent_inquiry_id', null).order('created_at', { ascending: false }).limit(25),
+        admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline').eq('customer_id', cust.id),
+        admin.from('reviews').select('transaction_id').eq('customer_id', cust.id),
+      ]);
       const topIds = (tops || []).map((i) => i.id);
       let kids: any[] = [];
       if (topIds.length) { const { data: ch } = await admin.from('inquiries').select(cols).in('parent_inquiry_id', topIds).order('created_at', { ascending: true }); kids = ch || []; }
       const kidsByParent: Record<string, any[]> = {};
       for (const k of kids) { (kidsByParent[String(k.parent_inquiry_id)] ||= []).push(k); }
       const ids = [...topIds, ...kids.map((k) => k.id)];
-      let quotes: Record<string, any>[] = [];
-      if (ids.length) { const { data: qs } = await admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }); quotes = qs || []; }
+      const txs: any[] = ids.length ? (txRes.data || []) : [];
+      if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
+      const txIds = txs.map((t) => t.id);
+      const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
+        ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
+        txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
+      ]);
+      const quotes: Record<string, any>[] = qsRes?.data || [];
       // How many suppliers the request actually reached. Without this the portal cannot tell
       // "waiting for quotes" apart from "this reached nobody", and shows hope either way.
       const matchedBy: Record<string, number> = {};
@@ -1146,10 +1165,10 @@ Deno.serve(observe('customer_api', async (req) => {
       const reasonBySup: Record<string, string> = {};
       const pctBySup: Record<string, number> = {};
       const bestPct: Record<string, number> = {};
-      if (ids.length) { try { const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids); for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ } }
+      try { const ms = msRes?.data; for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
-      if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,app_rating,app_reviews,emirate,verified,founded_year,rv_response_rate,rv_reveals').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
+      if (supIds.length) { const [{ data: ls }, { data: perf }] = await Promise.all([admin.from('leads').select('id,app_rating,app_reviews,emirate,verified,founded_year,rv_response_rate,rv_reveals').in('id', supIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds)]); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
       // public.transactions HAS NO created_at COLUMN - in staging or in production. Selecting it
       // made PostgREST answer 400, so `txs` came back null, `for (const t of txs || [])` iterated
@@ -1162,17 +1181,16 @@ Deno.serve(observe('customer_api', async (req) => {
       // on — when they paid, whether the supplier acknowledged, and any refund already in motion.
       // All four are columns on the sale; nothing is inferred.
       const guaranteeByQuote: Record<string, Record<string, unknown>> = {};
-      if (ids.length) { const { data: txs, error: txErr } = await admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline').eq('customer_id', cust.id); if (txErr) console.error('my_inquiries: transactions read failed —', txErr.message); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; }
+      if (ids.length) { for (const t of txs) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; }
         // D4 (14 Sep 2026): the refund case and the chief executive's decision behind it, so the
         // customer can quote both. refunds.refund_decision_id references ceo_approval(decision_id);
         // it is null until the decision exists, and the portal says "awaiting" rather than inventing one.
-        const txIds = (txs || []).map((t) => t.id);
-        if (txIds.length) { const { data: rfs } = await admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds); const qByTx: Record<string, string> = {}; for (const [qk, tk] of Object.entries(txByQuote)) qByTx[tk] = qk; for (const rf of rfs || []) { const g = guaranteeByQuote[qByTx[String(rf.transaction_id)]]; if (g) { g.refund_ref = refundRef(rf.id); g.decision_ref = rf.refund_decision_id ? 'QD-D-' + rf.refund_decision_id : null; } } } }
-      const { data: revs } = await admin.from('reviews').select('transaction_id').eq('customer_id', cust.id); const ratedTx = new Set((revs || []).map((r) => String(r.transaction_id)));
+        if (txIds.length) { const rfs = rfsRes?.data; const qByTx: Record<string, string> = {}; for (const [qk, tk] of Object.entries(txByQuote)) qByTx[tk] = qk; for (const rf of rfs || []) { const g = guaranteeByQuote[qByTx[String(rf.transaction_id)]]; if (g) { g.refund_ref = refundRef(rf.id); g.decision_ref = rf.refund_decision_id ? 'QD-D-' + rf.refund_decision_id : null; } } } }
+      const ratedTx = new Set((revs || []).map((r) => String(r.transaction_id)));
       // NO SUPPLIER QUOTED THE EXACT SPEC (founder_instruction #321): the open question, with its
       // alternatives as values and supplier COUNTS only (the table cannot hold anything else).
       const offersBy: Record<string, unknown[]> = {};
-      if (ids.length) { const { data: sos } = await admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }); for (const s of sos || []) { const { inquiry_id, ...rest } = s as Record<string, unknown>; (offersBy[String(inquiry_id)] ||= []).push(rest); } }
+      if (ids.length) { const sos = sosRes?.data; for (const s of sos || []) { const { inquiry_id, ...rest } = s as Record<string, unknown>; (offersBy[String(inquiry_id)] ||= []).push(rest); } }
       const now = new Date();
       // Pre-reveal quote rows carry BANDS only (see ratingBand/reviewCountBand/yearsBand above);
       // rating_source, emirate and win_rate are set to undefined so JSON.stringify omits the keys
