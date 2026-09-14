@@ -3,6 +3,7 @@ import { Link } from '@/i18n/routing';
 import { CompanyIdentity } from '@/components/CompanyIdentity';
 import { Reveal } from '@/components/motion/reveal';
 import { BrandMark } from '@/components/BrandMark';
+import C from '@/content/company.json';
 
 // Live company accounts (verified against Postiz + reachable). Keep in sync if a handle changes.
 const SOCIALS = [
@@ -18,6 +19,7 @@ const SOCIALS = [
 export function SiteFooter() {
   const t = useTranslations();
   const locale = useLocale();
+  const l = locale === 'ar' ? 'ar' : 'en';
   const col = 'font-mono text-label font-medium uppercase tracking-caps text-faint';
   const link = 'inline-flex min-h-[28px] items-center text-copy text-muted transition-colors duration-base hover:text-teal-light';
   const cols: [string, [string, string][]][] = [
@@ -38,6 +40,19 @@ export function SiteFooter() {
               <span>Quotes<span className="text-teal-light">Done</span></span>
             </Link>
             <p className="mt-5 max-w-[36ch] text-copy text-muted">{t('footer.tagline')}</p>
+            {/* Founder, 14 Sep 2026: "our trade license number and details should show in the footer as
+                it adds credibility". Measured before: the licence line existed only in the fine print at
+                the very bottom. Facts from the DET licence he supplied (src/content/company.json). */}
+            <dl className="mt-6 max-w-[40ch] rounded-panel border border-line2 bg-surf/50 px-4 py-3.5 shadow-key">
+              <dt className="font-mono text-label uppercase tracking-caps text-teal-light rtl:font-sans rtl:tracking-normal">{C.licensed_heading[l]}</dt>
+              <dd className="mt-2 text-copy text-paper/90">
+                <span className="font-semibold">{C.legal_name}</span>
+                <span className="block text-muted">{C.licence[l]} <bdi dir="ltr" className="tabular font-mono text-paper">{C.licence_no}</bdi></span>
+                <span className="block text-muted">{C.register[l]} <bdi dir="ltr" className="tabular font-mono text-paper">{C.register_no}</bdi></span>
+                <span className="block text-muted">{C.licence_authority[l]} · {C.valid_until[l]} <bdi dir="ltr" className="tabular">{new Date(C.licence_expiry + 'T00:00:00Z').toLocaleDateString(l === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</bdi></span>
+                <a href={C.licence_verify.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex min-h-[28px] items-center text-copy font-semibold text-teal-light underline-offset-4 hover:underline">{C.licence_verify.label[l]} <span aria-hidden className="ms-1 inline-block rtl:-scale-x-100">↗</span></a>
+              </dd>
+            </dl>
             <div className="mt-7 flex items-center gap-2" style={{ direction: 'ltr' }}>
               {SOCIALS.map((s) => (
                 <a
