@@ -56,15 +56,15 @@ function VerifyFrame({ t }: { t: typeof L.en }) {
   );
 }
 
-/** /services: the trade chips become an index of tiles. */
+/** /services: the trade chips become a ledger index (ruled rows, mono serials; ui/sealed shape system). */
 function ServiceIndex({ html }: { html: string }) {
   const links = [...html.matchAll(/<a href="([^"]+)">([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1], label: textOf(m[2]) }));
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="qd-ledger qd-ticks grid lg:grid-cols-2 lg:gap-x-12">
       {links.map((l, i) => (
         <li key={l.href}>
-          <a href={l.href} className="qd-panel qd-panel-hover qd-lit group flex h-full items-center gap-4 p-5 !text-paper">
-            <span className="tabular grid h-10 w-10 shrink-0 place-items-center rounded-panel border border-line2 font-mono text-label text-teal-light">{String(i + 1).padStart(2, '0')}</span>
+          <a href={l.href} className="group grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 py-4 !text-paper focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-teal md:grid-cols-[4.5rem_minmax(0,1fr)_auto] md:gap-x-6">
+            <span className="qd-ledger-no" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
             <span className="min-w-0 flex-1 font-head text-[16px] font-semibold leading-snug tracking-snug text-white">{l.label}</span>
             <span aria-hidden className="text-faint transition-transform duration-base group-hover:translate-x-1 group-hover:text-teal-light rtl:rotate-180 rtl:group-hover:-translate-x-1">→</span>
           </a>

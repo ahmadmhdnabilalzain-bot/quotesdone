@@ -7,7 +7,7 @@ import { WorkedCase } from '@/components/WorkedCase';
 import { AnonymityFlow } from '@/components/visual/slots';
 import { PageHero, CtaPanel } from '@/components/DocFrame';
 import { ComparisonReport, SealedQuote } from '@/components/visual/product';
-import { Kicker, SectionHead } from '@/components/ui/sealed';
+import { Kicker, LedgerList, SectionHead } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
 
 // /how-it-works — the process distilled from the 150-answer FAQ, with the two-way anonymity table
@@ -52,18 +52,8 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
 
         <section className="container-x py-beat-s md:py-beat">
           <SectionHead kicker={x.stepsKicker} title={t('title')} className="sr-only" />
-          <ol className="qd-stagger reveal-stagger grid gap-px overflow-hidden rounded-card border border-line bg-[var(--line)] md:grid-cols-2 lg:grid-cols-3">
-            {steps.map((s, i) => (
-              <li key={s.title} className="qd-lit group relative flex flex-col bg-navy p-7 md:p-8">
-                <div className="flex items-center justify-between">
-                  <span className="tabular font-mono text-[40px] font-medium leading-none text-teal-light/80">{String(i + 1).padStart(2, '0')}</span>
-                  <span aria-hidden className="h-px flex-1 translate-y-1 bg-[linear-gradient(90deg,var(--line2),transparent)] ms-5 rtl:bg-[linear-gradient(270deg,var(--line2),transparent)]" />
-                </div>
-                <h2 className="mt-8 font-head text-h3 text-white">{s.title}</h2>
-                <p className="mt-3 text-copy text-muted">{s.body}</p>
-              </li>
-            ))}
-          </ol>
+          {/* The steps are a real sequence, so a ledger with display serials, not a grid of boxes. */}
+          <LedgerList lg titleAs="h2" className="qd-stagger reveal-stagger" items={steps.map((s) => ({ title: s.title, body: s.body }))} />
         </section>
 
         <section className="border-y border-line bg-navy-deep/40">
@@ -106,9 +96,10 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
         <section className="container-x py-beat-s md:py-beat">
           <div className="grid gap-10 lg:grid-cols-[320px_1fr]">
             <div><Kicker>{x.timeKicker}</Kicker><h2 className="mt-5 font-head text-h2 text-white">{t('timeTitle')}</h2></div>
-            <ol className="grid gap-4 md:grid-cols-3">
+            {/* a measured ruler, not three boxes: the ticks run along the rule the days sit under */}
+            <ol className="qd-ticks grid border-t border-line2 md:grid-cols-3">
               {time.map((line, i) => (
-                <li key={line} className="qd-panel qd-ticks relative p-6 pt-9">
+                <li key={line} className="relative border-b border-line pb-7 pt-9 md:border-b-0 md:pe-8 md:[&:not(:first-child)]:border-s md:[&:not(:first-child)]:ps-8">
                   <span className="tabular font-mono text-label text-teal-light">{String(i + 1).padStart(2, '0')}</span>
                   <p className="mt-3 text-copy text-paper/90">{line}</p>
                 </li>

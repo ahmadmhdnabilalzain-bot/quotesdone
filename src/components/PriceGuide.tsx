@@ -64,7 +64,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
   };
 
   return (
-    <div className={`qd-panel qd-panel-hover relative overflow-hidden p-6 text-start md:p-8`}>
+    <div className={`qd-env relative overflow-hidden p-6 pt-8 text-start md:p-8 md:pt-10`}>
 
       {slug && <h2 className="relative font-head text-[20px] font-semibold tracking-[-0.02em] text-white">{t('titleService')}</h2>}
       {/* method="post": the form is handled in JS (preventDefault); the attribute only stops a

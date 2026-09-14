@@ -162,6 +162,58 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
   transition:opacity var(--dur-slow) var(--e)}
 @media (hover:hover){.qd-lit:hover::after{opacity:1}}
 
+/* THE SHAPE SYSTEM — founder, 14 Sep 2026: "the square shape cards are too generic". The rounded box
+   repeated in grids is replaced by three forms taken from the brand line (every quote arrives sealed;
+   only the one you choose is opened). React wrappers: SealedCard and LedgerList in ui/sealed.tsx.
+     .qd-env     a sealed document: square shoulders, the inline-end top corner folded down, a
+                 measured bottom edge. The fold is drawn inside the clip: a consumer's padding of
+                 ≥ half the fold keeps every glyph clear of the cut (fold 26px, padding ≥ 24px).
+                 -lg a bigger fold · -gold the opened one · -hover the flap turns gold on hover.
+     .qd-ledger  an index of ruled rows with mono serials, no box at all (.qd-ledger-row per row).
+     .qd-stamp   the seal mark carrying a document's serial; -open is the gold, opened seal.
+   The CMS-rendered doc pages (§9) join the same selectors so /about and /services speak it too.
+   clip-path has no logical form, so Arabic mirrors it below. The outer border is an inset shadow
+   because a clip removes anything drawn outside the box. */
+.qd-env,.mk-about :is(.flow,.vision),.mk .step{--fold:26px;--edge:var(--line);--flap:rgba(110,231,212,.14);--crease:rgba(110,231,212,.62);
+  position:relative;isolation:isolate;border-radius:2px;border:0;
+  background:
+    repeating-linear-gradient(90deg,rgba(110,231,212,.34) 0 1px,transparent 1px 64px) bottom/100% 7px no-repeat,
+    repeating-linear-gradient(90deg,rgba(110,231,212,.16) 0 1px,transparent 1px 8px) bottom/100% 3px no-repeat,
+    linear-gradient(180deg,rgba(110,231,212,.04),transparent 36%),
+    linear-gradient(170deg,rgba(21,48,63,.8),rgba(10,23,32,.9));
+  box-shadow:inset 0 0 0 1px var(--edge);
+  clip-path:polygon(0 0,calc(100% - var(--fold)) 0,100% var(--fold),100% 100%,0 100%);
+  transition:box-shadow var(--dur-base) var(--e)}
+.qd-env::before,.mk-about :is(.flow,.vision)::before,.mk .step::before{content:'';position:absolute;z-index:1;top:0;inset-inline-end:0;inset-inline-start:auto;
+  width:var(--fold);height:var(--fold);pointer-events:none;border-radius:0;
+  background:linear-gradient(45deg,var(--flap) calc(50% - .75px),var(--crease) calc(50% - .75px) calc(50% + .75px),transparent calc(50% + .75px))}
+[dir="rtl"] :is(.qd-env,.mk-about .flow,.mk-about .vision,.mk .step){clip-path:polygon(var(--fold) 0,100% 0,100% 100%,0 100%,0 var(--fold))}
+[dir="rtl"] :is(.qd-env,.mk-about .flow,.mk-about .vision,.mk .step)::before{
+  background:linear-gradient(-45deg,var(--flap) calc(50% - .75px),var(--crease) calc(50% - .75px) calc(50% + .75px),transparent calc(50% + .75px))}
+.qd-env-lg,.mk-about .vision{--fold:44px}
+.qd-env-gold{--edge:rgba(227,192,101,.45);--flap:rgba(227,192,101,.2);--crease:rgba(227,192,101,.85)}
+@media (hover:hover){:is(.qd-env-hover,.mk .step):hover{--edge:var(--line2);--flap:rgba(227,192,101,.2);--crease:rgba(227,192,101,.85)}}
+.qd-env:focus-within{--edge:var(--line2)}
+/* a focusable document (a link) draws its ring inside the clip, where it cannot be cut off */
+.qd-env:focus-visible{outline:2px solid var(--teal);outline-offset:-4px}
+
+.qd-ledger{list-style:none;margin:0;padding:0;border-block-start:1px solid var(--line2)}
+.qd-ledger > li{border-block-end:1px solid var(--line);transition:background-color var(--dur-base) var(--e)}
+@media (hover:hover){.qd-ledger > li:hover{background:rgba(110,231,212,.025)}}
+.qd-ledger-row{display:grid;grid-template-columns:2.75rem minmax(0,1fr);column-gap:1rem;padding-block:1.4rem}
+@media (min-width:768px){.qd-ledger-row{grid-template-columns:4.5rem minmax(0,1fr);column-gap:1.5rem;padding-block:1.75rem}}
+.qd-ledger-no{font-family:var(--font-mono);font-size:12px;line-height:1.9;color:var(--teal-light);font-variant-numeric:tabular-nums}
+.qd-ledger-lg .qd-ledger-no{font-size:clamp(22px,2.4vw,32px);line-height:1;font-weight:500;color:rgba(110,231,212,.8)}
+
+.qd-stamp{display:inline-grid;place-items:center;flex:none;width:42px;height:42px;border-radius:50%;
+  font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--teal-light);font-variant-numeric:tabular-nums;
+  background:radial-gradient(circle at 36% 30%,rgba(110,231,212,.16),rgba(110,231,212,.03) 62%);
+  box-shadow:inset 0 0 0 1px rgba(110,231,212,.5),inset 0 0 0 4px rgba(10,23,32,.92),inset 0 0 0 5px rgba(110,231,212,.22);
+  transform:rotate(-9deg)}
+[dir="rtl"] .qd-stamp{transform:rotate(9deg)}
+.qd-stamp-open{color:#E3C065;background:radial-gradient(circle at 36% 30%,rgba(227,192,101,.22),rgba(227,192,101,.05) 62%);
+  box-shadow:inset 0 0 0 1px rgba(227,192,101,.6),inset 0 0 0 4px rgba(10,23,32,.92),inset 0 0 0 5px rgba(227,192,101,.3)}
+
 /* legacy material names, re-pointed to the same panel so every consumer inherits Sealed */
 .surface{background:linear-gradient(170deg,rgba(21,48,63,.66),rgba(10,23,32,.62));border:1px solid var(--line);box-shadow:var(--key)}
 .surface-hover{transition:border-color var(--dur-base) var(--e),transform var(--dur-base) var(--e)}
@@ -492,10 +544,10 @@ html[lang="ar"] .qd-kicker::before{width:14px;height:2px;border-radius:2px;box-s
 .mk ul.ticks li::before{content:"";position:absolute;inset-inline-start:2px;top:1.05em;width:12px;height:6px;border-inline-start:2px solid var(--teal-light);border-block-end:2px solid var(--teal-light);transform:rotate(-45deg)}
 [dir="rtl"] .mk ul.ticks li::before{transform:rotate(45deg) scaleX(-1)}
 .mk .steps{display:flex;flex-wrap:wrap;gap:16px}
-.mk .step{position:relative;flex:1;min-width:220px;overflow:hidden;border-radius:16px;padding:22px;border:1px solid var(--line);box-shadow:var(--e2);
-  background:linear-gradient(180deg,rgba(110,231,212,.045),transparent 40%),linear-gradient(170deg,rgba(21,48,63,.78),rgba(10,23,32,.72));transition:transform var(--dur-slow) var(--e),border-color var(--dur-slow) var(--e)}
-.mk .step::before{content:'';position:absolute;inset-inline-start:22px;top:0;width:34px;height:2px;background:var(--teal-light);border-radius:0 0 2px 2px}
-@media(hover:hover){.mk .step:hover{transform:translateY(-3px);border-color:var(--line2)}}
+/* .step takes the sealed-document shape from §1; only its box model lives here. The steps step down
+   one after another (offset row), so a row of them never reads as a grid of equal boxes. */
+.mk .step{flex:1;min-width:220px;padding:26px 24px 28px}
+@media(min-width:900px){.mk .step:nth-child(2){margin-block-start:24px}.mk .step:nth-child(3){margin-block-start:48px}.mk .step:nth-child(4){margin-block-start:72px}}
 .mk .step b{display:block;margin-block-end:6px;font-family:var(--font-head)}
 .mk .step div{color:var(--muted)}
 .mk .faq{border-block-start:1px solid var(--line);padding-block:16px}
@@ -534,20 +586,24 @@ html[lang="ar"] .qd-kicker::before{width:14px;height:2px;border-radius:2px;box-s
 .mk-about .gd,.mk-about .g{color:var(--teal-light);-webkit-text-fill-color:currentColor;background:none}
 .mk-about .concept{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center}
 .mk-about .concept p{color:var(--muted);margin-block-end:14px}
-.mk-about :is(.flow,.founder,.vision,.acard){position:relative;border:1px solid var(--line);box-shadow:var(--e2);
+/* .flow and .vision are sealed documents (§1 shape system); .founder keeps its own panel. */
+.mk-about .founder{position:relative;border:1px solid var(--line);box-shadow:var(--e2);
   background:linear-gradient(180deg,rgba(110,231,212,.045),transparent 40%),linear-gradient(170deg,rgba(21,48,63,.78),rgba(10,23,32,.72))}
-.mk-about .flow{border-radius:18px;padding:24px}
+.mk-about .flow{padding:28px 26px}
 .mk-about .fstep{display:flex;gap:14px;align-items:flex-start;padding-block:14px;border-block-end:1px solid var(--line)}
 .mk-about .fstep:last-child{border-block-end:0}
 .mk-about .fnum{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;color:var(--on-teal);background:var(--teal)}
 .mk-about .fstep p{color:var(--muted);font-size:14px;margin:0}
-.mk-about .adv{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-block-start:34px}
-.mk-about .acard{border-radius:16px;padding:24px;transition:transform var(--dur-slow) var(--e),border-color var(--dur-slow) var(--e)}
-@media(hover:hover){.mk-about .acard:hover{transform:translateY(-4px);border-color:var(--line2)}}
-.mk-about .acard .ic{font-size:24px;margin-block-end:12px}
-.mk-about .acard h3{font-size:17px;margin-block-end:6px}
-.mk-about .acard p{color:var(--muted);font-size:14px}
-.mk-about .vision{border-radius:22px;padding:46px;text-align:center;max-width:880px;margin-inline:auto}
+/* The advantages are a ledger (§1 .qd-ledger): ruled rows, the mark in the serial column. */
+.mk-about .adv{margin-block-start:34px;border-block-start:1px solid var(--line2)}
+.mk-about .acard{display:grid;grid-template-columns:2.75rem minmax(0,1fr);column-gap:1rem;align-items:baseline;padding-block:22px;
+  border-block-end:1px solid var(--line);transition:background-color var(--dur-base) var(--e)}
+@media(hover:hover){.mk-about .acard:hover{background:rgba(110,231,212,.025)}}
+.mk-about .acard .ic{grid-row:span 2;font-size:22px;margin:0}
+.mk-about .acard h3{font-size:17px;margin:0 0 6px}
+.mk-about .acard p{color:var(--muted);font-size:14px;margin:0;max-width:62ch}
+@media(min-width:900px){.mk-about .acard{grid-template-columns:4.5rem minmax(0,4fr) minmax(0,7fr);column-gap:1.5rem}.mk-about .acard .ic{grid-row:auto}.mk-about .acard h3{margin:0}}
+.mk-about .vision{padding:52px 46px 46px;text-align:center;max-width:880px;margin-inline:auto}
 .mk-about .vision .big{font-family:var(--font-head);font-size:clamp(22px,2.6vw,30px);font-weight:500;line-height:1.45;letter-spacing:var(--ls-snug)}
 .mk-about .founder{display:grid;grid-template-columns:.85fr 1.15fr;gap:44px;align-items:center;border-radius:22px;padding:40px}
 /* Founder, 14 Sep 2026: "my image is cropped somehow". The frame was square (1:1) over an 800x1202
@@ -562,8 +618,8 @@ html[lang="ar"] .qd-kicker::before{width:14px;height:2px;border-radius:2px;box-s
 .mk-about .tagrow{display:flex;flex-wrap:wrap;gap:8px;margin-block-start:6px}
 .mk-about .tg{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:100px;padding:5px 12px;background:rgba(110,231,212,.03)}
 .mk-about .reveal{opacity:1;transform:none}
-@media(max-width:900px){.mk-about :is(.concept,.founder){grid-template-columns:1fr;gap:28px}.mk-about .fphoto{max-width:300px;margin-inline:auto}.mk-about .adv{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.mk-about .adv{grid-template-columns:1fr}.mk-about section{padding-block:48px}.mk-about .vision,.mk-about .founder{padding:26px}}
+@media(max-width:900px){.mk-about :is(.concept,.founder){grid-template-columns:1fr;gap:28px}.mk-about .fphoto{max-width:300px;margin-inline:auto}}
+@media(max-width:560px){.mk-about section{padding-block:48px}.mk-about .founder{padding:26px}.mk-about .vision{padding:48px 24px 30px}}
 
 /* FAQ — the kicker text comes from --kicker, set per locale on <main> by FaqInner */
 .mk-faq .fwrap{max-width:1000px}
@@ -582,15 +638,17 @@ html[lang="ar"] .qd-kicker::before{width:14px;height:2px;border-radius:2px;box-s
 .mk-faq .sec h2{position:relative;font-family:var(--font-mono);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:var(--ls-caps);color:var(--teal-light);margin:0 0 12px;padding-inline-start:14px}
 html[lang="ar"] .mk-faq .sec h2{font-size:14px;font-weight:600}
 .mk-faq .sec h2::before{content:'';position:absolute;inset-inline-start:0;top:.1em;height:1em;width:3px;border-radius:2px;background:var(--teal)}
-.mk-faq details.qa{border:1px solid var(--line);border-radius:14px;margin-block:10px;overflow:hidden;box-shadow:var(--key);
-  background:linear-gradient(170deg,rgba(21,48,63,.7),rgba(10,23,32,.66));transition:border-color var(--dur-base) var(--e),transform var(--dur-base) var(--e)}
-@media(hover:hover){.mk-faq details.qa:hover{border-color:var(--line3);transform:translateY(-1px)}}
-.mk-faq details.qa[open]{border-color:var(--line3)}
-.mk-faq details.qa summary{cursor:pointer;list-style:none;position:relative;padding-block:17px;padding-inline:18px 48px;font-weight:500;font-size:16px;color:var(--paper)}
+/* Each section's questions are a ledger (§1): ruled rows, no boxes; the open one is lit. */
+.mk-faq .sec h2 + details.qa,.mk-faq details.qa:first-of-type{border-block-start:1px solid var(--line2)}
+.mk-faq details.qa{border-block-end:1px solid var(--line);transition:background-color var(--dur-base) var(--e)}
+@media(hover:hover){.mk-faq details.qa:hover{background:rgba(110,231,212,.025)}}
+.mk-faq details.qa[open]{background:rgba(110,231,212,.035)}
+.mk-faq details.qa summary{cursor:pointer;list-style:none;position:relative;padding-block:18px;padding-inline:6px 48px;font-weight:500;font-size:16px;color:var(--paper)}
+.mk-faq details.qa summary:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
 .mk-faq details.qa summary::-webkit-details-marker{display:none}
 .mk-faq details.qa summary::after{content:"+";position:absolute;inset-inline-end:18px;top:50%;transform:translateY(-50%);color:var(--teal-light);font-size:22px;font-weight:300;transition:transform var(--dur-base) var(--e)}
 .mk-faq details.qa[open] summary::after{transform:translateY(-50%) rotate(45deg)}
-.mk-faq details.qa .a{padding:0 18px 18px;color:var(--muted);font-size:15px}
+.mk-faq details.qa .a{padding:0 6px 20px;color:var(--muted);font-size:15px;max-width:72ch}
 .mk-faq .nomatch{display:none;text-align:center;color:var(--muted);padding-block:40px}
 
 /* ══════════════════════════════════════════════════════════════════════
