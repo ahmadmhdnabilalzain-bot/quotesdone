@@ -138,6 +138,7 @@ begin
       'a restore drill completed at ' || to_char(v_last at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai');
     return jsonb_build_object('overdue', false, 'last_drill', v_last);
   end if;
+  -- Limit: this gate keys off ANY scheduled duty's age, not this drill's own start; a duty added long after the others needs its own start date.
   if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%'
                   and started_at < now() - v_window) then
     return jsonb_build_object('overdue', false, 'reason', 'the scheduled duties are younger than the window');
