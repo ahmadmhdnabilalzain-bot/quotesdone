@@ -461,7 +461,11 @@ function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[
   push(T('Track record', 'سجل الأداء'), (q) => q.track_record_note ? k.cell(k.sentence(q.track_record_note), 180) : '—');
   push(T('Watch out', 'تنبيهات'), (q) => k.sentence(clipCell(joinList(q.flags, k.ar), 200)) || '—');
   // deno-lint-ignore no-explicit-any
-  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => clipCell(k.label(q.label), 20))], rows, labels: qs.map((q: any) => String(q.label)) };
+  // The FULL label, never clipped: a label is the only thing that tells two options of one supplier
+  // apart. Clipped to 20 characters, "Supplier A – Option 1" and "Supplier A – Option 2" both became
+  // "Supplier A – Option…" in the report's commercial table and in compare_csv (measured 14 Sep 2026,
+  // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
+  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
 }
 const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */

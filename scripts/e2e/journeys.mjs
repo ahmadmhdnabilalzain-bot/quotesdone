@@ -257,7 +257,15 @@ export async function journeyComparison(ctx) {
   if (!inquiryId) return rep.step(J, 'comparison', 'SKIP', 'no request');
   // The bytes are kept in the run directory so a person can open exactly what the customer got.
   const pdfBytes = async (url) => { if (!url) return null; const r = await fetch(url).catch(() => null); if (!r?.ok) return null; const b = Buffer.from(await r.arrayBuffer()); return b.subarray(0, 5).toString() === '%PDF-' ? b : null; };
+  // THE REGISTERED LANGUAGE DECIDES THE DOCUMENT (founder, 14 Sep 2026: "if someone registered while
+  // the language was arabic then arabic follows through the whole workflow"), so an Arabic report is
+  // proven by an Arabic-registered customer, not by lang:'ar' alone. Measured 14 Sep 2026: with
+  // customers.locale='en', the "ar" PDF and CSV were byte-identical to the English ones and the step
+  // still passed on "%PDF-". The demo row's locale is set per pass AND lang is sent, which holds
+  // whichever of the two decides. The update cannot reach a real person: demo row, example.invalid.
+  const setLocale = (lang) => write(`update public.customers set locale = ${q(lang)} where id = ${q(fx.customer.customerId)} and is_demo = true and email like '%@example.invalid'`, 'e2e comparison language');
   for (const lang of ['en', 'ar']) {
+    await setLocale(lang);
     const r = await call('customer_api', fx.customer.jwt, { action: 'compare_pdf', inquiry_id: inquiryId, lang }, 180000);
     const url = r.json?.url || r.json?.pdf_url || r.json?.file_url;
     const b = await pdfBytes(url);
@@ -268,6 +276,7 @@ export async function journeyComparison(ctx) {
   // compare_csv goes through the same quote_compare call as compare_pdf (customer_api
   // fetchCompareAnalysis), so it is asserted here rather than assumed to follow.
   for (const lang of ['en', 'ar']) {
+    await setLocale(lang);
     const r = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang }, 180000);
     const csv = String(r.json?.csv || '');
     const rows = csv.split(/\r?\n/).filter((x) => x.trim());
@@ -281,6 +290,7 @@ export async function journeyComparison(ctx) {
   // comparison_unavailable. The CSV's quote columns are compareTable(analysis) from the
   // server-to-server call; they must be exactly quote_compare's non-held quotes, in order, at the
   // same prices. compare_pdf shares that call (customer_api fetchCompareAnalysis).
+  await setLocale('en');
   {
     const direct = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' }, 180000);
     const csvR = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang: 'en' }, 180000);
