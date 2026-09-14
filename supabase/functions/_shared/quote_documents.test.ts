@@ -27,7 +27,6 @@ function analysisFor(lang: 'en' | 'ar') {
   const a: any = deterministicCompare(lab, lang);
   a.all_quotes = rosterOf(lab, a.top3);
   a.total_quotes = lab.length;
-  a.disclaimer = lang === 'ar' ? 'توصية محايدة.' : 'An impartial recommendation.';
   return a;
 }
 function quoteBody(letterIdx: number, lang: 'en' | 'ar') {
@@ -162,6 +161,19 @@ for (const lang of ['en', 'ar'] as const) {
     }
     // "Only three quotes" must never be said about a request that received seven.
     assert(!/only (3|three) quotes/i.test(s));
+    if (lang === 'en') {
+      assertStringIncludes(s, 'All 7 quotes are listed in this report; the top 3 are compared in detail.');
+      assertStringIncludes(s, 'You can choose any of them');
+      assertStringIncludes(s, 'Specifications are not assessed');
+    } else {
+      assertStringIncludes(s, 'جميع العروض الـ7 مدرجة في هذا التقرير');
+      assertStringIncludes(s, 'يمكنك اختيار أي منها');
+    }
+    // A customer never reads that something of ours is unavailable, and a rules ranking never
+    // claims to have matched the specification.
+    assert(!/AI adviser|unavailable|المساعد الذكي|غير متاح|strongest \d+ are shown|وعرضت أفضل|من حيث المواصفات/i.test(s), 'internal-failure or spec-match wording reached the report');
+    // The method line is said once, not repeated as a "Watch out" bullet.
+    assertEquals((s.match(lang === 'en' ? /Specifications are not assessed/g : /لم تُقيَّم المواصفات/g) || []).length, 1);
     assertNoIdentity(body);
     await assertRenders(body, lang);
   });
