@@ -49,17 +49,33 @@ export async function openRun(opts = {}) {
 /** Tear everything down (unless kept), close the window, and prove nothing was left behind. */
 export async function closeRun(run, { keep = false } = {}) {
   let removed = { summary: 'kept' };
-  if (!keep) {
-    // Inquiries created through the UI carry no run tag of their own; tag them so teardown's scope,
-    // which is derived from the database rather than from a list, reaches them (and their quotes,
-    // holds, notifications, documents) even if the customer row were already gone.
-    const inq = [...run.ids.inquiries];
-    if (inq.length) await write(`update public.inquiries set provenance = coalesce(provenance,'{}'::jsonb) || ${q(JSON.stringify({ qd_run: run.tag, source: 'e2e' }))}::jsonb
-                                  where id in (${inq.map(q).join(',')})`, 'tag e2e inquiries');
-    removed = await teardown(run);
+  try {
+    if (!keep) {
+      // Inquiries created through the UI carry no run tag of their own; tag them so teardown's scope,
+      // which is derived from the database rather than from a list, reaches them (and their quotes,
+      // holds, notifications, documents) even if the customer row were already gone.
+      const inq = [...run.ids.inquiries];
+      if (inq.length) await write(`update public.inquiries set provenance = coalesce(provenance,'{}'::jsonb) || ${q(JSON.stringify({ qd_run: run.tag, source: 'e2e' }))}::jsonb
+                                    where id in (${inq.map(q).join(',')})`, 'tag e2e inquiries');
+      removed = await teardown(run);
+      // Objects named with the run tag that no row points at any more (a signed PDF whose row went first).
+      const stray = await read(`select bucket_id b, name from storage.objects where name like ${q('%' + run.tag + '%')}`);
+      for (const o of stray) await deleteObject(o.b, o.name);
+    }
+  } finally {
+    // ALWAYS closed, even when teardown throws. An open window silences the failed-run watcher for up
+    // to six hours - the first harness run left one open exactly that way (14 Sep 2026).
+    await write(`update public.rehearsal_window set ended_at = now() where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window');
   }
-  await write(`update public.rehearsal_window set ended_at = now() where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window');
   return { removed, leftovers: keep ? null : await leftovers(run) };
+}
+
+async function deleteObject(bucket, name) {
+  const { SERVICE } = await keys();
+  await fetch(`${BASE}/storage/v1/object/${bucket}`, {
+    method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefixes: [name] }),
+  });
 }
 
 /** Every table a run can write, counted by the run's own handles. A clean run reads zero on every line. */
@@ -75,6 +91,8 @@ export async function leftovers(run) {
       (select count(*) from public.quote_spec_hold where quote_id::text in (${ids(run.ids.quotes)}))::int quote_spec_hold,
       (select count(*) from public.notifications where to_email like ${like} or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(run.ids.quotes)}))::int notifications,
       (select count(*) from public.transactions where quote_id::text in (${ids(run.ids.quotes)}))::int transactions,
+      (select count(*) from public.refunds where quote_id::text in (${ids(run.ids.quotes)}) or inquiry_id::text in (${ids(run.ids.inquiries)}))::int refunds,
+      (select count(*) from public.refund_case where refund_id in (select id from public.refunds where quote_id::text in (${ids(run.ids.quotes)})))::int refund_case,
       (select count(*) from public.inquiry_intake where email like ${like})::int inquiry_intake,
       (select count(*) from public.email_verifications where email like ${like})::int email_verifications,
       (select count(*) from storage.objects where name like ${q('%' + t + '%')})::int storage_objects`))[0];
