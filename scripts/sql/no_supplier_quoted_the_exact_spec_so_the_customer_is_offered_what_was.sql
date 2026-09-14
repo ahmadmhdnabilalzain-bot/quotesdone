@@ -29,8 +29,10 @@
 -- no pg_cron job is added (cron.job holds only wa_flush). Reminders fire on the first tick after
 -- opened_at + each spec_offer_reminder_after_hours; the offer lapses on the first tick past reply_by.
 --
--- WHO MAY ANSWER ON WHATSAPP: only a customer with a VERIFIED phone and an open offer; a number two
--- such customers share records nothing and opens a support_case for customer_support instead.
+-- WHO MAY ANSWER ON WHATSAPP: only a customer with a VERIFIED number and an open offer; a number two
+-- such customers share records nothing and opens a support_case for customer_support instead. Which
+-- customer a sender is, is decided in ONE place, fn_customer_by_whatsapp_sender (verified mobile
+-- today; the WhatsApp-number build extends it to a verified whatsapp_phone).
 -- WHEN AN INQUIRY IS CHECKED: not before it has at least one non-draft quote (stated in the query).
 --
 -- WHAT THIS DOES NOT DO: it does not message anyone (the edge sweep does, through customer_support),
@@ -228,6 +230,26 @@ end;
 $fn$;
 revoke execute on function public.fn_spec_offer_answer(bigint, uuid, text, text) from public, anon, authenticated;
 
+-- ── WHICH CUSTOMER A WHATSAPP SENDER IS ─────────────────────────────────────────────────────────
+-- THE ONE PLACE THAT DECIDES IT. Today: a customer whose MOBILE is verified (customers.phone_verified)
+-- and equals the sender's number, digits only. The founder wants customers able to use WhatsApp on a
+-- number other than their mobile (coordinator, 14 Sep 2026); that build adds customers.whatsapp_phone,
+-- whatsapp_verified_at and whatsapp_opt and EXTENDS THIS FUNCTION, and no caller changes: prefer a
+-- verified whatsapp_phone when present, else the verified mobile when whatsapp_opt = 'same'. Callers
+-- must never match a sender to a customer any other way. Returns every customer the number identifies;
+-- more than one is the caller's to treat as ambiguous.
+create or replace function public.fn_customer_by_whatsapp_sender(p_phone text)
+returns setof uuid
+language sql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select c.id from public.customers c
+   where length(regexp_replace(coalesce(p_phone, ''), '\D', '', 'g')) >= 8
+     and c.phone_verified is true
+     and regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+$fn$;
+revoke execute on function public.fn_customer_by_whatsapp_sender(text) from public, anon, authenticated;
+
 -- ── A WHATSAPP REPLY: "2", "٢", "option 2", "yes" (one option), "no", "لا" ─────────────────────
 -- WHO MAY ANSWER (review of #652, 14 Sep 2026): only a customer whose phone is VERIFIED
 -- (customers.phone_verified) and who HAS an open offer. A number is not an identity (a phone may
@@ -261,10 +283,10 @@ begin
           or v_t ~ '^(yes|ok|نعم|موافق)$') then
     return jsonb_build_object('handled', false, 'reason', 'not_a_reply');
   end if;
-  select count(*), min(c.id::text)::uuid into v_matches, v_cust from public.customers c
-   where c.phone_verified is true
-     and regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = v_digits
-     and exists (select 1 from public.spec_alternative_offer o where o.customer_id = c.id and o.state = 'open');
+  -- Who the sender is: fn_customer_by_whatsapp_sender alone decides (verified numbers only).
+  select count(*), min(s.id::text)::uuid into v_matches, v_cust
+    from public.fn_customer_by_whatsapp_sender(p_phone) as s(id)
+   where exists (select 1 from public.spec_alternative_offer o where o.customer_id = s.id and o.state = 'open');
   if v_matches = 0 then return jsonb_build_object('handled', false, 'reason', 'no_verified_customer_with_open_offer'); end if;
   if v_matches > 1 then
     v_ref := 'SE-SPECOFFER-AMBIG-' || right(v_digits, 9) || '-' || to_char(now(), 'YYYYMMDD');
