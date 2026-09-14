@@ -131,7 +131,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     const flags: string[] = [];
     // Facts only. Before the reveal the customer cannot reach a supplier (founder, 14 Sep 2026), so
     // no flag tells them to ask, confirm with or contact one.
-    if (q.expired) flags.push(ar ? 'انتهت صلاحية عرض السعر' : 'This quote has passed its validity date.');
+    if (q.expired) flags.push(ar ? 'انتهت صلاحية عرض السعر' : 'This quote has expired.');
     if (!q.itemised) flags.push(ar ? 'سعر إجمالي بدون تفاصيل' : 'Lump sum with no line items — it cannot be checked item by item.');
     if (!stated(q.warranty)) flags.push(ar ? 'الضمان غير مذكور' : 'Warranty not stated.');
     if (!stated(q.lead_time)) flags.push(ar ? 'مدة التسليم غير مذكورة' : 'Lead time not stated.');
@@ -219,8 +219,10 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
       ? 'أعلى مجموع نقاط على السعر والاكتمال والتسليم من الأرقام المذكورة.'
       : 'Highest combined score on price, completeness and delivery, from the stated figures.',
     watch_outs: [
-      ...(scored.some(s => s.flags.some(f => /expired|انتهت/.test(f)))
-        ? [ar ? 'أحد العروض تجاوز تاريخ صلاحيته.' : 'At least one quote has passed its validity date.'] : []),
+      // From the data, not from a flag's wording: rewording the expired flag on 14 Sep 2026 silently
+      // switched this watch-out off (deterministic.test.mjs caught it).
+      ...(labelled.some((x) => x.expired)
+        ? [ar ? 'أحد العروض منتهي الصلاحية.' : 'At least one quote has expired.'] : []),
       // The method line is said once, in the bottom line; repeating it here read as a warning.
     ],
     // What actually happens, never "confirm it with the supplier": before the reveal the customer
