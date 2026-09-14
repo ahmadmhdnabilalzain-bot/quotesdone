@@ -84,8 +84,15 @@ test('the table drill\'s due-check waits at most 250 ms for a lock and then says
   const fn = src.slice(src.indexOf('create or replace function public.fn_it_restore_table_due()'),
                        src.indexOf('revoke execute on function public.fn_it_restore_table_due()'));
   assert.match(fn, /set lock_timeout to '250ms'/, 'a lock held elsewhere made the check outlive the 8 s statement timeout (14 Sep 2026)');
-  assert.match(fn, /exception when lock_not_available then\s+return false;/);
+  assert.match(fn, /exception when lock_not_available then[\s\S]*?raise warning[\s\S]*?return false;/);
   assert.doesNotMatch(fn, /count\(\*\)|storage\.objects/, 'the due path must not count rows or scan storage');
+  assert.match(fn, /raise warning 'fn_it_restore_table_due: a lock held elsewhere/, 'a skipped tick must leave a trace in the postgres log');
+  const od = src.slice(src.indexOf('create or replace function public.fn_it_restore_table_overdue()'),
+                       src.indexOf('revoke execute on function public.fn_it_restore_table_overdue()'));
+  assert.ok(od.length > 0, 'the overdue check is missing');
+  assert.doesNotMatch(od, /fn_it_restore_table_due\s*\(/, 'the overdue check must not go through the due-check');
+  assert.match(od, /set lock_timeout to '250ms'/);
+  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('restore_overdue', async \(\) => rpc\('fn_it_restore_table_overdue'\)\)/);
 });
 
 test('the tag apply_sql.mjs writes is the tag the guard reads as signed', () => {
@@ -148,6 +155,12 @@ if (!SKIP) {
   } catch (e) { SKIP = 'production not reachable: ' + String(e.message).slice(0, 120); }
 }
 if (SKIP) console.log(SKIP);
+// The overdue check is newer than the other duties: it has its own gate until it is applied.
+let OVERDUE_SKIP = SKIP;
+if (!OVERDUE_SKIP) {
+  const [o] = await sql(`select to_regprocedure('public.fn_it_restore_table_overdue()') is not null ok`);
+  if (!o.ok) OVERDUE_SKIP = 'NOT_APPLIED: fn_it_restore_table_overdue is not on production yet';
+}
 
 async function probe(body) {
   try { await sql(`do $p$ ${body} $p$;`); } catch (e) {
@@ -258,6 +271,27 @@ test('an empty page passes only when the export itself says the table was empty'
   assert.match(r.lost_error, /export holds 3 row\(s\) and none reached the restore/, 'an export that lost its rows passed because the live table is empty');
   assert.equal(r.empty_error, null);
   assert.equal(r.restore_open_after_empty, false, 'an empty table exported empty must pass');
+});
+
+test('a drill that has not completed for 33 days is its own finding, and a completed drill closes it', { skip: OVERDUE_SKIP }, async () => {
+  // ZZ DEMO: every change here rolls back. The real drill runs are hidden inside the transaction and a
+  // scheduled-duty run older than the window stands in for a long-running estate.
+  const r = await probe(`
+    declare v1 jsonb; v2 jsonb; v_open boolean;
+    begin
+      delete from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table';
+      insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+      values ('it_engineer', 'ok', now() - interval '40 days', now() - interval '40 days', '{"job": "duty:zz_demo_probe"}', 'ZZ DEMO probe');
+      v1 := public.fn_it_restore_table_overdue();
+      select closed_at is null into v_open from public.it_engineer_finding where issue_key = 'duty:restore_table:overdue';
+      insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+      values ('it_engineer', 'ok', now(), now(), '{"job": "duty:restore_table"}', 'ZZ DEMO probe');
+      v2 := public.fn_it_restore_table_overdue();
+      raise exception 'CHK<<%>>', json_build_object('first', v1->'overdue', 'open', v_open, 'second', v2->'overdue',
+        'closed', (select closed_at is not null from public.it_engineer_finding where issue_key = 'duty:restore_table:overdue'),
+        'blast', (select blast from public.it_engineer_finding where issue_key = 'duty:restore_table:overdue'));
+    end`);
+  assert.deepEqual(r, { first: true, open: true, second: false, closed: true, blast: 'monitor' });
 });
 
 test('a bill over its recorded cap is a finding for the accountant; an unread provider is named', { skip: SKIP }, async () => {
