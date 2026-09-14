@@ -16,3 +16,19 @@ export const REFUND_EVENTS = ['charge.refunded', 'refund.created', 'refund.updat
 // the finished invoice and let the handler file it without waiting for a manual resend.
 export const INVOICE_EVENTS = ['invoice.finalized', 'invoice.paid'] as const;
 export const HANDLED_STRIPE_EVENTS: readonly string[] = [...CHECKOUT_EVENTS, ...FAILED_CHECKOUT_EVENTS, ...REFUND_EVENTS, ...INVOICE_EVENTS];
+
+// WHICH SIGNING SECRET MAY VERIFY AN EVENT (14 Sep 2026, agent: accountant). Stripe signs `livemode`
+// inside the payload, so the mode an event claims chooses exactly ONE secret, and stripe_webhook
+// accepts the event only if that secret verifies it. There is no second try with the other mode's
+// secret: a test delivery can never be accepted as live, nor the reverse. Pure, so it is tested alone
+// (stripe_events.test.ts).
+export type StripeMode = 'live' | 'test';
+// deno-lint-ignore no-explicit-any
+export function stripeEventMode(event: any): StripeMode | null {
+  if (event?.livemode === true) return 'live';
+  if (event?.livemode === false) return 'test';
+  return null;
+}
+export function signingSecretFor(mode: StripeMode | null, secrets: { live: string; test: string }): string {
+  return mode === 'live' ? secrets.live : mode === 'test' ? secrets.test : '';
+}

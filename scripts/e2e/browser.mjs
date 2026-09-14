@@ -19,9 +19,19 @@ const KEYS = {
 export const portalUrl = (kind, lang, query = '') => `${SITE}${lang === 'ar' ? '/ar' : ''}${KEYS[kind].path}${query}`;
 
 export async function launch() {
-  // QD_BROWSER_CHANNEL=chrome|msedge uses an installed browser when Playwright's own build for this
-  // version has not been downloaded (14 Sep 2026: headless_shell-1243 missing, run died at fixtures).
-  return chromium.launch({ headless: process.env.QD_HEADED !== '1', ...(process.env.QD_BROWSER_CHANNEL ? { channel: process.env.QD_BROWSER_CHANNEL } : {}) });
+  const headless = process.env.QD_HEADED !== '1';
+  try {
+    return await chromium.launch({ headless });
+  } catch (e) {
+    // `playwright install chromium` on this machine fetched the full build but not the headless shell
+    // (measured 14 Sep 2026: ms-playwright held chromium-1148 only). Fall back to the full build.
+    if (!/Executable doesn't exist/.test(String(e.message))) throw e;
+    // Then the Chrome or Edge already installed on the machine - no download needed.
+    for (const channel of ['chrome', 'msedge']) {
+      try { return await chromium.launch({ headless, channel }); } catch { /* try the next one */ }
+    }
+    throw e;
+  }
 }
 
 /**
@@ -75,7 +85,11 @@ export const IGNORABLE_CONSOLE = [/favicon/i, /Download the React DevTools/i, /g
 export const realErrors = (errs) => errs.filter((e) => !IGNORABLE_CONSOLE.some((re) => re.test(e)));
 
 /** Navigate and time it: ms until the portal nav is visible, and ms until its data calls settled. */
-export async function openPortal(page, url, calls, navSelector = 'nav') {
+// Desktop: the sidebar <nav>. Phone (375px): the bottom bar's More button - the <nav> there is hidden,
+// and waiting for it cost 30 s per page on the first phone run.
+export const PORTAL_READY = 'nav:visible, button[aria-controls="qd-nav-more"]:visible';
+
+export async function openPortal(page, url, calls, navSelector = PORTAL_READY) {
   const t0 = Date.now();
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.locator(navSelector).first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
