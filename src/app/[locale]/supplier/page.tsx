@@ -5,33 +5,25 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { EmiratesMap } from '@/components/visual/slots';
 import { PageHero, CtaPanel } from '@/components/DocFrame';
-import { BoqShowcase, Kicker, LedgerList, ProductFrame, Seal, SealedCard, SectionHead, Stamp, Stepper } from '@/components/ui/sealed';
+import { DrawingToBoq } from '@/components/visual/product';
+import { Kicker, LedgerList, SealedCard, SectionHead, Stamp, Stepper } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 // /supplier WAS THE PORTAL ITSELF — a second copy of /portal behind a login box, and every supplier
 // link on the site landed on that form (website audit §1 finding 6). It is now the supplier pitch;
 // the app stays at /portal. Every figure below is the FAQ's (src/content/marketing.json, checked
 // 14 Sep 2026): no commission; registration free permanently for the first 1,000 suppliers, AED
 // 1,000/year from the 1,001st; the non-response charge; verification within 3 working days.
-// The brief in the hero frame is illustrative and carries the kit's visible sample label.
+// The drawing in the hero frame (DrawingToBoq) is illustrative and carries the visible sample label.
 type KV = { k: string; v: string };
 type Step = { title: string; body: string };
 
 const L = {
   en: {
-    frame: 'rfq / fit-out · Dubai', status: 'New brief', sample: 'Sample data', customer: 'Customer',
-    chips: ['Fit-out', 'Dubai', 'Drawings attached'],
-    boq: { code: 'Code', desc: 'Description', unit: 'Unit', qty: 'Qty' },
-    lines: ['Gypsum board partition, 12.5 mm', 'Suspended ceiling, mineral tile', 'Porcelain floor tiling 600 × 600', 'Emulsion paint, two coats'],
     econKicker: 'Economics', stepsKicker: 'Onboarding', coverage: 'Coverage', coverageNote: 'Briefs reach you from anywhere in the UAE, for the trades your licence covers.',
     ruleKicker: 'Obligation', finalKicker: 'Supplier portal',
   },
   ar: {
-    frame: 'طلب عرض سعر / تشطيبات · دبي', status: 'طلب جديد', sample: 'بيانات نموذجية', customer: 'العميل',
-    chips: ['تشطيبات', 'دبي', 'مخططات مرفقة'],
-    boq: { code: 'الرمز', desc: 'الوصف', unit: 'الوحدة', qty: 'الكمية' },
-    lines: ['قواطع ألواح جبسية، 12.5 مم', 'سقف معلّق، بلاطات معدنية', 'تبليط أرضيات بورسلان 600 × 600', 'دهان مائي، طبقتان'],
     econKicker: 'الجدوى', stepsKicker: 'التسجيل', coverage: 'التغطية', coverageNote: 'تصلك الطلبات من أي مكان في الإمارات، للأنشطة التي تغطيها رخصتك.',
     ruleKicker: 'التزام', finalKicker: 'بوابة الموردين',
   },
@@ -63,22 +55,9 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
             <Button asChild size="xl" className="qd-magnet"><Link href="/portal">{t('cta')}</Link></Button>
             <Button asChild size="xl" variant="secondary"><Link href="/how-it-works">{t('cta2')}</Link></Button>
           </>}
-          aside={
-            // What the supplier sees before a reveal: the job, never the buyer.
-            <ProductFrame title={x.frame} sampleLabel={x.sample} status={x.status} className="shadow-e3">
-              <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-4">
-                <span className="text-small text-muted">{x.customer}</span>
-                <Seal>Villa 14, Al Barsha</Seal>
-                <span className="ms-auto flex flex-wrap gap-1.5">{x.chips.map((c) => <Badge key={c} variant="outline">{c}</Badge>)}</span>
-              </div>
-              <BoqShowcase labels={x.boq} lines={[
-                { code: '02.10', desc: x.lines[0], unit: 'm²', qty: '184.0' },
-                { code: '03.04', desc: x.lines[1], unit: 'm²', qty: '96.5' },
-                { code: '06.02', desc: x.lines[2], unit: 'm²', qty: '112.0' },
-                { code: '07.11', desc: x.lines[3], unit: 'm²', qty: '420.0' },
-              ]} />
-            </ProductFrame>
-          }
+          // What the supplier sees before a reveal: the drawing with the customer blacked out, and
+          // the quantities read from it. The job, never the buyer.
+          aside={<DrawingToBoq locale={lang} />}
         />
 
         <section className="container-x py-beat-s md:py-beat">
