@@ -19,6 +19,7 @@ import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const agreementSha256 = async () => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -158,7 +159,7 @@ async function aiSummarize(leadId: number) {
 async function aiReview(lead: Record<string, unknown>) {
   try { const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null; const profile: Record<string, unknown> = {}; for (const k of ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number','bank_name','bank_account_name','bank_iban']) profile[k] = lead[k]; const r = await fetch(`${SUPA_URL}/functions/v1/supplier_review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, profile }) }); if (!r.ok) return null; return await r.json(); } catch (_e) { return null; }
 }
-async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
+async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 
 // THE COMMERCIAL ACCEPT RULE, read from the stored quote (14 Sep 2026). It lived inline in
 // submit_quote; approving a regenerated quotation must clear the same bar, so both call this.
