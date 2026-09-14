@@ -1,0 +1,345 @@
+-- THE ACCOUNTANT RAISES ITS FINDINGS INTO THE LOOP THE IT ENGINEER RUNS, AND ITS NOTICES ARE WRITTEN
+-- BY THE SALES ENGINEER AND CARRIED BY CUSTOMER SUPPORT.
+--
+-- Assigned: accountant (the finding ledger entries and the notices it asks for). The words a supplier
+-- reads are the sales_engineer's (fn_sales_engineer_writes_money_notice); the send is customer_support's.
+-- The loop core (fn_seat_handoff_act, fn_seat_handoff_types) has ONE owner, the it_engineer's
+-- the_it_engineer_closes_every_loop_it_opens.sql, and since #648 it dispatches every conversation by
+-- looking up its row in public.seat_handoff_kind. This file never redefines either routine: it INSERTs
+-- the accountant's five notice kinds (section 3b) and owns their handler.
+--
+-- The founder, 14 Sep 2026: "yea add them all" (the accountant's eight duties), "always make sure things
+-- are in loop. nothing literally should ever be a one way communication", and "just ignore the corporate
+-- tax matter for companies" (duty 5 is not built: no table, no warning, no question).
+--
+-- WHAT WAS MEASURED (14 Sep 2026, production htdblwldjkcgjvmqkbeh):
+--   * The IT engineer's loop (the_it_engineer_closes_every_loop_it_opens.sql) already turns an open,
+--     actionable public.it_engineer_finding into an it.finding handoff to the seat named in
+--     evidence.owner_seat, gives it a four-hour reply window (its public.seat_handoff_kind row, #648), lets only the
+--     it_engineer close it after the finding itself is closed, escalates to the CEO past the window,
+--     and has the CEO send the founder ONE deduped it_new_bug email through customer_support. A ZZ DEMO
+--     finding never reaches him. The finding table carries raised_by and a free evidence object.
+--   * The accountant has no finding ledger of its own and none is built: a second ledger with a second
+--     escalation path is exactly the duplication the brief forbids. The accountant writes into
+--     it_engineer_finding with raised_by 'accountant.<duty>' and issue keys 'acct:<duty>:<item>', and
+--     the IT loop carries every one of them round. The accountant's own duty check is the
+--     re-verification: an item that stops failing is closed by the same settle call that raised it,
+--     and the IT loop then closes the handoff.
+--   * fn_it_duty_settle does the same for the IT engineer but stamps 'it_engineer.<duty>' and
+--     'IT engineer duty' on every row, which would file the accountant's findings under the wrong seat.
+--     fn_accountant_duty_settle below is that routine with the accountant's name on it; both call the
+--     one upsert and the one close.
+--   * The sales engineer had no words for a reminder, a final demand, a renewal notice or dunning. Since
+--     #648 a conversation is data: the accountant adds five rows to public.seat_handoff_kind
+--     (nonresponse.charge_reminder, nonresponse.final_demand, subscription.renewal_reminder,
+--     subscription.dunning, subscription.payment_failed; accountant -> sales_engineer), each naming
+--     fn_sales_engineer_writes_money_notice as its handler, which works out the notice from the type.
+--     The existing conversations and their handlers are unchanged.
+--
+-- WHAT THIS DOES NOT DO. It does not write any duty's detector; each duty is its own file and calls
+-- fn_accountant_duty_settle. It seeds no reminder or final-demand wording: those are configuration rows
+-- the collections file owns, driven by docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md.
+--
+--   node scripts/apply_sql.mjs scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql --apply --ddl
+
+-- ── 0. HIS WORDS, IN THE REGISTER ─────────────────────────────────────────────────────────────────
+insert into public.founder_instruction (said_at, instruction, subject, status, evidence, note)
+select '2026-09-14T00:00:00Z', x.i, x.s, x.st, x.ev, x.n
+  from (values
+    ('yea add them all', 'the accountant''s eight duties', 'open', null,
+     'The eight duties the coordinator listed on 14 Sep 2026: bank reconciliation, non-response charge collection, supplier subscription billing, the VAT threshold watch, the corporate tax calendar, expenses and receipts, Stripe disputes, the monthly close. Duty 5 was withdrawn by the founder the same day.'),
+    ('yea add them', 'three more accountant duties', 'open', null,
+     'Duties 9-11, 14 Sep 2026: the refund reserve (money a refund could still take back is held, not earned), the daily charge audit of every reveal against what Stripe took, and the automatic booking of Stripe fees, the VAT on them and the Mashreq charge (bank entries as drafts while the founder''s bank-booking hold stands).'),
+    ('just ignore the corporate tax matter for companies', 'no corporate tax calendar', 'done',
+     'Nothing was built for corporate tax: no table, no warning, no founder question. scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql names the omission in its header.',
+     'Withdraws duty 5 of the eight accountant duties.'),
+    ('you need to check as per UAE law the deadline for that and accordingly set it. once the deadline is over, the accountant need to issue a proper legal document that i can take to dubai police or court and complain officially. all as per UAE law exactly, i am not gonna hire any lawyer so make sure the form and the wordings is done correctly',
+     'supplier charge recovery under UAE law', 'open', null,
+     'Duty 2: the reminder and final-demand timeline and wording are configuration rows citing docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; when the final deadline passes the filing pack goes to the founder and the item stays open until he records the outcome.'),
+    ('with stamp and signature of course', 'recovery documents carry his signature and the company stamp', 'open', null,
+     'The accountant''s recovery documents (reminders, final demand, filing pack) go out automatically with the founder''s signature and the company stamp, and every issued document is logged in public.accountant_issued_document (document, version, content hash, recipient, sent time) as the audit trail of what was signed in his name. The stamped and signed rendering is the legal build''s template (#643/#649).'),
+    ('do these: Changes to your Supplier Agreement that would make this stronger. These need your yes, because suppliers have accepted the current version: 1. Add WhatsApp and SMS as formal notice channels. Today only email and the portal count as official notice. 2. Make the Arabic text the one that counts in court. Right now English governs, so every court filing would need a certified translation. 3. State that the total charge is a fixed amount. Courts issue payment orders for fixed sums. 4. Link the AED 250 fee to the law on agreed compensation, so it''s harder for a court to reduce. 5. Correct the licence wording in the agreement to match your actual trade licence.',
+     'the five Supplier Agreement changes (v11)', 'open', null,
+     'His approval of the five Supplier Agreement changes, implemented by the legal build''s v11 PR (#649). Duty 2''s notices and filing pack rest on that version.'),
+    ('commercial register get it from the trade license. you already have it',
+     'the company is identified by its trade licence', 'open', null,
+     'The DET trade licence carries no commercial register number, so none is printed: the company is identified by Trader License No. 1633275 only (the legal build, #649).')
+  ) x(i, s, st, ev, n)
+ where not exists (select 1 from public.founder_instruction f where f.instruction = x.i);
+
+-- ── 1. SETTLING A DUTY'S FINDINGS ────────────────────────────────────────────────────────────────
+-- p_items: [{item, title, owner_seat, subject, blast, affected, demo, evidence}] — everything failing NOW.
+-- Every open acct:<duty>:* finding not in the list is closed in the same call: that close IS the
+-- accountant's re-verification, and fn_it_loop_reverify closes the handoff once it sees it.
+create or replace function public.fn_accountant_duty_settle(p_duty text, p_items jsonb)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
+begin
+  if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
+    raise exception 'fn_accountant_duty_settle(duty, items[]): a duty name and an array of failing items are required';
+  end if;
+  for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce(btrim(x->>'item'), '') = '' or coalesce(btrim(x->>'title'), '') = '' then
+      raise exception 'fn_accountant_duty_settle: every item needs an item key and a title (%)', x;
+    end if;
+    if coalesce(x->>'owner_seat', '') not in ('accountant', 'sales_engineer', 'customer_support', 'ceo') then
+      raise exception 'fn_accountant_duty_settle: item % names owner seat %, which is not a seat the loop can hand to', x->>'item', x->>'owner_seat';
+    end if;
+    v_key := 'acct:' || p_duty || ':' || (x->>'item');
+    v_keys := v_keys || v_key;
+    perform public.fn_it_engineer_finding_upsert(v_key, x->>'title', 'Accountant duty: ' || p_duty,
+      coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
+      coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+        'duty', p_duty, 'owner_seat', x->>'owner_seat', 'subject', coalesce(x->>'subject', 'accountant'),
+        'raised_by_seat', 'accountant', 'demo', coalesce((x->>'demo')::boolean, false)),
+      '{}'::text[], '{}'::text[], 'accountant.' || p_duty);
+  end loop;
+  for v_open in select issue_key from public.it_engineer_finding
+                 where closed_at is null and issue_key like 'acct:' || p_duty || ':%' and not (issue_key = any (v_keys)) loop
+    perform public.fn_it_engineer_finding_close(v_open, 'the accountant''s ' || p_duty || ' duty re-checked and no longer finds it');
+    n_closed := n_closed + 1;
+  end loop;
+  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed);
+end $fn$;
+revoke execute on function public.fn_accountant_duty_settle(text, jsonb) from public, anon, authenticated;
+
+-- A duty that raises is itself a finding (the IT loop's fn_it_loop_stage pattern), closed again the
+-- first run the duty succeeds. Owner ceo, blast 'monitor': a blind detector is high from the first tick.
+create or replace function public.fn_accountant_duty_stage(p_step text, p_error text)
+returns void language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  if coalesce(btrim(p_step), '') = '' then raise exception 'fn_accountant_duty_stage: a stage name is required'; end if;
+  if p_error is null then
+    if exists (select 1 from public.it_engineer_finding where issue_key = 'acct:stage:' || p_step and closed_at is null) then
+      perform public.fn_it_engineer_finding_close('acct:stage:' || p_step, 'the accountant''s ' || p_step || ' duty ran cleanly');
+    end if;
+    return;
+  end if;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('accountant', 'error', now(), now(), jsonb_build_object('job', 'duties', 'stage', p_step), left(p_error, 600));
+  perform public.fn_it_engineer_finding_upsert('acct:stage:' || p_step,
+    'The accountant''s ' || p_step || ' duty is failing', 'public.fn_accountant_duties', 'monitor', 1,
+    jsonb_build_object('stage', p_step, 'error', left(p_error, 600), 'owner_seat', 'ceo', 'subject', 'accountant', 'duty', 'stage'),
+    '{}'::text[], array['why the duty raises: ' || left(p_error, 300)], 'accountant.stage');
+end $fn$;
+revoke execute on function public.fn_accountant_duty_stage(text, text) from public, anon, authenticated;
+
+-- ── 2. A TEMPLATE IS CONFIGURATION, NOT CODE ─────────────────────────────────────────────────────
+-- {{name}} is replaced by p_vars->>'name'. A placeholder with no value is left visible rather than
+-- blanked, and the caller refuses to send a text that still carries one.
+create or replace function public.fn_render_template(p_text text, p_vars jsonb)
+returns text language plpgsql immutable set search_path to 'public', 'pg_temp' as $fn$
+declare k text; v text; r text := p_text;
+begin
+  if r is null then return null; end if;
+  for k, v in select key, value #>> '{}' from jsonb_each(coalesce(p_vars, '{}'::jsonb)) loop
+    r := replace(r, '{{' || k || '}}', coalesce(v, ''));
+  end loop;
+  return r;
+end $fn$;
+revoke execute on function public.fn_render_template(text, jsonb) from public, anon, authenticated;
+
+-- ── 2b. EVERY DOCUMENT SIGNED IN THE FOUNDER'S NAME, LOGGED ─────────────────────────────────────
+-- Founder, 14 Sep 2026: "with stamp and signature of course". The recovery documents go out automatically
+-- carrying his signature and the company stamp, so the record of what was signed in his name is this
+-- table: the document, the template version, the SHA-256 of exactly what was sent, the recipient, and
+-- (through the delivery handoff) when it was sent and the provider's message id. Append-only by trigger:
+-- an audit trail that can be edited is not one. The stamped and signed PDF rendering is the legal
+-- build's (#643/#649); its filing pack logs itself here through fn_accountant_log_issued_document.
+create table if not exists public.accountant_issued_document (
+  id                 bigserial   primary key,
+  document_kind      text        not null check (document_kind in ('charge_reminder', 'final_demand', 'filing_pack', 'invoice')),
+  template_key       text,
+  template_version   text        not null,
+  content_sha256     text        not null check (content_sha256 ~ '^[0-9a-f]{64}$'),
+  recipient          text        not null,
+  supplier_id        bigint,
+  due_id             bigint,
+  handoff_id         bigint,
+  file_path          text,
+  signed_as          text        not null default 'founder',
+  stamp_required     boolean     not null default true,
+  signature_required boolean     not null default true,
+  issued_at          timestamptz not null default now()
+);
+comment on table public.accountant_issued_document is
+  'Every recovery document the accountant issued in the founder''s name, with his signature and the company stamp (founder, 14 Sep 2026: "with stamp and signature of course"): kind, template version, SHA-256 of the content sent, recipient, and the delivery handoff that carries the sent time. Append-only.';
+alter table public.accountant_issued_document enable row level security;
+drop policy if exists accountant_issued_document_service_role_only on public.accountant_issued_document;
+create policy accountant_issued_document_service_role_only on public.accountant_issued_document as permissive for all to public using (false) with check (false);
+revoke all on public.accountant_issued_document from anon, authenticated;
+revoke all on sequence public.accountant_issued_document_id_seq from anon, authenticated;
+
+create or replace function public.trg_accountant_issued_document_is_append_only()
+returns trigger language plpgsql set search_path to 'public', 'pg_temp' as $fn$
+begin
+  raise exception 'accountant_issued_document is the audit trail of what was signed in the founder''s name: rows are never changed or deleted';
+end $fn$;
+revoke execute on function public.trg_accountant_issued_document_is_append_only() from public, anon, authenticated;
+drop trigger if exists a00_append_only on public.accountant_issued_document;
+create trigger a00_append_only before update or delete on public.accountant_issued_document
+  for each row execute function public.trg_accountant_issued_document_is_append_only();
+
+-- For documents rendered outside this file (the legal build's filing pack): the rendered file's hash.
+create or replace function public.fn_accountant_log_issued_document(p_kind text, p_template_version text, p_sha256 text,
+  p_recipient text, p_supplier_id bigint, p_due_id bigint, p_file_path text)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_id bigint;
+begin
+  insert into public.accountant_issued_document (document_kind, template_version, content_sha256, recipient, supplier_id, due_id, file_path)
+  values (p_kind, p_template_version, lower(p_sha256), p_recipient, p_supplier_id, p_due_id, p_file_path)
+  returning id into v_id;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_accountant_log_issued_document(text, text, text, text, bigint, bigint, text) from public, anon, authenticated;
+
+-- The sent time is the delivery's, read through the handoff chain rather than copied (a copy can drift).
+create or replace view public.v_accountant_issued_documents with (security_invoker = true) as
+  select d.*, dr.id as delivery_request_id, n.id as notification_id, n.status as delivery_status, n.sent_at, n.provider_message_id
+    from public.accountant_issued_document d
+    left join public.agent_actions h on h.id = d.handoff_id
+    left join public.agent_actions dr on dr.id = (h.evidence->>'delivery_request')::bigint
+    left join public.notifications n on n.id = (dr.evidence->>'notification_id')::bigint;
+revoke all on public.v_accountant_issued_documents from anon, authenticated;
+
+-- ── 3. THE SALES ENGINEER'S WORDS FOR THE ACCOUNTANT'S NOTICES ───────────────────────────────────
+-- Called only from fn_seat_handoff_act, for a sales_engineer handoff whose detail carries 'notice'.
+-- The supplier's language is leads.locale, applied by fn_sales_engineer_writes and customer_support.
+create or replace function public.fn_sales_engineer_writes_money_notice(p_id bigint)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  a public.agent_actions; d jsonb; v_notice text; v_sup record; v_tpl jsonb; v_vars jsonb;
+  v_sub_en text; v_body_en text; v_sub_ar text; v_body_ar text; v_req bigint; v_msg text;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  -- THE KIND IS THE CONVERSATION'S TYPE (public.seat_handoff_kind, #648): fn_seat_handoff_act dispatches
+  -- each of the five rows inserted below to this routine, and the type alone says which notice it is.
+  v_notice := case a.detail->>'type'
+                when 'nonresponse.charge_reminder'  then 'charge_reminder'
+                when 'nonresponse.final_demand'     then 'final_demand'
+                when 'subscription.renewal_reminder' then 'subscription_renewal'
+                when 'subscription.dunning'         then 'subscription_dunning'
+                when 'subscription.payment_failed'  then 'subscription_payment_failed' end;
+  if not found or a.agent <> 'sales_engineer' or v_notice is null then
+    raise exception 'fn_sales_engineer_writes_money_notice: % is not one of the accountant''s notice kinds', p_id;
+  end if;
+  d := a.detail;
+  select l.id, l.company_name, coalesce(l.claimed_by, l.email) email into v_sup
+    from public.leads l where l.id = (d->>'supplier_id')::bigint;
+  if coalesce(v_sup.email, '') not like '%@%' then
+    return jsonb_build_object('supplier_reachable', false, 'notice', v_notice);
+  end if;
+  v_vars := d || jsonb_build_object('company', coalesce(v_sup.company_name, ''),
+                                   'reveal_ref', left(coalesce(d->>'transaction_id', ''), 8));
+
+  if v_notice in ('charge_reminder', 'final_demand') then
+    -- THE WORDING IS THE LEGAL DOCUMENT'S, NOT THIS FILE'S (founder, 14 Sep 2026: "make sure the form
+    -- and the wordings is done correctly"). No template row, no send: the handoff fails and says why.
+    select value into v_tpl from public.decision_policy
+     where key = case v_notice when 'charge_reminder' then 'supplier_charge_reminder_template'
+                               else 'supplier_charge_final_demand_template' end;
+    if v_tpl is null or coalesce(v_tpl->>'body_en', '') = '' then
+      raise exception 'no % template in decision_policy: the wording comes from docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md and has not been configured', v_notice;
+    end if;
+    v_sub_en := public.fn_render_template(v_tpl->>'subject_en', v_vars);
+    v_body_en := public.fn_render_template(v_tpl->>'body_en', v_vars);
+    v_sub_ar := public.fn_render_template(v_tpl->>'subject_ar', v_vars);
+    v_body_ar := public.fn_render_template(v_tpl->>'body_ar', v_vars);
+    v_msg := 'nonresponse_' || v_notice;
+  elsif v_notice = 'subscription_renewal' then
+    v_sub_en := 'Your QuotesDone supplier subscription renews on ' || (d->>'renews_on');
+    v_body_en := 'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour annual QuotesDone supplier subscription is paid until '
+      || (d->>'paid_until') || '. The renewal of ' || coalesce(d->>'currency', 'AED') || ' ' || (d->>'fee')
+      || ' falls due on ' || (d->>'renews_on') || E'.\n\nYou can renew from the Billing section of your supplier portal: https://quotesdone.com/suppliers. Stripe issues the invoice for the payment.\n\nYou keep paying no commission on the jobs you win.';
+    v_sub_ar := 'يتجدد اشتراكك كمورّد في QuotesDone في ' || (d->>'renews_on');
+    v_body_ar := 'اشتراكك السنوي مدفوع حتى ' || (d->>'paid_until') || '، ويستحق التجديد بقيمة ' || (d->>'fee')
+      || ' درهم في ' || (d->>'renews_on') || '. يمكنك التجديد من قسم الفواتير في بوابة المورّد.';
+    v_msg := 'subscription_renewal_reminder';
+  elsif v_notice = 'subscription_dunning' then
+    v_sub_en := 'Reminder ' || (d->>'dunning_no') || ': your QuotesDone subscription is unpaid';
+    v_body_en := 'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour annual supplier subscription of '
+      || coalesce(d->>'currency', 'AED') || ' ' || (d->>'fee') || ' fell due on ' || (d->>'due_on') || ' and is still unpaid ('
+      || (d->>'days_overdue') || E' days).\n\nPlease settle it from the Billing section of your supplier portal: https://quotesdone.com/suppliers. '
+      || E'Until it is settled your profile does not receive new customer requests.\n\nIf you have already paid, reply to this email and we will check it against the payment record.';
+    v_sub_ar := 'تذكير ' || (d->>'dunning_no') || ': اشتراكك في QuotesDone غير مدفوع';
+    v_body_ar := 'استحق اشتراكك السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم في ' || (d->>'due_on') || ' ولم يُسدَّد بعد ('
+      || (d->>'days_overdue') || ' يومًا). يُرجى السداد من قسم الفواتير في بوابة المورّد، وحتى السداد لا يتلقى ملفك طلبات جديدة.';
+    v_msg := 'subscription_dunning';
+  elsif v_notice = 'subscription_payment_failed' then
+    v_sub_en := 'Your QuotesDone subscription payment did not go through';
+    v_body_en := 'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour payment for the annual supplier subscription did not complete, and nothing was charged. '
+      || E'You can try again at any time from the Billing section of your supplier portal: https://quotesdone.com/suppliers. If the card was declined, your bank can tell you why, and a different card also works.';
+    v_sub_ar := 'لم تكتمل عملية دفع اشتراكك في QuotesDone';
+    v_body_ar := 'لم تكتمل عملية دفع الاشتراك السنوي ولم يُخصم أي مبلغ. يمكنك المحاولة مجددًا من قسم الفواتير في بوابة المورّد.';
+    v_msg := 'subscription_payment_failed';
+  else
+    raise exception 'fn_sales_engineer_writes_money_notice: no words for notice %', v_notice;
+  end if;
+
+  if v_body_en ~ '\{\{[a-z_]+\}\}' or coalesce(v_body_ar, '') ~ '\{\{[a-z_]+\}\}' then
+    raise exception 'notice % for handoff % still carries an unfilled placeholder; nothing was sent', v_notice, p_id;
+  end if;
+  -- A RECOVERY DOCUMENT IS SIGNED IN THE FOUNDER'S NAME (founder, 14 Sep 2026: "with stamp and signature
+  -- of course"), so every one issued is logged before it leaves: what, which version, its hash, to whom.
+  if v_notice in ('charge_reminder', 'final_demand') then
+    insert into public.accountant_issued_document (document_kind, template_key, template_version, content_sha256, recipient,
+      supplier_id, due_id, handoff_id, signed_as, stamp_required, signature_required)
+    values (v_notice, case v_notice when 'charge_reminder' then 'supplier_charge_reminder_template' else 'supplier_charge_final_demand_template' end,
+            coalesce(v_tpl->>'version', 'unversioned'),
+            encode(sha256(convert_to(coalesce(v_sub_en, '') || E'\n' || v_body_en || E'\n' || coalesce(v_sub_ar, '') || E'\n' || coalesce(v_body_ar, ''), 'UTF8')), 'hex'),
+            v_sup.email, v_sup.id, (d->>'due_id')::bigint, p_id, 'founder', true, true);
+  end if;
+  v_req := public.fn_sales_engineer_writes(v_msg, 'supplier', v_sup.email, v_sup.id, null,
+    (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid, v_sub_en, v_body_en, v_sub_ar, v_body_ar,
+    '{}', v_msg || ':' || (d->>'subject_id'), null,
+    jsonb_build_object('transaction_id', d->>'transaction_id', 'due_id', d->>'due_id', 'notice', v_notice));
+  return jsonb_build_object('notice', v_notice, 'delivery_request', v_req);
+end $fn$;
+revoke execute on function public.fn_sales_engineer_writes_money_notice(bigint) from public, anon, authenticated;
+
+-- ── 3b. THE NOTICES ARE THEIR OWN CONVERSATIONS ─────────────────────────────────────────────────
+-- #648 made every conversation a row of public.seat_handoff_kind naming its handler; a build adds its
+-- conversations by INSERT and never redefines fn_seat_handoff_act. The accountant hands the sales
+-- engineer five notices, each answered by fn_sales_engineer_writes_money_notice. The sales engineer's
+-- words then go to customer_support as a delivery.request, and the delivery.result comes back.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
+  ('nonresponse.charge_reminder', 'accountant', 'sales_engineer',
+   'A non-response charge is still unpaid on a configured reminder day: remind the supplier, in the wording decision_policy holds.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('nonresponse.final_demand', 'accountant', 'sales_engineer',
+   'A non-response charge reached the final-demand day: send the formal demand, in the wording decision_policy holds.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.renewal_reminder', 'accountant', 'sales_engineer',
+   'A paying supplier''s annual subscription renews soon: tell them the date and the fee.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.dunning', 'accountant', 'sales_engineer',
+   'A supplier''s annual subscription is still unpaid on a configured dunning day: remind them.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.payment_failed', 'accountant', 'sales_engineer',
+   'A supplier''s subscription payment did not complete: tell them nothing was charged and how to pay.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql')
+on conflict (type, from_seat, to_seat) do update
+  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
+      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+
+-- ── 4. PROOF: a finding raised, re-checked away, and a notice with no template refused ────────────
+-- This file defines routines, so the probe cleans up after itself and ends in a notice.
+do $probe$
+declare v jsonb; v_open int; v_closed int; v_left int;
+begin
+  v := public.fn_accountant_duty_settle('zz_demo_probe', jsonb_build_array(jsonb_build_object(
+    'item', 'one', 'title', 'ZZ DEMO accountant probe', 'owner_seat', 'accountant', 'blast', 'internal', 'affected', 0, 'demo', true)));
+  select count(*) into v_open from public.it_engineer_finding where issue_key = 'acct:zz_demo_probe:one' and closed_at is null;
+  v := public.fn_accountant_duty_settle('zz_demo_probe', '[]'::jsonb);
+  select count(*) into v_closed from public.it_engineer_finding where issue_key = 'acct:zz_demo_probe:one' and closed_at is not null;
+  delete from public.it_engineer_finding where issue_key = 'acct:zz_demo_probe:one';
+  select count(*) into v_left from public.it_engineer_finding where issue_key like 'acct:zz_demo_probe:%';
+  if v_open <> 1 or v_closed <> 1 or v_left <> 0 then
+    raise exception 'accountant settle probe failed: opened %, closed %, left %', v_open, v_closed, v_left;
+  end if;
+  if public.fn_render_template('AED {{x}} by {{y}}', '{"x":"10"}') <> 'AED 10 by {{y}}' then
+    raise exception 'fn_render_template does not leave an unfilled placeholder visible';
+  end if;
+  raise notice 'accountant findings raise and close through the IT loop''s ledger; probe rows removed.';
+end
+$probe$;

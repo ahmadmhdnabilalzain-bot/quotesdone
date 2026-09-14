@@ -32,6 +32,13 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'subscription.due', from: 'accountant', to: 'sales_engineer' },
   { type: 'billing.answer', from: 'accountant', to: 'sales_engineer' },
   { type: 'charge.dispute_answer', from: 'accountant', to: 'sales_engineer' },
+  // the accountant's notices (14 Sep 2026), each answered by fn_sales_engineer_writes_money_notice
+  // (scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql)
+  { type: 'nonresponse.charge_reminder', from: 'accountant', to: 'sales_engineer' },
+  { type: 'nonresponse.final_demand', from: 'accountant', to: 'sales_engineer' },
+  { type: 'subscription.renewal_reminder', from: 'accountant', to: 'sales_engineer' },
+  { type: 'subscription.dunning', from: 'accountant', to: 'sales_engineer' },
+  { type: 'subscription.payment_failed', from: 'accountant', to: 'sales_engineer' },
   // sales engineer -> accountant: somebody asked about money, the books must answer
   { type: 'refund.requested', from: 'sales_engineer', to: 'accountant' },
   { type: 'billing.question', from: 'sales_engineer', to: 'accountant' },
