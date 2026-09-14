@@ -26,6 +26,13 @@ Deno.test('inventories, documents and anything outside the dated export shapes a
     ['supplier-docs', '2026-09-20/leads/page_0000.json'],   // right shape, wrong bucket
     ['signed-terms', '123/terms.pdf'],
     [null, null],
+    // regression cases from the final review of #672 (LOW)
+    ['backups', '2026-09-20/_MANIFEST.json'],               // uppercase: only the exact _manifest.json
+    ['backups', '2026-09-20/leads/'],                       // trailing slash: a folder, not a file
+    ['backups', '2026-09-20/_manifest.json/'],
+    ['backups', '2026-09-20/leads.json/'],
+    ['backups', '2026-09-20/lеads.json'],              // Cyrillic 'е' (U+0435) looking like 'e'
+    ['backups', '2026-09-20/аccounts/page_0000.json'], // Cyrillic 'а' (U+0430) looking like 'a'
   ];
   for (const [b, p] of refused) assert(!exportPathAllowed(b, p), `${b}:${p} must be refused`);
 });

@@ -612,6 +612,13 @@ begin
      and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_anything.json')
      and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_storage/page_0000.json')
      and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/9leads.json')
+     -- regression cases from the final review of #672 (LOW): case, trailing slash, Unicode lookalikes
+     and not public.fn_backup_prune_path_allowed('backups', '2026-09-20/_MANIFEST.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-09-20/leads/')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-09-20/_manifest.json/')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-09-20/leads.json/')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-09-20/l' || chr(1077) || 'ads.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-09-20/' || chr(1072) || 'ccounts/page_0000.json')
      and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/../supplier-docs/licence.pdf')
      and not public.fn_backup_prune_path_allowed(null, null), 'F: a document shape was allowed';
   -- and on production's own files, read-only: no stored document and no document backup row qualifies
