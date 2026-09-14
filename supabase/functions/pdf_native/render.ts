@@ -262,6 +262,8 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
     space(6); blockTotal('AED ' + Number(q.total || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     space(8); para(L === 'ar' ? disAr : disEn, 9, false, MUT);
     if (q.source_note) { space(2); para(String(q.source_note), 9, false, MUT); }
+    // Back to this quote on its request in the portal (quote_documents.ts sets q.link).
+    if (q.link) { space(4); para(L === 'ar' ? 'افتح هذا العرض في طلبك على بوابة QuotesDone' : 'Open this quote on your request in the QuotesDone portal', 10, true, TEAL, 1.45, M, CW, q.link); }
   }
 
   if (isQuote) {

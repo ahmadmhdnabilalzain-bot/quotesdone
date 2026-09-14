@@ -41,6 +41,7 @@ import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, X, Sparkles, Up
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
 import { expiryOf } from './quoteExpiry';
+import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // Website audit 14 Sep 2026: the intake composer, the pre-reveal Q&A, the Reveal Guarantee and the
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
 import { NewRequest } from './NewRequest';
@@ -461,6 +462,21 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   const [focusProject, setFocusProject] = useState('');
   const [pickFile, setPickFile] = useState(false);
   const openRfq = (id) => { setFocusInq(id ? String(id) : ''); setBallFilter('all'); setQtext(''); setView('requests'); };
+  // THE DEEP LINK TO ONE QUOTE: /me?request=<inquiry_id>&quote=<quote_id> (src/lib/portalLink.ts),
+  // printed on the comparison report and the quotation PDF. Sign-in is an in-page OTP, so the query
+  // string is still there when this screen mounts after login. It is resolved only against this
+  // customer's own my_inquiries answer — customer_api filters that by the signed-in customer — so an
+  // id from another account finds nothing and the customer is told so, never shown anything else.
+  const [deepLink, setDeepLink] = useState(null);
+  const [linkQuote, setLinkQuote] = useState('');
+  useEffect(() => {
+    if (!deepLink || !data || !Array.isArray(data.inquiries)) return;
+    const hit = resolveQuoteLink(data.inquiries, deepLink);
+    setDeepLink(null);
+    try { const qs = new URLSearchParams(location.search); qs.delete('request'); qs.delete('quote'); const rest = qs.toString(); history.replaceState({}, '', location.pathname + (rest ? '?' + rest : '')); } catch (_e) { /* the link is already consumed */ }
+    if (!hit) { setNote(t(lang, 'link_not_yours')); return; }
+    setLinkQuote(hit.quoteId); openRfq(hit.inquiryId);
+  }, [deepLink, data]);
   const openProject = (id) => { setFocusProject(id ? String(id) : ''); setView('projects'); };
   const openNew = (withFile) => { setPickFile(!!withFile); setShowNew(true); setView('home'); };
   // Where an alert goes is decided by what it is about: a request it names, the approvals it counts,
@@ -478,6 +494,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     loadPd(true);
     loadUnread(true);
     const qs = new URLSearchParams(location.search);
+    const dl = parseQuoteLink(location.search); if (dl) setDeepLink(dl);
     const sid = qs.get('session_id'); const revealQ = qs.get('reveal') || '';
     // Only drop session_id from the URL once the payment is confirmed — it is the customer's
     // only reference for retrying or chasing a payment that did not go through. A confirmed payment
@@ -773,12 +790,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         <WhatHappensNext lang={lang} />
       </Card>
     ) : (filtered && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, needle ? 'no_search_match' : 'ball_none_you')}</div></Card>
-      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} />)}</div>
+      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />)}</div>
       // The overview shows the five most recent and links to the full list; My requests shows all.
       // Mapped then sliced, rather than sliced then mapped, so this stays the dashboard's list over
       // `inqs` — the thing the entry-not-login-dashboard leg reads to tell a workspace carrying live
       // work from a page of figures and links. Ten rows at most; the extra map costs nothing.
-      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} />).slice(0, onlyRequests ? undefined : 5)}</div>}
+      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />).slice(0, onlyRequests ? undefined : 5)}</div>}
     {/* fn_customer_stats computes history_12m on EVERY overview call and nothing drew it; recharts
         and ui/chart.tsx were installed with no importers, so the customer product contained zero
         charts. Each chart states what is true when there is nothing to draw rather than rendering
@@ -916,17 +933,22 @@ function QuickActions({ lang, onNew, onUpload, onCompare, comparable }) {
     </section>
   );
 }
-function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq }) {
-  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card id={'inq-' + inq.id} className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} focusInq={focusInq} />)}</div></Card>); }
+function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, linkQuote }) {
+  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card id={'inq-' + inq.id} className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />)}</div></Card>); }
   // Opened by the quote a payment was for (focusQuote) or by any control that asked to open THIS
   // request by id (focusInq — Dashboard's openRfq). The id is the same inquiries.id every caller holds.
-  const hasFocus = (!!focusQuote && (inq.quotes || []).some((q) => q.id === focusQuote)) || (!!focusInq && String(inq.id) === String(focusInq));
+  // linkQuote — the quote a /me?request=&quote= link named — scrolls to its own card (QuoteCard), so
+  // this card does not scroll to its top over it.
+  const linkHere = !!linkQuote && (inq.quotes || []).some((q) => q.id === linkQuote);
+  const hasFocus = linkHere || (!!focusQuote && (inq.quotes || []).some((q) => q.id === focusQuote)) || (!!focusInq && String(inq.id) === String(focusInq));
   const [open, setOpen] = useState(hasFocus);
   const cardRef = useRef(null);
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
     if (!hasFocus) return;
     setOpen(true);
-    try { cardRef.current && cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {}
+    if (linkHere) return;
+    try { cardRef.current && cardRef.current.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); } catch (_e) {}
   }, [hasFocus]);
   const [canceling, setCanceling] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1012,7 +1034,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq }
               <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && '!text-accent')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
             </div>
             <LevelledRows quotes={quotes} vmap={vmap} bestId={bestId} lang={lang} />
-            <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} />)}</div>
+            <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} highlight={q.id === linkQuote} />)}</div>
           </section>
         : null}
     </div>}
@@ -1225,7 +1247,7 @@ function ExportComparison({ inqId, token, lang }) {
     {err ? <div className={cn(S.err, 'mt-1')} role="alert">{err}</div> : null}
   </div>);
 }
-function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus }) {
+function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus, highlight }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [dialog, ask] = useConfirm(lang);
   const [negOpen, setNegOpen] = useState(false);
@@ -1233,6 +1255,14 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   // THE REVEAL MOMENT: the redaction bar lifts off the supplier the first time the customer sees
   // them — in this session, or on the return from Stripe (focus). Once; a later visit is plain.
   const [justRevealed, setJustRevealed] = useState(!!focus && !!q.revealed);
+  // The quote a deep link named: scrolled to the middle of the screen and ringed for a moment, so
+  // the eye lands on it. With reduced motion the jump is instant and the ring does not animate.
+  const hlRef = useRef(null); const [lit, setLit] = useState(false);
+  useEffect(() => {
+    if (!highlight) return;
+    try { hlRef.current && hlRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); } catch (_e) {}
+    setLit(true); const id = setTimeout(() => setLit(false), 2600); return () => clearTimeout(id);
+  }, [highlight]);
   // Warn, do not block: an expired price is still a supplier worth contacting.
   const exp = expiryOf(q, lang);
   const w = terms && terms.window_days, c = terms && terms.chase_after_days;
@@ -1259,7 +1289,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null); if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
   useEffect(() => { if (state === 'revealed' && !contact) showContactData(); }, [state]);
   const revealed = state === 'revealed';
-  return (<div className={cn('rounded-card border p-3.5 transition-colors duration-500 sm:p-4', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
+  return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0"><b className="font-head font-semibold tracking-snug">{supLabel(q.label, lang)}</b>{!revealed ? <span aria-hidden className="ms-2 inline-block align-middle leading-none"><Seal className="text-[11px]">{'••••••••••'}</Seal></span> : null}{best ? <span className="ms-1.5 rounded-chip border border-primary/30 bg-primary/12 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
       <div className="shrink-0 text-end"><div className="tabular font-mono text-[18px] font-semibold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="tabular font-mono text-[10.5px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
