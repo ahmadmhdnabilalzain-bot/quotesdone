@@ -339,7 +339,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     else if (!llmParseOk) { await logRun('error', { llm_call_ok: 1, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM replied with unparseable JSON, so this customer\'s brief fell back to keyword guessing rather than the model — the brief that suppliers eventually quote against is degraded and may name the wrong trade.'); }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
-    let nextQuestion: { key: string | null; text: string; options: string[] | null } | null = null;
+    let nextQuestion: { key: string | null; text: string; options: string[] | null; suggested?: string | null } | null = null;
     let readinessFields: { filled: number; required: number } | null = null;
     if (!out) {
       const multi = kwTrades.length > 1;
@@ -522,7 +522,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         out.assistant_message = lead + rs.next.text;
         out.questions = [rs.next.text];
         out.missing = rs.remaining;
-        nextQuestion = { key: rs.next.key, text: rs.next.text, options: rs.next.options };
+        // suggested: what the trade or the checklist points to. The composer highlights it; only the
+        // customer tapping it records it (founder, 14 Sep 2026: "we don't assume stuff").
+        nextQuestion = { key: rs.next.key, text: rs.next.text, options: rs.next.options, suggested: rs.next.suggested };
         reqAsked = rs.next.key;
       }
     }

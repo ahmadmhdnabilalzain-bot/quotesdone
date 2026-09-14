@@ -5,41 +5,50 @@
 // to make sure the inquiry is fully detailed ... do you require a warranty? do you require
 // installation? do you have specific material in mind (for example if he is doing a custom table,
 // maybe he wants the legs to be steel, or wood, or acrylic, or maybe he doesnt even care, but our
-// job is to ask.)" And the same day: "its always the sales agent. no other agent is involved in
-// customer or supplier portal." So every answer here is recorded under ACTOR = 'sales_engineer'.
+// job is to ask.)" Then: "its always the sales agent. no other agent is involved in customer or
+// supplier portal." So every answer here is recorded under ACTOR = 'sales_engineer'. And later the
+// same day: "for installation for example, we need to ask, cause maybe the customer will forget. we
+// don't assume stuff."
 //
 // WHY A SECOND LIST BESIDE category_specs. category_specs.fields is what a supplier needs to PRICE
-// the job (area, quantity, emirate). What was missing — measured 14 Sep 2026 over all 56 rows — is
-// what the customer WANTS in the finished result: 0 of 56 categories ask about a warranty, 3 ask
-// about installation as a required field (custom-furniture, and scope fields in a few others), and a
-// required date exists in 3 (engineering-and-architectural-consultancies, general-building-contracting,
-// job-shop-manufacturing). Suppliers must state all four for every quote (the exact-specs-or-hold
-// gate), so the customer's side of each has to exist first — it is the BASELINE that "matches your
-// request / differs" is judged against. See docs/contracts/intake_answers.md.
+// the job (area, quantity, emirate). What was missing (measured 14 Sep 2026 over all 56 rows) is
+// what the customer WANTS in the finished result: 0 of 56 categories asked about a warranty. Suppliers
+// must state installation, warranty, materials and a date for every quote (the exact-specs-or-hold
+// gate), so the customer's side of each has to exist first. It is the BASELINE that "matches your
+// request / differs" is judged against, and the hold check reads installation and warranty
+// applicability from THESE answers, never from trade defaults. See docs/contracts/intake_answers.md.
 //
 // THE RULES THE FOUNDER SET, AS CODE:
-//   * quick — every question has tap-able options; materials also take the customer's own words
-//   * never skipped silently — a question is answered only by an option (which always includes
-//     "No preference" / "Not sure") or, for materials, the customer's own description; an
-//     unrecognised answer to a yes/no or date question is asked again, never guessed
-//   * only where it applies — installation is not asked of a pure service (cleaning, pest control,
-//     movers, consultancy, painting and waterproofing where applying IS the job); warranty is not
-//     asked where no warranty is sold (cleaning, movers, consultancy, demolition, scaffold hire)
-//   * in the customer's language — every question and option exists in English and Arabic (MSA)
+//   * all four, every trade, never assumed. Installation, warranty, a material preference for at
+//     least one main component, and the required date are asked of EVERY request. A trade where
+//     installation or a warranty is unusual (cleaning, movers, consultancy) still asks; its profile
+//     only SUGGESTS "Not needed", and the customer confirms with one tap or picks another answer.
+//   * a suggestion is never an answer. What the trade usually needs, and what the category
+//     checklist already heard ("supply + installation", "2-4 weeks"), is offered as the suggested
+//     option. Nothing is filled in without the customer choosing it.
+//   * quick. Every question has options to tap; materials also take the customer's own words.
+//   * explicit, never silent. Each question is answered only by an option ("Supply only", "Not
+//     needed", "Not sure", "No preference", "Flexible" included) or, for materials, the customer's own
+//     description. An unreadable answer to installation, warranty or the date is asked again.
+//   * in the customer's language. Every question and option exists in English and Arabic (MSA).
 //
 // ponytail: one profile per category slug, hand-written against production's 56 category_specs
-// rows (14 Sep 2026). A category added later gets DEFAULT (install + warranty + one open material
-// question) until it is given its own row here. When the per-trade spec model lands
-// (branch exact-specs-or-hold) it can adopt PROFILES as its customer-side attribute list.
+// rows (14 Sep 2026). A category added later gets DEFAULT_PROFILE until it is given its own row.
+// When the per-trade spec model lands (branch exact-specs-or-hold) it can adopt PROFILES as its
+// customer-side attribute list.
 import { parseWhen, parseYesNo, isUnknown, normDigits } from '../inquiry_intake/interview.ts';
 
 export const ACTOR = 'sales_engineer' as const;
-export const VERSION = 1;
+export const VERSION = 2;
 export type Lang = 'en' | 'ar';
 
 /** [value, English label, Arabic label] */
 type O = [string, string, string];
 type Component = { c: string; en: string; ar: string; opts: O[]; field?: string };
+/**
+ * install / warranty say what this trade USUALLY needs. They never skip a question: when false, the
+ * question is still asked and "Not needed" is offered as the suggestion for the customer to confirm.
+ */
 type Profile = { install: boolean; warranty: boolean; components: Component[] };
 
 // ── COMPONENTS SHARED BY SEVERAL TRADES ─────────────────────────────────────────────────────────
@@ -59,14 +68,15 @@ const CEILING: Component = { c: 'ceiling', en: 'Ceiling', ar: 'السقف',
   opts: [['gypsum', 'Gypsum board', 'ألواح جبس'], ['grid', 'Grid / tile ceiling', 'سقف معلّق ببلاطات'], ['exposed', 'Exposed (painted)', 'مكشوف ومدهون']] };
 const PARTITIONS: Component = { c: 'partitions', en: 'Partitions', ar: 'القواطع',
   opts: [['gypsum', 'Gypsum partitions', 'قواطع جبس'], ['glass', 'Glass partitions', 'قواطع زجاج'], ['block', 'Block walls', 'جدران بلوك']] };
+/** The material question every trade gets when it has no components of its own. */
 const GENERIC: Component = { c: 'main', en: 'Main material or brand', ar: 'المادة أو الماركة الرئيسية', opts: [] };
 
 const P = (install: boolean, warranty: boolean, components: Component[]): Profile => ({ install, warranty, components });
 export const DEFAULT_PROFILE: Profile = P(true, true, [GENERIC]);
 
 // One row per production category_specs slug (56, read 14 Sep 2026). `field` names the
-// category_specs key that already asks the same thing: when the customer has answered it there,
-// the answer is carried over instead of asked twice.
+// category_specs key that already asks the same thing: when the customer answered it there, that
+// answer is offered as the suggestion here (and still confirmed).
 export const PROFILES: Record<string, Profile> = {
   acrylic: P(true, true, [{ c: 'sheet', en: 'Sheet type', ar: 'نوع اللوح', opts: [['cast_acrylic', 'Cast acrylic', 'أكريليك مصبوب'], ['extruded_acrylic', 'Extruded acrylic', 'أكريليك مبثوق'], ['polycarbonate', 'Polycarbonate', 'بولي كربونات']] }]),
   aluminium: P(true, true, [
@@ -156,34 +166,41 @@ export const profileFor = (category: string): Profile => PROFILES[String(categor
 // ── THE QUESTIONS ────────────────────────────────────────────────────────────────────────────────
 export type Kind = 'material' | 'installation' | 'warranty' | 'required_by';
 export type Opt = { v: string; en: string; ar: string };
-export type ReqQuestion = { key: string; kind: Kind; label_en: string; label_ar: string; en: string; ar: string; options: Opt[]; free_text: boolean; field?: string };
+/** `suggested` is the option value the TRADE usually needs. It is offered, never recorded. */
+export type ReqQuestion = { key: string; kind: Kind; label_en: string; label_ar: string; en: string; ar: string; options: Opt[]; free_text: boolean; field?: string; suggested?: string };
 
 const o = ([v, en, ar]: O): Opt => ({ v, en, ar });
 export const NO_PREFERENCE: Opt = { v: 'no_preference', en: 'No preference', ar: 'لا تفضيل لدي' };
 const NOT_SURE: Opt = { v: 'not_sure', en: 'Not sure', ar: 'لست متأكداً' };
-const INSTALL: Opt[] = [{ v: 'yes', en: 'Yes, install it', ar: 'نعم، مع التركيب' }, { v: 'no', en: 'No, delivery only', ar: 'لا، توريد فقط' }, NOT_SURE];
+export const INSTALL_VALUES = ['yes', 'supply_only', 'not_needed', 'not_sure'] as const;
+export const WARRANTY_VALUES = ['yes', 'not_needed', 'not_sure'] as const;
+const INSTALL: Opt[] = [
+  { v: 'yes', en: 'Yes, install it', ar: 'نعم، مع التركيب' },
+  { v: 'supply_only', en: 'Supply only, no installation', ar: 'توريد فقط، بدون تركيب' },
+  { v: 'not_needed', en: 'Not needed for this job', ar: 'غير مطلوب لهذا العمل' }, NOT_SURE];
 const WARRANTY: (Opt & { months?: number })[] = [
   { v: 'yes_12', en: 'Yes, at least 1 year', ar: 'نعم، سنة على الأقل', months: 12 },
   { v: 'yes_24', en: 'Yes, at least 2 years', ar: 'نعم، سنتان على الأقل', months: 24 },
   { v: 'yes_60', en: 'Yes, at least 5 years', ar: 'نعم، 5 سنوات على الأقل', months: 60 },
-  { v: 'no', en: 'No warranty needed', ar: 'لا أحتاج ضماناً' }, NOT_SURE];
+  { v: 'not_needed', en: 'Not needed', ar: 'غير مطلوب' }, NOT_SURE];
 const WHEN: (Opt & { days?: number })[] = [
   { v: 'w2', en: 'Within 2 weeks', ar: 'خلال أسبوعين', days: 14 },
   { v: 'm1', en: 'Within 1 month', ar: 'خلال شهر', days: 30 },
   { v: 'm3', en: 'Within 3 months', ar: 'خلال 3 أشهر', days: 90 },
   { v: 'flexible', en: 'Flexible, no fixed date', ar: 'مرن، لا يوجد موعد محدد' }];
 
-/** The questions for a category, in the order they are asked: materials, installation, warranty, date. */
+/** The questions for a category, in the order asked: materials, installation, warranty, date. All four kinds, always. */
 export function requirementQuestions(category: string): ReqQuestion[] {
   const p = profileFor(category);
-  const qs: ReqQuestion[] = p.components.map((c) => ({
+  const comps = p.components.length ? p.components : [GENERIC];
+  const qs: ReqQuestion[] = comps.map((c) => ({
     key: 'material.' + c.c, kind: 'material', label_en: c.en, label_ar: c.ar, field: c.field,
     en: `Any preference for the ${c.en.charAt(0).toLowerCase() + c.en.slice(1)}? Tap one, or type what you have in mind.`,
     ar: `هل لديك تفضيل بخصوص ${c.ar}؟ اختر أحد الخيارات، أو اكتب ما في ذهنك.`,
     options: [...c.opts.map(o), NO_PREFERENCE], free_text: true,
   }));
-  if (p.install) qs.push({ key: 'installation', kind: 'installation', label_en: 'Installation', label_ar: 'التركيب', en: 'Do you need the supplier to install it, or only deliver it?', ar: 'هل تحتاج أن يقوم المورد بالتركيب، أم التوريد فقط؟', options: INSTALL, free_text: false });
-  if (p.warranty) qs.push({ key: 'warranty', kind: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', en: 'Do you need a warranty, and for how long at least?', ar: 'هل تحتاج ضماناً، وما أقل مدة تقبلها؟', options: WARRANTY, free_text: false });
+  qs.push({ key: 'installation', kind: 'installation', label_en: 'Installation', label_ar: 'التركيب', en: 'Do you need the supplier to install it, or only deliver it?', ar: 'هل تحتاج أن يقوم المورد بالتركيب، أم التوريد فقط؟', options: INSTALL, free_text: false, suggested: p.install ? undefined : 'not_needed' });
+  qs.push({ key: 'warranty', kind: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', en: 'Do you need a warranty, and for how long at least?', ar: 'هل تحتاج ضماناً، وما أقل مدة تقبلها؟', options: WARRANTY, free_text: false, suggested: p.warranty ? undefined : 'not_needed' });
   qs.push({ key: 'required_by', kind: 'required_by', label_en: 'Needed by', label_ar: 'مطلوب بحلول', en: 'By when do you need it done or delivered? Tap one, or type a date.', ar: 'متى تحتاج إنجاز العمل أو التسليم؟ اختر أحد الخيارات، أو اكتب تاريخاً.', options: WHEN, free_text: false });
   return qs;
 }
@@ -196,6 +213,7 @@ export type Answers = Record<string, Ans>;
 
 const isoDay = (now: Date, days: number) => new Date(now.getTime() + days * 86400000).toISOString().slice(0, 10);
 const NOPREF_RE = /no preference|no specific|doesn'?t matter|does not matter|don'?t mind|don'?t care|whatever|any (?:is|will be) fine|up to (?:you|the supplier)|supplier (?:to )?(?:decide|choose|recommend)|لا تفضيل|لا يهم|أي شيء|اي شيء|أي نوع|اي نوع|حسب المورد|بدون تفضيل|ليس لدي تفضيل/i;
+const NOT_NEEDED_RE = /not needed|no need|don'?t need|do not need|not required|غير مطلوب|لا نحتاج|لا أحتاج|لا احتاج|لا حاجة/i;
 function warrantyMonths(t: string): number | null {
   const m = t.match(/(\d+(?:\.\d+)?)\s*(years?|yrs?|سنة|سنوات|سنين|أعوام|اعوام|عام|months?|mos?|شهر|أشهر|اشهر|شهور|شهراً|شهرا)/i);
   if (m) { const n = Number(m[1]); if (!(n > 0)) return null; return Math.round(/month|mo|شهر|أشهر|اشهر|شهور/i.test(m[2]) ? n : n * 12); }
@@ -211,8 +229,10 @@ function fromOption(q: ReqQuestion, x: Opt & { months?: number; days?: number },
 
 /**
  * Parse `text` as the answer to `q`. A tapped option comes back as its own label in either language.
- * Returns null when the text does not answer the question — the caller asks it again rather than
- * guessing. Materials never return null: the customer's own words ARE an answer ('other' + note).
+ * Returns null when the text does not answer the question: the caller asks it again rather than
+ * guessing. A bare "no" to installation is asked again, because it could mean "supply only" or "not
+ * needed" and the supplier quotes differently for each. Materials never return null: the customer's
+ * own words ARE an answer ('other' + note).
  */
 export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new Date()): Ans | null {
   const raw = normDigits(String(text || '')).replace(/\s+/g, ' ').trim();
@@ -223,19 +243,21 @@ export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new D
   switch (q.kind) {
     case 'installation': {
       if (isUnknown(raw)) return { v: 'not_sure' };
-      if (/supply only|delivery only|deliver only|just deliver|only deliver|توريد فقط|التوريد فقط|بدون تركيب/.test(lo)) return { v: 'no' };
-      const yn = parseYesNo(raw);
-      if (yn) return { v: yn === 'Yes' ? 'yes' : 'no' };
-      return /install|تركيب|ركّب|ركب/.test(lo) ? { v: 'yes' } : null;
+      if (/supply only|delivery only|deliver only|just deliver|only deliver|توريد فقط|التوريد فقط|بدون تركيب/.test(lo)) return { v: 'supply_only' };
+      if (NOT_NEEDED_RE.test(raw)) return { v: 'not_needed' };
+      if (parseYesNo(raw) === 'Yes' || /\binstall|تركيب|ركّب|ركب/.test(lo)) return { v: 'yes' };
+      return null;
     }
     case 'warranty': {
       if (isUnknown(raw)) return { v: 'not_sure', min_months: null };
       const months = warrantyMonths(raw);
-      if (parseYesNo(raw) === 'No' && !months) return { v: 'no', min_months: null };
-      // "Yes" with no period is not an answer to "for how long at least" — asked again, not guessed.
+      if (!months && (NOT_NEEDED_RE.test(raw) || parseYesNo(raw) === 'No')) return { v: 'not_needed', min_months: null };
+      // "Yes" with no period is not an answer to "for how long at least": asked again, not guessed.
       return months ? { v: 'yes', min_months: months } : null;
     }
     case 'material': {
+      const other = raw.match(/^(?:other|أخرى)\s*:\s*(.+)$/i);
+      if (other) return { v: 'other', note: other[1].slice(0, 200) };
       const hit = q.options.find((x) => {
         if (x.v === NO_PREFERENCE.v) return false;
         const en = x.en.toLowerCase().replace(/\s*\(.*?\)\s*/g, ' ').trim();
@@ -248,6 +270,8 @@ export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new D
       return { v: 'other', note: raw.slice(0, 200) };
     }
     case 'required_by': {
+      const iso = raw.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+      if (iso && !isNaN(Date.parse(iso[0]))) return { v: 'date', date: iso[0], text: iso[0] };
       const w = parseWhen(raw, now);
       if (!w) return null;
       if (w.flexible) return { v: 'flexible', date: null, text: 'Flexible' };
@@ -258,11 +282,21 @@ export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new D
   return null;
 }
 
+/** A stored or carried answer that is not a valid answer to `q` today (e.g. version 1's 'no') is not an answer. */
+export function isValidAnswer(q: ReqQuestion, v: Ans | undefined): boolean {
+  if (!v) return false;
+  if (q.kind === 'installation') return (INSTALL_VALUES as readonly string[]).includes(v.v);
+  if (q.kind === 'warranty') return v.v === 'yes' ? Number.isInteger(v.min_months) && Number(v.min_months) > 0 : ['not_needed', 'not_sure'].includes(v.v);
+  if (q.kind === 'material') return v.v === 'other' ? !!String(v.note || '').trim() : q.options.some((x) => x.v === v.v);
+  return v.v === 'flexible' || /^\d{4}-\d{2}-\d{2}$/.test(String(v.date || ''));
+}
+
 /**
- * What the category's own interview already answered, carried over so nothing is asked twice:
- * a material field the customer answered, a supply/install scope, a timeline that resolves to a date.
+ * SUGGESTIONS, never answers. What the category checklist already heard (a material field, a
+ * supply/install scope, a timeline) and, failing that, what the trade usually needs. Offered as the
+ * highlighted option; the customer confirms it by tapping it, or picks another.
  */
-export function prefill(category: string, details: Record<string, unknown>, now = new Date()): Answers {
+export function suggestions(category: string, details: Record<string, unknown>, now = new Date()): Answers {
   const out: Answers = {};
   const d = details || {};
   const val = (k: string) => { const v = d[k]; return v == null ? '' : String(v).trim(); };
@@ -274,7 +308,7 @@ export function prefill(category: string, details: Record<string, unknown>, now 
     if (q.kind === 'installation') {
       const k = Object.keys(d).find((x) => /supply_install|^scope|installation|scope_mode|delivery_erection/.test(x) && val(x));
       const v = k ? val(k).toLowerCase() : '';
-      if (/supply only|delivery only|supply and delivery only|توريد فقط/.test(v)) out[q.key] = { v: 'no' };
+      if (/supply only|delivery only|supply and delivery only|توريد فقط/.test(v)) out[q.key] = { v: 'supply_only' };
       else if (/install|application|تركيب/.test(v)) out[q.key] = { v: 'yes' };
     }
     if (q.kind === 'required_by') {
@@ -282,49 +316,61 @@ export function prefill(category: string, details: Record<string, unknown>, now 
       const a = k ? parseRequirementAnswer(q, val(k), now) : null;
       if (a) out[q.key] = a;
     }
+    if (!out[q.key] && q.suggested) out[q.key] = q.kind === 'warranty' ? { v: q.suggested, min_months: null } : { v: q.suggested };
   }
   return out;
 }
 
 export type ReqStep = {
   answers: Answers; filled_now: string[]; retry: boolean;
-  next: { key: string; text: string; options: string[] } | null;
+  next: { key: string; text: string; options: string[]; suggested: string | null } | null;
   remaining: string[]; filled: number; total: number; complete: boolean;
 };
-/** One turn: `text` answers `askedKey` (the question last asked); the next unanswered one is returned. */
+/**
+ * One turn: `text` answers `askedKey` (the question last asked); the next unanswered question is
+ * returned with its suggestion, if any, highlighted but NOT recorded. Only the customer's own choice
+ * fills an answer.
+ */
 export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date()): ReqStep {
   const qs = requirementQuestions(category);
-  const answers: Answers = { ...(prev || {}) };
+  const answers: Answers = {};
+  for (const q of qs) if (prev && isValidAnswer(q, prev[q.key])) answers[q.key] = prev[q.key];
   const filledNow: string[] = [];
   let retry = false;
   if (askedKey && String(text || '').trim()) {
     const q = qs.find((x) => x.key === askedKey);
     if (q && !answers[q.key]) {
       const a = parseRequirementAnswer(q, text, now);
-      if (a) { answers[q.key] = a; filledNow.push(q.key); } else retry = true;
+      if (a && isValidAnswer(q, a)) { answers[q.key] = a; filledNow.push(q.key); } else retry = true;
     }
   }
-  const pre = prefill(category, details, now);
-  for (const k of Object.keys(pre)) if (!answers[k]) { answers[k] = pre[k]; filledNow.push(k); }
   const missing = qs.filter((q) => !answers[q.key]);
   const n = missing[0];
+  let next: ReqStep['next'] = null;
+  if (n) {
+    const s = suggestions(category, details, now)[n.key];
+    const sLabel = s && isValidAnswer(n, s) ? describe(n, s, lang) : null;
+    const options = optionLabels(n, lang);
+    if (sLabel && !options.includes(sLabel)) options.unshift(sLabel);
+    const hint = sLabel ? (lang === 'ar' ? ` المقترح لهذا العمل: ${sLabel}. اضغطه للتأكيد، أو اختر غيره.` : ` Suggested for this job: ${sLabel}. Tap it to confirm, or pick another.`) : '';
+    next = { key: n.key, text: questionIn(n, lang) + hint, options, suggested: sLabel };
+  }
   return {
-    answers, filled_now: filledNow, retry,
-    next: n ? { key: n.key, text: questionIn(n, lang), options: optionLabels(n, lang) } : null,
+    answers, filled_now: filledNow, retry, next,
     remaining: missing.map((q) => questionIn(q, lang)),
     filled: qs.length - missing.length, total: qs.length, complete: !n,
   };
 }
 
 // ── THE STORED SHAPE (docs/contracts/intake_answers.md) ─────────────────────────────────────────
+type Row = { key: string; label: string; value: string };
 export type Stored = {
-  version: 1; recorded_by: typeof ACTOR; category: string; recorded_at: string;
-  installation: { required: 'yes' | 'no' | 'not_sure' } | null;
-  warranty: { required: 'yes' | 'no' | 'not_sure'; min_months: number | null } | null;
+  version: 2; recorded_by: typeof ACTOR; category: string; recorded_at: string;
+  installation: { required: typeof INSTALL_VALUES[number] } | null;
+  warranty: { required: typeof WARRANTY_VALUES[number]; min_months: number | null } | null;
   materials: { component: string; label_en: string; label_ar: string; choice: string; choice_en: string; choice_ar: string; note: string | null }[];
   required_by: { flexible: boolean; date: string | null; text: string | null };
-  not_applicable: string[];
-  display: { en: { key: string; label: string; value: string }[]; ar: { key: string; label: string; value: string }[] };
+  display: { en: Row[]; ar: Row[] };
 };
 
 function describe(q: ReqQuestion, a: Ans, lang: Lang): string {
@@ -346,23 +392,22 @@ function describe(q: ReqQuestion, a: Ans, lang: Lang): string {
   return (lang === 'ar' ? 'بحلول ' : 'By ') + String(a.date || '');
 }
 
+/** The customer's explicit answers, in the stored shape. An unanswered question stays null / absent and fails validateStored. */
 export function toStored(category: string, answers: Answers, now = new Date()): Stored {
-  const p = profileFor(category);
   const qs = requirementQuestions(category);
   const get = (k: string) => answers[k];
   const inst = get('installation'), war = get('warranty'), when = get('required_by');
   const disp = (lang: Lang) => qs.filter((q) => get(q.key)).map((q) => ({ key: q.key, label: lang === 'ar' ? q.label_ar : q.label_en, value: describe(q, get(q.key)!, lang) }));
   return {
-    version: 1, recorded_by: ACTOR, category, recorded_at: now.toISOString(),
-    installation: p.install && inst ? { required: inst.v as 'yes' | 'no' | 'not_sure' } : null,
-    warranty: p.warranty && war ? { required: war.v as 'yes' | 'no' | 'not_sure', min_months: war.v === 'yes' ? Number(war.min_months) : null } : null,
+    version: 2, recorded_by: ACTOR, category, recorded_at: now.toISOString(),
+    installation: inst ? { required: inst.v as typeof INSTALL_VALUES[number] } : null,
+    warranty: war ? { required: war.v as typeof WARRANTY_VALUES[number], min_months: war.v === 'yes' ? Number(war.min_months) : null } : null,
     materials: qs.filter((q) => q.kind === 'material' && get(q.key)).map((q) => {
       const a = get(q.key)!;
       return { component: q.key.slice('material.'.length), label_en: q.label_en, label_ar: q.label_ar, choice: a.v,
         choice_en: describe(q, a, 'en'), choice_ar: describe(q, a, 'ar'), note: a.v === 'other' ? String(a.note || '') : null };
     }),
     required_by: when ? { flexible: when.v === 'flexible', date: when.v === 'flexible' ? null : (when.date || null), text: when.text || null } : { flexible: false, date: null, text: null },
-    not_applicable: [...(p.install ? [] : ['installation']), ...(p.warranty ? [] : ['warranty'])],
     display: { en: disp('en'), ar: disp('ar') },
   };
 }
@@ -378,21 +423,13 @@ export function toAnswers(s: Partial<Stored> | null | undefined): Answers {
   return a;
 }
 
-/** Every applicable question has a valid answer, recorded by the sales engineer. The post gate. */
+/** The post gate: all four kinds answered explicitly, in the current version, recorded by the sales engineer. */
 export function validateStored(category: string, s: unknown): { ok: boolean; missing: string[] } {
   const x = (s && typeof s === 'object' ? s : {}) as Partial<Stored>;
   const missing: string[] = [];
-  if (x.version !== 1 || x.recorded_by !== ACTOR || x.category !== category) missing.push('recorded_by');
+  if ((x as { version?: unknown }).version !== VERSION || x.recorded_by !== ACTOR || x.category !== category) missing.push('recorded_by');
   const a = toAnswers(x);
-  for (const q of requirementQuestions(category)) {
-    const v = a[q.key];
-    let ok = !!v;
-    if (ok && q.kind === 'installation') ok = ['yes', 'no', 'not_sure'].includes(v.v);
-    if (ok && q.kind === 'warranty') ok = v.v === 'yes' ? Number.isInteger(v.min_months) && Number(v.min_months) > 0 : ['no', 'not_sure'].includes(v.v);
-    if (ok && q.kind === 'material') ok = v.v === 'other' ? !!String(v.note || '').trim() : q.options.some((o2) => o2.v === v.v);
-    if (ok && q.kind === 'required_by') ok = v.v === 'flexible' || /^\d{4}-\d{2}-\d{2}$/.test(String(v.date || ''));
-    if (!ok) missing.push(q.key);
-  }
+  for (const q of requirementQuestions(category)) if (!isValidAnswer(q, a[q.key])) missing.push(q.key);
   return { ok: missing.length === 0, missing };
 }
 
@@ -404,7 +441,7 @@ export function applyEdits(category: string, s: unknown, edits: Record<string, u
   for (const [k, v] of Object.entries(edits || {})) {
     const q = qs.find((y) => y.key === k);
     const a = q ? parseRequirementAnswer(q, String(v ?? ''), now) : null;
-    if (a) answers[k] = a; else invalid.push(k);
+    if (q && a && isValidAnswer(q, a)) answers[k] = a; else invalid.push(k);
   }
   return { stored: toStored(category, answers, now), invalid };
 }
