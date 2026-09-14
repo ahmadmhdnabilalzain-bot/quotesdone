@@ -32,10 +32,17 @@ test('and a future date the server HAS flagged is still expired', () => {
   assert.equal(expiryOf(at('2026-09-01T00:00:00Z', true), 'en', NOW).tone, 'expired');
 });
 
-test('expired copy tells the customer to re-confirm BEFORE paying', () => {
-  const n = expiryOf(at('2026-08-01T00:00:00Z', true), 'en', NOW);
-  assert.equal(n.tone, 'expired');
-  assert.match(n.text, /before you pay/);
+// Before the reveal the customer cannot reach a supplier (founder, 14 Sep 2026): the expired copy
+// warns BEFORE paying and never tells them to ask or re-confirm anything with the supplier. Until
+// 14 Sep 2026 it said "ask the supplier to re-confirm the price", which they had no way to do.
+test('expired copy warns BEFORE paying and never sends the customer to the supplier', () => {
+  const en = expiryOf(at('2026-08-01T00:00:00Z', true), 'en', NOW);
+  const ar = expiryOf(at('2026-08-01T00:00:00Z', true), 'ar', NOW);
+  assert.equal(en.tone, 'expired');
+  assert.match(en.text, /before you pay/);
+  assert.match(ar.text, /قبل أن تدفع/);
+  assert.doesNotMatch(en.text, /\bask\b|re-?confirm|contact|with the supplier/i);
+  assert.doesNotMatch(ar.text, /اطلب|اسأل|تواصل|تأكيد/);
 });
 
 test('inside today reads as today, not as a negative or zero day count', () => {
