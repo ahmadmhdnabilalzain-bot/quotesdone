@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/customer_api/index.ts": {
-    "mtime": 1789408276.2735379,
-    "ast_hash": "aef54baf0cff3feb4a29bc85e5297c08",
+    "mtime": 1789410529.171264,
+    "ast_hash": "dd03de9d514ae73bec6262ca41e0ef1a",
     "semantic_hash": ""
   },
   "supabase/functions/customer_portal/index.ts": {
@@ -390,8 +390,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/dropbox_backup/index.ts": {
-    "mtime": 1789405850.7656596,
-    "ast_hash": "37bee2c7eabdbc1bd7b00eb4cf4e06bc",
+    "mtime": 1789410529.1875417,
+    "ast_hash": "2a5f38ef39d6c56cea818651d13df00d",
     "semantic_hash": ""
   },
   "supabase/functions/email_cron/index.ts": {
@@ -535,8 +535,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/stripe_webhook/index.ts": {
-    "mtime": 1789405851.013197,
-    "ast_hash": "9fe026cabfa3540c5014536bcf7091c2",
+    "mtime": 1789410271.5993466,
+    "ast_hash": "8882a568a83419fbdec17330e27161d6",
     "semantic_hash": ""
   },
   "supabase/functions/supplier_ack/index.ts": {
@@ -545,8 +545,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/supplier_api/index.ts": {
-    "mtime": 1789409184.1555777,
-    "ast_hash": "e43182dae9046622d75399ad5d3c2379",
+    "mtime": 1789410529.1932926,
+    "ast_hash": "d7d5c6da1dd2f8ca334dea40b1b844c2",
     "semantic_hash": ""
   },
   "supabase/functions/supplier_pay/index.ts": {
@@ -582,11 +582,6 @@
   "supabase/functions/wa_inbound/index.ts": {
     "mtime": 1789409184.1605904,
     "ast_hash": "bd1e51b78c177aee4c95d596fe0f49f5",
-    "semantic_hash": ""
-  },
-  "supabase/functions/wa_optin_set/index.ts": {
-    "mtime": 1789405851.0847354,
-    "ast_hash": "8a8768204abf2feb8a6fee66ba9a20f9",
     "semantic_hash": ""
   },
   "supabase/functions/wa_templates_watch/index.ts": {
@@ -1710,8 +1705,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/resilience_ping/index.ts": {
-    "mtime": 1789407390.3631907,
-    "ast_hash": "2709fb61ad742607a223d35befedfcfd",
+    "mtime": 1789410271.5968394,
+    "ast_hash": "027a1b46ef78aa22bfbd0e3621bd9fa9",
     "semantic_hash": ""
   },
   "supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql": {
@@ -1815,8 +1810,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1789409184.1781173,
-    "ast_hash": "c4aa6c8bc0380b4537b3087ddc9ae61e",
+    "mtime": 1789410271.6194656,
+    "ast_hash": "92104b080794be52374295f127fe142d",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -3255,8 +3250,8 @@
     "semantic_hash": ""
   },
   "scripts/deploy_functions.mjs": {
-    "mtime": 1789405845.2281234,
-    "ast_hash": "14f32cf2c3885f1b1c14ed687010c4fe",
+    "mtime": 1789410529.2112925,
+    "ast_hash": "3d1cded1dd0f4e6f9bc91da2be36c35c",
     "semantic_hash": ""
   },
   "scripts/fetch_fonts.mjs": {
@@ -11935,8 +11930,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1789409201.0924027,
-    "ast_hash": "834fb6c0f35294b0a88cfdf086e783d4",
+    "mtime": 1789410311.350078,
+    "ast_hash": "bb07a1577cb91258ef4b0a822232dcb8",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -12760,8 +12755,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/stripe_events.ts": {
-    "mtime": 1789405850.5769002,
-    "ast_hash": "df3b3de2675d224b1ee412902c815377",
+    "mtime": 1789410271.5913205,
+    "ast_hash": "af6536c86d290e7eda557cbdeb4916f3",
     "semantic_hash": ""
   },
   "docs/UPGRADE_PLAN.md": {
@@ -16430,8 +16425,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/the_accountant_watches_the_vat_threshold_and_tells_the_ceo.sql": {
-    "mtime": 1789405847.894742,
-    "ast_hash": "e823816082a49d47bb7ca31724f74771",
+    "mtime": 1789410271.5771976,
+    "ast_hash": "adc99fa2f007eb47659125c5291ed308",
     "semantic_hash": ""
   },
   "scripts/sql/the_accountant_writes_a_weekly_financial_report_and_the_founder_and_the_ceo_both_get_it.sql": {
@@ -17620,8 +17615,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/accountant/index.ts": {
-    "mtime": 1789405850.6359913,
-    "ast_hash": "0100e730e27dbf7ae4cb4ac27b3d69bc",
+    "mtime": 1789410271.5948417,
+    "ast_hash": "e1f194f82b8ad66f0d7bf3561b85da4e",
     "semantic_hash": ""
   },
   "supabase/functions/ceo_agent/index.ts": {
@@ -17695,8 +17690,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/sales_engineer/index.ts": {
-    "mtime": 1789408276.2745373,
-    "ast_hash": "23682971b29341367aa4455454e1e316",
+    "mtime": 1789410529.185542,
+    "ast_hash": "c58218b3280d0a0f4a5c3535e30580bf",
     "semantic_hash": ""
   },
   ".claude/skills/quotesdone-apply-discipline/SKILL.md": {
@@ -17850,8 +17845,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/the_portals_are_the_sales_engineer.test.mjs": {
-    "mtime": 1789405845.1789176,
-    "ast_hash": "a325d6dc78af258fc3522c5d3e9878d3",
+    "mtime": 1789410529.2078145,
+    "ast_hash": "1ed73f075fc5aa7bdd8812e3f42a1252",
     "semantic_hash": ""
   },
   "scripts/sql/the_portals_are_the_sales_engineer_and_nobody_else.sql": {
@@ -17920,8 +17915,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/customer_support_is_the_only_sender.test.mjs": {
-    "mtime": 1789405844.918723,
-    "ast_hash": "0d39931ce2ab44843d02756c9c79b783",
+    "mtime": 1789410529.2042208,
+    "ast_hash": "a4f7fcbde78a27a2b972a8b062d04bb8",
     "semantic_hash": ""
   },
   "scripts/checks/the_intake_is_the_sales_engineer.test.mjs": {
@@ -18155,8 +18150,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/payments_are_the_accountant.test.mjs": {
-    "mtime": 1789405845.0581884,
-    "ast_hash": "f51a234e4cd663fc59eb668535e4c4e6",
+    "mtime": 1789410271.553295,
+    "ast_hash": "6a1d0fab8e54289ffe90d8825b7f6b48",
     "semantic_hash": ""
   },
   "scripts/checks/refund_ladder_fixtures.sql": {
@@ -18260,8 +18255,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/payment_handoffs.ts": {
-    "mtime": 1789405850.5091581,
-    "ast_hash": "594300e8972bef74c850ce18f5eea51d",
+    "mtime": 1789410271.5893207,
+    "ast_hash": "48b97d668e72533f8f754b7b37543f08",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/registered_locale.ts": {
@@ -18370,8 +18365,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_stored_document_source_is_registered_for_backup.sql": {
-    "mtime": 1789405846.3588412,
-    "ast_hash": "5a22e6c21d241f202b16a8f8c776079f",
+    "mtime": 1789410271.5632954,
+    "ast_hash": "36924c89fdd8c0b068323e50ae6526be",
     "semantic_hash": ""
   },
   "scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql": {
@@ -18385,8 +18380,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/the_it_engineer_runs_its_duties_every_hour.sql": {
-    "mtime": 1789405848.3544884,
-    "ast_hash": "85d4d051b527f1569debde6ae1849d64",
+    "mtime": 1789410271.5828118,
+    "ast_hash": "5b038f3646e3413764b68fad4df2bb0d",
     "semantic_hash": ""
   },
   "src/lib/documentLocale.test.mjs": {
@@ -18530,8 +18525,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/the_whatsapp_number_is_confirmed_and_only_a_confirmed_one_is_used.sql": {
-    "mtime": 1789407667.0009856,
-    "ast_hash": "e3a5bf46e81962260d7a93438cbed8f7",
+    "mtime": 1789410596.0679123,
+    "ast_hash": "044e4c0141a691964d6c87c3826bf83f",
     "semantic_hash": ""
   },
   "src/components/me/markup.ts": {
@@ -18620,13 +18615,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/whatsapp_choice.test.ts": {
-    "mtime": 1789407580.2254813,
-    "ast_hash": "8953f96f207ed2373f55ee65d6b578f6",
+    "mtime": 1789410529.1993892,
+    "ast_hash": "2743e2fb0a741ae456c238f3c7801824",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/whatsapp_choice.ts": {
-    "mtime": 1789406066.6229086,
-    "ast_hash": "03b08ca2a0fad9d6e93fbda4acefcfe7",
+    "mtime": 1789410572.905038,
+    "ast_hash": "c9a30d5d08de75e8aa8d7d7e1f505b23",
     "semantic_hash": ""
   },
   "supabase/functions/drawing_boq/cad_blocks_devices.test.ts": {
@@ -18772,6 +18767,111 @@
   "src/app/[locale]/supplier-agreement/v10/page.tsx": {
     "mtime": 1789409184.128272,
     "ast_hash": "1b4a25b44c9f6776dee84e2f9d9a2e5d",
+    "semantic_hash": ""
+  },
+  "scripts/checks/accountant_duties_fixtures.sql": {
+    "mtime": 1789410271.551295,
+    "ast_hash": "8d329f7a72f851a5f6a404de73a860d7",
+    "semantic_hash": ""
+  },
+  "scripts/checks/it_security_sweep_splits_anon_from_signed_in.test.mjs": {
+    "mtime": 1789410271.5522952,
+    "ast_hash": "57cf49e16fdf8c06becf1261c52d5422",
+    "semantic_hash": ""
+  },
+  "scripts/checks/resilience_ping_reports_every_tick.test.mjs": {
+    "mtime": 1789410271.5542953,
+    "ast_hash": "c0d0c74006effb5984a4c231a20c1241",
+    "semantic_hash": ""
+  },
+  "scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs": {
+    "mtime": 1789410271.555295,
+    "ast_hash": "5001209f8e2c727691168556e8e1c1ef",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_browser_cannot_run_the_customer_document_routines_unsigned.sql": {
+    "mtime": 1789410271.558295,
+    "ast_hash": "a61e3839217f497b87eb49dc0710be9a",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_expense_has_its_receipt_and_every_subscription_its_renewal.sql": {
+    "mtime": 1789410271.5602953,
+    "ast_hash": "c7d99719a3ad9d4a40bd4899d8f5d9a3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_reveal_charge_is_audited_against_what_stripe_took.sql": {
+    "mtime": 1789410271.5612962,
+    "ast_hash": "fb6ae951f90aa90618ce7a8f56722aa2",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_answers_every_card_dispute_before_stripe_closes_it.sql": {
+    "mtime": 1789410271.5652974,
+    "ast_hash": "89a60baf643a95c3dbe6b0252b235dfd",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_bills_every_supplier_after_the_thousandth.sql": {
+    "mtime": 1789410271.5662985,
+    "ast_hash": "44525d947d11561e32e55bb07d923fd9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_chases_what_a_silent_supplier_owes.sql": {
+    "mtime": 1789410271.5679219,
+    "ast_hash": "ae5ad490ea9dee8d91f48c02b730be31",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_closes_every_month_and_the_ceo_signs_for_it.sql": {
+    "mtime": 1789410271.5689323,
+    "ast_hash": "74d2938e9109ffdf71cbdc6a8fb31a98",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_matches_every_stripe_payout_to_the_bank.sql": {
+    "mtime": 1789410271.5699303,
+    "ast_hash": "5d215a03de3874b464e7168b426e54b9",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql": {
+    "mtime": 1789410271.5721972,
+    "ast_hash": "64e60f19c5956aa192050de131240642",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_accountant_runs_its_duties_every_hour.sql": {
+    "mtime": 1789410271.5751996,
+    "ast_hash": "da20d1891cea388f3216281fad511b9e",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_companys_own_bank_and_stripe_costs_book_themselves.sql": {
+    "mtime": 1789410271.5784082,
+    "ast_hash": "d39cb16e4ee737ff9d842922bcaa0ab3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_founder_approved_ten_more_it_engineer_duties.sql": {
+    "mtime": 1789410271.5797963,
+    "ast_hash": "28915d5a258ac1febea4978a999f0a3f",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_money_a_refund_could_still_take_back_is_held_not_earned.sql": {
+    "mtime": 1789410271.5836437,
+    "ast_hash": "7b4031c1d411fcf53ed34632a7860bed",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/bank_statement_parse.test.ts": {
+    "mtime": 1789410271.5858073,
+    "ast_hash": "18d2fc81532e0e119d7d233943675dcf",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/bank_statement_parse.ts": {
+    "mtime": 1789410271.586318,
+    "ast_hash": "6e3b7ae3a88face903eb551a470e9917",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/dispute_evidence.test.ts": {
+    "mtime": 1789410271.587321,
+    "ast_hash": "47252ccf755e37dbba303f9de721eac8",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/dispute_evidence.ts": {
+    "mtime": 1789410271.5883195,
+    "ast_hash": "1e147b22ca78fbcd54c015fed29ad4df",
     "semantic_hash": ""
   }
 }
