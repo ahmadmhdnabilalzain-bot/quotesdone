@@ -25,6 +25,8 @@
 //      comes back like any other; a row the door queued is never adopted a second time.
 //   G  an adopted send the dispatcher FAILS: open at adoption (no result, no close), then it comes back
 //      'failed' and the asking seat retries it on the other channel, then escalates -- never closes it.
+//   H  the WhatsApp rule (#657): a supplier whose only number is the scraped listing gets no WhatsApp
+//      retry; a customer with a verified mobile who never answered the WhatsApp question is retried by SMS.
 //   and nothing the probe queued could have reached a person, and none of it survives.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -115,13 +117,17 @@ declare
   x public.agent_actions; y public.agent_actions; nid bigint; na bigint; rg bigint; rgr bigint; out jsonb := '{}'::jsonb; k int;
   cust text := 'zz-demo-loop-cust@example.invalid'; sup text := 'zz-demo-loop-sup@example.invalid';
   door_row jsonb;
+  ch uuid; lh bigint; rh bigint; rhs bigint; hl text;
 begin
   select coalesce(max(id), 0) into n0 from public.notifications;
   select coalesce(max(id), 0) into a0 from public.agent_actions;
   insert into public.customers (full_name, email) values ('ZZ DEMO Loop Customer', cust) returning id into c;
   -- leads.is_demo is generated from the ZZ DEMO name and the reserved address; asserted, not assumed.
-  insert into public.leads (company_name, email, claimed_by, whatsapp)
-  values ('ZZ DEMO Loop Supplier', sup, sup, '+971500000077') returning id into l;
+  -- #657 (founder, 14 Sep 2026): WhatsApp goes only to a CONFIRMED number. The retries in B and G need one,
+  -- so the fixture supplier confirmed +971500000077 as a different WhatsApp number (verified by code). It
+  -- used to carry it in leads.whatsapp, the scraped listing column, which is no longer a route (see H1).
+  insert into public.leads (company_name, email, claimed_by, whatsapp_opt, whatsapp_phone, whatsapp_verified_at)
+  values ('ZZ DEMO Loop Supplier', sup, sup, 'other', '+971500000077', now()) returning id into l;
   if not (select is_demo from public.leads where id = l) then raise exception 'ZZFAIL: the fixture supplier is not marked demo'; end if;
 
   -- ── A. DELIVERED, CHECKED, CLOSED ──
@@ -269,6 +275,45 @@ begin
   out := out || jsonb_build_object('G', jsonb_build_object('at_adoption', 'open, queued', 'first', 'failed -> retried_on_whatsapp',
                                    'retry', 'suppressed -> escalated', 'original_loop', x.detail->>'loop'));
 
+  -- ── H. THE WHATSAPP RULE (#657): AN UNCONFIRMED NUMBER IS NEVER A ROUTE; A VERIFIED MOBILE STILL GETS SMS ──
+  -- H1: a supplier whose only number is the scraped listing (leads.whatsapp) and who never confirmed one.
+  insert into public.leads (company_name, email, claimed_by, whatsapp)
+  values ('ZZ DEMO Loop Supplier Unconfirmed', 'zz-demo-loop-sup-unconf@example.invalid', 'zz-demo-loop-sup-unconf@example.invalid', '+971500000079')
+  returning id into lh;
+  v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+         'type', 'rfq_addendum', 'to_email', 'zz-demo-loop-sup-unconf@example.invalid', 'to_role', 'supplier', 'lead_id', lh,
+         'subject', 'ZZ DEMO probe H1', 'body', 'ZZ DEMO probe H1')));
+  rh := (v->0->>'handoff_id')::bigint;
+  w := public.fn_customer_support_delivery_watch(rh);
+  select * into x from public.agent_actions where id = rh;
+  hl := x.detail->>'loop';
+  if x.detail->>'result' <> 'suppressed' or coalesce(hl, '') like 'retried_on_whatsapp%' then
+    raise exception 'ZZFAIL: H1 an unconfirmed (scraped) number was used for a WhatsApp retry: %', x.detail;
+  end if;
+  if exists (select 1 from public.notifications n where n.id > n0 and n.to_phone = '+971500000079' and n.status <> 'skipped') then
+    raise exception 'ZZFAIL: H1 a WhatsApp row was queued to the unconfirmed number';
+  end if;
+  -- H2: a customer who verified the mobile before #657 and never answered the WhatsApp question. #657's
+  -- design: no WhatsApp for them, but the undelivered email is still retried by SMS on the verified mobile.
+  insert into public.customers (full_name, email, phone, phone_verified)
+  values ('ZZ DEMO Loop Customer SMS', 'zz-demo-loop-cust-sms@example.invalid', '+971500000078', true) returning id into ch;
+  v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+         'type', 'new_quote', 'to_email', 'zz-demo-loop-cust-sms@example.invalid', 'to_role', 'customer',
+         'subject', 'ZZ DEMO probe H2', 'body', 'ZZ DEMO probe H2')));
+  rhs := (v->0->>'handoff_id')::bigint;
+  w := public.fn_customer_support_delivery_watch(rhs);
+  select * into x from public.agent_actions where id = rhs;
+  if x.detail->>'result' <> 'suppressed' or x.detail->>'loop' <> 'retried_on_sms' or (x.detail->>'retry_request_id') is null then
+    raise exception 'ZZFAIL: H2 a verified mobile with the WhatsApp question unanswered was not retried by SMS: %', x.detail;
+  end if;
+  select * into y from public.agent_actions where id = (x.detail->>'retry_request_id')::bigint;
+  if not exists (select 1 from public.notifications n where n.id = (y.evidence->>'notification_id')::bigint
+                   and n.channel = 'sms' and n.to_phone = '+971500000078') then
+    raise exception 'ZZFAIL: H2 the retry is not an SMS to the verified mobile: % / %', y.status, y.evidence;
+  end if;
+  out := out || jsonb_build_object('H', jsonb_build_object('unconfirmed_supplier', 'suppressed -> ' || coalesce(hl, 'no retry'),
+                                   'verified_mobile_unanswered', 'suppressed -> retried_on_sms'));
+
   -- ── NOTHING COULD HAVE REACHED A PERSON ──
   select count(*) into k from public.notifications n
    where n.id > n0 and ((n.to_email is not null and n.to_email !~* '@example[.]invalid$')
@@ -288,7 +333,7 @@ test('production: every send comes back and the asking seat closes or acts (abor
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));
-  for (const k of ['A', 'B', 'C', 'D', 'E', 'F', 'G']) assert.ok(res[k], `scenario ${k} did not report`);
+  for (const k of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']) assert.ok(res[k], `scenario ${k} did not report`);
   assert.equal(res.reachable_rows, 0);
   console.log(JSON.stringify(res));
 });
