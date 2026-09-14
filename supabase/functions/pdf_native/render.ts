@@ -437,11 +437,25 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
     const bw = 262; const x = px(CW - bw, bw); const rows = b.rows || [];
     ensure(rows.length * 24 + 30); y -= 2;
     // deno-lint-ignore no-explicit-any
+    // 14 Sep 2026 (agent: accountant). The label and the value shared one line with nothing between
+    // them, so a long label ran under the figure: "Interest (c) at 9% p.a. for 32 days to 17 November
+    // 2026" overlapped "AED 21.35" by 36pt in six of the fourteen legal samples (measured with
+    // scripts/legal/pdf_text_overlaps.mjs). The value keeps its line at the end edge; the label wraps
+    // in the width the value leaves, and the row grows with it.
+    const inner = bw - 24, GAP = 10;
     rows.forEach(([l, v, strong]: any[]) => {
-      if (strong) {
-        page.drawRectangle({ x, y: y - 28, width: bw, height: 28, color: NAVY }); page.drawRectangle({ x, y: y - 2, width: bw, height: 2, color: GOLD });
-        txt(l, x + 12, bw - 24, y - 18.5, 9.4, { bold: true, color: WHITE }); txt(v, x + 12, bw - 24, y - 19, 12.5, { bold: true, color: WHITE, align: 'e' }); y -= 28;
-      } else { txt(l, x + 12, bw - 24, y - 13.5, 8.4, { color: MUT }); txt(v, x + 12, bw - 24, y - 13.5, 9, { bold: true, color: INK, align: 'e' }); y -= 20; hline(y, HAIR, 0.5, x, x + bw); }
+      const ls = strong ? 9.4 : 8.4, vs = strong ? 12.5 : 9, vStr = String(v ?? '');
+      const vw = meas(vStr, fontFor(vStr, true), vs);
+      const ll = lines(l, ls, !!strong, Math.max(40, inner - vw - GAP)); const lh = ls * 1.3;
+      const h = Math.max(strong ? 28 : 20, (strong ? 12 : 8) + ll.length * lh + (strong ? 4 : 2));
+      ensure(h);
+      if (strong) { page.drawRectangle({ x, y: y - h, width: bw, height: h, color: NAVY }); page.drawRectangle({ x, y: y - 2, width: bw, height: 2, color: GOLD }); }
+      let ly = y - (strong ? 18.5 : 13.5);
+      const lx = RTL ? x + 12 + vw + GAP : x + 12; // the label box lies on the start side of the value
+      for (const ln of ll) { txt(ln, lx, inner - vw - GAP, ly, ls, { bold: !!strong, color: strong ? WHITE : MUT }); ly -= lh; }
+      const vx = RTL ? x + 12 : x + 12 + inner - vw;
+      txt(vStr, vx, vw, y - (strong ? 19 : 13.5), vs, { bold: true, color: strong ? WHITE : INK, align: 'e' });
+      y -= h; if (!strong) hline(y, HAIR, 0.5, x, x + bw);
     });
     y -= 8; if (b.note) para(b.note, { size: 8, color: AMBER_D }); y -= 4;
   }
