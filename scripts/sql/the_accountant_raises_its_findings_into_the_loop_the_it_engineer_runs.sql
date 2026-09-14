@@ -141,10 +141,18 @@ declare
   v_sub_en text; v_body_en text; v_sub_ar text; v_body_ar text; v_req bigint; v_msg text;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
-  if not found or a.agent <> 'sales_engineer' or not (a.detail ? 'notice') then
-    raise exception 'fn_sales_engineer_writes_money_notice: % is not a sales engineer notice handoff', p_id;
+  -- THE KIND IS THE CONVERSATION'S TYPE (public.seat_handoff_kind, #648): fn_seat_handoff_act dispatches
+  -- each of the five rows inserted below to this routine, and the type alone says which notice it is.
+  v_notice := case a.detail->>'type'
+                when 'nonresponse.charge_reminder'  then 'charge_reminder'
+                when 'nonresponse.final_demand'     then 'final_demand'
+                when 'subscription.renewal_reminder' then 'subscription_renewal'
+                when 'subscription.dunning'         then 'subscription_dunning'
+                when 'subscription.payment_failed'  then 'subscription_payment_failed' end;
+  if not found or a.agent <> 'sales_engineer' or v_notice is null then
+    raise exception 'fn_sales_engineer_writes_money_notice: % is not one of the accountant''s notice kinds', p_id;
   end if;
-  d := a.detail; v_notice := d->>'notice';
+  d := a.detail;
   select l.id, l.company_name, coalesce(l.claimed_by, l.email) email into v_sup
     from public.leads l where l.id = (d->>'supplier_id')::bigint;
   if coalesce(v_sup.email, '') not like '%@%' then
@@ -207,6 +215,31 @@ begin
   return jsonb_build_object('notice', v_notice, 'delivery_request', v_req);
 end $fn$;
 revoke execute on function public.fn_sales_engineer_writes_money_notice(bigint) from public, anon, authenticated;
+
+-- ── 3b. THE NOTICES ARE THEIR OWN CONVERSATIONS ─────────────────────────────────────────────────
+-- #648 made every conversation a row of public.seat_handoff_kind naming its handler; a build adds its
+-- conversations by INSERT and never redefines fn_seat_handoff_act. The accountant hands the sales
+-- engineer five notices, each answered by fn_sales_engineer_writes_money_notice. The sales engineer's
+-- words then go to customer_support as a delivery.request, and the delivery.result comes back.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
+  ('nonresponse.charge_reminder', 'accountant', 'sales_engineer',
+   'A non-response charge is still unpaid on a configured reminder day: remind the supplier, in the wording decision_policy holds.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('nonresponse.final_demand', 'accountant', 'sales_engineer',
+   'A non-response charge reached the final-demand day: send the formal demand, in the wording decision_policy holds.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.renewal_reminder', 'accountant', 'sales_engineer',
+   'A paying supplier''s annual subscription renews soon: tell them the date and the fee.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.dunning', 'accountant', 'sales_engineer',
+   'A supplier''s annual subscription is still unpaid on a configured dunning day: remind them.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.payment_failed', 'accountant', 'sales_engineer',
+   'A supplier''s subscription payment did not complete: tell them nothing was charged and how to pay.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql')
+on conflict (type, from_seat, to_seat) do update
+  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
+      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
 
 -- ── 4. PROOF: a finding raised, re-checked away, and a notice with no template refused ────────────
 -- This file defines routines, so the probe cleans up after itself and ends in a notice.

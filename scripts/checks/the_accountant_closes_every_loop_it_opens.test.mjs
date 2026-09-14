@@ -25,8 +25,6 @@ const SQL = join(REPO, 'scripts', 'sql');
 // In apply order: the loop core first, the hourly routine last.
 export const FILES = [
   'the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql',
-  // The ONE body of fn_seat_handoff_act, carrying the notice branch; applied after the writer it calls.
-  'the_it_engineer_closes_every_loop_it_opens.sql',
   'the_accountant_matches_every_stripe_payout_to_the_bank.sql',
   'the_accountant_bills_every_supplier_after_the_thousandth.sql',
   'the_money_a_refund_could_still_take_back_is_held_not_earned.sql',
@@ -75,36 +73,32 @@ test('no supplier-charge reminder or demand wording is typed into a routine', ()
   assert.match(fnBody('fn_accountant_collections_tick'), /supplier_charge_recovery_basis/);
 });
 
-// fn_seat_handoff_act has ONE body and every build's branch must be in it (review of #645): the
-// delivery loop, the IT loop, the accountant's notices, and the per-seat dispatch that carries refund.*,
-// backup.*, billing.* and the rest to each seat's handler.
-export const HANDOFF_ACT_BRANCHES = ["'delivery.result'", 'fn_originator_checks_delivery', "'it.finding'", 'fn_seat_answers_it_finding',
-  "? 'notice'", 'fn_sales_engineer_writes_money_notice', 'fn_sales_engineer_acts_on_handoff', 'fn_accountant_acts_on_handoff',
-  'fn_customer_support_acts_on_handoff'];
-const DISPATCHED_TYPES = { fn_sales_engineer_acts_on_handoff: ["'refund.paid'", "'refund.remediate'"], fn_accountant_acts_on_handoff: ["'refund.requested'", "'incident.fix'"] };
+// Since #648 every conversation is a row of public.seat_handoff_kind naming its handler, and no file but
+// the IT engineer's loop file defines fn_seat_handoff_act or fn_seat_handoff_types. The accountant's five
+// notices are rows it inserts, answered by fn_sales_engineer_writes_money_notice.
+export const NOTICE_KINDS = ['nonresponse.charge_reminder', 'nonresponse.final_demand', 'subscription.renewal_reminder',
+  'subscription.dunning', 'subscription.payment_failed'];
 
-test('the ONE body of fn_seat_handoff_act carries every branch, and only the IT engineer\'s file defines it', () => {
-  const owners = FILES.filter((f) => read(join(SQL, f)).includes('create or replace function public.fn_seat_handoff_act('));
-  assert.deepEqual(owners, ['the_it_engineer_closes_every_loop_it_opens.sql'], 'a second file carries fn_seat_handoff_act');
-  const body = fnBody('fn_seat_handoff_act');
-  const missing = HANDOFF_ACT_BRANCHES.filter((b) => !body.includes(b));
-  assert.deepEqual(missing, [], 'branches missing from fn_seat_handoff_act');
+test('the accountant adds its notices as handoff kinds, and never redefines the loop core', () => {
+  for (const f of FILES) {
+    assert.doesNotMatch(read(join(SQL, f)), /create or replace function public\.fn_seat_handoff_(act|types)\(/, `${f} redefines the loop core`);
+  }
+  const ins = sqlText.slice(sqlText.indexOf('insert into public.seat_handoff_kind'));
+  for (const k of NOTICE_KINDS) {
+    assert.match(ins, new RegExp(`\\('${k.replace('.', '\\.')}', 'accountant', 'sales_engineer',[\\s\\S]*?'fn_sales_engineer_writes_money_notice'`), `${k} is not a kind answered by the notice writer`);
+    assert.match(fnBody('fn_sales_engineer_writes_money_notice'), new RegExp(`'${k.replace('.', '\\.')}'`), `the notice writer has no words for ${k}`);
+  }
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
-test('production: the deployed fn_seat_handoff_act carries every registered branch', { skip: SKIP }, async () => {
+test('production: the accountant\'s notice kinds are live and their handler exists', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const [act] = await sql("select prosrc from pg_proc where oid = 'public.fn_seat_handoff_act(bigint)'::regprocedure");
-  const missing = HANDOFF_ACT_BRANCHES.filter((b) => !act.prosrc.includes(b));
-  assert.deepEqual(missing, [], 'the LIVE fn_seat_handoff_act has lost a branch another build registered');
-  for (const [fn, types] of Object.entries(DISPATCHED_TYPES)) {
-    const [h] = await sql(`select prosrc from pg_proc where oid = 'public.${fn}(bigint)'::regprocedure`);
-    assert.deepEqual(types.filter((t) => !h.prosrc.includes(t)), [], `${fn} no longer handles its refund conversations`);
-  }
-  const [b] = await sql("select count(*)::int n from pg_proc where prosrc like '%backup.refile%' and proname like 'fn\\_%'");
-  assert.ok(b.n > 0, 'no live routine handles backup.refile');
+  const rows = await sql(`select type from public.seat_handoff_kind
+                           where from_seat = 'accountant' and to_seat = 'sales_engineer' and handler = 'fn_sales_engineer_writes_money_notice'
+                             and to_regprocedure('public.fn_sales_engineer_writes_money_notice(bigint)') is not null`);
+  assert.deepEqual(rows.map((r) => r.type).sort(), [...NOTICE_KINDS].sort(), 'a notice kind is missing from public.seat_handoff_kind');
 });
 
 test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', { skip: SKIP }, async () => {

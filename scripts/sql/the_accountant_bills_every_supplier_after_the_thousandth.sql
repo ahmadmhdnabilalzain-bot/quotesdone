@@ -83,7 +83,7 @@ begin
   if not exists (select 1 from public.leads where id = p_supplier_id) then
     return jsonb_build_object('ok', false, 'reason', 'no supplier ' || p_supplier_id);
   end if;
-  v_id := public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.due', 'leads',
+  v_id := public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.payment_failed', 'leads',
     p_supplier_id || ':payment_failed:' || p_session,
     jsonb_build_object('notice', 'subscription_payment_failed', 'supplier_id', p_supplier_id,
                        'session', p_session, 'reason', p_reason));
@@ -135,7 +135,7 @@ begin
     if b.billing_status = 'active' and b.subscription_paid_until is not null then
       foreach v_off in array v_renew loop
         if v_as_of >= b.subscription_paid_until - v_off and v_as_of <= b.subscription_paid_until then
-          perform public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.due', 'leads',
+          perform public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.renewal_reminder', 'leads',
             b.supplier_id || ':renew:' || b.subscription_paid_until || ':' || v_off,
             jsonb_build_object('notice', 'subscription_renewal', 'supplier_id', b.supplier_id,
                                'paid_until', b.subscription_paid_until, 'renews_on', b.subscription_paid_until + 1,
@@ -155,7 +155,7 @@ begin
         if v_days >= v_dun[v_off] then v_i := v_off; end if;
       end loop;
       if v_i is not null then
-        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.due', 'leads',
+        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.dunning', 'leads',
           b.supplier_id || ':dunning:' || v_due_on || ':' || v_i,
           jsonb_build_object('notice', 'subscription_dunning', 'supplier_id', b.supplier_id, 'dunning_no', v_i,
                              'due_on', v_due_on, 'days_overdue', v_days, 'fee', b.amount_due_aed, 'currency', v_cfg.currency));

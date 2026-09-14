@@ -155,12 +155,12 @@ begin
   perform public.fn_accountant_subscription_tick();
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:subscriptions:unpaid:' || l), 'subscriptions: an unpaid 1,001st supplier raised no finding');
   perform pg_temp.zz_assert(exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'sales_engineer'
-    and detail->>'notice' = 'subscription_dunning' and (detail->>'supplier_id')::bigint = l), 'subscriptions: no dunning notice went to the sales engineer');
+    and detail->>'type' = 'subscription.dunning' and (detail->>'supplier_id')::bigint = l), 'subscriptions: no dunning notice went to the sales engineer');
   h := pg_temp.zz_loop_opens('acct:subscriptions:unpaid:' || l, 'sales_engineer');
   update public.leads set subscription_paid_until = current_date + 5 where id = l;
   perform public.fn_accountant_subscription_tick();
   perform pg_temp.zz_assert(exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'sales_engineer'
-    and detail->>'notice' = 'subscription_renewal' and (detail->>'supplier_id')::bigint = l), 'subscriptions: no renewal reminder before paid_until ran out');
+    and detail->>'type' = 'subscription.renewal_reminder' and (detail->>'supplier_id')::bigint = l), 'subscriptions: no renewal reminder before paid_until ran out');
   perform pg_temp.zz_loop_closes('acct:subscriptions:unpaid:' || l, h);
   r := r || jsonb_build_object('3_subscriptions', jsonb_build_object('supplier', l, 'handoff', h, 'dunning', true, 'renewal_reminder', true));
 

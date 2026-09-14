@@ -140,14 +140,14 @@ begin
       -- The next reminder, once its day is reached.
       v_i := coalesce(d.reminders, 0) + 1;
       if v_i <= array_length(v_offs, 1) and v_days >= v_offs[v_i] and d.legal_stage is null then
-        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.charge_raised', 'supplier_dues',
+        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.charge_reminder', 'supplier_dues',
           d.id || ':reminder:' || v_i, v_payload || jsonb_build_object('notice', 'charge_reminder', 'reminder_no', v_i));
         update public.supplier_dues set reminders = v_i, last_reminder_at = now() where id = d.id;
         n_rem := n_rem + 1;
       end if;
       -- The formal final demand.
       if v_days >= v_fd and d.legal_stage is null then
-        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.charge_raised', 'supplier_dues',
+        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.final_demand', 'supplier_dues',
           d.id || ':final_demand', v_payload || jsonb_build_object('notice', 'final_demand',
             'pay_by', (now() at time zone 'Asia/Dubai')::date + v_notice));
         update public.supplier_dues set legal_stage = 'final_demand_sent', legal_escalated_at = now() where id = d.id;
