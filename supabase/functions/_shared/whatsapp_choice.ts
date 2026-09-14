@@ -9,8 +9,7 @@
 // legacy scraped number) is deliberately not a column this module knows about.
 //
 // Columns (customers and leads alike): whatsapp_phone, whatsapp_verified_at, whatsapp_opt
-// ('same'|'other'|'none', null = not answered), whatsapp_asked_at, and the existing wa_optin.
-
+// ('same'|'other'|'none', null = not answered), whatsapp_asked_at. (wa_optin is no longer written: nothing reads it since #657.)
 export type WhatsAppOpt = 'same' | 'other' | 'none';
 export type ChoiceOpt = 'same' | 'none';
 
@@ -53,14 +52,14 @@ export type Patch = Record<string, string | boolean | null>;
 export function choosePatch(opt: ChoiceOpt, verifiedMobile: string | null, nowIso: string): Patch | null {
   if (opt === 'same') {
     if (!verifiedMobile) return null;
-    return { whatsapp_opt: 'same', whatsapp_phone: verifiedMobile, whatsapp_verified_at: nowIso, wa_optin: true, whatsapp_asked_at: nowIso };
+    return { whatsapp_opt: 'same', whatsapp_phone: verifiedMobile, whatsapp_verified_at: nowIso, whatsapp_asked_at: nowIso };
   }
-  return { whatsapp_opt: 'none', whatsapp_phone: null, whatsapp_verified_at: null, wa_optin: false, whatsapp_asked_at: nowIso };
+  return { whatsapp_opt: 'none', whatsapp_phone: null, whatsapp_verified_at: null, whatsapp_asked_at: nowIso };
 }
 
 // whatsapp_verify approved. The previously verified number is replaced only here, never at send time.
 export function verifiedPatch(phone: string, nowIso: string): Patch {
-  return { whatsapp_opt: 'other', whatsapp_phone: phone, whatsapp_verified_at: nowIso, wa_optin: true, whatsapp_asked_at: nowIso };
+  return { whatsapp_opt: 'other', whatsapp_phone: phone, whatsapp_verified_at: nowIso, whatsapp_asked_at: nowIso };
 }
 
 // whatsapp_later and whatsapp_send_code: existing accounts are asked once and never blocked.

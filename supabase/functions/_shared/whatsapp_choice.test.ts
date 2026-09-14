@@ -33,7 +33,7 @@ Deno.test('only same and none are choosable; other comes from a verified code', 
 });
 
 Deno.test('same writes the verified mobile, verified now, opted in', () => {
-  assertEquals(choosePatch('same', '+971501234567', NOW), { whatsapp_opt: 'same', whatsapp_phone: '+971501234567', whatsapp_verified_at: NOW, wa_optin: true, whatsapp_asked_at: NOW });
+  assertEquals(choosePatch('same', '+971501234567', NOW), { whatsapp_opt: 'same', whatsapp_phone: '+971501234567', whatsapp_verified_at: NOW, whatsapp_asked_at: NOW });
 });
 
 Deno.test('same without a verified mobile produces no patch', () => {
@@ -42,7 +42,7 @@ Deno.test('same without a verified mobile produces no patch', () => {
 });
 
 Deno.test('none clears the number and opts out', () => {
-  assertEquals(choosePatch('none', '+971501234567', NOW), { whatsapp_opt: 'none', whatsapp_phone: null, whatsapp_verified_at: null, wa_optin: false, whatsapp_asked_at: NOW });
+  assertEquals(choosePatch('none', '+971501234567', NOW), { whatsapp_opt: 'none', whatsapp_phone: null, whatsapp_verified_at: null, whatsapp_asked_at: NOW });
 });
 
 Deno.test('every patch that sets a phone also sets verified_at', () => {

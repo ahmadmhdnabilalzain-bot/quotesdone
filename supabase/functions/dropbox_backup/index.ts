@@ -146,7 +146,7 @@ async function renderGenerated(row: any): Promise<{ bucket: string; path: string
     inner = kvTable([
       ['Customer ID', c.id], ['Full name', c.full_name], ['Phone', c.phone], ['Phone verified', c.phone_verified ? 'Yes' : 'No'],
       ['Email', c.email], ['Email verified', c.email_verified ? 'Yes' : 'No'], ['Registered', fmtD(c.created_at)],
-      ['Terms version', c.tos_version], ['Terms accepted', fmtD(c.tos_accepted_at || c.signed_terms_at)], ['WhatsApp opt-in', c.wa_optin ? 'Yes' : 'No'],
+      ['Terms version', c.tos_version], ['Terms accepted', fmtD(c.tos_accepted_at || c.signed_terms_at)], ['WhatsApp', c.whatsapp_opt === 'other' ? (c.whatsapp_verified_at ? 'Confirmed number ' + (c.whatsapp_phone || '') : 'Different number, not confirmed (not used)') : c.whatsapp_opt === 'same' ? 'Same as mobile' : c.whatsapp_opt === 'none' ? 'Does not use WhatsApp' : 'Not answered'],
     ]);
   } else if (row.gen_kind === 'inquiry_summary') {
     const { data: i } = await admin.from('inquiries').select('*').eq('id', row.gen_ref).maybeSingle();

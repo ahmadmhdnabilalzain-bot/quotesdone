@@ -37,6 +37,17 @@
 --      number) had one caller, fn_spec_offer_whatsapp_reply - measured 14 Sep 2026 by a search of every
 --      routine body on production and of the repository; pg_depend is empty (plpgsql calls are not
 --      recorded there) - and is dropped at the end of this file, recorded in scripts/sql/DROPPED.txt.
+--   9. wa_optin stops being a second source of WhatsApp consent (review of #657). Its two database
+--      readers are repointed: fn_support_notify_new_quotation gated its WhatsApp alert on wa_optin and
+--      addressed it to customers.phone - it now sends only to fn_whatsapp_destination and records the
+--      honest skip reason; fn_ws_customer_360 reported the flag and now reports the WhatsApp route.
+--      (fn_wa_fanout, the third reader, is replaced above.) The edge readers (customer_api, sales_engineer,
+--      dropbox_backup, supplier_api) and kyc's writes go in the same PR. After this file and that code,
+--      NOTHING reads or writes customers.wa_optin / leads.wa_optin; the column is kept, not dropped here.
+--  10. wa_optin_set, the edge function that let a signed-in user write wa_optin, is retired in this PR
+--      (folder, config.toml, check lists). Its registry rows go here, the way the OS retirement
+--      (the_os_and_the_founder_command_layer_are_removed.sql) cleared function_owner. Undeploy with
+--      `npx supabase functions delete wa_optin_set --project-ref htdblwldjkcgjvmqkbeh` straight after merge.
 --
 -- WHAT THIS DOES NOT CHANGE
 --   * fn_support_notify_new_quotation writes WhatsApp into support_notification, which is deliberately
@@ -602,6 +613,217 @@ $function$;
 
 -- ONE INBOUND-NUMBER HELPER. Its only caller now reads fn_whatsapp_owner (above).
 drop function if exists public.fn_customer_by_whatsapp_sender(text);
+
+-- ── 9. NO SECOND SOURCE OF WHATSAPP CONSENT ─────────────────────────────────────────────────────
+create or replace function public.fn_support_notify_new_quotation(p_quote_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  q record; c record; v_case bigint; v_ref text; v_portal text;
+  v_body text; v_subject text; v_scan jsonb;
+  v_queued jsonb := '[]'::jsonb; v_skipped jsonb := '[]'::jsonb;
+  v_dedupe text; v_id bigint;
+begin
+  -- THE COMMITTED STATE, AND THE CURRENT ONE. Both are required: committed_at proves it was
+  -- published, and the status re-read proves it has not been withdrawn since. A quotation withdrawn
+  -- between publication and this call must not be announced, and only a fresh read can know that.
+  select qq.id, qq.inquiry_id, qq.supplier_id, qq.committed_at, qq.committed_hash, qq.status, qq.anonymized
+    into q from public.quotes qq where qq.id = p_quote_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', format('no quotation %s', p_quote_id::text));
+  end if;
+  if q.committed_at is null then
+    return jsonb_build_object('ok', false, 'reason',
+      'this quotation is not committed. A draft or a failed upload is not a publication and must never reach a customer.');
+  end if;
+  if coalesce(q.status,'') in ('withdrawn','cancelled','rejected','expired') then
+    return jsonb_build_object('ok', false, 'reason',
+      format('the quotation is %L now. It was committed once; it is not visible today, and the customer is not told about it.', q.status));
+  end if;
+
+  -- wa_dest: the CONFIRMED WhatsApp number (#322), or null. wa_optin is no longer read anywhere.
+  select i.rfq_no, cu.id cust_id, cu.full_name, cu.phone, cu.email, cu.banned,
+         public.fn_whatsapp_destination('customer', cu.id) as wa_dest
+    into c
+    from public.inquiries i
+    join public.customers cu on cu.id = i.customer_id
+   where i.id = q.inquiry_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason',
+      'the inquiry or its owner could not be read. Nothing is sent: a notification with no verified recipient is a message to a guess.');
+  end if;
+  if coalesce(c.banned, false) then
+    return jsonb_build_object('ok', false, 'reason', 'the inquiry owner is banned; no notification is sent.');
+  end if;
+
+  -- rfq_no is an INTEGER sequence number. The customer-facing reference is rendered from it when
+  -- it exists and from the inquiry id when it does not, so the shape is stable either way.
+  v_ref := case when c.rfq_no is not null then 'RFQ-' || c.rfq_no::text
+                else 'INQ-' || q.inquiry_id::text end;
+  v_portal := coalesce((select value from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com') || '/portal';
+
+  -- DETERMINISTIC RENDERING. The spec requires it for notifications, and it is also the only way the
+  -- anonymity scan means anything: a model could compose a different sentence next time, and the
+  -- scan would be checking a message nobody will send.
+  v_body := 'You have received a new quotation for inquiry ' || v_ref
+         || '. Sign in to your QuotesDone portal to review it: ' || v_portal || '.';
+  v_subject := 'A new quotation for inquiry ' || v_ref;
+
+  -- THE SCAN, before anything is queued. It reads the live supplier row and the live quotation, so
+  -- it is checking for THIS supplier's actual name, email, phone and amount -- not a word list.
+  v_scan := public.fn_support_anonymity_scan(v_body, v_subject, null, q.supplier_id, q.id::text);
+  if (v_scan->>'safe') <> 'true' then
+    return jsonb_build_object('ok', false, 'blocked', true, 'reason', v_scan->>'note', 'scan', v_scan);
+  end if;
+
+  -- The case that owns this conversation.
+  insert into public.support_case (case_ref, party_kind, party_id, inquiry_ref, subject)
+  values ('case:quote:' || q.id::text, 'customer', c.cust_id::text, v_ref,
+          'New quotation published for ' || v_ref)
+  on conflict (case_ref) do update set last_activity_at = now()
+  returning case_id into v_case;
+  if v_case is null then
+    select case_id into v_case from public.support_case where case_ref = 'case:quote:' || q.id::text;
+  end if;
+
+  -- BOTH CHANNELS, EACH JUDGED ON ITS OWN PERMISSION. The spec: "Check both-channel permissions
+  -- independently and record blocked/suppressed outcomes honestly." A missing email is not a reason
+  -- to skip WhatsApp, and no consent on WhatsApp is not a reason to skip email.
+  --
+  -- The dedupe key carries the publication version (committed_hash), so re-committing a changed
+  -- quotation notifies again and the same commit arriving twice does not.
+  if c.wa_dest is not null then
+    v_dedupe := 'quote_published|' || q.id::text || '|' || coalesce(q.committed_hash,'nohash') || '|whatsapp|' || c.wa_dest;
+    insert into public.support_notification
+      (dedupe_key, case_id, purpose, channel, recipient, inquiry_ref, publication_version,
+       subject, body, anonymity_checked_at, anonymity_result)
+    values (v_dedupe, v_case, 'quote_published', 'whatsapp', c.wa_dest, v_ref, q.committed_hash,
+            null, v_body, now(), v_scan)
+    on conflict (dedupe_key) do nothing
+    returning id into v_id;
+    v_queued := v_queued || jsonb_build_object('channel','whatsapp','queued', v_id is not null,
+                  'note', case when v_id is null then 'already queued for this publication version' else 'queued' end);
+  else
+    v_skipped := v_skipped || jsonb_build_object('channel','whatsapp','reason',
+      'no confirmed WhatsApp number (the customer said they do not use WhatsApp, or has not confirmed one)');
+  end if;
+
+  if coalesce(btrim(c.email),'') <> '' then
+    v_dedupe := 'quote_published|' || q.id::text || '|' || coalesce(q.committed_hash,'nohash') || '|email|' || c.email;
+    insert into public.support_notification
+      (dedupe_key, case_id, purpose, channel, recipient, inquiry_ref, publication_version,
+       subject, body, anonymity_checked_at, anonymity_result)
+    values (v_dedupe, v_case, 'quote_published', 'email', c.email, v_ref, q.committed_hash,
+            v_subject, v_body, now(), v_scan)
+    on conflict (dedupe_key) do nothing
+    returning id into v_id;
+    v_queued := v_queued || jsonb_build_object('channel','email','queued', v_id is not null,
+                  'note', case when v_id is null then 'already queued for this publication version' else 'queued' end);
+  else
+    v_skipped := v_skipped || jsonb_build_object('channel','email','reason','no email on the customer record');
+  end if;
+
+  return jsonb_build_object(
+    'ok', true, 'quote_id', q.id, 'inquiry_ref', v_ref, 'case_id', v_case,
+    'publication_version', q.committed_hash,
+    'queued', v_queued, 'skipped', v_skipped, 'anonymity', v_scan,
+    'note', 'Queued only. Delivery is the sender''s job and its outcome is recorded on the row, never assumed here.');
+end $function$;
+
+
+create or replace function public.fn_ws_customer_360(p_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare c public.customers%rowtype; j jsonb;
+  ltv numeric(18,2); deal_value numeric(18,2); reveals int;
+  rfqs_total int; rfqs_active int; rfqs_done int; avg_budget numeric(18,2);
+  last_act timestamptz; score int; cats text; docs jsonb := '[]'::jsonb; summary text;
+begin
+  select * into c from public.customers where id=p_id;
+  if c.id is null then return jsonb_build_object('error','customer not found'); end if;
+
+  select coalesce(sum(reveal_fee) filter (where fee_status='paid'),0), coalesce(sum(quote_amount),0), count(*)
+    into ltv, deal_value, reveals from public.transactions where customer_id=p_id;
+  select count(*), count(*) filter (where status not in ('completed','cancelled','closed','lost')),
+         count(*) filter (where status in ('completed','closed') or outcome='completed'),
+         coalesce(round(avg(nullif(expected_value,0)),2),0)
+    into rfqs_total, rfqs_active, rfqs_done, avg_budget from public.inquiries where customer_id=p_id;
+  select string_agg(distinct category, ', ') into cats from public.inquiries where customer_id=p_id and category is not null;
+
+  select greatest(coalesce(max(i.created_at), c.created_at),
+                  coalesce((select max(revealed_at) from public.transactions where customer_id=p_id), c.created_at),
+                  c.created_at)
+    into last_act from public.inquiries i where i.customer_id=p_id;
+  last_act := coalesce(last_act, c.created_at);
+
+  score := least(100, greatest(0,
+      coalesce(rfqs_total,0)*12 + coalesce(reveals,0)*25 + round(coalesce(ltv,0)/20)::int
+      + (case when last_act > now() - interval '30 days' then 15 else 0 end)));
+
+  docs := coalesce((select jsonb_agg(jsonb_build_object('type','Drawing','name',coalesce(drawing_file_name,'drawing'),'path',drawing_file_path))
+                    from public.inquiries where customer_id=p_id and drawing_file_path is not null),'[]'::jsonb);
+  if c.signed_terms_path is not null then docs := docs || jsonb_build_object('type','Signed terms','name','terms','path',c.signed_terms_path); end if;
+
+  summary := c.full_name||' joined '||to_char(c.created_at,'Mon YYYY')||'. '
+    ||coalesce(rfqs_total,0)||' RFQ(s)'||coalesce(' across '||cats,'')||'. '
+    ||coalesce(reveals,0)||' reveal(s), AED '||to_char(coalesce(ltv,0),'FM999999990.00')||' paid to date.'
+    ||(case when avg_budget>0 then ' Avg project budget AED '||to_char(avg_budget,'FM999999990') else '' end)
+    ||(case when c.banned then ' [BANNED]' when not coalesce(c.email_verified,false) then ' Email unverified.' else '' end);
+
+  j := jsonb_build_object(
+    'profile', jsonb_build_object('id',c.id,'full_name',c.full_name,'email',c.email,'phone',c.phone,
+       'created_at',c.created_at,'phone_verified',c.phone_verified,'email_verified',c.email_verified,
+       'banned',c.banned,'banned_reason',c.banned_reason,'whatsapp',jsonb_build_object('opt',c.whatsapp_opt,'confirmed',public.fn_whatsapp_destination('customer',c.id) is not null),'tos_accepted_at',c.tos_accepted_at,
+       'chat_strikes',c.chat_strikes),
+    'metrics', jsonb_build_object('ltv',ltv,'total_deal_value',deal_value,'reveals',reveals,
+       'rfqs_total',rfqs_total,'rfqs_active',rfqs_active,'rfqs_completed',rfqs_done,
+       'avg_project_budget',avg_budget,'relationship_score',score),
+    'ai_summary', summary,
+    'preferences', (
+       with pref as (select p.preferences pj from public.customer_preference p
+                       join public.customers cc on cc.id = p.customer_id
+                      where p.customer_id = p_id and cc.tos_accepted_at is not null)
+       select jsonb_build_object(
+         'categories', coalesce((select pj->'stated'->'categories' from pref),
+                                (select pj->'inferred'->'categories' from pref),
+                                coalesce((select jsonb_agg(distinct category) from public.inquiries where customer_id=p_id and category is not null),'[]'::jsonb)),
+         'emirates',   coalesce((select pj->'stated'->'emirates' from pref),
+                                (select pj->'inferred'->'emirates' from pref),
+                                coalesce((select jsonb_agg(distinct emirate) from public.inquiries where customer_id=p_id and emirate is not null),'[]'::jsonb)),
+         'scope_type', (select pj->'inferred'->>'scope_type' from pref),
+         'budget_aed_avg', (select pj->'inferred'->'budget_aed_avg' from pref),
+         'remembered', exists(select 1 from pref))),
+    'rfqs', coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'category',i.category,'emirate',i.emirate,
+       'status',i.status,'pipeline_stage',i.pipeline_stage,'budget',i.expected_value,
+       'outcome',i.outcome,'created_at',i.created_at) order by i.created_at desc)
+       from (select * from public.inquiries where customer_id=p_id order by created_at desc limit 15) i),'[]'::jsonb),
+    'quotes', coalesce((select jsonb_agg(jsonb_build_object('id',q.id,'amount',q.quote_amount,'status',q.status,'created_at',q.created_at) order by q.created_at desc)
+       from public.quotes q join public.inquiries i on i.id=q.inquiry_id where i.customer_id=p_id),'[]'::jsonb),
+    'transactions', coalesce((select jsonb_agg(jsonb_build_object('quote_amount',t.quote_amount,'reveal_fee',t.reveal_fee,'fee_status',t.fee_status,'revealed_at',t.revealed_at) order by t.revealed_at desc)
+       from public.transactions t where t.customer_id=p_id),'[]'::jsonb),
+    'documents', docs,
+    'timeline', (select jsonb_agg(e order by e->>'at' desc) from (
+        select jsonb_build_object('at',c.created_at,'event','Signed up') e
+        union all select jsonb_build_object('at',i.created_at,'event','RFQ: '||coalesce(i.category,'inquiry')) from public.inquiries i where i.customer_id=p_id
+        union all select jsonb_build_object('at',t.revealed_at,'event','Revealed supplier · AED '||coalesce(t.reveal_fee::text,'0')||' fee') from public.transactions t where t.customer_id=p_id and t.revealed_at is not null
+      ) tl)
+  );
+  return j;
+end $function$;
+
+
+-- ── 10. THE RETIRED EDGE FUNCTION LEAVES THE REGISTRIES ─────────────────────────────────────────
+-- A registry that names an absent function is how a later reader concludes it exists; both rows are
+-- read by live checks. Measured 14 Sep 2026: one function_owner row, one it_watch_subject row; the
+-- phase_c_* registries that also listed it no longer exist.
+delete from public.function_owner where function_slug = 'wa_optin_set';
+delete from public.it_watch_subject where subject = 'wa_optin_set';
 
 -- ── PROOF, NO DATA (this file defines things, so it must not raise on success) ────────────────────
 do $$
