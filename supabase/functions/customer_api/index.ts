@@ -663,12 +663,15 @@ Deno.serve(observe('customer_api', async (req) => {
             : [])
           : null;
         const redactBatch = async (slice: any[], from: number) => {
-          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
         const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime }) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
+        // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
+        // under the hold) — the portal opens the customer's box editor on exactly that signal.
+        let needsManual = false;
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
@@ -678,6 +681,7 @@ Deno.serve(observe('customer_api', async (req) => {
           try {
             const rj = await redactBatch(slice, i);
             const inN = Number(rj?.pages_in || 0);
+            if (rj?.needs_manual_boxes === true) needsManual = true;
             // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
             // isolate death is counted as pages LOST rather than as a batch that carried no pages.
             if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; continue; }
@@ -689,7 +693,7 @@ Deno.serve(observe('customer_api', async (req) => {
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
-        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn };
+        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: needsManual && !(redIn > 0 && redOut === redIn) };
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);

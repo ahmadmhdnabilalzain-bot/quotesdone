@@ -1,16 +1,11 @@
-import type { Metadata } from 'next';
+import { appShellMeta } from '@/lib/seo';
 import { CustomerPortal } from '@/components/me/CustomerPortal';
 
-// The portal is a signed-in shell: it has no content a search engine should hold, and on /ar it
-// was indexed under an English title (audit 14 Sep 2026). Localised title, never indexed.
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-  const { locale } = await params;
-  const ar = locale === 'ar';
-  return {
-    title: ar ? 'QuotesDone — طلباتي' : 'QuotesDone — My Requests',
-    description: ar ? 'بوابة العملاء: انشر طلبك وقارن عروض الأسعار بشكل مجهول.' : 'Customer portal: post a request and compare anonymous quotes.',
-    robots: { index: false, follow: false },
-  };
+// The portal is a signed-in shell: nothing on it belongs in a search index, and on /ar it was
+// indexed under an English title (website audit 14 Sep 2026). appShellMeta is the platform's one
+// definition of a signed-in shell's metadata — localised title, noindex — shared with /portal.
+export async function generateMetadata(p: { params: Promise<{ locale: string }> }) {
+  return appShellMeta((await p.params).locale, 'me');
 }
 
 export default function MePage() { return <CustomerPortal />; }

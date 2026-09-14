@@ -1,0 +1,427 @@
+// @ts-nocheck
+'use client';
+// THE INTAKE COMPOSER — the one screen the product exists for.
+//
+// What the website audit found here on 14 Sep 2026, and what each part below answers:
+//   * BLOCKS CONVERSION: inquiry_intake returns questions[] (and, from the intake rebuild,
+//     next_question and readiness {filled,required}) but the portal rendered assistant_message only,
+//     so under the model hold the customer read "A few details will help" and was never told which.
+//     -> QuestionChips + ReadinessBar. Items may be strings or {key, text|question|label}.
+//   * The intelligence the intake already returns was thrown away -> specialist badge (agent_name),
+//     urgency tag, classifier_override as "I read this as X, not Y", and the BOQ as a table with
+//     confidence, assumptions and missing information BEFORE Send.
+//   * English only -> every string comes from portalText (EN + AR); the panel carries its own dir.
+//   * Voice and drawing reading fail AFTER the upload while the model routes are held
+//     -> llmAvailable (customer_portal overview, llm_route_health) gates the mic and says why.
+//   * A drawing could not reach suppliers under the hold, because drawing_redact verified nothing
+//     -> RedactionEditor: the customer boxes what must be hidden, and customer_api forwards
+//     manual_boxes (normalised 0..1 per page) to drawing_redact, which applies them without a model.
+//   * pdf.js came from cdnjs at runtime -> pdfRaster.ts, bundled.
+//   * The homepage draft handoff -> initialText is sent as the first message, once.
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { t, tf, errText, emirateName } from './portalText';
+
+const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
+async function fileToImages(file) {
+  const b64 = await fileB64(file);
+  if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
+  if (file.type === 'application/pdf') {
+    try {
+      const { rasterisePdf } = await import('./pdfRaster');
+      const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return { images: await rasterisePdf(arr), b64, mime: 'application/pdf' };
+    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
+  }
+  return { images: [], b64, mime: file.type || 'application/octet-stream' };
+}
+function encodeWav(samples, rate) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2); const view = new DataView(buffer);
+  const ws = (o, str) => { for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i)); };
+  ws(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); ws(8, 'WAVE'); ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); ws(36, 'data'); view.setUint32(40, samples.length * 2, true);
+  let o = 44; for (let i = 0; i < samples.length; i++) { const x = Math.max(-1, Math.min(1, samples[i])); view.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true); o += 2; }
+  return buffer;
+}
+async function blobToWavB64(blob) {
+  const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC();
+  const buf = await ac.decodeAudioData(await blob.arrayBuffer());
+  const rate = 16000; const off = new OfflineAudioContext(1, Math.ceil(buf.duration * rate), rate);
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
+  const pcm = (await off.startRendering()).getChannelData(0);
+  const bytes = new Uint8Array(encodeWav(pcm, rate)); let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+// A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
+const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
+// readiness is {filled, required} from the rebuilt intake or a 0-100 number from the old one.
+const readinessPct = (r) => {
+  if (r && typeof r === 'object') { const req = Number(r.required); return req > 0 ? Math.round((Math.min(Number(r.filled) || 0, req) / req) * 100) : null; }
+  const n = Number(r); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
+};
+
+export function NewRequest({ token, lang, call, llmAvailable, initialText, onDone, onCancel }) {
+  const ar = lang === 'ar';
+  const reduce = useReducedMotion();
+  const [messages, setMessages] = useState([{ role: 'assistant', text: t(lang, 'nr_greeting') }]);
+  const [input, setInput] = useState('');
+  const [intakeId, setIntakeId] = useState(null);
+  const [drawing, setDrawing] = useState(null);
+  const [pages, setPages] = useState(null); // { images, b64, mime, name } kept for the redaction editor
+  const [editor, setEditor] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [brief, setBrief] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [meta, setMeta] = useState({}); // what the last intake turn said about itself
+  const [combineMode, setCombineMode] = useState('multi');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
+  const fileRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
+  const modelHeld = llmAvailable === false;
+  const push = (m) => setMessages((a) => [...a, m]);
+  useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
+
+  const runIntake = async (message) => {
+    setThinking(true); setMsg('');
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (drawing && drawing.boq) || null, lang }, token).catch(() => null);
+    setThinking(false);
+    if (!r || r.error) { push({ role: 'assistant', text: errText(r, lang, 'nr_err_generic') }); return; }
+    if (r.intake_id) setIntakeId(r.intake_id);
+    const questions = (Array.isArray(r.questions) ? r.questions : []).map(qText).filter(Boolean);
+    const next = r.next_question ? qText(r.next_question) : '';
+    // next_question.options, when the intake offers them, are complete answers: one tap sends one.
+    const options = (r.next_question && Array.isArray(r.next_question.options) ? r.next_question.options : []).map(qText).filter(Boolean).slice(0, 8);
+    setMeta({ agent_name: r.agent_name || null, urgency: r.urgency || null, override: r.classifier_override || null, readiness: readinessPct(r.readiness ?? r.readiness_score), category: r.category || null });
+    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options });
+    if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); } else setReady(false);
+  };
+  const sendText = async (text) => { const v = String(text || '').trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v); };
+  const send = () => sendText(input);
+  // THE HOMEPAGE HANDOFF. The draft is sent as the first message exactly once; the parent deletes the
+  // localStorage key before mounting this, so a reload cannot send it twice.
+  useEffect(() => { if (initialText && !sentDraft.current) { sentDraft.current = true; push({ role: 'assistant', text: t(lang, 'nr_draft_picked') }); sendText(initialText); } }, [initialText]);
+  const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+  const answerChip = (q) => { setInput(q + (ar ? ' — ' : ' — ')); setTimeout(() => { try { inputRef.current.focus(); } catch (_e) {} }, 20); };
+
+  const analyze = async (p, manual_boxes) => {
+    const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
+    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}) }, token);
+  };
+  const adopt = (res, name) => {
+    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: 'drawing' };
+    setDrawing(dr);
+    return dr;
+  };
+  const onFile = async (file) => {
+    if (!file) return; setMsg(''); setAnalyzing(true); setEditor(false);
+    push({ role: 'user', text: '', chip: file.name });
+    try {
+      const p = { ...(await fileToImages(file)), name: file.name };
+      setPages(p);
+      const res = await analyze(p);
+      adopt(res, file.name);
+      const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
+      if (n >= 1) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
+      // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
+      // suppliers (customer_api drops the paths, create_inquiry refuses unrecorded ones), so this
+      // never says "attached" unless redaction_complete says every page came back.
+      const pagesIn = Number((res && res.redaction_pages_in) || 0), pagesOut = Number((res && res.redaction_pages_out) || 0);
+      const attached = pagesIn > 0 && res.redaction_complete === true;
+      const partial = pagesIn > 0 && !attached;
+      let text;
+      if (n >= 1) {
+        const cat = res.boq.category ? ' (' + res.boq.category + ')' : '';
+        text = tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, cat })
+          + (partial ? (pagesOut ? tf(lang, 'nr_partial_some', { out: pagesOut, in: pagesIn }) : t(lang, 'nr_partial_none')) : '')
+          + t(lang, 'nr_add_or_send');
+      } else if (res && res.advice && !p.images.length) {
+        text = res.advice; // customer_api names the real reason (CAD not converted, archive, unreadable)
+      } else if (attached) {
+        text = tf(lang, 'nr_pages_ready', { n: pagesIn });
+      } else {
+        text = t(lang, 'nr_not_prepared');
+      }
+      push({ role: 'assistant', text });
+      // drawing_redact's contract (intake engine, 14 Sep): needs_manual_boxes is the one signal that
+      // automatic detection could not run, so the editor opens on exactly that and nothing else.
+      if (res && res.needs_manual_boxes === true && p.images.length) setEditor(true);
+    } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_file_unreadable') }); }
+    setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
+  };
+  const applyBoxes = async (boxes) => {
+    if (!pages) return false;
+    const res = await analyze(pages, boxes).catch(() => null);
+    const ok = !!(res && res.redaction_complete === true && Number(res.redaction_pages_in) > 0);
+    const dr = adopt(res, pages.name);
+    if (res && res.boq && res.boq.boq && res.boq.boq.length && !brief) { setBrief({ category: res.boq.category || '', summary: res.boq.summary || pages.name, emirate: '', trades: [] }); setReady(true); }
+    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { n: (dr.drawing_redacted_paths || []).length || Number(res.redaction_pages_out) }) : t(lang, 'rd_failed') });
+    if (ok) setEditor(false);
+    return ok;
+  };
+
+  const startRec = async () => {
+    if (modelHeld) { setMsg(t(lang, 'nr_voice_paused')); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const mr = new MediaRecorder(stream); recRef.current = { mr, chunks: [], stream };
+      mr.ondataavailable = (e) => { if (e.data && e.data.size) recRef.current.chunks.push(e.data); };
+      mr.onstop = async () => {
+        setVoxBusy(true);
+        try {
+          const blob = new Blob(recRef.current.chunks, { type: (recRef.current.chunks[0] && recRef.current.chunks[0].type) || 'audio/webm' });
+          const j = await call('transcribe', { audio_b64: await blobToWavB64(blob), mime: 'audio/wav' }, token);
+          if (j && j.ok && j.text) setInput((tx) => (tx ? tx + ' ' : '') + j.text); else setMsg(t(lang, 'nr_transcribe_fail'));
+        } catch (_e) { setMsg(t(lang, 'nr_rec_fail')); }
+        setVoxBusy(false); try { recRef.current.stream.getTracks().forEach((tr) => tr.stop()); } catch (_e) {}
+      };
+      mr.start(); setRec(true);
+    } catch (_e) { setMsg(t(lang, 'nr_mic_denied')); }
+  };
+  const stopRec = () => { try { recRef.current && recRef.current.mr.stop(); } catch (_e) {} setRec(false); };
+
+  const submit = async () => {
+    setBusy(true); setMsg('');
+    const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
+    const firstUser = messages.find((m) => m.role === 'user' && m.text);
+    const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing }, token).catch(() => null);
+    setBusy(false);
+    if (r && r.ok) onDone();
+    else if (r && r.error === 'intake_required') { setReady(false); push({ role: 'assistant', text: t(lang, 'nr_more_details') }); }
+    else setMsg(errText(r, lang, 'nr_could_not_send'));
+  };
+
+  const trades = (brief && Array.isArray(brief.trades)) ? brief.trades : [];
+  const boq = drawing && drawing.boq;
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+  const urgencyIcon = meta.urgency === 'emergency' ? Siren : AlertTriangle;
+  return (
+    <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel mb-3.5 flex flex-col overflow-hidden" style={{ height: 'min(78vh, 720px)' }} aria-label={t(lang, 'nr_title')}>
+      <div className="flex items-center justify-between gap-2.5 border-b border-border px-5 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="font-head text-[15px] font-bold text-foreground">{t(lang, 'nr_title')}</h2>
+          {meta.agent_name ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"><UserRound className="h-3 w-3" aria-hidden />{tf(lang, 'nr_handled_by', { name: meta.agent_name })}</span> : null}
+          {meta.urgency && meta.urgency !== 'normal' ? <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', meta.urgency === 'emergency' ? 'border-red-400/40 bg-red-400/10 text-red-300' : 'border-amber-400/40 bg-amber-400/10 text-amber-300')}>{(() => { const I = urgencyIcon; return <I className="h-3 w-3" aria-hidden />; })()}{t(lang, 'nr_urgency_' + meta.urgency)}</span> : null}
+        </div>
+        <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'nr_cancel')}</Button>
+      </div>
+      {meta.readiness != null && <ReadinessBar pct={meta.readiness} lang={lang} reduce={reduce} />}
+
+      <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
+        {messages.map((m, i) => (
+          <motion.div key={i} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.22 }}>
+            {m.chip !== undefined
+              ? <div className="flex justify-end"><div className="flex items-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/15 px-3 py-2 text-[13px] text-foreground"><Paperclip className="h-3.5 w-3.5" aria-hidden /><bdi>{m.chip}</bdi></div></div>
+              : <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'border border-border bg-secondary/60 text-foreground')}>{m.text}</div>
+                </div>}
+            {m === lastAssistant && Array.isArray(m.questions) && m.questions.length > 0 && (
+              <QuestionChips questions={m.questions} next={m.next} lang={lang} onPick={answerChip} reduce={reduce} />
+            )}
+            {m === lastAssistant && Array.isArray(m.options) && m.options.length > 0 && !thinking && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5 ps-1" role="group" aria-label={m.next || t(lang, 'nr_chips_hint')}>
+                {m.options.map((o) => (
+                  <button key={o} type="button" onClick={() => sendText(o)} className="rounded-full border border-primary/45 bg-primary/10 px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{o}</button>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ))}
+        {meta.override && meta.override.kept && meta.override.model ? (
+          <div className="flex justify-start"><button type="button" onClick={() => answerChip(tf(lang, 'nr_override', { kept: meta.override.kept, model: meta.override.model }).split(' — ')[0])}
+            className="rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-start text-[12.5px] text-amber-200 hover:border-amber-400/60">
+            {tf(lang, 'nr_override', { kept: String(meta.override.kept).replace(/[-_]/g, ' '), model: String(meta.override.model).replace(/[-_]/g, ' ') })}
+          </button></div>
+        ) : null}
+        {(thinking || analyzing) && (
+          <div className="flex justify-start"><div className="flex items-center gap-2 rounded-2xl border border-border bg-secondary/60 px-3.5 py-2 text-[13px] text-muted-foreground">
+            <span className="redact redact-bar" style={{ width: 54 }} aria-hidden />{analyzing ? t(lang, 'nr_reading') : t(lang, 'nr_typing')}
+          </div></div>
+        )}
+        {editor && pages && pages.images.length > 0 && (
+          <RedactionEditor lang={lang} images={pages.images} onApply={applyBoxes} onSkip={() => setEditor(false)} reduce={reduce} />
+        )}
+        {boq && Array.isArray(boq.boq) && boq.boq.length > 0 && <BoqTable boq={boq} lang={lang} />}
+        <AnimatePresence>
+          {ready && brief && (
+            <motion.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+              className="rounded-2xl border border-primary/35 bg-primary/[0.06] p-4 shadow-[0_18px_50px_-30px_rgba(20,184,166,.55)]">
+              <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" aria-hidden /><div className="text-[13.5px] font-bold capitalize text-foreground">{brief.category || t(lang, 'rc_request')}{brief.emirate ? ' — ' + emirateName(brief.emirate, lang) : ''}</div></div>
+              {brief.summary ? <div className="mt-1 text-[13px] text-muted-foreground">{brief.summary}</div> : null}
+              <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-2">
+                {brief.scope ? <Fact k={t(lang, 'nr_scope')} v={brief.scope} /> : null}
+                {brief.quantity ? <Fact k={t(lang, 'nr_quantity')} v={<>{brief.quantity}{brief.provenance && brief.provenance.quantity === 'inferred' ? <span className="text-muted-foreground"> {t(lang, 'nr_qty_inferred')}</span> : null}</>} /> : null}
+                {brief.timeline ? <Fact k={t(lang, 'nr_timeline')} v={brief.timeline} /> : null}
+                {brief.budget ? <Fact k={t(lang, 'nr_budget')} v={brief.budget} /> : null}
+              </dl>
+              {Array.isArray(brief.required_documents) && brief.required_documents.length ? (
+                <div className="mt-2.5">
+                  <div className="text-[12.5px] font-semibold text-foreground">{t(lang, 'nr_req_docs')}</div>
+                  <ul className="mt-0.5 space-y-0.5">{brief.required_documents.map((d, i) => <li key={i} className="text-[12.5px] text-muted-foreground">✓ {d.item}{d.authority ? <span className="text-muted-foreground/80"> — {d.authority}</span> : null}</li>)}</ul>
+                </div>
+              ) : null}
+              {brief.supplier_count != null ? (
+                <div className={cn('mt-2.5 text-[12.5px] font-semibold', Number(brief.supplier_count) > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+                  {Number(brief.supplier_count) > 0 ? (Number(brief.supplier_count) === 1 ? t(lang, 'nr_sup_one') : tf(lang, 'nr_sup_many', { n: brief.supplier_count })) : t(lang, 'nr_sup_zero')}
+                </div>
+              ) : null}
+              {trades.length > 1 ? (
+                <fieldset className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <legend className="px-1 text-[12.5px] font-semibold text-primary">{tf(lang, 'nr_multi_h', { list: trades.join(ar ? '، ' : ', ') })}</legend>
+                  <div className="mb-2 text-[12.5px] text-muted-foreground">{t(lang, 'nr_multi_q')}</div>
+                  {[['multi', 'nr_multi_sep_h', 'nr_multi_sep_b'], ['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b']].map(([v, h, b]) => (
+                    <label key={v} className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-secondary/50">
+                      <input type="radio" name="combine" className="mt-1" checked={combineMode === v} onChange={() => setCombineMode(v)} />
+                      <span className="text-[12.5px] text-muted-foreground"><span className="font-semibold text-foreground">{t(lang, h)}</span> — {t(lang, b)}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              ) : null}
+              {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-amber-300">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
+              <Button className="mt-3 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
+              <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div ref={endRef} />
+      </div>
+
+      <div className="border-t border-border px-3 py-2.5">
+        {modelHeld ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_drawing_paused')}</div> : null}
+        {msg && <div className="mb-1.5 text-[12.5px] text-red-300" role="alert">{msg}</div>}
+        <div className="flex items-end gap-2">
+          {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
+          <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onFile(e.target.files[0])} />
+          <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
+          <button type="button" title={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-label={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-disabled={modelHeld}
+            className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-red-400' : 'text-primary', modelHeld && 'cursor-not-allowed opacity-40')} onClick={rec ? stopRec : startRec}>
+            {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
+          </button>
+          <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
+          <textarea id="qd-intake-input" ref={inputRef} className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-primary/60" rows={1}
+            placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
+          <Button disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const Fact = ({ k, v }) => <div className="flex gap-1.5"><dt className="text-muted-foreground">{k}:</dt><dd className="text-foreground">{v}</dd></div>;
+
+function ReadinessBar({ pct, lang, reduce }) {
+  return (
+    <div className="border-b border-border px-5 py-2">
+      <div className="flex items-center justify-between text-[11.5px]"><span className="font-semibold text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular-nums text-foreground">{pct}%</span></div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(lang, 'nr_readiness')}>
+        <motion.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
+      </div>
+    </div>
+  );
+}
+
+function QuestionChips({ questions, next, lang, onPick, reduce }) {
+  return (
+    <div className="mt-2 ps-1">
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t(lang, 'nr_chips_hint')}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {questions.slice(0, 5).map((q, i) => (
+          <motion.button key={q + i} type="button" onClick={() => onPick(q)}
+            initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, delay: reduce ? 0 : 0.05 * i }}
+            className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              q === next ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>
+            {q}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// The BOQ the reader pulled off the drawing, before Send. The customer is the only person who can
+// say it was read wrong, and they were shown a line count and nothing else.
+function BoqTable({ boq, lang }) {
+  const rows = boq.boq.slice(0, 40);
+  const conf = (c) => { const n = Number(c); if (Number.isFinite(n)) return Math.round(n <= 1 ? n * 100 : n) + '%'; return c ? String(c) : '—'; };
+  const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).map((v) => (typeof v === 'string' ? v : v && (v.text || v.item || v.note || JSON.stringify(v)))).filter(Boolean);
+  const assumptions = list(boq.assumptions), missing = list(boq.missing_info);
+  return (
+    <div className="rounded-2xl border border-border bg-card/60 p-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-[13px] font-bold text-foreground">{t(lang, 'nr_boq_title')}</h3>
+        {boq.confidence != null ? <span className="text-[11.5px] text-muted-foreground">{tf(lang, 'nr_boq_overall', { c: conf(boq.confidence) })}</span> : null}
+      </div>
+      <div className="mt-2 max-h-[240px] overflow-auto rounded-lg border border-border">
+        <table className="w-full text-[12px]">
+          <thead className="sticky top-0 bg-secondary/80 text-muted-foreground"><tr>
+            <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_item')}</th>
+            <th scope="col" className="px-2.5 py-1.5 text-end font-semibold">{t(lang, 'nr_boq_qty')}</th>
+            <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_unit')}</th>
+            <th scope="col" className="px-2.5 py-1.5 text-end font-semibold">{t(lang, 'nr_boq_conf')}</th>
+          </tr></thead>
+          <tbody>{rows.map((r, i) => (
+            <tr key={i} className="border-t border-border/60">
+              <td className="px-2.5 py-1.5 text-foreground">{r.description || r.item || r.name || '—'}</td>
+              <td className="px-2.5 py-1.5 text-end tabular-nums text-foreground">{r.qty ?? r.quantity ?? '—'}</td>
+              <td className="px-2.5 py-1.5 text-muted-foreground">{r.unit || '—'}</td>
+              <td className="px-2.5 py-1.5 text-end tabular-nums text-muted-foreground">{conf(r.confidence)}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      {assumptions.length ? <div className="mt-2 text-[12px] text-muted-foreground"><b className="text-foreground">{t(lang, 'nr_boq_assumptions')}: </b>{assumptions.join(' · ')}</div> : null}
+      {missing.length ? <div className="mt-1 text-[12px] text-amber-300"><b>{t(lang, 'nr_boq_missing')}: </b>{missing.join(' · ')}</div> : null}
+    </div>
+  );
+}
+
+// THE CUSTOMER-DRAWN REDACTION. Boxes are stored normalised to the page (0..1), so they mean the
+// same thing at the 1600px width drawing_redact works at as they do on this screen.
+function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
+  const [page, setPage] = useState(0);
+  const [boxes, setBoxes] = useState(() => images.map(() => []));
+  const [drag, setDrag] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const surf = useRef(null);
+  const pt = (e) => { const r = surf.current.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
+  const down = (e) => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_e) {} const p = pt(e); setDrag({ x0: p.x, y0: p.y, x1: p.x, y1: p.y }); };
+  const move = (e) => { if (!drag) return; const p = pt(e); setDrag((d) => ({ ...d, x1: p.x, y1: p.y })); };
+  const up = () => {
+    if (!drag) return;
+    const b = { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
+    if (b.w > 0.005 && b.h > 0.005) setBoxes((all) => all.map((l, i) => (i === page ? [...l, b] : l)));
+    setDrag(null);
+  };
+  const total = boxes.reduce((n, l) => n + l.length, 0);
+  const apply = async () => { setBusy(true); await onApply(boxes); setBusy(false); };
+  const live = drag ? { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) } : null;
+  const pct = (v) => (v * 100) + '%';
+  return (
+    <motion.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-primary/35 bg-card/70 p-3.5">
+      <h3 className="text-[13.5px] font-bold text-foreground">{t(lang, 'rd_title')}</h3>
+      <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{t(lang, 'rd_body')}</p>
+      <div className="mt-2.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground" dir="ltr">
+        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-border disabled:opacity-40" disabled={page === 0} onClick={() => setPage((p) => p - 1)} aria-label={t(lang, 'rd_prev')}><ChevronLeft className="h-4 w-4" aria-hidden /></button>
+        <span>{tf(lang, 'rd_page', { n: page + 1, total: images.length })} · {tf(lang, 'rd_boxes', { n: total })}</span>
+        <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-border disabled:opacity-40" disabled={page >= images.length - 1} onClick={() => setPage((p) => p + 1)} aria-label={t(lang, 'rd_next')}><ChevronRight className="h-4 w-4" aria-hidden /></button>
+      </div>
+      <div ref={surf} className="relative mt-2 cursor-crosshair touch-none select-none overflow-hidden rounded-lg border border-border bg-white" dir="ltr"
+        role="img" aria-label={tf(lang, 'rd_canvas', { n: page + 1 })}
+        onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
+        <img src={'data:' + images[page].mime + ';base64,' + images[page].data} alt="" draggable={false} className="block h-auto w-full" />
+        {boxes[page].map((b, i) => <span key={i} className="redact absolute !rounded-[1px] !bg-black/90" style={{ left: pct(b.x), top: pct(b.y), width: pct(b.w), height: pct(b.h) }} />)}
+        {live ? <span className="absolute border-2 border-dashed border-primary bg-primary/20" style={{ left: pct(live.x), top: pct(live.y), width: pct(live.w), height: pct(live.h) }} /> : null}
+      </div>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <Button size="sm" disabled={busy || total === 0} onClick={apply}>{busy ? t(lang, 'rd_applying') : t(lang, 'rd_apply')}</Button>
+        <Button size="sm" variant="outline" disabled={busy || !boxes[page].length} onClick={() => setBoxes((all) => all.map((l, i) => (i === page ? [] : l)))}><Eraser className="me-1 h-3.5 w-3.5" aria-hidden />{t(lang, 'rd_clear')}</Button>
+        <Button size="sm" variant="link" className="h-auto px-0" disabled={busy} onClick={onSkip}>{t(lang, 'rd_skip')}</Button>
+      </div>
+    </motion.div>
+  );
+}
