@@ -44,7 +44,21 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
   { type: 'delivery.request', from: 'accountant', to: 'customer_support' },
+  { type: 'delivery.request', from: 'it_engineer', to: 'customer_support' },
+  { type: 'delivery.request', from: 'customer_support', to: 'customer_support' },
+  // every send comes back to whoever asked (founder, 14 Sep 2026: "nothing literally should ever be a
+  // one way communication"; scripts/sql/every_send_comes_back_to_whoever_asked.sql)
   { type: 'delivery.result', from: 'customer_support', to: 'sales_engineer' },
+  { type: 'delivery.result', from: 'customer_support', to: 'accountant' },
+  { type: 'delivery.result', from: 'customer_support', to: 'ceo' },
+  { type: 'delivery.result', from: 'customer_support', to: 'it_engineer' },
+  { type: 'delivery.result', from: 'customer_support', to: 'customer_support' },
+  // the IT engineer hands a fault to the seat that owns it, re-verifies and closes
+  // (scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql)
+  { type: 'it.finding', from: 'it_engineer', to: 'sales_engineer' },
+  { type: 'it.finding', from: 'it_engineer', to: 'accountant' },
+  { type: 'it.finding', from: 'it_engineer', to: 'customer_support' },
+  { type: 'it.finding', from: 'it_engineer', to: 'ceo' },
   // the IT engineer verifies the Dropbox backup; the sales engineer refiles what it finds missing
   // (founder, 14 Sep 2026: scripts/sql/the_dropbox_backup_is_confirmed_not_assumed.sql)
   { type: 'backup.refile', from: 'it_engineer', to: 'sales_engineer' },
