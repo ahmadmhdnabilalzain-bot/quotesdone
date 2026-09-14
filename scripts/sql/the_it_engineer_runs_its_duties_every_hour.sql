@@ -211,10 +211,13 @@ begin
       'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,
       'evidence', jsonb_build_object('route', x.route, 'source', x.source, 'checked_at', x.checked_at));
   end loop;
-  for x in select context, expires_at from public.internal_credential
-            where active and expires_at is not null and expires_at < now() + interval '30 days' loop
+  -- Only what cannot rotate itself: a legacy credential, or one whose secret has no app_secrets key
+  -- (duty 15, the_it_engineer_takes_on_seven_more_duties.sql, rotates the rest 30 days ahead).
+  for x in select ic.context, ic.expires_at from public.internal_credential ic
+            where ic.active and ic.expires_at is not null and ic.expires_at < now() + interval '30 days'
+              and (ic.is_legacy or not exists (select 1 from public.app_secrets s where s.key = 'cred_' || replace(ic.context, '.', '_'))) loop
     v_items := v_items || jsonb_build_object('item', 'credential:' || x.context, 'owner_seat', 'ceo', 'subject', x.context,
-      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and nothing rotates it',
+      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and cannot be rotated automatically',
       'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('expires_at', x.expires_at));
   end loop;
   v_out := v_out || jsonb_build_object('expiry', public.fn_it_duty_settle('expiry', v_items));

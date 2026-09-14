@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
+import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -194,14 +195,24 @@ Deno.serve(observe('login_otp', async (req) => {
       }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
+      // A prefix the IT engineer blocked for pumping gets no code (public.otp_blocked_prefix, duty 11).
+      const pb = await prefixBlocked(admin, e164);
+      if (pb.blocked) {
+        await logRun('skipped', { prefix_blocked: 1 }, 'login_otp sent no SMS: the number is under a prefix the IT engineer blocked for OTP pumping. No Twilio charge was incurred.');
+        return J({ error: 'SMS codes are not available for this number. Please sign in with your email.' }, 403);
+      }
       // Caller-level and global ceilings. Checked BEFORE the Twilio call so a blocked attempt costs nothing.
-      const ipOk = await rl('login_otp_sms_ip:' + ip, SMS_PER_IP_HOUR, 3600);
-      const globalOk = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', SMS_SIGNUP_GLOBAL_HOUR, 3600) : true;
+      // Read from public.it_threshold so the IT engineer's playbook can tighten them; the constants are
+      // the fallback when that read fails, never a reason to refuse sign-in.
+      const perIp = await otpCeiling(admin, 'otp_sms_per_ip_hour', SMS_PER_IP_HOUR);
+      const perHour = await otpCeiling(admin, 'otp_signup_global_hour', SMS_SIGNUP_GLOBAL_HOUR);
+      const ipOk = await rl('login_otp_sms_ip:' + ip, perIp, 3600);
+      const globalOk = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', perHour, 3600) : true;
       if (!ipOk || !globalOk) {
-        await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0 },
+        await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0, guard_error: pb.error ?? null },
           !ipOk
-            ? ('login_otp blocked a caller that asked for more than ' + SMS_PER_IP_HOUR + ' SMS codes in an hour from one address. No SMS was sent and no Twilio charge was incurred. A real person signing in never reaches this - sustained hits mean someone is walking a list of numbers.')
-            : ('login_otp hit the global hourly ceiling of ' + SMS_SIGNUP_GLOBAL_HOUR + ' sign-up SMS messages. Further sign-up codes are refused this hour to cap Twilio spend. If genuine sign-ups are being turned away, raise SMS_SIGNUP_GLOBAL_HOUR - do not remove the ceiling.'));
+            ? ('login_otp blocked a caller that asked for more than ' + perIp + ' SMS codes in an hour from one address. No SMS was sent and no Twilio charge was incurred. A real person signing in never reaches this - sustained hits mean someone is walking a list of numbers.')
+            : ('login_otp hit the global hourly ceiling of ' + perHour + ' sign-up SMS messages. Further sign-up codes are refused this hour to cap Twilio spend. If genuine sign-ups are being turned away, raise it_threshold otp_signup_global_hour - do not remove the ceiling.'));
         return J({ error: 'Too many code requests. Please try again later.' }, 429);
       }
 
