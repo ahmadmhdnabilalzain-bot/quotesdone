@@ -592,6 +592,9 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
 
 Deno.serve(observe('customer_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
+  // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
@@ -1160,16 +1163,20 @@ Deno.serve(observe('customer_api', async (req) => {
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
           badges: { licence_verified: m.verified === true, response_rate: m.rr == null ? null : (revealed ? m.rr : Math.floor((m.rr <= 1 ? m.rr : m.rr / 100) * 10) / 10), jobs_completed: Number(m.jobs_won) > 0 ? Number(m.jobs_won) : null, rating: revealed && typeof r.value === 'number' ? r.value : null } }; }) });
-      const out = [] as any[];
-      for (const i of (tops || [])) {
+      // EACH mapRow AWAITS A STORAGE ROUND TRIP (signedDrawing) THAT THE OLD LOOP SERIALISED. Up to
+      // 25 top-level rows plus every child were signed one at a time — an N+1 sequential-await chain
+      // on the Overview's critical path (e2e run 6, 14 Sep 2026: 6.5s vs run 5's 1.6-1.8s, growing
+      // with the number of ZZ DEMO rows that carry a drawing). None of these rows' signed URLs depend
+      // on each other, so they run together; wall time is now the slowest ONE, not the sum.
+      const out = await Promise.all((tops || []).map(async (i) => {
         // mapRow returns an object literal, so its inferred type has no is_combined / child_count /
         // children. The combined-project decoration below is genuinely dynamic - only split parents
         // get it - so the row is typed as an open record rather than the literal's shape.
         const row: Record<string, any> = await mapRow(i);
         const ch = kidsByParent[String(i.id)];
-        if (ch && ch.length) { row.is_combined = true; row.child_count = ch.length; row.children = []; for (const c of ch) row.children.push(await mapRow(c)); }
-        out.push(row);
-      }
+        if (ch && ch.length) { row.is_combined = true; row.child_count = ch.length; row.children = await Promise.all(ch.map((c: any) => mapRow(c))); }
+        return row;
+      }));
       // `locale` added 5 Aug 2026. customers.locale was stored and, from the portal's point of
       // view, never served: the brief called it "stored and never served", which measurement shows
       // is not quite right - `me` returns the whole customer row via select('*'), locale included.
