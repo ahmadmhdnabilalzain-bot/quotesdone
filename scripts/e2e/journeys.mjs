@@ -417,7 +417,7 @@ export async function journeyInvoiceRefund(ctx) {
   const J = 'e invoice+refund';
   if (!ctx.paid) {
     rep.step(J, 'invoice appears in the portal', 'SKIP', 'needs a paid reveal, and journey d did not record one (see its steps)');
-    rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'needs a paid reveal. Built and merged: customer_api request_refund, fn_refund_open_from_customer, the 5-working-day ladder, ceo_agent decide. NOT merged on main: a CEO refund checklist in code (refund_ceo_check / refund_ceo_review exist as tables only).');
+    rep.step(J, 'refund end to end in Stripe TEST mode', 'SKIP', 'needs a paid reveal (journey d)');
     return;
   }
   const qid = ctx.paidQuote;
@@ -437,30 +437,89 @@ export async function journeyInvoiceRefund(ctx) {
     const seen = await s.page.getByText(/Invoice \(PDF\)|Invoice/).first().isVisible().catch(() => false);
     rep.step(J, 'the invoice is in the portal', seen ? 'PASS' : 'FAIL', seen ? '"Invoice" visible on the revealed request' : 'no invoice control on screen', { shot: await shot(s.page, ctx.dir, 'e_invoice_in_portal') });
   } finally { await s.ctx.close(); }
-  // THE REFUND LOOP (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql),
-  // driven as far as it can go without moving money. The customer asks in the portal's own endpoint; the
-  // request becomes a refunds case, the sales engineer hands it to the accountant, and the CEO's checklist
-  // decides. On day 0 the checklist MUST refuse: the day-3 chase and the day-5 final call have not happened.
-  const txId = tx?.id;
-  const rr = await call('customer_api', ctx.fx.customer.jwt, { action: 'request_refund', quote_id: qid });
-  const st = txId ? (await read(`select refund_status from public.transactions where id = ${q(txId)}`))[0] : null;
-  rep.step(J, 'the customer requests a refund in the portal', rr.status === 200 && st?.refund_status === 'requested' ? 'PASS' : 'FAIL',
-    `HTTP ${rr.status} refund_status=${st?.refund_status ?? 'none'} ${rr.text.slice(0, 120)}`);
-  const rf = txId ? (await read(`select id, status, requested_by from public.refunds where transaction_id = ${q(txId)} order by id desc limit 1`))[0] : null;
-  rep.step(J, 'the request opens a refund case', rf?.status === 'requested' && rf?.requested_by === 'customer' ? 'PASS' : 'FAIL', JSON.stringify(rf || {}));
-  const rh = rf ? (await read(`select agent, status, detail->>'type' as type, detail->>'from' as sender from public.agent_actions
-      where kind = 'handoff' and detail->>'type' = 'refund.requested' and detail->>'subject_id' = ${q(String(rf.id))} order by id desc limit 1`))[0] : null;
-  rep.step(J, 'the sales engineer hands the refund to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
-  const ck = txId ? (await read(`select public.fn_ceo_refund_checklist(${q(txId)}::uuid, 'approve', false) as c`))[0]?.c : null;
+  await refundEndToEnd(ctx, { id: qid }, J);
+}
+
+// THE REFUND, END TO END, ON THE DEMO REVEAL JOURNEY D PAID IN STRIPE TEST MODE (14 Sep 2026).
+// The customer asks through customer_api; the day-3 chase and day-5 final call run through the real
+// sales engineer and support routines for THIS transaction only (never the global sweep); the CEO's
+// review decides on the checklist; the accountant executes this one refund with the test key.
+// Two things are fixtures, both refused unless the row is a demo identity on @example.invalid:
+//   * TIME TRAVEL: the reveal is moved ten days back, because the terms give the supplier five
+//     working days and the harness cannot wait them out;
+//   * DELIVERY: mail to @example.invalid is captured by design and never sent, and the support watch
+//     counts only a sent message as delivered, so the captured demo message is marked sent.
+async function refundEndToEnd(ctx, live, J) {
+  const { rep, fx } = ctx;
+  const tx = (await read(`select t.id, t.total_charged, t.reveal_fee, c.is_demo, c.email
+      from public.transactions t join public.customers c on c.id = t.customer_id where t.quote_id = ${q(live.id)}`))[0];
+  if (!tx || tx.is_demo !== true || !/@example\.invalid$/i.test(String(tx.email))) {
+    return rep.step(J, 'refund end to end in Stripe TEST mode', 'FAIL', 'the paid reveal is not on a ZZ DEMO customer; a refund is never driven on a real row');
+  }
+  const want = Math.round(Number(tx.total_charged ?? tx.reveal_fee) * 100);
+  const DEMO_TX = `id = ${q(tx.id)} and customer_id in (select id from public.customers where is_demo and email like '%@example.invalid')`;
+
+  // 1. The request opens the case, and only then does the sale read 'requested'.
+  const req = await call('customer_api', fx.customer.jwt, { action: 'request_refund', quote_id: live.id });
+  const rf = await read(`select id, status, amount_fils from public.refunds where transaction_id = ${q(tx.id)} order by id`);
+  const sale = (await read(`select refund_status from public.transactions where id = ${q(tx.id)}`))[0];
+  const opened = req.json?.ok === true && rf.length === 1 && rf[0].status === 'requested' && Number(rf[0].amount_fils) === want && sale?.refund_status === 'requested';
+  rep.step(J, 'the request opens the case, then the sale reads requested', opened ? 'PASS' : 'FAIL',
+    `HTTP ${req.status} ${JSON.stringify(req.json)} refunds=${JSON.stringify(rf)} sale=${sale?.refund_status}`);
+  if (!opened) return;
+  const rid = Number(rf[0].id);
+  const conf = (await read(`select detail->>'locale' as locale from public.agent_actions where kind = 'handoff' and agent = 'customer_support'
+      and detail->>'msg_type' = 'refund_request_received' and detail->>'transaction_id' = ${q(tx.id)}`))[0];
+  rep.step(J, 'the confirmation goes to support in the registered language', conf?.locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(conf || {}));
+  const rh = (await read(`select agent from public.agent_actions where kind = 'handoff' and detail->>'type' = 'refund.requested'
+      and detail->>'subject_id' = ${q(String(rid))} order by id desc limit 1`))[0];
+  rep.step(J, 'the case is handed to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
+  // Day 0: the customer may ask, but the CEO may not decide before the day-3 chase and the day-5 final call.
+  const ck = (await read(`select public.fn_ceo_refund_checklist(${q(tx.id)}::uuid, 'approve', false) as c`))[0]?.c;
   const failedItems = (ck?.failed || []).map((x) => x.item);
   rep.step(J, "the CEO's checklist refuses approval before the day-3 chase and the day-5 final call",
     ck && ck.ok === false && failedItems.includes('day3_chase_happened') && failedItems.includes('day5_final_call_happened') ? 'PASS' : 'FAIL',
     ck ? `ok=${ck.ok}, failing: ${failedItems.join(', ') || 'none'}` : 'checklist did not run');
-  const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(qid)} or inquiry_id = ${q(ctx.inquiryId)} group by 1`);
-  rep.step(J, 'nothing the refund caused was dispatched', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
+  const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(live.id)} or to_email = ${q(tx.email)} group by 1`);
+  rep.step(J, 'nothing the request caused was dispatched to a real address', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
     rn.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no notification rows');
-  rep.step(J, 'the refund is executed in Stripe TEST mode', 'SKIP',
-    'MISSING PIECE: refund execution has no test-mode switch. refunds_api (index.ts ~L52) and accountant execute_refunds (~L629) always read stripe_secret_key, the LIVE key, so a demo refund of a TEST payment would be sent to live Stripe. Not driven. They need the same account-derived key choice as stripe_checkout/stripe_confirm (_shared/demo_identity.ts stripeKeyNames).');
+
+  // 2. Time travel, demo only.
+  const moved = await write(`update public.transactions set revealed_at = now() - interval '10 days',
+      refund_deadline = public.fn_add_working_days(now() - interval '10 days', 5) where ${DEMO_TX} returning id`, 'e2e refund time travel (demo only)');
+  if (!Array.isArray(moved) || moved.length !== 1) return rep.step(J, 'demo time travel', 'FAIL', JSON.stringify(moved));
+
+  // 3. Day 3 chase and day 5 final call, each delivered and watched to a no-response confirmation.
+  for (const [day, step] of [[3, 'chase'], [5, 'final_call']]) {
+    const reqId = Number((await write(`select public.fn_sales_engineer_ladder_step(${q(tx.id)}, '${step}', ${step === 'final_call' ? rid : 'null'}, null) as id`, 'e2e ladder step'))[0]?.id);
+    const n = (await read(`select (evidence->>'notification_id')::bigint as nid, detail->>'to_email' as to_email from public.agent_actions where id = ${reqId}`))[0];
+    // sent_at ONLY: the status stays as the capture left it (suppressed), so the safety step's count of
+    // dispatched rows stays honest. The first run of this journey wrote status='sent' here and the
+    // safety step counted those two captured demo rows as sent (14 Sep 2026, 16:19 run).
+    await write(`update public.notifications set sent_at = now() where id = ${Number(n?.nid) || 0} and to_email like '%@example.invalid'`, 'e2e demo delivery');
+    await write(`update public.agent_actions set detail = detail || jsonb_build_object('watch_until', now() - interval '1 minute')
+                 where id = ${reqId} and detail->>'to_email' like '%@example.invalid'`, 'e2e watch window');
+    const w = (await write(`select public.fn_customer_support_delivery_watch(${reqId}) as r`, 'e2e watch'))[0]?.r;
+    const ev = (await read(`select result, delivered from public.refund_ladder_evidence where transaction_id = ${q(tx.id)} and step = '${step}' order by id desc limit 1`))[0];
+    rep.step(J, `day ${day} ${step.replace('_', ' ')} delivered, no response confirmed`,
+      ev?.result === 'no_response_confirmation' && ev?.delivered === true ? 'PASS' : 'FAIL', JSON.stringify({ reqId, n, w, ev }));
+  }
+
+  // 4. The CEO decides on the checklist (fn_ceo_refund_review ran when the final call's result landed).
+  const dec = (await read(`select r.refund_decision_id, a.decision from public.refunds r
+      left join public.ceo_approval a on a.decision_id = r.refund_decision_id where r.id = ${rid}`))[0];
+  const failed = await read(`select item, reason from public.refund_ceo_check where refund_id = ${rid} and not passed order by id desc limit 10`);
+  rep.step(J, 'the CEO approves after verifying every step', dec?.decision === 'approved' ? 'PASS' : 'FAIL', JSON.stringify({ dec, failed }));
+  if (dec?.decision !== 'approved') return;
+
+  // 5. The accountant executes THIS refund only, and the key follows the payer: TEST.
+  const cred = (await read(`select value from public.app_secrets where key = 'cred_fn_accountant'`))[0]?.value;
+  const ex = await call('accountant', null, { __secret: cred, action: 'execute_refunds', refund_id: rid });
+  const res = (ex.json?.results || []).find((x) => Number(x.refund_id) === rid);
+  const after = (await read(`select status, stripe_refund_id, amount_fils from public.refunds where id = ${rid}`))[0];
+  const paid = res?.mode === 'test' && String(res?.stripe_refund_id || '').startsWith('re_') && Number(after?.amount_fils) === want
+    && ['processing', 'succeeded'].includes(String(after?.status));
+  rep.step(J, 'the accountant refunds everything paid, in Stripe TEST mode', paid ? 'PASS' : 'FAIL', JSON.stringify({ http: ex.status, res, after, want }));
 }
 
 // ---- f. every nav item on both portals ----------------------------------------------------------

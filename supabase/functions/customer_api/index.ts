@@ -1255,41 +1255,36 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'request_refund') {
       const qid = String(body.quote_id || '');
-      const { data: tx } = await admin.from('transactions').select('id,customer_id,refund_deadline,refund_status,fee_status').eq('quote_id', qid).maybeSingle();
+      const { data: tx } = await admin.from('transactions').select('id,customer_id').eq('quote_id', qid).maybeSingle();
       if (!tx || tx.customer_id !== cust.id) return J({ error: 'Transaction not found' }, 404);
-      if (tx.refund_status) return J({ ok: true, refund_status: tx.refund_status });
-      // 6 Sep 2026: the ladder is pricing_config.refund_window_working_days (5) from payment, a chase at 3,
-      // the founder's final call at 5; the sweep files the refund itself once the window has elapsed.
-      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) { const cfgR = await getCfg(); return J({ error: `The ${cfgR.refund_window_working_days} working-day window has elapsed; the case has gone to our chief executive for the final call and the refund is issued if the supplier does not respond.`, code: 'refund_window_elapsed' }, 400); }
-      const { data: q2 } = await admin.from('quotes').select('inquiry_id,supplier_id').eq('id', qid).maybeSingle();
-      if (q2) {
-        const { data: inq2 } = await admin.from('inquiries').select('status,outcome,hired_supplier_id').eq('id', q2.inquiry_id).maybeSingle();
-        if (inq2 && ['completed', 'closed'].includes(String(inq2.status)) && Number(inq2.hired_supplier_id) === Number(q2.supplier_id)) return J({ error: 'This job is already marked as completed with this supplier, so the reveal fee is no longer refundable.' }, 400);
-        const { data: rev2 } = await admin.from('reviews').select('id').eq('transaction_id', tx.id).maybeSingle();
-        if (rev2) return J({ error: 'You have already rated this supplier, so the reveal fee is no longer refundable.' }, 400);
+      // ONE DOOR, ONE TRANSACTION (14 Sep 2026). Until today this action flipped the sale to
+      // 'requested' first, then tried to open the case, threw the refusal away and told the customer
+      // "received" anyway: e2e run 7 left a sale reading "requested" with no case, no handoff to the
+      // accountant and no decision coming. Every check, the case, the sale's status and the
+      // confirmation in the customer's registered language now happen inside
+      // fn_refund_open_from_customer, or none of them do. The published terms let a customer complain
+      // "at any time"; the five working days govern when the CEO may decide, not when they may ask.
+      const { data: rf, error: rfErr } = await admin.rpc('fn_refund_open_from_customer', { p_transaction_id: tx.id, p_requested_by: 'customer' });
+      if (rfErr || !rf) {
+        // NOT A POLICY REFUSAL: the one transaction rolled back (a guard, the confirmation handoff, the
+        // database). The customer's claim is not lost -- they are told to try again -- but somebody must
+        // see it, so it is an IT finding keyed on the sale (reopened, not duplicated, on a repeat).
+        try {
+          await admin.rpc('fn_it_engineer_finding_upsert', {
+            p_issue_key: 'refund:request_failed:' + tx.id,
+            p_title: 'A customer could not open a refund case: the request rolled back',
+            p_where: 'customer_api request_refund -> public.fn_refund_open_from_customer',
+            p_blast: 'customer_facing', p_affected: 1,
+            p_evidence: { transaction_id: tx.id, customer_id: cust.id, error: String(rfErr?.message || 'no answer').slice(0, 600), at: new Date().toISOString() },
+            p_raised_by: 'customer_api',
+          });
+        } catch (_e) { /* the finding is best-effort; the customer's answer below is not */ }
+        return J({ ok: false, error: 'refund_request_failed', code: 'refund_request_failed', detail: rfErr?.message || 'no answer' }, 500);
       }
-      await admin.from('transactions').update({ refund_status: 'requested' }).eq('id', tx.id);
-      // AND OPEN THE REAL CASE. Until 9 Sep 2026 this action set a column on the SALE and stopped,
-      // while the chain that reviews, approves and pays a refund lives on public.refunds. So the
-      // customer was told "received and will be reviewed" and no case existed for anyone to review.
-      // The founder: "the customer always initiate the refund request... that is through the
-      // customer portal." This is that request actually starting the workflow.
-      let refundId: number | null = null;
-      let refundNote: string | null = null;
-      try {
-        const { data: rf } = await admin.rpc('fn_refund_open_from_customer',
-          { p_transaction_id: tx.id, p_requested_by: 'customer' });
-        if (rf?.ok) refundId = Number(rf.refund_id) || null;
-        else refundNote = String(rf?.reason || 'unknown');
-      } catch (e) {
-        refundNote = String((e as Error)?.message || e);
-      }
-      // customer_api has no logRun of its own — it is wrapped in observe(), which records the call.
-      // A refusal is carried back in the response instead, so a customer is never told their
-      // request is under review when no case was opened.
-      return J({ ok: true, refund_status: 'requested', refund_id: refundId, refund_ref: refundId ? refundRef(refundId) : null,
-        not_opened: refundNote,
-        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due, everything you paid is refunded.' });
+      const msg = rf.locale === 'ar' ? rf.message_ar : rf.message_en;
+      if (!rf.ok) return J({ ok: false, error: rf.code, code: rf.code, message: msg, can_claim_later: rf.can_claim_later ?? null }, 400);
+      return J({ ok: true, refund_status: 'requested', refund_id: rf.refund_id, refund_ref: refundRef(rf.refund_id),
+        duplicate: rf.duplicate === true, decision_after: rf.decision_after ?? null, message: msg });
     }
 
     if (action === 'rate_supplier') {
