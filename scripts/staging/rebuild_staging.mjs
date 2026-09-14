@@ -16,7 +16,7 @@
 //
 // Without --apply it is a dry run: it reports what it would do and changes nothing.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { splitStatements, repairDumpSectionBreaks } from './sql_split.mjs';
+import { splitStatements } from './sql_split.mjs';
 import { PROD_REF, resolveStagingRef, mgmtWrite, assertNoProductionLiteral } from './qd_guard.mjs';
 
 const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
@@ -27,7 +27,7 @@ const say = (s) => { console.log(s); log.push(s); };
 
 say(`rebuild_staging  target=${REF}  apply=${APPLY}  (production ${PROD_REF} is refused by qd_guard)`);
 
-const raw = repairDumpSectionBreaks(readFileSync(SCHEMA_FILE, 'utf8'));
+const raw = readFileSync(SCHEMA_FILE, 'utf8');
 say(`baseline: ${SCHEMA_FILE}  ${raw.length} bytes`);
 const captured = /Captured (\S+) from project (\w+)/.exec(raw);
 say(`baseline captured ${captured?.[1]} from ${captured?.[2]}`);
