@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { BrandMark } from '@/components/BrandMark';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -386,7 +387,7 @@ export function PortalShell({
         )}
       >
         <div className={cn('flex items-center gap-2 px-4 py-4', collapsed && 'justify-center px-2')}>
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary font-head text-[15px] font-extrabold">Q</span>
+          <BrandMark className="h-9 w-9 shrink-0" />
           {!collapsed && (
             <div className="min-w-0">
               <div className="truncate font-head text-[15px] font-extrabold leading-tight text-foreground">QuotesDone</div>
@@ -424,7 +425,7 @@ export function PortalShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 shadow-e1">
           <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 font-head text-[15px] font-extrabold text-primary md:hidden">Q</span>
+            <BrandMark className="h-9 w-9 shrink-0 md:hidden" />
 
             {/* THE ASSISTANT FIELD — the widest element on the page, by design. In the reference
                 the founder supplied, AI search is the primary surface; ours was a bubble in a

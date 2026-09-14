@@ -160,7 +160,7 @@
   "langSwitchLabel": "Switch the site to Arabic",
   "brief": {
     "title": "Describe your job",
-    "sub": "No sign-in. See what the engine understood before you create an account.",
+    "sub": "Check your job first: see the trade, the questions suppliers will ask and the documents they need. Posting a request needs an account.",
     "label": "Your job, in your own words",
     "ph": "e.g. SPC flooring for a 250 sqm villa in Dubai, supply and install",
     "submit": "Check my job",
@@ -179,7 +179,7 @@
     "suppliers": "{count} licence-checked suppliers can quote this in your emirate today",
     "continue": "Continue — post this job",
     "serviceTitle": "What suppliers will need for this job",
-    "continueNote": "You sign in with your email next; your description comes with you.",
+    "continueNote": "To post it, create your account: a verified email or mobile number, your name, your date of birth (18 or over) and the Terms. Your description comes with you.",
     "unknown": "I could not place that in a trade yet. Add what is being supplied or installed, and where.",
     "clarify": "To place it:",
     "error": "Something went wrong. Please try again.",
