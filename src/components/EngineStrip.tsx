@@ -1,63 +1,135 @@
-import { useLocale, useTranslations } from 'next-intl';
-import { Stagger, StaggerItem, Reveal } from '@/components/motion/reveal';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import { SectionHeader } from '@/components/SectionHeader';
-import { DrawingScan, CompareLevelling } from '@/components/visual/slots';
+import s from '@/components/home/sealed.module.css';
 
-type Item = { title: string; body: string };
+// THE SIX RULES, AS A BENTO.
+//
+// The mechanisms used to live in two sections (four "engine" cards and four "why anonymous" cards)
+// and in FAQ answers (website audit §1 finding 28). They are now one grid, each cell carrying a small
+// drawing of the rule itself rather than an icon: the identity bars, the licence fields read, the
+// shortlist of three against the crowd, the returned quote, the 3%, and the five-day refund clock.
+// Anchor #why is kept: the header's "Why anonymous" links to /#why.
+type Cell = { title: string; body: string };
 
-// "WHAT THE ENGINE ACTUALLY DOES". The homepage asserted "smart" with a label and wrote the
-// mechanisms only in FAQ answers reachable from the footer (website audit §1 finding 28). These are
-// the four behaviours from the FAQ, stated where a contractor decides, plus the top-3 cap as a
-// feature rather than a hidden rule.
 export function EngineStrip() {
   const t = useTranslations('engine');
-  const locale = useLocale();
-  const items = t.raw('items') as Item[];
-  return (
-    <section id="engine" className="container-x py-beat-s md:py-beat">
-      <SectionHeader eyebrow={t('eyebrow')} index="01" title={t('title')} sub={t('sub')} />
-      <div className="relative mt-14 grid gap-5 lg:grid-cols-[1.35fr_1fr]">
-        <Stagger className="relative grid gap-px overflow-hidden rounded-[22px] border border-[var(--line2)] bg-[var(--line)] sm:grid-cols-2">
-          {items.map((it, i) => (
-            <StaggerItem key={it.title} className="relative bg-navy-deep/90 p-7">
-              <span className="grid-tech grid-tech-sm opacity-40" aria-hidden />
-              <div className="relative flex items-center gap-2" aria-hidden>
-                <span className="font-mono text-[12px] tabular text-teal-light">{String(i + 1).padStart(2, '0')}</span>
-                <span className="h-px flex-1 bg-gradient-to-r from-teal/50 to-transparent rtl:bg-gradient-to-l" />
-                {i === 1 && <span className="redact redact-bar !h-2.5 !w-14" />}
-              </div>
-              <h3 className="relative mt-5 font-head text-[19px] font-semibold leading-snug tracking-[-0.02em] text-white">{it.title}</h3>
-              <p className="relative mt-2.5 text-pretty text-[14px] leading-relaxed text-muted">{it.body}</p>
-            </StaggerItem>
-          ))}
-        </Stagger>
+  const tv = useTranslations('verify');
+  const c = t.raw('cells') as Cell[];
+  const checks = t.raw('checks') as string[];
+  const licence = t.raw('licence') as string[];
 
-        <Reveal className="relative">
-          <div className="glass depth mesh-glow relative flex h-full flex-col justify-between overflow-hidden rounded-[22px] p-8">
-            <span className="grid-tech opacity-50" aria-hidden />
-            <div className="relative mb-7 aspect-[16/10] w-full overflow-hidden rounded-[14px] empty:hidden">
-              <DrawingScan locale={locale === 'ar' ? 'ar' : 'en'} />
-            </div>
-            <div className="relative">
-              <div className="flex items-end gap-2" aria-hidden>
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className="rounded-t-[6px] border border-teal/40 bg-teal/[0.12]" style={{ width: 34, height: 64 - i * 12 }} />
-                ))}
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <span key={`x${i}`} className="redact rounded-t-[4px]" style={{ width: 12, height: 18 + ((i * 7) % 16) }} />
-                ))}
-              </div>
-              <h3 className="crisp mt-7 font-head text-[clamp(24px,2.6vw,32px)] font-semibold leading-[1.08] tracking-[-0.03em] text-white rtl:tracking-normal">
-                {t('top3Title')}
-              </h3>
-              <p className="mt-3 max-w-[40ch] text-[14.5px] leading-relaxed text-muted">{t('top3Body')}</p>
-            </div>
-            <div className="relative mt-6 empty:hidden">
-              <CompareLevelling locale={locale === 'ar' ? 'ar' : 'en'} />
+  return (
+    <section id="why" className="container-x scroll-mt-20 py-beat-s md:py-beat">
+      <SectionHeader eyebrow={t('eyebrow')} index="02" title={t('title')} sub={t('sub')} />
+
+      <div className="mt-14 grid gap-4 md:mt-16 md:grid-cols-6">
+        {/* 1 identity stripped — wide */}
+        <Cell className="md:col-span-4" title={c[0].title} body={c[0].body}>
+          <div className="rounded-[12px] bg-[#07121a] p-4 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]">
+            <div className="grid gap-2.5 text-[13px] sm:grid-cols-[auto_1fr] sm:gap-x-6">
+              {(t.raw('brief') as string[][]).map(([k, v, sealed]) => (
+                <div key={k} className="contents">
+                  <span className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint rtl:font-sans rtl:tracking-normal">{k}</span>
+                  {sealed ? <span className={`redact redact-line !w-[min(180px,60%)] text-[18px]`} aria-hidden /> : <span className="text-paper">{v}</span>}
+                </div>
+              ))}
             </div>
           </div>
-        </Reveal>
+        </Cell>
+
+        {/* 2 licence verified */}
+        <Cell className="md:col-span-2" title={c[1].title} body={c[1].body}
+          foot={<Link href="/how-we-verify" className="text-[13.5px] font-semibold text-teal-light underline-offset-4 hover:underline">{tv('link')} <span aria-hidden className="inline-block rtl:rotate-180">&rarr;</span></Link>}>
+          <ul className="space-y-2">
+            {licence.map((l) => (
+              <li key={l} className="flex items-center gap-2.5 text-[13px] text-paper">
+                <Tick />{l}
+              </li>
+            ))}
+          </ul>
+        </Cell>
+
+        {/* 3 the comparison report, and every other quote listed beside it — none is hidden */}
+        <Cell className="md:col-span-2" title={c[2].title} body={c[2].body}>
+          <div className="flex h-[76px] items-end gap-1.5" aria-hidden>
+            {[64, 54, 46].map((h) => (
+              <span key={h} className="w-7 rounded-t-[5px] bg-teal/20 shadow-[inset_0_0_0_1px_rgba(20,184,166,.55)]" style={{ height: h }} />
+            ))}
+            <span className="mx-1 h-full w-px bg-line2" />
+            {Array.from({ length: 7 }).map((_, i) => (
+              <span key={i} className="w-2.5 rounded-t-[2px] bg-teal/[0.08] shadow-[inset_0_0_0_1px_rgba(110,231,212,.25)]" style={{ height: 22 + ((i * 7) % 18) }} />
+            ))}
+          </div>
+          <div className="mt-2.5 flex justify-between gap-3 font-mono text-[11.5px] rtl:font-sans">
+            <span className="text-teal-light">{t('report')}</span>
+            <span className="text-faint">{t('listed')}</span>
+          </div>
+        </Cell>
+
+        {/* 4 incomplete quotes returned */}
+        <Cell className="md:col-span-2" title={c[3].title} body={c[3].body}>
+          <ul className="space-y-1.5 text-[13px]">
+            {checks.map((k, i) => {
+              const missing = i === checks.length - 1;
+              return (
+                <li key={k} className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-1.5 last:border-0">
+                  <span className={missing ? 'text-gold' : 'text-paper'}>{k}</span>
+                  {missing ? <span className="font-mono text-[11.5px] text-gold">{t('returned')}</span> : <Tick />}
+                </li>
+              );
+            })}
+          </ul>
+        </Cell>
+
+        {/* 5 three percent to reveal — the one gold number on the page */}
+        <Cell className="md:col-span-2" title={c[4].title} body={c[4].body}>
+          <div className="flex items-baseline gap-3">
+            <span className="font-head text-[76px] font-semibold leading-none tracking-[-0.06em] text-gold tabular" dir="ltr">3%</span>
+            <span className="max-w-[16ch] text-[13px] leading-snug text-muted">{t('pctNote')}</span>
+          </div>
+        </Cell>
+
+        {/* 6 refund if the supplier stays silent — full width */}
+        <Cell className="md:col-span-6" title={c[5].title} body={c[5].body} row>
+          <div className="w-full">
+            <div className="flex items-center gap-1.5" aria-hidden>
+              {[1, 2, 3, 4, 5].map((d) => (
+                <span key={d} className="h-9 flex-1 rounded-[6px] bg-navy-deep/60 shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)]" />
+              ))}
+              <span className="flex h-9 flex-[1.6] items-center justify-center rounded-[6px] bg-teal/15 font-mono text-[12px] text-teal-light shadow-[inset_0_0_0_1px_rgba(20,184,166,.5)] rtl:font-sans">
+                {t('refund')}
+              </span>
+            </div>
+            <div className="mt-2 flex justify-between font-mono text-[11.5px] text-faint rtl:font-sans">
+              <span>{t('day1')}</span><span>{t('day5')}</span>
+            </div>
+          </div>
+        </Cell>
       </div>
     </section>
+  );
+}
+
+function Cell({ className = '', title, body, children, foot, row = false }: {
+  className?: string; title: string; body: string; children: React.ReactNode; foot?: React.ReactNode; row?: boolean;
+}) {
+  return (
+    <article className={`qd-panel qd-panel-hover reveal flex flex-col gap-7 p-6 md:p-8 ${row ? 'lg:flex-row lg:items-center lg:gap-14' : ''} ${className}`}>
+      <div className={row ? 'order-2 lg:order-1 lg:w-1/2' : ''}>{children}</div>
+      <div className={`mt-auto ${row ? 'order-1 lg:order-2 lg:mt-0 lg:w-1/2' : ''}`}>
+        <h3 className="text-balance font-head text-[21px] font-semibold leading-snug tracking-[-0.025em] text-white rtl:tracking-normal">{title}</h3>
+        <p className="mt-2.5 max-w-[48ch] text-pretty text-[14.5px] leading-relaxed text-muted">{body}</p>
+        {foot ? <div className="mt-4">{foot}</div> : null}
+      </div>
+    </article>
+  );
+}
+
+function Tick() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="#6EE7D4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden>
+      <path d="M3.5 8.5l3 3 6-7" />
+    </svg>
   );
 }

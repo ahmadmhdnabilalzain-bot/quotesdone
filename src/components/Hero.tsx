@@ -1,108 +1,106 @@
 import { useLocale, useTranslations } from 'next-intl';
-import { LiveMatch } from '@/components/LiveMatch';
 import { BriefBox } from '@/components/BriefBox';
-import { HeroCtas } from '@/components/HeroCtas';
+import { SupplierLink } from '@/components/HeroCtas';
 import { Counters } from '@/components/Counters';
 import { HeroScene } from '@/components/visual/slots';
-import { Link } from '@/i18n/routing';
+import { HeroPoster } from '@/components/visual/posters';
+import { DesktopOnly } from '@/components/home/DesktopOnly';
+import s from '@/components/home/sealed.module.css';
 
-type Proof = { k: string; v: string };
-// hero.proof[2] is "Verified — licence checked before quoting" (ar: "موثّقون") in both message files.
-const VERIFIED = 2;
+type Fact = { k: string; v: string };
+type Step = { t: string; b: string };
 
-// THE HERO PAINTS AT TTFB.
+// THE FIRST SCREEN ANSWERS WHAT, HOW AND WHAT IT COSTS.
 //
-// It was a motion Stagger whose hidden state is opacity 0 / blur(6px), released by whileInView
-// after ~850 KB of JavaScript hydrated: Lighthouse mobile LCP 7.6 s, 99.4% render delay, and four
-// audit screenshots of a blank first screen (website audit §1 findings 7 and 8). The badge, h1,
-// subtitle, buttons and the brief box are now plain server-rendered markup with no hidden initial
-// state, so the h1 is the LCP element and it is visible in the HTML itself. Motion stays below the
-// fold and inside the demonstration card, which also renders its final frame on the server.
+// Founder, 14 Sep 2026: "if a customer enters the website and he never knew about the app, he
+// should understand what we do in less than a minute without scrolling up and down many times."
+// The first screen carries a plain headline naming the service, the Sealed line as its supporting
+// promise, the job box as the single primary action, one sentence of how and the price in plain
+// words; the three steps sit directly under it. Everything below the hero is optional reading.
+//
+// Three grid areas so the order is right on both sizes: on a phone the job box follows the headline
+// directly (it is on the 812 px first screen); on desktop it sits in the right column in front of the
+// Sealed scene — a lit stack of sealed quote slabs, the chosen one edged in gold — which never
+// enters the headline column. The scene renders its poster first and loads three.js only after the
+// first interaction on a capable desktop; under lg it is display:none, so a phone never requests it.
+// The h1 and copy are server-rendered with no hidden initial state, so the LCP is text.
+//
+// The top 3 are a comparison REPORT; every other quote is listed too and any can be chosen
+// (founder, 14 Sep 2026: "never claim that we only show 3").
 export function Hero() {
   const t = useTranslations('hero');
   const locale = useLocale();
-  const proof = t.raw('proof') as Proof[];
-  const ticker = [...proof, ...proof];
+  const price = t.raw('price') as Fact[];
+  const steps = t.raw('steps') as Step[];
 
   return (
-    <div className="bloom relative isolate overflow-hidden">
+    <div className={`${s.heroField} relative isolate overflow-hidden`}>
       <span className="grid-tech" aria-hidden />
-      {/* The 3D scene sits behind the text and paints after first paint; the h1 stays the LCP. */}
-      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-        <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
-      </div>
-      <section className="container-x relative z-10 grid items-start gap-12 pb-16 pt-12 md:pt-20 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20">
-        <div className="flex flex-col items-start text-start">
-          <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-4 py-1.5 font-mono text-[12px] font-medium uppercase tracking-[0.16em] text-teal-light backdrop-blur-sm rtl:font-sans rtl:normal-case rtl:tracking-normal">
-            <span className="qd-pulse h-1.5 w-1.5 shrink-0 rounded-full bg-teal" />
-            {t('badge')}
-          </span>
-          <h1 className="crisp mt-7 font-head text-[clamp(38px,6vw,76px)] font-semibold leading-[0.96] tracking-[-0.05em] text-white rtl:leading-[1.2] rtl:tracking-normal">
-            {t('titleA')}{' '}
-            <span className="text-brand-grad">{t('titleB')} {t('titleEm')}</span>
+      <section className="container-x relative grid gap-8 pb-12 pt-10 md:pt-14 lg:grid-cols-12 lg:gap-x-12 lg:gap-y-7 lg:pb-12 lg:pt-14">
+        {/* A — what */}
+        <div className="relative z-10 lg:col-span-7 lg:row-start-1 lg:self-end">
+          <span className="qd-kicker">{t('kicker')}</span>
+          <h1 className="mt-6 font-head text-[clamp(34px,4.9vw,64px)] font-semibold leading-[1.02] tracking-display text-white rtl:text-[clamp(29px,3.9vw,50px)] rtl:leading-[1.32]">
+            {t('title')}
           </h1>
-          <p className="mt-6 max-w-[56ch] text-pretty text-[clamp(15.5px,1.6vw,18px)] leading-relaxed text-muted">
-            {t('subtitle')}
+          <p className="mt-5 flex items-center gap-3 text-[clamp(16px,1.6vw,20px)] font-medium leading-snug text-gold">
+            <span className="redact redact-line !w-9 shrink-0" aria-hidden />
+            {t('sealed')}
           </p>
-          <div className="mt-8">
-            <HeroCtas
-              note
-              labels={{
-                getQuotes: t('ctaPrimary'), joinSupplier: t('ctaSupplier'), myPortal: t('myPortal'),
-                supplierPortal: t('supplierPortal'), supplierTitle: t('supplierTitle'),
-                supplierBody: t('supplierBody'), supplierHow: t('supplierHow'),
-              }}
-            />
+        </div>
+
+        {/* B — the one action, in front of the sealed stack */}
+        <div className="relative lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1 lg:self-center">
+          <div className="relative hidden h-[250px] lg:block" aria-hidden>
+            <span className="halo -inset-x-16 -top-10 bottom-0" />
+            <div className="absolute -inset-x-10 -top-8 bottom-0">
+              {/* the poster is server-rendered; only a desktop viewport mounts the lazy 3D slot */}
+              <DesktopOnly fallback={<HeroPoster />}>
+                <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
+              </DesktopOnly>
+            </div>
           </div>
-          <div id="brief" className="mt-9 w-full scroll-mt-24">
+          <div id="brief" className="relative z-10 scroll-mt-24 lg:-mt-20">
             <BriefBox />
+          </div>
+          <div className="relative z-10 mt-4">
+            <SupplierLink ask={t('supplierAsk')} how={t('supplierHow')} portal={t('supplierPortal')} />
           </div>
         </div>
 
-        {/* the demonstration — the real comparison engine replayed over a fixed sample */}
-        <div className="relative mx-auto w-full max-w-[540px] lg:mt-6">
-          <span className="halo left-1/2 top-1/2 h-[115%] w-[115%] -translate-x-1/2 -translate-y-1/2" aria-hidden />
-          <span className="corners absolute -inset-3 hidden sm:block" aria-hidden />
-          <LiveMatch
-            locale={locale}
-            labels={{
-              engine: t('engine'), demo: t('demo'), posted: t('posted'), brief: t('briefText'),
-              competing: t('competing'), scoring: t('scoring'), shortlisted: t('shortlisted'), cut: t('cut'),
-              best: t('best'), hidden: t('hidden'), reveal: t('reveal'), price: t('price'),
-              delivery: t('delivery'), quality: t('quality'), note: t('note'), supplier: t('supplier'),
-            }}
-          />
+        {/* C — how, and what it costs */}
+        <div className="relative z-10 lg:col-span-7 lg:row-start-2 lg:self-start">
+          <p className="max-w-[58ch] text-pretty text-[clamp(15.5px,1.4vw,17.5px)] leading-relaxed text-muted">{t('how')}</p>
+          <dl className="mt-6 grid max-w-[600px] gap-3 sm:grid-cols-2">
+            {price.map((p) => (
+              <div key={p.k} className="flex items-baseline gap-3 border-s-2 border-teal/60 ps-3.5">
+                <dt className="font-head text-[22px] font-semibold tracking-snug text-white" dir="auto">{p.k}</dt>
+                <dd className="text-[14px] leading-snug text-muted">{p.v}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
-      {/* Measured counts replace the descriptors only once each clears its floor. Until then the
-          descriptors below are what renders — server-side, with no invented number in them. */}
-      <Counters>
-        <div className="relative z-10 border-y border-[var(--line)] bg-navy-deep/40 py-5 backdrop-blur-sm">
-          <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-            <div className="marquee items-center gap-0">
-              {ticker.map((p, i) => {
-                const body = (
-                  <>
-                    <span className="node-dot" aria-hidden />
-                    <span className="font-head text-[15px] font-semibold tracking-[-0.01em] text-white">{p.k}</span>
-                    <span className="text-[14px] text-faint">{p.v}</span>
-                  </>
-                );
-                const cls = 'flex items-center gap-3 whitespace-nowrap px-7';
-                const copy = i >= proof.length;
-                // The "Verified / licence checked" claim links to the page that shows the check.
-                // The duplicated marquee copy is aria-hidden, so its link is taken out of tab order.
-                return i % proof.length === VERIFIED ? (
-                  <Link key={i} href="/how-we-verify" className={`${cls} underline-offset-4 hover:underline`} aria-hidden={copy || undefined} tabIndex={copy ? -1 : undefined}>{body}</Link>
-                ) : (
-                  <span key={i} className={cls} aria-hidden={copy}>{body}</span>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </Counters>
+      {/* HOW IT WORKS, in one row, directly under the first screen's content */}
+      <div className="relative border-t border-line bg-navy-deep/60">
+        <ol aria-label={t('stepsLabel')} className="container-x grid gap-px md:grid-cols-3">
+          {steps.map((st, i) => (
+            <li key={st.t} className="flex gap-4 py-6 md:py-7 md:pe-8 md:[&:not(:first-child)]:border-s md:[&:not(:first-child)]:border-line md:[&:not(:first-child)]:ps-8">
+              <span className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full font-mono text-label ${i === 2 ? 'bg-gold/15 text-gold shadow-[inset_0_0_0_1px_rgba(227,192,101,.5)]' : 'text-teal-light shadow-[inset_0_0_0_1px_rgba(110,231,212,.35)]'}`}>
+                {i + 1}
+              </span>
+              <div>
+                <h2 className="font-head text-[17px] font-semibold tracking-snug text-white">{st.t}</h2>
+                <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{st.b}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Measured counts appear only once each clears its floor; until then nothing is printed. */}
+      <Counters>{null}</Counters>
     </div>
   );
 }

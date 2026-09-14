@@ -15,6 +15,7 @@ import { useEffect, useId, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { publicSite, saveDraft, fmtNum } from '@/lib/publicSite';
+import s from '@/components/home/sealed.module.css';
 
 export const SERVICE_TOPIC: Record<string, string | null> = {
   'false-ceiling': 'false ceiling', 'pest-control': 'pest control', movers: 'movers', flooring: 'flooring',
@@ -63,8 +64,8 @@ export function PriceGuide({ slug }: { slug?: string }) {
   };
 
   return (
-    <div className="glass depth relative overflow-hidden rounded-[22px] p-6 text-start md:p-8">
-      <span className="grid-tech grid-tech-sm opacity-40" aria-hidden />
+    <div className={`qd-panel qd-panel-hover relative overflow-hidden p-6 text-start md:p-8`}>
+
       {slug && <h2 className="relative font-head text-[20px] font-semibold tracking-[-0.02em] text-white">{t('titleService')}</h2>}
       {/* method="post": the form is handled in JS (preventDefault); the attribute only stops a
           no-JS submit from putting the question in a GET query string. */}
