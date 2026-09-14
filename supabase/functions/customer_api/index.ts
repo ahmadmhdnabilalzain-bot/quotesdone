@@ -1241,7 +1241,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (!res?.ok) return J({ error: res?.error || 'spec_offer_failed', state: res?.state ?? null }, res?.error === 'not_your_offer' ? 403 : res?.error === 'not_found' ? 404 : 409);
       try {
         const { data: o } = await admin.from('spec_alternative_offer').select('id,inquiry_id,item,label_en,label_ar,requested,alternatives,accepted_value').eq('id', offerId).maybeSingle();
-        const { data: c } = await admin.from('customers').select('email,phone,wa_optin,locale').eq('id', cust.id).maybeSingle();
+        const { data: c } = await admin.from('customers').select('email,locale').eq('id', cust.id).maybeSingle();
         const { data: inqRow } = await admin.from('inquiries').select('rfq_no').eq('id', String(res.inquiry_id)).maybeSingle();
         const lang = asLocale(c?.locale ?? cust.locale);
         const msg = res.state === 'accepted' ? acceptedMessage(o as OfferForText, lang, { rfqNo: inqRow?.rfq_no }) : apologyMessage(o as OfferForText, lang, 'declined', { rfqNo: inqRow?.rfq_no });
@@ -1249,7 +1249,9 @@ Deno.serve(observe('customer_api', async (req) => {
         const base = { type: 'spec_offer_' + kind, kind: 'sales_engineer_spec_offer_' + kind, to_role: 'customer', inquiry_id: String(res.inquiry_id), subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'sales_engineer', sender: 'customer_support' };
         const rows: Record<string, unknown>[] = [];
         if (c?.email) rows.push({ ...base, channel: 'email', to_email: c.email, dedupe_key: `spec_offer:${offerId}:${kind}:email` });
-        if (c?.phone && c?.wa_optin !== false) rows.push({ ...base, channel: 'whatsapp', to_phone: c.phone, dedupe_key: `spec_offer:${offerId}:${kind}:whatsapp` });
+        // WhatsApp consent is the confirmed WhatsApp number, nothing else (#322): the row names the customer by
+        // email and the a03 trigger addresses it to their confirmed number, or records why it was not sent.
+        if (c?.email) rows.push({ ...base, channel: 'whatsapp', to_email: c.email, dedupe_key: `spec_offer:${offerId}:${kind}:whatsapp` });
         const { data: sent } = rows.length ? await requestDelivery(admin, rows) : { data: [] };
         await admin.rpc('fn_spec_offer_mark', { p_offer: offerId, p_action: 'answered', p_notification_ids: (sent || []).map((d) => d.notification_id).filter((x) => typeof x === 'number') });
       } catch (e) { console.error('spec_offer_reply: confirmation not queued —', String((e as Error)?.message || e)); }

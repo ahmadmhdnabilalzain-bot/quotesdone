@@ -86,6 +86,18 @@ test('the header does not point a rebuild at the migration set', () => {
     'supabase/migrations_history; migrations are append-only history.');
 });
 
+test('every section header ends its own line', () => {
+  // 14 Sep 2026. fn_schema_export wrote the TABLES header with its closing literal missing the E
+  // prefix, so the header carried a two-character backslash-n instead of a line break and the first
+  // CREATE TABLE of the section (accountant_issued_document; action_class_gate before it) sat inside
+  // the comment. Every restore and every check reading the mirror silently lost that table.
+  // The shape: a "-- =====" header line with a backslash immediately followed by n anywhere on it.
+  const bad = dump.split('\n').filter((l) => l.startsWith('-- =====') && l.includes('\\' + 'n'));
+  assert.deepEqual(bad, [],
+    'a section header in full_schema.sql runs onto the next statement through a literal backslash-n, ' +
+    'so that statement is commented out. Fix the literal in fn_schema_export (it needs an E prefix).');
+});
+
 test('the dump says when it was captured and where the real rebuild path is', () => {
   // Permanent, unlike the two above. What made the 2 Aug file dangerous was not the secret
   // references by themselves - it was that nothing in the file let a reader tell how old it was or

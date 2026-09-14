@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T18:38:06.759Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T19:14:43.198Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -187,7 +187,8 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (504) =====\nCREATE TABLE IF NOT EXISTS public.accountant_issued_document (
+-- ===== TABLES (504) =====
+CREATE TABLE IF NOT EXISTS public.accountant_issued_document (
   id bigint DEFAULT nextval('accountant_issued_document_id_seq'::regclass) NOT NULL,
   document_kind text NOT NULL,
   template_key text,
@@ -1966,7 +1967,11 @@ CREATE TABLE IF NOT EXISTS public.customers (
   tos_ip text,
   locale text DEFAULT 'en'::text NOT NULL,
   industry text,
-  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_phone(phone) OR (COALESCE(full_name, ''::text) ~~* 'ZZ DEMO%'::text))) STORED
+  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_phone(phone) OR (COALESCE(full_name, ''::text) ~~* 'ZZ DEMO%'::text))) STORED,
+  whatsapp_phone text,
+  whatsapp_verified_at timestamp with time zone,
+  whatsapp_opt text,
+  whatsapp_asked_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.dead_letter (
@@ -3961,7 +3966,11 @@ CREATE TABLE IF NOT EXISTS public.leads (
   invite_last_followup_at timestamp with time zone,
   accepted_terms_sha256 text,
   collaboration_hold_at timestamp with time zone,
-  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_email(claimed_by) OR fn_is_demo_phone(phone) OR ('qd_demo'::text = ANY (COALESCE(tags, '{}'::text[]))) OR (COALESCE(company_name, ''::text) ~~* 'ZZ DEMO%'::text) OR (COALESCE(company_name, ''::text) ~~ 'QD Demo %'::text) OR (COALESCE(source, ''::text) = ANY (ARRAY['demo_factory'::text, 'qd_demo_fixture'::text])))) STORED
+  is_demo boolean GENERATED ALWAYS AS ((fn_is_demo_email(email) OR fn_is_demo_email(claimed_by) OR fn_is_demo_phone(phone) OR ('qd_demo'::text = ANY (COALESCE(tags, '{}'::text[]))) OR (COALESCE(company_name, ''::text) ~~* 'ZZ DEMO%'::text) OR (COALESCE(company_name, ''::text) ~~ 'QD Demo %'::text) OR (COALESCE(source, ''::text) = ANY (ARRAY['demo_factory'::text, 'qd_demo_fixture'::text])))) STORED,
+  whatsapp_phone text,
+  whatsapp_verified_at timestamp with time zone,
+  whatsapp_opt text,
+  whatsapp_asked_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -7722,6 +7731,8 @@ ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK 
 ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])));
 ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_status_check CHECK ((status = ANY (ARRAY['completed'::text, 'missed'::text, 'voicemail'::text, 'failed'::text, 'scheduled'::text])));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
+ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_opt_known CHECK (((whatsapp_opt IS NULL) OR (whatsapp_opt = ANY (ARRAY['same'::text, 'other'::text, 'none'::text]))));
+ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_status_check CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text, 'achieved'::text, 'dropped'::text])));
 ALTER TABLE public.dept_knowledge_alias ADD CONSTRAINT dept_knowledge_alias_alias_kind_check CHECK ((alias_kind = ANY (ARRAY['dept'::text, 'module'::text])));
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_class_check CHECK (((kpi_class IS NULL) OR (kpi_class = ANY (ARRAY['activity'::text, 'leading_indicator'::text, 'quality_metric'::text, 'conversion'::text, 'revenue'::text, 'cost'::text, 'risk'::text]))));
@@ -7802,6 +7813,8 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_accepted_terms_sha256_check CHECK 
 ALTER TABLE public.leads ADD CONSTRAINT leads_approved_implies_verified CHECK (((COALESCE(approval_status, ''::text) <> 'approved'::text) OR (COALESCE(verified, false) = true)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_status_check CHECK (((registration_status IS NULL) OR (registration_status = ANY (ARRAY['exempt'::text, 'paid'::text, 'not_due'::text, 'due'::text]))));
+ALTER TABLE public.leads ADD CONSTRAINT leads_whatsapp_opt_known CHECK (((whatsapp_opt IS NULL) OR (whatsapp_opt = ANY (ARRAY['same'::text, 'other'::text, 'none'::text]))));
+ALTER TABLE public.leads ADD CONSTRAINT leads_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_band_check CHECK ((band = ANY (ARRAY['t_minus_30'::text, 't_minus_14'::text, 't_minus_7'::text, 'expired'::text])));
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text])));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_attempt_no_check CHECK ((attempt_no >= 1));
@@ -24161,18 +24174,13 @@ begin
     select l.id into v_l from public.leads l where lower(l.email) = v_email or lower(l.claimed_by) = v_email limit 1;
   end if;
   if v_l is null and v_tail is not null then
-    select c.id into v_c from public.customers c where right(regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g'), 9) = v_tail limit 1;
+    -- 14 Sep 2026 (#322): only a CONFIRMED WhatsApp number names a party.
+    select o.customer_id, o.lead_id into v_c, v_l from public.fn_whatsapp_owner(p_phone) o;
     if v_c is not null then
       return query select 'customer'::text, v_c::text, null::text,
         coalesce((select c.is_demo from public.customers c where c.id = v_c), false);
       return;
     end if;
-    -- ponytail: a sequential scan of leads per phone lookup; fine at tens of WhatsApp rows a day,
-    -- an expression index on the 9-digit tail when that stops being true.
-    select l.id into v_l from public.leads l
-     where v_tail in (right(regexp_replace(coalesce(l.phone_e164, ''), '[^0-9]', '', 'g'), 9),
-                      right(regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g'), 9),
-                      right(regexp_replace(coalesce(l.whatsapp, ''), '[^0-9]', '', 'g'), 9)) limit 1;
   end if;
   if v_l is not null then
     return query select 'supplier'::text, v_l::text, null::text,
@@ -24311,19 +24319,6 @@ begin
 exception when others then
   return jsonb_build_object('healthy', null, 'error', sqlerrm);
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_customer_by_whatsapp_sender(p_phone text)
- RETURNS SETOF uuid
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select c.id from public.customers c
-   where length(regexp_replace(coalesce(p_phone, ''), '\D', '', 'g')) >= 8
-     and c.phone_verified is true
-     and regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_customer_counts()
@@ -29954,7 +29949,7 @@ CREATE OR REPLACE FUNCTION public.fn_identify_contact(p_phone text)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_d text; v_tail text; v_name text; v_sid bigint; v_cid text; v_claimed boolean; v_appr boolean;
+declare v_d text; v_tail text; v_name text; v_sid bigint; v_cid text; v_claimed boolean; v_appr boolean; v_kind text; v_cuid uuid;
 begin
   v_d := regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g');
   if length(v_d) < 7 then return json_build_object('audience','unknown'); end if;
@@ -29971,20 +29966,16 @@ begin
       'name', split_part(coalesce((select value from app_secrets where key='admin_emails'),''), ',', 1));
   end if;
 
-  select id, company_name, coalesce(claimed,false), (approval_status='approved')
-    into v_sid, v_name, v_claimed, v_appr
-   from leads
-   where right(regexp_replace(coalesce(phone_e164,''),'[^0-9]','','g'),9) = v_tail
-      or right(regexp_replace(coalesce(phone,''),'[^0-9]','','g'),9) = v_tail
-      or right(regexp_replace(coalesce(whatsapp,''),'[^0-9]','','g'),9) = v_tail
-   limit 1;
+  -- 14 Sep 2026 (#322): a supplier or customer is recognised only by a CONFIRMED WhatsApp number.
+  select o.party_kind, o.lead_id, o.customer_id into v_kind, v_sid, v_cuid from public.fn_whatsapp_owner(p_phone) o;
+  if v_kind = 'supplier' then
+    select company_name, coalesce(claimed,false), (approval_status='approved') into v_name, v_claimed, v_appr from leads where id = v_sid;
+  end if;
   if v_sid is not null then
     return json_build_object('audience','supplier','name',v_name,'claimed',v_claimed,'approved',coalesce(v_appr,false));
   end if;
 
-  select id::text, full_name into v_cid, v_name from customers
-   where right(regexp_replace(coalesce(phone,''),'[^0-9]','','g'),9) = v_tail
-   limit 1;
+  if v_kind = 'customer' then select id::text, full_name into v_cid, v_name from customers where id = v_cuid; end if;
   if v_cid is not null then
     return json_build_object('audience','customer','name',v_name);
   end if;
@@ -35419,6 +35410,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_notifications_whatsapp_goes_to_a_confirmed_number()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_dest text; v_opt text;
+begin
+  if coalesce(new.channel, '') <> 'whatsapp' or coalesce(new.to_role, '') not in ('customer', 'supplier') then return new; end if;
+  v_dest := public.fn_whatsapp_destination(new.to_role, null, new.lead_id, new.to_email);
+  if v_dest is not null then new.to_phone := v_dest; return new; end if;
+  if new.to_role = 'customer' then
+    select c.whatsapp_opt into v_opt from public.customers c where lower(c.email) = lower(btrim(coalesce(new.to_email, ''))) limit 1;
+  else
+    select l.whatsapp_opt into v_opt from public.leads l where l.id = new.lead_id or (new.lead_id is null and lower(l.claimed_by) = lower(btrim(coalesce(new.to_email, '')))) order by l.id limit 1;
+  end if;
+  new.status := 'skipped';
+  new.last_error := case when v_opt = 'none'
+    then 'not sent on WhatsApp: the recipient said they do not use WhatsApp; email or SMS carries this message'
+    else 'not sent on WhatsApp: no confirmed WhatsApp number on file (an unverified number is never used)' end;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_notify_founder(p_event text, p_detail text, p_level text DEFAULT 'high'::text, p_kind text DEFAULT NULL::text, p_dedupe_key text DEFAULT NULL::text, p_owner_agent text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -37470,12 +37485,16 @@ begin
     if coalesce(n.channel, req.detail->'prepared'->>'channel', 'email') = 'whatsapp' then
       if coalesce(v_email, '') ~ '@' then v_channel := 'email'; end if;
     else
-      select coalesce(nullif(btrim(l.whatsapp), ''), l.phone_e164, l.phone) into v_phone
-        from public.leads l where l.id = coalesce((req.detail->>'supplier_id')::bigint, n.lead_id);
-      if v_phone is null and coalesce(req.detail->>'recipient_role', n.to_role) = 'customer' and v_email is not null then
-        select c.phone into v_phone from public.customers c where lower(c.email) = lower(v_email) limit 1;
+      -- 14 Sep 2026 (#322): the CONFIRMED WhatsApp number, else SMS on the verified mobile. This used to
+      -- take leads.whatsapp (a scraped listing number) or any phone on file.
+      v_phone := public.fn_whatsapp_destination(coalesce(req.detail->>'recipient_role', n.to_role), null,
+                   coalesce((req.detail->>'supplier_id')::bigint, n.lead_id), v_email);
+      if v_phone is not null then v_channel := 'whatsapp';
+      else
+        v_phone := public.fn_verified_mobile(coalesce(req.detail->>'recipient_role', n.to_role), null,
+                     coalesce((req.detail->>'supplier_id')::bigint, n.lead_id), v_email);
+        if v_phone is not null then v_channel := 'sms'; end if;
       end if;
-      if length(regexp_replace(coalesce(v_phone, ''), '[^0-9]', '', 'g')) >= 8 then v_channel := 'whatsapp'; end if;
     end if;
     if v_channel is not null and n.id is not null then
       v_retry := public.fn_seat_handoff(v_seat, 'customer_support', 'delivery.request', 'notifications', 'retry:' || req.id,
@@ -37486,7 +37505,7 @@ begin
                                                           'inquiry_id', n.inquiry_id, 'quote_id', n.quote_id, 'subject', n.subject,
                                                           'body', n.body, 'lang', n.lang, 'channel', v_channel,
                                                           'to_email', case when v_channel = 'email' then v_email else n.to_email end,
-                                                          'to_phone', case when v_channel = 'whatsapp' then v_phone end)));
+                                                          'to_phone', case when v_channel in ('whatsapp', 'sms') then v_phone end)));
       v_verdict := 'retried_on_' || v_channel;
     end if;
   end if;
@@ -44262,7 +44281,7 @@ select
   ||'-- Order is best-effort; this is a faithful reference mirror, not a guaranteed one-click restore.'||E'\n\n'
   ||'-- ===== EXTENSIONS =====' ||E'\n'|| coalesce((select string_agg('CREATE EXTENSION IF NOT EXISTS '||quote_ident(extname)||' WITH SCHEMA '||quote_ident(nx.nspname)||';', E'\n' order by extname) from pg_extension e join pg_namespace nx on nx.oid=e.extnamespace),'')
   ||E'\n\n-- ===== SEQUENCES =====\n'|| coalesce((select string_agg('CREATE SEQUENCE IF NOT EXISTS public.'||quote_ident(sequence_name)||';', E'\n' order by sequence_name) from information_schema.sequences where sequence_schema='public'),'')
-  ||E'\n\n-- ===== TABLES ('||(select count(*) from t)||') =====\n'|| coalesce((select string_agg(tbl_ddl, E'\n\n' order by rel) from t),'')
+  ||E'\n\n-- ===== TABLES ('||(select count(*) from t)||E') =====\n'|| coalesce((select string_agg(tbl_ddl, E'\n\n' order by rel) from t),'')
   ||E'\n\n-- ===== CONSTRAINTS =====\n'|| coalesce((select string_agg('ALTER TABLE public.'||quote_ident(c.relname)||' ADD CONSTRAINT '||quote_ident(con.conname)||' '||pg_get_constraintdef(con.oid)||';', E'\n' order by case con.contype when 'p' then 1 when 'u' then 2 when 'c' then 3 else 9 end, c.relname, con.conname) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where con.contype in ('p','u','c','f')),'')
   ||E'\n\n-- ===== INDEXES =====\n'|| coalesce((select string_agg(pg_get_indexdef(i.indexrelid)||';', E'\n' order by ic.relname) from pg_index i join pg_class ic on ic.oid=i.indexrelid join pg_namespace n on n.oid=ic.relnamespace and n.nspname='public' where not exists(select 1 from pg_constraint con where con.conindid=i.indexrelid) and not exists(select 1 from pg_depend d where d.objid=ic.oid and d.deptype='e')),'')
   ||E'\n\n-- ===== VIEWS =====\n'|| coalesce((select string_agg('CREATE OR REPLACE VIEW public.'||quote_ident(viewname)||' AS '||definition, E'\n\n' order by viewname) from pg_views where schemaname='public'),'')
@@ -45331,10 +45350,12 @@ begin
           or v_t ~ '^(yes|ok|نعم|موافق)$') then
     return jsonb_build_object('handled', false, 'reason', 'not_a_reply');
   end if;
-  -- Who the sender is: fn_customer_by_whatsapp_sender alone decides (verified numbers only).
-  select count(*), min(s.id::text)::uuid into v_matches, v_cust
-    from public.fn_customer_by_whatsapp_sender(p_phone) as s(id)
-   where exists (select 1 from public.spec_alternative_offer o where o.customer_id = s.id and o.state = 'open');
+  -- Who the sender is: fn_whatsapp_owner alone decides (a verified 'other' WhatsApp number or a verified
+  -- 'same' mobile). p_all, so a number several customers share is still reported below, never guessed.
+  select count(*), min(w.customer_id::text)::uuid into v_matches, v_cust
+    from public.fn_whatsapp_owner(p_phone, true) as w
+   where w.party_kind = 'customer'
+     and exists (select 1 from public.spec_alternative_offer o where o.customer_id = w.customer_id and o.state = 'open');
   if v_matches = 0 then return jsonb_build_object('handled', false, 'reason', 'no_verified_customer_with_open_offer'); end if;
   if v_matches > 1 then
     v_ref := 'SE-SPECOFFER-AMBIG-' || right(v_digits, 9) || '-' || to_char(now(), 'YYYYMMDD');
@@ -48647,7 +48668,9 @@ begin
       format('the quotation is %L now. It was committed once; it is not visible today, and the customer is not told about it.', q.status));
   end if;
 
-  select i.rfq_no, cu.id cust_id, cu.full_name, cu.phone, cu.email, cu.wa_optin, cu.banned
+  -- wa_dest: the CONFIRMED WhatsApp number (#322), or null. wa_optin is no longer read anywhere.
+  select i.rfq_no, cu.id cust_id, cu.full_name, cu.phone, cu.email, cu.banned,
+         public.fn_whatsapp_destination('customer', cu.id) as wa_dest
     into c
     from public.inquiries i
     join public.customers cu on cu.id = i.customer_id
@@ -48696,12 +48719,12 @@ begin
   --
   -- The dedupe key carries the publication version (committed_hash), so re-committing a changed
   -- quotation notifies again and the same commit arriving twice does not.
-  if coalesce(btrim(c.phone),'') <> '' and coalesce(c.wa_optin, false) then
-    v_dedupe := 'quote_published|' || q.id::text || '|' || coalesce(q.committed_hash,'nohash') || '|whatsapp|' || c.phone;
+  if c.wa_dest is not null then
+    v_dedupe := 'quote_published|' || q.id::text || '|' || coalesce(q.committed_hash,'nohash') || '|whatsapp|' || c.wa_dest;
     insert into public.support_notification
       (dedupe_key, case_id, purpose, channel, recipient, inquiry_ref, publication_version,
        subject, body, anonymity_checked_at, anonymity_result)
-    values (v_dedupe, v_case, 'quote_published', 'whatsapp', c.phone, v_ref, q.committed_hash,
+    values (v_dedupe, v_case, 'quote_published', 'whatsapp', c.wa_dest, v_ref, q.committed_hash,
             null, v_body, now(), v_scan)
     on conflict (dedupe_key) do nothing
     returning id into v_id;
@@ -48709,8 +48732,7 @@ begin
                   'note', case when v_id is null then 'already queued for this publication version' else 'queued' end);
   else
     v_skipped := v_skipped || jsonb_build_object('channel','whatsapp','reason',
-      case when coalesce(btrim(c.phone),'') = '' then 'no mobile on the customer record'
-           else 'no WhatsApp opt-in recorded' end);
+      'no confirmed WhatsApp number (the customer said they do not use WhatsApp, or has not confirmed one)');
   end if;
 
   if coalesce(btrim(c.email),'') <> '' then
@@ -50180,6 +50202,25 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_verified_mobile(p_role text, p_customer uuid DEFAULT NULL::uuid, p_lead bigint DEFAULT NULL::bigint, p_email text DEFAULT NULL::text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_role = 'customer' then (select c.phone from public.customers c
+                                    where coalesce(c.phone_verified, false) and nullif(btrim(c.phone), '') is not null
+                                      and (c.id = p_customer or (p_customer is null and p_email is not null and lower(c.email) = lower(btrim(p_email))))
+                                    limit 1)
+    when p_role = 'supplier' then (select l.phone from public.leads l
+                                    where coalesce(l.owner_phone_verified, false) and nullif(btrim(l.phone), '') is not null
+                                      and (l.id = p_lead or (p_lead is null and p_email is not null and (lower(l.claimed_by) = lower(btrim(p_email)))))
+                                    order by l.id limit 1)
+  end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_answer(p_from text, p_body text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -50522,8 +50563,7 @@ begin
   -- ---------------------------------------------------------------- SUPPLIER: only their own row
   if p_audience = 'supplier' then
     select * into v_lead from leads l
-     where (v_e164 <> '' and (regexp_replace(coalesce(l.phone_e164, l.phone, ''), '[^0-9]', '', 'g') = v_e164
-                           or regexp_replace(coalesce(l.whatsapp,''), '[^0-9]', '', 'g') = v_e164))
+     where (v_e164 <> '' and l.id = (select o.lead_id from public.fn_whatsapp_owner(p_phone) o where o.party_kind = 'supplier'))
         or (v_email is not null and (lower(coalesce(l.claimed_by,'')) = v_email or lower(coalesce(l.email,'')) = v_email))
      order by coalesce(l.claimed,false) desc, l.id limit 1;
     if not found then return jsonb_build_object('scope','supplier','known', false); end if;
@@ -50557,7 +50597,7 @@ begin
   -- ---------------------------------------------------------------- CUSTOMER: only their own rows
   if p_audience = 'customer' then
     select * into v_cust from customers c
-     where (v_e164 <> '' and regexp_replace(coalesce(c.phone,''), '[^0-9]', '', 'g') = v_e164)
+     where (v_e164 <> '' and c.id = (select o.customer_id from public.fn_whatsapp_owner(p_phone) o where o.party_kind = 'customer'))
         or (v_email is not null and lower(coalesce(c.email,'')) = v_email)
      limit 1;
     if not found then return jsonb_build_object('scope','customer','known', false); end if;
@@ -50716,31 +50756,23 @@ CREATE OR REPLACE FUNCTION public.fn_wa_fanout()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare ph text; opt boolean := false;
+declare v_dest text; v_opt text;
 begin
   -- only fan out plain email rows; never recurse on whatsapp rows
-  if coalesce(NEW.channel,'email') <> 'email' then return NEW; end if;
-  if NEW.to_email is null then return NEW; end if;
-
-  if NEW.to_role = 'supplier' then
-    select coalesce(nullif(btrim(l.whatsapp),''), l.phone), coalesce(l.wa_optin,false)
-      into ph, opt from leads l
-      where (NEW.lead_id is not null and l.id = NEW.lead_id)
-         or (NEW.lead_id is null and lower(l.email) = lower(NEW.to_email))
-      order by (l.id = NEW.lead_id) desc nulls last
-      limit 1;
-  elsif NEW.to_role = 'customer' then
-    select c.phone, coalesce(c.wa_optin,false)
-      into ph, opt from customers c where lower(c.email) = lower(NEW.to_email) limit 1;
-  else
-    return NEW;
+  if coalesce(new.channel, 'email') <> 'email' or new.to_email is null or coalesce(new.to_role, '') not in ('customer', 'supplier') then return new; end if;
+  v_dest := public.fn_whatsapp_destination(new.to_role, null, new.lead_id, new.to_email);
+  if v_dest is null then
+    if new.to_role = 'customer' then
+      select c.whatsapp_opt into v_opt from public.customers c where lower(c.email) = lower(new.to_email) limit 1;
+    else
+      select l.whatsapp_opt into v_opt from public.leads l where l.id = new.lead_id or (new.lead_id is null and lower(l.claimed_by) = lower(new.to_email)) order by l.id limit 1;
+    end if;
+    -- 'none' is recorded (a03 marks the twin skipped with the reason); unanswered makes no twin.
+    if v_opt is distinct from 'none' then return new; end if;
   end if;
-
-  if opt is true and ph is not null and length(regexp_replace(ph, '[^0-9]', '', 'g')) >= 8 then
-    insert into notifications(type, to_email, to_role, to_phone, lead_id, inquiry_id, quote_id, subject, body, channel, status)
-    values (NEW.type, NEW.to_email, NEW.to_role, ph, NEW.lead_id, NEW.inquiry_id, NEW.quote_id, NEW.subject, NEW.body, 'whatsapp', 'queued');
-  end if;
-  return NEW;
+  insert into public.notifications (type, to_email, to_role, to_phone, lead_id, inquiry_id, quote_id, subject, body, channel, status)
+  values (new.type, new.to_email, new.to_role, v_dest, new.lead_id, new.inquiry_id, new.quote_id, new.subject, new.body, 'whatsapp', 'queued');
+  return new;
 end $function$
 
 
@@ -50750,15 +50782,9 @@ CREATE OR REPLACE FUNCTION public.fn_wa_lead_id(p_phone text)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select l.id
-    from public.leads l
-   where regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g') <> ''
-     and (regexp_replace(coalesce(l.phone_e164, l.phone, ''), '[^0-9]', '', 'g')
-            = regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g')
-       or regexp_replace(coalesce(l.whatsapp,''), '[^0-9]', '', 'g')
-            = regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g'))
-   order by coalesce(l.claimed,false) desc, l.id
-   limit 1;
+  -- 14 Sep 2026 (#322): only a supplier's CONFIRMED WhatsApp number (fn_whatsapp_owner). fn_wa_answer
+  -- and fn_wa_fact_pack identify suppliers through this function.
+  select o.lead_id from public.fn_whatsapp_owner(p_phone) o where o.party_kind = 'supplier';
 $function$
 
 
@@ -51301,6 +51327,57 @@ begin
   return jsonb_build_object('id',v_id,'question',p_question,'projection',v_impact,'confidence',v_conf,
     'basis', jsonb_build_object('approved_suppliers',v_sup,'revenue_30d',v_rev,'ai_cost_30d',round(v_cost,2),'sendable_pool',v_pool));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_whatsapp_destination(p_role text, p_customer uuid DEFAULT NULL::uuid, p_lead bigint DEFAULT NULL::bigint, p_email text DEFAULT NULL::text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_opt text; v_wa text; v_at timestamptz;
+begin
+  if p_role = 'customer' then
+    select c.whatsapp_opt, c.whatsapp_phone, c.whatsapp_verified_at into v_opt, v_wa, v_at from public.customers c
+     where c.id = p_customer or (p_customer is null and p_email is not null and lower(c.email) = lower(btrim(p_email))) limit 1;
+  elsif p_role = 'supplier' then
+    select l.whatsapp_opt, l.whatsapp_phone, l.whatsapp_verified_at into v_opt, v_wa, v_at from public.leads l
+     where l.id = p_lead or (p_lead is null and p_email is not null and lower(l.claimed_by) = lower(btrim(p_email))) order by l.id limit 1;
+  else
+    return null;
+  end if;
+  if v_opt = 'other' and v_at is not null and nullif(btrim(v_wa), '') is not null then return v_wa; end if;
+  if v_opt = 'same' then return public.fn_verified_mobile(p_role, p_customer, p_lead, p_email); end if;
+  return null;   -- 'none', unanswered, or an 'other' number not yet verified
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_whatsapp_owner(p_phone text, p_all boolean DEFAULT false)
+ RETURNS TABLE(party_kind text, customer_id uuid, lead_id bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with t as (select right(regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'), 9) as tail),
+  hits as (
+    select 'customer'::text as party_kind, c.id as customer_id, null::bigint as lead_id
+      from public.customers c, t
+     where length(t.tail) = 9
+       and ((c.whatsapp_opt = 'other' and c.whatsapp_verified_at is not null
+             and right(regexp_replace(coalesce(c.whatsapp_phone, ''), '[^0-9]', '', 'g'), 9) = t.tail)
+         or (c.whatsapp_opt = 'same' and coalesce(c.phone_verified, false)
+             and right(regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g'), 9) = t.tail))
+    union
+    select 'supplier', null, l.id
+      from public.leads l, t
+     where length(t.tail) = 9
+       and ((l.whatsapp_opt = 'other' and l.whatsapp_verified_at is not null
+             and right(regexp_replace(coalesce(l.whatsapp_phone, ''), '[^0-9]', '', 'g'), 9) = t.tail)
+         or (l.whatsapp_opt = 'same' and coalesce(l.owner_phone_verified, false)
+             and right(regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g'), 9) = t.tail)))
+  -- A PHONE MAY CONFIRM, NEVER SELECT: one party or nobody.
+  select h.party_kind, h.customer_id, h.lead_id from hits h where p_all or (select count(*) from hits) = 1
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_workflow_actor_resolve(p_run uuid, p_actor text)
@@ -53438,7 +53515,7 @@ begin
   j := jsonb_build_object(
     'profile', jsonb_build_object('id',c.id,'full_name',c.full_name,'email',c.email,'phone',c.phone,
        'created_at',c.created_at,'phone_verified',c.phone_verified,'email_verified',c.email_verified,
-       'banned',c.banned,'banned_reason',c.banned_reason,'wa_optin',c.wa_optin,'tos_accepted_at',c.tos_accepted_at,
+       'banned',c.banned,'banned_reason',c.banned_reason,'whatsapp',jsonb_build_object('opt',c.whatsapp_opt,'confirmed',public.fn_whatsapp_destination('customer',c.id) is not null),'tos_accepted_at',c.tos_accepted_at,
        'chat_strikes',c.chat_strikes),
     'metrics', jsonb_build_object('ltv',ltv,'total_deal_value',deal_value,'reveals',reveals,
        'rfqs_total',rfqs_total,'rfqs_active',rfqs_active,'rfqs_completed',rfqs_done,
@@ -56472,30 +56549,30 @@ CREATE TRIGGER a00_append_only BEFORE DELETE OR UPDATE ON public.accountant_issu
 CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
-CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
 CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
-CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
-CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
-CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
-CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER z62_new_bug_closes_with_learning BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_new_bug_closes_with_learning();
 CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
 CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
+CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
+CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
+CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
+CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
+CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
+CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
+CREATE TRIGGER z62_new_bug_closes_with_learning BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_new_bug_closes_with_learning();
 CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
+CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
-CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
-CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
+CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
@@ -56505,8 +56582,8 @@ CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command F
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
-CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
+CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
@@ -56515,9 +56592,9 @@ CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF sta
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
-CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
@@ -56540,16 +56617,16 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -56562,21 +56639,22 @@ CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
-CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
+CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
@@ -56592,18 +56670,18 @@ CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON pub
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
 CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
 CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
 CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
-CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
 CREATE TRIGGER otp_served_country_lifts_blocks AFTER INSERT OR UPDATE OF prefix ON public.otp_served_country FOR EACH ROW EXECUTE FUNCTION trg_otp_served_country_lifts_blocks();
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
@@ -56614,31 +56692,31 @@ CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON publ
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER z10_hold_answered_resets_the_run AFTER UPDATE OF state ON public.quote_spec_hold FOR EACH ROW EXECUTE FUNCTION trg_hold_answered_resets_the_run();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
 CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
 CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
 CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
 CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
-CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
 CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
-CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
 CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
-CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
-CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
 CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
+CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
+CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
+CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
-CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
+CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a10_sales_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.sales_knowledge FOR EACH ROW EXECUTE FUNCTION fn_sales_knowledge_search_vector();
@@ -56649,14 +56727,14 @@ CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories F
 CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_collaboration_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_collaboration_event_append_only();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
 CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
+CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
+CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
