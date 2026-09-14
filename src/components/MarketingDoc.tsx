@@ -41,7 +41,8 @@ function VerifyFrame({ t }: { t: typeof L.en }) {
       <div className="border-b border-line px-5 py-4 text-copy text-muted">
         {t.supplier} <Seal>Al Noor Flooring LLC</Seal>
       </div>
-      <ul className="qd-stagger reveal-stagger">
+      {/* no scroll stagger: it held the last rows back while the hero was fully in view */}
+      <ul>
         {t.six.map((s, i) => (
           <li key={s} className="qd-row" style={{ gridTemplateColumns: '28px minmax(0,1fr) auto' }}>
             <span className="tabular font-mono text-label text-faint">{String(i + 1).padStart(2, '0')}</span>

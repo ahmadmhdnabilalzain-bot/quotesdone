@@ -29,7 +29,7 @@ export function CookieConsent() {
   return (
     <div dir={locale === 'ar' ? 'rtl' : 'ltr'} role="dialog" aria-live="polite" aria-label={t('title')}
       className="fixed inset-x-0 bottom-0 z-[60] border-t border-line2 bg-navy-deep/[.97] shadow-e3">
-      <div className="container-x flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:gap-6 sm:py-3">
+      <div className="container-x flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:gap-6 sm:py-2.5">
         <p className="min-w-0 flex-1 text-small leading-snug text-muted">
           <span className="font-semibold text-white">{t('title')}.</span>{' '}{t('text')}{' '}
           <Link href="/cookie-policy" className="text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
