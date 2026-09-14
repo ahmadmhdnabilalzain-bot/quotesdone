@@ -1381,3 +1381,4 @@ scripts/sql/a_document_reaches_dropbox_when_it_lands_and_only_once_it_exists.sql
 scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql
 scripts/sql/a_run_the_founders_hold_refused_is_held_not_failed.sql
 scripts/sql/every_send_comes_back_to_whoever_asked.sql
+scripts/sql/every_stored_document_source_is_registered_for_backup.sql
