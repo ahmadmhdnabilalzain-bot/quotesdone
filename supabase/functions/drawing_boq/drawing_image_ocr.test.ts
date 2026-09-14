@@ -17,7 +17,6 @@
 // right, and no identifying title-block value reaches a supplier-facing BOQ line.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createWorker } from 'npm:tesseract.js@7.0.0';
-import sharp from 'npm:sharp';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { readDrawing, type DrawingRead, type OcrLine } from './drawing_from_ocr.ts';
@@ -84,8 +83,16 @@ export function scoreRead(key: Record<string, Field>, r: DrawingRead) {
   } as Record<string, string>;
 }
 
+// sharp is loaded LAZILY: its module reads process.env on load, and the suite runner
+// (scripts/checks/run.mjs) grants no permissions, so a top-level import crashed the whole file
+// instead of letting this test report itself ignored (measured 14 Sep 2026: 357 passed, 1 failed).
+// deno-lint-ignore no-explicit-any
+let sharp: any;
+const loadSharp = async () => { if (!sharp) sharp = (await import('npm:sharp')).default; return sharp; };
+
 /** The OCR plan, exactly as the browser runs it, with sharp standing in for the canvas. */
 async function ocrPlan(bytes: Uint8Array) {
+  await loadSharp();
   const meta = await sharp(bytes).metadata();
   const worker = await createWorker('eng', 1, { langPath: LANG, gzip: true, cacheMethod: 'none' });
   const all: (OcrLine & { pass: number })[] = [];
@@ -114,6 +121,7 @@ const tally = (s: Record<string, string>) => Object.values(s).filter((v) => v ==
 
 const CAN = Deno.permissions.querySync({ name: 'read' }).state === 'granted' && Deno.permissions.querySync({ name: 'env' }).state === 'granted' && Deno.permissions.querySync({ name: 'ffi' }).state === 'granted';
 Deno.test({ name: 'drawing image: before/after per field vs the answer key, symbol counter cross-check (no model)', ignore: !CAN, sanitizeResources: false, sanitizeOps: false }, async () => {
+  await loadSharp();
   const key = JSON.parse(await Deno.readTextFile(KEY));
   const bytes = await Deno.readFile(FIXTURE);
 
