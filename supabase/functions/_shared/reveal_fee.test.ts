@@ -1,6 +1,6 @@
 // Run: deno test --node-modules-dir=none supabase/functions/_shared/reveal_fee.test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { revealCharge, STRIPE_CARD_FIXED_AED, STRIPE_CARD_PCT } from './reveal_fee.ts';
+import { revealCharge, revealChargeFor, STRIPE_CARD_FIXED_AED, STRIPE_CARD_PCT, STRIPE_DOMESTIC_PCT } from './reveal_fee.ts';
 
 const fils = (n: number) => Math.round(n * 100);
 
@@ -20,6 +20,16 @@ Deno.test('QuotesDone nets at least the full 3% after the published fee', () => 
     assertEquals(net + 1e-9 >= c.base_fee, true, `quote ${q}: net ${net} < base ${c.base_fee}`);
     assertEquals(net - c.base_fee < 0.011, true, `quote ${q}: overcharged by ${net - c.base_fee}`);
   }
+});
+
+Deno.test('the domestic (UAE card) rate also nets the full 3%, and costs the customer less', () => {
+  for (const q of [10, 99.99, 1000, 12345.67, 250000]) {
+    const d = revealChargeFor(q, 0.03, 'domestic');
+    const net = d.total_charged - (d.total_charged * STRIPE_DOMESTIC_PCT + STRIPE_CARD_FIXED_AED);
+    assertEquals(net + 1e-9 >= d.base_fee && net - d.base_fee < 0.011, true, `quote ${q}`);
+    assertEquals(d.total_charged <= revealChargeFor(q, 0.03, 'international').total_charged, true);
+  }
+  assertEquals(revealChargeFor(10000, 0.03, 'domestic'), { base_fee: 300, processing_fee: 9.99, total_charged: 309.99 });
 });
 
 Deno.test('worked example: AED 10,000 quote', () => {
