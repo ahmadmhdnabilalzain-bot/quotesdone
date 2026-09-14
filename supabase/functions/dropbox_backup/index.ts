@@ -10,15 +10,16 @@
 //   * The queue is read through fn_doc_backups_next (backoff, resume-first, no ZZ DEMO rows).
 //   * A pass that filled its batch calls itself again (process_only, up to 20 links) so a backlog
 //     drains in minutes instead of one batch per 15-minute tick.
-//   * op 'health' (it_engineer, daily): auth probe (write, read, delete in /_selftest/), space usage and
-//     plan, handed to fn_it_dropbox_health_record. op 'selftest_large': a synthetic multi-chunk file
+//   * op 'health' (it_engineer, daily from resilience_ping): auth probe (write, read, delete in
+//     /_selftest/), space usage and plan, each failure classed by health.ts, handed to
+//     fn_it_dropbox_health_record (dropbox_is_checked_every_day_login_and_space.sql). op 'selftest_large': a synthetic multi-chunk file
 //     uploaded in two runs (stopped after one chunk, then resumed), hash-verified and deleted.
 //   * v9 (15 Sep 2026, it_engineer): op 'prune' deletes the Dropbox copies of export days the retention
 //     rules expired (the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql). Rows come only from
 //     fn_doc_backups_prune_next, which returns nothing in dry run. This is retention of the table
 //     exports only; op pdpl_erase stays refused.
 // SQL: scripts/sql/a_document_reaches_dropbox_when_it_lands_and_only_once_it_exists.sql and
-// scripts/sql/the_it_engineer_fixes_what_it_finds_and_emails_only_a_new_bug.sql.
+// scripts/sql/dropbox_is_checked_every_day_login_and_space.sql.
 //
 // v7 and earlier (kept as history, still true): v7 body.ids re-checks named rows (job 'targeted') and
 // the daily sample is new-unverified rows plus a weekly random sample. v6 confirms every upload with
@@ -32,6 +33,7 @@ import { dropboxContentHash } from './content_hash.ts';
 import { DropboxClient, refreshAccessToken } from './dropbox.ts';
 import { CHUNK, uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
+import { classifyDropboxFailure } from './health.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -167,26 +169,38 @@ async function renderGenerated(row: any): Promise<{ bucket: string; path: string
   return { bucket: 'backups', path: String(jd.path) };
 }
 
-// it_engineer: the daily auth probe and space/plan reading. Every stage is recorded, never thrown away.
+// it_engineer: the daily login check, write/read/delete probe in /_selftest/, and space reading.
+// Every stage is recorded, never thrown away; a failure carries its class (health.ts). The space is
+// read even when the probe failed, so a full account is measured on the day it stops the writes.
 async function health() {
   const out: Record<string, unknown> = { auth_ok: false, write_ok: false, read_ok: false, delete_ok: false };
+  let dbx: DropboxClient | null = null;
   try {
-    const dbx = await client();
+    dbx = await client();
     const probe = `/QuotesDone Backup/_selftest/auth_probe_${Date.now()}.txt`;
     const bytes = new TextEncoder().encode('quotesdone dropbox auth probe ' + new Date().toISOString());
     const up = await uploadFile(dbx, probe, bytes.length, (o, n) => Promise.resolve(bytes.slice(o, o + n)));
     out.auth_ok = true; out.write_ok = up.done;
-    if (up.done) { await verifyUploaded(dbx, probe, up.hash, bytes.length); out.read_ok = true; }
-    out.delete_ok = await dbxDelete(dbx, probe);
-    const s = await dbx.call('api', 'users/get_space_usage', null);
-    const sj = await s.json();
-    if (!s.ok) throw new Error('get_space_usage ' + s.status);
-    out.used = Number(sj.used); out.allocated = Number(sj.allocation?.allocated ?? sj.allocation?.used ?? 0);
-    const a = await dbx.call('api', 'users/get_current_account', null);
-    const aj = await a.json();
-    out.plan = a.ok ? String(aj.account_type?.['.tag'] || '') : 'unknown';
-    out.refreshes = dbx.refreshes;
+    if (!up.done) throw new Error('probe upload did not finish');
+    await verifyUploaded(dbx, probe, up.hash, bytes.length); out.read_ok = true;
+    const d = await dbx.call('api', 'files/delete_v2', { path: probe });
+    if (!d.ok) throw new Error('delete_v2 ' + d.status + ' ' + (await d.text()).slice(0, 160));
+    await d.body?.cancel(); out.delete_ok = true;
   } catch (e) { out.error = errText(e).slice(0, 300); }
+  if (dbx) {
+    try {
+      const s = await dbx.call('api', 'users/get_space_usage', null);
+      if (!s.ok) throw new Error('get_space_usage ' + s.status + ' ' + (await s.text()).slice(0, 160));
+      const sj = await s.json();
+      out.used = Number(sj.used); out.allocated = Number(sj.allocation?.allocated ?? 0);
+      const a = await dbx.call('api', 'users/get_current_account', null);
+      out.plan = a.ok ? String((await a.json()).account_type?.['.tag'] || '') : 'unknown';
+      if (!a.ok) await a.body?.cancel();
+      out.refreshes = dbx.refreshes;
+    } catch (e) { out.space_error = errText(e).slice(0, 300); }
+  }
+  if (out.error) out.class = classifyDropboxFailure(String(out.error));
+  if (out.space_error) out.space_class = classifyDropboxFailure(String(out.space_error));
   const { data, error } = await admin.rpc('fn_it_dropbox_health_record', { p: out });
   if (error) throw new Error('fn_it_dropbox_health_record: ' + error.message);
   return { reading: out, recorded: data };
