@@ -62,7 +62,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
-import { refundIdempotencyKey, refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
+import { confirmRefundOutcome, refundIdempotencyKey, refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
 import { isDemoEmail } from '../_shared/demo_identity.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -684,16 +684,30 @@ Deno.serve(observe('accountant', async (req) => {
           }
           const res = await stripeRefund(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), amountFils: amount, idem,
             metadata: { incident_id: String(d.incident_id || ''), fix: String(d.fix), refund_id: String(rowId) } });
-          if (!res.ok) {
-            await admin.from('refunds').update({ status: d.fix === 'retry_refund' ? 'failed' : 'cancelled', failure_reason: res.error.slice(0, 500) })
-              .eq('id', rowId).eq('status', d.fix === 'retry_refund' ? 'processing' : 'requested');
-            await failFix(res.error); continue;
+          // deno-lint-ignore no-explicit-any
+          let sent: { refund: any; pi: string };
+          if (res.ok) sent = { refund: res.refund, pi: res.pi };
+          else {
+            // NEVER RELEASE BLIND (re-review): a timeout or a 5xx may have moved the money. Stripe is
+            // asked what exists under our key first; only a confirmed refusal releases the reservation.
+            const out = await confirmRefundOutcome(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), idem }, res);
+            if (out.outcome === 'hold') {
+              // Reservation kept and the fix left pending: the next run resends under the SAME key, so
+              // Stripe returns the original refund if it exists and creates it once if it does not.
+              results.push({ fix: f.id, refund_id: rowId, held: true, error: out.error }); continue;
+            }
+            if (out.outcome === 'release') {
+              await admin.from('refunds').update({ status: d.fix === 'retry_refund' ? 'failed' : 'cancelled', failure_reason: out.error.slice(0, 500) })
+                .eq('id', rowId).eq('status', d.fix === 'retry_refund' ? 'processing' : 'requested');
+              await failFix(out.error); continue;
+            }
+            sent = { refund: out.refund, pi: out.pi };
           }
-          await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id) }).eq('id', rowId);
+          await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(sent.refund.id) }).eq('id', rowId);
           // Recorded first, so the re-verification the completion triggers already sees this money.
-          await settle(res.refund, res.pi);
-          await admin.rpc('fn_seat_handoff_complete', { p_id: f.id, p_evidence: { stripe_refund_id: res.refund.id, amount_fils: res.refund.amount, status: res.refund.status } });
-          results.push({ fix: f.id, stripe_refund_id: res.refund.id });
+          await settle(sent.refund, sent.pi);
+          await admin.rpc('fn_seat_handoff_complete', { p_id: f.id, p_evidence: { stripe_refund_id: sent.refund.id, amount_fils: sent.refund.amount, status: sent.refund.status } });
+          results.push({ fix: f.id, stripe_refund_id: sent.refund.id });
         } else if (d.fix === 'cancel_duplicate') {
           const ids = Array.isArray(d.refund_ids) ? (d.refund_ids as string[]).slice(1) : [];
           const k = await refundKey(deps, demo);

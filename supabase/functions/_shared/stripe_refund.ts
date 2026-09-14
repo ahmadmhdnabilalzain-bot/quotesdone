@@ -24,7 +24,11 @@ export type RefundDeps = {
 };
 // deno-lint-ignore no-explicit-any
 export type RefundOk = { ok: true; refund: any; pi: string; mode: StripeMode };
-export type RefundRefused = { ok: false; error: string; mode?: StripeMode };
+// sent: the POST /v1/refunds request left this process. uncertain: it did, and its outcome is not known
+// (a network error, a timeout, a 5xx, an idempotency conflict) -- money may have moved. A caller that
+// reserved money must never release it on an uncertain answer; confirmRefundOutcome asks Stripe first.
+// deno-lint-ignore no-explicit-any
+export type RefundRefused = { ok: false; error: string; mode?: StripeMode; sent?: boolean; uncertain?: boolean; pi?: string; refund?: any };
 
 /**
  * THE ONE IDEMPOTENCY KEY FOR A PAYMENT'S REFUND. Keyed on the transaction, never on a refunds row id:
@@ -102,6 +106,8 @@ export async function stripeRefund(
   form.set('amount', String(Math.round(o.amountFils)));
   form.set('reason', 'requested_by_customer');
   for (const [key, v] of Object.entries(o.metadata || {})) form.set('metadata[' + key + ']', v);
+  // Our key rides on the refund itself, so a lost answer can be matched on Stripe afterwards.
+  form.set('metadata[qd_idempotency_key]', o.idem);
   try {
     const r = await f('https://api.stripe.com/v1/refunds', {
       method: 'POST',
@@ -109,11 +115,62 @@ export async function stripeRefund(
       body: form.toString(),
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) return { ok: false, mode: k.mode, error: 'Stripe refused the refund (HTTP ' + r.status + '): ' + String(j?.error?.message || '').slice(0, 250) };
+    if (!r.ok) {
+      // 4xx is Stripe refusing the request; 5xx and 409 (an idempotent request still in flight) say
+      // nothing certain about whether a refund exists.
+      const uncertain = r.status >= 500 || r.status === 409;
+      return { ok: false, mode: k.mode, sent: true, uncertain, pi, error: 'Stripe ' + (uncertain ? 'could not confirm' : 'refused') + ' the refund (HTTP ' + r.status + '): ' + String(j?.error?.message || '').slice(0, 250) };
+    }
     // 'pending' is a normal state for some methods; 'failed' and 'canceled' are not.
-    if (j?.status && !['succeeded', 'pending'].includes(String(j.status))) return { ok: false, mode: k.mode, error: 'Stripe refund came back ' + String(j.status) };
+    if (j?.status && !['succeeded', 'pending'].includes(String(j.status))) {
+      return { ok: false, mode: k.mode, sent: true, uncertain: false, pi, refund: j, error: 'Stripe refund came back ' + String(j.status) };
+    }
     return { ok: true, refund: j, pi, mode: k.mode };
   } catch (e) {
-    return { ok: false, mode: k.mode, error: 'network error calling Stripe refunds: ' + String((e as Error)?.message || e) };
+    return { ok: false, mode: k.mode, sent: true, uncertain: true, pi, error: 'network error or timeout calling Stripe refunds: ' + String((e as Error)?.message || e) };
   }
+}
+
+/**
+ * NEVER RELEASE A RESERVATION BLIND (PR #640 re-review). After a refused or unanswered stripeRefund,
+ * ask Stripe what actually exists under our key -- the refund by id if one came back, otherwise the
+ * payment's refunds matched on metadata.qd_idempotency_key -- and answer:
+ *   settle  : Stripe holds a succeeded/pending refund under our key; record it, do not release;
+ *   release : confirmed that no money moved (nothing was sent, Stripe refused, or the refund failed);
+ *   hold    : cannot confirm either way; keep the reservation and try again under the SAME key.
+ */
+export async function confirmRefundOutcome(
+  deps: RefundDeps,
+  o: { demoPayer: boolean; ref: string; idem: string },
+  res: RefundRefused,
+  // deno-lint-ignore no-explicit-any
+): Promise<{ outcome: 'settle'; refund: any; pi: string } | { outcome: 'release'; error: string } | { outcome: 'hold'; error: string }> {
+  if (!res.sent) return { outcome: 'release', error: res.error };
+  const f = deps.fetch ?? fetch;
+  const k = await refundKey(deps, o.demoPayer);
+  if (!k.ok) return { outcome: 'hold', error: 'cannot read Stripe to confirm: ' + k.error };
+  const auth = { Authorization: 'Bearer ' + k.sk };
+  const pi = res.pi || o.ref;
+  // deno-lint-ignore no-explicit-any
+  let found: any = null;
+  try {
+    if (res.refund?.id) {
+      const r = await f('https://api.stripe.com/v1/refunds/' + encodeURIComponent(String(res.refund.id)), { headers: auth });
+      if (!r.ok) return { outcome: 'hold', error: 'Stripe did not answer for refund ' + res.refund.id + ' (HTTP ' + r.status + '): ' + res.error };
+      found = await r.json();
+    } else {
+      const r = await f('https://api.stripe.com/v1/refunds?limit=100&payment_intent=' + encodeURIComponent(pi), { headers: auth });
+      if (!r.ok) return { outcome: 'hold', error: 'Stripe did not list the refunds on ' + pi + ' (HTTP ' + r.status + '): ' + res.error };
+      const j = await r.json();
+      // deno-lint-ignore no-explicit-any
+      found = (j?.data || []).find((x: any) => x?.metadata?.qd_idempotency_key === o.idem) || null;
+    }
+  } catch (e) {
+    return { outcome: 'hold', error: 'could not reach Stripe to confirm: ' + String((e as Error)?.message || e) + '; ' + res.error };
+  }
+  if (found && ['succeeded', 'pending'].includes(String(found.status))) return { outcome: 'settle', refund: found, pi };
+  if (found && ['failed', 'canceled'].includes(String(found.status))) return { outcome: 'release', error: 'Stripe shows the refund ' + found.status + ': ' + res.error };
+  if (found) return { outcome: 'hold', error: 'Stripe shows the refund ' + String(found.status) + '; waiting: ' + res.error };
+  return res.uncertain ? { outcome: 'hold', error: 'no refund under our key yet, and the attempt was not answered: ' + res.error }
+                       : { outcome: 'release', error: res.error };
 }

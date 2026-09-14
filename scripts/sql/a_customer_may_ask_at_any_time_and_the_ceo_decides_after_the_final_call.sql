@@ -586,11 +586,20 @@ create or replace function public.fn_refunds_never_return_more_than_was_paid()
 returns trigger language plpgsql set search_path to 'public', 'pg_temp' as $fn$
 declare t public.transactions; v_cap bigint; v_other bigint;
 begin
-  -- A refund Stripe already issued is a fact to record, never refused; it still counts below.
+  -- EVERY WRITER LOCKS THE PAYMENT FIRST (PR #640 re-review, 14 Sep 2026). A reservation, a case, a
+  -- retry and a refund Stripe reported (fn_refund_settle writes those with no transaction_id, only the
+  -- payment reference) all serialise on the same transactions row, so a webhook row cannot slip in
+  -- between a reservation's sum and its insert. The lock is taken BEFORE any exemption.
+  if NEW.transaction_id is not null then
+    select * into t from public.transactions where id = NEW.transaction_id for update;
+  elsif coalesce(btrim(NEW.stripe_payment_intent), '') <> '' then
+    select * into t from public.transactions where payment_ref = NEW.stripe_payment_intent
+     order by revealed_at desc nulls last limit 1 for update;
+  end if;
+  -- A refund Stripe already issued is a fact to record, never refused; it is counted below for
+  -- every later writer (rows are matched by transaction OR by the payment's Stripe reference).
   if lower(coalesce(NEW.requested_by, '')) in ('stripe_webhook', 'stripe_dashboard', 'stripe') then return NEW; end if;
-  if NEW.transaction_id is null or NEW.status in ('failed', 'rejected', 'cancelled') then return NEW; end if;
-  select * into t from public.transactions where id = NEW.transaction_id for update;
-  if not found then return NEW; end if;   -- a00 refuses a missing transaction with its own reason
+  if t.id is null or NEW.status in ('failed', 'rejected', 'cancelled') then return NEW; end if;   -- a00 refuses a missing transaction with its own reason
   v_cap := round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint;
   select coalesce(sum(r.amount_fils), 0) into v_other
     from public.refunds r
@@ -730,7 +739,7 @@ declare v_out text;
 begin
   begin
     declare
-      v_cust uuid; v_ar uuid; v_lead bigint; v_tx uuid; v_tx2 uuid; v_tx3 uuid; v_tx4 uuid; r jsonb; r2 jsonb; v_rid bigint; v_err text; v_n int; v_chk jsonb;
+      v_cust uuid; v_ar uuid; v_lead bigint; v_tx uuid; v_tx2 uuid; v_tx3 uuid; v_tx4 uuid; r jsonb; r2 jsonb; v_rid bigint; v_err text; v_code text; v_n bigint; v_chk jsonb;
     begin
       insert into public.customers (id, email, email_verified, full_name, locale)
       values (gen_random_uuid(), 'zz-demo-refund-ask@example.invalid', true, 'ZZ DEMO refund ask', 'en') returning id into v_cust;
@@ -821,6 +830,33 @@ begin
       if (select coalesce(sum(amount_fils), 0) from public.refunds where transaction_id = v_tx and status not in ('failed', 'rejected', 'cancelled')) <> 3150 then
         raise exception 'PROBE FAILED: live refunds on one payment are not exactly what was paid'; end if;
 
+      -- 2d. EVERY WRITER LOCKS THE PAYMENT, THE WEBHOOK'S ROW INCLUDED, AND IS COUNTED BY THE NEXT ONE.
+      -- (i) Webhook first. fn_refund_settle records a refund Stripe reports with no transaction_id, only
+      -- the payment reference; inserting it must lock that payment (xmax set) without updating it (xmin
+      -- unchanged).
+      insert into public.transactions (id, customer_id, supplier_id, revealed_at, reveal_fee, total_charged, payment_ref)
+      values (gen_random_uuid(), v_cust, v_lead, now() - interval '10 days', 30, 31.5, 'pi_ZZDEMO_ask_hook') returning id into v_tx3;
+      select xmin::text, xmax::text into v_err, v_code from public.transactions where id = v_tx3;
+      if v_code <> '0' then raise exception 'PROBE FAILED: the fresh payment was already locked'; end if;
+      insert into public.refunds (stripe_refund_id, stripe_payment_intent, amount_fils, amount_source, reason_code, requested_by, status)
+      values ('re_ZZDEMO_hook_1', 'pi_ZZDEMO_ask_hook', 1000, 'webhook_event', 'other', 'stripe_webhook', 'succeeded');
+      if (select xmax::text from public.transactions where id = v_tx3) = '0' then raise exception 'PROBE FAILED: the webhook row did not lock the payment'; end if;
+      if (select xmin::text from public.transactions where id = v_tx3) <> v_err then raise exception 'PROBE FAILED: recording the webhook row changed the payment'; end if;
+      -- ... and the next writer counts it: a full-amount case no longer fits (1000 + 3150 > 3150).
+      begin
+        perform public.fn_refund_open_from_customer(v_tx3, 'customer');
+        v_err := 'no error';
+      exception when others then v_err := sqlerrm;
+      end;
+      if v_err not like '%refund_exceeds_what_was_paid%' then raise exception 'PROBE FAILED: a case ignored the refund Stripe already reported: %', v_err; end if;
+      -- (ii) Reservation first. With the top-up live on v_tx, a refund Stripe then reports on the same
+      -- payment is still recorded (a fact, never refused), and after it nothing more can be reserved.
+      insert into public.refunds (stripe_refund_id, stripe_payment_intent, amount_fils, amount_source, reason_code, requested_by, status)
+      values ('re_ZZDEMO_hook_2', 'pi_ZZDEMO_ask_1', 500, 'webhook_event', 'other', 'stripe_webhook', 'succeeded');
+      if not exists (select 1 from public.refunds where stripe_refund_id = 're_ZZDEMO_hook_2') then raise exception 'PROBE FAILED: a refund Stripe reported was refused'; end if;
+      r2 := public.fn_accountant_reserves_topup(v_tx, 1, 9003);
+      if coalesce((r2->>'ok')::boolean, true) then raise exception 'PROBE FAILED: a reservation ignored the webhook row: %', r2; end if;
+
       -- 3. THE DECISION WAITS: approving before refund_deadline is refused at the table.
       begin
         update public.refunds set status = 'approved', decided_by = 'ceo' where id = v_rid;
@@ -867,7 +903,7 @@ begin
          and a.detail->>'msg_type' = 'refund_request_received' and a.detail->>'to_email' not like '%@example.invalid';
       if v_n > 0 then raise exception 'PROBE FAILED: a confirmation addressed someone outside @example.invalid'; end if;
 
-      raise exception 'PROBE_OK request inside the window opened case % at requested for 3150 fils, sale requested, accountant handoff + support confirmation (en); second press returned the same case; a second refund on the same payment refused on the ladder path (fn_refund_request) and by a raw insert (a01 cap / one-case index); top-up: none reserved while the case is live, a raw top-up refused past the cap, after the case failed a 5000-fils top-up capped at 3150, the same fix returned the same row, a second fix and another payment''s case refused, live total exactly 3150; early approval refused (refund_window_not_yet_open); no_payment and supplier_rated refused, recorded, nothing changed; Arabic customer answered and written to in Arabic; checklist item 1 passes with no complaint', v_rid;
+      raise exception 'PROBE_OK request inside the window opened case % at requested for 3150 fils, sale requested, accountant handoff + support confirmation (en); second press returned the same case; a second refund on the same payment refused on the ladder path (fn_refund_request) and by a raw insert (a01 cap / one-case index); top-up: none reserved while the case is live, a raw top-up refused past the cap, after the case failed a 5000-fils top-up capped at 3150, the same fix returned the same row, a second fix and another payment''s case refused, live total exactly 3150; a webhook row locked its payment (xmax set, xmin unchanged) and the next case counted it and was refused, and a webhook row after a live reservation was recorded and blocked the next reservation; early approval refused (refund_window_not_yet_open); no_payment and supplier_rated refused, recorded, nothing changed; Arabic customer answered and written to in Arabic; checklist item 1 passes with no complaint', v_rid;
     end;
   exception when others then v_out := sqlerrm;
   end;
