@@ -1,4 +1,4 @@
-import { Reveal } from '@/components/motion/primitives';
+import { Reveal } from '@/components/motion/reveal';
 
 /**
  * Shared, centered section intro for the reworked homepage. Presentational
@@ -25,7 +25,7 @@ export function SectionHeader({
         centered ? 'mx-auto flex max-w-[62ch] flex-col items-center text-center' : 'flex flex-col items-start text-start'
       }
     >
-      <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-3.5 py-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light backdrop-blur-sm">
+      <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-3.5 py-1.5 font-mono text-[12px] font-medium uppercase tracking-[0.2em] text-teal-light backdrop-blur-sm">
         <span className="node-dot" aria-hidden />
         {eyebrow}
         <span className="tabular text-faint/60">/ {index}</span>

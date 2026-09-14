@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { onFirstInteraction } from '@/lib/firstInteraction';
 
 /**
  * THE NODE FIELD — the signature background primitive.
@@ -199,9 +200,14 @@ export function NodeField() {
     // backgrounded tab never runs rAF, so without this the field can ship blank
     // — and it also makes the canvas verifiable in a headless/hidden context.
     frame(performance.now() + 1000);
-    raf = requestAnimationFrame(frame);
+    // The LOOP waits for the first interaction (src/lib/firstInteraction.ts): measured locally on
+    // mobile Lighthouse, the chunk carrying this loop accounted for ~3 s of main-thread time during
+    // load, almost all of it paint/composite from redrawing the canvas while the page hydrated.
+    // Until the visitor scrolls, touches or moves the pointer, the field is the static frame above.
+    const stopWaiting = onFirstInteraction(() => { if (!raf) raf = requestAnimationFrame(frame); });
 
     return () => {
+      stopWaiting();
       cancelAnimationFrame(raf);
       removeEventListener('resize', onResize);
       removeEventListener('scroll', onScroll);

@@ -1,5 +1,5 @@
 import { useLocale, useTranslations } from 'next-intl';
-import { Stagger, StaggerItem, Reveal } from '@/components/motion/primitives';
+import { Stagger, StaggerItem, Reveal } from '@/components/motion/reveal';
 import { SectionHeader } from '@/components/SectionHeader';
 import { DrawingScan, CompareLevelling } from '@/components/visual/slots';
 
@@ -22,7 +22,7 @@ export function EngineStrip() {
             <StaggerItem key={it.title} className="relative bg-navy-deep/90 p-7">
               <span className="grid-tech grid-tech-sm opacity-40" aria-hidden />
               <div className="relative flex items-center gap-2" aria-hidden>
-                <span className="font-mono text-[11px] tabular text-teal-light">{String(i + 1).padStart(2, '0')}</span>
+                <span className="font-mono text-[12px] tabular text-teal-light">{String(i + 1).padStart(2, '0')}</span>
                 <span className="h-px flex-1 bg-gradient-to-r from-teal/50 to-transparent rtl:bg-gradient-to-l" />
                 {i === 1 && <span className="redact redact-bar !h-2.5 !w-14" />}
               </div>

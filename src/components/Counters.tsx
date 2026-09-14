@@ -36,7 +36,7 @@ export function Counters({ children }: { children: ReactNode }) {
           </div>
         ))}
       </div>
-      <p className="container-x pb-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint rtl:tracking-normal">{t('measured')}</p>
+      <p className="container-x pb-3 font-mono text-[12px] uppercase tracking-[0.16em] text-faint rtl:tracking-normal">{t('measured')}</p>
     </div>
   );
 }

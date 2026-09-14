@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { ScrollProgress } from '@/components/motion/primitives';
+import { ScrollProgress } from '@/components/motion/ScrollProgress';
 import { BrandMark } from '@/components/BrandMark';
 import { AudienceNav } from './AudienceNav';
 

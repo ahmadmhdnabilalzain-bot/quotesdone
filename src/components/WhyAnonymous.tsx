@@ -1,14 +1,17 @@
 import { useTranslations } from 'next-intl';
-import { Stagger, StaggerItem } from '@/components/motion/primitives';
+import { Stagger, StaggerItem } from '@/components/motion/reveal';
 import { SectionHeader } from '@/components/SectionHeader';
+import { Link } from '@/i18n/routing';
 
 type Item = { title: string; body: string };
+const VETTED = 2;
 
 // A pinwheel bento: wide · narrow / narrow · wide — dynamic, never a card grid.
 const SPAN = ['md:col-span-2', 'md:col-span-1', 'md:col-span-1', 'md:col-span-2'];
 
 export function WhyAnonymous() {
   const t = useTranslations('why');
+  const tv = useTranslations('verify');
   const items = t.raw('items') as Item[];
   return (
     <section id="why" className="container-x py-beat-s md:py-beat">
@@ -32,7 +35,7 @@ export function WhyAnonymous() {
                     <span className="redact redact-sq !h-7 !w-7" />
                     <span className="redact redact-bar w-20" />
                     <span className="redact redact-sq !h-3 !w-3" />
-                    <span className="ml-auto font-mono text-[10px] tabular text-faint/60">
+                    <span className="ml-auto font-mono text-[12px] tabular text-faint/60">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                   </div>
@@ -46,6 +49,12 @@ export function WhyAnonymous() {
                   <p className="relative mt-3.5 max-w-[46ch] text-pretty text-[14.5px] leading-relaxed text-muted">
                     {it.body}
                   </p>
+                  {/* why.items[2] is "Vetted suppliers only": the claim links to the page that shows the check. */}
+                  {i === VETTED && (
+                    <Link href="/how-we-verify" className="relative mt-4 text-[14px] font-semibold text-teal-light underline-offset-4 hover:underline">
+                      {tv('link')} <span aria-hidden className="inline-block rtl:rotate-180">&rarr;</span>
+                    </Link>
+                  )}
                 </article>
               </div>
             </StaggerItem>

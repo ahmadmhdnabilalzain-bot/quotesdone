@@ -1,7 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { CompanyIdentity } from '@/components/CompanyIdentity';
-import { Reveal, SpringHover } from '@/components/motion/primitives';
+import { Reveal } from '@/components/motion/reveal';
 import { BrandMark } from '@/components/BrandMark';
 
 // Live company accounts (verified against Postiz + reachable). Keep in sync if a handle changes.
@@ -15,7 +15,7 @@ const SOCIALS = [
 export function SiteFooter() {
   const t = useTranslations();
   const locale = useLocale();
-  const col = 'font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-teal-light/75';
+  const col = 'font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-teal-light/75';
   // inline-flex + min-height gives a comfortable mobile hit area (WCAG 2.5.8)
   // without changing the visual rhythm on desktop.
   const link =
@@ -42,7 +42,7 @@ export function SiteFooter() {
             </p>
             <div className="mt-6 flex items-center gap-2.5" style={{ direction: 'ltr' }}>
               {SOCIALS.map((s) => (
-                <SpringHover key={s.name} className="rounded-full" scale={1.12} lift={-3}>
+                <span key={s.name} className="spring-hover inline-flex rounded-full">
                   <a
                     href={s.href}
                     target="_blank"
@@ -55,7 +55,7 @@ export function SiteFooter() {
                       <path d={s.d} />
                     </svg>
                   </a>
-                </SpringHover>
+                </span>
               ))}
             </div>
           </div>
@@ -87,7 +87,7 @@ export function SiteFooter() {
             </ul>
           </div>
         </Reveal>
-        <div className="mt-12 border-t border-[var(--line)] pt-6 font-mono text-[11px] leading-relaxed text-faint">
+        <div className="mt-12 border-t border-[var(--line)] pt-6 font-mono text-[12px] leading-relaxed text-faint">
           <CompanyIdentity locale={locale} variant="footer" rights={t('footer.rights')} />
         </div>
       </div>
