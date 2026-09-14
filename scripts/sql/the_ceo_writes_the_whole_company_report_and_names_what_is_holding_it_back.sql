@@ -96,6 +96,9 @@ begin
       'registered',        (select count(*) from leads where registration_status is not null),
       'verified',          (select count(*) from leads where verified),
       'matchable',         (select count(*) from supplier_capabilities where confirmed_at is not null),
+      -- 14 Sep 2026: suppliers the sales engineer put on matching hold after three consecutive held
+      -- quotes were left unanswered (founder_instruction #158). Only the founder lifts it (#160).
+      'on_matching_hold',  (select count(*) from leads where matching_block_reason = 'collaboration_hold'),
       'days_since_last_invite', (select case when max(invited_at) is null then null
                                    else (current_date - max(invited_at)::date) end from leads)),
 

@@ -1,13 +1,30 @@
-// line_specs/assess.ts — the hold decision: is every detail the founder requires stated, exactly?
+// line_specs/assess.ts — the hold decision: is every detail this request needs stated, exactly?
 //
-// Four things, and only these four (founder, 14 Sep 2026): (1) the material specification of every
-// line, per its trade (model.ts); (2) a concrete delivery date or lead time; (3) installation — is it
-// included, and its scope or timeline — where installation applies; (4) the warranty period and what
-// it covers, where a warranty applies. A quote with any of them missing is HELD: never rejected,
-// never shown to the customer, and the supplier is told exactly which line and which detail.
+// THE REQUIRED SET IS THE CUSTOMER'S INQUIRY, THEN THE TRADE'S STANDARD (founder, 14 Sep 2026,
+// founder_instruction #142): "the automatic check is not fixed, its depending on the customer inquiry
+// details taken by the sales agent along with the general standards for such inquiry." And #159:
+// "for installation for example, we need to ask, cause maybe the customer will forget. we don't
+// assume stuff."
 //
-// Pure: no I/O, no model, no clock except the `now` passed in. workflow.ts does the writing.
-import { attrsForLine, COMPOSITE, installApplies, NON_MATERIAL, normText, TRADES, tradeOfCategory, tradeOfLine, VAGUE, warrantyApplies, type Attr } from './model.ts';
+// MEASURED BEFORE THIS (14 Sep 2026): #610 read the customer's answers from inquiries.spec.requirements
+// in a shape nothing writes. The intake (#608, docs/contracts/intake_answers.md) stores them at
+// inquiries.spec.customer_requirements, version 1. So no customer answer ever reached the check, and
+// installation and warranty were decided by trade alone. Both are corrected here:
+//   * requirementsOf() reads the intake's stored object (customer_requirements; `requirements` as the
+//     second place a newer intake may write).
+//   * installation / warranty are required UNLESS the customer explicitly said not needed ("no",
+//     "not needed", "supply only"). "Yes", "not sure" and no answer at all (a legacy request) all
+//     require it: we do not assume. Trade defaults are only the suggestion the intake shows.
+//   * every material or finish the customer named for a component is required on the line that
+//     names that component (or on the quote, when no line names it) — "no preference" still requires
+//     the supplier to state a value.
+//   * the trade's own mandatory core (model.ts) is the general standard and always applies.
+//
+// Five things are checked: (1) material specification per line, (2) a concrete delivery date or lead
+// time, (3) installation included or not, with scope or timeline, (4) warranty period and coverage,
+// (5) the price excluding VAT. Missing any → HELD: never rejected, never shown to the customer.
+// Pure: no I/O, no model, no clock.
+import { attrsForLine, COMPOSITE, NON_MATERIAL, normText, TRADES, tradeOfCategory, tradeOfLine, VAGUE, type Attr } from './model.ts';
 import { OPTION_HEAD } from './options.ts';
 
 export type Line = {
@@ -26,15 +43,41 @@ export type TermsSpec = {
   delivery?: { value: string; source: Src } | null;
   installation?: { included: 'yes' | 'no'; detail?: string | null; source: Src } | null;
   warranty?: { period: string; coverage: string; source: Src } | null;
+  /** A component the customer named that no line of the quote names, stated on the portal. */
+  components?: Record<string, { value: string; source: Src }> | null;
 };
 type Src = 'extracted' | 'supplier_portal';
-/** The customer's answers from intake (inquiries.spec.requirements) — see docs/contracts/technical_comparison.md. */
+
+/** The customer's intake answers — docs/contracts/intake_answers.md (version 1). Every field optional. */
+export type Material = { component: string; label_en?: string | null; label_ar?: string | null; choice?: string | null; choice_en?: string | null; choice_ar?: string | null; note?: string | null };
 export type Requirements = {
-  installation?: 'required' | 'not_required' | 'no_preference' | null;
-  warranty?: { required?: boolean | 'no_preference' | null; min_months?: number | null } | null;
-  delivery_by?: string | null;
-  materials?: { component: string; attr?: string | null; value: string }[] | null;
+  version?: number; category?: string | null;
+  installation?: { required?: string | null } | null;
+  warranty?: { required?: string | boolean | null; min_months?: number | null } | null;
+  materials?: Material[] | null;
+  required_by?: { flexible?: boolean | null; date?: string | null; text?: string | null } | null;
 } | null;
+
+/** Where the intake stores the answers on an inquiry's spec. */
+export function requirementsOf(spec: unknown): Requirements {
+  // deno-lint-ignore no-explicit-any
+  const s: any = spec && typeof spec === 'object' ? spec : null;
+  const r = s?.customer_requirements ?? s?.requirements ?? null;
+  return r && typeof r === 'object' ? (r as Requirements) : null;
+}
+const NOT_NEEDED = /^(no|false|not[\s_-]?needed|not[\s_-]?required|supply[\s_-]?only|none|لا|غير مطلوب|توريد فقط)$/i;
+/** Installation / warranty: required unless the customer explicitly said it is not needed. */
+export function customerRequires(req: Requirements, what: 'installation' | 'warranty'): boolean {
+  const v = req?.[what]?.required;
+  return !(v === false || (typeof v === 'string' && NOT_NEEDED.test(v.trim())));
+}
+/** What the customer actually asked for, as a baseline: 'yes' / 'no' / null (not sure or not asked). */
+export function customerAnswer(req: Requirements, what: 'installation' | 'warranty'): 'yes' | 'no' | null {
+  const v = req?.[what]?.required;
+  if (v === true || (typeof v === 'string' && /^yes$/i.test(v.trim()))) return 'yes';
+  if (!customerRequires(req, what)) return 'no';
+  return null;
+}
 
 export type MissingItem = {
   scope: 'line' | 'quote'; line_no: number | null; description: string | null; attr: string;
@@ -43,13 +86,70 @@ export type MissingItem = {
 export type LineResult = {
   line_no: number; description: string; trade: string | null; material: boolean;
   spec: Record<string, string>; source: Record<string, Src>; asked: string[]; missing: string[];
+  /** The attributes asked of this line, the trade's plus the customer's (not serialised to clients). */
+  defs: Attr[];
 };
 export type TermResult = {
   delivery: { applies: true; value: string | null; days: number | null; date: string | null; source: Src | null };
   installation: { applies: boolean; included: 'yes' | 'no' | null; detail: string | null; source: Src | null };
   warranty: { applies: boolean; period: string | null; months: number | null; coverage: string | null; source: Src | null };
+  components: Record<string, string | null>;
 };
 export type Assessment = { trade: string; held: boolean; lines: LineResult[]; terms: TermResult; missing: MissingItem[] };
+
+// ---------------------------------------------------------------------------------------------
+// The customer's components on the supplier's lines.
+// ---------------------------------------------------------------------------------------------
+// A component the intake asked about maps to the line attribute that states it: an explicit mapping
+// where the vocabulary lines up, otherwise the line's own material-type attribute, otherwise a
+// dedicated "Material — <component>" attribute read from the line's words.
+const COMPONENT_ATTR: Record<string, string> = { board: 'material', finish: 'finish', pipes: 'pipe_material', floor_finish: 'material', ceiling: 'board_type', partitions: 'board_type', sheet: 'type' };
+export const MATERIAL_ATTRS = ['material', 'board_type', 'pipe_material', 'glass_type', 'fabric', 'block_type', 'system', 'type', 'cable_type', 'protocol'];
+const STOP = new Set(['and', 'the', 'main', 'for', 'with', 'material', 'brand', 'type']);
+const MATERIAL_LEXICON: [string, RegExp][] = [
+  ['Stainless steel', /stainless\s*steel|ستانلس|ستانلس ستيل/i], ['Steel', /\bsteel\b|\bms\b|mild\s*steel|حديد|ستيل/i], ['Aluminium', /alumin|ألمنيوم|المنيوم|ألومنيوم/i],
+  ['Brass', /brass|نحاس أصفر/i], ['Copper', /copper|نحاس/i], ['Glass', /\bglass\b|زجاج/i], ['Marble', /marble|رخام/i], ['Granite', /granite|جرانيت|غرانيت/i],
+  ['Quartz', /quartz|كوارتز/i], ['Solid wood', /solid\s*wood|خشب طبيعي|خشب صلب/i], ['MDF', /\bmdf\b|ام دي اف/i], ['Plywood', /plywood|خشب رقائقي/i],
+  ['Wood', /\bwood(?:en)?\b|\boak\b|\bteak\b|\bwalnut\b|خشب/i], ['Leather', /leather|جلد/i], ['Fabric', /fabric|upholster|قماش/i], ['PVC', /\bpvc\b/i],
+  ['Acrylic', /acrylic|أكريليك|اكريليك/i], ['Ceramic', /ceramic|سيراميك/i], ['Porcelain', /porcelain|بورسلين|بورسلان/i], ['Concrete', /concrete|خرسان/i],
+];
+const tokensOf = (s: string) => normText(s).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !STOP.has(w)).map((w) => w.replace(/s$/, ''));
+export function componentOnLine(m: Material, text: string): boolean {
+  const words = new Set(tokensOf(text));
+  const keys = [...tokensOf(String(m.label_en ?? '')), ...tokensOf(String(m.label_ar ?? '')), ...String(m.component).split('_').filter((w) => w.length >= 3 && !STOP.has(w)).map((w) => w.replace(/s$/, ''))];
+  return keys.some((k) => words.has(k));
+}
+const isNoPref = (m: Material) => /^no[_\s-]?preference$/i.test(String(m.choice ?? ''));
+const isOther = (m: Material) => String(m.choice ?? '') === 'other';
+/** The baseline value for comparison: the customer's choice in English, or their own words for "other". */
+export function requestedValue(m: Material): string | null {
+  if (isNoPref(m)) return null;
+  if (isOther(m)) return m.note ? String(m.note) : null;
+  return m.choice_en ? String(m.choice_en).replace(/^Other:\s*/i, '') : (m.choice ? String(m.choice).replace(/_/g, ' ') : null);
+}
+function materialReader(m: Material) {
+  const want = requestedValue(m);
+  const wantTokens = want ? tokensOf(want) : [];
+  return (t: string) => {
+    if (wantTokens.length) { const w = new Set(tokensOf(t)); if (wantTokens.every((x) => w.has(x))) return want; }
+    for (const [v, re] of MATERIAL_LEXICON) if (re.test(t)) return v;
+    return null;
+  };
+}
+/**
+ * The attribute that states component `m` on a line of trade `trade`, forced mandatory. Only an
+ * explicit vocabulary match (board → material, finish → finish, pipes → pipe_material …) or the
+ * generic "main material" reuses a trade attribute; any other component — "legs or base", "top or
+ * main body" — gets its own attribute read from the customer's own vocabulary, because the trade's
+ * board-type reader cannot read "steel legs".
+ */
+export function componentAttr(m: Material, _trade: string | null, base: Attr[]): Attr {
+  const byCode = (c: string) => base.find((a) => a.code === c);
+  const hit = (COMPONENT_ATTR[m.component] && byCode(COMPONENT_ATTR[m.component])) || (m.component === 'main' ? (MATERIAL_ATTRS.map(byCode).find(Boolean) || byCode('brand')) : undefined);
+  if (hit) return { ...hit, mandatory: true };
+  const en = String(m.label_en || m.component.replace(/_/g, ' ')), ar = String(m.label_ar || en);
+  return { code: `component_${m.component}`, en: `Material — ${en}`, ar: `المادة — ${ar}`, type: 'text', mandatory: true, find: materialReader(m) };
+}
 
 // ---------------------------------------------------------------------------------------------
 // Quote-level readers. Each returns null for what is not stated, and for what is stated vaguely.
@@ -93,7 +193,7 @@ export function readInstallation(lines: Line[], t: Terms): { included: 'yes' | '
 }
 
 const W_PERIOD = /(\d+(?:\.\d+)?)\s*(years?|yrs?|months?|mos?|سنة|سنوات|سنه|عام|أعوام|اعوام|شهر|أشهر|شهور)|\b(one|two|three|five|ten)\s+years?\b|(سنتين|سنتان|عامين)/i;
-const W_COVER = /(manufactur\w*|parts?|spare\s*parts|labou?r|workmanship|compressor|motor|leak\w*|defects?|materials?|installation|panels?|inverters?|performance|replacement|on\s*-?\s*site|structural|finish|mechanical|electrical|مصنعية|المصنعية|الصناعة|قطع(?:\s*الغيار)?|العمالة|عمالة|تسريب|التسريب|العيوب|عيوب|المواد|الضاغط|الكمبروسر|المحرك|التركيب|الأداء|الاستبدال|شامل)/gi;
+const W_COVER = /(manufactur\w*|parts?|spare\s*parts|labou?r|workmanship|compressor|motor|leak\w*|defects?|materials?|installation|panels?|inverters?|performance|replacement|on\s*-?\s*site|structural|finish|mechanical|electrical|hardware|hinges?|مصنعية|المصنعية|الصناعة|قطع(?:\s*الغيار)?|العمالة|عمالة|تسريب|التسريب|العيوب|عيوب|المواد|الضاغط|الكمبروسر|المحرك|التركيب|الأداء|الاستبدال|شامل)/gi;
 const WORDNUM: Record<string, number> = { one: 1, two: 2, three: 3, five: 5, ten: 10 };
 export function readWarranty(text: string): { period: string | null; months: number | null; coverage: string | null } {
   const s = normText(text);
@@ -118,8 +218,8 @@ const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
   warranty_coverage: ['What the warranty covers', 'ما يغطيه الضمان', 'text'],
   price_ex_vat: ['Total price excluding VAT', 'السعر الإجمالي غير شامل ضريبة القيمة المضافة', 'number'],
 };
-const termItem = (attr: string): MissingItem => {
-  const [en, ar, type] = TERM_LABEL[attr];
+const termItem = (attr: string, label?: [string, string]): MissingItem => {
+  const [en, ar, type] = label ? [label[0], label[1], 'text' as const] : TERM_LABEL[attr];
   return { scope: 'quote', line_no: null, description: null, attr, label_en: en, label_ar: ar, type, ...(type === 'choice' ? { options: ['yes', 'no'] } : {}), ...(attr === 'price_ex_vat' ? { unit: 'AED', unit_ar: 'درهم' } : {}) };
 };
 const lineItem = (l: Line, a: Attr): MissingItem => ({
@@ -129,44 +229,72 @@ const lineItem = (l: Line, a: Attr): MissingItem => ({
 
 export const lineText = (l: Line) => [l.description, l.brand, l.model, l.specification, l.notes].filter((x) => x != null && String(x).trim() !== '').join(' · ');
 
+/** The attributes one line is asked for: the trade's standard, plus every component the customer named on it. */
+export function lineDefs(trade: string | null, text: string, req: Requirements): Attr[] {
+  const base = trade ? attrsForLine(trade, text) : [];
+  let defs = [...base];
+  for (const m of req?.materials ?? []) {
+    if (!m?.component) continue;
+    if (m.component !== 'main' && !componentOnLine(m, text)) continue;
+    const a = componentAttr(m, trade, base);
+    const i = defs.findIndex((d) => d.code === a.code);
+    if (i >= 0) { defs[i] = { ...defs[i], mandatory: true }; continue; }
+    // The customer's component says what "material" means on this line; the trade's own
+    // material-type attribute would ask the wrong question of it (a board type of a steel leg).
+    if (a.code.startsWith('component_')) defs = defs.filter((d) => !MATERIAL_ATTRS.includes(d.code));
+    defs.push(a);
+  }
+  return defs;
+}
+
 export function assessQuote(input: { category: string | null; lines: Line[]; terms: Terms; requirements?: Requirements }): Assessment {
   const trade = tradeOfCategory(input.category);
+  const req = input.requirements ?? null;
   const lines: LineResult[] = [];
   const missing: MissingItem[] = [];
   const lineTrades = new Set<string>();
-  let allText = '';
+  const named = new Set<string>();
   for (const l of input.lines) {
-    const text = lineText(l); allText += ' ' + text;
+    const text = lineText(l);
     const heading = OPTION_HEAD.test(l.description) && !(Number(l.amount) > 0) && !(Number(l.unit_price) > 0);
     const material = !heading && !NON_MATERIAL.test(l.description.trim());
     const lt = material ? tradeOfLine(trade, text) : null;
-    const asked = lt ? attrsForLine(lt, text) : [];
+    // A line that names a customer's component is a material line even when no trade keyword fits.
+    const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, text));
+    const defs = lt || namesComponent ? lineDefs(lt, text, req) : [];
+    for (const m of req?.materials ?? []) if (m?.component && material && componentOnLine(m, text)) named.add(m.component);
     const spec: Record<string, string> = {}; const source: Record<string, Src> = {};
-    for (const a of asked) {
+    for (const a of defs) {
       const prior = l.spec?.[a.code];
       if (prior && !VAGUE.test(normText(prior))) { spec[a.code] = prior; source[a.code] = l.spec_source?.[a.code] ?? 'extracted'; continue; }
       const v = a.find(text);
       if (v) { spec[a.code] = v; source[a.code] = 'extracted'; }
     }
-    const miss = asked.filter((a) => a.mandatory && !spec[a.code]);
+    const miss = defs.filter((a) => a.mandatory && !spec[a.code]);
     if (lt) lineTrades.add(lt);
     for (const a of miss) missing.push(lineItem(l, a));
-    lines.push({ line_no: l.line_no, description: l.description, trade: lt, material, spec, source, asked: asked.map((a) => a.code), missing: miss.map((a) => a.code) });
+    lines.push({ line_no: l.line_no, description: l.description, trade: lt, material, spec, source, asked: defs.map((a) => a.code), missing: miss.map((a) => a.code), defs });
   }
-  if (!lineTrades.size && (TRADES[trade] || COMPOSITE.has(trade))) missing.unshift(termItem('line_items'));
+  if (!lineTrades.size && !lines.some((x) => x.defs.length) && (TRADES[trade] || COMPOSITE.has(trade))) missing.unshift(termItem('line_items'));
 
   const ts = input.terms.terms_spec ?? {};
-  const req = input.requirements ?? null;
-  const tradesInPlay = lineTrades.size ? [...lineTrades] : [trade];
+  // (1b) A component the customer named that no line names: asked of the quote as a whole.
+  const components: Record<string, string | null> = {};
+  for (const m of req?.materials ?? []) {
+    if (!m?.component || m.component === 'main' || named.has(m.component)) continue;
+    const v = ts.components?.[m.component]?.value ?? null;
+    components[m.component] = v && !VAGUE.test(normText(v)) ? v : null;
+    if (!components[m.component]) missing.push(termItem(`component:${m.component}`, [`Material — ${m.label_en || m.component}`, `المادة — ${m.label_ar || m.label_en || m.component}`]));
+  }
 
-  // (2) Delivery — every quote.
+  // (2) Delivery — every quote; the customer's required-by date is checked against it in the comparison.
   const dPortal = ts.delivery?.value ? readDelivery(ts.delivery.value) : null;
   const d = dPortal ?? readDelivery(input.terms.lead_time ?? '');
   const delivery: TermResult['delivery'] = { applies: true, value: d?.value ?? null, days: d?.days ?? null, date: d?.date ?? null, source: d ? (dPortal ? 'supplier_portal' : 'extracted') : null };
   if (!d) missing.push(termItem('delivery'));
 
-  // (3) Installation — where the trade installs something and the customer did not ask for supply only.
-  const instApplies = req?.installation !== 'not_required' && tradesInPlay.some(installApplies);
+  // (3) Installation — required unless the customer explicitly said it is not needed.
+  const instApplies = customerRequires(req, 'installation');
   const iPortal = ts.installation?.included ? ts.installation : null;
   const iRead = iPortal ? { included: iPortal.included, detail: iPortal.detail ?? null } : readInstallation(input.lines, input.terms);
   const installation: TermResult['installation'] = { applies: instApplies, included: instApplies ? iRead.included : null, detail: instApplies ? iRead.detail : null, source: instApplies && iRead.included ? (iPortal ? 'supplier_portal' : 'extracted') : null };
@@ -175,9 +303,9 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     else if (iRead.included === 'yes' && !(iRead.detail && !VAGUE.test(normText(iRead.detail)))) missing.push(termItem('installation_detail'));
   }
 
-  // (4) Warranty — where the trade or item carries one, or the customer asked for one.
+  // (4) Warranty — required unless the customer explicitly said it is not needed.
   const warrantyText = `${input.terms.warranty ?? ''} ${input.lines.filter((l) => /warrant|guarant|ضمان/i.test(lineText(l))).map(lineText).join(' ')}`;
-  const wApplies = req?.warranty?.required === true || tradesInPlay.some((tr) => warrantyApplies(tr, allText));
+  const wApplies = customerRequires(req, 'warranty');
   const wPortal = ts.warranty?.period ? ts.warranty : null;
   const wRead = wPortal ? { ...readWarranty(wPortal.period), coverage: wPortal.coverage } : readWarranty(warrantyText);
   const warranty: TermResult['warranty'] = { applies: wApplies, period: wApplies ? wRead.period : null, months: wApplies ? wRead.months : null, coverage: wApplies ? wRead.coverage : null, source: wApplies && wRead.period ? (wPortal ? 'supplier_portal' : 'extracted') : null };
@@ -186,11 +314,10 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     if (!(wRead.coverage && !VAGUE.test(normText(wRead.coverage)))) missing.push(termItem('warranty_coverage'));
   }
 
-  // (5) The price excluding VAT (founder, 14 Sep 2026: VAT details are hidden from the customer, and
-  // the ex-VAT price is what is compared and charged on). Missing or ambiguous is held.
+  // (5) The price excluding VAT. Missing or ambiguous is held.
   if (!(Number(input.terms.price_ex_vat) > 0)) missing.push(termItem('price_ex_vat'));
 
-  return { trade, held: missing.length > 0, lines, terms: { delivery, installation, warranty }, missing };
+  return { trade, held: missing.length > 0, lines, terms: { delivery, installation, warranty, components }, missing };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -214,13 +341,13 @@ export function validateTerm(attr: string, raw: unknown): { ok: true; value: str
   if (attr === 'price_ex_vat') { const n = Number(v.replace(/[^\d.]/g, '')); return n > 0 && /\d/.test(v) ? { ok: true, value: String(Math.round(n * 100) / 100) } : { ok: false, code: 'not_a_number' }; }
   if (attr === 'delivery') return readDelivery(v) ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
   if (attr === 'warranty_period') return readWarranty(v).period ? { ok: true, value: v } : { ok: false, code: 'not_concrete' };
-  if (attr === 'installation_detail' || attr === 'warranty_coverage') return v.length >= 3 ? { ok: true, value: v } : { ok: false, code: 'vague' };
+  if (attr === 'installation_detail' || attr === 'warranty_coverage' || attr.startsWith('component:')) return v.length >= 2 ? { ok: true, value: v } : { ok: false, code: 'vague' };
   return { ok: false, code: 'unknown_attribute' };
 }
 
 // ---------------------------------------------------------------------------------------------
-// The hold note and the supplier's notice, in the supplier's language, signed by the seat that owns
-// the supplier portal (founder, 14 Sep 2026: "its always the sales agent").
+// The supplier's notices, in the supplier's language, signed by the seat that owns the supplier
+// portal (founder, 14 Sep 2026: "its always the sales agent") and delivered by customer_support.
 // ---------------------------------------------------------------------------------------------
 export const SEAT = 'sales_engineer' as const;
 export const SEAT_LABEL = { en: 'QuotesDone sales engineer', ar: 'مهندس المبيعات في QuotesDone' } as const;
@@ -235,11 +362,21 @@ export function holdLines(a: Assessment, lang: 'en' | 'ar'): string[] {
 }
 export function holdNotice(a: Assessment, lang: 'en' | 'ar', ref: string, optionLabel?: string | null): { subject: string; body: string } {
   const ar = lang === 'ar';
-  const opt = optionLabel ? (ar ? ` — ${optionLabel}` : ` — ${optionLabel}`) : '';
+  const opt = optionLabel ? ` — ${optionLabel}` : '';
   const subject = ar ? `عرضك معلّق حتى تُذكر التفاصيل الدقيقة — الطلب ${ref}${opt}` : `Your quote is on hold until the exact details are stated — RFQ ${ref}${opt}`;
   const lines = holdLines(a, lang).join('\n');
   const body = ar
-    ? `مرحبًا،\n\nعرضك للطلب ${ref}${opt} معلّق ولن يُعرض على العميل حتى تُذكر التفاصيل الدقيقة التالية:\n\n${lines}\n\nلديك طريقتان:\n1) أكمل التفاصيل الناقصة في بوابة المورّدين، وسنعيد إعداد عرضك بالصيغة الموحّدة لتراجعه وتؤكد أنه صحيح، ثم يُرسل إلى العميل.\n2) أو ارفع عرضًا معدّلًا جديدًا يتضمن هذه التفاصيل.\n\n${SEAT_LABEL.ar}`
-    : `Hello,\n\nYour quote for RFQ ${ref}${opt} is on hold and will not be shown to the customer until the following exact details are stated:\n\n${lines}\n\nYou have two ways to release it:\n1) Fill in the missing details on the supplier portal. We will regenerate your quotation in the standard format for you to check and confirm it is correct, and it is then sent to the customer.\n2) Or upload a new revised quote that states these details.\n\n${SEAT_LABEL.en}`;
+    ? `مرحبًا،\n\nعرضك للطلب ${ref}${opt} معلّق ولن يُعرض على العميل حتى تُذكر التفاصيل الدقيقة التالية:\n\n${lines}\n\nلديك طريقتان:\n1) أكمل التفاصيل الناقصة في بوابة المورّدين، وسنعيد إعداد عرضك بالصيغة الموحّدة لتراجعه وتؤكد أنه صحيح، ثم يُرسل إلى العميل.\n2) أو ارفع عرضًا معدّلًا جديدًا يتضمن هذه التفاصيل.\n\nيبقى العرض محفوظًا ويمكنك إكماله في أي وقت إلى أن يختار العميل عرضًا.\n\n${SEAT_LABEL.ar}`
+    : `Hello,\n\nYour quote for RFQ ${ref}${opt} is on hold and will not be shown to the customer until the following exact details are stated:\n\n${lines}\n\nYou have two ways to release it:\n1) Fill in the missing details on the supplier portal. We will regenerate your quotation in the standard format for you to check and confirm it is correct, and it is then sent to the customer.\n2) Or upload a new revised quote that states these details.\n\nThe quote stays saved and you can complete it at any time until the customer chooses a quote.\n\n${SEAT_LABEL.en}`;
   return { subject, body };
+}
+export function approvalNotice(lang: 'en' | 'ar', ref: string): { subject: string; body: string } {
+  return lang === 'ar'
+    ? { subject: `عرضك المُعاد إعداده جاهز لاعتمادك — الطلب ${ref}`, body: `مرحبًا،\n\nشكرًا لإكمال التفاصيل. أعدنا إعداد عرضك للطلب ${ref} بالصيغة الموحّدة. يُرجى مراجعته في بوابة المورّدين وتأكيد أنه صحيح، ثم يُرسل إلى العميل.\n\n${SEAT_LABEL.ar}` }
+    : { subject: `Your regenerated quotation is ready for your approval — RFQ ${ref}`, body: `Hello,\n\nThank you for completing the details. We have regenerated your quotation for RFQ ${ref} in the standard format. Please review it on the supplier portal and confirm it is correct, and it will then be sent to the customer.\n\n${SEAT_LABEL.en}` };
+}
+export function releasedNotice(lang: 'en' | 'ar', ref: string, live: boolean): { subject: string; body: string } {
+  return lang === 'ar'
+    ? { subject: `تم اعتماد عرضك — الطلب ${ref}`, body: `مرحبًا،\n\nشكرًا لتأكيدك. ${live ? 'أُرسل عرضك إلى العميل.' : 'أُلغي تعليق عرضك، وما زال يحتاج شروطه التجارية قبل إرساله إلى العميل.'}\n\n${SEAT_LABEL.ar}` }
+    : { subject: `Your quote is approved — RFQ ${ref}`, body: `Hello,\n\nThank you for confirming. ${live ? 'Your quote is now with the customer.' : 'Your quote is no longer on hold; it still needs its commercial terms before it is sent to the customer.'}\n\n${SEAT_LABEL.en}` };
 }

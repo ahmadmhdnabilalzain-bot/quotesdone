@@ -68,6 +68,11 @@ function tmplKey(type:string):string|null{
   // transactional notices about the supplier's own account, which is why the Twilio template is
   // registered under the UTILITY category rather than MARKETING.
   if(['supplier_doc_expiry','doc_final_notice','doc_suspended','doc_expiry'].includes(t)) return 'supplier_doc_expiry';
+  // 14 Sep 2026: the sales engineer's notices about a supplier's own quotes and account (a quote on
+  // hold, the regenerated quote to approve, its release, the collaboration warning, the matching hold
+  // and its lifting). Transactional, UTILITY category. Until wa_template_setup registers the SID the
+  // rows stay queued (mapped-but-unregistered), never dropped; the email twin goes meanwhile.
+  if(['quote_spec_hold','quote_spec_regenerated','quote_spec_released','supplier_collaboration_warning','supplier_matching_hold','supplier_matching_hold_lifted'].includes(t)) return 'supplier_account_notice';
   // 6 SEP 2026: the founder's own alert. fn_notify_founder queues it (allowed kind, severe level) and
   // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
   // by wa_template_setup under this key.
@@ -86,7 +91,7 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
   }
   const summary = shortSummary(n.subject||n.body||'');
   const url = key==='supplier_new_inquiry' ? SUP_URL
-            : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted') ? PORTAL_URL
+            : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted' || key==='supplier_account_notice') ? PORTAL_URL
             : APP_URL;
   return {'1':summary,'2':url};
 }

@@ -13,7 +13,7 @@ import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_A
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
-import { assessQuote } from '../_shared/line_specs/assess.ts';
+import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
@@ -182,6 +182,16 @@ async function notifyNewQuote(inquiryId: string) {
     if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]);
   } catch (_e) { /* */ }
 }
+// "WE NOTIFY DIRECTLY" (founder, 14 Sep 2026). The sales engineer's notices are delivery requests
+// customer_support sends (#614). Queued rows would otherwise wait for the next outbox tick; this asks
+// both of support's dispatchers to send now. Best-effort: the scheduled flush still sends if it fails.
+async function kickDelivery() {
+  const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return;
+  await Promise.allSettled(['send_outbox', 'send_whatsapp'].map((fn) => fetch(`${SUPA_URL}/functions/v1/${fn}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret }) })));
+}
+/** The supplier as the hold desk addresses them: every channel on file, in their language. */
+// deno-lint-ignore no-explicit-any
+const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
   const r = await acceptRule(qid);
@@ -990,18 +1000,18 @@ Deno.serve(observe('supplier_api', async (req) => {
     // then is it released; (b) upload a revised quote, which is submit_quote again and supersedes the
     // hold. Every step is the sales_engineer seat's (_shared/line_specs/workflow.ts).
     if (action === 'spec_hold' || action === 'spec_fill' || action === 'spec_approve') {
-      const { data: sup } = await admin.from('leads').select('id,locale').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,locale,whatsapp,phone').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const qid = String(body.quote_id || '');
       if (!UUID_RE.test(qid)) return J({ error: 'not found', code: 'not_found' }, 404);
-      const repo = supabaseRepo(admin);
+      const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const q = await repo.quote(qid);
       if (!q || Number(q.supplier_id) !== Number(sup.id)) return J({ error: 'not found', code: 'not_found' }, 404);
       const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', q.inquiry_id).maybeSingle();
       const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
       // deno-lint-ignore no-explicit-any
       const spec: any = inqRow?.spec;
-      const ctx = { category: inqRow?.category ?? null, requirements: spec && typeof spec.requirements === 'object' ? spec.requirements : null, ref: String(q.inquiry_id).slice(0, 8).toUpperCase(), multiOption: (optCount || 0) > 1 };
+      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: String(q.inquiry_id).slice(0, 8).toUpperCase(), multiOption: (optCount || 0) > 1 };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       if (action === 'spec_hold') {
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
@@ -1018,17 +1028,17 @@ Deno.serve(observe('supplier_api', async (req) => {
           const j = await r.json().catch(() => null);
           return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
         };
-        const out = await fillIn(repo, qid, Number(sup.id), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
+        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
         if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
         if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
         return J(out);
       }
-      const out = await approve(repo, qid, Number(sup.id), email, body.confirm, ctx, async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted);
+      const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx, async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted);
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
     if (action === 'submit_quote') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,locale,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first', code: 'terms_not_accepted' }, 400);
       // 3 SEP 2026 (MASTER_PLAN #11): there is no admin queue and never was - approval is the automatic
@@ -1066,7 +1076,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
       const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', body.inquiry_id).maybeSingle();
       // deno-lint-ignore no-explicit-any
-      const requirements = ((inqRow?.spec as any)?.requirements && typeof (inqRow?.spec as any).requirements === 'object') ? (inqRow!.spec as any).requirements : null;
+      const requirements = requirementsOf(inqRow?.spec);
       const category = inqRow?.category ?? null;
 
       // VAT (founder, 14 Sep 2026: supplier VAT details are hidden from the customer). The price the
@@ -1091,8 +1101,8 @@ Deno.serve(observe('supplier_api', async (req) => {
       const noTotal = plan.find((p) => !(Number(p.amount) > 0));
       if (noTotal) return J({ error: 'Enter the total for option ' + noTotal.option_no + '.', code: 'option_total_missing', params: { option: noTotal.option_no } }, 400);
       const submission_id = crypto.randomUUID();
-      const repo = supabaseRepo(admin);
-      const supplier = { id: Number(sup.id), email: email || null, locale: (sup as any).locale || null };
+      const repo = supabaseRepo(admin, { dispatch: kickDelivery });
+      const supplier = supplierOf(sup, email);
       const ref = String(body.inquiry_id).slice(0, 8).toUpperCase();
       const multiOption = multi || single > 1 || (mine || []).length > 1;
       const results: any[] = [];
