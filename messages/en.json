@@ -18,7 +18,7 @@
     "titleA": "Get real quotes.",
     "titleB": "Stay",
     "titleEm": "completely anonymous.",
-    "subtitle": "Describe your job once. We send it, without your name, only to licence-checked suppliers for that trade in your emirate. You compare the top 3 quotes side by side and reveal only the one you choose — 3% of the quote you choose, nothing else.",
+    "subtitle": "Describe your job once. We send it, without your name, only to licence-checked suppliers for that trade in your emirate. You get the top 3 levelled in a comparison report, see every other quote too, and reveal only the one you choose — 3% of the quote you choose, nothing else.",
     "ctaPrimary": "Get quotes",
     "ctaSupplier": "Join as a supplier",
     "proof": [
@@ -53,7 +53,7 @@
     "engine": "The Smart Engine",
     "demo": "Demonstration",
     "scoring": "Scoring price, completeness and delivery",
-    "shortlisted": "Top 3 shown — the rest never reach you",
+    "shortlisted": "Top 3 in the comparison report — every other quote listed below",
     "cut": "Not shortlisted",
     "price": "Price",
     "delivery": "Delivery",
@@ -74,7 +74,7 @@
       {
         "n": "02",
         "title": "Get matched quotes",
-        "body": "Licence-checked suppliers compete with anonymous quotes. Compare the top 3 on price, completeness and delivery side by side."
+        "body": "Licence-checked suppliers compete with anonymous quotes. The top 3 are levelled on price, completeness and delivery — and every other quote is listed too."
       },
       {
         "n": "03",
@@ -210,7 +210,7 @@
   },
   "meta": {
     "siteTitle": "QuotesDone — Anonymous construction, fit-out & MEP quotes in the UAE",
-    "siteDesc": "Post your construction, fit-out or MEP job once. Licence-checked UAE suppliers quote anonymously; compare the top 3 and pay 3% of the quote you choose, nothing else."
+    "siteDesc": "Post your construction, fit-out or MEP job once. Licence-checked UAE suppliers quote anonymously; compare the top 3 in a levelled report, see every quote, and pay 3% of the quote you choose, nothing else."
   },
   "blog": {
     "onlyEnglish": "This article is currently available in English only."
@@ -265,8 +265,8 @@
         "body": "A quote missing its price, lead time, validity or warranty goes back to the supplier before it ever reaches you."
       }
     ],
-    "top3Title": "You see the top 3, not thirty",
-    "top3Body": "Quotes are scored on price, completeness and delivery, and the strongest three are shown side by side. Export the comparison as a PDF for sign-off."
+    "top3Title": "A top-3 comparison report — and every quote listed",
+    "top3Body": "Quotes are scored on price, completeness and delivery, the strongest three are levelled side by side in a comparison report, and every other quote is listed so you can choose any of them. Export the comparison as a PDF for sign-off."
   },
   "counters": {
     "suppliers": "licence-verified suppliers",
@@ -281,11 +281,11 @@
     "title": "Built for the buyer and the supplier",
     "customers": {
       "kicker": "For customers",
-      "title": "Post once. Compare the top 3. Stay anonymous.",
+      "title": "Post once. Compare every quote. Stay anonymous.",
       "bullets": [
         "Describe the job by text, photo, drawing or BOQ — no calls",
         "Only licence-checked suppliers for your trade and emirate are invited",
-        "The top 3 quotes, levelled on price, completeness and delivery",
+        "A comparison report of the top 3 on price, completeness and delivery — plus every other quote",
         "3% of the quote you choose, nothing else — quotes usually arrive in 3–5 working days",
         "Every quote states how long its price is valid, so you know when it expires",
         "Updates reach you on WhatsApp as well as by email"
@@ -298,7 +298,7 @@
       "bullets": [
         "Free to quote — the customer pays the 3% reveal fee, you pay no commission",
         "Invites only for your trade and emirate, checked against your licence",
-        "A top-3 shortlist: you compete with at most two others, never a crowd",
+        "Invited only to jobs your licence covers — never a mass bidding flood",
         "Before a reveal you see the full scope, the emirate and drawings with identity removed — never the customer’s name"
       ],
       "cta": "Become a supplier"
@@ -399,8 +399,8 @@
         "v": "You see the scope, the quantities and the drawings with identity removed. The customer’s name reaches you only when they choose you."
       },
       {
-        "k": "Top 3, not a crowd",
-        "v": "Customers see a shortlist of three, ranked on price, completeness and delivery — never on what a supplier pays."
+        "k": "Ranked on merit",
+        "v": "Every quote reaches the customer; the top three are levelled in a comparison report on price, completeness and delivery — never on what a supplier pays."
       }
     ],
     "stepsTitle": "From registration to your first quote",
@@ -452,7 +452,7 @@
         "body": "A quote without a price, lead time, validity or warranty goes back to the supplier before you see it."
       },
       {
-        "title": "You compare the top 3",
+        "title": "You compare the quotes",
         "body": "Levelled on price, completeness and delivery, side by side. Export the comparison as a PDF."
       },
       {
