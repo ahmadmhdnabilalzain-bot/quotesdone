@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T18:19:30.720Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T18:27:59.848Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -187,7 +187,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (493) =====\nCREATE TABLE IF NOT EXISTS public.accountant_issued_document (
+-- ===== TABLES (504) =====\nCREATE TABLE IF NOT EXISTS public.accountant_issued_document (
   id bigint DEFAULT nextval('accountant_issued_document_id_seq'::regclass) NOT NULL,
   document_kind text NOT NULL,
   template_key text,
@@ -3355,6 +3355,34 @@ CREATE TABLE IF NOT EXISTS public.invite_schedule (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.it_access_known (
+  system text NOT NULL,
+  principal text NOT NULL,
+  reason text NOT NULL,
+  accepted_by text NOT NULL,
+  accepted_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_seen_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.it_credential_rotation (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  context text NOT NULL,
+  old_id bigint NOT NULL,
+  new_id bigint NOT NULL,
+  secret_key text NOT NULL,
+  rotated_at timestamp with time zone DEFAULT now() NOT NULL,
+  overlap_until timestamp with time zone NOT NULL,
+  status text DEFAULT 'overlap'::text NOT NULL,
+  closed_at timestamp with time zone,
+  note text
+);
+
+CREATE TABLE IF NOT EXISTS public.it_duty_schedule (
+  duty text NOT NULL,
+  every interval NOT NULL,
+  note text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.it_engineer_finding (
   issue_key text NOT NULL,
   title text NOT NULL,
@@ -3427,6 +3455,37 @@ CREATE TABLE IF NOT EXISTS public.it_hold_signature (
   rule text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.it_incident (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  handoff_id bigint NOT NULL,
+  issue_key text NOT NULL,
+  title text NOT NULL,
+  what text NOT NULL,
+  impact text NOT NULL,
+  started_at timestamp with time zone NOT NULL,
+  ended_at timestamp with time zone,
+  cause text,
+  fix text,
+  regression_check text,
+  playbook_class text,
+  not_automatable_reason text,
+  recorded_by text,
+  pdf_path text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_playbook (
+  failure_class text NOT NULL,
+  issue_prefix text NOT NULL,
+  remedy text,
+  remedy_routine text,
+  not_automatable_reason text,
+  regression_check text NOT NULL,
+  added_by text NOT NULL,
+  added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.it_refusal_policy (
   subject text NOT NULL,
   reason_key text NOT NULL,
@@ -3440,6 +3499,27 @@ CREATE TABLE IF NOT EXISTS public.it_security_baseline (
   recorded_at timestamp with time zone DEFAULT now() NOT NULL,
   reason text NOT NULL,
   accepted_by text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_spend_daily (
+  day date NOT NULL,
+  source text NOT NULL,
+  amount_minor bigint NOT NULL,
+  currency text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_table_size_daily (
+  day date NOT NULL,
+  relid text NOT NULL,
+  bytes bigint NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_threshold (
+  key text NOT NULL,
+  value numeric,
+  unit text NOT NULL,
+  basis text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_watch_finding (
@@ -4819,6 +4899,26 @@ CREATE TABLE IF NOT EXISTS public.os_settings_meta (
   validation jsonb DEFAULT '{}'::jsonb NOT NULL,
   dangerous boolean DEFAULT false NOT NULL,
   sort integer DEFAULT 100 NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.otp_blocked_prefix (
+  prefix text NOT NULL,
+  reason text NOT NULL,
+  blocked_by text NOT NULL,
+  blocked_at timestamp with time zone DEFAULT now() NOT NULL,
+  expires_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.otp_prefix_allowed (
+  prefix text NOT NULL,
+  reason text NOT NULL,
+  allowed_by text NOT NULL,
+  allowed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.otp_served_country (
+  prefix text NOT NULL,
+  country text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.outcome_record (
@@ -7181,13 +7281,21 @@ ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_pkey P
 ALTER TABLE public.internal_credential_audit ADD CONSTRAINT internal_credential_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_pkey PRIMARY KEY (id);
 ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY KEY (day);
+ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_pkey PRIMARY KEY (system, principal);
+ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_pkey PRIMARY KEY (id);
+ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_pkey PRIMARY KEY (duty);
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey PRIMARY KEY (issue_key);
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_pkey PRIMARY KEY (scanner);
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_pkey PRIMARY KEY (item);
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
+ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_pkey PRIMARY KEY (object, kind);
+ALTER TABLE public.it_spend_daily ADD CONSTRAINT it_spend_daily_pkey PRIMARY KEY (day, source);
+ALTER TABLE public.it_table_size_daily ADD CONSTRAINT it_table_size_daily_pkey PRIMARY KEY (day, relid);
+ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_pkey PRIMARY KEY (key);
 ALTER TABLE public.it_watch_finding ADD CONSTRAINT it_watch_finding_pkey PRIMARY KEY (detector_key);
 ALTER TABLE public.it_watch_queue ADD CONSTRAINT it_watch_queue_pkey PRIMARY KEY (queue_key);
 ALTER TABLE public.it_watch_subject ADD CONSTRAINT it_watch_subject_pkey PRIMARY KEY (subject);
@@ -7286,6 +7394,9 @@ ALTER TABLE public.os_responsibility ADD CONSTRAINT os_responsibility_pkey PRIMA
 ALTER TABLE public.os_review ADD CONSTRAINT os_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.os_runbooks ADD CONSTRAINT os_runbooks_pkey PRIMARY KEY (slug);
 ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_pkey PRIMARY KEY (key);
+ALTER TABLE public.otp_blocked_prefix ADD CONSTRAINT otp_blocked_prefix_pkey PRIMARY KEY (prefix);
+ALTER TABLE public.otp_prefix_allowed ADD CONSTRAINT otp_prefix_allowed_pkey PRIMARY KEY (prefix);
+ALTER TABLE public.otp_served_country ADD CONSTRAINT otp_served_country_pkey PRIMARY KEY (prefix);
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_pkey PRIMARY KEY (id);
 ALTER TABLE public.outreach ADD CONSTRAINT outreach_pkey PRIMARY KEY (id);
 ALTER TABLE public.outreach_channel_policy ADD CONSTRAINT outreach_channel_policy_pkey PRIMARY KEY (channel_key);
@@ -7476,6 +7587,7 @@ ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_gr
 ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstream_requirement_workstream_id_field_id_key UNIQUE (workstream_id, field_id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_sku_key UNIQUE (sku);
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_subject_counts_match_note_like_key UNIQUE NULLS NOT DISTINCT (subject, counts_match, note_like);
+ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_key UNIQUE (handoff_id);
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_route_key_key UNIQUE (route_key);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_entry_kind_entry_ref_version_key UNIQUE (entry_kind, entry_ref, version);
 ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
@@ -7662,14 +7774,25 @@ ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_gr
 ALTER TABLE public.intake_trade_taxonomy ADD CONSTRAINT intake_trade_taxonomy_trade_codes_check CHECK ((cardinality(trade_codes) > 0));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_context_check CHECK ((length(btrim(context)) > 2));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_scope_check CHECK ((array_length(scope, 1) >= 1));
+ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_accepted_by_check CHECK ((btrim(accepted_by) <> ''::text));
+ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_reason_check CHECK ((btrim(reason) <> ''::text));
+ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_status_check CHECK ((status = ANY (ARRAY['overlap'::text, 'retired'::text, 'held'::text])));
+ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_every_check CHECK ((every > '00:00:00'::interval));
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_affected_ck CHECK ((affected >= 0));
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_blast_ck CHECK ((blast = ANY (ARRAY['customer_facing'::text, 'security'::text, 'agent_facing'::text, 'internal'::text, 'monitor'::text])));
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_engineering'::text, 'diagnostic_lens'::text, 'estate_architecture_measured'::text, 'failure_signature'::text, 'security_posture_no_version_claim'::text, 'resolve_from_live_system'::text, 'company_governance_ruling'::text, 'company_record_generated'::text])));
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck CHECK (((max_gap_minutes >= 5) AND (max_gap_minutes <= 1440)));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text])));
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_check CHECK (((COALESCE(btrim(remedy), ''::text) <> ''::text) OR (COALESCE(btrim(not_automatable_reason), ''::text) <> ''::text)));
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_failure_class_check CHECK ((failure_class ~ '^[a-z0-9_]+$'::text));
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_issue_prefix_check CHECK ((btrim(issue_prefix) <> ''::text));
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_regression_check_check CHECK ((btrim(regression_check) <> ''::text));
+ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_remedy_routine_check CHECK ((remedy_routine ~ '^fn_[a-z0-9_]+$'::text));
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_accepted_with_reason CHECK (((btrim(reason) <> ''::text) AND (btrim(accepted_by) <> ''::text)));
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_kind_check CHECK ((kind = ANY (ARRAY['anon_executable_definer'::text, 'authenticated_executable_definer'::text, 'rls_off'::text, 'rls_no_policy'::text])));
+ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_basis_check CHECK ((btrim(basis) <> ''::text));
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_tier_check CHECK (((tier >= 1) AND (tier <= 4)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
@@ -7735,6 +7858,12 @@ ALTER TABLE public.os_objective ADD CONSTRAINT os_objective_horizon_check CHECK 
 ALTER TABLE public.os_open_access_log ADD CONSTRAINT os_open_access_log_state_ck CHECK ((state = ANY (ARRAY['open'::text, 'closed'::text])));
 ALTER TABLE public.os_review ADD CONSTRAINT os_review_health_check CHECK ((health = ANY (ARRAY['green'::text, 'amber'::text, 'red'::text])));
 ALTER TABLE public.os_settings_meta ADD CONSTRAINT os_settings_meta_type_check CHECK ((type = ANY (ARRAY['money'::text, 'int'::text, 'number'::text, 'bool'::text, 'text'::text, 'textarea'::text, 'html'::text, 'email'::text, 'phone'::text, 'csv'::text])));
+ALTER TABLE public.otp_blocked_prefix ADD CONSTRAINT otp_blocked_prefix_prefix_check CHECK ((prefix ~ '^[0-9]{3,8}$'::text));
+ALTER TABLE public.otp_blocked_prefix ADD CONSTRAINT otp_blocked_prefix_reason_check CHECK ((btrim(reason) <> ''::text));
+ALTER TABLE public.otp_prefix_allowed ADD CONSTRAINT otp_prefix_allowed_allowed_by_check CHECK ((allowed_by = ANY (ARRAY['ceo'::text, 'founder'::text, 'otp_served_country'::text])));
+ALTER TABLE public.otp_prefix_allowed ADD CONSTRAINT otp_prefix_allowed_prefix_check CHECK ((prefix ~ '^[0-9]{3,8}$'::text));
+ALTER TABLE public.otp_prefix_allowed ADD CONSTRAINT otp_prefix_allowed_reason_check CHECK ((btrim(reason) <> ''::text));
+ALTER TABLE public.otp_served_country ADD CONSTRAINT otp_served_country_prefix_check CHECK ((prefix ~ '^[0-9]{1,4}$'::text));
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_expected_direction_check CHECK ((expected_direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.outcome_record ADD CONSTRAINT outcome_record_verdict_check CHECK ((verdict = ANY (ARRAY['pending'::text, 'improved'::text, 'no_change'::text, 'worse'::text, 'unmeasurable'::text])));
 ALTER TABLE public.outreach_channel_policy ADD CONSTRAINT outreach_channel_limit_basis_ck CHECK ((limit_basis = ANY (ARRAY['founder_ruling'::text, 'provider_published'::text, 'measured_here'::text, 'practitioner_norm'::text, 'estimate'::text])));
@@ -7999,6 +8128,10 @@ ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstr
 ALTER TABLE public.institutional_memory ADD CONSTRAINT institutional_memory_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN KEY (cogs_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
+ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_new_id_fkey FOREIGN KEY (new_id) REFERENCES internal_credential(id);
+ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_old_id_fkey FOREIGN KEY (old_id) REFERENCES internal_credential(id);
+ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES agent_actions(id);
+ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_playbook_class_fkey FOREIGN KEY (playbook_class) REFERENCES it_playbook(failure_class);
 ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
@@ -16674,16 +16807,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -16709,6 +16832,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -21147,6 +21280,13 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'report ' || p_report_id || ' names no handoff');
   end if;
   v_demo := coalesce((h.detail->>'demo')::boolean, false);
+  -- A finding its duty marks no_founder_email (a moderate or low dependency advisory) stays with its
+  -- owning seat: the founder is emailed for a new bug only when it is high or critical.
+  if coalesce((h.detail->'finding_evidence'->>'no_founder_email')::boolean, false) then
+    return jsonb_build_object('ok', true, 'report_id', r.id, 'handoff_id', h.id, 'founder_delivery_handoff', null,
+      'accepted', public.fn_ceo_accept_support_report(r.id,
+        'ceo: below high severity, so the ' || h.agent || ' keeps it and the founder is not emailed'));
+  end if;
   v_detail := 'What is wrong: ' || coalesce(h.detail->>'title', h.detail->>'issue_key') || E'.\n'
     || 'Where: ' || coalesce(h.detail->>'where_it_is', h.detail->>'subject', 'not recorded') || E'.\n'
     || 'Since: ' || to_char((h.detail->>'occurrence_started_at')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || E' (Dubai).\n'
@@ -21166,6 +21306,8 @@ begin
   v_acc := public.fn_ceo_accept_support_report(r.id,
     'ceo: new bug, no seat could fix it — ' || case when v_demo then 'ZZ DEMO case, the founder is not emailed'
                                                    else 'founder told through customer_support handoff ' || v_d end);
+  -- Duty 18: every new bug gets its incident record now; duty 17 completes it before the loop closes.
+  perform public.fn_it_incident_open(h.id);
   return jsonb_build_object('ok', true, 'report_id', r.id, 'handoff_id', h.id, 'demo', v_demo,
                             'founder_delivery_handoff', v_d, 'accepted', v_acc);
 end $function$
@@ -30274,6 +30416,95 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_access_accept(p_system text, p_principal text, p_reason text, p_accepted_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(btrim(p_reason), '') = '' or coalesce(btrim(p_accepted_by), '') = '' then
+    raise exception 'fn_it_access_accept: accepting access needs a reason and who accepted it';
+  end if;
+  insert into public.it_access_known (system, principal, reason, accepted_by)
+  values (p_system, p_principal, p_reason, p_accepted_by)
+  on conflict (system, principal) do update set reason = excluded.reason, accepted_by = excluded.accepted_by, accepted_at = now();
+  return jsonb_build_object('ok', true, 'system', p_system, 'principal', p_principal);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_access_items(p_access jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; e jsonb; v_items jsonb := '[]'::jsonb; k public.it_access_known;
+begin
+  for x in select key, value from jsonb_each(p_access) loop
+    continue when coalesce(x.value->>'basis', '') <> 'measured';
+    for e in select p from jsonb_array_elements(coalesce(x.value->'principals', '[]'::jsonb)) p loop
+      select * into k from public.it_access_known where system = x.key and principal = e->>'principal';
+      if k.principal is null then
+        v_items := v_items || jsonb_build_object('item', x.key || ':' || (e->>'principal'), 'owner_seat', 'ceo', 'subject', x.key,
+          'title', (e->>'principal') || ' has ' || coalesce(e->>'role', 'access') || ' on ' || x.key || ' and nobody has accepted it',
+          'blast', 'security', 'affected', 1,
+          'evidence', jsonb_build_object('system', x.key, 'principal', e->>'principal', 'role', e->>'role',
+                                         'accept', 'select public.fn_it_access_accept(system, principal, reason, accepted_by)'));
+      else
+        update public.it_access_known set last_seen_at = now() where system = k.system and principal = k.principal;
+        if k.accepted_at < now() - make_interval(days => public.fn_it_threshold('access_reconfirm_days')::int) then
+          v_items := v_items || jsonb_build_object('item', x.key || ':' || k.principal || ':reconfirm', 'owner_seat', 'ceo', 'subject', x.key,
+            'title', k.principal || '''s access on ' || x.key || ' was accepted on ' || k.accepted_at::date || ' and is due to be reconfirmed',
+            'blast', 'agent_facing', 'affected', 0, 'evidence', to_jsonb(k));
+        end if;
+      end if;
+    end loop;
+  end loop;
+  return v_items;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_attach_learning(p_handoff_id bigint, p_cause text, p_fix text, p_regression_check text, p_playbook_class text DEFAULT NULL::text, p_not_automatable_reason text DEFAULT NULL::text, p_recorded_by text DEFAULT 'it_engineer'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.it_incident; h public.agent_actions; f public.it_engineer_finding; v_closed boolean := false;
+begin
+  if coalesce(btrim(p_cause), '') = '' or coalesce(btrim(p_fix), '') = '' or coalesce(btrim(p_regression_check), '') = '' then
+    raise exception 'fn_it_attach_learning: the cause, the fix and the regression check are all required';
+  end if;
+  if p_playbook_class is null and coalesce(btrim(p_not_automatable_reason), '') = '' then
+    raise exception 'fn_it_attach_learning: name the playbook entry for this failure class, or say why it cannot be automated';
+  end if;
+  if p_playbook_class is not null and not exists (select 1 from public.it_playbook where failure_class = p_playbook_class) then
+    raise exception 'fn_it_attach_learning: no playbook entry %; add it to public.it_playbook first', p_playbook_class;
+  end if;
+  update public.it_incident
+     set cause = p_cause, fix = p_fix, regression_check = p_regression_check, playbook_class = p_playbook_class,
+         not_automatable_reason = p_not_automatable_reason, recorded_by = p_recorded_by, updated_at = now()
+   where handoff_id = p_handoff_id
+  returning * into i;
+  if not found then raise exception 'fn_it_attach_learning: handoff % has no incident record', p_handoff_id; end if;
+
+  select * into h from public.agent_actions where id = p_handoff_id;
+  select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+  if h.status <> 'done' and (f.issue_key is null or f.closed_at is not null
+                             or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz) then
+    perform set_config('qd.handoff_closer', 'it_engineer', true);
+    perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+      'verified_by', 'it_engineer', 'verified_at', now(), 'incident_id', i.id, 'learning_recorded_by', p_recorded_by));
+    perform set_config('qd.handoff_closer', '', true);
+    update public.it_incident set ended_at = coalesce(f.closed_at, now()), updated_at = now() where id = i.id;
+    v_closed := true;
+  end if;
+  return jsonb_build_object('ok', true, 'incident_id', i.id, 'closed', v_closed,
+    'note', case when v_closed then 'recorded and closed' else 'recorded; the loop closes it once the IT engineer sees the finding gone' end);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_backup_check(p_results jsonb, p_job text DEFAULT 'dropbox_daily_check'::text, p_error text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -30571,6 +30802,71 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_credential_reverify()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.it_credential_rotation; o public.internal_credential; n public.internal_credential;
+        v_items jsonb := '[]'::jsonb; n_ret int := 0; n_held int := 0;
+begin
+  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id loop
+    select * into o from public.internal_credential where id = r.old_id;
+    select * into n from public.internal_credential where id = r.new_id;
+    if o.last_used_at is null or o.last_used_at < r.rotated_at then
+      if now() >= r.overlap_until then
+        update public.internal_credential set active = false, retired_at = now() where id = r.old_id;
+        update public.it_credential_rotation set status = 'retired', closed_at = now(),
+               note = 'old credential quiet since rotation; new used ' || coalesce(n.use_count, 0) || ' time(s)' where id = r.id;
+        n_ret := n_ret + 1;
+      end if;
+    elsif now() >= r.overlap_until then
+      update public.internal_credential set expires_at = now() + (r.overlap_until - r.rotated_at) where id = r.old_id;
+      update public.it_credential_rotation set status = 'held', overlap_until = now() + (r.overlap_until - r.rotated_at),
+             note = 'old credential still used by ' || coalesce(o.last_function, '?') || ' at ' || o.last_used_at where id = r.id;
+      v_items := v_items || jsonb_build_object('item', r.context, 'subject', o.last_function,
+        'title', 'After rotating ' || r.context || ', ' || coalesce(o.last_function, 'a caller') || ' still presents the old credential',
+        'blast', 'agent_facing', 'affected', 1,
+        'evidence', jsonb_build_object('rotation_id', r.id, 'old_last_used_at', o.last_used_at, 'last_function', o.last_function,
+                                       'fix', 'the caller must read ' || r.secret_key || ' from app_secrets at call time'));
+      n_held := n_held + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('retired', n_ret, 'held', n_held,
+                            'settle', public.fn_it_duty_settle('rotation', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_credential_rotate(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+AS $function$
+declare c public.internal_credential; v_key text; v_secret text; v_new bigint; v_overlap interval;
+begin
+  select * into c from public.internal_credential where id = p_id and active and retired_at is null for update;
+  if not found then raise exception 'fn_it_credential_rotate: no active credential %', p_id; end if;
+  if c.is_legacy then raise exception 'fn_it_credential_rotate: % is legacy and is never rotated automatically', c.context; end if;
+  v_key := 'cred_' || replace(c.context, '.', '_');
+  if not exists (select 1 from public.app_secrets where key = v_key) then
+    raise exception 'fn_it_credential_rotate: % has no app_secrets key %, so no caller would receive a new secret', c.context, v_key;
+  end if;
+  v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
+  v_secret := encode(extensions.gen_random_bytes(32), 'hex');
+  insert into public.internal_credential (context, label, secret_hash, scope, is_legacy, active, rotated_at, expires_at)
+  values (c.context, c.label, public.fn_internal_credential_hash(v_secret), c.scope, false, true, now(),
+          now() + make_interval(days => (coalesce(public.fn_it_threshold('credential_rotate_days'), 90) + 30)::int))
+  returning id into v_new;
+  update public.app_secrets set value = v_secret, updated_at = now() where key = v_key;
+  update public.internal_credential set expires_at = now() + v_overlap where id = c.id;
+  insert into public.it_credential_rotation (context, old_id, new_id, secret_key, overlap_until)
+  values (c.context, c.id, v_new, v_key, now() + v_overlap);
+  return jsonb_build_object('context', c.context, 'old_id', c.id, 'new_id', v_new, 'overlap_until', now() + v_overlap);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_daily_line()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -30612,7 +30908,16 @@ begin
     'founder_emails_today', (select count(*) from public.founder_alerts
                               where dedupe_key like 'it\_%' and channel = 'email' and created_at >= v_since),
     'repeats_folded_today', (select count(*) from public.founder_alerts
-                              where dedupe_key like 'it\_%' and channel = 'deduped' and created_at >= v_since))
+                              where dedupe_key like 'it\_%' and channel = 'deduped' and created_at >= v_since),
+    -- Duty 17: failure classes the company fixed on its own versus new ones.
+    'auto_fixed_today', (select count(*) from public.agent_actions a
+                          where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.decided_at >= v_since
+                            and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)),
+    'playbook_runs_today', (select count(*) from public.agent_runs
+                             where agent = 'it_engineer' and counts->>'job' = 'playbook' and started_at >= v_since),
+    'new_bugs_today', (select count(*) from public.it_incident where created_at >= v_since),
+    'awaiting_learning', (select count(*) from public.agent_actions
+                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'))
   into v_ev;
 
   v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
@@ -30626,6 +30931,32 @@ begin
     raise exception 'fn_it_daily_line: the CEO report was refused: %', v_rep->>'reason';
   end if;
   return jsonb_build_object('filed', true, 'report', v_rep, 'completed_after_receipt', n_done);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_dependency_ingest(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+begin
+  if jsonb_typeof(p_r->'advisories') is distinct from 'array' then
+    raise exception 'fn_it_dependency_ingest takes {advisories:[...]} from scripts/it/report_dependency_audit.mjs';
+  end if;
+  for e in select a from jsonb_array_elements(p_r->'advisories') a loop
+    v_items := v_items || jsonb_build_object('item', (e->>'ecosystem') || ':' || (e->>'package') || ':' || coalesce(e->>'id', '?'),
+      'owner_seat', case when e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
+      'subject', coalesce(e->>'function', e->>'package'),
+      'title', upper(coalesce(e->>'severity', '?')) || ' advisory in ' || (e->>'package') || ': ' || left(coalesce(e->>'title', ''), 120),
+      'blast', case when lower(e->>'severity') in ('high', 'critical') then 'security' else 'internal' end,
+      'affected', case when lower(e->>'severity') in ('high', 'critical') then 1 else 0 end,
+      'evidence', e || jsonb_build_object('no_founder_email', lower(e->>'severity') not in ('high', 'critical')));
+  end loop;
+  v_res := public.fn_it_duty_settle('dependency', v_items);
+  perform public.fn_it_duty_ran('dependency', v_res);
+  return v_res;
 end $function$
 
 
@@ -31520,10 +31851,13 @@ begin
       'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,
       'evidence', jsonb_build_object('route', x.route, 'source', x.source, 'checked_at', x.checked_at));
   end loop;
-  for x in select context, expires_at from public.internal_credential
-            where active and expires_at is not null and expires_at < now() + interval '30 days' loop
+  -- Only what cannot rotate itself: a legacy credential, or one whose secret has no app_secrets key
+  -- (duty 15, the_it_engineer_takes_on_seven_more_duties.sql, rotates the rest 30 days ahead).
+  for x in select ic.context, ic.expires_at from public.internal_credential ic
+            where ic.active and ic.expires_at is not null and ic.expires_at < now() + interval '30 days'
+              and (ic.is_legacy or not exists (select 1 from public.app_secrets s where s.key = 'cred_' || replace(ic.context, '.', '_'))) loop
     v_items := v_items || jsonb_build_object('item', 'credential:' || x.context, 'owner_seat', 'ceo', 'subject', x.context,
-      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and nothing rotates it',
+      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and cannot be rotated automatically',
       'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('expires_at', x.expires_at));
   end loop;
   v_out := v_out || jsonb_build_object('expiry', public.fn_it_duty_settle('expiry', v_items));
@@ -31725,6 +32059,296 @@ CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
 AS $function$
   select not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
                       and started_at > now() - interval '55 minutes')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duties_scheduled(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+AS $function$
+declare
+  v_due text[] := public.fn_it_scheduled_due(); v_out jsonb := '{}'::jsonb; v_items jsonb; x record; e jsonb;
+  d public.doc_backups; v_n numeric; v_d numeric; v_rate numeric; v_mult numeric; v_floor numeric;
+  v_p90 numeric; v_max int; v_lim numeric; v_used numeric; c record; v_rot int := 0;
+begin
+  if jsonb_typeof(coalesce(p_r, '{}'::jsonb)) <> 'object' then
+    raise exception 'fn_it_duties_scheduled takes the readings object from _shared/it_scheduled_readings.ts';
+  end if;
+  v_out := v_out || jsonb_build_object('workflow_heartbeat', public.fn_it_workflow_heartbeats());
+
+  -- ── 9a. RESTORE DRILL ──
+  -- Reads: the sample the tick downloaded — each file opened from Dropbox (content hash and size) and
+  -- from Supabase storage (size) — against what doc_backups recorded when it was backed up.
+  if 'restore' = any (v_due) and jsonb_typeof(p_r->'restore'->'samples') = 'array' then
+    v_items := '[]'::jsonb;
+    for e in select s from jsonb_array_elements(p_r->'restore'->'samples') s loop
+      select * into d from public.doc_backups where id = (e->>'doc_backup_id')::bigint;
+      if d.id is null then continue; end if;
+      if not coalesce((e->'dropbox'->>'ok')::boolean, false)
+         or (d.dropbox_content_hash is not null and e->'dropbox'->>'content_hash' is distinct from d.dropbox_content_hash)
+         or (d.dropbox_size is not null and (e->'dropbox'->>'size')::bigint is distinct from d.dropbox_size) then
+        v_items := v_items || jsonb_build_object('item', 'dropbox:' || d.id, 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
+          'title', 'Restore drill: ' || coalesce(d.file_name, d.dropbox_path) || ' did not come back intact from Dropbox',
+          'blast', 'agent_facing', 'affected', 1,
+          'evidence', jsonb_build_object('doc_backup_id', d.id, 'dropbox_path', d.dropbox_path, 'recorded_hash', d.dropbox_content_hash,
+                                         'recorded_size', d.dropbox_size, 'restored', e->'dropbox'));
+      end if;
+      if d.bucket is not null and (not coalesce((e->'storage'->>'ok')::boolean, false)
+         or (d.bytes is not null and (e->'storage'->>'size')::bigint is distinct from d.bytes)) then
+        v_items := v_items || jsonb_build_object('item', 'storage:' || d.id, 'owner_seat', 'sales_engineer', 'subject', 'storage',
+          'title', 'Restore drill: ' || coalesce(d.file_name, d.path) || ' did not come back intact from Supabase storage',
+          'blast', 'agent_facing', 'affected', 1,
+          'evidence', jsonb_build_object('doc_backup_id', d.id, 'bucket', d.bucket, 'path', d.path, 'recorded_bytes', d.bytes,
+                                         'restored', e->'storage'));
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('restore', public.fn_it_duty_settle('restore', v_items));
+    perform public.fn_it_duty_ran('restore', v_out->'restore');
+  end if;
+
+  -- ── 9b. OPEN GAPS IN THE BACKUP REGISTRY ──
+  if 'backup_gap' = any (v_due) then
+    v_items := '[]'::jsonb;
+    for x in select * from public.fn_backup_source_registry() r where not r.backed_up loop
+      v_items := v_items || jsonb_build_object('item', x.source, 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
+        'title', 'Not backed up to Dropbox: ' || x.source || coalesce(' — ' || x.reason, ''),
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('source', x.source, 'kind', x.kind, 'bucket', x.bucket));
+    end loop;
+    v_out := v_out || jsonb_build_object('backup_gap', public.fn_it_duty_settle('backup_gap', v_items));
+    perform public.fn_it_duty_ran('backup_gap', v_out->'backup_gap');
+  end if;
+
+  -- ── 10. SENDER HEALTH ──
+  -- Reads: DNS (SPF, DMARC, DKIM) and blocklists by DNS-over-HTTPS, Resend's own verdict on each
+  -- domain record, Twilio's WhatsApp sender quality and template approvals — and from our own tables
+  -- the hard bounces and complaints resend_webhook recorded against the emails we sent.
+  if 'sender' = any (v_due) and jsonb_typeof(p_r->'sender') = 'object' then
+    v_items := '[]'::jsonb;
+    for x in select key, value from jsonb_each(coalesce(p_r->'sender'->'dns', '{}'::jsonb)) loop
+      if coalesce(x.value->>'basis', '') = 'measured' then
+        if not coalesce((x.value->>'spf')::boolean, false) then
+          v_items := v_items || jsonb_build_object('item', 'spf:' || x.key, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+            'title', x.key || ' has no SPF record that includes our sender', 'blast', 'customer_facing', 'affected', 0, 'evidence', x.value);
+        end if;
+        if not coalesce((x.value->>'dmarc')::boolean, false) then
+          v_items := v_items || jsonb_build_object('item', 'dmarc:' || x.key, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+            'title', x.key || ' has no DMARC record', 'blast', 'customer_facing', 'affected', 0, 'evidence', x.value);
+        end if;
+        if not coalesce((x.value->>'dkim')::boolean, false) then
+          v_items := v_items || jsonb_build_object('item', 'dkim:' || x.key, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+            'title', x.key || ' has no DKIM key published for our sender', 'blast', 'customer_facing', 'affected', 0, 'evidence', x.value);
+        end if;
+      end if;
+    end loop;
+    for e in select b from jsonb_array_elements(coalesce(p_r->'sender'->'blocklists', '[]'::jsonb)) b loop
+      if e->>'basis' = 'measured' and coalesce((e->>'listed')::boolean, false) then
+        v_items := v_items || jsonb_build_object('item', 'blocklist:' || (e->>'list') || ':' || (e->>'target'), 'owner_seat', 'customer_support',
+          'subject', 'send_outbox', 'title', (e->>'target') || ' is listed on ' || (e->>'list'),
+          'blast', 'customer_facing', 'affected', 1, 'evidence', e);
+      end if;
+    end loop;
+    if coalesce(p_r->'sender'->'resend'->>'basis', '') = 'measured' and coalesce(p_r->'sender'->'resend'->>'status', '') <> 'verified' then
+      v_items := v_items || jsonb_build_object('item', 'resend_domain', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+        'title', 'Resend reports the sending domain as ' || coalesce(p_r->'sender'->'resend'->>'status', 'unknown'),
+        'blast', 'customer_facing', 'affected', 1, 'evidence', p_r->'sender'->'resend');
+    end if;
+    if coalesce(p_r->'sender'->'whatsapp'->>'basis', '') = 'measured'
+       and upper(coalesce(p_r->'sender'->'whatsapp'->>'quality', '')) not in ('HIGH', 'GREEN', 'UNKNOWN') then
+      v_items := v_items || jsonb_build_object('item', 'whatsapp_quality', 'owner_seat', 'customer_support', 'subject', 'send_whatsapp',
+        'title', 'The WhatsApp number''s quality rating is ' || (p_r->'sender'->'whatsapp'->>'quality'),
+        'blast', 'customer_facing', 'affected', 1, 'evidence', p_r->'sender'->'whatsapp');
+    end if;
+    for e in select t from jsonb_array_elements(coalesce(p_r->'sender'->'templates', '[]'::jsonb)) t loop
+      if e->>'basis' = 'measured' and lower(coalesce(e->>'status', '')) not in ('approved') then
+        v_items := v_items || jsonb_build_object('item', 'template:' || (e->>'name'), 'owner_seat', 'customer_support', 'subject', 'send_whatsapp',
+          'title', 'WhatsApp template ' || (e->>'name') || ' is ' || coalesce(e->>'status', 'unknown'),
+          'blast', 'customer_facing', 'affected', 0, 'evidence', e);
+      end if;
+    end loop;
+    select count(*) into v_d from public.notifications
+     where channel = 'email' and status = 'sent' and sent_at > now() - interval '7 days';
+    if v_d >= coalesce(public.fn_it_threshold('sender_min_sends_7d'), 20) then
+      select count(*) filter (where reason like 'hard_bounce%'), count(*) filter (where reason = 'spam_complaint')
+        into v_n, v_rate from public.email_suppressions
+       where source = 'resend_webhook' and created_at > now() - interval '7 days';
+      if v_n / v_d > public.fn_it_threshold('sender_bounce_rate_max') then
+        v_items := v_items || jsonb_build_object('item', 'bounce_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+          'title', round(100 * v_n / v_d, 2) || '% of last week''s emails hard-bounced', 'blast', 'customer_facing', 'affected', 1,
+          'evidence', jsonb_build_object('hard_bounces', v_n, 'sent', v_d, 'max', public.fn_it_threshold('sender_bounce_rate_max')));
+      end if;
+      if v_rate / v_d > public.fn_it_threshold('sender_complaint_rate_max') then
+        v_items := v_items || jsonb_build_object('item', 'complaint_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+          'title', round(100 * v_rate / v_d, 3) || '% of last week''s emails were reported as spam', 'blast', 'customer_facing', 'affected', 1,
+          'evidence', jsonb_build_object('complaints', v_rate, 'sent', v_d, 'max', public.fn_it_threshold('sender_complaint_rate_max')));
+      end if;
+    end if;
+    v_out := v_out || jsonb_build_object('sender', public.fn_it_duty_settle('sender', v_items));
+    perform public.fn_it_duty_ran('sender', v_out->'sender');
+  end if;
+
+  -- ── 11a. SPEND ──
+  -- Reads: yesterday's cost per provider the tick could read (Twilio usage, Stripe fees), stored in
+  -- it_spend_daily; each source is compared with its own trailing 14 days. The Supabase and Vercel
+  -- bills are not readable with the tokens this estate holds, and the reading says so.
+  if 'spend' = any (v_due) and jsonb_typeof(p_r->'spend') = 'array' then
+    for e in select s from jsonb_array_elements(p_r->'spend') s loop
+      if e->>'basis' = 'measured' then
+        insert into public.it_spend_daily (day, source, amount_minor, currency)
+        values ((e->>'day')::date, e->>'source', (e->>'amount_minor')::bigint, e->>'currency')
+        on conflict (day, source) do update set amount_minor = excluded.amount_minor, recorded_at = now();
+      end if;
+    end loop;
+    v_items := '[]'::jsonb;
+    v_mult := public.fn_it_threshold('spend_anomaly_multiple'); v_floor := public.fn_it_threshold('spend_floor_aed');
+    for x in select s.source, s.day, s.amount_minor, s.currency,
+                    (select percentile_cont(0.9) within group (order by b.amount_minor) from public.it_spend_daily b
+                      where b.source = s.source and b.day between s.day - 14 and s.day - 1) p90,
+                    (select count(*) from public.it_spend_daily b where b.source = s.source and b.day between s.day - 14 and s.day - 1) n
+               from public.it_spend_daily s
+              where s.day = (select max(day) from public.it_spend_daily t where t.source = s.source) loop
+      -- Fewer than seven days of history is not a baseline; the source is reported, not judged.
+      continue when x.n < 7;
+      if x.amount_minor / 100.0 >= v_floor and x.amount_minor > v_mult * x.p90 then
+        v_items := v_items || jsonb_build_object('item', x.source, 'owner_seat', 'accountant', 'subject', x.source,
+          'title', x.source || ' cost ' || round(x.amount_minor / 100.0, 2) || ' ' || x.currency || ' on ' || x.day
+                   || ', over ' || v_mult || 'x its 14-day p90 of ' || round(x.p90 / 100.0, 2),
+          'blast', 'agent_facing', 'affected', 1,
+          'evidence', jsonb_build_object('day', x.day, 'amount_minor', x.amount_minor, 'p90_minor', x.p90, 'history_days', x.n));
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('spend', public.fn_it_duty_settle('spend', v_items),
+                                         'spend_readings', p_r->'spend');
+    perform public.fn_it_duty_ran('spend', v_out->'spend');
+  end if;
+
+  -- ── 11b. OTP PUMPING — the IT engineer's own playbook ──
+  -- Reads: codes issued in the last hour (phone_verifications from login_otp, customer_phone_otps from
+  -- mobile_otp) per 5-digit prefix. A burst to a country we do not serve is blocked for
+  -- otp_block_hours at once and reported; a burst inside a served country is handed to the CEO,
+  -- because blocking it could lock real customers out. The block is re-verified next hour.
+  if 'otp' = any (v_due) then
+    v_items := '[]'::jsonb;
+    v_max := coalesce(public.fn_it_threshold('otp_burst_per_prefix_hour'), 5)::int;
+    for x in select left(regexp_replace(phone, '\D', '', 'g'), 5) prefix, count(*) n
+               from (select phone, created_at from public.phone_verifications
+                     union all select phone, created_at from public.customer_phone_otps) z
+              where created_at > now() - interval '1 hour' and phone is not null
+              group by 1 having count(*) > v_max loop
+      -- A prefix the CEO or founder allowed is never auto-blocked again; its burst is handed on instead.
+      if not exists (select 1 from public.otp_served_country s where x.prefix like s.prefix || '%')
+         and not exists (select 1 from public.otp_prefix_allowed a where x.prefix like a.prefix || '%') then
+        insert into public.otp_blocked_prefix (prefix, reason, blocked_by, expires_at)
+        values (x.prefix, x.n || ' codes in an hour to a country we do not serve', 'it_engineer',
+                now() + make_interval(hours => coalesce(public.fn_it_threshold('otp_block_hours'), 24)::int))
+        on conflict (prefix) do update set expires_at = excluded.expires_at, reason = excluded.reason;
+        -- agent_facing with nobody stuck: recorded, and handed on only if it is still happening in six hours.
+        v_items := v_items || jsonb_build_object('item', 'prefix:' || x.prefix, 'owner_seat', 'ceo', 'subject', 'login_otp',
+          'title', x.n || ' sign-in codes in an hour to +' || x.prefix || '…, a country we do not serve — prefix blocked by the IT engineer',
+          'blast', 'agent_facing', 'affected', 0,
+          'evidence', jsonb_build_object('prefix', x.prefix, 'codes_last_hour', x.n, 'remedy', 'otp_blocked_prefix'));
+      else
+        v_items := v_items || jsonb_build_object('item', 'prefix:' || x.prefix, 'owner_seat', 'ceo', 'subject', 'login_otp',
+          'title', x.n || ' sign-in codes in an hour to +' || x.prefix || '…, inside a country we serve',
+          'blast', 'security', 'affected', 1,
+          'evidence', jsonb_build_object('prefix', x.prefix, 'codes_last_hour', x.n,
+                                         'why_not_blocked', 'a served country: blocking could lock real customers out'));
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('otp', public.fn_it_duty_settle('otp', v_items));
+    perform public.fn_it_duty_ran('otp', v_out->'otp');
+  end if;
+
+  -- ── 13. ACCESS REVIEW ──
+  -- Reads: who each provider lists (GitHub collaborators and deploy keys, Vercel team members, the
+  -- Dropbox account; Supabase members arrive through fn_it_platform_ingest). A principal not accepted
+  -- in it_access_known, or accepted longer ago than access_reconfirm_days, is raised to the CEO.
+  -- Stripe publishes no team-member API; the reading says so.
+  if 'access' = any (v_due) and jsonb_typeof(p_r->'access') = 'object' then
+    v_items := public.fn_it_access_items(p_r->'access');
+    v_out := v_out || jsonb_build_object('access', public.fn_it_duty_settle('access', v_items));
+    perform public.fn_it_duty_ran('access', v_out->'access');
+  end if;
+
+  -- ── 14. DATABASE HEALTH ──
+  if 'db_health' = any (v_due) then
+    v_items := '[]'::jsonb;
+    for x in select s.queryid, left(regexp_replace(s.query, '\s+', ' ', 'g'), 200) q, s.calls, round(s.mean_exec_time::numeric, 1) mean_ms
+               from extensions.pg_stat_statements s
+              where s.calls >= public.fn_it_threshold('slow_query_min_calls')
+                and s.mean_exec_time > public.fn_it_threshold('slow_query_mean_ms')
+              order by s.mean_exec_time desc limit 10 loop
+      v_items := v_items || jsonb_build_object('item', 'slow:' || x.queryid, 'owner_seat', 'ceo', 'subject', 'database',
+        'title', 'A statement averages ' || x.mean_ms || ' ms over ' || x.calls || ' calls: ' || left(x.q, 90),
+        'blast', 'internal', 'affected', 1, 'evidence', jsonb_build_object('queryid', x.queryid, 'query', x.q, 'calls', x.calls, 'mean_ms', x.mean_ms));
+    end loop;
+    insert into public.it_table_size_daily (day, relid, bytes)
+    select current_date, c.oid::regclass::text, pg_total_relation_size(c.oid)
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind = 'r'
+    on conflict (day, relid) do update set bytes = excluded.bytes;
+    for x in select t.relid, t.bytes, o.bytes old_bytes from public.it_table_size_daily t
+               join public.it_table_size_daily o on o.relid = t.relid and o.day = current_date - 7
+              where t.day = current_date
+                and t.bytes > public.fn_it_threshold('table_growth_7d_multiple') * o.bytes
+                and t.bytes - o.bytes > public.fn_it_threshold('table_growth_min_bytes') loop
+      v_items := v_items || jsonb_build_object('item', 'growth:' || x.relid, 'owner_seat', 'ceo', 'subject', 'database',
+        'title', x.relid || ' grew from ' || pg_size_pretty(x.old_bytes) || ' to ' || pg_size_pretty(x.bytes) || ' in a week',
+        'blast', 'internal', 'affected', 1, 'evidence', jsonb_build_object('bytes', x.bytes, 'bytes_7d_ago', x.old_bytes));
+    end loop;
+    select count(*) into v_used from pg_stat_activity;
+    v_lim := current_setting('max_connections')::numeric;
+    if v_used > public.fn_it_threshold('connections_ratio_max') * v_lim then
+      v_items := v_items || jsonb_build_object('item', 'connections', 'owner_seat', 'ceo', 'subject', 'database',
+        'title', v_used || ' of ' || v_lim || ' database connections are in use',
+        'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('in_use', v_used, 'max', v_lim));
+    end if;
+    v_lim := public.fn_it_threshold('db_disk_limit_bytes');
+    if v_lim is not null and pg_database_size(current_database()) > public.fn_it_threshold('disk_ratio_max') * v_lim then
+      v_items := v_items || jsonb_build_object('item', 'disk', 'owner_seat', 'accountant', 'subject', 'database',
+        'title', 'The database uses ' || pg_size_pretty(pg_database_size(current_database())) || ' of ' || pg_size_pretty(v_lim::bigint),
+        'blast', 'customer_facing', 'affected', 0,
+        'evidence', jsonb_build_object('bytes', pg_database_size(current_database()), 'limit_bytes', v_lim,
+                                       'route', 'the accountant approves a larger disk or plan'));
+    end if;
+    v_out := v_out || jsonb_build_object('db_health', public.fn_it_duty_settle('db_health', v_items),
+                                         'disk_limit_basis', case when v_lim is null then 'not_measured_yet' else 'measured' end);
+    perform public.fn_it_duty_ran('db_health', v_out->'db_health');
+  end if;
+
+  -- ── 15. ROTATION ──
+  if 'rotation' = any (v_due) then
+    for c in select ic.id from public.internal_credential ic
+              where ic.active and ic.retired_at is null and not ic.is_legacy
+                and exists (select 1 from public.app_secrets s where s.key = 'cred_' || replace(ic.context, '.', '_'))
+                and not exists (select 1 from public.it_credential_rotation r where r.context = ic.context and r.status in ('overlap', 'held'))
+                and (coalesce(ic.rotated_at, ic.created_at) < now() - make_interval(days => public.fn_it_threshold('credential_rotate_days')::int)
+                     or ic.expires_at < now() + interval '30 days')
+              order by coalesce(ic.rotated_at, ic.created_at)
+              limit public.fn_it_threshold('credential_rotations_per_run')::int
+              -- Two ticks at the same instant must not rotate one credential twice: the first holds the
+              -- row until its rotation row ('overlap') exists, and the second skips what is held.
+              for update of ic skip locked loop
+      perform public.fn_it_credential_rotate(c.id);
+      v_rot := v_rot + 1;
+    end loop;
+    v_out := v_out || jsonb_build_object('rotation', jsonb_build_object('rotated', v_rot, 'reverify', public.fn_it_credential_reverify()));
+    perform public.fn_it_duty_ran('rotation', v_out->'rotation');
+  end if;
+
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duty_ran(p_duty text, p_result jsonb)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duty:' || p_duty, 'result', p_result), null)
 $function$
 
 
@@ -32311,6 +32935,64 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_incident_open(p_handoff_id bigint)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.agent_actions; v_id bigint; v_pub boolean;
+begin
+  select * into h from public.agent_actions where id = p_handoff_id and kind = 'handoff' and detail->>'type' = 'it.finding';
+  if not found then raise exception 'fn_it_incident_open: % is not an it.finding handoff', p_handoff_id; end if;
+  v_pub := coalesce((h.detail->'finding_evidence'->>'public_surface')::boolean, false)
+           or h.detail->>'severity' = 'critical';
+  insert into public.it_incident (handoff_id, issue_key, title, what, impact, started_at)
+  values (h.id, h.detail->>'issue_key', coalesce(h.detail->>'title', h.detail->>'issue_key'),
+          coalesce(h.detail->>'title', h.detail->>'issue_key') || ' (' || coalesce(h.detail->>'where_it_is', h.detail->>'subject', 'not recorded') || ').',
+          case when v_pub then 'Customer-facing: something a customer or supplier opens was affected.'
+               else 'Internal: an agent''s work was affected; no customer-facing surface was.' end
+            || ' Severity ' || coalesce(h.detail->>'severity', 'unrecorded') || '; the ' || h.agent || ' had no remedy within its reply window.',
+          (h.detail->>'occurrence_started_at')::timestamptz)
+  on conflict (handoff_id) do nothing
+  returning id into v_id;
+  return coalesce(v_id, (select id from public.it_incident where handoff_id = p_handoff_id));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_incident_pdf_blocks(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.it_incident; p public.it_playbook;
+begin
+  select * into i from public.it_incident where id = p_id;
+  if not found then raise exception 'no incident %', p_id; end if;
+  select * into p from public.it_playbook where failure_class = i.playbook_class;
+  return jsonb_build_object('title', 'Incident record ' || i.id || ': ' || left(i.title, 80), 'blocks', jsonb_build_array(
+    jsonb_build_object('t', 'h2', 'text', 'Incident record ' || i.id),
+    jsonb_build_object('t', 'kv', 'pairs', jsonb_build_array(
+      jsonb_build_array('Reference', i.issue_key),
+      jsonb_build_array('Started', to_char(i.started_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (Dubai)'),
+      jsonb_build_array('Ended', coalesce(to_char(i.ended_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (Dubai)', 'Still open')),
+      jsonb_build_array('Duration', coalesce(to_char(i.ended_at - i.started_at, 'DD "days" HH24 "h" MI "min"'), 'Still open')),
+      jsonb_build_array('Recorded by', coalesce(i.recorded_by, 'Not yet recorded')))),
+    jsonb_build_object('t', 'h3', 'text', 'What happened'), jsonb_build_object('t', 'p', 'text', i.what),
+    jsonb_build_object('t', 'h3', 'text', 'Impact'), jsonb_build_object('t', 'p', 'text', i.impact),
+    jsonb_build_object('t', 'h3', 'text', 'Cause'), jsonb_build_object('t', 'p', 'text', coalesce(i.cause, 'Not yet recorded.')),
+    jsonb_build_object('t', 'h3', 'text', 'Fix'), jsonb_build_object('t', 'p', 'text', coalesce(i.fix, 'Not yet recorded.')),
+    jsonb_build_object('t', 'h3', 'text', 'Regression check'),
+    jsonb_build_object('t', 'p', 'text', coalesce(i.regression_check, 'Not yet recorded.')),
+    jsonb_build_object('t', 'h3', 'text', 'Playbook entry'),
+    jsonb_build_object('t', 'p', 'text', case
+      when p.failure_class is not null then p.failure_class || ': ' || coalesce(p.remedy, p.not_automatable_reason)
+      when i.not_automatable_reason is not null then 'Not automatable: ' || i.not_automatable_reason
+      else 'Not yet recorded.' end)));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_journey_ingest(p_report jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32400,7 +33082,17 @@ begin
     -- closed and reopened (a later started_at is a different occurrence with its own loop).
     v_cleared := f.issue_key is null or f.closed_at is not null
                  or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
-    if v_cleared then
+    -- A new bug that has cleared waits for what was learned (trigger z62, fn_it_attach_learning).
+    if v_cleared and exists (select 1 from public.it_incident i where i.handoff_id = h.id
+                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+                                   or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''))) then
+      if not (h.detail ? 'awaiting_learning') then
+        update public.agent_actions set detail = detail || jsonb_build_object('awaiting_learning', now()) where id = h.id;
+        update public.it_incident set ended_at = coalesce(f.closed_at, now()), updated_at = now() where handoff_id = h.id and ended_at is null;
+      end if;
+      n_wait := n_wait + 1;
+    elsif v_cleared then
+      update public.it_incident set ended_at = coalesce(ended_at, f.closed_at, now()), updated_at = now() where handoff_id = h.id;
       perform set_config('qd.handoff_closer', 'it_engineer', true);
       perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
         'verified_by', 'it_engineer', 'verified_at', now(),
@@ -32476,6 +33168,9 @@ begin
                                  and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
             order by x.started_at loop
     begin
+      -- The playbook first: a known remedy runs once per occurrence, and the finding is handed on
+      -- only if it is still open on the next tick.
+      continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
       perform public.fn_it_loop_open(f.issue_key);
       n_open := n_open + 1;
     exception when others then
@@ -32499,6 +33194,90 @@ begin
          from jsonb_array_elements(v_err) e where e->>'step' = v_step));
   end loop;
   return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  if coalesce(p_by, '') not in ('ceo', 'founder') then
+    raise exception 'fn_it_otp_unblock: only the ceo or the founder lifts a prefix block (got %)', coalesce(p_by, 'nobody');
+  end if;
+  if coalesce(btrim(p_reason), '') = '' then raise exception 'fn_it_otp_unblock: a reason is required'; end if;
+  if coalesce(p_prefix, '') !~ '^[0-9]{3,8}$' then raise exception 'fn_it_otp_unblock: % is not a digits-only prefix', p_prefix; end if;
+  delete from public.otp_blocked_prefix where prefix = p_prefix;
+  get diagnostics n = row_count;
+  insert into public.otp_prefix_allowed (prefix, reason, allowed_by) values (p_prefix, p_reason, p_by)
+  on conflict (prefix) do update set reason = excluded.reason, allowed_by = excluded.allowed_by, allowed_at = now();
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'otp_unblock', 'prefix', p_prefix, 'by', p_by, 'lifted', n), p_reason);
+  return jsonb_build_object('ok', true, 'prefix', p_prefix, 'lifted', n, 'allowed_by', p_by);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_platform_ingest(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; v_out jsonb := '{}'::jsonb;
+begin
+  if jsonb_typeof(p_r) is distinct from 'object' then raise exception 'fn_it_platform_ingest takes the platform readings object'; end if;
+  if p_r->'backups'->>'basis' = 'measured' then
+    if not coalesce((p_r->'backups'->>'pitr_enabled')::boolean, false) then
+      v_items := v_items || jsonb_build_object('item', 'pitr', 'owner_seat', 'ceo', 'subject', 'database',
+        'title', 'Point-in-time recovery is not enabled on the database', 'blast', 'agent_facing', 'affected', 1, 'evidence', p_r->'backups');
+    end if;
+    if (p_r->'backups'->>'latest_backup_at') is null or (p_r->'backups'->>'latest_backup_at')::timestamptz < now() - interval '26 hours' then
+      v_items := v_items || jsonb_build_object('item', 'daily_backup', 'owner_seat', 'ceo', 'subject', 'database',
+        'title', 'The newest database backup is ' || coalesce('from ' || (p_r->'backups'->>'latest_backup_at'), 'missing'),
+        'blast', 'customer_facing', 'affected', 1, 'evidence', p_r->'backups');
+    end if;
+    v_out := v_out || jsonb_build_object('db_backup', public.fn_it_duty_settle('db_backup', v_items));
+  end if;
+  if p_r->'disk'->>'basis' = 'measured' and (p_r->'disk'->>'size_bytes') is not null then
+    update public.it_threshold set value = (p_r->'disk'->>'size_bytes')::numeric,
+           basis = 'management API disk size, read ' || now()::date where key = 'db_disk_limit_bytes';
+  end if;
+  if p_r->'members'->>'basis' = 'measured' then
+    v_out := v_out || jsonb_build_object('supabase_access',
+      public.fn_it_duty_settle('supabase_access', public.fn_it_access_items(jsonb_build_object('supabase', p_r->'members'))));
+  end if;
+  perform public.fn_it_duty_ran('platform', v_out);
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_playbook_first(p_issue_key text, p_started_at timestamp with time zone)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.it_playbook;
+begin
+  select * into p from public.it_playbook
+   where p_issue_key like issue_prefix || '%' and remedy_routine is not null
+   order by length(issue_prefix) desc limit 1;
+  if not found then return false; end if;
+  if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'playbook'
+              and counts->>'issue_key' = p_issue_key and started_at >= p_started_at) then
+    return false;                              -- already tried for this occurrence: hand it on
+  end if;
+  if to_regprocedure('public.' || p.remedy_routine || '()') is null then
+    raise exception 'playbook % names % but no such routine exists', p.failure_class, p.remedy_routine;
+  end if;
+  execute format('select public.%I()', p.remedy_routine);
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(),
+          jsonb_build_object('job', 'playbook', 'issue_key', p_issue_key, 'failure_class', p.failure_class), p.remedy);
+  return true;
 end $function$
 
 
@@ -32549,6 +33328,20 @@ AS $function$
            and t.started_at between p_started - interval '5 seconds' and p_started + interval '5 seconds'
            and (t.counts ->> 'http') ~ '^4[0-9][0-9]$'))
   , false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_scheduled_due()
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(array_agg(s.duty order by s.duty), '{}')
+    from public.it_duty_schedule s
+   where not exists (select 1 from public.agent_runs r
+                      where r.agent = 'it_engineer' and r.counts->>'job' = 'duty:' || s.duty
+                        and r.started_at > now() - s.every + interval '5 minutes')
 $function$
 
 
@@ -32610,6 +33403,76 @@ AS $function$
     else 'low'
   end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_smoke_ingest(p_report jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_owner text; v_owners jsonb; x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+begin
+  if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'sha'), '') = '' then
+    raise exception 'fn_it_smoke_ingest takes {sha, changed_files, steps} from scripts/e2e/report_to_it_engineer.mjs --smoke';
+  end if;
+  with files as (
+    select f from jsonb_array_elements_text(coalesce(p_report->'changed_files', '[]'::jsonb)) f),
+  owned as (
+    select case when o.owner in (select t.to_seat from public.fn_seat_handoff_types() t where t.type = 'it.finding')
+                then o.owner else 'ceo' end seat
+      from files
+      left join public.function_owner o on o.function_slug = substring(files.f from '^supabase/functions/([^/_][^/]*)/'))
+  select coalesce(jsonb_object_agg(seat, n), '{}'::jsonb) into v_owners
+    from (select seat, count(*) n from owned group by seat) z;
+  select key into v_owner from jsonb_each_text(v_owners) order by value::int desc, key limit 1;
+  for x in select e from jsonb_array_elements(p_report->'steps') e where e->>'status' = 'FAIL' loop
+    v_items := v_items || jsonb_build_object(
+      'item', coalesce(x->>'journey', '?') || ':' || left(regexp_replace(coalesce(x->>'name', '?'), '[^a-zA-Z0-9]+', '_', 'g'), 80),
+      'owner_seat', coalesce(v_owner, 'ceo'), 'subject', 'merge ' || left(p_report->>'sha', 7),
+      'title', 'After merge ' || left(p_report->>'sha', 7) || ', the smoke test failed: [' || coalesce(x->>'journey', '?') || '] ' || coalesce(x->>'name', '?'),
+      'blast', 'customer_facing', 'affected', 0, 'demo', coalesce((p_report->>'demo')::boolean, false),
+      'evidence', jsonb_build_object('sha', p_report->>'sha', 'owners', v_owners, 'changed_files', p_report->'changed_files',
+                                     'tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
+  end loop;
+  v_res := public.fn_it_duty_settle('smoke', v_items);
+  perform public.fn_it_duty_ran('smoke', v_res || jsonb_build_object('sha', p_report->>'sha'));
+  return v_res;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_threshold(p_key text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select value from public.it_threshold where key = p_key
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_workflow_heartbeats()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; x record;
+begin
+  for x in select * from (values ('dependency', interval '8 days', '.github/workflows/it-weekly-readings.yml'),
+                                 ('platform',   interval '8 days', '.github/workflows/it-weekly-readings.yml')) v(job, every, wf) loop
+    if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%'
+                and started_at < now() - x.every)
+       and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:' || x.job
+                    and started_at > now() - x.every) then
+      v_items := v_items || jsonb_build_object('item', x.job, 'owner_seat', 'ceo', 'subject', 'github',
+        'title', 'The ' || x.job || ' readings from GitHub have not arrived for ' || x.every,
+        'blast', 'agent_facing', 'affected', 1,
+        'evidence', jsonb_build_object('workflow', x.wf, 'look_at', 'the workflow''s runs in GitHub Actions: not triggered, failed, or failed to report'));
+    end if;
+  end loop;
+  return public.fn_it_duty_settle('workflow_heartbeat', v_items);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_jsonb_text_array(j jsonb)
@@ -37994,6 +38857,18 @@ BEGIN
 END $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_otp_prefix_blocked(p_phone text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.otp_blocked_prefix b
+                  where regexp_replace(coalesce(p_phone, ''), '\D', '', 'g') like b.prefix || '%'
+                    and (b.expires_at is null or b.expires_at > now()))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_outcome_open(p_actor text, p_decision text, p_subject_type text DEFAULT 'manual'::text, p_subject_id text DEFAULT NULL::text, p_expected_kpi_id bigint DEFAULT NULL::bigint, p_rationale text DEFAULT NULL::text, p_evidence jsonb DEFAULT '[]'::jsonb, p_direction text DEFAULT 'up'::text, p_measure_after interval DEFAULT '14 days'::interval)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -38335,16 +39210,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -38515,6 +39380,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -54990,6 +55865,26 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_new_bug_closes_with_learning()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.it_incident;
+begin
+  if new.kind = 'handoff' and new.detail->>'type' = 'it.finding' and new.status = 'done' and old.status is distinct from 'done' then
+    select * into i from public.it_incident where handoff_id = new.id;
+    if found and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+                  or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = '')) then
+      raise exception 'handoff % was a new bug (incident %): it closes only with its cause, fix, a regression check and a playbook entry or the reason it cannot be automated (fn_it_attach_learning)',
+        new.id, i.id;
+    end if;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_org_role_no_cycle()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -55016,6 +55911,25 @@ CREATE OR REPLACE FUNCTION public.trg_org_role_touch()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$ begin new.updated_at := now(); return new; end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_otp_served_country_lifts_blocks()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  delete from public.otp_blocked_prefix where prefix like new.prefix || '%' and blocked_by = 'it_engineer';
+  get diagnostics n = row_count;
+  if n > 0 then
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'otp_unblock', 'prefix', new.prefix, 'by', 'otp_served_country', 'lifted', n),
+            new.country || ' is now a served country');
+  end if;
+  return new;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_p2c1_append_only()
@@ -55553,52 +56467,53 @@ CREATE TRIGGER a00_append_only BEFORE DELETE OR UPDATE ON public.accountant_issu
 CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
+CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
+CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
+CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
-CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
-CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
+CREATE TRIGGER z62_new_bug_closes_with_learning BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_new_bug_closes_with_learning();
 CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
-CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
-CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
 CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
-CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
-CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
+CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
+CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
+CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
-CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
-CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
+CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
+CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER a05_ceo_refund_approval_checks_the_process BEFORE INSERT ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
+CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command FOR EACH ROW EXECUTE FUNCTION fn_ceo_command_state_guard();
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
-CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
-CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
+CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
 CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
+CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
@@ -55620,16 +56535,16 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -55642,82 +56557,83 @@ CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
-CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
-CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
+CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
-CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
-CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
-CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
-CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
-CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
+CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
+CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
+CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
+CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
 CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
+CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
 CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
-CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
-CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER otp_served_country_lifts_blocks AFTER INSERT OR UPDATE OF prefix ON public.otp_served_country FOR EACH ROW EXECUTE FUNCTION trg_otp_served_country_lifts_blocks();
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
+CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER z10_hold_answered_resets_the_run AFTER UPDATE OF state ON public.quote_spec_hold FOR EACH ROW EXECUTE FUNCTION trg_hold_answered_resets_the_run();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
 CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
-CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
+CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
 CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
 CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
-CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
-CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
-CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
-CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
-CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
-CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
+CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
 CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
+CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
+CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
 CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
+CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
-CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
 CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
+CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a10_sales_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.sales_knowledge FOR EACH ROW EXECUTE FUNCTION fn_sales_knowledge_search_vector();
@@ -55728,14 +56644,14 @@ CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories F
 CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_collaboration_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_collaboration_event_append_only();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
-CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
-CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
 CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
+CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
+CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
@@ -55984,13 +56900,21 @@ ALTER TABLE public.internal_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_access_known ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_credential_rotation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_duty_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_scanner ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_expiry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_security_baseline ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_spend_daily ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_table_size_daily ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_threshold ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_subject ENABLE ROW LEVEL SECURITY;
@@ -56089,6 +57013,9 @@ ALTER TABLE public.os_responsibility ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_runbooks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.os_settings_meta ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.otp_blocked_prefix ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.otp_prefix_allowed ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.otp_served_country ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outcome_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outreach ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.outreach_channel_policy ENABLE ROW LEVEL SECURITY;
@@ -56257,10 +57184,18 @@ CREATE POLICY founder_instruction_service_role_only ON public.founder_instructio
 CREATE POLICY os_owner_admin_read ON public.gl_journal AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY intake_trade_taxonomy_service_role_only ON public.intake_trade_taxonomy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_access_known_service_role_only ON public.it_access_known AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_credential_rotation_service_role_only ON public.it_credential_rotation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_duty_schedule_service_role_only ON public.it_duty_schedule AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_security_baseline_service_role_only ON public.it_security_baseline AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_spend_daily_service_role_only ON public.it_spend_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_table_size_daily_service_role_only ON public.it_table_size_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_threshold_service_role_only ON public.it_threshold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantine AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -56268,6 +57203,9 @@ CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY otp_blocked_prefix_service_role_only ON public.otp_blocked_prefix AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY otp_prefix_allowed_service_role_only ON public.otp_prefix_allowed AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY otp_served_country_service_role_only ON public.otp_served_country AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY paid_route_exception_service_role_only ON public.paid_route_exception AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

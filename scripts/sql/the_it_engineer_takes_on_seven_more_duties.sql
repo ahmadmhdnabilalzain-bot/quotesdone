@@ -491,7 +491,7 @@ begin
           'title', x.n || ' sign-in codes in an hour to +' || x.prefix || '…, inside a country we serve',
           'blast', 'security', 'affected', 1,
           'evidence', jsonb_build_object('prefix', x.prefix, 'codes_last_hour', x.n,
-                                         'why_not_blocked', 'a served country: blocking could lock real customers out')));
+                                         'why_not_blocked', 'a served country: blocking could lock real customers out'));
       end if;
     end loop;
     v_out := v_out || jsonb_build_object('otp', public.fn_it_duty_settle('otp', v_items));
