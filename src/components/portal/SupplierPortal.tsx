@@ -637,6 +637,10 @@ function Dashboard({ token, lang, onExpired }) {
   const [panel, setPanel] = useState(null); const [receipt, setReceipt] = useState(null);
   // Which record a card opened: an RFQ by inquiry id (from Quotes), a chat by inquiry id (from Projects).
   const [focusRfq, setFocusRfq] = useState(null); const [openChat, setOpenChat] = useState(null);
+  // The one-time WhatsApp question for suppliers registered before it existed (founder, 14 Sep 2026).
+  // Holds the kyc state while the card is due, null otherwise. It never blocks a tab.
+  const [waPrompt, setWaPrompt] = useState(null);
+  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (waNeedsPrompt(k && k.whatsapp)) setWaPrompt(k); }).catch(() => {}); }, [token]);
   const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(); }, [token]);
   useEffect(() => {
@@ -677,6 +681,7 @@ function Dashboard({ token, lang, onExpired }) {
   })();
   return (
     <div className={S.wrap}>
+      {waPrompt && <div className="mb-5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={waPrompt.whatsapp} mobile={waPrompt.phone} onDone={() => setWaPrompt(null)} /></div>}
       <div className="mb-5 flex flex-col gap-3">
         <div>
           <Kicker>{t(lang, 'brand_sub')}</Kicker>
@@ -1535,12 +1540,12 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       : <div className={S.frow}><Lbl text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'email_code')} value={mailCode} onChange={(e) => setMailCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
     <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Lbl></div>
     {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Lbl text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
+    {!isEdit && phoneVerified && !waSignupSettled(wa, waDone) && <div className="mt-3"><WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => { setWaDone(true); loadKyc(); }} /></div>}
 
     {isEdit && <>
       <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'contact_name')}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl></div>
       <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</h3>
       <Lbl text={t(lang, 'products_ph')}><Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} /></Lbl>
-    {!isEdit && phoneVerified && !waSignupSettled(wa, waDone) && <div className="mt-3"><WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => { setWaDone(true); loadKyc(); }} /></div>}
       <Lbl text={t(lang, 'services_ph')}><Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} /></Lbl>
       <Lbl text={t(lang, 'desc_ph')}><textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} /></Lbl>
     </>}

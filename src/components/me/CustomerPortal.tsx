@@ -357,7 +357,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
   const complete = k.full_name && k.dob && k.phone_verified && k.email_verified && k.terms_signed;
   if (!complete) return <>{strip}<main><ProfileGate token={token} lang={lang} theme={theme} onDone={() => load()} /></main></>;
-  return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
+  // kyc={k}: the state this component already fetched carries `whatsapp`, so the dashboard's one-time
+  // question needs no second round trip.
+  return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} kyc={k} />;
 }
 // Under 18 on today's UTC date, from the YYYY-MM-DD a date input produces. Mirrors
 // supabase/functions/_shared/account_rule.ts, which is the authority; this only shows the message early.
@@ -372,11 +374,11 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
-  useEffect(() => { drop(); load(); }, []);
   // waDone: the WhatsApp question ended in this session without a stored answer (verification over
   // WhatsApp unavailable). The terms step waits for an answer OR that — see waSignupSettled.
   const [waDone, setWaDone] = useState(false);
+  const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
+  useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
@@ -410,10 +412,10 @@ function ProfileGate({ token, lang, theme, onDone }) {
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_mobile')} {st.phone_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.phone_verified && (!sentSms ? <Button size="sm" className="mt-3" disabled={busy === 'sms'} onClick={sendSms}>{busy === 'sms' ? t(lang, 'sending') : t(lang, 'send_sms')}</Button>
         : <><div className={S.hint}>{t(lang, sentSms === 'call' ? 'call_note' : 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div><Button variant="link" className="mt-1 px-0 h-auto" onClick={() => { setSentSms(false); setSmsCode(''); }}>{t(lang, 'use_diff_number')}</Button></>)}
-      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_email_h')} {st.email_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
-      {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-3" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
       {/* Asked the moment the mobile is verified (founder, 14 Sep 2026), and before the terms step. */}
       {st.phone_verified && !waSignupSettled(st.whatsapp, waDone) && <div className="mt-4"><WhatsAppChoice token={token} lang={lang} mode="signup" current={st.whatsapp} mobile={st.phone} onDone={() => { setWaDone(true); load(); }} /></div>}
+      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_email_h')} {st.email_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
+      {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-3" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
         : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
       {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp, waDone) && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
@@ -671,6 +673,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     </section>
 
     {note && <div className={S.note}>{note}</div>}
+    {waAsk && <div className="mb-3.5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={kyc.whatsapp} mobile={kyc.phone} onDone={() => setWaAsk(false)} /></div>}
     {receipt && <ReceiptNote receipt={receipt} inqs={inqs} lang={lang} onClose={() => setReceipt(null)} />}
     {/* llm_available comes from customer_portal's overview (llm_route_health): it hides the mic
         while transcription is held. Drawings and BOQs are read server-side and are never gated. */}
@@ -1576,7 +1579,11 @@ function AccountSettings({ token, lang, onChanged }) {
   // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
   // Wait for a token, and for a token that has not already expired. SB.auth refreshes on its own
   // and the auth listener re-renders with the new one, so this costs nothing but the 401.
-  useEffect(() => { if (tokenAlive(token)) load(); }, [token]);
+  // The WhatsApp answer is served by kyc state, not customer_api me; undefined = not loaded or not
+  // served, and the row stays hidden rather than showing a state nobody measured.
+  const [wa, setWa] = useState(undefined);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((j) => setWa(j && j.whatsapp ? j.whatsapp : undefined)).catch(() => setWa(undefined));
+  useEffect(() => { if (tokenAlive(token)) { load(); loadWa(); } }, [token]);
   if (err) return <div className={S.err}>{err}</div>;
   if (!me) return <div className={S.sub}>{t(lang, 'loading')}</div>;
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -1643,6 +1650,12 @@ function AccountSettings({ token, lang, onChanged }) {
         </div>
         <div className="mt-1 text-[11.5px] text-muted-foreground">{t(lang, 'lang_note')}</div>
       </Row>
+      {/* Same grid as Row, written out: Row is declared inside this render, so anything under it is a
+          new component type on every keystroke and would lose the half-typed number and code. */}
+      {wa ? <div className="grid gap-1 sm:grid-cols-[190px_1fr] sm:items-start sm:gap-3">
+        <div className="text-[12.5px] font-medium text-muted-foreground">{waText(lang, 'row_label')}</div>
+        <div className="min-w-0"><WhatsAppChoice token={token} lang={lang} mode="settings" current={wa} mobile={me.phone} onDone={loadWa} /></div>
+      </div> : null}
       <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">
         <Button size="sm" disabled={!dirty || busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>

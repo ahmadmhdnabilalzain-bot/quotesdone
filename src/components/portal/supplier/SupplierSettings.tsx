@@ -15,6 +15,8 @@
 // reads; and the fetch is the portal's shared call() rather than a second copy.
 import React, { useEffect, useState } from 'react';
 import { call } from './api';
+import { WhatsAppChoice } from '../WhatsAppChoice';
+import type { WaState } from '../whatsappChoiceText';
 
 type Lang = 'en' | 'ar';
 type Settings = {
@@ -31,7 +33,9 @@ const T = {
     prefs: 'Preferences', language: 'Interface language', langNote: 'The portal follows your account language. Changing it here updates your account (EN/AR).', english: 'English', arabic: 'العربية',
     notifications: 'Notifications',
     wa: 'Send me RFQ alerts on WhatsApp',
-    waHelp: 'We message the number on your account when a matching request arrives.',
+    waHelp: 'We message your WhatsApp number when a matching request arrives.',
+    waNumber: 'WhatsApp number',
+    waNumberNote: 'The alerts switch above is your consent to be messaged; this is the number the messages go to.',
     emailShare: 'Share my e-mail with customers I have quoted',
     emailShareHelp: 'Off by default. When off, customers reach you through the platform only.',
     save: 'Save preferences', saving: 'Saving…', saved: 'Saved.', saveErr: 'We could not save your preferences. Please try again.',
@@ -45,7 +49,9 @@ const T = {
     prefs: 'التفضيلات', language: 'لغة الواجهة', langNote: 'تتبع البوابة لغة حسابك، وتغييرها هنا يحدّث لغة الحساب.', english: 'English', arabic: 'العربية',
     notifications: 'الإشعارات',
     wa: 'أرسل لي تنبيهات الطلبات على واتساب',
-    waHelp: 'نراسل الرقم المسجَّل في حسابك عند وصول طلب مطابق.',
+    waHelp: 'نراسل رقم WhatsApp الخاص بك عند وصول طلب مطابق.',
+    waNumber: 'رقم WhatsApp',
+    waNumberNote: 'مفتاح التنبيهات أعلاه هو موافقتك على المراسلة، وهذا هو الرقم الذي تصل إليه الرسائل.',
     emailShare: 'شارك بريدي مع العملاء الذين قدّمت لهم عرضًا',
     emailShareHelp: 'مغلق افتراضيًا. عند الإغلاق يتواصل العملاء عبر المنصة فقط.',
     save: 'حفظ التفضيلات', saving: 'جارٍ الحفظ…', saved: 'تم الحفظ.', saveErr: 'تعذّر حفظ تفضيلاتك. يُرجى المحاولة مرة أخرى.',
@@ -98,6 +104,11 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  // The WhatsApp NUMBER is kyc's (whatsapp_*), separate from wa_optin above, which is consent. Two
+  // different facts, two different writers; undefined hides the section until kyc serves it.
+  const [waState, setWaState] = useState<WaState | undefined>(undefined);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => setWaState(k && k.whatsapp ? k.whatsapp : undefined)).catch(() => {});
+  useEffect(() => { loadWa(); }, [token]);
 
   useEffect(() => {
     let live = true;
@@ -160,6 +171,12 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         {msg && <p role="status" className="text-[12px] text-ok-fg mt-2">{msg}</p>}
         {err && <p role="alert" className="text-[12px] text-danger-fg mt-2">{err}</p>}
       </section>
+
+      {waState && <section className="qd-panel p-5" aria-labelledby="qd-set-wa">
+        <h3 id="qd-set-wa" className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{t(lang, 'waNumber')}</h3>
+        <p className="mb-3 text-[11.5px] text-muted-foreground">{t(lang, 'waNumberNote')}</p>
+        <WhatsAppChoice token={token} lang={lang} mode="settings" current={waState} mobile={s.phone} onDone={loadWa} />
+      </section>}
 
       <section className="qd-panel p-5">
         <div className="flex justify-between items-baseline mb-2">
