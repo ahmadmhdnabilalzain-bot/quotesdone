@@ -18,6 +18,8 @@
 // implied a pipeline would be the first false thing a supplier read.
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Button } from '@/components/ui/button';
+import { Kicker, Seal, Stepper } from '@/components/ui/sealed';
 
 type Lang = 'en' | 'ar';
 
@@ -37,6 +39,9 @@ const T = {
       ['Quote and get paid', 'Quote from the portal. You are paid on the work; QuotesDone charges the customer a reveal fee.'],
     ],
     honest: 'QuotesDone is new. There are no completed jobs on the platform yet, so nothing here promises you a pipeline — only that when work arrives, it is matched on fit.',
+    sealCustomer: 'Customer',
+    sealPlaceholder: 'Customer name',
+    sealNote: 'Every request reaches you sealed. The customer is named only if they choose your quote.',
   },
   ar: {
     kicker: 'للمورّدين والمصنّعين والمقاولين في الإمارات',
@@ -52,6 +57,9 @@ const T = {
       ['قدّم عرضك واستلم', 'قدّم عرضك من البوابة. تُدفع لك قيمة العمل، وتتقاضى QuotesDone رسوم الكشف من العميل.'],
     ],
     honest: 'QuotesDone منصة جديدة. لا توجد أعمال منجزة بعد، لذا لا نعدك هنا بتدفق عمل — بل بأن ما يصل يُطابَق حسب الملاءمة.',
+    sealCustomer: 'العميل',
+    sealPlaceholder: 'اسم العميل',
+    sealNote: 'يصلك كل طلب محجوب الهوية. لا يُكشف اسم العميل إلا إذا اختار عرض سعرك.',
   },
 };
 const t = (lang: Lang) => T[lang] || T.en;
@@ -62,52 +70,48 @@ export default function SupplierEntryHero({ lang = 'en', onStart }:
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 pt-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{L.kicker}</p>
+    <section className="mx-auto w-full max-w-3xl px-4 pt-10 text-center sm:pt-14" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+      <Kicker className="max-w-full justify-center text-balance">{L.kicker}</Kicker>
 
       <motion.h1
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
-        className="mt-2 text-balance text-[26px] font-semibold leading-[1.25] text-white sm:text-[32px]"
+        className="mx-auto mt-5 max-w-[20ch] text-balance font-head text-display-sm tracking-snug text-foreground"
       >
         {L.valueProp}
       </motion.h1>
 
-      <p className="mx-auto mt-3 max-w-xl text-[13.5px] leading-[1.75] text-muted-foreground">{L.sub}</p>
+      <p className="mx-auto mt-4 max-w-[58ch] text-lead text-muted-foreground">{L.sub}</p>
 
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-        <button type="button" className="qd-btn" onClick={() => onStart?.()}>{L.ctaPrimary}</button>
-        <button
-          type="button"
-          className="rounded-lg border border-white/20 px-3.5 py-2 text-[13px] text-white/90 hover:bg-white/10"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-        >
+      {/* The brand motif, shown on the thing it protects: the supplier sees a customer as a sealed bar. */}
+      <div className="qd-panel mx-auto mt-6 flex max-w-md flex-col items-center gap-2 px-5 py-4">
+        <span className="flex items-center gap-2.5 font-mono text-label uppercase tracking-caps text-muted-foreground">
+          {L.sealCustomer}
+          <span aria-hidden><Seal>{L.sealPlaceholder}</Seal></span>
+        </span>
+        <span className="text-small text-muted-foreground">{L.sealNote}</span>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <Button size="lg" onClick={() => onStart?.()}>{L.ctaPrimary}</Button>
+        <Button size="lg" variant="outline" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           {L.ctaSecondary}
-        </button>
+        </Button>
       </div>
 
       <AnimatePresence initial={false}>
         {open && (
-          <motion.ol
+          <motion.div
             initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="mt-5 overflow-hidden text-start"
+            className="overflow-hidden text-start"
           >
-            <h2 className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">{L.stepsTitle}</h2>
-            {L.steps.map(([head, body], i) => (
-              <li key={head} className="qd-panel mb-2 flex items-start gap-3 p-3.5">
-                <span aria-hidden className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[11px] font-semibold text-primary">
-                  {i + 1}
-                </span>
-                <span className="min-w-0">
-                  <b className="block text-[13px] text-white">{head}</b>
-                  <span className="mt-0.5 block text-[12px] leading-[1.7] text-muted-foreground">{body}</span>
-                </span>
-              </li>
-            ))}
-            {/* The thing a launch page normally leaves out. */}
-            <p className="mt-2 text-[11.5px] leading-[1.7] text-muted-foreground/70">{L.honest}</p>
-          </motion.ol>
+            <div className="qd-panel mt-6 p-5 sm:p-6">
+              <h2 className="mb-5 font-mono text-label uppercase tracking-caps text-muted-foreground">{L.stepsTitle}</h2>
+              <Stepper steps={L.steps.map(([head, body]) => ({ title: head, body }))} />
+              {/* The thing a launch page normally leaves out. */}
+              <p className="mt-6 border-t border-border pt-4 text-small text-muted-foreground">{L.honest}</p>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </section>

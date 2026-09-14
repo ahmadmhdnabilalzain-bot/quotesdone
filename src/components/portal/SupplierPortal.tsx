@@ -13,6 +13,7 @@ import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import GetMatched from './supplier/GetMatched';
 import Insights, { INSIGHT_PANELS } from './supplier/Insights';
 import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer } from './supplier/RfqParts';
+import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
 import { call } from './supplier/api';
 import { Button } from '@/components/ui/button';
@@ -599,7 +600,8 @@ function Dashboard({ token, lang }) {
     <div className={S.wrap}>
       <div className="mb-5 flex flex-col gap-3">
         <div>
-          <h1 dir="auto" className="font-[family-name:var(--font-head)] text-[22px] sm:text-[26px] font-extrabold tracking-[-.03em] text-foreground">{ov.supplier.company_name}</h1>
+          <Kicker>{t(lang, 'brand_sub')}</Kicker>
+          <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stBadge}
             {ov.supplier.approval_status === 'action_required' && ov.supplier.licence_gate_reason
@@ -691,7 +693,7 @@ function MyQuotes({ token, lang, goRfqs }) {
 }
 // Label above figure, not below: the eye lands on the number, and the label is
 // already read by then. Figures are tabular so a row of KPIs aligns on the digit.
-function Kpi({ label, v, sub }) { return <Card className="qd-panel qd-panel-hover p-3.5"><div className="text-[11px] font-semibold text-muted-foreground/90">{label}</div><div className={cn(S.figure, 'text-[23px] font-extrabold mt-1.5')}>{v}</div>{sub ? <div className="text-[10.5px] text-primary mt-1.5 font-semibold">{sub}</div> : null}</Card>; }
+function Kpi({ label, v, sub }) { return <Card className="qd-panel qd-panel-hover qd-ticks p-3.5 pt-5"><div className="font-mono text-[10.5px] uppercase tracking-caps text-muted-foreground">{label}</div><div className={cn(S.figure, 'font-head text-[26px] font-semibold mt-2')}>{v}</div>{sub ? <div className="text-[10.5px] text-primary mt-1.5 font-semibold">{sub}</div> : null}</Card>; }
 // Conversion funnel: matched -> quoted -> revealed -> won.
 //
 // fn_supplier_stats has always returned every number here — quotes_total, reveals, hired,
@@ -725,8 +727,8 @@ function Funnel({ s, matched, lang }) {
                   <span className="text-[13px] text-foreground">{st.label}</span>
                   <span className="text-[13px] font-bold text-foreground tabular-nums">{st.v}{c != null && <span className="text-muted-foreground font-semibold ml-1.5 text-[11.5px]">{c}%</span>}</span>
                 </div>
-                <div className="mt-1 h-2 rounded-full bg-secondary/50 overflow-hidden">
-                  <div className="h-full rounded-full bg-primary transition-[width] duration-700 motion-reduce:transition-none"
+                <div className="qd-meter mt-1.5">
+                  <span className="transition-[width] duration-700 motion-reduce:transition-none"
                        style={{ width: Math.max(2, Math.round(100 * st.v / max)) + '%', opacity: 1 - i * 0.18 }} />
                 </div>
               </div>
@@ -790,14 +792,19 @@ function Rfqs({ token, lang }) {
   const date = (d) => (d ? new Date(d).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }) : '');
   return <ul className={S.list}>{list.map((i) => {
     const canQuote = !i.concluded && !i.quote;
-    return <li key={i.id}><Card className="qd-panel p-5">
-      <div className="flex justify-between items-start gap-2.5 flex-wrap">
+    return <li key={i.id}><Card className="qd-panel qd-panel-hover p-5 sm:p-6">
+      <div className="flex justify-between items-start gap-3 flex-wrap">
         <div className="min-w-0">
-          <h2 className="text-[15.5px] font-bold text-foreground">{i.category || t(lang, 'request_w')} <span className="font-semibold text-muted-foreground">· {emirateLabel(lang, i.emirate || '')}</span>
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <span className="me-1 font-mono text-label uppercase tracking-caps text-muted-foreground tabular-nums">{(ar ? 'طلب ' : 'RFQ ') + String(i.id || '').slice(0, 8).toUpperCase()}</span>
+            {i.category ? <Badge variant="outline">{i.category}</Badge> : null}
+            {i.emirate ? <Badge variant="secondary">{emirateLabel(lang, i.emirate)}</Badge> : null}
+          </div>
+          <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{i.category || t(lang, 'request_w')} <span className="font-medium text-muted-foreground">· {emirateLabel(lang, i.emirate || '')}</span>
             {i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</h2>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">{!i.you_won && <WithheldCustomer lang={lang} />}<span className="text-[11.5px] text-muted-foreground">{date(i.created_at)}</span>{i.budget ? <span className="text-[11.5px] text-muted-foreground">{(ar ? 'الميزانية: ' : 'Budget: ') + i.budget}</span> : null}</div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">{!i.you_won && <WithheldCustomer lang={lang} />}<span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">{date(i.created_at)}</span>{i.budget ? <span className="text-[11.5px] text-muted-foreground">{(ar ? 'الميزانية: ' : 'Budget: ') + i.budget}</span> : null}</div>
         </div>
-        {i.quote ? <span className="text-primary font-bold text-[13px] tabular-nums">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span>
+        {i.quote ? <span className="rounded-chip border border-primary/30 bg-primary/10 px-2.5 py-1 font-mono text-primary text-[13px] tabular-nums">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span>
           : canQuote ? <Button size="sm" aria-expanded={open === i.id} onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : t(lang, 'quote')}</Button> : null}
       </div>
       {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
@@ -839,25 +846,41 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
     else if (j && j.ok) setMsg(srvMsg(lang, j, t(lang, 'draft_saved')));
     else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
-  return <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2.5">
+  const ar = lang === 'ar';
+  // Presentation only: the sum of what the supplier typed into priced lines, so the totals row can sit
+  // beside the quoted total. It is never sent; `amount` stays the figure the supplier entered.
+  const lineSum = items.reduce((acc, x) => { const q = Number(x.qty), p = Number(x.unit_price); return acc + (q > 0 && p > 0 ? q * p : 0); }, 0);
+  const grp = 'font-mono text-label uppercase tracking-caps text-muted-foreground';
+  return <div className="mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5">
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
-    <div className="flex gap-2.5 flex-wrap"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
+    <div className={cn(grp, 'border-t border-border pt-4')}>{ar ? 'السعر والشروط' : 'Price and terms'}</div>
+    <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
     <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
-    <div className="mt-1">
-      <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? 'بنود العرض (الوصف، الكمية، السعر) — يجعل عرضك جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
+    <div className="border-t border-border pt-4">
+      <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
+      <div className={cn(S.sub, 'mb-2')}>{lang === 'ar' ? 'بنود العرض (الوصف، الكمية، السعر) — يجعل عرضك جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
+      <div className="overflow-x-auto"><div className="min-w-[460px]">
       {items.map((it, ix) => (<div key={ix} className="flex gap-1.5 mb-1.5 items-center">
         <Lbl className="flex-1" text={(lang === 'ar' ? 'الوصف، البند ' : 'Description, line ') + (ix + 1)}><Input placeholder={lang === 'ar' ? 'الوصف' : 'Description'} value={it.description} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, description: e.target.value } : r))} /></Lbl>
-        <Lbl text={(lang === 'ar' ? 'الكمية، البند ' : 'Quantity, line ') + (ix + 1)}><Input style={{ maxWidth: 72 }} inputMode="decimal" placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} /></Lbl>
+        <Lbl text={(lang === 'ar' ? 'الكمية، البند ' : 'Quantity, line ') + (ix + 1)}><Input className="tabular font-mono text-end" style={{ maxWidth: 72 }} inputMode="decimal" placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} /></Lbl>
         <Lbl text={(lang === 'ar' ? 'الوحدة، البند ' : 'Unit, line ') + (ix + 1)}><Input style={{ maxWidth: 72 }} placeholder={lang === 'ar' ? 'وحدة' : 'Unit'} value={it.unit} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit: e.target.value } : r))} /></Lbl>
-        <Lbl text={(lang === 'ar' ? 'سعر الوحدة، البند ' : 'Unit price, line ') + (ix + 1)}><Input style={{ maxWidth: 104 }} inputMode="decimal" placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} /></Lbl>
+        <Lbl text={(lang === 'ar' ? 'سعر الوحدة، البند ' : 'Unit price, line ') + (ix + 1)}><Input className="tabular font-mono text-end" style={{ maxWidth: 104 }} inputMode="decimal" placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} /></Lbl>
         <Button size="sm" variant="outline" aria-label={(lang === 'ar' ? 'احذف البند ' : 'Remove line ') + (ix + 1)} onClick={() => setItems(items.length > 1 ? items.filter((_, i) => i !== ix) : [{ description: '', qty: '', unit: '', unit_price: '' }])}>×</Button>
       </div>))}
-      <Button size="sm" variant="outline" onClick={() => setItems([...items, { description: '', qty: '', unit: '', unit_price: '' }])}>{lang === 'ar' ? '+ إضافة بند' : '+ Add item'}</Button>
+      </div></div>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+        <Button size="sm" variant="outline" onClick={() => setItems([...items, { description: '', qty: '', unit: '', unit_price: '' }])}>{lang === 'ar' ? '+ إضافة بند' : '+ Add item'}</Button>
+        {lineSum > 0 && <div className="flex items-baseline gap-3 rounded-chip border border-border px-3 py-1.5">
+          <span className={grp}>{ar ? 'مجموع البنود المسعّرة' : 'Sum of priced lines'}</span>
+          <span className="tabular font-mono text-[14px] font-semibold text-foreground">{aed(lineSum)}</span>
+        </div>}
+      </div>
     </div>
+    <div className={cn(grp, 'border-t border-border pt-4 -mb-2')}>{ar ? 'النطاق والملاحظات' : 'Scope and notes'}</div>
     <Lbl text={t(lang, 'scope_work')}><textarea className={S.area} placeholder={t(lang, 'scope_work')} value={scope} onChange={(e) => setScope(e.target.value)} rows={2} /></Lbl>
     <Lbl text={t(lang, 'notes_customer')}><textarea className={S.area} placeholder={t(lang, 'notes_customer')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></Lbl>
     {chk && <QuoteCheck chk={chk} lang={lang} />}
-    <div className="flex gap-2 items-center flex-wrap">
+    <div className="flex gap-2 items-center flex-wrap justify-end border-t border-border pt-4">
       <Button size="sm" variant="secondary" disabled={checking || busy || reading} onClick={check}>
         {checking ? (lang === 'ar' ? 'جارٍ الفحص…' : 'Checking…') : (lang === 'ar' ? 'افحص قبل الإرسال' : 'Check before sending')}
       </Button>
