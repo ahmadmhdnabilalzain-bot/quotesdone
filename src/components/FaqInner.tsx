@@ -3,10 +3,11 @@ import { useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import mk from '@/content/marketing.json';
 import css from '@/content/marketingCss.json';
+import { arDoc } from '@/lib/arabicDoc';
 export function FaqInner() {
   const locale = useLocale();
   const entry = (mk as any).faq; const d = entry[locale] || entry.en;
-  const html = d.html as string; const style = (css as any).faq as string;
+  const html = arDoc(d.html as string, locale); const style = (css as any).faq as string;
   useEffect(() => {
     const q = document.getElementById('q') as HTMLInputElement | null;
     const nm = document.getElementById('nm') as HTMLElement | null;
@@ -28,7 +29,7 @@ export function FaqInner() {
     q.addEventListener('input', run); run();
     return () => q.removeEventListener('input', run);
   }, [locale]);
-  return (<><style dangerouslySetInnerHTML={{ __html: style }} /><style dangerouslySetInnerHTML={{ __html: FAQ_DECK_CSS }} /><main id="main" className="mk mk-faq" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} /></>);
+  return (<><style dangerouslySetInnerHTML={{ __html: style }} /><style dangerouslySetInnerHTML={{ __html: FAQ_DECK_CSS.replace('FAQ · 150 ANSWERS', locale === 'ar' ? 'الأسئلة الشائعة · 150 إجابة' : 'FAQ · 150 ANSWERS') }} /><main id="main" className="mk mk-faq" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} /></>);
 }
 
 /* Command-deck polish layered on top of the base FAQ stylesheet — a kicker
