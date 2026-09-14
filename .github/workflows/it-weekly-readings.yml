@@ -51,3 +51,9 @@ jobs:
           git config user.name "it_engineer"
           git config user.email "it-engineer@users.noreply.github.com"
           node scripts/it/open_dependency_patch_pr.mjs
+      # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
+      - if: steps.gate.outputs.skip != '1'
+        run: |
+          git config user.name "it_engineer"
+          git config user.email "it-engineer@users.noreply.github.com"
+          node scripts/it/open_dependency_patch_pr.mjs

@@ -122,6 +122,10 @@ end $fn$;
 revoke execute on function public.fn_accountant_record_filing_outcome(bigint, text, text) from public, anon, authenticated;
 
 -- ── 4. THE DUTY ──────────────────────────────────────────────────────────────────────────────────
+-- 14 SEP 2026: the live body of this routine is redefined, later in MANIFEST, by
+-- the_supplier_agreement_v12_whatsapp_notices_go_to_the_number_the_supplier_confirmed.sql (every notice cites the
+-- clause 21 of the version the supplier accepted). Do not re-apply this file to change it: its decision_policy
+-- upsert would reset supplier_charge_recovery_basis.confirmed.
 create or replace function public.fn_accountant_collections_tick(p_as_of date default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare

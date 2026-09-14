@@ -26,7 +26,6 @@
 #   supplier_catalog_ingest
 #   supplier_onboard
 #   supplier_portal
-#   wa_optin_set
 #   wa_templates_watch
 
 project_id = "htdblwldjkcgjvmqkbeh"
@@ -77,6 +76,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.drawing_boq]
+verify_jwt = false
+
+[functions.backup]
 verify_jwt = false
 
 [functions.drawing_redact]
@@ -222,9 +224,6 @@ verify_jwt = false
 
 [functions.wa_inbound]
 verify_jwt = false
-
-[functions.wa_optin_set]
-verify_jwt = true
 
 [functions.wa_template_setup]
 verify_jwt = false

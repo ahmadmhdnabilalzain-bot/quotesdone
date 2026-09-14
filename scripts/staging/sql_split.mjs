@@ -4,16 +4,11 @@
 // semicolons are NOT statement terminators. Splitting on /;\s*\n/ silently shreds every
 // function into fragments that then fail one by one, which reads as "the baseline is broken"
 // when the splitter is what is broken. Hence a real tokenizer, and a self-test below.
-// fn_schema_export() writes one section header with a LITERAL backslash-n instead of a newline:
-//   -- ===== TABLES (403) =====\nCREATE TABLE IF NOT EXISTS public.action_class_gate (
-// A line comment runs to the end of the LINE, and there is no line break here, so the first
-// CREATE TABLE of the section is swallowed by the comment and silently never created. Whichever
-// table sorts first in that section simply does not exist downstream - it was action_class_gate.
-// Repair the boundary before splitting. Scoped to the section-header pattern so a legitimate
-// \n inside a string literal is untouched.
-export function repairDumpSectionBreaks(sql) {
-  return sql.replace(/(=====)\\n/g, '$1\n');
-}
+// 14 SEP 2026 — the section-break repair that used to live here is gone. fn_schema_export() once
+// wrote the TABLES header with a backslash-n in a literal that had no E prefix, so the first table
+// of the section was swallowed by the comment. That is fixed at the source in
+// scripts/sql/the_mirror_tables_header_ends_its_line.sql, and schema_dump_not_replayable.test.mjs
+// now fails if a section header in the mirror ever runs onto the next statement again.
 
 export function splitStatements(sql) {
   const out = [];

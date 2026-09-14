@@ -36,7 +36,30 @@ export const FILES = [
   'the_accountant_chases_what_a_silent_supplier_owes.sql',
   'every_expense_has_its_receipt_and_every_subscription_its_renewal.sql',
   'the_accountant_runs_its_duties_every_hour.sql',
+  // The five further duties (14 Sep 2026) in their MANIFEST order, and the backup registry after them: it
+  // owns fn_it_backup_expected, whose SQL body reads the year-end table. The batch applies these in the real
+  // final order, so a second, older definition winning would fail the year-end fixture (review of #659).
+  'every_meta_invoice_is_matched_to_the_spend_meta_reported.sql',
+  'every_supplier_charge_claim_is_tracked_to_payment_or_court_on_the_uae_clock.sql',
+  'the_accountant_budgets_every_renewal_the_it_engineer_sees_coming.sql',
+  'the_accountant_tells_the_ceo_every_month_what_is_in_the_bank_and_how_long_it_lasts.sql',
+  'the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql',
+  'every_stored_document_source_is_registered_for_backup.sql',
+  'an_expense_the_founder_vouches_for_is_documented_by_his_word.sql',
 ];
+
+// Every routine is defined in exactly ONE of the files: a second body is a second answer, and the file
+// applied last would silently decide which one runs.
+test('no routine is defined in two of the accountant\'s files', () => {
+  const owner = new Map();
+  for (const f of FILES) {
+    for (const m of read(join(SQL, f)).matchAll(/create or replace function public\.([a-z0-9_]+)\(/g)) {
+      const prev = owner.get(m[1]);
+      assert.ok(!prev || prev === f, `${m[1]} is defined in both ${prev} and ${f}`);
+      owner.set(m[1], f);
+    }
+  }
+});
 const read = (p) => readFileSync(p, 'utf8');
 const sqlText = FILES.map((f) => read(join(SQL, f))).join('\n');
 const fnBody = (name) => {
@@ -111,7 +134,8 @@ test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', {
     r = JSON.parse(m[1].replace(/\\"/g, '"'));
   }
   assert.ok(r, 'the fixture batch committed instead of rolling back');
-  for (const k of ['1_bank', '2_collections', '3_subscriptions', '4_vat', '6_expenses', '7_disputes', '8_close', '9_reserve', '10_charge_audit', '11_costs', 'duties_hour']) {
+  for (const k of ['1_bank', '2_collections', '3_subscriptions', '4_vat', '6_expenses', '7_disputes', '8_close', '9_reserve', '10_charge_audit', '11_costs',
+                   'x1_cash', 'x2_ad_spend', 'x3_recovery', 'x4_year_end', 'x5_renewals', 'duties_hour']) {
     assert.ok(r[k], `duty ${k} did not report`);
   }
 });

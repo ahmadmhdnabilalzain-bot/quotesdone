@@ -6,7 +6,7 @@
 import { opensAs } from './it_restore_drill.ts';
 
 type Sec = (key: string) => Promise<string>;
-type Admin ={ from: (t: string) => any; storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: { message: string } | null }> } } };
+type Admin = { from: (t: string) => any; storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: { message: string } | null }> } } };
 
 const REPO = 'ahmadmhdnabilalzain-bot/quotesdone';
 const SENDING_DOMAINS = ['quotesdone.com'];
