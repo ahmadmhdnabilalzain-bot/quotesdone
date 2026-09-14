@@ -29617,13 +29617,10 @@ begin
       'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,
       'evidence', jsonb_build_object('route', x.route, 'source', x.source, 'checked_at', x.checked_at));
   end loop;
-  -- Only what cannot rotate itself: a legacy credential, or one whose secret has no app_secrets key
-  -- (duty 15, the_it_engineer_takes_on_seven_more_duties.sql, rotates the rest 30 days ahead).
-  for x in select ic.context, ic.expires_at from public.internal_credential ic
-            where ic.active and ic.expires_at is not null and ic.expires_at < now() + interval '30 days'
-              and (ic.is_legacy or not exists (select 1 from public.app_secrets s where s.key = 'cred_' || replace(ic.context, '.', '_'))) loop
+  for x in select context, expires_at from public.internal_credential
+            where active and expires_at is not null and expires_at < now() + interval '30 days' loop
     v_items := v_items || jsonb_build_object('item', 'credential:' || x.context, 'owner_seat', 'ceo', 'subject', x.context,
-      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and cannot be rotated automatically',
+      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and nothing rotates it',
       'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('expires_at', x.expires_at));
   end loop;
   v_out := v_out || jsonb_build_object('expiry', public.fn_it_duty_settle('expiry', v_items));
@@ -29888,6 +29885,35 @@ begin
               'fn_it_engineer_ingest_watch_findings raised (' || sqlerrm || '), so this tick decided '
               || 'what to send you from a ledger that may be missing newly detected faults.','os');
     exception when others then null; end;
+  end;
+
+  ---------------------------------------------------------------------------------------------
+  -- A0. THE DETECTOR PERSISTED A TICK RECENTLY, OR THAT IS ITSELF THE FINDING. Measured 14 Sep 2026:
+  --    fn_it_detect ran past PostgREST's 8 s statement timeout from 14:35 to 15:55 UTC. resilience_ping
+  --    swallowed the error and kept reporting ok, and no detector finding could say so, because the
+  --    detector was the thing failing. This reads only public.it_watch_tick, which fn_it_detect writes
+  --    on every persisted tick, and it runs here because resilience_ping calls this tick separately,
+  --    after the detect call, whether or not that call succeeded.
+  ---------------------------------------------------------------------------------------------
+  begin
+    select extract(epoch from (now() - max(ran_at))) / 60.0 into v_gap_min from public.it_watch_tick;
+    if v_gap_min is null or v_gap_min > 40 then
+      insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+      values ('it_engineer', 'error', now(), now(), jsonb_build_object('job', 'detect_tick', 'gap_minutes', round(coalesce(v_gap_min, -1))),
+              'fn_it_detect has persisted no tick for ' || coalesce(round(v_gap_min)::text, 'ever') || ' minutes');
+      perform public.fn_it_engineer_finding_upsert(
+        'monitor:detect_tick_blind',
+        'The IT engineer''s detector has persisted no tick for ' || coalesce(round(v_gap_min)::text, 'any') || ' minutes',
+        'public.fn_it_detect, called from supabase/functions/resilience_ping (itDetectTick)',
+        'monitor', 1,
+        jsonb_build_object('gap_minutes', round(coalesce(v_gap_min, -1)), 'expected_every', '15 minutes', 'owner_seat', 'ceo',
+                           'look_at', 'the itdetect field of resilience_ping''s response: a timeout or an error from fn_it_detect'),
+        '{}'::text[], array['why fn_it_detect fails or runs past the 8 s statement timeout'], 'fn_it_engineer_alert_tick');
+    else
+      perform public.fn_it_engineer_finding_close('monitor:detect_tick_blind', 'fn_it_detect persisted a tick ' || round(v_gap_min) || ' minutes ago');
+    end if;
+  exception when others then
+    v_errors := v_errors || jsonb_build_object('section','detect_watch','error', sqlerrm);
   end;
 
   ---------------------------------------------------------------------------------------------
