@@ -7,7 +7,10 @@
 //   2. trigger z61 is missing, or a receiving seat can in fact close an it_engineer handoff;
 //   3. an it.finding handoff is past its reply window and was neither answered-and-closed nor escalated;
 //   4. the alert tick writes to the notifications outbox itself instead of going round the loop;
-//   5. a run the founder's hold refused raises a failure finding, or a real failure stops raising one.
+//   5. a run the founder's hold refused raises a failure finding, or a real failure stops raising one;
+//   6. fn_it_detect no longer fits PostgREST's 8 s statement timeout (it ran 10 s on 14 Sep 2026 and
+//      persisted nothing for 80 minutes), or a detector that stops persisting goes unreported;
+//   7. requests made inside a rehearsal window count as customers turned away.
 //
 // Against production. Every write is inside a transaction that ends in `raise exception 'CHK<<…>>'`,
 // so nothing commits; the result is read out of the error text.
@@ -127,4 +130,37 @@ test('a run the founder\'s hold refused is held; a real failure still raises a f
     assert.ok(Number(r.intake.evidence.window_held) >= 3,
       `inquiry_intake fired while the hold is on and did not count the held runs: ${r.intake.title}`);
   }
+});
+
+test('the detector fits the 8 s statement timeout, and a detector that stops persisting is itself a finding', { skip: SKIP }, async () => {
+  const r = await probe(`
+    declare t0 timestamptz; v_ms numeric;
+    begin
+      set local statement_timeout = '8s';
+      t0 := clock_timestamp();
+      perform public.fn_it_detect(null, false);
+      v_ms := extract(epoch from clock_timestamp() - t0) * 1000;
+      set local statement_timeout = 0;
+      update public.it_watch_tick set ran_at = ran_at - interval '2 hours' where ran_at > now() - interval '2 hours';
+      perform public.fn_it_engineer_alert_tick();
+      raise exception 'CHK<<%>>', json_build_object('detect_ms', round(v_ms),
+        'blind_finding', (select closed_at is null from public.it_engineer_finding where issue_key = 'monitor:detect_tick_blind'));
+    end`);
+  assert.ok(r.detect_ms < 6000, `fn_it_detect took ${r.detect_ms} ms; PostgREST cancels it at 8000`);
+  assert.equal(r.blind_finding, true, 'a detector with no persisted tick for two hours raised no monitor finding');
+});
+
+test('refusals inside a rehearsal window are the harness, not customers turned away', { skip: SKIP }, async () => {
+  const r = await probe(`
+    declare v jsonb;
+    begin
+      insert into public.rehearsal_window (run_tag, opened_by, note) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO');
+      insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+      select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '{"http":404}'::jsonb, 'ZZ DEMO'
+        from generate_series(1, 60);
+      v := public.fn_it_detect(null, false);
+      raise exception 'CHK<<%>>', json_build_object('login_refusal_finding',
+        (select count(*) from jsonb_array_elements(v->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'));
+    end`);
+  assert.equal(r.login_refusal_finding, 0);
 });
