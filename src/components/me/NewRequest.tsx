@@ -29,6 +29,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { t, tf, errText, emirateName } from './portalText';
+import { markupSvg } from './markup';
+import { DEVICE_TYPES } from '../../../supabase/functions/drawing_boq/legend_vocabulary';
 import { recognitionLangs, getRecognition, speechErrorKey } from './speech';
 
 const DICT_NAME = { en: { en: 'English', ar: 'Arabic' }, ar: { en: 'الإنجليزية', ar: 'العربية' } };
@@ -93,6 +95,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [input, setInput] = useState('');
   const [intakeId, setIntakeId] = useState(null);
   const [drawing, setDrawing] = useState(null);
+  const [marks, setMarks] = useState(null); // { image, width, height, matches } from the symbol counter
   const [pages, setPages] = useState(null); // { images, b64, mime, name } kept for the redaction editor
   const [editor, setEditor] = useState(false);
   const [thinking, setThinking] = useState(false);
@@ -122,9 +125,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const push = (m) => setMessages((a) => [...a, m]);
   useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
 
-  const runIntake = async (message) => {
+  // drawingNow: the drawing just adopted, passed directly because setDrawing has not landed yet.
+  const runIntake = async (message, drawingNow = null) => {
     setThinking(true); setMsg('');
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (drawing && drawing.boq) || null, lang }, token).catch(() => null);
+    const dr = drawingNow || drawing;
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang }, token).catch(() => null);
     setThinking(false);
     if (!r || r.error) { push({ role: 'assistant', text: errText(r, lang, 'nr_err_generic') }); return; }
     if (r.intake_id) setIntakeId(r.intake_id);
@@ -152,10 +157,15 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const answerChip = (q) => { setInput(q + (ar ? ' — ' : ' — ')); setTimeout(() => { try { inputRef.current.focus(); } catch (_e) {} }, 20); };
 
-  const analyze = async (p, manual_boxes, ocr_text) => {
+  // ocr: plain text (a scan) or the drawing read {text, lines, width, symbols} from ocrDrawing.
+  const analyze = async (p, manual_boxes, ocr) => {
     const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
-    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(ocr_text ? { ocr_text } : {}) }, token);
+    const o = typeof ocr === 'string' ? { ocr_text: ocr } : ocr ? { ocr_text: ocr.text, ocr_lines: ocr.lines, ocr_width: ocr.width, ...(ocr.symbols ? { symbol_counts: { counts: ocr.symbols.counts } } : {}) } : {};
+    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(o.ocr_text || o.ocr_lines ? o : {}) }, token);
   };
+  // A DRAWING photo is read with the drawing plan (ocrPlan.ts) and its symbols counted, in the
+  // browser. Falls back to the plain read on any failure, so a drawing never gets less than before.
+  const ocrDraw = async (img) => { try { const { ocrDrawing } = await import('./ocrClient'); return await ocrDrawing(img, { lite: typeof window !== 'undefined' && window.innerWidth < 700 }); } catch (_e) { return null; } };
   // FREE OCR (14 Sep 2026). The vision model is held and an edge function has ~2 s of CPU, so a photo's
   // or a scan's words are read HERE, by tesseract.js in the customer's browser (ocrClient.ts). The text
   // is untrusted input: the server parses it, strips prices, and scrubs identity like any other text.
@@ -173,7 +183,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const p = { ...(await fileToImages(file)), name: file.name, source };
       setPages(p);
       const isPhoto = /^image\//.test(p.mime) && p.images.length > 0;
-      let res = await analyze(p, undefined, isPhoto ? await ocr(p.images) : '');
+      const read = isPhoto && source === 'drawing' ? await ocrDraw(p.images[0]) : null;
+      if (read && read.symbols && read.symbols.matches.length) setMarks({ image: p.images[0], width: read.width, height: read.height, matches: read.symbols.matches });
+      let res = await analyze(p, undefined, read || (isPhoto ? await ocr(p.images) : ''));
       // A scanned PDF has pages but no text layer: OCR its rendered pages and read that text instead.
       if (!(res && res.boq && res.boq.boq && res.boq.boq.length) && p.mime === 'application/pdf' && p.images.length) {
         const text = await ocr(p.images);
@@ -182,9 +194,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
           if (d && d.ok && d.boq && d.boq.boq && d.boq.boq.length) res = { ...(res || {}), boq: d.boq };
         }
       }
-      adopt(res, file.name, source);
+      const adopted = adopt(res, file.name, source);
       const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
-      if (n >= 1) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
+      // A line we did not READ (qty null, or our own count to confirm) is never waved through: the
+      // sales engineer shows our count and asks (inquiry_intake, _shared/boq_open_lines.ts).
+      const open = n ? res.boq.boq.some((l) => l && (l.qty == null || l.qty_status === 'to_confirm' || l.qty_status === 'estimated')) : false;
+      if (n >= 1 && !open) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
       // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
       // suppliers (customer_api drops the paths, create_inquiry refuses unrecorded ones), so this
       // never says "attached" unless redaction_complete says every page came back.
@@ -208,6 +223,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // drawing_redact's contract (intake engine, 14 Sep): needs_manual_boxes is the one signal that
       // automatic detection could not run, so the editor opens on exactly that and nothing else.
       if (res && res.needs_manual_boxes === true && p.images.length) setEditor(true);
+      if (open) await runIntake('', adopted);
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
@@ -305,13 +321,18 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
     // said. The customer is now told, in their language, that quotes may take longer and why.
     if (r && r.ok) {
-      const reached = Array.isArray(r.children) ? r.children.reduce((n, c) => n + (Number(c && c.matches) || 0), 0) : Number(r.matches) || 0;
-      if (reached > 0) onDone(); else setPosted({ none: true });
+      // One answer shape (customer_api, _shared/inquiry_posted.ts): matches is already summed over a
+      // split's children, and inquiry_id is the request the customer made (the combined parent).
+      const reached = Number(r.matches) || 0;
+      if (reached > 0) onDone(r); else setPosted({ none: true, id: r.inquiry_id || null });
     }
     // Never a dead end: when the server says something is still open, the next question is fetched at
     // once instead of leaving the customer to guess what "more details" means.
     else if (r && (r.error === 'intake_required' || r.error === 'requirements_incomplete')) { setReady(false); push({ role: 'assistant', text: t(lang, 'nr_more_details') }); await runIntake(''); }
     else if (r && r.error === 'requirements_invalid') setMsg(t(lang, 'nr_req_invalid'));
+    // All or nothing (customer_api, _shared/inquiry_split.ts): the customer is told exactly which trades
+    // could not go out, and that nothing was sent, so pressing Send again is safe.
+    else if (r && r.error === 'split_failed') setMsg(tf(lang, 'nr_split_failed', { list: (Array.isArray(r.failed_trades) ? r.failed_trades : []).map((c) => categoryLabel(c, lang)).join(ar ? '، ' : ', ') }));
     else setMsg(errText(r, lang, 'nr_could_not_send'));
   };
 
@@ -382,6 +403,17 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
           <RedactionEditor lang={lang} images={pages.images} onApply={applyBoxes} onSkip={() => setEditor(false)} reduce={reduce} />
         )}
         {boq && Array.isArray(boq.boq) && boq.boq.length > 0 && <BoqTable boq={boq} lang={lang} />}
+        {marks && marks.matches.length > 0 && (
+          <figure className="rounded-card border border-border bg-background p-2">
+            <div className="relative w-full overflow-hidden">
+              <img src={`data:${marks.image.mime};base64,${marks.image.data}`} alt={t(lang, 'nr_markup_caption')} className="block h-auto w-full" />
+              {/* markupSvg emits only numbers, shapes and escaped device labels. */}
+              <div className="pointer-events-none absolute inset-0" aria-hidden
+                dangerouslySetInnerHTML={{ __html: markupSvg(marks.width, marks.height, marks.matches, Object.fromEntries(DEVICE_TYPES.map((d) => [d.type, ar ? d.ar : d.en]))).replace('<svg ', '<svg style="width:100%;height:100%" ') }} />
+            </div>
+            <figcaption className="mt-1.5 text-[12px] text-muted-foreground">{t(lang, 'nr_markup_caption')}</figcaption>
+          </figure>
+        )}
         <AnimatePresence>
           {ready && brief && (
             <motion.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}

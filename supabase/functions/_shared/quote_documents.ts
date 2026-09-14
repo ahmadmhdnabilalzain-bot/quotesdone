@@ -121,9 +121,21 @@ const UNIT_OF: Record<string, Unit> = { day: 'day', days: 'day', week: 'week', w
 /** "2 weeks", "10-14 days", "12 months warranty", "3 working days", "immediate" → Arabic, or null. */
 export function arDuration(s: unknown): string | null {
   if (hasArabic(s)) return String(s);
-  const t = norm(s).replace(/\.$/, '');
+  let t = norm(s).replace(/\.$/, '');
   if (!t) return null;
   if (/^(immediate(ly)?|asap|ex[- ]?stock|from stock|same day)$/.test(t)) return t.includes('stock') ? 'من المخزون فورًا' : 'فوري';
+  // "21 days from order" is the commonest lead time a supplier writes; it fell through to the
+  // "original wording" line on every Arabic report (measured 14 Sep 2026). The anchor is kept.
+  let from = '';
+  const anchor = t.match(/\s+(?:from|after)\s+(?:the\s+)?(order confirmation|purchase order|order|po|lpo|confirmation|approval|advance payment|advance|payment|drawing approval)$/);
+  if (anchor) {
+    from = /approval/.test(anchor[1]) ? ' من الاعتماد' : /advance|payment/.test(anchor[1]) ? ' من استلام الدفعة المقدمة' : ' من تاريخ الطلب';
+    t = t.slice(0, anchor.index);
+  }
+  const r = arDurationCore(t);
+  return r ? r + from : null;
+}
+function arDurationCore(t: string): string | null {
   const m = t.match(/^(\d{1,4})(?:\s*(?:-|–|to)\s*(\d{1,4}))?\s*(working |business |calendar )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)(?: (?:warranty|validity|guarantee))?$/);
   if (!m) return null;
   const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3] && /working|business/.test(m[3]);
@@ -196,7 +208,7 @@ export type Item = {
 // its scope line: each quote's stated value per attribute, per scope line, with a flag against the
 // request, plus the three commercial completeness checks with an `applicable` flag. Values are keyed
 // by the anonymous label ("Supplier A"). A held quote is never a column: the roster decides.
-export type SpecFlag = 'match' | 'differs' | 'missing' | 'na';
+export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
 export type SpecCell = { value?: string | null; flag: SpecFlag; note?: string | null };
 export type TechAttribute = { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, SpecCell> };
 export type TechLine = { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null; attributes: TechAttribute[] };
@@ -212,7 +224,10 @@ export function clipCell(s: unknown, n: number) { const t = String(s == null ? '
 // deno-lint-ignore no-explicit-any
 const arrOf = (x: any) => Array.isArray(x) ? x : [];
 /** "Supplier B" → "المورّد B" on an Arabic page; the letter stays the one on the customer's screen. */
-export function labelFor(label: unknown, lang: Lang) { const l = String(label ?? ''); return lang === 'ar' ? l.replace(/^Supplier\b/, 'المورّد') : l; }
+// "Option N" takes the same Arabic as labelQuotes' own .ar ("المورّد A – الخيار 2"). Measured 14 Sep
+// 2026: only "Supplier" was translated, so the Arabic report read "المورّد A – Option 1" in every table.
+export const arLabelWords = (s: string) => s.replace(/\bSupplier ([A-Z]{1,2})\b/g, 'المورّد $1').replace(/\bOption (\d{1,3})\b/g, 'الخيار $1');
+export function labelFor(label: unknown, lang: Lang) { const l = String(label ?? ''); return lang === 'ar' ? arLabelWords(l) : l; }
 
 // ── VAT never reaches the customer ─────────────────────────────────────────────────────────────
 // Founder, 14 Sep 2026: "our company is not vat registered so for our reveal fee there is no vat.
@@ -259,13 +274,13 @@ function kit(lang: Lang, names: string[] = []) {
   // Any sentence about VAT is dropped in both languages.
   // deno-lint-ignore no-explicit-any
   const sentence = (v: any): any => typeof v === 'string'
-    ? (ar ? stripVat(v).replace(/\bSupplier ([A-Z]{1,2})\b/g, 'المورّد $1').replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
+    ? (ar ? arLabelWords(stripVat(v)).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
     : Array.isArray(v) ? v.map(sentence) : (v && typeof v === 'object') ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'link' ? x : sentence(x)])) : v;
   const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   return { ar, T, money, loc, cell, dur, pay, label, sentence, today };
 }
 type Kit = ReturnType<typeof kit>;
-const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], na: ['N/A', 'لا ينطبق'] };
+const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], optional: ['Not stated (optional)', 'غير مذكورة (اختيارية)'], na: ['N/A', 'لا ينطبق'] };
 /** A spec or term value with its marker. An empty value takes the flag's own word. */
 function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
   const flag: SpecFlag = c?.flag ?? 'missing';
@@ -277,7 +292,7 @@ function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
   return { text: d.text + (note ? ` (${note})` : ''), ...(d.sub ? { sub: d.sub } : {}), flag };
 }
 function legendBlock(k: Kit) {
-  return { t: 'legend', items: [['match', k.T('Matches your request', 'مطابق لطلبك')], ['differs', k.T('Differs from your request', 'مختلف عن طلبك')], ['missing', k.T('Not stated by the supplier', 'لم يذكره المورّد')], ['na', k.T('N/A — does not apply', 'لا ينطبق')]] };
+  return { t: 'legend', items: [['match', k.T('Matches your request', 'مطابق لطلبك')], ['differs', k.T('Differs from your request', 'مختلف عن طلبك')], ['missing', k.T('Not stated by the supplier', 'لم يذكره المورّد')], ['optional', k.T('Not stated (optional detail)', 'غير مذكورة (تفصيل اختياري)')], ['na', k.T('N/A — does not apply', 'لا ينطبق')]] };
 }
 function specText(k: Kit, it: Item): Cell {
   const parts: Array<{ text: string; sub?: string }> = [];
@@ -357,7 +372,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   if (sum > 0) trows.push([T('Lines subtotal', 'مجموع البنود'), k.money(sum, true)]);
   trows.push([T('Total quoted', 'إجمالي العرض'), k.money(exVat, true), true]);
   const diff = sum > 0 && exVat > 0 && Math.abs(sum - exVat) > 1;
-  blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. Confirm the difference with the supplier.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. يُرجى تأكيد الفرق مع المورّد.`) : '' });
+  blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. The quoted total is the price this supplier offered.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. إجمالي العرض هو السعر الذي قدّمه هذا المورّد.`) : '' });
   blocks.push({ t: 'note', text: T(VAT_LINE.en, VAT_LINE.ar) });
 
   section('Completeness check', 'فحص اكتمال العرض');
@@ -461,9 +476,13 @@ function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[
   push(T('Track record', 'سجل الأداء'), (q) => q.track_record_note ? k.cell(k.sentence(q.track_record_note), 180) : '—');
   push(T('Watch out', 'تنبيهات'), (q) => k.sentence(clipCell(joinList(q.flags, k.ar), 200)) || '—');
   // deno-lint-ignore no-explicit-any
-  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => clipCell(k.label(q.label), 20))], rows, labels: qs.map((q: any) => String(q.label)) };
+  // The FULL label, never clipped: a label is the only thing that tells two options of one supplier
+  // apart. Clipped to 20 characters, "Supplier A – Option 1" and "Supplier A – Option 2" both became
+  // "Supplier A – Option…" in the report's commercial table and in compare_csv (measured 14 Sep 2026,
+  // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
+  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
 }
-const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', na: '' };
+const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
 export function compareTable(a: any, ar: boolean): { head: string[]; rows: string[][] } | null {
@@ -473,8 +492,11 @@ export function compareTable(a: any, ar: boolean): { head: string[]; rows: strin
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)) };
 }
 /** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */
+// The trigger set is = + - @ AND a leading tab or carriage return (OWASP CSV injection): cells carry
+// supplier-written text (flags, inclusions, exclusions), and a spreadsheet trims a leading tab/CR
+// and then evaluates what follows. Until 14 Sep 2026 only the first four were escaped.
 export function toCsv(head: string[], rows: string[][]): string {
-  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   // The BOM is what makes Excel read the file as UTF-8; without it Arabic opens as mojibake.
   return '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
 }
@@ -583,7 +605,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     });
     blocks.push({ t: 'table', head: [T('Specification', 'المواصفة'), T('You asked for', 'طلبك'), ...cols.map((l) => k.label(l))], widths: [0.16, 0.18, ...cols.map(() => (0.66 / cols.length))], rows, zebra: true, fs: cols.length >= 4 ? 7.8 : 8.5 });
   } else {
-    blocks.push({ t: 'p', text: T('The suppliers\' line specifications for this request are not in a comparable form yet, so no line-by-line specification table is shown. The commercial comparison below still applies; confirm material specifications with the supplier before you pay.', 'لم تصل مواصفات البنود من المورّدين لهذا الطلب بصيغة قابلة للمقارنة بعد، لذا لا يظهر جدول المواصفات بندًا بندًا. المقارنة التجارية أدناه سارية؛ يُرجى تأكيد مواصفات المواد مع المورّد قبل الدفع.'), muted: true });
+    blocks.push({ t: 'p', text: T('The suppliers\' line specifications for this request are not in a comparable form yet, so no line-by-line specification table is shown. The commercial comparison below still applies, and each quotation shows its specification exactly as the supplier stated it.', 'لم تصل مواصفات البنود من المورّدين لهذا الطلب بصيغة قابلة للمقارنة بعد، لذا لا يظهر جدول المواصفات بندًا بندًا. المقارنة التجارية أدناه سارية، وكل عرض يعرض مواصفاته كما ذكرها المورّد تمامًا.'), muted: true });
   }
   if (tech) for (const l of held) blocks.push({ t: 'note', text: T(`${l} is on hold and is not compared here: its quote does not yet state everything a complete quote must.`, `${k.label(l)} معلّق ولا يُقارن هنا: عرضه لا يذكر بعد كل ما يجب أن يتضمنه العرض المكتمل.`) });
   if (arrOf(a.line_findings).length) {
@@ -635,9 +657,16 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
         const c = at.values?.[String(q.label)]; if (!c || (c.flag !== 'differs' && c.flag !== 'missing')) return;
         const name = ar ? (arAttr(at.key) ?? k.loc(at.label || at.key).text) : String(at.label || at.key).replace(/_/g, ' ').toLowerCase();
         const item = k.loc(ln.item, 60).text; const no = ln.line_no ?? i + 1;
+        // Only differs and missing reach this list; an optional detail not stated is shown in the table
+        // as "Not stated (optional)" and is never chased. The missing branch is a SAFETY NET: the hold
+        // gate keeps a quote with an unstated mandatory detail out of the comparison altogether.
+        // Before the reveal the customer cannot reach a supplier; QuotesDone chases a missing detail
+        // (founder, 14 Sep 2026). A mandatory detail left unstated holds the quote, and the hold desk
+        // asks the supplier through customer_support (WhatsApp and email) until it is filled — so the
+        // sentence says that, never "ask for it". A difference is stated as the supplier quoted it.
         pts.push(c.flag === 'missing'
-          ? T(`Line ${no} (${item}): ${name} not stated — ask for it.`, `البند ${no} (${item}): ${name} غير مذكورة — اطلبها.`)
-          : T(`Line ${no} (${item}): ${name} is ${c.value ?? '—'}; you asked for ${at.requested ?? '—'}.`, `البند ${no} (${item}): ${name} ${k.loc(c.value ?? '—', 60).text} بينما طلبت ${k.loc(at.requested ?? '—', 60).text}.`));
+          ? T(`Line ${no} (${item}): ${name} not stated — we have asked the supplier; this report updates when they answer.`, `البند ${no} (${item}): ${name} غير مذكورة — طلبناها من المورّد، وسيُحدَّث التقرير عند الرد.`)
+          : T(`Line ${no} (${item}): ${name} is ${c.value ?? '—'}; you asked for ${at.requested ?? '—'}. This is what the supplier quoted in writing.`, `البند ${no} (${item}): ${name} ${k.loc(c.value ?? '—', 60).text} بينما طلبت ${k.loc(at.requested ?? '—', 60).text}. هذا ما قدّمه المورّد كتابيًا في عرضه.`));
       }));
     }
     const uniq = [...new Set(pts.map((p) => p.trim()).filter(Boolean))];
@@ -646,7 +675,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   }
   if (risk.length) {
     section('Risks and clarifications by supplier', 'المخاطر والاستيضاحات لكل مورّد');
-    blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Confirm before you pay', 'أكّد قبل الدفع')], rows: risk, widths: [0.2, 0.8] });
+    blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('What to know before you choose', 'ما يجب معرفته قبل الاختيار')], rows: risk, widths: [0.2, 0.8] });
   }
 
   // 7 — Advice and next steps

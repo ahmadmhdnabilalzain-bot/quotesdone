@@ -17,8 +17,11 @@ import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRe
 import { attrsForLine, normText, TRADES, tradeOfCategory, tradeOfLine, type Attr } from './model.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 
-export type Flag = 'match' | 'differs' | 'missing' | 'stated' | 'not_applicable';
-export const MARKER: Record<Flag, string> = { match: '✓', differs: '≠', missing: '—', stated: '', not_applicable: 'n/a' };
+// optional_not_stated: the detail applies to this product and another supplier may state it, but it is
+// not mandatory, so its absence never holds a quote. Shown, so the customer sees the gap, and never
+// chased. Distinct from not_applicable (no such line, or the detail does not apply) and from missing.
+export type Flag = 'match' | 'differs' | 'missing' | 'optional_not_stated' | 'stated' | 'not_applicable';
+export const MARKER: Record<Flag, string> = { match: '✓', differs: '≠', missing: '—', optional_not_stated: '○', stated: '', not_applicable: 'n/a' };
 
 export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; supplier_letter: string; option_no: number; lines: Line[]; terms: Terms };
 // Values shown to the customer never carry a TRN or licence number (identity_numbers.ts), and no VAT
@@ -26,7 +29,10 @@ export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; s
 const safe = (v: string | null) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
 export type RequestLine = { line_no: number; description: string; qty?: number | string | null; unit?: string | null };
 export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string };
-export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference';
+// 'accepted': the customer accepted this value in place of their own when no supplier could quote
+// their exact spec (founder_instruction #321; inquiries.accepted_alternatives). It is then the request.
+export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference' | 'accepted';
+export type AcceptedSpec = { line_no: number; attr: string; accepted: string };
 export type AttrRow = { code: string; label_en: string; label_ar: string; unit: string | null; unit_ar: string | null; mandatory: boolean; requested: string | null; requested_source: ReqSource | null; cells: Cell[] };
 export type LineRow = { row: number; item: string; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[] };
 export type TermCell = { quote_id: string; applies: boolean; value: string | null; flag: Flag; marker: string };
@@ -68,8 +74,11 @@ const cellOf = (quote_id: string, applies: boolean, value: string | null, reques
  * request line — a quote's own values are never its own baseline, or every quote would "match the
  * request" by construction), then from the intake's component answers.
  */
-function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req: Requirements, fromRequest: boolean) {
+function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req: Requirements, fromRequest: boolean, accepted: AcceptedSpec[] = []) {
   const out: Record<string, { value: string; source: ReqSource }> = {};
+  // Applied last (below): what the customer ACCEPTED replaces what they first asked for, so a quote
+  // offering the accepted value matches and is not shown as a deviation (founder_instruction #321).
+  const acceptedHere = accepted.filter((x) => x && Number(x.line_no) === Number(rl.line_no) && x.accepted);
   if (fromRequest) for (const a of attrs) { const v = a.find(rl.description); if (v) out[a.code] = { value: v, source: 'boq' }; }
   const base = trade ? attrsForLine(trade, rl.description) : [];
   for (const m of req?.materials ?? []) {
@@ -79,10 +88,11 @@ function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req:
     const v = requestedValue(m);
     if (v) out[a.code] = { value: v, source: m.choice === 'other' ? 'intake_other' : 'intake' };
   }
+  for (const x of acceptedHere) out[x.attr] = { value: String(x.accepted), source: 'accepted' };
   return out;
 }
 
-export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date }): TechnicalComparison {
+export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date; accepted?: AcceptedSpec[] }): TechnicalComparison {
   const trade = tradeOfCategory(input.category);
   const req = input.requirements ?? null;
   const assessed = input.quotes.map((q) => ({ q, a: assessQuote({ category: input.category, lines: q.lines, terms: q.terms, requirements: req }) }));
@@ -118,7 +128,7 @@ export function technicalComparison(input: { category: string | null; request_li
     const defs = lineDefs(lt, text, req);
     const replaced = defs.some((d) => d.code.startsWith('component_'));
     const attrs: Attr[] = [...defs, ...(lt ? TRADES[lt].attrs.filter((a) => !defs.some((d) => d.code === a.code) && !(replaced && MATERIAL_ATTRS.includes(a.code))) : [])];
-    const requested = r.rl ? requestedFor(r.rl, lt, attrs, req, fromRequest) : {};
+    const requested = r.rl ? requestedFor(r.rl, lt, attrs, req, fromRequest, input.accepted ?? []) : {};
     const attributes: AttrRow[] = attrs.map((a) => {
       const rq = requested[a.code];
       const noPref = rq?.source === 'no_preference';
@@ -126,8 +136,21 @@ export function technicalComparison(input: { category: string | null; request_li
       const cells = assessed.map(({ q, a: qa }) => {
         const ln = r.picks.get(q.quote_id);
         const l = ln != null ? qa.lines.find((x) => x.line_no === ln) : undefined;
-        if (!l) return cellOf(q.quote_id, true, null, baseline, noPref);
-        return cellOf(q.quote_id, l.asked.includes(a.code) || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
+        // MEASURED 14 Sep 2026, both live e2e comparisons: all 20 "missing" cells were a quote with NO
+        // line on the row (another supplier's own item), and the report told the customer "not stated —
+        // ask for it". A quote that does not include an item is not missing a detail of it: not_applicable.
+        if (!l) return cellOf(q.quote_id, false, null, baseline, noPref);
+        // On a line the quote does include, three states for a detail it did not state:
+        //  - MANDATORY for that line → missing. The hold gate (assess.ts, rankable) holds such a quote, so
+        //    a compared quote never carries one; the state stays as a safety net.
+        //  - applies to the product but OPTIONAL → optional_not_stated: a real difference between
+        //    suppliers the customer should see, never chased (review of #644, 14 Sep 2026).
+        //  - does not apply to what this line is → not_applicable.
+        const owed = l.defs.some((d) => d.code === a.code && d.mandatory);
+        if (!l.spec[a.code] && !owed && l.asked.includes(a.code)) {
+          return { ...cellOf(q.quote_id, true, null, baseline, noPref, { source: null, quote_line_no: ln }), flag: 'optional_not_stated' as Flag, marker: MARKER.optional_not_stated };
+        }
+        return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
       });
       return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: defs.some((d) => d.code === a.code && d.mandatory), requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
     }).filter((row) => row.mandatory || row.requested || row.requested_source || row.cells.some((c) => c.value));
@@ -182,7 +205,7 @@ export function technicalComparison(input: { category: string | null; request_li
 //   stated (a value, no baseline) → 'match': the value is stated and the quote passed the gate.
 //   not_applicable → 'na'.
 // ---------------------------------------------------------------------------------------------
-export type RenderFlag = 'match' | 'differs' | 'missing' | 'na';
+export type RenderFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
 export type RenderCell = { value?: string | null; flag: RenderFlag; note?: string | null };
 export type RendererTechnical = {
   suppliers: string[];
@@ -191,7 +214,7 @@ export type RendererTechnical = {
   terms?: { lead_time?: RenderTerm | null; installation?: RenderTerm | null; warranty?: RenderTerm | null } | null;
 };
 type RenderTerm = { applicable?: boolean | null; requested?: string | null; values: Record<string, RenderCell> };
-const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f);
+const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f === 'optional_not_stated' ? 'optional' : f);
 
 export function rendererView(t: TechnicalComparison, lang: 'en' | 'ar'): RendererTechnical {
   const ar = lang === 'ar';

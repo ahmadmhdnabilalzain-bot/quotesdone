@@ -28,7 +28,7 @@ const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16)
 async function dropboxContentHash(bytes: Uint8Array): Promise<string> {
   const B = 4 * 1024 * 1024;
   const parts: Uint8Array[] = [];
-  for (let i = 0; i < bytes.length; i += B) parts.push(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes.subarray(i, i + B))));
+  for (let i = 0; i < bytes.length; i += B) parts.push(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes.subarray(i, i + B) as Uint8Array<ArrayBuffer>)));
   const all = new Uint8Array(parts.length * 32);
   parts.forEach((p, i) => all.set(p, i * 32));
   return hex(await crypto.subtle.digest('SHA-256', all));

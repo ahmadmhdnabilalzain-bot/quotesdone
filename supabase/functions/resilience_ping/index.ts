@@ -100,6 +100,24 @@ async function archiveTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// NO SUPPLIER QUOTED THE EXACT SPEC (founder_instruction #321). Once a pass, sales_engineer checks
+// the inquiries whose quote window closed (or whose invited suppliers all quoted), opens an offer
+// where no eligible quote matches a mandatory requested value, and sends the due reminders and
+// lapses through customer_support. The loop's state and timing live in Postgres
+// (fn_spec_offer_candidates / fn_spec_offer_due), so calling it every pass is correct. sales_engineer
+// is deployed with verify_jwt on, so the service key goes to the gateway; __secret decides the caller.
+async function specOfferTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const r = await fetch(FN + '/sales_engineer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+      body: JSON.stringify({ __secret: secret, action: 'spec_offer_sweep', limit: 20 }), signal: AbortSignal.timeout(55000),
+    });
+    return { status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -530,9 +548,46 @@ async function itDetectTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// KEEP THE PORTAL'S FIVE COLD ISOLATES WARM (14 Sep 2026 e2e finding; reviewed and corrected same
+// day). The customer Overview warms kyc, customer_api, customer_portal, project_api and messages_api
+// together on every sign-in (CustomerPortal.tsx warmDashboard) — five separate Deno isolates, any
+// one of which, cold, adds full V8-boot-plus-module-import latency on top of its query. This closes
+// isolate eviction BETWEEN sign-ins; the portal's own warmDashboard already covers a single sign-in.
+//
+// THE FIRST VERSION OF THIS RELIED ON A 401. That is only confirmed harmless for kyc and
+// customer_api; for customer_portal, project_api and messages_api an unauthenticated call could run
+// real code before failing, and every one of the five would write a 'warn' row to agent_runs every
+// ~15 minutes forever. Each of the five functions now checks `x-qd-warm: 1` as the very first thing
+// in its handler — before auth, before any DB read — and returns 204 with no side effect at all.
+// verify_jwt:true (customer_api, project_api, messages_api) still requires a signed JWT to pass the
+// PLATFORM GATEWAY before the handler ever runs, so the service key travels alongside the warm
+// header for those three; kyc and customer_portal (verify_jwt:false) do not need it and are sent it
+// anyway for one code path instead of two. A 204 classifies 'ok' in observe.ts (see classify()), so
+// none of this can be counted as a failure by any alerting the estate already runs.
+//
+// Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
+// so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
+// must never affect the watchdog's own health verdict.
+async function warmPortalTick(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
+  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
+  return Promise.all(targets.map(async (fn) => {
+    const t0 = Date.now();
+    try {
+      const r = await fetch(FN + '/' + fn, { method: 'GET',
+        headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
+        signal: AbortSignal.timeout(8000) });
+      await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
+      return { fn, ms: Date.now() - t0, ok: r.status === 204 };
+    } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
+  }));
+}
+
 Deno.serve(observe('resilience_ping', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
+    // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
+    // run alongside the ticks instead of lengthening this already-sequential chain.
+    const warmP = warmPortalTick();
     // 0. The CEO's end-of-day digest, before any early return below.
     const digest = await digestTick();
     const ratings = await ratingTick();
@@ -551,12 +606,14 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const itdetect = await itDetectTick();
     const itduties = await itDutiesTick();
     const itscheduled = await itScheduledTick();
+    const specoffer = await specOfferTick();
     const it = await itEngineerAlertTick();
     // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
     // adds no meaningful wall clock to the heartbeat.
     // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
     // pass rather than waiting fifteen minutes for the next one.
     const outbox = await outboxTick();
+    const warm = await warmP.catch(() => []);
     // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
     // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
     // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
@@ -566,7 +623,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -590,6 +647,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, it, outbox, vat, ceoWeekly, ladder, refunds });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, vat, ceoWeekly, ladder, refunds, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

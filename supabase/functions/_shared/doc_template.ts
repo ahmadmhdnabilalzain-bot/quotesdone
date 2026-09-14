@@ -126,7 +126,7 @@ export function footerLines(id: DocIdentity): [string, string] {
 export function footerLinesAr(id: DocIdentity): [string, string] {
   const no = (id.licence.match(/\d{5,}/) || [''])[0];
   const permit = id.permit.replace(/^TDRA\s*/, '');
-  return [`${id.name} · رخصة تجارية من دائرة الاقتصاد والسياحة رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات TDRA ${permit}`,
+  return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات TDRA ${permit}`,
     `دبي، الإمارات العربية المتحدة · ${id.email} · ${id.phone} · ${id.web}`];
 }
 

@@ -36,6 +36,9 @@ async function rpc(name: string, args: Record<string, unknown>): Promise<{ data:
 
 Deno.serve(observe('customer_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
+  // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);
