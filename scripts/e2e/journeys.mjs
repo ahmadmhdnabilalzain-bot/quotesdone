@@ -305,9 +305,21 @@ export async function journeyPayment(ctx) {
     await p.locator('button[type=submit]').click();
     await p.waitForURL(/quotesdone\.(com|ae)/, { timeout: 90000 }).catch(() => {});
   } finally { await b.close(); }
-  const tx = await waitFor(async () => (await read(`select fee_status, payment_ref from public.transactions where quote_id = ${q(live.id)}`))[0], { timeoutMs: 60000 });
-  ctx.paid = !!tx;
-  rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL', JSON.stringify(tx || {}));
+  const tx = await waitFor(async () => (await read(`select id, fee_status, payment_ref, reveal_fee, processing_fee, total_charged, quote_amount,
+      stripe_invoice_id is not null has_invoice, doc_path from public.transactions where quote_id = ${q(live.id)}`))[0], { timeoutMs: 90000 });
+  ctx.paid = !!tx; ctx.paidQuote = live.id; ctx.tx = tx;
+  rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL',
+    JSON.stringify({ fee_status: tx?.fee_status, payment_ref: String(tx?.payment_ref || '').slice(0, 5) + '…' }));
+  if (!tx) return;
+  // #616's formula (_shared/reveal_fee.ts revealCharge): base = round(rate x quote) to the fils;
+  // total = ceil((base + AED 1) / (1 - 3.9%)) - the Checkout Session charges the safest (international) rate.
+  const rate = Number((await read('select standard_reveal_rate r from public.pricing_config where id = 1'))[0].r);
+  const baseF = Math.round(Number(tx.quote_amount) * rate * 100);
+  const totalF = Math.ceil((baseF + 100) / (1 - 0.039) - 1e-9);
+  const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.total_charged) * 100) === totalF
+    && Math.round((Number(tx.reveal_fee) + Number(tx.processing_fee)) * 100) === totalF;
+  rep.step(J, "the fee matches #616's formula (3% + card processing, no VAT)", ok ? 'PASS' : 'FAIL',
+    `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing ${(totalF - baseF) / 100} = ${totalF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------
@@ -319,11 +331,24 @@ export async function journeyInvoiceRefund(ctx) {
     rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'needs a paid reveal. Built and merged: customer_api request_refund, fn_refund_open_from_customer, the 5-working-day ladder, ceo_agent decide. NOT merged on main: a CEO refund checklist in code (refund_ceo_check / refund_ceo_review exist as tables only).');
     return;
   }
-  const live = (ctx.quoteIds || []).find((x) => x.status !== 'draft');
-  const inv = await call('reveal_invoice', ctx.fx.customer.jwt, { quote_id: live.id });
-  const row = (await read(`select ri.invoice_no from public.reveal_invoices ri join public.transactions t on t.id = ri.transaction_id where t.quote_id = ${q(live.id)}`))[0];
-  rep.step(J, 'invoice filed for the reveal', row?.invoice_no ? 'PASS' : 'FAIL', `HTTP ${inv.status} invoice=${row?.invoice_no ?? 'none'}`);
-  rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'not driven: the CEO checklist is not merged in code; request_refund would open a real CEO case');
+  const qid = ctx.paidQuote;
+  // The Stripe invoice: created and paid by Stripe, attached by stripe_webhook (doc_path invoices/…).
+  const tx = await waitFor(async () => { const r = (await read(`select id, stripe_invoice_id is not null has_invoice, doc_path, stripe_invoice_number from public.transactions where quote_id = ${q(qid)}`))[0]; return r?.doc_path ? r : null; }, { timeoutMs: 90000 });
+  rep.step(J, 'Stripe invoice created, paid and its PDF stored', tx?.has_invoice && tx?.doc_path ? 'PASS' : 'FAIL', JSON.stringify(tx || { doc_path: null }));
+  const doc = tx ? (await read(`select kind, bucket, status from public.documents where bucket = 'finance-docs' and path = ${q(tx.doc_path)}`))[0] : null;
+  rep.step(J, "the accountant filed it in the customer's Documents", doc?.kind === 'invoice' ? 'PASS' : 'FAIL', JSON.stringify(doc || {}));
+  const ho = tx ? (await read(`select status, decided_by from public.agent_actions where kind = 'handoff' and target_table = 'transactions' and target_id = ${q(tx.id)}`))[0] : null;
+  rep.step(J, 'handoff accountant -> sales engineer closed', ho?.status === 'done' && ho?.decided_by === 'sales_engineer' ? 'PASS' : 'FAIL', JSON.stringify(ho || {}));
+  const nr = (await read(`select status from public.notifications where type = 'invoice_ready' and quote_id = ${q(qid)}`))[0];
+  rep.step(J, "the sales engineer's 'invoice ready' notice was written and captured", nr?.status === 'suppressed' ? 'PASS' : 'FAIL', JSON.stringify(nr || {}));
+  // The invoice in the portal: the revealed quote's card, deep-linked.
+  const s = await signedInPage(ctx.browser, ctx.fx.customer, { lang: 'en', viewport: 'desktop' });
+  try {
+    await openPortal(s.page, portalUrl('customer', 'en', `?request=${ctx.inquiryId}&quote=${qid}`), s.calls);
+    const seen = await s.page.getByText(/Invoice \(PDF\)|Invoice/).first().isVisible().catch(() => false);
+    rep.step(J, 'the invoice is in the portal', seen ? 'PASS' : 'FAIL', seen ? '"Invoice" visible on the revealed request' : 'no invoice control on screen', { shot: await shot(s.page, ctx.dir, 'e_invoice_in_portal') });
+  } finally { await s.ctx.close(); }
+  rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'not driven: the CEO refund checklist is not merged in code on main (refund_ceo_check / refund_ceo_review exist as tables only); request_refund would open a live CEO case');
 }
 
 // ---- f. every nav item on both portals ----------------------------------------------------------
