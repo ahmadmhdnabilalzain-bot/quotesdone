@@ -12,27 +12,74 @@ import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { durationLabel } from '@/lib/durationLabel';
 import { statusLabel as projectStatusLabel } from '@/components/portal/projects/strings';
-// Spec §22 modules that were written and never mounted. Each renders ONLY fields the endpoint it
-// names already returns; see the header comment in each file for the field-by-field provenance.
-import { ProjectsModule } from '@/components/portal/projects';
+// Cold-first-load fix (14 Sep 2026, en-desktop p50 10.8s / p95 13.2s against a 2.5s bar): shellMs
+// (time to the nav being visible, before any API call) was 6.2-7.4s cold vs 1.2-3.3s seconds later
+// against the same warm deployment. /me is prerendered static HTML (next build: "me" -> SSG), so
+// this is not a Vercel function cold start — it's 1.45 MB raw / ~430 KB gzip of client JS across 16
+// chunks that must download, parse and execute before hydration makes the nav visible. Measured on
+// quotesdone.com: under normal traffic Vercel's edge cache serves every /me chunk as X-Vercel-Cache
+// HIT in <0.25s each; these chunks are portal-only (no marketing page imports them), so after a real
+// idle gap with no visitor to /me they fall out of the edge cache and the first request pays a
+// cold-cascade refetch across all 16. Fewer, smaller chunks in the critical path shrinks that penalty
+// regardless of cache state, and they miss the cache less often once they are only fetched on the
+// tab click that needs them instead of on every /me load.
 // recharts is the heaviest thing on /me and this chart sits below the fold, so it loads on its own
 // after the portal is on screen (website audit 14 Sep 2026: 1.37 MB portal first load).
 import dynamic from 'next/dynamic';
 const SpendingIntelligence = dynamic(() => import('@/components/portal/intelligence/SpendingIntelligence').then((m) => m.SpendingIntelligence), { ssr: false });
+// Every dynamic() below needs a `loading:` fallback: without one, next/dynamic renders NOTHING for
+// the one round trip its chunk takes, so a tab panel opened blank and the negOpen accordion — which
+// starts at 0 height — just snapped its content in (independent review, 14 Sep 2026). ModuleLoading
+// is the same Card/pulse skeleton the stat tiles already use (~line 727), so it needs no new pattern,
+// and it is defined once and reused rather than repeated at each call site. It reads
+// document.documentElement.lang (already set by applyDocumentLocale before any of these can mount,
+// and these are ssr:false so this only ever runs in the browser) instead of taking a `lang` prop,
+// because next/dynamic's `loading` component is instantiated once per dynamic() call, outside
+// CustomerPortal's own render, so it cannot close over this component's `lang` state. A column flex
+// of fixed-height boxes plus one centred line of text has nothing left/right-anchored, so it reads
+// correctly in both directions without a separate RTL variant.
+const ModuleLoading = () => {
+  const lang = typeof document !== 'undefined' && document.documentElement.lang === 'ar' ? 'ar' : 'en';
+  return (<div className="flex flex-col gap-3 py-2" aria-hidden>
+    <Card className="h-24 motion-safe:animate-pulse bg-secondary/25" />
+    <Card className="h-40 motion-safe:animate-pulse bg-secondary/25" />
+    <div className="text-center text-xs text-muted-foreground">{t(lang, 'loading')}</div>
+  </div>);
+};
+// Spec §22 modules that were written and never mounted, and the five module-agent surfaces below:
+// every one of them renders ONLY behind `id === '<tab>'` (see ~line 1505) inside a panel the
+// customer opens by clicking a tab, or behind the negOpen accordion (NegotiationAssistant) — never
+// on the initial /me paint — so none of them belongs in the bundle that has to parse before the nav
+// is visible. CompanyTwin and DecisionSupport are NOT in this group: independent review (14 Sep
+// 2026) found they also render on the default 'home' overview, every signed-in customer's landing
+// screen — see the import below and its comment at ~line 145.
+const ProjectsModule = dynamic(() => import('@/components/portal/projects').then((m) => m.ProjectsModule), { ssr: false, loading: ModuleLoading });
 import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/portal/suppliers/SupplierRelationship';
 // The five surfaces the module agents exported and nothing mounted. Each fetches its own endpoint
 // and owns its own empty state; the portal supplies only the token, the language and — where the
 // surface can use them — rows it already holds, so nothing is fetched twice.
-import { SpatialModule } from '@/components/portal/spatial';
-import { DocumentVault } from '@/components/portal/documents';
+const SpatialModule = dynamic(() => import('@/components/portal/spatial').then((m) => m.SpatialModule), { ssr: false, loading: ModuleLoading });
+const DocumentVault = dynamic(() => import('@/components/portal/documents').then((m) => m.DocumentVault), { ssr: false, loading: ModuleLoading });
 import { RevealPayment } from './RevealPayment';
-import { CommunicationCenter } from '@/components/portal/comms';
-import { OrdersList } from '@/components/portal/approvals';
-import { PredictiveIntelligence, NegotiationAssistant } from '@/components/portal/predict';
+const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
+const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
+const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
+// NegotiationAssistant only mounts once a quote's negotiation accordion is opened (negOpen, ~line 1378).
+const NegotiationAssistant = dynamic(() => import('@/components/portal/predict').then((m) => m.NegotiationAssistant), { ssr: false, loading: ModuleLoading });
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
-import { CompanyTwin, SupplierDiscovery, CustomerMemory, DecisionSupport } from '@/components/portal/twin';
+// SupplierDiscovery and CustomerMemory render only inside the profile tab (id === 'profile', ~line
+// 1541) and are deferred. CompanyTwin and DecisionSupport are NOT deferred: independent review (14
+// Sep 2026) found both also render on the default 'home' overview — every signed-in customer's
+// landing screen, whenever `!onlyRequests` (~line 737 DecisionSupport, ~line 747 CompanyTwin, gated
+// additionally on `ov.twin`) — so they are on the initial /me paint, not behind a tab click. A
+// dynamic import there added a chunk fetch with no loading fallback, popping DecisionSupport (the
+// screen's own call to action) in late and shifting the request list under it. Imported statically,
+// same as before this PR.
+import { CompanyTwin, DecisionSupport } from '@/components/portal/twin';
+const SupplierDiscovery = dynamic(() => import('@/components/portal/twin').then((m) => m.SupplierDiscovery), { ssr: false, loading: ModuleLoading });
+const CustomerMemory = dynamic(() => import('@/components/portal/twin').then((m) => m.CustomerMemory), { ssr: false, loading: ModuleLoading });
 // THE SHELL. The portal was a stack of cards under ten grey pills; this is the application frame
 // the founder asked for — persistent grouped sidebar, a top bar whose widest element is the
 // assistant, a mobile tab bar, and the assistant docked in the layout rather than floating in a
@@ -51,6 +98,8 @@ import { Clarifications } from './Clarifications';
 import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
 import { QuoteBadges } from '@/components/QuoteBadges';
+import { WhatsAppChoice } from '@/components/portal/WhatsAppChoice';
+import { waSignupSettled, waNeedsPrompt, waText } from '@/components/portal/whatsappChoiceText';
 import { useConfirm } from './ConfirmDialog';
 import { motion, useReducedMotion } from 'motion/react';
 
@@ -356,7 +405,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
   const complete = k.full_name && k.dob && k.phone_verified && k.email_verified && k.terms_signed;
   if (!complete) return <>{strip}<main><ProfileGate token={token} lang={lang} theme={theme} onDone={() => load()} /></main></>;
-  return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
+  // kyc={k}: the state this component already fetched carries `whatsapp`, so the dashboard's one-time
+  // question needs no second round trip.
+  return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} kyc={k} />;
 }
 // Under 18 on today's UTC date, from the YYYY-MM-DD a date input produces. Mirrors
 // supabase/functions/_shared/account_rule.ts, which is the authority; this only shows the message early.
@@ -371,6 +422,9 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  // waDone: the WhatsApp question ended in this session without a stored answer (verification over
+  // WhatsApp unavailable). The terms step waits for an answer OR that — see waSignupSettled.
+  const [waDone, setWaDone] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
@@ -406,10 +460,12 @@ function ProfileGate({ token, lang, theme, onDone }) {
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_mobile')} {st.phone_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.phone_verified && (!sentSms ? <Button size="sm" className="mt-3" disabled={busy === 'sms'} onClick={sendSms}>{busy === 'sms' ? t(lang, 'sending') : t(lang, 'send_sms')}</Button>
         : <><div className={S.hint}>{t(lang, sentSms === 'call' ? 'call_note' : 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div><Button variant="link" className="mt-1 px-0 h-auto" onClick={() => { setSentSms(false); setSmsCode(''); }}>{t(lang, 'use_diff_number')}</Button></>)}
+      {/* Asked the moment the mobile is verified (founder, 14 Sep 2026), and before the terms step. */}
+      {st.phone_verified && !waSignupSettled(st.whatsapp, waDone) && <div className="mt-4"><WhatsAppChoice token={token} lang={lang} mode="signup" current={st.whatsapp} mobile={st.phone} onDone={() => { setWaDone(true); load(); }} /></div>}
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_email_h')} {st.email_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-3" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
         : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
-      {st.phone_verified && st.email_verified && <>
+      {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp, waDone) && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
         <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
       </>}
@@ -417,7 +473,10 @@ function ProfileGate({ token, lang, theme, onDone }) {
     {msg && <div className={S.err}>{msg}</div>}
   </Card></AuthShell>);
 }
-function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
+function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale, kyc }) {
+  // Accounts created before the WhatsApp question existed are asked once, here, without blocking
+  // anything; answering or "Ask me later" closes it for good (kyc records asked=true either way).
+  const [waAsk, setWaAsk] = useState(() => waNeedsPrompt(kyc && kyc.whatsapp));
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false);
   // WHY THIS IS NO LONGER A `view`. Messages and Projects were whole-surface early returns: opening
   // either REPLACED the dashboard, which is the full-page navigation §21 asks the portal not to
@@ -662,6 +721,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     </section>
 
     {note && <div className={S.note}>{note}</div>}
+    {waAsk && <div className="mb-3.5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={kyc.whatsapp} mobile={kyc.phone} onDone={() => setWaAsk(false)} /></div>}
     {receipt && <ReceiptNote receipt={receipt} inqs={inqs} lang={lang} onClose={() => setReceipt(null)} />}
     {/* llm_available comes from customer_portal's overview (llm_route_health): it hides the mic
         while transcription is held. Drawings and BOQs are read server-side and are never gated. */}
@@ -1578,7 +1638,11 @@ function AccountSettings({ token, lang, onChanged }) {
   // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
   // Wait for a token, and for a token that has not already expired. SB.auth refreshes on its own
   // and the auth listener re-renders with the new one, so this costs nothing but the 401.
-  useEffect(() => { if (tokenAlive(token)) load(); }, [token]);
+  // The WhatsApp answer is served by kyc state, not customer_api me; undefined = not loaded or not
+  // served, and the row stays hidden rather than showing a state nobody measured.
+  const [wa, setWa] = useState(undefined);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((j) => setWa(j && j.whatsapp ? j.whatsapp : undefined)).catch(() => setWa(undefined));
+  useEffect(() => { if (tokenAlive(token)) { load(); loadWa(); } }, [token]);
   if (err) return <div className={S.err}>{err}</div>;
   if (!me) return <div className={S.sub}>{t(lang, 'loading')}</div>;
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -1645,6 +1709,12 @@ function AccountSettings({ token, lang, onChanged }) {
         </div>
         <div className="mt-1 text-[11.5px] text-muted-foreground">{t(lang, 'lang_note')}</div>
       </Row>
+      {/* Same grid as Row, written out: Row is declared inside this render, so anything under it is a
+          new component type on every keystroke and would lose the half-typed number and code. */}
+      {wa ? <div className="grid gap-1 sm:grid-cols-[190px_1fr] sm:items-start sm:gap-3">
+        <div className="text-[12.5px] font-medium text-muted-foreground">{waText(lang, 'row_label')}</div>
+        <div className="min-w-0"><WhatsAppChoice token={token} lang={lang} mode="settings" current={wa} mobile={me.phone} onDone={loadWa} /></div>
+      </div> : null}
       <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">
         <Button size="sm" disabled={!dirty || busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>

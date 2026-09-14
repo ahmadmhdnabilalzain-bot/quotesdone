@@ -651,3 +651,5 @@ fn_refund_founder_decision_only :: bound to no trigger and called by nothing; th
 # 14 Sep 2026 — the_it_engineer_closes_every_loop_it_opens.sql. The founder-email sections of fn_it_engineer_alert_tick
 # were its only caller and are replaced by the loop; the canonical file is kept as history.
 fn_it_engineer_handover_body :: dropped 14 Sep 2026; its only caller emailed every finding to the founder and was replaced by fn_it_loop_tick :: none
+# 14 Sep 2026 — the_whatsapp_number_is_confirmed_and_only_a_confirmed_one_is_used.sql. One inbound-number helper remains.
+fn_customer_by_whatsapp_sender :: dropped 14 Sep 2026; its only caller, fn_spec_offer_whatsapp_reply (PR #652), now reads fn_whatsapp_owner; no other routine body, trigger, view or repository file called it (pg_depend empty) :: none

@@ -78,7 +78,7 @@ const SERVICE_ACTIONS = new Set(['match', 'spec_offer_sweep']);
 // (2) due reminders go out and lapsed offers close with an apology. State and timing: Postgres.
 async function customerContact(customerId: string | null) {
   if (!customerId) return null;
-  const { data } = await admin.from('customers').select('id,email,phone,wa_optin,locale,is_demo').eq('id', customerId).maybeSingle();
+  const { data } = await admin.from('customers').select('id,email,locale,is_demo').eq('id', customerId).maybeSingle();
   return data || null;
 }
 // deno-lint-ignore no-explicit-any
@@ -87,7 +87,8 @@ async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_rep
     subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'sales_engineer', sender: 'customer_support' };
   const rows: Record<string, unknown>[] = [];
   if (cust?.email) rows.push({ ...base, channel: 'email', to_email: cust.email, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:email` });
-  if (cust?.phone && cust?.wa_optin !== false) rows.push({ ...base, channel: 'whatsapp', to_phone: cust.phone, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:whatsapp` });
+  // WhatsApp goes only to the confirmed WhatsApp number (#322): the a03 trigger addresses it by email or records the skip.
+  if (cust?.email) rows.push({ ...base, channel: 'whatsapp', to_email: cust.email, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:whatsapp` });
   if (!rows.length) return [];
   const { data } = await requestDelivery(admin, rows);
   return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
