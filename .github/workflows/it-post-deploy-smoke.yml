@@ -89,15 +89,18 @@ jobs:
             sleep 30
           done
           echo "::error::Vercel production deploy of $SHA did not succeed in 15 minutes: $last"; exit 1
+      # After a merge the harness is the merged commit's. A dispatch runs the harness from the branch it
+      # was dispatched on against the deployed site, so a harness fix can be proved before it merges.
+      # The changed files are always the deployed commit's own.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.SHA }}
-          fetch-depth: 2
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || env.SHA }}
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
       - run: npm ci && npx playwright install --with-deps chromium
-      - run: git diff --name-only HEAD~1 HEAD > changed-files.txt
+      - run: git diff --name-only "$SHA~1" "$SHA" > changed-files.txt
       # A failed journey step is the finding, not a failed job. The report below always runs, and it
       # fails the job if it cannot hand the run over (no run.json, or the database call throws).
       - run: node scripts/e2e/run.mjs --journey a,b,c
