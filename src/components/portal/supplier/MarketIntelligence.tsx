@@ -171,15 +171,15 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
   // 'flat' gets its own mark rather than defaulting to a down arrow — no change is not a decline.
   const trend = m.demand_trend;
   const arrow = trend?.direction === 'up' ? '↑' : trend?.direction === 'down' ? '↓' : '→';
-  const dirTone = trend?.direction === 'up' ? 'text-emerald-300'
-    : trend?.direction === 'down' ? 'text-rose-300' : 'text-white/60';
+  const dirTone = trend?.direction === 'up' ? 'text-ok-fg'
+    : trend?.direction === 'down' ? 'text-danger-fg' : 'text-white/60';
 
   return (
     <div className="space-y-4">
       {/* A demo fixture must never be able to read its own figures as live trading. The routine
           says which population it computed over; the surface says so out loud. */}
       {m.population === 'demo' && (
-        <p className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-snug text-amber-200/80">
+        <p className="rounded-xl border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
           {t(lang, 'demoBanner')}
         </p>
       )}
@@ -199,12 +199,12 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'inArea')}</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold tabular-nums text-amber-300">{(c.matchable ?? 0).toLocaleString()}</div>
+            <div className="text-2xl font-semibold tabular-nums text-warn-fg">{(c.matchable ?? 0).toLocaleString()}</div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'matchable')}</div>
           </div>
         </div>
         {(c.matchable ?? 0) === 0 && (c.total ?? 0) > 0 && (
-          <p className={'text-[10px] mt-2 leading-snug ' + (c.me_matchable ? 'text-emerald-400/80' : 'opacity-45')}>
+          <p className={'text-[10px] mt-2 leading-snug ' + (c.me_matchable ? 'text-ok/80' : 'opacity-45')}>
             {t(lang, c.me_matchable ? 'matchableNoteAhead' : 'matchableNoteBlocked')}</p>
         )}
       </section>

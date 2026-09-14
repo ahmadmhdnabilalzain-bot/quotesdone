@@ -120,7 +120,7 @@ export default function GetMatched({ token, lang, go }: { token: string; lang: L
 
       {otherBlocking.length > 0 && (
         <div className="mt-5">
-          <h3 className="text-[12.5px] font-bold text-red-400">{ar ? 'يمنع وصول الطلبات إليك' : 'Stopping requests reaching you'}</h3>
+          <h3 className="text-[12.5px] font-bold text-danger">{ar ? 'يمنع وصول الطلبات إليك' : 'Stopping requests reaching you'}</h3>
           <ul className="mt-2 flex flex-col gap-2.5">{otherBlocking.map((it, i) => <Row key={i} it={it} lang={lang} tone="block" go={go} fixLabel={fixLabel} />)}</ul>
         </div>
       )}
@@ -139,7 +139,7 @@ function Row({ it, lang, tone, go, fixLabel }: { it: any; lang: Lang; tone: 'blo
   const label = fixLabel(String(it.fix || ''));
   return (
     <li className="flex items-start gap-2.5">
-      <span aria-hidden className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', tone === 'block' ? 'bg-red-500' : 'bg-primary')} />
+      <span aria-hidden className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', tone === 'block' ? 'bg-danger' : 'bg-primary')} />
       <div className="flex-1">
         <div className="text-[13.5px] font-semibold text-foreground">{title}</div>
         <div className="text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]">{detail}</div>

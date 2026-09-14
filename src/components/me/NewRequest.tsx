@@ -206,7 +206,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="font-head text-[15px] font-bold text-foreground">{t(lang, 'nr_title')}</h2>
           {meta.agent_name ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"><UserRound className="h-3 w-3" aria-hidden />{tf(lang, 'nr_handled_by', { name: meta.agent_name })}</span> : null}
-          {meta.urgency && meta.urgency !== 'normal' ? <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', meta.urgency === 'emergency' ? 'border-red-400/40 bg-red-400/10 text-red-300' : 'border-amber-400/40 bg-amber-400/10 text-amber-300')}>{(() => { const I = urgencyIcon; return <I className="h-3 w-3" aria-hidden />; })()}{t(lang, 'nr_urgency_' + meta.urgency)}</span> : null}
+          {meta.urgency && meta.urgency !== 'normal' ? <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', meta.urgency === 'emergency' ? 'border-danger/40 bg-danger/10 text-danger-fg' : 'border-warn/40 bg-warn/10 text-warn-fg')}>{(() => { const I = urgencyIcon; return <I className="h-3 w-3" aria-hidden />; })()}{t(lang, 'nr_urgency_' + meta.urgency)}</span> : null}
         </div>
         <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'nr_cancel')}</Button>
       </div>
@@ -234,7 +234,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
         ))}
         {meta.override && meta.override.kept && meta.override.model ? (
           <div className="flex justify-start"><button type="button" onClick={() => answerChip(tf(lang, 'nr_override', { kept: meta.override.kept, model: meta.override.model }).split(' — ')[0])}
-            className="rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-start text-[12.5px] text-amber-200 hover:border-amber-400/60">
+            className="rounded-xl border border-warn/35 bg-warn/10 px-3 py-2 text-start text-[12.5px] text-warn-fg hover:border-warn/60">
             {tf(lang, 'nr_override', { kept: String(meta.override.kept).replace(/[-_]/g, ' '), model: String(meta.override.model).replace(/[-_]/g, ' ') })}
           </button></div>
         ) : null}
@@ -282,7 +282,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
                   ))}
                 </fieldset>
               ) : null}
-              {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-amber-300">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
+              {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
               <Button className="mt-3 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </motion.div>
@@ -293,13 +293,13 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
 
       <div className="border-t border-border px-3 py-2.5">
         {modelHeld ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_drawing_paused')}</div> : null}
-        {msg && <div className="mb-1.5 text-[12.5px] text-red-300" role="alert">{msg}</div>}
+        {msg && <div className="mb-1.5 text-[12.5px] text-danger-fg" role="alert">{msg}</div>}
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onFile(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
           <button type="button" title={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-label={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-disabled={modelHeld}
-            className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-red-400' : 'text-primary', modelHeld && 'cursor-not-allowed opacity-40')} onClick={rec ? stopRec : startRec}>
+            className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-danger' : 'text-primary', modelHeld && 'cursor-not-allowed opacity-40')} onClick={rec ? stopRec : startRec}>
             {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
           </button>
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
@@ -375,7 +375,7 @@ function BoqTable({ boq, lang }) {
         </table>
       </div>
       {assumptions.length ? <div className="mt-2 text-[12px] text-muted-foreground"><b className="text-foreground">{t(lang, 'nr_boq_assumptions')}: </b>{assumptions.join(' · ')}</div> : null}
-      {missing.length ? <div className="mt-1 text-[12px] text-amber-300"><b>{t(lang, 'nr_boq_missing')}: </b>{missing.join(' · ')}</div> : null}
+      {missing.length ? <div className="mt-1 text-[12px] text-warn-fg"><b>{t(lang, 'nr_boq_missing')}: </b>{missing.join(' · ')}</div> : null}
     </div>
   );
 }

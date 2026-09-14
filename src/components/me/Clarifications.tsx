@@ -109,7 +109,7 @@ export function Clarifications({ inq, token, lang, call }) {
           </div>
         </div>
       )}
-      {err ? <div className={cn('mt-2 text-[12.5px] text-red-400')} role="alert">{err}</div> : null}
+      {err ? <div className={cn('mt-2 text-[12.5px] text-danger')} role="alert">{err}</div> : null}
     </section>
   );
 }

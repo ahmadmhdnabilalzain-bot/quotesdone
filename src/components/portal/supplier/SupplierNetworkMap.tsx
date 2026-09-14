@@ -188,7 +188,7 @@ export default function SupplierNetworkMap({ token, lang = 'en' }: { token?: str
                 empty
                   ? 'border-white/10 opacity-35 cursor-not-allowed'
                   : on[key]
-                    ? 'border-emerald-400/50 bg-emerald-400/15 text-emerald-200'
+                    ? 'border-ok/50 bg-ok/15 text-ok-fg'
                     : 'border-white/20 hover:bg-white/10'
               }`}
             >

@@ -58,10 +58,10 @@ const T = {
 const t = (lang: Lang) => T[lang] || T.en;
 
 const DOT: Record<Cert['document_status'], string> = {
-  valid: 'bg-emerald-400', expiring: 'bg-amber-300', expired: 'bg-red-400', missing: 'bg-white/25',
+  valid: 'bg-ok', expiring: 'bg-warn', expired: 'bg-danger', missing: 'bg-white/25',
 };
 const IMPACT_STYLE: Record<Cert['impact_level'], string> = {
-  critical: 'text-red-300', high: 'text-amber-300', medium: 'text-white/70', low: 'text-muted-foreground',
+  critical: 'text-danger-fg', high: 'text-warn-fg', medium: 'text-white/70', low: 'text-muted-foreground',
 };
 
 export default function SupplierCertifications({ token, lang = 'en', goTo }:
@@ -91,7 +91,7 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
         <h2 className="text-[15px] font-semibold text-white">{L.title}</h2>
         <p className="text-[11px] text-muted-foreground">
           <span className="tabular-nums">{s.held ?? 0}/{s.total ?? 0}</span> {L.held}
-          {!!s.blocking_missing && <span className="text-red-300"> · {s.blocking_missing} {L.blocking}</span>}
+          {!!s.blocking_missing && <span className="text-danger-fg"> · {s.blocking_missing} {L.blocking}</span>}
         </p>
       </header>
 

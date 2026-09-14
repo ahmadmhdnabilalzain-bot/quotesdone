@@ -156,7 +156,7 @@ export default function SupplierOpportunities({ token, lang = 'en' }:
                   <li key={r.key} className="flex items-start gap-2 text-[12px] leading-[1.6]">
                     <span aria-hidden className={
                       'mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full '
-                      + (unanswerable ? 'bg-white/25' : r.applies ? 'bg-emerald-400' : 'bg-white/20')}
+                      + (unanswerable ? 'bg-white/25' : r.applies ? 'bg-ok' : 'bg-white/20')}
                     />
                     <span className={unanswerable ? 'italic text-muted-foreground/70'
                       : r.applies ? 'text-white/90' : 'text-muted-foreground'}>

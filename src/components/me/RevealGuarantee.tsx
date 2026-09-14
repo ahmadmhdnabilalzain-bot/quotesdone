@@ -10,6 +10,7 @@
 // its step rather than inventing one. Refunds are decided by the chief executive seat.
 import { motion, useReducedMotion } from 'motion/react';
 import { ShieldCheck, Mail, Gavel, Landmark, CreditCard } from 'lucide-react';
+import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { t, tf } from './portalText';
 import { guaranteeClock } from './workingDays';
@@ -23,7 +24,8 @@ export function RevealGuarantee({ lang, fee, terms, facts = null, compact = fals
   // Which rung the job has reached: 0 paid, 1 chase, 2 final call, 3 refund in motion.
   const reached = !clock ? -1 : clock.phase === 'refund' ? 3 : clock.phase === 'final_call' ? 2 : clock.phase === 'chased' ? 1 : 0;
   const steps = [
-    { icon: CreditCard, text: tf(lang, 'g_step_paid', { fee }) },
+    // fee is null on the refund policy page: there is no quote there, so no amount is invented.
+    { icon: CreditCard, text: fee == null ? t(lang, 'g_step_paid_any') : tf(lang, 'g_step_paid', { fee }) },
     { icon: Mail, text: tf(lang, 'g_step_chase', { c }) },
     { icon: Gavel, text: tf(lang, 'g_step_final', { w }) },
     ...(bmin && bmax ? [{ icon: Landmark, text: tf(lang, 'g_step_bank', { bmin, bmax }) }] : []),
@@ -47,7 +49,7 @@ export function RevealGuarantee({ lang, fee, terms, facts = null, compact = fals
             <span className="text-muted-foreground">{phaseText}</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={clock.of} aria-valuenow={clock.day} aria-label={t(lang, 'g_title')}>
-            <motion.div className={cn('h-full rounded-full', clock.phase === 'acknowledged' ? 'bg-primary' : clock.phase === 'final_call' || clock.phase === 'refund' ? 'bg-amber-400' : 'bg-primary')}
+            <motion.div className={cn('h-full rounded-full', clock.phase === 'acknowledged' ? 'bg-primary' : clock.phase === 'final_call' || clock.phase === 'refund' ? 'bg-warn' : 'bg-primary')}
               initial={reduce ? false : { width: 0 }} animate={{ width: Math.max(pct, 4) + '%' }} transition={{ duration: reduce ? 0 : 0.9, ease: [0.2, 0.8, 0.2, 1] }} />
           </div>
         </div>
@@ -72,7 +74,8 @@ export function RevealGuarantee({ lang, fee, terms, facts = null, compact = fals
           );
         })}
       </ol>
-      <p className="mt-3 text-[11px] text-muted-foreground/80">{t(lang, 'g_workdays')}</p>
+      <p className="mt-3 text-[11px] text-muted-foreground/80">{t(lang, 'g_workdays')}{' '}
+        <Link href="/how-we-verify" className="font-semibold text-primary underline-offset-2 hover:underline">{t(lang, 'g_verify')}</Link></p>
     </section>
   );
 }

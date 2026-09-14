@@ -116,7 +116,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
                   key={c.slug}
                   className={'rounded-full border px-2.5 py-1 text-[11px] '
                     + (c.primary
-                      ? 'border-emerald-300/30 bg-emerald-300/[0.08] text-emerald-200'
+                      ? 'border-ok/30 bg-ok/[0.08] text-ok-fg'
                       : 'border-white/12 bg-white/[0.03] opacity-80')}
                 >
                   {c.label || c.slug}

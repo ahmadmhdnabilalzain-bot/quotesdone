@@ -115,7 +115,7 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
             <li key={r.tier} className="flex items-baseline gap-2 text-[12.5px]">
               <span className={'w-[4.5rem] shrink-0 font-medium capitalize ' + (STYLE[r.tier] || 'text-white')}>{r.tier}</span>
               <span className={r.tier === tier ? 'text-white' : 'text-muted-foreground'}>{r.needs}</span>
-              {r.tier === tier && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+              {r.tier === tier && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok" />}
             </li>
           ))}
         </ol>

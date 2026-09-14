@@ -11,6 +11,8 @@ type Ticket = {
   ticket: string; status: Status; created_at: string; acknowledge_due: string; respond_due: string;
   acknowledged_at: string | null; in_review_at: string | null; final_response_at: string | null;
   final_response: string | null; acknowledge_days_left: number; respond_days_left: number;
+  // D4: the reference of the final decision and which seat made it; null until a final response exists.
+  decision_ref?: string | null; decided_by?: 'customer_support' | 'ceo' | null;
 };
 
 const T = {
@@ -22,6 +24,7 @@ const T = {
     resDue: 'Final response due by', resDays: '(10 working days)',
     left: (n: number) => (n === 1 ? '1 working day left' : `${n} working days left`), dueToday: 'due today',
     met: 'met', ourResponse: 'Our final response',
+    decisionRef: 'Decision reference', decidedBy: { customer_support: 'Decided by customer support', ceo: 'Decided by our chief executive' },
     escalateTitle: 'Not satisfied with our final response?',
     escalate: 'You can take your complaint further to the consumer authorities:',
     det: 'Dubai DET Consumer Rights', app: 'the Dubai Consumer app (App Store / Google Play)',
@@ -39,6 +42,7 @@ const T = {
     resDue: 'موعد الرد النهائي', resDays: '(10 أيام عمل)',
     left: (n: number) => `متبقٍ ${n} ${n === 1 ? 'يوم عمل' : 'أيام عمل'}`, dueToday: 'مستحق اليوم',
     met: 'تم الوفاء', ourResponse: 'ردّنا النهائي',
+    decisionRef: 'مرجع القرار', decidedBy: { customer_support: 'قرّره فريق خدمة العملاء', ceo: 'قرّره رئيسنا التنفيذي' },
     escalateTitle: 'لست راضيًا عن ردّنا النهائي؟',
     escalate: 'يمكنك رفع شكواك إلى جهات حماية المستهلك:',
     det: 'حماية المستهلك - دائرة الاقتصاد والسياحة في دبي', app: 'تطبيق Dubai Consumer (متجر App Store / Google Play)',
@@ -138,6 +142,12 @@ export function ComplaintStatus() {
                   <div className="mt-8">
                     <h2 className="text-[18px] font-bold">{t.ourResponse}</h2>
                     <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed">{res.final_response}</p>
+                    {res.decision_ref && (
+                      <p className="mt-3 text-[13.5px] text-muted">
+                        {t.decisionRef}: <bdi dir="ltr" className="font-mono">{res.decision_ref}</bdi>
+                        {res.decided_by ? <> · {t.decidedBy[res.decided_by]}</> : null}
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className="mt-8 rounded-xl border border-[var(--line2)] bg-teal-light/[0.05] px-5 py-4 text-[14.5px] leading-relaxed">

@@ -70,8 +70,8 @@ const T = {
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
 
 const SEV: Record<string, string> = {
-  high: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
-  medium: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
+  high: 'border-danger/40 bg-danger/10 text-danger-fg',
+  medium: 'border-warn/40 bg-warn/10 text-warn-fg',
   low: 'border-white/15 bg-white/5 opacity-80',
 };
 
@@ -135,7 +135,7 @@ export default function SupplierAdvisor({
                   <span className="tabular-nums">{r.pct}% ({r.count})</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full rounded-full bg-rose-400/70 transition-all duration-700"
+                  <div className="h-full rounded-full bg-danger/70 transition-all duration-700"
                        style={{ width: Math.max(2, Math.min(100, r.pct)) + '%' }} />
                 </div>
               </div>

@@ -226,8 +226,10 @@ export function faqLd(pairs: { q: string; a: string }[], locale: string) {
   };
 }
 
-export function blogPostingLd(p: { slug: string; title: string; description: string; published: string | null; author: string | null; category: string | null }) {
-  const url = `${SITE}/blog/${p.slug}`;
+export function blogPostingLd(p: { slug: string; title: string; description: string; published: string | null; author: string | null; category: string | null; locale?: string }) {
+  // /ar pages carried the English headline, English URL and inLanguage 'en' (website audit W22).
+  const ar = p.locale === 'ar';
+  const url = `${SITE}${ar ? '/ar' : ''}/blog/${p.slug}`;
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -235,8 +237,8 @@ export function blogPostingLd(p: { slug: string; title: string; description: str
     description: clampDesc(p.description, 300),
     url,
     mainEntityOfPage: url,
-    image: `${SITE}/blog/${p.slug}/opengraph-image`,
-    inLanguage: 'en',
+    image: `${url}/opengraph-image`,
+    inLanguage: ar ? 'ar' : 'en',
     ...(p.published ? { datePublished: p.published, dateModified: p.published } : {}),
     ...(p.category ? { articleSection: p.category } : {}),
     author: p.author && p.author !== BRAND ? { '@type': 'Person', name: p.author } : { '@id': ORG_ID },
