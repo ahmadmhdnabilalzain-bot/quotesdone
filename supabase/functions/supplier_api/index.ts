@@ -7,6 +7,7 @@ import { asLocale } from '../_shared/registered_locale.ts';
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { registrationMissing } from '../_shared/supplier_registration.ts';
@@ -407,7 +408,12 @@ Deno.serve(observe('supplier_api', async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const out: Record<string, unknown> = {};
       const lic = body.license || {};
-      if (lic.path) { upd.license_doc_path = String(lic.path); }
+      // 14 Sep 2026 (sales_engineer): a path is recorded only when it is this supplier's own and
+      // storage holds the object - otherwise the supplier sees success for a file that is not there
+      // and the backup queues a document it can never copy.
+      const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
+      const notStored = (what: string) => J({ error: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
+      if (lic.path) { if (!(await own(lic.path, 'licenses'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
       //     defaulting to application/octet-stream, so an HTML document or an executable stored
@@ -424,7 +430,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         const s = sc.result;
         const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your trade licence. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
         upd.license_doc_path = p;
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
@@ -449,7 +455,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       // supplier's own typed text once the row has been written (see the 29 Jul 2026 header).
       let xServices: string[] = [];
       const prof = body.company_profile || {};
-      if (prof.path) { upd.company_profile_doc_path = String(prof.path); }
+      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
         const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD,
@@ -458,7 +464,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your company profile. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
@@ -466,7 +472,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
       // because silently dropping one is how a supplier ends up believing a document is on file.
       for (const c of cats) {
-        if (c?.path) { catPaths.push(String(c.path)); }
+        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); }
         else if (c?.original_b64) {
           const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
@@ -474,7 +480,7 @@ Deno.serve(observe('supplier_api', async (req) => {
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-          if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store one of your catalogue files. Please try again.' }, 502);
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
           catPaths.push(p);
         }
         if (Array.isArray(c?.images)) profImgs.push(...c.images);
