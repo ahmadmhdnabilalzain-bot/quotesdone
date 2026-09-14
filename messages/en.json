@@ -563,5 +563,145 @@
     "revealCta": "Reveal for AED 1,162.50 · 3%",
     "note": "Sample data: a worked illustration of the steps on a fixed job, not a live request.",
     "moreListed": "+ 4 more quotes listed under the report · any of them can be chosen"
+  },
+  "productVisuals": {
+    "sealed": {
+      "ref": "Quote Q-0417",
+      "trade": "Fit-out · Dubai",
+      "supplier": "Supplier",
+      "total": "Total AED",
+      "scope": [
+        "Gypsum partitions",
+        "Ceiling works",
+        "Paint & finishes",
+        "MEP first fix"
+      ],
+      "stateSealed": "Sealed on arrival",
+      "stateOpen": "Opened · you chose it",
+      "openName": "Supplier B · licence checked",
+      "openTotal": "36,900",
+      "sealedNote": "Prices open in your comparison report. The supplier’s name stays sealed until you choose.",
+      "openNote": "The one you choose opens: its supplier, in full.",
+      "sample": "Sample data",
+      "altSealed": "Illustration: a quote as it arrives, sealed. The supplier’s name and the total are covered by redaction bars under a seal mark; the scope lines are readable.",
+      "altOpen": "Illustration: the same quote after the customer chose it. The seal is broken and the supplier’s name and total are shown."
+    },
+    "report": {
+      "frame": "report / technical comparison",
+      "status": "Levelled",
+      "sample": "Sample data",
+      "topTitle": "Top 3 · technical comparison",
+      "criterion": "Criterion",
+      "best": "Best match",
+      "total": "Total AED",
+      "suppliers": [
+        "A",
+        "B",
+        "C"
+      ],
+      "rows": [
+        {
+          "k": "Scope lines priced",
+          "v": [
+            "18 / 18",
+            "18 / 18",
+            "17 / 18"
+          ]
+        },
+        {
+          "k": "Specification match",
+          "v": [
+            "Full",
+            "Full",
+            "Partial"
+          ]
+        },
+        {
+          "k": "Programme",
+          "v": [
+            "6 wks",
+            "5 wks",
+            "7 wks"
+          ]
+        },
+        {
+          "k": "Quote validity",
+          "v": [
+            "30 days",
+            "30 days",
+            "14 days"
+          ]
+        }
+      ],
+      "totals": [
+        "38,750",
+        "36,900",
+        "34,200"
+      ],
+      "restTitle": "Every other quote, listed below · all selectable",
+      "rest": [
+        {
+          "s": "D",
+          "v": "35,800"
+        },
+        {
+          "s": "E",
+          "v": "39,400"
+        },
+        {
+          "s": "F",
+          "v": "41,200"
+        },
+        {
+          "s": "G",
+          "v": "43,050"
+        }
+      ],
+      "choose": "Choose",
+      "held": "1 incomplete quote held · a note went to its supplier",
+      "alt": "Illustration of a comparison report: a technical comparison of the three best-matched quotes, then every other quote listed below it, each one available to choose. One incomplete quote is held and its supplier was sent a note."
+    },
+    "drawing": {
+      "frame": "rfq / fit-out · Dubai",
+      "status": "Read from drawing",
+      "sample": "Sample data",
+      "sheet": "A-101 · Ground floor plan",
+      "removed": "Customer details removed",
+      "boq": "Bill of quantities",
+      "lines": [
+        {
+          "code": "02.10",
+          "desc": "Gypsum board partition, 12.5 mm",
+          "qty": "184.0",
+          "unit": "m²"
+        },
+        {
+          "code": "03.04",
+          "desc": "Suspended ceiling, mineral tile",
+          "qty": "96.5",
+          "unit": "m²"
+        },
+        {
+          "code": "05.01",
+          "desc": "Timber door set, single leaf",
+          "qty": "6",
+          "unit": "nr"
+        },
+        {
+          "code": "06.02",
+          "desc": "Porcelain floor tiling 600 × 600",
+          "qty": "112.0",
+          "unit": "m²"
+        },
+        {
+          "code": "07.11",
+          "desc": "Emulsion paint, two coats",
+          "qty": "420.0",
+          "unit": "m²"
+        }
+      ],
+      "note": "Suppliers anywhere in the UAE see the job and its quantities, never who asked.",
+      "alt": "Illustration: a floor-plan drawing whose title block has the customer’s details blacked out, beside bill-of-quantities rows read from the drawing."
+    }
   }
 }

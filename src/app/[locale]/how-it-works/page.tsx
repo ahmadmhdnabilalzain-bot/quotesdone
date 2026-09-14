@@ -6,32 +6,21 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { WorkedCase } from '@/components/WorkedCase';
 import { AnonymityFlow } from '@/components/visual/slots';
 import { PageHero, CtaPanel } from '@/components/DocFrame';
-import { ComparisonShowcase, Kicker, ProductFrame, SectionHead } from '@/components/ui/sealed';
+import { ComparisonReport, SealedQuote } from '@/components/visual/product';
+import { Kicker, SectionHead } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
 
 // /how-it-works — the process distilled from the 150-answer FAQ, with the two-way anonymity table
 // (website audit "Months" row). The worked-case slot renders only from a real closed deal.
-// The comparison in the hero is illustrative and labelled sample. Founder, 14 Sep 2026: the top
-// three are a technical comparison REPORT; every other quote is still listed and can be chosen, so
-// the frame says so under the report.
+// Founder, 14 Sep 2026: the top three are a technical comparison REPORT; every other quote is still
+// listed and can be chosen. The hero shows that report (ComparisonReport, labelled sample), and the
+// anonymity intro shows one quote sealed on arrival and the same quote opened once chosen.
 type Step = { title: string; body: string };
 type Row = { who: string; before: string; after: string };
 
 const L = {
-  en: {
-    frame: 'report / technical comparison', status: 'Levelled', sample: 'Sample data',
-    suppliers: ['A', 'B', 'C'], labels: { item: 'Item', total: 'Total AED', missing: 'Missing', best: 'Best' },
-    rows: ['Gypsum partitions', 'Ceiling works', 'Paint & finishes', 'MEP first fix'],
-    more: '+ 5 more quotes in the full list. Pick any of them.',
-    stepsKicker: 'The process', maskKicker: 'Anonymity', timeKicker: 'Timing', finalKicker: 'Start',
-  },
-  ar: {
-    frame: 'تقرير / مقارنة فنية', status: 'موحّد', sample: 'بيانات نموذجية',
-    suppliers: ['أ', 'ب', 'ج'], labels: { item: 'البند', total: 'الإجمالي (درهم)', missing: 'غير مسعّر', best: 'الأفضل' },
-    rows: ['قواطع جبسية', 'أعمال الأسقف', 'الدهانات والتشطيبات', 'التمديدات الكهروميكانيكية الأولية'],
-    more: '+ 5 عروض أخرى في القائمة الكاملة، ويمكنك اختيار أيٍّ منها.',
-    stepsKicker: 'المراحل', maskKicker: 'السرّية', timeKicker: 'المدد الزمنية', finalKicker: 'ابدأ',
-  },
+  en: { stepsKicker: 'The process', maskKicker: 'Anonymity', timeKicker: 'Timing', finalKicker: 'Start' },
+  ar: { stepsKicker: 'المراحل', maskKicker: 'السرّية', timeKicker: 'المدد الزمنية', finalKicker: 'ابدأ' },
 };
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
@@ -58,18 +47,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
           title={t('title')}
           lead={t('sub')}
           actions={<Button asChild size="xl" className="qd-magnet"><Link href="/#brief">{t('finalCta')}</Link></Button>}
-          aside={
-            <ProductFrame title={x.frame} sampleLabel={x.sample} status={x.status} className="shadow-e3">
-              <ComparisonShowcase suppliers={x.suppliers} best={1} totals={['38,750', '36,900', '34,200']} labels={x.labels}
-                rows={[
-                  { item: x.rows[0], values: ['9,400', '9,100', '8,800'] },
-                  { item: x.rows[1], values: ['7,250', '6,900', '7,000'] },
-                  { item: x.rows[2], values: ['5,600', '5,400', '5,900'] },
-                  { item: x.rows[3], values: ['16,500', '15,500', null] },
-                ]} />
-              <p className="border-t border-line px-4 py-3 font-mono text-label text-faint">{x.more}</p>
-            </ProductFrame>
-          }
+          aside={<ComparisonReport locale={lang} />}
         />
 
         <section className="container-x py-beat-s md:py-beat">
@@ -90,7 +68,13 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
 
         <section className="border-y border-line bg-navy-deep/40">
           <div className="container-x py-beat-s md:py-beat">
-            <SectionHead kicker={x.maskKicker} title={t('maskTitle')} lead={t('maskSub')} />
+            <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
+              <SectionHead kicker={x.maskKicker} title={t('maskTitle')} lead={t('maskSub')} />
+              <div className="grid gap-4 sm:grid-cols-2 lg:w-[620px]">
+                <SealedQuote locale={lang} />
+                <SealedQuote locale={lang} open />
+              </div>
+            </div>
             <div className="mt-10 empty:hidden">
               <AnonymityFlow locale={lang} />
             </div>
