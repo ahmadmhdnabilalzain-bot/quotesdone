@@ -33,13 +33,13 @@ Deno.serve(observe('contact_submit', async (req) => {
         try { await admin.from('agent_runs').insert({ agent:'contact_submit', status:'error', counts:{ complaint_ticket_failed:1 }, note:'contact_submit stored a complaint (contact_messages #'+(row?.id||'')+') but fn_complaint_open failed: '+String(te?.message||'no row').slice(0,300)+'. customer_support must open the ticket by hand.', finished_at:new Date().toISOString() }); } catch(_e3){ /* */ }
       } else ticket = t as Ticket;
     }
-    // THE NOTIFY GOES THROUGH THE OUTBOX, SENT BY customer_support (14 Sep 2026). Founder: "the only
-    // agent who uses the whatsapp and email is the customer support agent." This handler used to build
+    // THE NOTIFY GOES THROUGH THE OUTBOX, SENT BY customer_support (ruling of 14 Sep 2026: "the only
+    // agent who uses the whatsapp and email is the customer support agent"). This handler used to build
     // its own provider call, the one email path outside notifications. It now queues a delivery request
     // like every other seat: send_outbox dispatches it as customer_support, applies email_suppressions
-    // (so the 27 Jul suppression bypass is closed by the dispatcher rather than restated here), and
-    // a10_notifications_founder_mail_policy governs it by kind 'contact_message'. The contact_messages
-    // row is stored either way, so nothing a customer wrote is lost.
+    // (so the 27 Jul suppression bypass is closed by the dispatcher rather than restated here), and the
+    // outbox's mail-policy trigger governs it by kind 'contact_message'. The contact_messages row is
+    // stored either way, so nothing a customer wrote is lost.
     try {
       const to = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
       await admin.from('notifications').insert({
