@@ -153,6 +153,10 @@ export function parseBudget(text: string): string | null {
 
 // ── YES / NO / DON'T KNOW ───────────────────────────────────────────────────────────────────────
 export function parseYesNo(text: string): 'Yes' | 'No' | null {
+  // "Not sure" is not a yes. The yes pattern below contains `sure`, so without this line "not sure,
+  // advise" read as Yes (found 14 Sep 2026 replaying the founder's generators request: his "Not sure"
+  // about the power rating answered "should it switch on by itself?" with Yes, unasked).
+  if (isUnknown(text)) return null;
   const t = ' ' + String(text || '').toLowerCase().trim() + ' ';
   if (/\b(no|nope|not needed|none|don't need|do not need)\b|^\s*لا\s|لا نحتاج|لا أحتاج|غير مطلوب/.test(t)) return 'No';
   if (/\b(yes|yeah|yep|yup|sure|please|of course|definitely|needed|required)\b|نعم|أيوه|ايوه|اي نعم|أكيد|اكيد|طبعا|طبعاً|مطلوب/.test(t)) return 'Yes';
@@ -244,7 +248,10 @@ export function parseAnswer(f: SpecField, text: string, targeted: boolean): stri
   const opts = Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : [];
   const kind = kindOf(f);
   if (opts.length) {
-    if (opts.length <= 3 && opts.some((o) => /^yes\b/i.test(o)) && opts.some((o) => /^no\b/i.test(o))) {
+    // Only the question just asked can be answered by a bare yes or no. Reading the whole
+    // conversation for one let any "yes" or "no" the customer said about something else fill every
+    // unanswered yes/no field at once.
+    if (targeted && opts.length <= 3 && opts.some((o) => /^yes\b/i.test(o)) && opts.some((o) => /^no\b/i.test(o))) {
       const yn = parseYesNo(raw);
       if (yn) return opts.find((o) => o.toLowerCase().startsWith(yn.toLowerCase())) || yn;
     }
@@ -255,7 +262,11 @@ export function parseAnswer(f: SpecField, text: string, targeted: boolean): stri
         || (['Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'].includes(e) ? opts.find((o) => /northern/i.test(o)) : undefined)
         || (targeted ? e : null);
     }
-    const hits = matchOptions(opts, raw);
+    // A "not sure" is only ever the answer to the question it was said to. Read untargeted, one "not
+    // sure" anywhere in the conversation filled every field that offers a Not sure / Recommend option
+    // (the generators replay, 14 Sep 2026: "Not sure - advise" about power also answered the
+    // automatic-switch question, which was then never asked).
+    const hits = matchOptions(opts, raw).filter((o) => targeted || !/not sure|recommend|advise|unknown|unsure/i.test(o));
     if (hits.length) return f.type === 'multiselect' ? hits.join(', ') : hits[0];
     if (targeted && isUnknown(raw)) return opts.find((o) => /not sure|recommend|advise|unknown|unsure/i.test(o)) || 'Not sure';
     return targeted ? raw.slice(0, 300) : null;

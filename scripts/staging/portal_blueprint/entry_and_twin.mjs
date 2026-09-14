@@ -40,7 +40,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const EXPECTED = 30;
+export const EXPECTED = 29;   // 30 until 14 Sep 2026; twin-approval-chain retired
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const rd = (p) => { try { return readFileSync(p, 'utf8'); } catch { return ''; } };
@@ -316,13 +316,13 @@ export default async function ({ req }) {
 
     // A recommendation feed is a feed of recommendation-shaped items. The alert machinery exists and
     // renders; the kinds it can produce are the measured thing.
-    const recKinds = alertKinds.filter(k => /price|lead|approval|recommend|forecast/i.test(k));
-    const recEmit = cnt(/kind:\s*'[a-z0-9_]*(price|lead|approval|recommend|forecast)[a-z0-9_]*'/i, CUST_SRC);
+    const recKinds = alertKinds.filter(k => /price|lead|recommend|forecast/i.test(k));
+    const recEmit = cnt(/kind:\s*'[a-z0-9_]*(price|lead|recommend|forecast)[a-z0-9_]*'/i, CUST_SRC);
     await req(S1, 'entry-ai-recommendations',
-      'AI Recommendations feed: price moves, better lead times, approvals due',
+      'AI Recommendations feed: price moves, better lead times',   // "approvals due" retired 14 Sep 2026
       `select ${recEmit} > 0 and ${recKinds.length} > 0 and ${alertRegion} > 0`,
       `select 'alert kinds emitted by the customer-reachable edge set: ' || ${LIST(alertKinds)}
-        || ' (' || ${alertKinds.length} || ' kind(s)); of those, price-move / lead-time / approval-shaped='
+        || ' (' || ${alertKinds.length} || ' kind(s)); of those, price-move / lead-time shaped='
         || ${recKinds.length} || '; recommendation-shaped kind literals anywhere in that set=' || ${recEmit}
         || '; the alerts array itself does reach the screen (' || ${alertRegion}
         || ' render site(s)), so a kind that existed would be shown'`);
@@ -411,23 +411,8 @@ export default async function ({ req }) {
         || '; a categories rollup rendered in CustomerPortal.tsx=' || ${catRollupRender}
         || ' — the card shows one inquiry.category per request, which is not a pattern'`);
 
-    const polInCustEdge = cnt(/procurement_approval_policy|procurement_approval_request/, CUST_SRC);
-    // A RENDERED CHAIN, NOT THE WORD. `cnt(/approval|approver/i, PORTAL)` is satisfiable by typing
-    // the word once — a spelling, not a surface, and the same shape as the empty state this row
-    // exists to stop. The render leg is the token inside a JSX interpolation; the raw word count is
-    // printed beside it so the narrower verdict shows the wider figure it rejected.
-    const polWord = cnt(/approval|approver/i, PORTAL);
-    const polInPortal = cnt(/\{[^{}]{0,160}(approval|approver|current_step|decisions)[^{}]{0,160}\}/i, PORTAL);
-    await req(S2, 'twin-approval-chain', "Twin renders the customer's approval chain",
-      `select ${COLN('procurement_approval_policy', '^steps$')} > 0
-          and ${CONSUMERS('procurement_approval_policy')} > 0 and ${polInCustEdge} > 0 and ${polInPortal} > 0`,
-      `select 'procurement_approval_policy columns: ' || ${COLS('procurement_approval_policy')}
-        || ' with ' || ${ROWS('procurement_approval_policy')} || ' row(s)'
-        || '; consumers excluding writers=' || ${CONSUMERS('procurement_approval_policy')}
-        || ' (' || ${CONSUMER_NAMES('procurement_approval_policy')} || ')'
-        || '; references in the customer-reachable edge set=' || ${polInCustEdge}
-        || '; an approval field inside a JSX interpolation in CustomerPortal.tsx=' || ${polInPortal}
-        || ' of ' || ${polWord} || ' raw mention(s) of the word in that file'`);
+    // twin-approval-chain retired 14 Sep 2026: the twin no longer carries an approval chain because
+    // the Approvals tab and its tables were removed. Founder: "i think its better just to remove the approvals tab. cause even if a company signed up, we don't wanna interfere in their approvals process and they are treated like normal individuals".
 
     // The render leg matches a confidence FIGURE, not the word. A bare /completeness/ scan reads 1
     // on this file and the hit is the word inside a tooltip explaining the Value score

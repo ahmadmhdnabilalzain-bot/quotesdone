@@ -9,7 +9,9 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
+import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink } from '../_shared/site_origins.ts';
+import { revealCharge } from '../_shared/reveal_fee.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -425,12 +427,19 @@ async function buildBriefPdf(inq: any, lang: string) {
   const spec = (inq?.spec && typeof inq.spec === 'object' && !Array.isArray(inq.spec)) ? inq.spec : null;
   if (spec) {
     const rows = Object.entries(spec)
-      .filter(([, v]) => v != null && String(v).trim() !== '')
+      .filter(([k, v]) => k !== 'customer_requirements' && v != null && (typeof v !== 'object' || Array.isArray(v)) && String(v).trim() !== '')
       .map(([k, v]) => [clipCell(String(k).replace(/_/g, ' '), 40), clipCell(Array.isArray(v) ? v.join(', ') : v, 160)]);
     if (rows.length) {
       blocks.push({ t: 'h2', text: T('Specification', 'المواصفات') });
       blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Detail', 'التفصيل')], rows, widths: [0.32, 0.68] });
     }
+  }
+  // What the customer asked the sales engineer for (docs/contracts/intake_answers.md), from the derived
+  // display rows so the PDF says exactly what the portal says, in the document's language.
+  const reqRows = (spec as any)?.customer_requirements?.display?.[ar ? 'ar' : 'en'];
+  if (Array.isArray(reqRows) && reqRows.length) {
+    blocks.push({ t: 'h2', text: T('What the customer asked for', 'ما طلبه العميل') });
+    blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Requested', 'المطلوب')], rows: reqRows.map((r: any) => [clipCell(r?.label, 40), clipCell(r?.value, 160)]), widths: [0.32, 0.68] });
   }
   const boq = (inq?.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq : null;
   if (boq && boq.length) {
@@ -797,6 +806,24 @@ Deno.serve(observe('customer_api', async (req) => {
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;
       const budget = (body.budget ? String(body.budget) : (briefObj?.budget ? String(briefObj.budget) : '')).slice(0, 80) || null;
+      // THE SALES ENGINEER'S QUESTIONS GATE THE POST (founder, 14 Sep 2026: "do you require a warranty?
+      // do you require installation? do you have specific material in mind ... our job is to ask").
+      // inquiry_intake only marks an intake ready once they are answered; this re-checks the stored
+      // answers on the server, because a ready intake from before this change, or a body that edits
+      // them, must not post a request whose baseline is missing. Edits from the summary card are
+      // parsed again here (applyEdits); the browser's reading of them is never trusted. The answers go
+      // into spec, so the existing identity scrub (spec_masked, scrubDeep) covers them and suppliers
+      // read them with the rest of the brief (docs/contracts/intake_answers.md).
+      const reqCategory = String(briefObj?.requirements?.category || intake?.category || category);
+      let reqStored: any = briefObj?.requirements ?? null;
+      if (body.requirement_edits && typeof body.requirement_edits === 'object' && !Array.isArray(body.requirement_edits) && Object.keys(body.requirement_edits).length) {
+        const ed = applyEdits(reqCategory, reqStored, body.requirement_edits, new Date());
+        if (ed.invalid.length) return J({ error: 'requirements_invalid', keys: ed.invalid, message: 'One of your changes could not be read. Pick one of the options instead.' }, 422);
+        reqStored = ed.stored;
+      }
+      const reqCheck = validateStored(reqCategory, reqStored);
+      if (!reqCheck.ok) return J({ error: 'requirements_incomplete', missing: reqCheck.missing, message: 'A few quick questions are still open: materials, installation, warranty or the date you need it by.' }, 428);
+      spec.customer_requirements = reqStored;
       const scope_type = ['single','multi','turnkey'].includes(String(body.scope_type)) ? String(body.scope_type) : 'single';
       const tradesIn = Array.isArray(body.trades) ? body.trades.map((t: any) => String(t).toLowerCase()).filter(Boolean) : [];
       const d = detect(raw + ' ' + summary + ' ' + Object.values(spec).join(' '));
@@ -854,9 +881,12 @@ Deno.serve(observe('customer_api', async (req) => {
       // The window as stated, plus a resolved date when one can be resolved. Suppliers quote
       // against the phrase; the portal sorts against the date. `required_by` stays null rather than
       // guessing — "as soon as possible" is a real answer and is not a date.
-      const timelineTxt = briefObj?.timeline != null ? String(briefObj.timeline).slice(0, 120) : null;
+      const timelineTxt = briefObj?.timeline != null ? String(briefObj.timeline).slice(0, 120) : (reqStored?.required_by?.text ? String(reqStored.required_by.text).slice(0, 120) : null);
       const isoDay = /^\d{4}-\d{2}-\d{2}$/;
       const requiredBy = (() => {
+        // The date the customer gave the sales engineer is the customer's own answer and wins.
+        const asked = String(reqStored?.required_by?.date || '');
+        if (isoDay.test(asked)) return asked;
         const t = String(briefObj?.required_by || '').trim();
         if (isoDay.test(t)) return t;
         // The duration is found ANYWHERE in the phrase, not only at its start. Real answers read
@@ -902,7 +932,7 @@ Deno.serve(observe('customer_api', async (req) => {
           const { data: child, error: ec } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parent!.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary, keywords: childKw, status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
           if (ec || !child) continue;
           const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-          const { matches } = await matchAndNotify(String(child.id), { category: tr, emirate, keywords: childKw, summary: childSummary, budget, extra, useRouter: false, multi: false });
+          const { matches } = await matchAndNotify(String(child.id), { category: tr, emirate, keywords: childKw, summary: childSummary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: false });
           children.push({ inquiry_id: child.id, trade: tr, label: tlabel, matches });
         }
         return J({ ok: true, split: true, scope_type: 'multi', parent_id: parent!.id, children, trades: distinctTrades });
@@ -915,7 +945,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra, useRouter: false, multi: true });
+        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: true });
         return J({ ok: true, inquiry_id: inq!.id, scope_type: 'turnkey', matches });
       }
 
@@ -923,7 +953,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (e1) return J({ error: e1.message }, 500);
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
-      const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra, useRouter: true, multi: false });
+      const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: true, multi: false });
       return J({ ok: true, inquiry_id: inq!.id, matches, routing });
     }
 
@@ -1196,7 +1226,9 @@ Deno.serve(observe('customer_api', async (req) => {
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
       if (existing) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
-      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), currency: 'AED' });
+      // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
+      const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
+      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
     }
 
     if (action === 'request_refund') {

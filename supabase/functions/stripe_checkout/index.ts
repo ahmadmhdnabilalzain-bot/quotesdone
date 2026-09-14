@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
+import { revealCharge } from '../_shared/reveal_fee.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -46,7 +47,16 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const { data: cfg } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle();
     const fee = revealFee(Number(q.quote_amount), cfg || {});
     if (!(fee > 0)) { await logRun('error', { quote_id: qid, quote_amount: q.quote_amount, fee, has_pricing_config: !!cfg }, 'invalid_fee computed - checkout blocked (check pricing_config rates/caps and quote_amount)'); return J({ error: 'invalid_fee' }, 400); }
-    const fils = Math.round(fee * 100);
+    // 14 Sep 2026 (founder): "3% plus stripe fees included". The 3% line is unchanged; card
+    // processing is its own line so the invoice says what each part is. No tax on either line.
+    const ch = revealCharge(Number(q.quote_amount), Number(cfg?.standard_reveal_rate));
+    if (ch.base_fee !== fee) { await logRun('error', { quote_id: qid, fee, base: ch.base_fee }, 'reveal fee disagreement between revealFee and revealCharge - checkout blocked'); return J({ error: 'invalid_fee' }, 400); }
+    // "Reveal fee — QD-XXXXXXXX / Supplier B": the letter is the one the customer's card shows,
+    // the place among the LIVE quotes by ascending price (customer_api letterOf).
+    const { data: sibs } = await admin.from('quotes').select('id').eq('inquiry_id', q.inquiry_id).neq('status', 'draft').order('quote_amount', { ascending: true });
+    const idx = Math.max(0, (sibs || []).findIndex((x: { id: string }) => x.id === q.id));
+    const letter = String.fromCharCode(65 + (idx % 26));
+    const requestRef = 'QD-' + String(q.inquiry_id || '').slice(0, 8).toUpperCase();
     // 27 Jul 2026 — two defects fixed here.
     // (1) OPEN REDIRECT. return_url was taken verbatim from the request body, so a crafted call
     //     sent the paying customer to any domain with the Checkout Session id in the query string.
@@ -72,9 +82,13 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     form.set('customer_email', user.email);
     form.set('line_items[0][quantity]', '1');
     form.set('line_items[0][price_data][currency]', 'aed');
-    form.set('line_items[0][price_data][unit_amount]', String(fils));
-    form.set('line_items[0][price_data][product_data][name]', 'QuotesDone reveal fee');
-    form.set('line_items[0][price_data][product_data][description]', 'One-time fee to reveal the chosen supplier contact details');
+    form.set('line_items[0][price_data][unit_amount]', String(Math.round(ch.base_fee * 100)));
+    form.set('line_items[0][price_data][product_data][name]', 'Reveal fee (3% of AED ' + Number(q.quote_amount).toFixed(2) + ')');
+    form.set('line_items[0][price_data][product_data][description]', requestRef + ' / Supplier ' + letter);
+    form.set('line_items[1][quantity]', '1');
+    form.set('line_items[1][price_data][currency]', 'aed');
+    form.set('line_items[1][price_data][unit_amount]', String(Math.round(ch.processing_fee * 100)));
+    form.set('line_items[1][price_data][product_data][name]', 'Card processing (Stripe)');
     // STRIPE ISSUES THE INVOICE (9 Sep 2026). The founder: "stripe automatically generates an
     // invoice as far as i know, our accountant need to retrieve that and be connected, then add it
     // to his records". He is right that Stripe does this and I was wrong to describe it as
@@ -90,25 +104,30 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     // The description is what appears on the customer's invoice, so it says what they bought in
     // their words, not ours: they paid to unlock a supplier's details on a specific request.
     form.set('invoice_creation[enabled]', 'true');
-    form.set('invoice_creation[invoice_data][description]',
-      'QuotesDone reveal fee — unlocking the contact details of your chosen supplier');
+    form.set('invoice_creation[invoice_data][description]', 'Reveal fee — ' + requestRef + ' / Supplier ' + letter);
     form.set('invoice_creation[invoice_data][metadata][quote_id]', qid);
     form.set('invoice_creation[invoice_data][metadata][inquiry_id]', String(q.inquiry_id));
+    form.set('invoice_creation[invoice_data][metadata][base_fee]', String(ch.base_fee));
+    form.set('invoice_creation[invoice_data][metadata][processing_fee]', String(ch.processing_fee));
+    form.set('invoice_creation[invoice_data][metadata][total_charged]', String(ch.total_charged));
     // The footer carries the licence, because a UAE buyer's finance team will ask who issued this.
+    // No TRN and no tax: the company is not VAT-registered (founder, 14 Sep 2026).
     form.set('invoice_creation[invoice_data][footer]',
-      'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+      'QuotesDone Technologies · DET licence 1633275 · TDRA NOL-26-100000665 · not registered for VAT, no VAT charged');
 
     form.set('metadata[quote_id]', qid);
     form.set('metadata[inquiry_id]', String(q.inquiry_id));
     form.set('metadata[customer_id]', String(cust.id));
     form.set('metadata[supplier_id]', String(q.supplier_id));
     form.set('metadata[reveal_fee]', String(fee));
+    form.set('metadata[processing_fee]', String(ch.processing_fee));
+    form.set('metadata[total_charged]', String(ch.total_charged));
     form.set('metadata[quote_amount]', String(q.quote_amount));
     form.set('payment_intent_data[metadata][quote_id]', qid);
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     const sj = await r.json();
     if (!r.ok) { await logRun('error', { quote_id: qid, fee, http: r.status }, 'stripe session create failed: ' + String(sj?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }
-    await logRun('ok', { quote_id: qid, fee, session: String(sj?.id || '') }, '');
-    return J({ ok: true, url: sj.url, fee, currency: 'AED' });
+    await logRun('ok', { quote_id: qid, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, session: String(sj?.id || '') }, '');
+    return J({ ok: true, url: sj.url, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 }));
