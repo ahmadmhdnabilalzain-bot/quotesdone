@@ -12,10 +12,13 @@
 --     before pg_cron went on 7 Sep: 5,199 objects, 13,470 MB. 45 days have a _manifest.json; 19 do not
 --     (v1 died mid-run or errored), and the last day, 2026-09-07, is one of the 19. The oldest is 84 days
 --     old today, so NOTHING has reached 90 days yet: 2026-06-23 is 91 days old on 2026-09-22.
---   * Read through fn_backup_prune_plan in an aborted transaction (15 Sep 2026): 64 days, 0 to delete,
---     all 64 kept as "blocked: the latest full copy (2026-09-07) did not complete". The first revived
---     full copy that completes lifts that; with a complete full on Friday 2026-09-18, the pass on
---     2026-09-23 would delete exactly one day, 2026-06-23.
+--   * Read through fn_backup_prune_plan in an aborted transaction (15 Sep 2026, with the founder's
+--     documents-never and month-forever rules below): 64 days, 0 to delete, all 64 kept as "blocked: the
+--     latest full copy (2026-09-07) did not complete". The allow-list covers 4,739 of the 5,199 dated
+--     objects (13,468 MB); the other 460 are v1's document inventories, kept for ever. Kept for ever as
+--     their month's copy: 2026-06-23, 2026-07-05, 2026-08-01, 2026-09-02. With a complete revived full on
+--     Friday 2026-09-18, the first deletion would be on 2026-09-27 (one day, 2026-06-28), and 55 days
+--     would be gone by 2026-12-31.
 --   * public.table_export_run exists (every_business_table_is_exported_every_day_again.sql, #664) and
 --     holds 0 rows: the revived writer has not completed a day yet. No export file is in doc_backups.
 --   * Without pruning, a full copy is ~7.3 GB and runs weekly, so storage grows ~32 GB a month in the
@@ -73,6 +76,26 @@
 --   * a storage deletion that failed 3 times, a day still not deleted 2 days after it was logged, or a
 --     Dropbox copy that failed 5 times is an it_engineer finding (fn_it_duty_settle 'backup_prune'),
 --     closed by the same settle once the deletion completes.
+--
+-- DOCUMENTS ARE NEVER PRUNED, AND A COPY OF EVERY MONTH IS KEPT FOR EVER. The founder, 15 Sep 2026:
+--   "that doesnt mean removing the verified suppliers and registered customers later yea? ... of course
+--    that data should never get lost no matter what"
+--   * An ALLOW-LIST, not a deny-list: fn_backup_prune_path_allowed accepts only the shapes the table
+--     export writes in the 'backups' bucket - <day>/_manifest.json, <day>/<table>/page_NNNN.json and
+--     backup v1's <day>/<table>.json - and fn_backup_prune_dropbox_allowed accepts only a doc_backups row
+--     the TABLE EXPORTS rule wrote (doc_type 'Database export', dedupe_key 'EXPORT:<path>', Dropbox path
+--     /QuotesDone Backup/Company/Database Exports/<YYYY-MM>/<path>). Every picker, count and queue move
+--     goes through them, so a document (a trade licence, signed terms, a KYC file, a quotation PDF,
+--     anything in fn_backup_source_registry) can never be selected, in storage or in Dropbox, whatever
+--     the mode. Measured 15 Sep 2026: of 6,443 objects in all buckets, 0 outside a dated export folder
+--     match; 460 inside them are backup v1's <day>/_storage_<bucket>.json inventories (which documents
+--     existed that day). They are not on the allow-list, so they are kept for ever too.
+--   * The first complete full copy of every calendar month is kept for ever, whatever its age; a month
+--     with no complete full copy keeps its last complete copy. Every table holding a registered customer,
+--     a verified supplier or an accepted term is a full copy every day (customers, customer_preference,
+--     leads with accepted_terms_at/_version/_sha256/_ip, supplier_capabilities,
+--     supplier_capability_confirmation, doc_reviews, company_registration), so one of them survives
+--     from every month there has ever been.
 --
 -- WHAT THIS DOES NOT DO: it does not switch deletion on (backup_prune_mode is not written here), and it
 -- does not touch the other folders in 'backups' (conversations/, generated/, accountant/), which are
@@ -134,8 +157,15 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     select max(d.dy) filter (where d.kd = 'full' and d.st = 'done') as newest_full,
            max(d.dy) filter (where d.kd = 'full') as latest_full_attempt
       from d),
+  -- kept for ever: the first complete full copy of each month, or a full-less month's last complete copy
+  mf as (
+    select date_trunc('month', d.dy)::date as mo,
+           min(d.dy) filter (where d.kd = 'full' and d.st = 'done') as first_full,
+           max(d.dy) filter (where d.st = 'done') as last_done
+      from d group by 1),
   k as (
     select d.dy, d.og, d.kd, d.st,
+           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as forever,
            case when g.newest_full is null then 'blocked: no complete full copy exists, so nothing is deleted'
                 when g.latest_full_attempt > g.newest_full
                   then 'blocked: the latest full copy (' || g.latest_full_attempt || ') did not complete, so nothing is deleted'
@@ -146,9 +176,9 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
            (p_today - d.dy) <= 90 as within_90,
            (d.kd = 'full' and d.st = 'done' and extract(isodow from d.dy) = 5
             and d.dy > (p_today - interval '12 months')::date) as friday_kept
-      from d cross join g),
+      from d cross join g left join mf on mf.mo = date_trunc('month', d.dy)::date),
   kp as (
-    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.within_90 or k.friday_kept) as policy_keep from k),
+    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.forever or k.within_90 or k.friday_kept) as policy_keep from k),
   anchor as (
     select kp.dy as inc_day,
            (select max(f.dy) from d f where f.kd = 'full' and f.st = 'done' and f.dy <= kp.dy) as full_day
@@ -161,6 +191,8 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
               when c.is_newest_full then 'the newest complete full copy'
               when c.after_newest_full then 'part of the newest restore chain (the newest full copy and every day after it)'
               when c.running then 'still being written'
+              when c.forever and c.kd = 'full' then 'the first complete full copy of its month, kept forever'
+              when c.forever then 'the last complete copy of a month with no full copy, kept forever'
               when c.within_90 then 'within 90 days'
               when c.friday_kept then 'a complete Friday full copy within 12 months'
               when c.in_kept_chain then 'needed by a kept kb_chunks restore chain (its full copy, or a day between)'
@@ -171,6 +203,30 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     from c order by c.dy;
 $fn$;
 revoke execute on function public.fn_backup_prune_decide(jsonb, date) from public, anon, authenticated;
+
+-- ── 2b. THE ALLOW-LIST: only a table-export file can ever be selected ─────────────────────────────
+create or replace function public.fn_backup_prune_path_allowed(p_bucket text, p_path text)
+returns boolean
+language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(p_bucket = 'backups' and (
+           p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$'              -- the day's manifest
+        or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z0-9_]+/page_\d{4}\.json$'  -- backup v1 (paged) and v2
+        or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z0-9_]+\.json$'),           -- backup v1 (one file per table)
+         false);
+$fn$;
+revoke execute on function public.fn_backup_prune_path_allowed(text, text) from public, anon, authenticated;
+
+create or replace function public.fn_backup_prune_dropbox_allowed(p_bucket text, p_path text, p_dedupe_key text,
+                                                                 p_doc_type text, p_dropbox_path text)
+returns boolean
+language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(p_doc_type = 'Database export'
+                  and p_dedupe_key = 'EXPORT:' || p_path
+                  and public.fn_backup_prune_path_allowed(p_bucket, p_path)
+                  and p_dropbox_path = '/QuotesDone Backup/Company/Database Exports/' || left(p_path, 7) || '/' || p_path,
+                  false);
+$fn$;
+revoke execute on function public.fn_backup_prune_dropbox_allowed(text, text, text, text, text) from public, anon, authenticated;
 
 -- ── 3. THE DAYS THAT EXIST ─────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_backup_prune_days()
@@ -206,12 +262,14 @@ returns table(day date, origin text, kind text, day_status text, decision text, 
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select p.day, p.origin, p.kind, p.day_status, p.decision, p.reason, s.n, s.b,
          (select count(*) from public.doc_backups b
-           where b.dedupe_key like 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned')
+           where b.dedupe_key like 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned'
+             and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path))
     from public.fn_backup_prune_decide(public.fn_backup_prune_days(),
                                        coalesce(p_today, (now() at time zone 'Asia/Dubai')::date)) p
     cross join lateral (select count(*) as n, coalesce(sum((o.metadata->>'size')::bigint), 0)::bigint as b
                           from storage.objects o
-                         where o.bucket_id = 'backups' and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%') s;
+                         where o.bucket_id = 'backups' and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
+                           and public.fn_backup_prune_path_allowed(o.bucket_id, o.name)) s;
 $fn$;
 revoke execute on function public.fn_backup_prune_plan(date) from public, anon, authenticated;
 
@@ -309,7 +367,8 @@ begin
       from public.backup_prune_log l
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
        and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
-       and b.status not in ('pruned', 'prune_pending', 'pruning', 'processing');
+       and b.status not in ('pruned', 'prune_pending', 'pruning', 'processing')
+       and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path);
     update public.doc_backups b set status = 'pruned', error = null
      where b.status = 'prune_pending' and b.dropbox_path is null;
     update public.backup_prune_log l set dropbox_done_at = now()
@@ -363,6 +422,7 @@ begin
   select coalesce(array_agg(o.name order by o.name), '{}') into v_names
     from (select o2.name from storage.objects o2
            where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+             and public.fn_backup_prune_path_allowed(o2.bucket_id, o2.name)
            order by o2.name limit 1000) o;
   return jsonb_build_object('log_id', v_log.id, 'day', v_log.day, 'names', to_jsonb(v_names));
 end $fn$;
@@ -381,7 +441,8 @@ begin
     return jsonb_build_object('ok', false, 'day', v_log.day, 'error', left(p_error, 300));
   end if;
   select count(*) into v_left from storage.objects o
-   where o.bucket_id = 'backups' and o.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%';
+   where o.bucket_id = 'backups' and o.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+     and public.fn_backup_prune_path_allowed(o.bucket_id, o.name);   -- the inventories that stay are not "left"
   if v_left = 0 then
     update public.backup_prune_log l set storage_deleted_at = now(), storage_error = null where l.id = p_log_id;
     update public.table_export_run r set pruned_at = now() where r.stamp = v_log.day;
@@ -405,6 +466,7 @@ begin
     with c as (
       select d.id from public.doc_backups d
        where d.status = 'prune_pending' and d.prune_attempts < 5
+         and public.fn_backup_prune_dropbox_allowed(d.bucket, d.path, d.dedupe_key, d.doc_type, d.dropbox_path)
          and exists (select 1 from public.backup_prune_log bl
                       where bl.mode = 'delete' and bl.cancelled_at is null
                         and d.dedupe_key like 'EXPORT:' || to_char(bl.day, 'YYYY-MM-DD') || '/%')
@@ -479,6 +541,10 @@ begin
     'A: an 11-month Friday full copy was not kept: ' || v_why;
   select p.decision, p.reason into v_dec, v_why from public.fn_backup_prune_decide(v_days, v_today) p where p.day = v_today - 90 - 7 * 43;
   assert v_dec = 'delete' and v_why = 'a Friday full copy older than 12 months', 'A: a 13-month Friday full copy was not deleted: ' || v_why;
+  -- the FIRST Friday full of that same month (2026-08-07, 13 months old) is kept for ever
+  select p.decision, p.reason into v_dec, v_why from public.fn_backup_prune_decide(v_days, v_today) p where p.day = v_today - 90 - 7 * 45;
+  assert extract(day from v_today - 90 - 7 * 45) <= 7 and v_dec = 'keep' and v_why = 'the first complete full copy of its month, kept forever',
+    'A: the first full copy of a 13-month-old month was not kept forever: ' || v_why;
   select count(*) into v_del from public.fn_backup_prune_decide(v_days, v_today) p
    where p.decision = 'delete' and (v_today - p.day) <= 90;
   assert v_del = 0, 'A: a day 90 days old or newer was deleted';
@@ -494,11 +560,15 @@ begin
   select count(*) into v_del from public.fn_backup_prune_decide(v_days, v_today) p where p.decision = 'delete';
   assert v_del = 0, 'C: a day was deleted with no complete full copy';
 
-  -- D: the newest full copy is kept however old it is (400 days, a Monday).
+  -- D: the newest full copy is kept however old it is (400 days, a Monday); the month's first full is
+  --    kept for ever; a full that is neither, past 90 days and not a Friday, goes.
   v_days := jsonb_build_array(jsonb_build_object('day', date '2026-08-10', 'origin', 'ZZ DEMO', 'kind', 'full', 'status', 'done'),
-                              jsonb_build_object('day', date '2026-08-09', 'origin', 'ZZ DEMO', 'kind', 'full', 'status', 'done'));
+                              jsonb_build_object('day', date '2026-08-09', 'origin', 'ZZ DEMO', 'kind', 'full', 'status', 'done'),
+                              jsonb_build_object('day', date '2026-08-03', 'origin', 'ZZ DEMO', 'kind', 'full', 'status', 'done'));
   select p.decision into v_dec from public.fn_backup_prune_decide(v_days, date '2027-09-14') p where p.day = date '2026-08-10';
   assert v_dec = 'keep', 'D: the newest full copy was deleted';
+  select p.decision, p.reason into v_dec, v_why from public.fn_backup_prune_decide(v_days, date '2027-09-14') p where p.day = date '2026-08-03';
+  assert v_dec = 'keep' and v_why like '%kept forever', 'D: the month''s first full copy was not kept forever: ' || v_why;
   select p.decision into v_dec from public.fn_backup_prune_decide(v_days, date '2027-09-14') p where p.day = date '2026-08-09';
   assert v_dec = 'delete', 'D: an older non-Friday full copy past 90 days was kept';
 
@@ -506,7 +576,12 @@ begin
   select jsonb_agg(jsonb_build_object('day', g::date, 'origin', 'ZZ DEMO', 'status', 'done',
                    'kind', case when g::date = v_today - 95 or g::date = v_today - 2 then 'full' else 'incremental' end))
     into v_days from generate_series(v_today - 95, v_today, interval '1 day') g;
-  v_days := v_days || jsonb_build_array(jsonb_build_object('day', v_today - 120, 'origin', 'ZZ DEMO', 'kind', 'incremental', 'status', 'done'));
+  -- two May days with no full copy that month: the later one is May's copy kept for ever, the earlier goes
+  v_days := v_days || jsonb_build_array(jsonb_build_object('day', v_today - 120, 'origin', 'ZZ DEMO', 'kind', 'incremental', 'status', 'done'),
+                                        jsonb_build_object('day', v_today - 110, 'origin', 'ZZ DEMO', 'kind', 'incremental', 'status', 'done'));
+  select p.decision, p.reason into v_dec, v_why from public.fn_backup_prune_decide(v_days, v_today) p where p.day = v_today - 110;
+  assert v_dec = 'keep' and v_why = 'the last complete copy of a month with no full copy, kept forever',
+    'E: a full-less month''s last complete copy was not kept forever: ' || v_why;
   select p.decision into v_dec from public.fn_backup_prune_decide(v_days, v_today) p where p.day = v_today - 95;
   assert v_dec = 'keep', 'E: the full copy a kept incremental needs was deleted';
   select p.decision, p.reason into v_dec, v_why from public.fn_backup_prune_decide(v_days, v_today) p where p.day = v_today - 93;
@@ -514,6 +589,26 @@ begin
   select p.decision into v_dec from public.fn_backup_prune_decide(v_days, v_today) p where p.day = v_today - 120;
   assert v_dec = 'delete', 'E: an orphan 120-day incremental was kept';
 
-  raise notice 'backup retention: the rules hold on invented days (newest full kept, 89 kept, 91 deleted, 11-month Friday kept, 13-month deleted, failed latest full and no full delete nothing, a kept chain keeps its full); mode now %',
+  -- F: the allow-list. Export files only; every document shape is refused.
+  assert public.fn_backup_prune_path_allowed('backups', '2026-06-23/customers.json')
+     and public.fn_backup_prune_path_allowed('backups', '2026-09-20/leads/page_0000.json')
+     and public.fn_backup_prune_path_allowed('backups', '2026-09-20/_manifest.json'), 'F: an export file was refused';
+  assert not public.fn_backup_prune_path_allowed('supplier-docs', '2026-09-20/leads/page_0000.json')
+     and not public.fn_backup_prune_path_allowed('signed-terms', '123/terms.pdf')
+     and not public.fn_backup_prune_path_allowed('backups', 'conversations/2026-09/x.pdf')
+     and not public.fn_backup_prune_path_allowed('backups', 'accountant/year-end/2026/pack.pdf')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_storage_supplier-docs.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/../supplier-docs/licence.pdf')
+     and not public.fn_backup_prune_path_allowed(null, null), 'F: a document shape was allowed';
+  -- and on production's own files, read-only: no stored document and no document backup row qualifies
+  assert not exists (select 1 from storage.objects o
+                      where public.fn_backup_prune_path_allowed(o.bucket_id, o.name)
+                        and not (o.bucket_id = 'backups' and o.name ~ '^\d{4}-\d{2}-\d{2}/')), 'F: a stored document is on the allow-list';
+  assert not exists (select 1 from public.doc_backups b
+                      where coalesce(b.doc_type, '') <> 'Database export'
+                        and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path)),
+    'F: a document backup row is on the allow-list';
+
+  raise notice 'backup retention: the rules hold on invented days (newest full kept, 89 kept, 91 deleted, 11-month Friday kept, 13-month deleted, each month''s first full and a full-less month''s last copy kept forever, failed latest full and no full delete nothing, a kept chain keeps its full, documents refused); mode now %',
     public.fn_backup_prune_mode();
 end $probe$;
