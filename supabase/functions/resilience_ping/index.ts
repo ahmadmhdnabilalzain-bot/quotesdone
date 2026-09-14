@@ -514,9 +514,35 @@ async function itDetectTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// KEEP THE PORTAL'S FIVE COLD ISOLATES WARM (14 Sep 2026 e2e finding). The customer Overview
+// warms kyc, customer_api, customer_portal, project_api and messages_api together on every sign-in
+// (CustomerPortal.tsx warmDashboard) — five separate Deno isolates that any one of which, cold, adds
+// full V8-boot-plus-module-import latency on top of its query. Measured: 4.5-5.7s when idle-evicted,
+// 1.4-2.2s back-to-back. None of these five needs a correct answer here — a request that 401s still
+// forces the isolate through cold start and leaves it resident for the next real customer, which is
+// the whole point. Piggybacks on this file's existing ~15min external trigger
+// (.github/workflows/resilience-ping.yml) so no new schedule or SQL is needed. Every call is
+// best-effort and swallowed; a warm-ping failure must never affect the watchdog's own health verdict.
+async function warmPortalTick(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
+  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
+  return Promise.all(targets.map(async (fn) => {
+    const t0 = Date.now();
+    try {
+      const r = await fetch(FN + '/' + fn, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
+        body: JSON.stringify({ action: 'warm_ping' }), signal: AbortSignal.timeout(8000) });
+      await r.text().catch(() => {}); // drain so the connection is actually released, whatever the status
+      return { fn, ms: Date.now() - t0, ok: true };
+    } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
+  }));
+}
+
 Deno.serve(observe('resilience_ping', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
+    // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
+    // run alongside the ticks instead of lengthening this already-sequential chain.
+    const warmP = warmPortalTick();
     // 0. The CEO's end-of-day digest, before any early return below.
     const digest = await digestTick();
     const ratings = await ratingTick();
@@ -540,6 +566,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
     // pass rather than waiting fifteen minutes for the next one.
     const outbox = await outboxTick();
+    const warm = await warmP.catch(() => []);
     // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
     // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
     // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
@@ -549,7 +576,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -573,6 +600,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, vat, ceoWeekly, ladder, refunds });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, vat, ceoWeekly, ladder, refunds, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
