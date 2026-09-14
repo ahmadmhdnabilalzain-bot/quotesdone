@@ -54,11 +54,13 @@ export function BriefBox() {
 
   return (
     <div className={`${s.shell} text-start`}>
-      <div className={`qd-panel rounded-[22px] overflow-hidden`}>
+      {/* bg-surf under the panel's translucent gradient: the hero scene sits behind this box and must
+          never show through the field or its examples. */}
+      <div className={`qd-panel rounded-[22px] overflow-hidden !bg-surf`}>
         {/* method="post": handled in JS (preventDefault); the attribute keeps a no-JS submit from
             putting the job description in a GET query string. */}
         <form method="post" onSubmit={(e) => { e.preventDefault(); check(); }}>
-          <div className="flex flex-col gap-0.5 px-5 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="flex flex-col gap-0.5 px-5 pt-4">
             <h2 className="font-head text-[15px] font-semibold tracking-[-0.01em] text-white rtl:tracking-normal">{t('title')}</h2>
             <span className="text-[12px] text-faint">{t('sub')}</span>
           </div>
