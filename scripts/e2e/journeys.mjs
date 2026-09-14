@@ -85,7 +85,7 @@ export async function journeyCustomerRequest(ctx) {
       const signedIn = await s.page.locator('nav:visible, button[aria-controls="qd-nav-more"]:visible').first().isVisible().catch(() => false);
       const rtl = await s.page.evaluate(() => document.documentElement.dir).catch(() => '');
       rep.step(J, `signed in without an OTP (${tag(m)})`, signedIn ? 'PASS' : 'FAIL', `nav visible=${signedIn}, dir=${rtl || 'ltr'}`, { shot: await shot(s.page, dir, `a_overview_${tag(m)}`) });
-      rep.step(J, `overview data under 2.5 s (${tag(m)})`, t.dataMs < 2500 ? 'PASS' : 'FAIL', `data settled in ${t.dataMs} ms (shell ${t.shellMs} ms, ${t.calls} function call(s))`, { ms: t.dataMs });
+      rep.step(J, `overview data under 2.5 s (${tag(m)})`, t.dataMs < 2500 ? 'PASS' : 'FAIL', `data settled in ${t.dataMs} ms (shell ${t.shellMs} ms, ${t.calls} function call(s): ${t.breakdown.join(', ')})`, { ms: t.dataMs });
       if (m.lang === 'ar') rep.step(J, `Arabic renders right-to-left (${tag(m)})`, rtl === 'rtl' ? 'PASS' : 'FAIL', `document dir=${rtl}`);
       ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[customer ${tag(m)}] ${e}`));
     } finally { await s.ctx.close(); }
@@ -187,11 +187,22 @@ export async function journeyCustomerRequest(ctx) {
     rep.step(J, 'fallback request written for the rest of the funnel', 'SKIP', `inquiry ${inquiryId} written by demo_factory.makeInquiry because the portal did not post one`);
   }
   ctx.run.ids.inquiries.add(String(inquiryId));
+  // WHERE THE ANSWERS LIVE (smoke run 34888342875, 14 Sep 2026: "answered: none" on a request that
+  // could not have posted without them). customer_api create_inquiry writes the sales engineer's
+  // answers to spec.customer_requirements (_shared/intake_requirements.ts toStored: installation,
+  // warranty, materials[], required_by) and refuses the post with 428 when validateStored finds any
+  // missing. This step read spec.requirements / delivery_by, which only the fallback writer uses.
   const row = (await read(`select i.customer_id = ${q(fx.customer.customerId)}::uuid as mine, i.category, i.status, i.rfq_ready,
-      (i.spec->'requirements') as req, public.fn_inquiry_is_demo(i.id) as demo
+      coalesce(i.spec->'customer_requirements', i.spec->'requirements') as req, public.fn_inquiry_is_demo(i.id) as demo
       from public.inquiries i where i.id = ${q(inquiryId)}`))[0] || {};
   const req = row.req || {};
-  const asked = ['installation', 'warranty', 'delivery_by', 'materials'].filter((k) => req[k] != null);
+  const answered = {
+    installation: !!(req.installation?.required ?? req.installation),
+    warranty: !!(req.warranty?.required ?? req.warranty),
+    materials: Array.isArray(req.materials) ? req.materials.length > 0 : req.materials != null,
+    date: !!(req.required_by?.date || req.required_by?.flexible || req.delivery_by),
+  };
+  const asked = Object.keys(answered).filter((k) => answered[k]);
   rep.step(J, 'database: the request belongs to the customer and is demo', row.mine === true && row.demo === true ? 'PASS' : 'FAIL', `owner match=${row.mine}, demo=${row.demo}, category=${row.category}, status=${row.status}, rfq_ready=${row.rfq_ready}`);
   rep.step(J, 'database: the sales-engineer answers are on the request (installation, warranty, materials, date)',
     asked.length === 4 ? 'PASS' : (via === 'fallback' ? 'SKIP' : 'FAIL'), `answered: ${asked.join(', ') || 'none'}${via === 'fallback' ? ' (fallback request)' : ''}`);
@@ -381,10 +392,22 @@ export async function journeyComparison(ctx) {
     const s = await signedInPage(browser, fx.customer, m);
     try {
       await openPortal(s.page, portalUrl('customer', m.lang, `?request=${inquiryId}${live[0] ? '&quote=' + live[0].id : ''}`), s.calls);
-      const text = await s.page.locator('body').innerText().catch(() => '');
-      const ref = 'QD-' + String(inquiryId).slice(0, 8).toUpperCase();
-      const opened = text.includes(ref) || /alumin|ألمنيوم|الألمنيوم/i.test(text);
-      rep.step(J, `deep link opens the request (${tag(m)})`, opened ? 'PASS' : 'FAIL', opened ? `request ${ref} on screen` : 'request not on screen', { shot: await shot(s.page, dir, `c_deeplink_${tag(m)}`) });
+      // WHAT THE LINK PROMISES, ASSERTED (15 Sep 2026). The old check searched the page for
+      // "QD-<8 hex>", which the portal renders nowhere (a probe found it in 0 of 4 cells, desktop
+      // included), so it passed on any "aluminium" in the text - the overview's own request list
+      // carries one - and it read the text once, straight after networkidle. A probe of the same link
+      // at 375 px, EN and AR, opened My requests and scrolled the linked quote into view. The link's
+      // promise is now what is checked, waiting up to 20 s for it: My requests is the current page
+      // (the overview never is), the request's card is visible, and the link was consumed from the URL
+      // (CustomerPortal resolveQuoteLink -> openRfq -> history.replaceState).
+      const reqNav = m.lang === 'ar' ? /^طلباتي/ : /^My requests/;
+      const onRequests = await s.page.locator('button[aria-current="page"]:visible').filter({ hasText: reqNav }).first()
+        .waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+      const cardShown = await s.page.locator(`[id="inq-${inquiryId}"]`).first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+      const consumed = !new URL(s.page.url()).searchParams.has('request');
+      const opened = onRequests && cardShown && consumed;
+      rep.step(J, `deep link opens the request (${tag(m)})`, opened ? 'PASS' : 'FAIL',
+        `My requests current=${onRequests}, card inq-${String(inquiryId).slice(0, 8)} visible=${cardShown}, link consumed=${consumed}`, { shot: await shot(s.page, dir, `c_deeplink_${tag(m)}`) });
       ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[customer deeplink ${tag(m)}] ${e}`));
     } finally { await s.ctx.close(); }
   }
