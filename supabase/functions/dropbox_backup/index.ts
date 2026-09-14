@@ -1,3 +1,14 @@
+// dropbox_backup v6 (14 Sep 2026, agent: ceo, owner: sales_engineer) — A BACKUP IS CONFIRMED, NOT ASSUMED.
+// v5 marked a row 'done' the moment files/upload returned 200. v6 hashes the bytes it sent (Dropbox
+// content_hash: SHA-256 per 4 MiB block, SHA-256 of the concatenation — see content_hash.ts), then
+// asks Dropbox files/get_metadata for the same path and requires the size AND the hash to match.
+// Only then is the row 'done', carrying dropbox_content_hash, dropbox_size and verified_at. A
+// mismatch or a missing file is an ordinary failure: status 'error', attempts+1, retried.
+// body.mode === 'reconcile' samples done rows (unverified first), re-reads each from Dropbox, and
+// hands the outcomes to fn_dropbox_reconcile_apply, which requeues anything missing or changed and
+// raises it to the sales engineer. Reconcile never logs as 'dropbox_backup', so it cannot claim the
+// day's backup in fn_dropbox_backup_due. SQL: scripts/sql/the_dropbox_backup_is_confirmed_not_assumed.sql
+//
 // dropbox_backup v5 — organized Dropbox backup tree under '/QuotesDone Backup'. 'storage' rows are downloaded from
 // Supabase Storage; 'generated' rows are rendered to branded PDF via pdf_native first (customer/supplier details,
 // inquiry summary). Read-only on our storage; it only ever ADDS to Dropbox.
@@ -24,6 +35,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { DropboxHasher, dropboxContentHash } from './content_hash.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -66,13 +78,59 @@ async function uploadSingle(token: string, dest: string, bytes: ArrayBuffer){
   const r = await fetch('https://content.dropboxapi.com/2/files/upload', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ path:dest, mode:'overwrite', autorename:false, mute:true, strict_conflict:false }) }, body: bytes });
   if (!r.ok) throw new Error('dbx_upload '+r.status+' '+(await r.text()).slice(0,200));
 }
-async function uploadSession(token: string, dest: string, signedUrl: string, size: number){
+// Returns the content_hash of exactly the bytes appended, hashed as they stream.
+async function uploadSession(token: string, dest: string, signedUrl: string, size: number): Promise<string>{
+  const hasher = new DropboxHasher();
   let r = await fetch('https://content.dropboxapi.com/2/files/upload_session/start', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ close:false }) }, body:new Uint8Array(0) });
   if (!r.ok) throw new Error('session_start '+r.status);
   const sid = (await r.json()).session_id as string; let off = 0;
-  while (off < size){ const end = Math.min(off+CHUNK, size)-1; const g = await fetch(signedUrl, { headers:{ 'Range':`bytes=${off}-${end}` } }); if(!(g.status===206||g.status===200)) throw new Error('range_get '+g.status); const buf = await g.arrayBuffer(); if(buf.byteLength===0) throw new Error('empty_chunk'); r = await fetch('https://content.dropboxapi.com/2/files/upload_session/append_v2', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ cursor:{ session_id:sid, offset:off }, close:false }) }, body:buf }); if(!r.ok) throw new Error('append '+r.status); off += buf.byteLength; }
+  while (off < size){ const end = Math.min(off+CHUNK, size)-1; const g = await fetch(signedUrl, { headers:{ 'Range':`bytes=${off}-${end}` } }); if(!(g.status===206||g.status===200)) throw new Error('range_get '+g.status); const buf = await g.arrayBuffer(); if(buf.byteLength===0) throw new Error('empty_chunk'); await hasher.update(new Uint8Array(buf)); r = await fetch('https://content.dropboxapi.com/2/files/upload_session/append_v2', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ cursor:{ session_id:sid, offset:off }, close:false }) }, body:buf }); if(!r.ok) throw new Error('append '+r.status); off += buf.byteLength; }
   r = await fetch('https://content.dropboxapi.com/2/files/upload_session/finish', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ cursor:{ session_id:sid, offset:size }, commit:{ path:dest, mode:'overwrite', autorename:false, mute:true } }) }, body:new Uint8Array(0) });
   if (!r.ok) throw new Error('finish '+r.status);
+  return hasher.hex();
+}
+// files/get_metadata. A 409 path/not_found is an ANSWER ("missing"), not a failure of the call;
+// any other non-200 throws so a Dropbox outage is never read as a missing file.
+async function dbxMeta(token: string, path: string): Promise<{ missing: true } | { missing: false, size: number, content_hash: string }>{
+  const r = await fetch('https://api.dropboxapi.com/2/files/get_metadata', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' }, body: arg({ path }) });
+  const t = await r.text();
+  if (r.status === 409 && t.includes('not_found')) return { missing: true };
+  if (!r.ok) throw new Error('get_metadata '+r.status+' '+t.slice(0,160));
+  const j = JSON.parse(t);
+  if (j['.tag'] !== 'file') return { missing: true };
+  return { missing: false, size: Number(j.size), content_hash: String(j.content_hash||'') };
+}
+async function verifyUploaded(token: string, dest: string, hash: string, size: number){
+  const m = await dbxMeta(token, dest);
+  if (m.missing) throw new Error('verify: missing in Dropbox after upload');
+  if (m.size !== size) throw new Error(`verify: size ${m.size} in Dropbox != ${size} sent`);
+  if (m.content_hash !== hash) throw new Error('verify: content_hash mismatch '+m.content_hash.slice(0,12)+' != '+hash.slice(0,12));
+}
+
+// WEEKLY RECONCILIATION. Verified rows are compared against the hash recorded at upload. Rows done
+// before v6 have no recorded hash, so their source is downloaded and hashed once (if it still exists
+// and is not huge) — the first real confirmation those rows ever get.
+async function reconcile(token: string, n: number){
+  const { data: rows, error } = await admin.rpc('fn_dropbox_reconcile_sample', { p_n: n });
+  if (error) throw new Error('sample '+error.message);
+  const results: any[] = [];
+  for (const row of (rows||[]) as any[]){
+    try {
+      const m = await dbxMeta(token, row.dropbox_path);
+      if (m.missing){ results.push({ id: row.id, outcome: 'missing' }); continue; }
+      let expect: string | null = row.dropbox_content_hash, basis = 'recorded';
+      if (!expect){
+        if (!row.bucket || !row.path || Number(row.bytes||0) > SINGLE_MAX){ results.push({ id: row.id, outcome: 'unverifiable', hash: m.content_hash, size: m.size, note: 'no recorded hash and source not hashable' }); continue; }
+        const { data: blob } = await admin.storage.from(row.bucket).download(row.path);
+        if (!blob){ results.push({ id: row.id, outcome: 'unverifiable', hash: m.content_hash, size: m.size, note: 'source object no longer in storage' }); continue; }
+        expect = await dropboxContentHash(new Uint8Array(await (blob as Blob).arrayBuffer())); basis = 'source';
+      }
+      results.push({ id: row.id, outcome: m.content_hash === expect ? 'ok' : 'changed', hash: m.content_hash, size: m.size, basis });
+    } catch (e){ results.push({ id: row.id, outcome: 'error', note: String((e as Error)?.message||e).slice(0,160) }); }
+  }
+  const { data: applied, error: aerr } = await admin.rpc('fn_dropbox_reconcile_apply', { p_results: results });
+  if (aerr) throw new Error('apply '+aerr.message);
+  return applied;
 }
 function kvTable(rows: [string, unknown][]){ return '<table style="border-collapse:collapse;width:100%">' + rows.map(([k,v])=>`<tr><td style="padding:4px 10px 4px 0;color:#555;white-space:nowrap;vertical-align:top">${esc(k)}</td><td style="padding:4px 0"><b>${esc(v)}</b></td></tr>`).join('') + '</table>'; }
 
@@ -144,6 +202,20 @@ Deno.serve(observe('dropbox_backup', async (req) => {
         message:'dropbox_backup is an add-only backup since the 9 Sep 2026 restore. It no longer deletes from Dropbox or storage. Nothing was erased and no row was marked erased.' }, 409);
     }
 
+    if (body.mode === 'reconcile'){
+      // Logged ONLY through fn_dropbox_reconcile_apply (agent 'dropbox_reconcile'); a logRun here
+      // would write agent 'dropbox_backup' and a failure would read as a failed backup.
+      try {
+        const token = await accessToken();
+        if (!token) throw new Error('no_dropbox_auth');
+        return J({ ok:true, mode:'reconcile', result: await reconcile(token, Math.min(Number(body.limit)||20, 200)) });
+      } catch (e){
+        const msg = String((e as Error)?.message||e).slice(0,300);
+        await admin.rpc('fn_dropbox_reconcile_apply', { p_results: [], p_error: msg });
+        return J({ ok:false, mode:'reconcile', error: msg }, 500);
+      }
+    }
+
     const limit = Math.min(Number(body.limit)||8, 25);
     let enqueued = 0;
     if (body.mode !== 'process_only') { const { data, error: enqErr } = await admin.rpc('fn_enqueue_doc_backups'); enqueued = Number(data)||0; if (enqErr) { await logThrottled('enqueue_failed', 60, 'error', { stage:'enqueue' }, 'fn_enqueue_doc_backups failed, so no new documents are being queued for Dropbox backup; newly uploaded documents will never reach Dropbox until this is fixed. ' + String(enqErr?.message||enqErr).slice(0,160)); } }
@@ -162,9 +234,13 @@ Deno.serve(observe('dropbox_backup', async (req) => {
         if (derr || !blob) throw new Error('download '+(derr?.message||'missing'));
         const size = (blob as Blob).size;
         if (size > HARD_MAX){ await admin.from('doc_backups').update({ status:'skipped_large', bytes:size, error:'>1GB', attempts:row.attempts+1 }).eq('id',row.id); skipped++; results.push({ id:row.id, skipped_large:size }); continue; }
-        if (size <= SINGLE_MAX){ await uploadSingle(token, row.dropbox_path, await (blob as Blob).arrayBuffer()); }
-        else { const { data: su } = await admin.storage.from(bucket).createSignedUrl(path, 900); if(!su?.signedUrl) throw new Error('sign_failed'); await uploadSession(token, row.dropbox_path, su.signedUrl, size); }
-        const { error: markErr } = await admin.from('doc_backups').update({ status:'done', bytes:size, backed_up_at:new Date().toISOString(), error:null, attempts:row.attempts+1 }).eq('id',row.id);
+        let hash: string;
+        if (size <= SINGLE_MAX){ const buf = await (blob as Blob).arrayBuffer(); hash = await dropboxContentHash(new Uint8Array(buf)); await uploadSingle(token, row.dropbox_path, buf); }
+        else { const { data: su } = await admin.storage.from(bucket).createSignedUrl(path, 900); if(!su?.signedUrl) throw new Error('sign_failed'); hash = await uploadSession(token, row.dropbox_path, su.signedUrl, size); }
+        // Throws on missing / size / hash mismatch -> the catch below marks 'error' and retries.
+        await verifyUploaded(token, row.dropbox_path, hash, size);
+        const now = new Date().toISOString();
+        const { error: markErr } = await admin.from('doc_backups').update({ status:'done', bytes:size, backed_up_at:now, error:null, attempts:row.attempts+1, dropbox_content_hash:hash, dropbox_size:size, verified_at:now }).eq('id',row.id);
         if (markErr) { await logRun('error', { stage:'mark_done', doc_backup_id: row.id }, 'Document ' + row.id + ' was uploaded to Dropbox but could not be marked done, so it will be re-uploaded on every future run and the backup queue will never drain. ' + String(markErr?.message||markErr).slice(0,160)); }
         done++; results.push({ id:row.id, done:size, dest:row.dropbox_path });
       } catch (e){

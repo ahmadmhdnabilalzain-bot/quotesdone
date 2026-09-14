@@ -15,7 +15,7 @@
 // own voice; the accountant reads and checks the money. The accountant is never named to a customer
 // or a supplier.
 
-export type Seat = 'accountant' | 'sales_engineer' | 'customer_support' | 'ceo';
+export type Seat = 'accountant' | 'sales_engineer' | 'customer_support' | 'ceo' | 'it_engineer';
 export interface HandoffType { type: string; from: Seat; to: Seat; }
 
 export const HANDOFF_TYPES: readonly HandoffType[] = [
@@ -45,4 +45,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
   { type: 'delivery.request', from: 'accountant', to: 'customer_support' },
   { type: 'delivery.result', from: 'customer_support', to: 'sales_engineer' },
+  // the IT engineer verifies the Dropbox backup; the sales engineer refiles what it finds missing
+  // (founder, 14 Sep 2026: scripts/sql/the_dropbox_backup_is_confirmed_not_assumed.sql)
+  { type: 'backup.refile', from: 'it_engineer', to: 'sales_engineer' },
 ] as const;
