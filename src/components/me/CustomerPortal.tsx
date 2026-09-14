@@ -10,7 +10,10 @@ import { cn } from '@/lib/utils';
 // Spec §22 modules that were written and never mounted. Each renders ONLY fields the endpoint it
 // names already returns; see the header comment in each file for the field-by-field provenance.
 import { ProjectsModule } from '@/components/portal/projects';
-import { SpendingIntelligence } from '@/components/portal/intelligence/SpendingIntelligence';
+// recharts is the heaviest thing on /me and this chart sits below the fold, so it loads on its own
+// after the portal is on screen (website audit 14 Sep 2026: 1.37 MB portal first load).
+import dynamic from 'next/dynamic';
+const SpendingIntelligence = dynamic(() => import('@/components/portal/intelligence/SpendingIntelligence').then((m) => m.SpendingIntelligence), { ssr: false });
 import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/portal/suppliers/SupplierRelationship';
 // The five surfaces the module agents exported and nothing mounted. Each fetches its own endpoint
 // and owns its own empty state; the portal supplies only the token, the language and — where the
@@ -34,6 +37,13 @@ import { FileText, MessageSquareQuote, BellRing, KeyRound, Plus, X, Sparkles, Up
 // decides whether a customer pays a reveal fee on a lapsed price, so it lives in a file that can be
 // executed — see quoteExpiry.test.mjs — rather than inline in this one.
 import { expiryOf } from './quoteExpiry';
+// Website audit 14 Sep 2026: the intake composer, the pre-reveal Q&A, the Reveal Guarantee and the
+// in-page confirm each live in their own file under src/components/me; this file wires them in.
+import { NewRequest } from './NewRequest';
+import { Clarifications } from './Clarifications';
+import { RevealGuarantee } from './RevealGuarantee';
+import { useConfirm } from './ConfirmDialog';
+import { motion, useReducedMotion } from 'motion/react';
 
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
@@ -54,187 +64,7 @@ const tokenAlive = (t) => {
 };
 async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
-const T = {
-  en: { brand_sub:'My Requests', home:'Home', signout:'Sign out', loading:'Loading…', loading_requests:'Loading your requests…',
-    tab_signin:'Sign in', tab_signup:'Create account', welcome_back:'Welcome back', create_account_title:'Create your account',
-    signup_sub:"Enter your email and we'll set you up instantly. You'll add your name, date of birth and verify your mobile in the next step.",
-    signin_sub:'Sign in with the email or mobile you registered with.', email_or_mobile:'Email or mobile', email_address:'Email address',
-    create_my_account:'Create my account', send_code:'Send me a code', sending:'Sending…', code_placeholder:'6-digit code',
-    verify_continue:'Verify & continue', verify_signin:'Verify & sign in', verifying:'Verifying…', use_diff:'Use a different email/number',
-    junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
-    call_note:'That number is a landline, so we are calling you now and reading the 6-digit code out. Answer and type it in below.', use_diff_number:'Use a different number',
-    signup_email_only:"Please sign up with an email address — you'll add and verify your mobile in the next step.",
-    conflict_supplier:'This email is registered as a supplier. Please use the Supplier portal to sign in.',
-    session_expired:'Your session has expired. Please sign in again.', load_failed:"Couldn't load your account. Please retry.", retry:'Retry',
-    gate_title:'Complete your account', gate_sub:"A few details to finish signing up. We verify your mobile and email for everyone's security.",
-    full_name:'Full name', mobile_ph:'Mobile (05x xxx xxxx)', dob_label:'Date of birth (you must be 18+)', save_details:'Save details', saving:'Saving…',
-    verify_mobile:'Verify your mobile', verify_email_h:'Verify your email', verified:'✓ verified', send_sms:'Send SMS code', verify:'Verify',
-    send_email_code:'Send email code', enter_mobile_first:'Enter your mobile first.', accept_pre:'I accept the QuotesDone ', terms_link:'Terms & Conditions',
-    accept_post:'.', finish_continue:'Finish & continue', finishing:'Finishing…', must_accept:'Please accept the terms.',
-    my_requests:'My requests', messages:'Messages', projects:'Projects', back_requests:'← Back to requests', new_request:'New request', close:'Close',
-    k_requests:'Requests', k_open:'Open', k_quotes:'Quotes received', k_avg:'Avg quotes/req', k_hired:'Hired', k_spend:'Spend',
-    your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, voice, a photo, or a drawing.',
-    request_sent:'Request sent — matching you with suppliers now.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
-    payment_pending:'Your payment is still being processed. Please refresh this page in a moment — do not pay again. Keep this page open so we can finish confirming it.',
-    payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email management@quotesdone.com if you were charged.",
-    mod_spatial:'Project room', mod_documents:'Documents', mod_approvals:'Approvals', mod_orders:'Orders',
-    mod_predict:'What you may need next', mod_profile:'Buying profile', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
-    unread_message:'unread message', unread_messages:'unread messages',
-    acct_title:'Your account', acct_sub:'What we hold for you, and the preferences this device remembers.',
-    acct_name:'Name', acct_email:'Email', acct_phone:'Mobile', acct_locale:'Language on your profile', acct_since:'Customer since',
-    acct_local_note:'Language and appearance are remembered on this device. We have no settings endpoint that writes them back to your profile yet, so nothing here is saved to your account.',
-    acct_failed:'Could not load your account details.',
-    attention_one:'decision needs your attention', attention_many:'decisions need your attention',
-    attention_none:'Nothing needs your attention right now.',
-    active_projects:'Active projects', projects_failed:"Couldn't load your projects just now.",
-    no_projects:'No projects yet — group related requests into a project to track budget and progress. ',
-    rfqs_open_of:'requests open', suppliers_engaged:'suppliers engaged', no_budget_set:'No budget set',
-    budget_label:'Budget', no_target_date:'No target date set, so there is no timeline to measure yet.',
-    timeline_progress:'of the timeline elapsed',
-    savings_unknown:'Potential savings needs at least two quotes on one request before it can be measured.',
-    savings_potential:'Potential savings across your quotes',
-    search_requests:'Search your requests…', no_search_match:'No request matches that search.',
-    // ── whose move is it ──
-    ball_all:'All', ball_you:'Waiting on you', ball_suppliers:'Waiting on suppliers',
-    ball_moving:'With your supplier', ball_done:'Closed',
-    ball_none_you:'No request matches that filter.',
-    hl_you_one:'1 request is waiting on you', hl_you_many:'requests are waiting on you',
-    hl_sup_one:'1 is waiting on suppliers', hl_sup_many:'are waiting on suppliers',
-    hl_mov_one:'1 is with your supplier', hl_mov_many:'are with your supplier',
-    hl_nothing:'Nothing is waiting on you — every open request is with suppliers.',
-    hl_all_quiet:'Nothing needs your attention right now.',
-    // ── what happens after you post ──
-    next_h:'What happens after you post',
-    next_1:'We structure your description into a request suppliers can price, and send it to matching UAE suppliers — without your name or number.',
-    next_2:'Their quotes come back onto this screen. Most requests get their first quote within 48 hours; you are emailed as each one arrives.',
-    next_3:'You compare them side by side for free. Supplier names stay hidden until you choose one.',
-    next_4:'Revealing a supplier costs 3% of that quote, and nothing else. It is refunded in full if they do not respond within 5 working days: we chase them for you after 3, and banks take 7-14 working days to show a refund.',
-    // ── shell ──
-    nav_main:'Portal navigation', nav_work:'Work', nav_collaborate:'Collaborate', nav_intelligence:'Intelligence',
-    nav_account:'Account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More',
-    nav_collapse:'Collapse menu', alerts_label:'Alerts',
-    ask_ph:'Ask about your requests, quotes or documents…', ask_ph_short:'Ask the assistant…',
-    asst_title:'Procurement assistant', asst_sub:'Answers from your own account',
-    asst_ph:'Ask anything about your account…', asst_send:'Send', asst_thinking:'Thinking',
-    asst_greet:'I can see your account, so ask me about your own requests, the quotes on them, your documents or your verification — as well as how QuotesDone works.',
-    asst_s1:'What is the status of my requests?', asst_s2:'How many quotes have I received?', asst_s3:'What do I need to do next?',
-    asst_err:'Something went wrong. Please try that again.',
-    // ── request lifecycle ──
-    st_matching:'Matching', st_quoting:'Quoting', st_quotes_in:'Quotes in', st_revealed:'Revealed', st_closed:'Closed',
-    k_awaiting:'Awaiting your decision', k_reveals:'Reveals',
-    k_open_hint:'Requests still collecting quotes', k_quotes_hint:'Across all your requests',
-    k_awaiting_hint:'Requests with two or more quotes to compare', k_reveals_hint:'The 3% facilitation fee is the only fee you pay',
-    quick_actions:'Quick actions', qa_new:'New request', qa_compare:'Compare quotes', qa_upload:'Upload a drawing', qa_ask:'Ask the assistant',
-    welcome_sub:'Here is where your requests stand today.',
-    empty_title:'Your first request takes about a minute',
-    empty_body:'Describe the job in text, voice, a photo or a drawing. We structure it, send it anonymously to matching UAE suppliers, and their quotes come back here to compare side by side. Posting and comparing are free.',
-    spread_title:'Quote spread', spread_locked:'Supplier names and exact prices unlock when you reveal',
-    spread_pre:'quotes in · around', spread_none:'No quotes to compare yet.',
-    journey_title:'Request journey',
-    jr_described:'Described', jr_structured:'Structured', jr_matched:'Matched', jr_quotes:'Quotes arriving', jr_compare:'Compare', jr_reveal:'Reveal',
-    view_all:'View all',
-    auth_h:'One request. Every quote worth having.',
-    auth_sub:'Describe a job once — in text, voice, a photo or a drawing. We structure it and send it anonymously to vetted UAE suppliers, and their quotes come back for you to compare side by side.',
-    auth_p1:'Posting a request and comparing quotes is free.',
-    auth_p2:'Nobody sees who you are, and you do not see who they are, until you decide.',
-    auth_p3:'You pay a 3% facilitation fee only when you reveal a supplier. There is nothing else to pay.',
-    acct_saved:'Saved.', acct_unverified:'Not verified yet',
-    acct_reverify:'Saved. Your new mobile needs verifying — reload this page and we will send you a code.',
-    acct_phone_warn:'Changing your mobile will un-verify it. You will be asked to confirm the new number with a code before you can post a request.',
-    acct_device_note:'Appearance is remembered on this device. Your language is saved to your account and follows you to any device you sign in on.',
-    req_one:'request', req_many:'requests',
-    qa_compare_off:'Needs a request with two or more quotes' },
-  ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
-    tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
-    signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
-    signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', email_or_mobile:'البريد الإلكتروني أو الجوال', email_address:'البريد الإلكتروني',
-    create_my_account:'إنشاء حسابي', send_code:'أرسل لي رمزًا', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
-    verify_continue:'تحقّق وتابع', verify_signin:'تحقّق وسجّل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدم بريدًا أو رقمًا آخر',
-    call_note:'هذا الرقم أرضي، لذلك نتصل بك الآن ونقرأ الرمز المكوّن من 6 أرقام. أجب على المكالمة ثم أدخله أدناه.', use_diff_number:'استخدام رقم آخر',
-    junk_note:'قد يستغرق وصول الرمز دقيقة — يُرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam) أيضًا.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'رمز غير صحيح.',
-    signup_email_only:'يُرجى التسجيل باستخدام بريد إلكتروني — ستضيف رقم جوالك وتتحقق منه في الخطوة التالية.',
-    conflict_supplier:'هذا البريد مسجّل كمورّد. يُرجى استخدام بوابة المورّدين لتسجيل الدخول.',
-    session_expired:'انتهت جلستك. يُرجى تسجيل الدخول من جديد.', load_failed:'تعذّر تحميل حسابك. يُرجى المحاولة مجددًا.', retry:'إعادة المحاولة',
-    gate_title:'أكمل حسابك', gate_sub:'بعض التفاصيل لإكمال التسجيل. نتحقق من جوالك وبريدك لأمان الجميع.',
-    full_name:'الاسم الكامل', mobile_ph:'الجوال (05x xxx xxxx)', dob_label:'تاريخ الميلاد (يجب أن يكون عمرك 18 عامًا فأكثر)', save_details:'حفظ التفاصيل', saving:'جارٍ الحفظ…',
-    verify_mobile:'تحقّق من جوالك', verify_email_h:'تحقّق من بريدك', verified:'✓ تم التحقق', send_sms:'أرسل رمز الرسالة النصية', verify:'تحقّق',
-    send_email_code:'أرسل رمز البريد', enter_mobile_first:'أدخل رقم جوالك أولًا.', accept_pre:'أوافق على ', terms_link:'الشروط والأحكام',
-    accept_post:' الخاصة بمنصة QuotesDone.', finish_continue:'إنهاء ومتابعة', finishing:'جارٍ الإنهاء…', must_accept:'يُرجى الموافقة على الشروط.',
-    my_requests:'طلباتي', messages:'الرسائل', projects:'المشاريع', back_requests:'→ العودة إلى الطلبات', new_request:'طلب جديد', close:'إغلاق',
-    k_requests:'الطلبات', k_open:'المفتوحة', k_quotes:'العروض المستلمة', k_avg:'متوسط العروض/طلب', k_hired:'المُتعاقد معهم', k_spend:'الإنفاق',
-    your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو صوتًا أو بصورة أو برسم.',
-    request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.',
-    payment_pending:'لا تزال عملية الدفع قيد المعالجة. يُرجى تحديث الصفحة بعد قليل — لا تدفع مرة أخرى. أبقِ هذه الصفحة مفتوحة حتى نُكمل التأكيد.',
-    payment_failed:'تعذّر تأكيد عملية الدفع حتى الآن. يُرجى الاحتفاظ برابط هذه الصفحة ومراسلتنا على management@quotesdone.com إذا تم خصم المبلغ.',
-    mod_spatial:'غرفة المشروع', mod_documents:'المستندات', mod_approvals:'الموافقات', mod_orders:'أوامر الشراء',
-    mod_predict:'ما قد تحتاجه لاحقًا', mod_profile:'ملف المشتريات', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
-    unread_message:'رسالة غير مقروءة', unread_messages:'رسائل غير مقروءة',
-    acct_title:'حسابك', acct_sub:'ما نحتفظ به لك، والتفضيلات التي يتذكرها هذا الجهاز.',
-    acct_name:'الاسم', acct_email:'البريد الإلكتروني', acct_phone:'الجوال', acct_locale:'اللغة في ملفك', acct_since:'عميل منذ',
-    acct_local_note:'تُحفظ اللغة والمظهر على هذا الجهاز فقط. لا يوجد لدينا حتى الآن نقطة نهاية لحفظ الإعدادات في ملفك، لذا لا يُحفظ أي شيء هنا في حسابك.',
-    acct_failed:'تعذّر تحميل تفاصيل حسابك.',
-    attention_one:'قرار بحاجة إلى انتباهك', attention_many:'قرارات بحاجة إلى انتباهك',
-    attention_none:'لا شيء يحتاج انتباهك الآن.',
-    active_projects:'المشاريع النشطة', projects_failed:'تعذّر تحميل مشاريعك الآن.',
-    no_projects:'لا توجد مشاريع بعد — اجمع الطلبات المرتبطة في مشروع لتتبع الميزانية والتقدّم. ',
-    rfqs_open_of:'طلب مفتوح', suppliers_engaged:'مورّد مشارك', no_budget_set:'لم تُحدَّد ميزانية',
-    budget_label:'الميزانية', no_target_date:'لم يُحدَّد تاريخ مستهدف، فلا يوجد جدول زمني لقياسه بعد.',
-    timeline_progress:'من الجدول الزمني مضى',
-    savings_unknown:'يحتاج قياس التوفير المحتمل إلى عرضين على الأقل لنفس الطلب.',
-    savings_potential:'التوفير المحتمل عبر عروضك',
-    search_requests:'ابحث في طلباتك…', no_search_match:'لا يوجد طلب يطابق هذا البحث.',
-    // ── لدى من الدور ──
-    ball_all:'الكل', ball_you:'بانتظارك أنت', ball_suppliers:'بانتظار الموردين',
-    ball_moving:'مع مورّدك', ball_done:'مغلق',
-    ball_none_you:'لا يوجد طلب يطابق هذا التصفية.',
-    hl_you_one:'طلب واحد بانتظارك', hl_you_many:'طلبات بانتظارك',
-    hl_sup_one:'وطلب واحد بانتظار الموردين', hl_sup_many:'بانتظار الموردين',
-    hl_mov_one:'وطلب واحد مع مورّدك', hl_mov_many:'مع مورّدك',
-    hl_nothing:'لا شيء بانتظارك — كل طلب مفتوح لديك في يد الموردين.',
-    hl_all_quiet:'لا شيء يحتاج انتباهك الآن.',
-    // ── ماذا يحدث بعد النشر ──
-    next_h:'ماذا يحدث بعد أن ترسل طلبك',
-    next_1:'نحوّل وصفك إلى طلب يستطيع الموردون تسعيره، ونرسله إلى الموردين المطابقين في الإمارات — دون اسمك أو رقمك.',
-    next_2:'تعود عروضهم إلى هذه الشاشة. معظم الطلبات يصلها أول عرض خلال 48 ساعة، ويصلك بريد عند وصول كل عرض.',
-    next_3:'تقارنها جنبًا إلى جنب مجانًا. تبقى أسماء الموردين مخفية حتى تختار أحدهم.',
-    next_4:'كشف المورّد يكلّف 3% من قيمة عرضه، ولا شيء غير ذلك. ويُردّ بالكامل إذا لم يردّ خلال 5 أيام عمل: نتابعه نيابةً عنك بعد 3 أيام، وتستغرق البنوك 7-14 يوم عمل لإظهار الاسترداد.',
-    // ── الهيكل ──
-    nav_main:'تنقل البوابة', nav_work:'العمل', nav_collaborate:'التعاون', nav_intelligence:'الذكاء',
-    nav_account:'الحساب', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد',
-    nav_collapse:'طيّ القائمة', alerts_label:'التنبيهات',
-    ask_ph:'اسأل عن طلباتك أو عروض الأسعار أو مستنداتك…', ask_ph_short:'اسأل المساعد…',
-    asst_title:'مساعد المشتريات', asst_sub:'يجيب من حسابك أنت',
-    asst_ph:'اسأل أي شيء عن حسابك…', asst_send:'إرسال', asst_thinking:'جارٍ التفكير',
-    asst_greet:'أستطيع الاطلاع على حسابك، فاسألني عن طلباتك أنت، والعروض الواردة عليها، ومستنداتك، وحالة التحقق — وكذلك عن كيفية عمل QuotesDone.',
-    asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
-    asst_err:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
-    // ── دورة حياة الطلب ──
-    st_matching:'قيد المطابقة', st_quoting:'قيد التسعير', st_quotes_in:'وردت العروض', st_revealed:'تم الكشف', st_closed:'مغلق',
-    k_awaiting:'بانتظار قرارك', k_reveals:'عمليات الكشف',
-    k_open_hint:'طلبات ما زالت تجمع العروض', k_quotes_hint:'عبر جميع طلباتك',
-    k_awaiting_hint:'طلبات وردها عرضان أو أكثر للمقارنة', k_reveals_hint:'رسوم التيسير 3% هي الرسوم الوحيدة التي تدفعها',
-    quick_actions:'إجراءات سريعة', qa_new:'طلب جديد', qa_compare:'قارن العروض', qa_upload:'ارفع رسمًا', qa_ask:'اسأل المساعد',
-    welcome_sub:'هذا موقف طلباتك اليوم.',
-    empty_title:'طلبك الأول يستغرق دقيقة تقريبًا',
-    empty_body:'صِف العمل نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته وإرساله بشكل مجهول إلى الموردين المطابقين في الإمارات، وتعود عروضهم هنا لمقارنتها جنبًا إلى جنب. النشر والمقارنة مجانًا.',
-    spread_title:'نطاق العروض', spread_locked:'تُفتح أسماء الموردين والأسعار الدقيقة عند الكشف',
-    spread_pre:'عرض وارد · بحدود', spread_none:'لا توجد عروض للمقارنة بعد.',
-    journey_title:'مسار الطلب',
-    jr_described:'الوصف', jr_structured:'التنظيم', jr_matched:'المطابقة', jr_quotes:'ورود العروض', jr_compare:'المقارنة', jr_reveal:'الكشف',
-    view_all:'عرض الكل',
-    auth_h:'طلب واحد. وكل عرض سعر يستحق.',
-    auth_sub:'صِف العمل مرة واحدة — نصًا أو صوتًا أو بصورة أو برسم. نقوم ببنيته ونرسله بشكل مجهول إلى موردين معتمدين في الإمارات، وتعود عروضهم لتقارنها جنبًا إلى جنب.',
-    auth_p1:'نشر الطلب ومقارنة العروض مجانًا.',
-    auth_p2:'لا أحد يعرف هويتك، ولا تعرف هويتهم، حتى تقرر أنت.',
-    auth_p3:'تدفع رسوم تيسير 3% فقط عند كشف المورّد. لا شيء آخر تدفعه.',
-    acct_saved:'تم الحفظ.', acct_unverified:'لم يتم التحقق بعد',
-    acct_reverify:'تم الحفظ. رقمك الجديد يحتاج إلى تحقق — أعد تحميل الصفحة وسنرسل لك رمزًا.',
-    acct_phone_warn:'تغيير رقم جوالك سيلغي التحقق منه. سيُطلب منك تأكيد الرقم الجديد برمز قبل أن تتمكن من نشر طلب.',
-    acct_device_note:'يُحفظ المظهر على هذا الجهاز. أما لغتك فتُحفظ في حسابك وتتبعك على أي جهاز تسجّل الدخول منه.',
-    req_one:'طلب', req_many:'طلبات',
-    qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر' }
-};
-const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
+import { t, tf, errText, emirateName } from './portalText';
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 // The hour is the CUSTOMER'S, not the server's: the portal renders client-side only (the shell
 // returns null until mounted), so a customer opening it at 07:00 in Dubai is not greeted with the
@@ -250,21 +80,32 @@ const greetingOf = (lang) => { const h = new Date().getHours(); if (lang === 'ar
 //              comparison card mounts on this same request. Below two there is nothing to analyse
 //              and the stage must not claim there is.
 //   award    — a supplier is hired, or the request is completed
-// STILL DERIVED IN THE BROWSER, AND THAT IS A KNOWN GAP. public.inquiries carries pipeline_stage
-// and stage_changed_at and company_event records the lifecycle, but customer_api's my_inquiries
-// column list does not include pipeline_stage, so the server's own recorded stage cannot be shown
-// until that select is widened.
+// The server's recorded pipeline_stage wins wherever it speaks — see stateOf below.
 const RFQ_STAGES = {
   en: ['Created', 'Sent', 'Quotes received', 'AI analysis', 'Awarded'],
   ar: ['أُنشئ', 'أُرسل', 'وردت العروض', 'تحليل ذكي', 'تم التعاقد'],
 };
 const rfqStageIdx = (inq, quotes) => {
-  if (inq && (inq.status === 'completed' || inq.hired_supplier_id)) return 4;
+  if (inq && (inq.status === 'completed' || inq.hired_supplier_id || inq.pipeline_stage === 'won')) return 4;
   const n = (quotes || []).length;
   if (n >= 2) return 3;
   if (n >= 1) return 2;
   return String(inq && inq.status) === 'draft' ? 0 : 1;
 };
+// §8 THE SERVER'S STAGE, WHERE IT HAS ONE (website audit 14 Sep 2026). my_inquiries serves
+// pipeline_stage and every pill, rail and whose-move count ignored it and guessed from
+// quotes.length, so a request the lifecycle had cancelled could still read "Matching". The stages
+// the lifecycle SQL writes are 'revealed', 'won' and 'cancelled' (scripts/sql and full_schema.sql);
+// those decide. Anything else, or null — every production row on 14 Sep, as there are no inquiries
+// yet — falls back to the derivation, so no stage is ever invented.
+const stateOf = (inq, quotes) => {
+  const ps = String((inq && inq.pipeline_stage) || '');
+  if (ps === 'cancelled' || ps === 'lost' || ps === 'closed') return 'closed';
+  if (ps === 'revealed' || ps === 'won') return 'revealed';
+  return rfqState(inq, quotes);
+};
+// Pre-reveal labels are served as 'Supplier A'; the letter is the identity-free part.
+const supLabel = (label, lang) => (lang === 'ar' ? String(label || '').replace(/^Supplier\b/, 'المورّد') : label);
 // Pre-reveal, customer_api returns a coarse rating BAND ('4.5+', '4.0-4.5', ...) instead of a number.
 // Bands are looked up here first so a banded string is never handed to Number() (which yields NaN).
 const RATING_BANDS = { '4.5+': 4.75, '4.0-4.5': 4.25, '3.5-4.0': 3.75, 'below 3.5': 3.0 };
@@ -275,44 +116,6 @@ const RATING_BANDS = { '4.5+': 4.75, '4.0-4.5': 4.25, '3.5-4.0': 3.75, 'below 3.
 // that ranks a good supplier last, and never a 60 that flatters a genuinely poor one.
 const ratingScoreOf = (r) => { if (r == null) return null; const b = RATING_BANDS[String(r).trim()]; if (b != null) return Math.round((b / 5) * 100); const n = Number(r); return Number.isFinite(n) ? Math.round((n / 5) * 100) : null; };
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
-const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
-function ensurePdfjs() { return new Promise((res, rej) => { if (window.pdfjsLib) return res(window.pdfjsLib); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (_e) {} res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); }); }
-async function fileToImages(file) {
-  const b64 = await fileB64(file);
-  if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
-  if (file.type === 'application/pdf') {
-    try { const L = await ensurePdfjs(); const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-      const pdf = await L.getDocument({ data: arr }).promise; const out = []; const n = Math.min(pdf.numPages, 6);
-      // scale 1.8 assumed a letter-sized page. A real construction sheet is ANSI D or A1, so 1.8
-      // produced 5444x3888 = 21 megapixels — 2.5 MB of base64 per page. drawing_redact decodes to
-      // full-resolution RGBA (85 MB for one such page) before resizing to its 1600px working width,
-      // and the isolate was killed outright: measured HTTP 546 WORKER_RESOURCE_LIMIT on a SINGLE
-      // page at that size. Capping the long edge costs nothing downstream (the redactor's own output
-      // is 1600px wide) and the same set at 2600px extracted 23 BoQ line items from the schedules.
-      const MAX_EDGE = 2600;
-      for (let pnum = 1; pnum <= n; pnum++) { const pg = await pdf.getPage(pnum); const v1 = pg.getViewport({ scale: 1 }); const vp = pg.getViewport({ scale: Math.min(1.8, MAX_EDGE / Math.max(v1.width, v1.height)) }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] }); }
-      return { images: out, b64, mime: 'application/pdf' };
-    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
-  }
-  return { images: [], b64, mime: file.type || 'application/octet-stream' };
-}
-function encodeWav(samples, rate) {
-  const buffer = new ArrayBuffer(44 + samples.length * 2); const view = new DataView(buffer);
-  const ws = (o, str) => { for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i)); };
-  ws(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); ws(8, 'WAVE'); ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); ws(36, 'data'); view.setUint32(40, samples.length * 2, true);
-  let o = 44; for (let i = 0; i < samples.length; i++) { const x = Math.max(-1, Math.min(1, samples[i])); view.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true); o += 2; }
-  return buffer;
-}
-async function blobToWavB64(blob) {
-  const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC();
-  const buf = await ac.decodeAudioData(await blob.arrayBuffer());
-  const rate = 16000; const off = new OfflineAudioContext(1, Math.ceil(buf.duration * rate), rate);
-  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
-  const rendered = await off.startRendering(); const pcm = rendered.getChannelData(0);
-  const wav = encodeWav(pcm, rate); const bytes = new Uint8Array(wav); let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
 
 const S = {
   center: 'grid place-items-center min-h-[70vh] p-5',
@@ -418,7 +221,8 @@ export function CustomerPortal() {
   </header>);
   return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
     {!mounted ? <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></> : (<>
-      {phase === 'login' && <>{strip}<Login onAuth={onAuth} lang={lang} /></>}
+      {/* The signed-in shell carries its own <main>; the doorway screens need one too (audit 14 Sep). */}
+      {phase === 'login' && <>{strip}<main><Login onAuth={onAuth} lang={lang} /></main></>}
       {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
     </>)}
   </div>);
@@ -441,7 +245,7 @@ function AuthShell({ lang, children }) {
     <div className="mx-auto grid w-full max-w-[1080px] items-center gap-10 px-5 py-10 md:min-h-[76vh] md:grid-cols-[1.05fr_minmax(380px,420px)] md:py-16">
       <div className="hidden md:block">
         <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 font-head text-[20px] font-extrabold text-primary">Q</span>
-        <h1 className="mt-5 font-head text-[30px] font-extrabold leading-[1.15] tracking-tight text-foreground">{t(lang, 'auth_h')}</h1>
+        <h2 className="mt-5 font-head text-[30px] font-extrabold leading-[1.15] tracking-tight text-foreground">{t(lang, 'auth_h')}</h2>
         <p className="mt-3 max-w-[46ch] text-[14px] leading-relaxed text-muted-foreground">{t(lang, 'auth_sub')}</p>
         <ul className="mt-7 flex flex-col gap-3.5">
           {points.map((k) => (
@@ -462,18 +266,18 @@ function Login({ onAuth, lang }) {
   const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'customer', identifier: v }); if (g && g.conflict === 'supplier') { setBusy(false); setMsg(t(lang, 'conflict_supplier')); return; } } catch (_e) {}
-    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
+    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
     <div className={cn(S.tabsWrap, 'mb-4 w-full')} role="tablist">
       <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
       <button role="tab" aria-selected={isSignup} className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button>
     </div>
-    <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</div>
+    <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</h1>
     <div className={cn(S.sub, 'mt-1.5')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
-    {step === 'id' ? (<><Input className="mt-3" placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
-      : (<><Input className="mt-3" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
+    {step === 'id' ? (<><Input className="mt-3" aria-label={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} autoComplete={isSignup ? 'email' : 'username'} placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
+      : (<><Input className="mt-3" aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
     {msg && <div className={S.err}>{msg}</div>}
   </Card></AuthShell>);
 }
@@ -516,10 +320,10 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
     <Button className="w-full mt-3" onClick={() => load()}>{t(lang, 'retry')}</Button></Card></div></>;
   if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
   const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
-  if (!complete) return <>{strip}<ProfileGate token={token} lang={lang} onDone={() => load()} /></>;
+  if (!complete) return <>{strip}<main><ProfileGate token={token} lang={lang} theme={theme} onDone={() => load()} /></main></>;
   return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
 }
-function ProfileGate({ token, lang, onDone }) {
+function ProfileGate({ token, lang, theme, onDone }) {
   const [st, setSt] = useState(null);
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
@@ -527,15 +331,15 @@ function ProfileGate({ token, lang, onDone }) {
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
-  const saveProfile = async () => { setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'load_failed')); };
+  const saveProfile = async () => { setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
-  const sendSms = async () => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone }, token); setBusy(''); if (j && j.ok) setSentSms(j.channel || 'sms'); else setMsg((j && j.error) || t(lang, 'err_code_send')); };
-  const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
-  const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg((j && j.error) || t(lang, 'err_code_send')); };
-  const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg((j && j.error) || t(lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg((j && j.error) || t(lang, 'load_failed')); };
+  const sendSms = async () => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone }, token); setBusy(''); if (j && j.ok) setSentSms(j.channel || 'sms'); else setMsg(errText(j, lang, 'err_code_send')); };
+  const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
+  const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
+  const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
   // DOB MUST NOT GATE THE CRITICAL PATH (6 Sep 2026). This required st.dob, so a customer who did not
   // supply a date of birth never saw the Verify-mobile / Verify-email / accept-Terms sections and was
   // silently stuck — measured on the first real registrant (07:38Z): 8 save_customer calls, ZERO
@@ -544,12 +348,13 @@ function ProfileGate({ token, lang, onDone }) {
   // system treats as optional. The gate now needs only the two facts a code can be sent to.
   const profileDone = st.full_name && st.phone;
   return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
-    <div className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</div>
+    <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</h1>
     <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
-    <Input className="mt-3" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
-    <Input className="mt-3" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
-    <div className={cn(S.sub, 'mt-3 mb-1')}>{t(lang, 'dob_label')}</div>
-    <Input type="date" className="mt-0" style={{ colorScheme: 'dark' }} value={dob} onChange={(e) => setDob(e.target.value)} />
+    <Input className="mt-3" aria-label={t(lang, 'full_name')} autoComplete="name" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
+    <Input className="mt-3" aria-label={t(lang, 'acct_phone')} inputMode="tel" autoComplete="tel" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
+    <label htmlFor="qd-dob" className={cn(S.sub, 'mt-3 mb-1 block')}>{t(lang, 'dob_label')}</label>
+    {/* The native date picker follows the customer's chosen theme; it was pinned dark (audit 14 Sep). */}
+    <Input id="qd-dob" type="date" className="mt-0" style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }} value={dob} onChange={(e) => setDob(e.target.value)} />
     {/* Always available, not only while the profile is incomplete: the number typed at signup is the
         one the code is sent to, and once all three fields were filled the only way to correct a wrong
         number was to verify it first - which is impossible if it is the wrong number. */}
@@ -557,10 +362,10 @@ function ProfileGate({ token, lang, onDone }) {
     {profileDone && <>
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_mobile')} {st.phone_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.phone_verified && (!sentSms ? <Button size="sm" className="mt-3" disabled={busy === 'sms'} onClick={sendSms}>{busy === 'sms' ? t(lang, 'sending') : t(lang, 'send_sms')}</Button>
-        : <><div className={S.hint}>{t(lang, sentSms === 'call' ? 'call_note' : 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div><Button variant="link" className="mt-1 px-0 h-auto" onClick={() => { setSentSms(false); setSmsCode(''); }}>{t(lang, 'use_diff_number')}</Button></>)}
+        : <><div className={S.hint}>{t(lang, sentSms === 'call' ? 'call_note' : 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div><Button variant="link" className="mt-1 px-0 h-auto" onClick={() => { setSentSms(false); setSmsCode(''); }}>{t(lang, 'use_diff_number')}</Button></>)}
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_email_h')} {st.email_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-3" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
-        : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
+        : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
       {st.phone_verified && st.email_verified && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
         <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
@@ -586,6 +391,9 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   const [pd, setPd] = useState(null); const [pdFailed, setPdFailed] = useState(false);
   const [qtext, setQtext] = useState('');
   const [ballFilter, setBallFilter] = useState('all');
+  // receipt: the on-screen state after a Stripe return; draft: the homepage handoff; focusQuote:
+  // the quote a payment was for, so its request opens by itself.
+  const [receipt, setReceipt] = useState(null); const [draft, setDraft] = useState(''); const [focusQuote, setFocusQuote] = useState('');
   // my_inquiries carries the customer's stored locale (customer_api, 5 Aug 2026). This is the only
   // call the portal makes that has it — `me` serves it too, but the portal never calls `me`, which
   // is why the field was on the wire for months with nothing listening. The handler upstream
@@ -614,10 +422,34 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     loadInq();
     loadPd();
     loadUnread();
-    const sid = new URLSearchParams(location.search).get('session_id');
+    const qs = new URLSearchParams(location.search);
+    const sid = qs.get('session_id'); const revealQ = qs.get('reveal') || '';
     // Only drop session_id from the URL once the payment is confirmed — it is the customer's
-    // only reference for retrying or chasing a payment that did not go through.
-    if (sid) { call('stripe_confirm', { session_id: sid }, token).then((j) => { if (j && j.ok) { history.replaceState({}, '', location.pathname); setNote(t(lang, 'payment_confirmed')); loadInq(); } else if (j && j.pending) { setNote(t(lang, 'payment_pending')); } else { setNote(t(lang, 'payment_failed')); } }).catch(() => setNote(t(lang, 'payment_failed'))); }
+    // only reference for retrying or chasing a payment that did not go through. A confirmed payment
+    // becomes an on-screen receipt and opens the request it paid for; a cancelled checkout says
+    // plainly that nothing was charged (audit 14 Sep 2026: money paths that end in silence read as
+    // broken). stripe_checkout's cancel_url carries payment=cancelled for exactly this.
+    if (sid) { call('stripe_confirm', { session_id: sid }, token).then((j) => { if (j && j.ok) { history.replaceState({}, '', location.pathname); setReceipt({ kind: 'paid', quoteId: revealQ }); setFocusQuote(revealQ); loadInq(); } else if (j && j.pending) { setNote(t(lang, 'payment_pending')); } else { setNote(t(lang, 'payment_failed')); } }).catch(() => setNote(t(lang, 'payment_failed'))); }
+    else if (qs.get('payment') === 'cancelled') { history.replaceState({}, '', location.pathname); setReceipt({ kind: 'cancelled', quoteId: revealQ }); setFocusQuote(revealQ); }
+    // THE HOMEPAGE DRAFT HANDOFF (contract with the homepage, 14 Sep 2026). The homepage stores
+    // localStorage 'qd-draft-brief' = {text, category?, emirate?, ts} and links to /me?draft=1. This
+    // screen mounts only after sign-in and the profile gate, so a draft under 24 hours old opens the
+    // composer and is sent as its first message. The key is deleted before it is used, so a reload
+    // can never post the same job twice; a malformed or stale draft is dropped, never sent.
+    try {
+      const raw = localStorage.getItem('qd-draft-brief');
+      if (raw) {
+        localStorage.removeItem('qd-draft-brief');
+        const d = JSON.parse(raw);
+        const ts = typeof (d && d.ts) === 'number' ? d.ts : Date.parse(String((d && d.ts) || ''));
+        const text = String((d && d.text) || '').trim();
+        if (text && Number.isFinite(ts) && Date.now() - ts < 24 * 3600e3) {
+          const extra = [d.category, d.emirate].filter(Boolean).join(', ');
+          setDraft(extra ? text + ' (' + extra + ')' : text); setShowNew(true);
+        }
+      }
+      if (qs.get('draft')) history.replaceState({}, '', location.pathname);
+    } catch (_e) { /* a malformed draft is dropped, never sent */ }
   }, [token]);
   // QUOTES ARRIVE WHILE THE CUSTOMER IS LOOKING AT THE PAGE. Suppliers answer asynchronously and
   // nothing pushes that to the browser, so until now the only way to see a new quote was to reload
@@ -657,7 +489,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // is a partition of rfqState, so it costs no request and CANNOT disagree with the pill on the row
   // it summarises: same function, same input, one screen up.
   const ballOf = (i) => {
-    const st = rfqState(i, i.quotes || []);
+    const st = stateOf(i, i.quotes || []);
     if (st === 'closed') return 'done';
     if (st === 'revealed') return 'moving';          // you paid; you and the supplier are talking
     if (st === 'matching') return 'suppliers';       // posted, nobody has quoted yet
@@ -747,7 +579,11 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     </section>
 
     {note && <div className={S.note}>{note}</div>}
-    {showNew && <div className="mb-5"><NewRequest token={token} onDone={() => { setShowNew(false); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => setShowNew(false)} /></div>}
+    {receipt && <ReceiptNote receipt={receipt} inqs={inqs} lang={lang} onClose={() => setReceipt(null)} />}
+    {/* llm_available comes from customer_portal's overview (llm_route_health): voice and drawing
+        reading say "paused" before the customer tries instead of failing after the upload. */}
+    {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} call={call} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
+      onDone={() => { setShowNew(false); setDraft(''); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => { setShowNew(false); setDraft(''); }} /></div>}
 
     {/* The severity marker was a 4px border-l — which is both a well-worn generated-UI tell and,
         more to the point here, LEFT: in Arabic it lands on the wrong edge of the card. A tinted
@@ -866,12 +702,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         <WhatHappensNext lang={lang} />
       </Card>
     ) : (filtered && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, needle ? 'no_search_match' : 'ball_none_you')}</div></Card>
-      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />)}</div>
+      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} />)}</div>
       // The overview shows the five most recent and links to the full list; My requests shows all.
       // Mapped then sliced, rather than sliced then mapped, so this stays the dashboard's list over
       // `inqs` — the thing the entry-not-login-dashboard leg reads to tell a workspace carrying live
       // work from a page of figures and links. Ten rows at most; the extra map costs nothing.
-      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} />).slice(0, onlyRequests ? undefined : 5)}</div>}
+      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} />).slice(0, onlyRequests ? undefined : 5)}</div>}
     {/* fn_customer_stats computes history_12m on EVERY overview call and nothing drew it; recharts
         and ui/chart.tsx were installed with no importers, so the customer product contained zero
         charts. Each chart states what is true when there is nothing to draw rather than rendering
@@ -1008,9 +844,12 @@ function QuickActions({ lang, onNew, onView, comparable }) {
     </section>
   );
 }
-function InquiryCard({ inq, token, onChange, lang }) {
-  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} />)}</div></Card>); }
-  const [open, setOpen] = useState(false);
+function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
+  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} />)}</div></Card>); }
+  const hasFocus = !!focusQuote && (inq.quotes || []).some((q) => q.id === focusQuote);
+  const [open, setOpen] = useState(hasFocus);
+  // The receipt names the quote it paid for; when that quote lives on this request, open it.
+  useEffect(() => { if (hasFocus) setOpen(true); }, [hasFocus]);
   const [canceling, setCanceling] = useState(false);
   const [editing, setEditing] = useState(false);
   const [eSummary, setESummary] = useState(inq.summary || '');
@@ -1018,140 +857,78 @@ function InquiryCard({ inq, token, onChange, lang }) {
   const [eEmirate, setEEmirate] = useState(inq.emirate || '');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [dialog, ask] = useConfirm(lang);
   const quotes = (inq.quotes || []).slice().sort((a, b) => (a.price || 0) - (b.price || 0));
   const concluded = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
   const anyRevealed = quotes.some((qq) => qq.revealed);
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
   const bestId = quotes.length ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
   const stepIdx = rfqStageIdx(inq, quotes);
-  const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!confirm('Cancel this request? Suppliers will stop quoting.')) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not cancel. Please try again.'); setCanceling(false); } } catch (_e) { setErr('Could not cancel. Please check your connection and try again.'); setCanceling(false); } };
-  const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr((j && (j.message || j.error)) || 'Could not save changes.'); } } catch (_e) { setErr('Could not save changes. Please try again.'); } setSaving(false); };
-  return (<Card className="p-5">
-    {/* A11Y (5 Aug 2026). This was a bare <div onClick> - no role, no tabindex, not focusable. It is
-        the control that opens a request, so a keyboard or screen-reader user could not open ANY of
-        their own quotes: the core journey was unreachable without a mouse. Found by trying to click
-        it in a browser; the accessibility tree simply had no node for it.
-        role+tabIndex+onKeyDown rather than a real <button> because this element wraps <div>
-        children, and <div> inside <button> is an invalid content model - with nothing in this repo
-        rendering JSX in a test, that swap is the riskier fix. */}
+  // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
+  const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
+  const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
+  return (<Card className="p-5">{dialog}
+    {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
+        children and <div> inside <button> is an invalid content model. */}
     <div className="flex justify-between items-center gap-2.5 cursor-pointer" onClick={() => setOpen(!open)}
       role="button" tabIndex={0} aria-expanded={open}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}>
-      {/* rfq_no is on every my_inquiries row and was rendered nowhere, so the customer had no
-          reference to quote back to us — only a uuid they never see. */}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          {/* OUR lifecycle, not a marketplace's idea of "Processing". The five states are derived
-              from facts the row already carries; see rfqState in PortalShell. */}
-          <StatusPill state={rfqState(inq, quotes)} t={(k) => t(lang, k)} />
-          <b className="capitalize">{inq.category || 'Request'}</b>
+          <StatusPill state={stateOf(inq, quotes)} t={(k) => t(lang, k)} />
+          <b className="capitalize">{inq.category || t(lang, 'rc_request')}</b>
           {inq.rfq_no ? <span className="rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{inq.rfq_no}</span> : null}
         </div>
-        {/* Emirate and the quote count are rendered as their own spans rather than joined into one
-            string. Both are facts a customer scans for, and both are separately asserted by the
-            Row #4 blueprint (rfq-location-extraction reads {inq.emirate}, rfqcc-response-count
-            reads {quotes.length} quote) — a joined string renders the same words and answers
-            neither, which is how a refactor loses a requirement without losing a feature. */}
+        {/* Emirate and the quote count stay separate spans: the Row #4 blueprint asserts each. */}
         <div className={cn(S.sub, 'mt-1 flex flex-wrap items-center gap-x-1.5')}>
-          {inq.emirate ? <span>{inq.emirate}</span> : null}
+          {inq.emirate ? <span>{emirateName(inq.emirate, lang)}</span> : null}
           {inq.emirate ? <span aria-hidden className="text-muted-foreground/40">·</span> : null}
-          <span>{quotes.length} {lang === 'ar' ? 'عرض' : ('quote' + (quotes.length === 1 ? '' : 's'))}</span>
-          {(inq.boq && inq.boq.boq) ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{inq.boq.boq.length}{lang === 'ar' ? ' بند' : ' line items'}</span></> : null}
-          {inq.editable ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{(lang === 'ar' ? 'قابل للتعديل ' : 'editable ') + inq.edit_minutes_left + 'm'}</span></> : null}
+          <span>{quotes.length} {t(lang, quotes.length === 1 ? 'rc_quote_one' : 'rc_quote_many')}</span>
+          {(inq.boq && inq.boq.boq) ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{inq.boq.boq.length} {t(lang, 'rc_lines')}</span></> : null}
+          {inq.editable ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{tf(lang, 'rc_editable', { m: inq.edit_minutes_left })}</span></> : null}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-primary font-semibold text-[13px]">
-        <span className="hidden sm:inline">{open ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (lang === 'ar' ? 'عرض التفاصيل' : 'Open request')}</span>
+        <span className="hidden sm:inline">{open ? t(lang, 'rc_hide') : t(lang, 'rc_open')}</span>
         <ChevronDown className={cn('h-4 w-4 transition-transform duration-300', open && 'rotate-180')} aria-hidden />
       </div>
     </div>
     {inq.summary && !editing && <div className={cn(S.sub, 'mt-1.5')}>{inq.summary}</div>}
     {editing && <div className="mt-2">
-      <textarea className={S.area} rows={3} value={eSummary} onChange={(e) => setESummary(e.target.value)} placeholder="Describe your request" />
+      <label className="sr-only" htmlFor={'qd-edit-' + inq.id}>{t(lang, 'rc_describe')}</label>
+      <textarea id={'qd-edit-' + inq.id} className={S.area} rows={3} value={eSummary} onChange={(e) => setESummary(e.target.value)} placeholder={t(lang, 'rc_describe')} />
       <div className={S.frow}>
-        <select className={S.field} style={{ colorScheme: 'dark', backgroundColor: 'hsl(205 46% 12%)', color: 'hsl(180 25% 94%)' }} value={eEmirate} onChange={(e) => setEEmirate(e.target.value)}><option value="" style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>Emirate (optional)</option>{EMIRATES.map((em) => <option key={em} value={em} style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{em}</option>)}</select>
-        <Input placeholder="Budget (optional)" value={eBudget} onChange={(e) => setEBudget(e.target.value)} />
+        {/* Theme tokens, not the hard-coded navy this select carried into the light theme. */}
+        <select className={cn(S.field, 'bg-background')} aria-label={t(lang, 'rc_emirate_opt')} value={eEmirate} onChange={(e) => setEEmirate(e.target.value)}><option value="">{t(lang, 'rc_emirate_opt')}</option>{EMIRATES.map((em) => <option key={em} value={em}>{emirateName(em, lang)}</option>)}</select>
+        <Input aria-label={t(lang, 'rc_budget_opt')} placeholder={t(lang, 'rc_budget_opt')} value={eBudget} onChange={(e) => setEBudget(e.target.value)} />
       </div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
-        <Button disabled={saving} onClick={(e) => { e.stopPropagation(); saveEdit(); }}>{saving ? 'Saving...' : 'Save changes'}</Button>
-        <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setEditing(false); setErr(''); }}>Cancel edit</Button>
+        <Button disabled={saving} onClick={(e) => { e.stopPropagation(); saveEdit(); }}>{saving ? t(lang, 'rc_saving') : t(lang, 'rc_save')}</Button>
+        <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setEditing(false); setErr(''); }}>{t(lang, 'rc_cancel_edit')}</Button>
       </div>
     </div>}
     {!concluded && !anyRevealed && !editing && <div className="flex gap-2.5 flex-wrap items-center mt-2">
-      {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>Edit request</Button>}
-      <Button variant="link" className="px-0 h-auto text-red-400" disabled={canceling} onClick={doCancel}>{canceling ? 'Cancelling...' : 'Cancel request'}</Button>
+      {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>{t(lang, 'rc_edit')}</Button>}
+      <Button variant="link" className="px-0 h-auto text-red-400" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
     </div>}
-    {err && <div className={S.err}>{err}</div>}
+    {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <QuoteSpread quotes={quotes} lang={lang} />
-      {/* §3 THE ASSISTANT AFTER THE REQUEST EXISTS. NewRequest unmounts the moment the RFQ is
-          created, and the only other door — a chat thread — is gated on a PAID REVEAL, so a
-          customer with a live RFQ and no revealed quote had no way to ask anything at all. This
-          reopens the same inquiry_intake conversation against this RFQ, which is where a follow-up
-          belongs: the assistant answers with the brief in front of it. */}
-      <RfqAssistant inq={inq} token={token} lang={lang} onChanged={onChange} />
+      {/* Questions and additions. The customer's follow-up reaches the RFQ (customer_api rfq_note)
+          and suppliers' pre-reveal questions can be answered (messages_api clarify_*). Replaces
+          RfqAssistant, whose inquiry_intake call ignored inquiry_id (audit 14 Sep 2026, BROKEN). */}
+      <Clarifications inq={inq} token={token} lang={lang} call={call} />
       <DetailFacts inq={inq} lang={lang} />
       {quotes.length >= 2 && <Comparison inqId={inq.id} token={token} lang={lang} />}
-      {/* THE DEFECT THIS REPLACES. What stood here was one fixed sentence — "we matched you with
-          suitable suppliers and will alert you the moment the first quote lands" — printed whenever
-          quotes.length was 0. It said the same encouraging thing to a customer whose request had
-          reached eight suppliers and to one whose request had reached NOBODY, and the second case is
-          not a wait, it is a dead end the customer must be told about so they can widen the brief.
-          matched_suppliers has been on the wire the whole time, carrying exactly that distinction,
-          with a source comment saying so; grep for it in this file returned nothing.
-          DiscoveryReachPanel renders reached===0 as its own outcome and never as encouragement. */}
+      {/* reached===0 is its own outcome here, never encouragement: matched_suppliers says which. */}
       <DiscoveryReachPanel inquiry={inq} lang={lang === 'ar' ? 'ar' : 'en'} />
       {quotes.length > 0
-        ? <div className="flex flex-col gap-2.5"><div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? ('العروض المستلمة (' + quotes.length + ')') : ('Quotes received (' + quotes.length + ')')}</div>{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} />)}</div>
+        ? <div className="flex flex-col gap-2.5"><div className={cn(S.sub, 'font-semibold text-foreground')}>{tf(lang, 'rc_quotes_received', { n: quotes.length })}</div>{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} />)}</div>
         : null}
     </div>}
   </Card>);
-}
-
-// §3: the procurement assistant, reachable from a request that already exists.
-//
-// It calls inquiry_intake — the same routine that built the brief — rather than a second, thinner
-// assistant, so the answers a customer gets after sending are answered by the thing that
-// understands the brief. Collapsed by default: this sits inside an already-dense open request, and
-// a chat box that is always expanded pushes the quotes the customer came to read off the screen.
-function RfqAssistant({ inq, token, lang, onChanged }) {
-  const [open2, setOpen2] = useState(false);
-  const [q, setQ] = useState(''); const [busy, setBusy] = useState(false);
-  const [turns, setTurns] = useState([]); const [err, setErr] = useState('');
-  const ask = async () => {
-    const text = q.trim(); if (!text || busy) return;
-    setBusy(true); setErr(''); setQ('');
-    setTurns((t) => [...t, { role: 'user', text }]);
-    try {
-      const j = await call('inquiry_intake', { text, inquiry_id: inq.id, category: inq.category || null }, token);
-      if (j && j.error) setErr(String(j.message || j.error));
-      else setTurns((t) => [...t, { role: 'ai', text: (j && j.assistant_message) || (lang === 'ar' ? 'تم.' : 'Noted.') }]);
-      if (onChanged) onChanged();
-    } catch (e) { setErr((e && e.message) || (lang === 'ar' ? 'تعذّر الإرسال.' : 'Could not send that.')); }
-    setBusy(false);
-  };
-  if (!open2) {
-    return (<Button variant="link" className="px-0 h-auto self-start" onClick={(e) => { e.stopPropagation(); setOpen2(true); }}>
-      {lang === 'ar' ? '🤖 اسأل المساعد عن هذا الطلب' : '🤖 Ask the assistant about this request'}
-    </Button>);
-  }
-  return (<div className="rounded-lg border border-border bg-secondary/20 p-3" onClick={(e) => e.stopPropagation()}>
-    <div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? 'المساعد' : 'Procurement assistant'}</div>
-    {turns.map((tn, i) => (
-      <div key={i} className={cn(S.sub, 'mt-1', tn.role === 'user' ? 'text-muted-foreground' : 'text-foreground')}>
-        {tn.role === 'user' ? '› ' : '🤖 '}{tn.text}
-      </div>
-    ))}
-    {err ? <div className={cn(S.err, 'mt-1')}>{err}</div> : null}
-    <div className="mt-2 flex items-end gap-2">
-      <Input value={q} onChange={(e) => setQ(e.target.value)} disabled={busy}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); ask(); } }}
-        placeholder={lang === 'ar' ? 'اسأل عن المواصفات أو التوقيت أو الموردين…' : 'Ask about specs, timing or suppliers…'} />
-      <Button size="sm" disabled={busy || !q.trim()} onClick={ask}>{busy ? '…' : (lang === 'ar' ? 'إرسال' : 'Ask')}</Button>
-    </div>
-  </div>);
 }
 
 function QuotePdfLink({ q, token, lang }) {
@@ -1204,48 +981,50 @@ const compareErrText = (code, lang) => {
     : 'We could not prepare the comparison report. Your quotes are unaffected — please try again.';
 };
 function Comparison({ inqId, token, lang }) {
+  const reduce = useReducedMotion();
   const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState(''); const [code, setCode] = useState('');
-  useEffect(() => { let on = true; setBusy(true); setCode(''); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) setA(j.analysis); else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
+  // quote_compare answers degraded:true, with analysis.disclaimer, when no model answered — the
+  // only path under the hold. The card was titled "Expert comparison report" regardless (audit
+  // 14 Sep 2026), so a rules-only ranking now says it is one, in both languages.
+  const [degraded, setDegraded] = useState(false);
+  useEffect(() => { let on = true; setBusy(true); setCode(''); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) { setA(j.analysis); setDegraded(!!j.degraded || !!j.analysis.disclaimer); } else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
-  if (busy) return (<div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5"><div className={cn(S.sub, 'text-primary')}>{lang === 'ar' ? 'يُعدّ خبيرنا تقرير المقارنة…' : 'Our expert is preparing your comparison report…'}</div></div>);
+  if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div><div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
   if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3" title={code || undefined}><div className={S.sub}>{note}</div></div>) : null;
-  return (<div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5">
-    <div className={cn(S.sub, 'font-bold text-primary mb-1')}>{(lang === 'ar' ? 'تقرير المقارنة من الخبير' : 'Expert comparison report') + (a.trade ? ' · ' + a.trade : '')}</div>
+  return (<motion.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
+    <div className="mb-1 flex flex-wrap items-center gap-2">
+      <div className={cn(S.sub, 'font-bold text-primary')}>{t(lang, degraded ? 'cmp_title_rules' : 'cmp_title') + (a.trade ? ' · ' + a.trade : '')}</div>
+      {degraded ? <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10.5px] font-semibold text-amber-300">{t(lang, 'cmp_badge_rules')}</span> : null}
+    </div>
+    {degraded && a.disclaimer ? <div className={cn(S.sub, 'mb-1.5')}>{a.disclaimer}</div> : null}
     {a.bottom_line ? <div className={cn(S.sub, 'text-foreground font-semibold mb-1.5')}>{a.bottom_line}</div> : null}
     {a.overview ? <div className={cn(S.sub, 'mb-2')}>{a.overview}</div> : null}
-    {arr(a.top3).length ? <div className="mb-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{lang === 'ar' ? 'أفضل الخيارات' : 'Top picks'}</div>{arr(a.top3).map((r, i) => (<div key={i} className={cn(S.sub, 'mt-0.5')}><span className="text-primary font-semibold">#{r.rank} {r.label}</span> — {r.why}{r.tradeoff ? (' ' + (lang === 'ar' ? '(الاعتبار: ' : '(catch: ') + r.tradeoff + ')') : ''}</div>))}</div> : null}
-    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2 border-t border-border/60 pt-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{q.label}{q.price != null ? (' — ' + aed(q.price)) : ''}</div>{/* §10 PER-DIMENSION SCORES. The spec compares Price / Delivery / Quality per supplier as stars;
-        the report previously carried one blended "Value n/100" computed in the browser, which is a
-        different claim — it hides WHICH dimension a quote is weak on, and that is the whole point
-        of a comparison. The three are scored server-side, relative to the other shortlisted quotes
-        on this job, and a dimension the quote does not state scores 1 rather than an average. */}
+    {arr(a.top3).length ? <div className="mb-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{t(lang, 'cmp_top')}</div>{arr(a.top3).map((r, i) => (<div key={i} className={cn(S.sub, 'mt-0.5')}><span className="text-primary font-semibold">#{r.rank} {supLabel(r.label, lang)}</span> — {r.why}{r.tradeoff ? (' (' + t(lang, 'cmp_catch') + ': ' + r.tradeoff + ')') : ''}</div>))}</div> : null}
+    {arr(a.quotes).map((q, i) => (<div key={i} className="mt-2 border-t border-border/60 pt-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{supLabel(q.label, lang)}{q.price != null ? (' — ' + aed(q.price)) : ''}</div>
+      {/* §10 per-dimension scores, relative to the other shortlisted quotes; unstated scores 1. */}
       {(q.price_score != null || q.delivery_score != null || q.quality_score != null) ? (
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5" title={q.score_reason || ''}>
-          {[[lang === 'ar' ? 'السعر' : 'Price', q.price_score], [lang === 'ar' ? 'التسليم' : 'Delivery', q.delivery_score], [lang === 'ar' ? 'الجودة' : 'Quality', q.quality_score]]
+          {[[t(lang, 'cmp_price'), q.price_score], [t(lang, 'cmp_delivery'), q.delivery_score], [t(lang, 'cmp_quality'), q.quality_score]]
             .filter(([, v]) => v != null)
             .map(([label, v]) => (
               <span key={String(label)} className={S.sub}>
                 <span className="text-muted-foreground">{label}: </span>
-                <span className="text-foreground" aria-label={`${v} ${lang === 'ar' ? 'من 5' : 'out of 5'}`}>{'★'.repeat(Math.max(0, Math.min(5, Number(v) || 0)))}{'☆'.repeat(Math.max(0, 5 - Math.max(0, Math.min(5, Number(v) || 0))))}</span>
+                <span className="text-foreground" aria-label={v + ' ' + t(lang, 'cmp_of5')}>{'★'.repeat(Math.max(0, Math.min(5, Number(v) || 0)))}{'☆'.repeat(Math.max(0, 5 - Math.max(0, Math.min(5, Number(v) || 0))))}</span>
               </span>
             ))}
         </div>
       ) : null}
       {q.score_reason ? <div className={cn(S.sub, 'text-muted-foreground')}>{q.score_reason}</div> : null}
-      {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'ناقص مما طلبت: ' : 'Missing from your request: ') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={S.sub} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'اختلاف عن المواصفات: ' : 'Spec differences: ') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-red-400')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
-    {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-red-400 mt-2')}>{(lang === 'ar' ? 'انتبه: ' : 'Watch out: ') + arr(a.watch_outs).join(' · ')}</div> : null}
+      {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={cn(S.sub, 'text-amber-300')}>{t(lang, 'cmp_missing') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={cn(S.sub, 'text-amber-300')}>{t(lang, 'cmp_dev') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-red-400')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
+    {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-red-400 mt-2')}>{t(lang, 'cmp_watch') + arr(a.watch_outs).join(' · ')}</div> : null}
     {a.advice ? <div className={cn(S.sub, 'mt-2 text-foreground')}>{a.advice}</div> : null}
-    {/* §10 EXPORT. customer_api action='compare_pdf' has existed, ownership-checked, rendering this
-        same analysis as a PDF — with NO caller anywhere a customer could click. A procurement
-        decision has to leave the portal to reach a manager or a finance approver; the comparison
-        stays on screen (§10 is explicit that it must not be an exported spreadsheet) and the
-        document is what the customer takes to the meeting. */}
+    {/* §10 EXPORT: customer_api compare_pdf, ownership-checked; the document goes to the meeting. */}
     <ExportComparison inqId={inqId} token={token} lang={lang} />
-    <div className={cn(S.sub, 'mt-2 text-muted-foreground/70 text-[11px]')}>{lang === 'ar' ? 'إرشادي فقط — القرار النهائي لك.' : 'Guidance only — the final decision is yours.'}</div>
-  </div>);
+    <div className={cn(S.sub, 'mt-2 text-muted-foreground/70 text-[11px]')}>{t(lang, 'cmp_guidance')}</div>
+  </motion.div>);
 }
-// The download is its own component because it owns a failure the report must survive: a PDF that
-// cannot be built must not blank the analysis the customer is reading.
+// The download owns a failure the report must survive: a PDF that cannot be built must not blank
+// the analysis the customer is reading.
 function ExportComparison({ inqId, token, lang }) {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const go = async () => {
@@ -1254,262 +1033,146 @@ function ExportComparison({ inqId, token, lang }) {
       const j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang }, token);
       const url = j && (j.url || j.pdf_url || j.file_url);
       if (url) window.open(url, '_blank', 'noopener');
-      else setErr((j && (j.message || j.error)) || (lang === 'ar' ? 'تعذّر إنشاء المستند.' : 'Could not build the document.'));
-    } catch (e) {
-      setErr((e && e.message) || (lang === 'ar' ? 'تعذّر إنشاء المستند.' : 'Could not build the document.'));
+      else setErr(errText(j, lang, 'cmp_save_fail'));
+    } catch (_e) {
+      setErr(t(lang, 'cmp_save_fail'));
     } finally { setBusy(false); }
   };
   return (<div className="mt-2">
-    <Button size="sm" variant="secondary" disabled={busy} onClick={go}>
-      {busy ? (lang === 'ar' ? 'جارٍ التجهيز…' : 'Preparing…') : (lang === 'ar' ? '⬇ حفظ المقارنة كمستند' : '⬇ Save this comparison as a document')}
-    </Button>
-    {err ? <div className={cn(S.err, 'mt-1')}>{err}</div> : null}
+    <Button size="sm" variant="secondary" disabled={busy} onClick={go}>{busy ? t(lang, 'cmp_saving') : t(lang, 'cmp_save')}</Button>
+    {err ? <div className={cn(S.err, 'mt-1')} role="alert">{err}</div> : null}
   </div>);
 }
-function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired }) {
+function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  // Warn, do not block: an expired price is still a supplier worth contacting, and taking the
-  // reveal button away would decide that for the customer. The banner tells them to get the price
-  // re-confirmed first, which is the actual risk they were never shown.
+  const [dialog, ask] = useConfirm(lang);
+  const reduce = useReducedMotion();
+  // THE REVEAL MOMENT: the redaction bar lifts off the supplier the first time the customer sees
+  // them — in this session, or on the return from Stripe (focus). Once; a later visit is plain.
+  const [justRevealed, setJustRevealed] = useState(!!focus && !!q.revealed);
+  // Warn, do not block: an expired price is still a supplier worth contacting.
   const exp = expiryOf(q, lang);
+  const w = terms && terms.window_days, c = terms && terms.chase_after_days;
+  const unlock = (r) => { if (!r) return; setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setJustRevealed(true); };
   const reveal = async () => {
     setBusy(true); setMsg('');
-    const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token);
-    if (r.error) { setBusy(false); setMsg(r.error); return; }
-    if (r.already_revealed) { setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setBusy(false); return; }
-    // payment required — reuse the existing proven Stripe flow
-    const cr = await call('stripe_checkout', { quote_id: q.id, return_url: location.origin + '/me' }, token);
-    if (cr.already_revealed) { const rr = await call('customer_api', { action: 'reveal', quote_id: q.id }, token); setContact({ supplier: rr.supplier, file_url: rr.original_file_url, file_name: rr.original_file_name }); setState('revealed'); setBusy(false); return; }
-    if (cr.url) { location.href = cr.url; return; }
-    setBusy(false); setMsg(cr.error || 'Could not start checkout. Please try again.');
+    const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null);
+    if (!r || r.error) { setBusy(false); setMsg(errText(r, lang)); return; }
+    if (r.already_revealed) { unlock(r); setBusy(false); return; }
+    setBusy(false);
+    const fee = aed(r.reveal_fee ?? q.reveal_fee);
+    // The Reveal Guarantee is shown at the moment of payment, not only as a line under the button.
+    const go = await ask(tf(lang, 'q_confirm_body', { fee, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), children: <RevealGuarantee lang={lang} fee={fee} terms={terms} compact /> });
+    if (!go) return;
+    setBusy(true);
+    // /ar/me for an Arabic customer, so the Stripe return lands in their language; stripe_checkout
+    // keeps any path that already ends in /me.
+    const cr = await call('stripe_checkout', { quote_id: q.id, return_url: location.origin + (lang === 'ar' ? '/ar/me' : '/me') }, token).catch(() => null);
+    if (cr && cr.already_revealed) { unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null)); setBusy(false); return; }
+    if (cr && cr.url) { location.href = cr.url; return; }
+    // stripe_checkout answers {error:'stripe_not_configured'} at HTTP 200; errText says it in words.
+    setBusy(false); setMsg(errText(cr, lang, 'q_checkout_fail'));
   };
-  const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token); if (r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
+  const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null); if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
   useEffect(() => { if (state === 'revealed' && !contact) showContactData(); }, [state]);
-  return (<div className="rounded-xl border border-border bg-white/[0.02] p-3">
-    <div className="flex justify-between items-center"><div><b>{q.label}</b>{best ? <span className="ml-1.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold px-1.5 py-0.5 align-middle">Best value</span> : ''}{q.verified ? <span className="text-primary text-[11px] font-bold"> ✓ verified</span> : ''}{q.rating != null ? <span className="text-accent text-[12px] font-semibold"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-muted-foreground text-[11px]" title="Ratings on QuotesDone come only from customers who hired this supplier through us. Ratings from other websites are not counted."> Not yet rated on QuotesDone</span>}</div><div className="text-right"><div className="text-[17px] font-extrabold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="text-[10px] text-muted-foreground" title="Guide only — blends price, quote completeness, and a QuotesDone rating where the supplier has one. A supplier not yet rated here is scored on the rest, not marked down for it. Not advice; use your own judgement.">Value {vscore}/100</div> : null}</div></div>
-    <div className="text-muted-foreground text-[11.5px] mt-0.5">{q.lead_time ? 'Lead time: ' + q.lead_time + ' · ' : ''}{q.warranty ? 'Warranty: ' + q.warranty + ' · ' : ''}{q.payment_terms ? 'Terms: ' + q.payment_terms : ''}{q.win_rate != null ? ' · win ' + Math.round(q.win_rate) + '%' : ''}</div>
+  const revealed = state === 'revealed';
+  return (<div className={cn('rounded-xl border p-3 transition-colors duration-500', revealed ? 'border-primary/35 bg-primary/[0.04]' : 'border-border bg-white/[0.02]')}>{dialog}
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0"><b>{supLabel(q.label, lang)}</b>{!revealed ? <span className="redact redact-bar ms-2" style={{ width: 72, height: 11 }} aria-hidden /> : null}{best ? <span className="ms-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
+      <div className="shrink-0 text-end"><div className="text-[17px] font-extrabold tabular-nums text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="text-[10px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
+    </div>
+    <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + q.warranty : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
-    {q.notes && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'ملاحظة المورّد: ' : "Supplier's note: ") + q.notes}</div>}
+    {q.notes && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_note') + q.notes}</div>}
     {/* What the price does NOT cover is the part that turns a cheap quote into an expensive job. */}
-    {q.exclusions && <div className={cn(S.sub, 'mt-1')} style={{ color: 'hsl(43 68% 64%)' }}>{(lang === 'ar' ? 'غير شامل: ' : 'Not included: ') + q.exclusions}</div>}
-    {q.conditions && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'الشروط: ' : 'Conditions: ') + q.conditions}</div>}
+    {q.exclusions && <div className={cn(S.sub, 'mt-1 text-amber-300')}>{t(lang, 'q_excl') + q.exclusions}</div>}
+    {q.conditions && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_cond') + q.conditions}</div>}
     {exp && (exp.tone === 'ok'
-      ? <div className={cn(S.sub, 'mt-1')}>{exp.text}{q.validity ? (' · ' + (lang === 'ar' ? 'مدة السريان: ' : 'Validity: ') + q.validity) : ''}</div>
+      ? <div className={cn(S.sub, 'mt-1')}>{exp.text}{q.validity ? (' · ' + t(lang, 'q_validity') + q.validity) : ''}</div>
       : <div className={cn('mt-1.5 rounded-md border px-3 py-2 text-[11.5px]', exp.tone === 'expired' ? 'border-red-400/30 bg-red-400/10 text-red-300' : 'border-amber-400/30 bg-amber-400/10 text-amber-300')} role={exp.tone === 'expired' ? 'alert' : undefined}>{exp.text}</div>)}
-    {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'مدة السريان: ' : 'Validity: ') + q.validity}</div>}
-    {/* inquiry_matches.match_reason — the only record of WHY this supplier was contacted. It was
-        rendered nowhere but /os (staff). The API omits the key entirely until this quote is
-        revealed, because the reason can name the company; see the note in customer_api. */}
-    {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{(lang === 'ar' ? 'سبب مطابقتنا لهذا المورّد: ' : 'Why we matched this supplier: ') + q.match_reason}</div>}
+    {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_validity') + q.validity}</div>}
+    {/* match_reason is omitted by the API until reveal, because it can name the company. */}
+    {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
     <div className="mt-1.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
-    {/* §15 Negotiation Assistant, on the quote it is about rather than in a module of its own — the
-        guidance is per-quote, and a customer deciding whether to push back on THIS price should not
-        have to carry a quote id to another screen. Production holds no quotes, so it answers
-        band='insufficient_data' and prints that sentence instead of inventing a target. */}
     <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
-    {state === 'revealed' ? (contact ? <Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /> : <div className={S.sub}>Loading contact…</div>)
-      : (<div className="flex justify-between items-center gap-2.5 mt-2.5 flex-wrap">
-          <div className={S.sub}>Reveal fee {aed(q.reveal_fee)} — refunded in full if the supplier doesn't respond in 5 working days (we chase them after 3).</div>
-          <Button size="sm" disabled={busy || concluded} onClick={reveal}>{busy ? 'Please wait…' : 'Reveal & contact'}</Button>
+    {revealed ? (contact
+        ? <RevealMoment play={justRevealed && !reduce}><Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
+        : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
+      : (<div className="mt-2.5 flex flex-wrap items-center justify-between gap-2.5">
+          <div className={S.sub}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
+          <Button size="sm" disabled={busy || concluded} onClick={reveal}>{busy ? t(lang, 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
-    {msg && <div className={S.err}>{msg}</div>}
+    {msg && <div className={S.err} role="alert">{msg}</div>}
+  </div>);
+}
+// The redaction bar is the brand's mark for withheld data, so the reveal is that bar lifting away.
+function RevealMoment({ play, children }) {
+  if (!play) return children;
+  return (<div className="relative">
+    <motion.div initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</motion.div>
+    <motion.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
+      initial={{ scaleX: 1, opacity: 1 }} animate={{ scaleX: 0, opacity: 0 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.7, 0, 0.3, 1] }} />
   </div>);
 }
 
-function Contact({ c, q, token, onChange, lang, won }) {
+function Contact({ c, q, token, onChange, lang, won, terms }) {
   const s = c.supplier || {};
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
-  const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token); if (j && j.ok) { setRated(true); setDone('Thanks for rating.'); } else setDone((j && j.error) || 'Could not save rating.'); };
-  const refund = async () => { if (!confirm('Tell us the supplier is not responding? We chase them after 3 working days and the fee is refunded in full if they are still silent after 5; our chief executive makes the final call. Banks take 7-14 working days to show a refund.')) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token); setDone(j && j.ok ? 'Refund requested — we will review it.' : ((j && j.error) || 'Could not request refund.')); };
-  const hire = async () => { if (!confirm('Mark this supplier as hired for this project?')) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token); if (j && j.ok) { setDone('Marked as hired.'); onChange && onChange(); } else setDone((j && j.error) || 'Could not update.'); };
-  return (<div className="mt-2.5 rounded-lg border border-primary/30 bg-primary/10 p-3">
-    <div className="font-bold">{s.company_name || 'Supplier'}</div>
-    {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{(lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed on ') + new Date(q.revealed_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div> : null}
-    {won ? <div className="text-primary text-[12px] font-bold mt-0.5">🏆 {lang === 'ar' ? 'المورّد المتعاقد معه لهذا المشروع' : 'Hired supplier for this project'}</div> : null}
-    <div className={cn(S.sub, 'mt-0.5')}>{(lang === 'ar' ? 'دفعت ' : 'You paid ') + aed(q.reveal_fee) + (lang === 'ar' ? ' لكشف هذا المورّد' : ' to reveal this supplier')}</div>
-    <div className="flex gap-3.5 flex-wrap mt-1.5">
-      {s.phone && <a href={'tel:' + s.phone} className="text-primary font-semibold">📞 {s.phone}</a>}
-      {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="text-primary font-semibold">WhatsApp</a>}
-      {s.email && <a href={'mailto:' + s.email} className="text-primary font-semibold">✉ {s.email}</a>}
-      {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="text-primary font-semibold">Website</a>}
+  const [dialog, ask] = useConfirm(lang);
+  const g = terms || {};
+  const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token).catch(() => null); if (j && j.ok) { setRated(true); setDone(t(lang, 'c_thanks')); } else setDone(errText(j, lang, 'c_rate_fail')); };
+  const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') : errText(j, lang, 'c_refund_fail')); };
+  const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); };
+  const date = (d) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return (<div className="mt-2.5 flex flex-col gap-2.5">{dialog}
+    <div className="rounded-lg border border-primary/30 bg-primary/10 p-3">
+      <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">{t(lang, 'q_unlocked')}</span><div className="font-bold">{s.company_name || t(lang, 'c_supplier')}</div></div>
+      {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_revealed_on', { d: date(q.revealed_at) })}</div> : null}
+      {won ? <div className="mt-0.5 text-[12px] font-bold text-primary">🏆 {t(lang, 'c_hired_badge')}</div> : null}
+      <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.reveal_fee) })}</div>
+      <div className="mt-1.5 flex flex-wrap gap-3.5">
+        {s.phone && <a href={'tel:' + s.phone} className="font-semibold text-primary">📞 <bdi dir="ltr">{s.phone}</bdi></a>}
+        {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="font-semibold text-primary">WhatsApp</a>}
+        {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi>{s.email}</bdi></a>}
+        {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
+      </div>
+      {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</a></div>}
+      <div className="mt-2.5 flex flex-wrap items-center gap-4">
+        {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
+        {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}
+        <Button variant="link" className="h-auto px-0" onClick={hire}>{t(lang, 'c_hire')}</Button>
+        <Button variant="link" className="h-auto px-0" onClick={refund}>{t(lang, 'c_refund')}</Button>
+      </div>
+      {done && <div className={cn(S.sub, 'mt-1.5 text-primary')} role="status">{done}</div>}
     </div>
-    {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="text-primary font-semibold">Download their quotation{c.file_name ? ' (' + c.file_name + ')' : ''}</a></div>}
-    <div className="flex gap-4 items-center mt-2.5 flex-wrap">
-      {/* A11Y (5 Aug 2026). Five <span onClick> stars: rating a supplier was mouse-only and the
-          control announced nothing. Each star is now a real <button> carrying its value in an
-          aria-label, wrapped in a labelled group. Stars contain only text, so unlike the card
-          header above there is no content-model obstacle to using a real button. */}
-      {!rated ? <span role="group" aria-label="Rate this supplier" className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" onClick={() => rate(n)} aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`} className={cn('cursor-pointer bg-transparent border-0 p-0 leading-none', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>★ Rated</span>}
-      <Button variant="link" className="px-0 h-auto" onClick={hire}>I hired this supplier</Button>
-      <Button variant="link" className="px-0 h-auto" onClick={refund}>Request refund</Button>
-    </div>
-    {done && <div className={cn(S.sub, 'mt-1.5 text-primary')}>{done}</div>}
+    {/* The clock on the customer's own reveal. Hidden once the fee can no longer be refunded
+        (hired or rated), because a running clock on a promise that no longer applies misleads. */}
+    {q.guarantee && !won && !rated ? <RevealGuarantee lang={lang} fee={aed(q.reveal_fee)} terms={terms} facts={q.guarantee} compact /> : null}
   </div>);
 }
 
-function NewRequest({ token, onDone, onCancel }) {
-  const GREETING = { role: 'assistant', text: "Hi — I\'m your QuotesDone intake assistant. Tell me what you need done and which emirate it\'s in, and I\'ll ask a couple of quick questions so suppliers can quote accurately. You can type, attach a drawing / photo / your own quotation, or tap the mic. Your identity stays hidden until you choose to reveal a supplier." };
-  const [messages, setMessages] = useState([GREETING]);
-  const [input, setInput] = useState('');
-  const [intakeId, setIntakeId] = useState(null);
-  const [drawing, setDrawing] = useState(null);
-  const [thinking, setThinking] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [brief, setBrief] = useState(null);
-  const [ready, setReady] = useState(false);
-  const [combineMode, setCombineMode] = useState('multi');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
-  const fileRef = useRef(null); const endRef = useRef(null);
-  const push = (m) => setMessages((a) => [...a, m]);
-  useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready]);
-  const runIntake = async (message) => {
-    setThinking(true); setMsg('');
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (drawing && drawing.boq) || null }, token);
-    setThinking(false);
-    if (!r || r.error) { push({ role: 'assistant', text: (r && (r.message || r.error)) || 'Sorry — something went wrong. Please try again.' }); return; }
-    if (r.intake_id) setIntakeId(r.intake_id);
-    if (r.assistant_message) push({ role: 'assistant', text: r.assistant_message });
-    if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); } else { setReady(false); }
-  };
-  const send = async () => { const t = input.trim(); if (!t) return; push({ role: 'user', text: t }); setInput(''); await runIntake(t); };
-  const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
-  const onFile = async (file) => {
-    if (!file) return; setMsg(''); setAnalyzing(true);
-    push({ role: 'user', text: '', chip: file.name });
-    try {
-      const { images, b64, mime } = await fileToImages(file);
-      const res = await call('customer_api', { action: 'analyze_drawing', images, original_b64: b64, mime, drawing_file_name: file.name, hint: messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400) }, token);
-      const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || file.name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: 'drawing' };
-      setDrawing(dr);
-      const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
-      if (n >= 1) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
-      // TELL THE TRUTH ABOUT THE DRAWING (9 Sep 2026). This branch used to say "Thanks — I've
-      // attached your file for suppliers" whenever the BOQ came back empty, and it said it whether
-      // or not anything had been attached. It never read res.ok (drawing_boq answers HTTP 200 with
-      // ok:false, so an analysis failure was completely invisible) and never read
-      // redaction_complete, which customer_api computes precisely so the caller can know whether
-      // every page survived redaction. A drawing that is not redacted is NOT sent to suppliers —
-      // customer_api drops the paths and create_inquiry refuses unrecorded ones — so the old
-      // sentence was telling the buyer their drawing had reached suppliers when it had reached
-      // nobody. A customer must not be told that.
-      const pagesIn = Number((res && res.redaction_pages_in) || 0);
-      const pagesOut = Number((res && res.redaction_pages_out) || 0);
-      const attached = pagesIn > 0 && res.redaction_complete === true;
-      const partial = pagesIn > 0 && !attached;
-      let text;
-      if (n >= 1) {
-        text = 'Got it — I read ' + n + ' line item' + (n > 1 ? 's' : '') + ' from your file' + (res.boq.category ? ' (' + res.boq.category + ')' : '') + '.'
-          + (partial ? ' I could not prepare ' + (pagesOut ? 'all of' : 'any of') + ' the drawing for sharing, so ' + (pagesOut ? 'only ' + pagesOut + ' of ' + pagesIn + ' page' + (pagesIn > 1 ? 's' : '') + ' will go to suppliers' : 'the drawing itself will not go to suppliers') + ' — the details below still will.' : '')
-          + ' Add anything else, or tap Send to suppliers below.';
-      } else if (res && res.advice) {
-        // customer_api names the real reason (CAD not converted, archive, unreadable pages).
-        text = res.advice;
-      } else if (attached) {
-        text = 'Thanks — I could not pull a bill of quantities out of this file, but I have prepared '
-          + pagesIn + ' page' + (pagesIn > 1 ? 's' : '') + ' of it to share with suppliers. Tell me a little about the job so I can brief them properly.';
-      } else {
-        text = 'Thanks — I have your file, but I could not prepare it to share with suppliers, so it will not go out with your request. Please tell me about the job here and I will brief them from that'
-          + (partial ? ', or re-upload the drawing as a clear PDF and I will try again.' : '.');
-      }
-      push({ role: 'assistant', text });
-    } catch (_e) { push({ role: 'assistant', text: 'I could not read that file, but you can still describe the job here in the chat.' }); }
-    setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
-  };
-  const startRec = async () => { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const mr = new MediaRecorder(stream); recRef.current = { mr, chunks: [], stream }; mr.ondataavailable = (e) => { if (e.data && e.data.size) recRef.current.chunks.push(e.data); }; mr.onstop = async () => { setVoxBusy(true); try { const blob = new Blob(recRef.current.chunks, { type: (recRef.current.chunks[0] && recRef.current.chunks[0].type) || 'audio/webm' }); const b64 = await blobToWavB64(blob); const j = await call('transcribe', { audio_b64: b64, mime: 'audio/wav' }, token); if (j && j.ok && j.text) setInput((tx) => (tx ? tx + ' ' : '') + j.text); else if (j && j.error) setMsg('Could not transcribe: ' + j.error); } catch (_e) { setMsg('Could not process the recording.'); } setVoxBusy(false); try { recRef.current.stream.getTracks().forEach((t) => t.stop()); } catch (_e) {} }; mr.start(); setRec(true); } catch (_e) { setMsg('Please allow microphone access to use voice.'); } };
-  const stopRec = () => { try { recRef.current && recRef.current.mr.stop(); } catch (_e) {} setRec(false); };
-  const submit = async () => {
-    setBusy(true); setMsg('');
-    const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
-    const firstUser = messages.find((m) => m.role === 'user' && m.text);
-    const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing }, token);
-    setBusy(false);
-    if (r && r.ok) onDone();
-    else if (r && r.error === 'intake_required') { setReady(false); push({ role: 'assistant', text: 'Just a couple more details first, so suppliers can quote accurately.' }); }
-    else setMsg((r && (r.message || r.error)) || 'Could not send your request.');
-  };
-  const trades = (brief && Array.isArray(brief.trades)) ? brief.trades : [];
-  return (<Card className="p-0 mb-3.5 flex flex-col" style={{ height: 'min(72vh, 640px)' }}>
-    <div className="flex justify-between items-center gap-2.5 px-5 py-3 border-b border-border">
-      <div className={S.h2}>New request</div>
-      <Button variant="link" className="px-0 h-auto" onClick={onCancel}>Cancel</Button>
+// THE STRIPE RETURN, ON SCREEN. A payment used to end on a one-line note (or, when cancelled, on
+// nothing at all); this states what was paid and that the guarantee clock started, or that nothing
+// was charged.
+function ReceiptNote({ receipt, inqs, lang, onClose }) {
+  const reduce = useReducedMotion();
+  const all = inqs.flatMap((i) => [i, ...(i.children || [])]);
+  const q = receipt.quoteId ? all.flatMap((i) => i.quotes || []).find((x) => x.id === receipt.quoteId) : null;
+  const paid = receipt.kind === 'paid';
+  return (<motion.div role="status" initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduce ? 0 : 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+    className="qd-panel mb-5 flex items-start gap-3 p-4">
+    <motion.span initial={reduce ? false : { scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18, delay: reduce ? 0 : 0.12 }}
+      className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full', paid ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground')}>
+      {paid ? <Check className="h-4 w-4" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
+    </motion.span>
+    <div className="min-w-0 flex-1">
+      {paid
+        ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
+        : <p className="text-[13px] text-foreground">{t(lang, 'rcpt_cancelled')}</p>}
     </div>
-    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
-      {messages.map((m, i) => (
-        m.chip !== undefined
-          ? <div key={i} className="flex justify-end"><div className="rounded-2xl bg-primary/15 border border-primary/30 text-foreground px-3 py-2 text-[13px]">📎 {m.chip}</div></div>
-          : <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div className={cn('rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed max-w-[85%] whitespace-pre-wrap', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary/60 text-foreground border border-border')}>{m.text}</div>
-            </div>
-      ))}
-      {(thinking || analyzing) && <div className="flex justify-start"><div className="rounded-2xl px-3.5 py-2 text-[13px] bg-secondary/60 text-muted-foreground border border-border">{analyzing ? 'Reading your file…' : 'Typing…'}</div></div>}
-      {ready && brief && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5">
-          <div className={cn(S.sub, 'font-bold capitalize text-foreground')}>{brief.category || 'Request'}{brief.emirate ? ' — ' + brief.emirate : ''}</div>
-          <div className={cn(S.sub, 'mt-1')}>{brief.summary || ''}</div>
-          {brief.scope ? <div className={cn(S.sub, 'mt-1')}>Scope: {brief.scope}</div> : null}
-          {/* §3 THE ESTIMATED QUANTITY. The intake has emitted brief.quantity from the start and
-              this card rendered seven brief fields without it, so the customer confirmed a brief
-              containing a number they were never shown — and the RFQ-creation path in customer_api
-              then dropped it. Both halves are fixed together: shown here, persisted there. */}
-          {brief.quantity ? <div className={cn(S.sub, 'mt-1')}>Quantity: {brief.quantity}{brief.provenance && brief.provenance.quantity === 'inferred' ? <span className="text-muted-foreground"> (estimated from your description — correct it below if it is wrong)</span> : null}</div> : null}
-          {brief.timeline ? <div className={cn(S.sub, 'mt-1')}>Timeline: {brief.timeline}</div> : null}
-          {brief.budget ? <div className={cn(S.sub, 'mt-1')}>Budget: {brief.budget}</div> : null}
-          {/* §3 REQUIRED DOCUMENTS, before Send. The category's own compliance checklist — the same
-              list the RFQ-creation path copies onto the RFQ — so what the customer agrees to send
-              is what the supplier will be held to. A category with no published checklist shows
-              nothing rather than three invented lines. */}
-          {Array.isArray(brief.required_documents) && brief.required_documents.length ? (
-            <div className="mt-2">
-              <div className={cn(S.sub, 'font-semibold text-foreground')}>Required documents and approvals</div>
-              <ul className="mt-0.5 space-y-0.5" role="list">
-                {brief.required_documents.map((d, i) => (
-                  <li key={i} className={S.sub}>✓ {d.item}{d.authority ? <span className="text-muted-foreground"> — {d.authority}</span> : null}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {/* §3 HOW FAR THIS WILL REACH, before it is sent. The number comes from the same matcher
-              dispatch itself uses, so "12 suppliers" means twelve suppliers get this brief. Zero is
-              stated as zero: a customer about to send a request that will reach nobody has to be
-              told that BEFORE they press the button, not by silence afterwards. */}
-          {brief.supplier_count != null ? (
-            <div className={cn(S.sub, 'mt-2 font-semibold', Number(brief.supplier_count) > 0 ? 'text-foreground' : 'text-muted-foreground')}>
-              {Number(brief.supplier_count) > 0
-                ? `We will send this to ${brief.supplier_count} matching supplier${Number(brief.supplier_count) === 1 ? '' : 's'}.`
-                : 'No registered supplier matches this brief yet. You can still send it — it reaches suppliers in this trade as they register.'}
-            </div>
-          ) : null}
-          {trades.length > 1 ? (<div className="mt-2.5 rounded-lg border border-primary/30 bg-primary/5 p-3"><div className={cn(S.sub, 'font-semibold text-primary')}>This project spans several trades: {trades.join(', ')}.</div><div className={cn(S.sub, 'mt-0.5 mb-2')}>How would you like to source it?</div><label className="flex items-start gap-2 cursor-pointer rounded-md p-2 hover:bg-secondary/50"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'multi'} onChange={() => setCombineMode('multi')} /><span className={S.sub}><span className="font-semibold text-foreground">Separate specialists (recommended)</span> — a separate request goes to specialists in each trade, so you get the sharpest price on every part.</span></label><label className="flex items-start gap-2 cursor-pointer rounded-md p-2 hover:bg-secondary/50"><input type="radio" name="combine" className="mt-1" checked={combineMode === 'turnkey'} onChange={() => setCombineMode('turnkey')} /><span className={S.sub}><span className="font-semibold text-foreground">One turnkey company</span> — a single fit-out / decoration company handles the whole project end to end.</span></label></div>) : null}
-          {brief.plausibility && brief.plausibility.note ? <div className={cn(S.sub, 'mt-1')} style={{ color: 'hsl(43 68% 64%)' }}>Note: {brief.plausibility.note}</div> : null}
-          <Button className="w-full mt-3" disabled={busy} onClick={submit}>{busy ? 'Sending…' : 'Send to suppliers'}</Button>
-          <div className={cn(S.sub, 'text-center mt-1.5')}>or keep typing below to add more detail</div>
-        </div>
-      )}
-      <div ref={endRef} />
-    </div>
-    <div className="border-t border-border px-3 py-2.5">
-      {msg && <div className={cn(S.err, 'mb-1.5')}>{msg}</div>}
-      <div className="flex items-end gap-2">
-        {/* CAD WAS ACCEPTED BY THE SERVER AND UNPICKABLE IN THE BROWSER. _shared/attachment.ts has
-            SAFE_CAD = ['image/vnd.dwg','image/vnd.dxf'] and customer_api has a live cad_convert
-            branch, but this input allowed only images and PDF — so the whole CAD path was
-            unreachable for the customer it was built for. The founder, 10 Sep 2026: the sales
-            engineer "need to be extremely powerful in reading CAD drawings, PDF drawing formats,
-            any format for the drawings". Extensions are listed as well as MIME types because
-            Windows and macOS report .dwg/.dxf inconsistently — some browsers send an empty type
-            for them, and an accept list of MIME types alone silently hides the files. */}
-        <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf" className="hidden" onChange={(e) => onFile(e.target.files[0])} />
-        <button type="button" title="Attach a drawing, photo or quotation" className="text-primary text-xl px-1 leading-none disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}>📎</button>
-        <button type="button" title="Speak your request" className={cn('text-xl px-1 leading-none', rec ? 'text-red-400' : 'text-primary')} onClick={rec ? stopRec : startRec}>{voxBusy ? '…' : (rec ? '⏺' : '🎙')}</button>
-        <textarea className="flex-1 resize-none rounded-xl bg-secondary/40 border border-border px-3 py-2 text-[13.5px] outline-none focus:border-primary/60" rows={1} placeholder={rec ? 'Listening… tap the mic to stop' : 'Message the assistant…'} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
-        <Button disabled={thinking || analyzing || !input.trim()} onClick={send}>Send</Button>
-      </div>
-    </div>
-  </Card>);
+    <button type="button" onClick={onClose} aria-label={t(lang, 'close')} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" aria-hidden /></button>
+  </motion.div>);
 }
 // The §22 module list, in the order a customer meets them. The Messages/Thread pair that used to
 // live in this file is gone: CommunicationCenter serves the same four messages_api actions and adds
@@ -1520,50 +1183,6 @@ const MODULES = [
   ['messages', 'messages'], ['approvals', 'mod_approvals'], ['orders', 'mod_orders'],
   ['predict', 'mod_predict'], ['profile', 'mod_profile'], ['account', 'mod_account'],
 ];
-// §21: the server's per-customer panel order, applied to the module bar.
-//
-// THE DECLARED ORDER IS THE FLOOR, NOT THE DEFAULT. A layout is a REORDERING of what exists, so a
-// module the server did not rank is appended rather than dropped — otherwise shipping a new module
-// would make it invisible to every customer whose layout was computed before it existed, which is
-// the failure mode of every server-driven layout that trusts the payload as a whitelist. An id the
-// server sends that this build does not have is ignored for the mirror-image reason.
-function orderedModules(layout) {
-  const want = (layout && Array.isArray(layout.order)) ? layout.order.map(String) : [];
-  const known = new Map(MODULES.map((m) => [m[0], m]));
-  const out = want.map((id) => known.get(id)).filter(Boolean);
-  for (const m of MODULES) if (!out.includes(m)) out.push(m);
-  return out;
-}
-// THE BUTTONS STAY WRITTEN OUT, AND CSS MOVES THEM.
-//
-// The obvious implementation is to map orderedModules() straight into buttons, and it is worse in
-// two ways that only show up later. Every destination becomes `setView(id)` with no literal
-// anywhere, so nothing — no grep, no reviewer, no route audit — can answer "where can this portal
-// go" without executing it; and the DOM order then follows the layout, which is the tab order a
-// keyboard user gets, so a server-side ranking silently reorders focus. `order` is a flexbox
-// property: it changes the visual order and leaves the DOM, and therefore the tab order, alone.
-// An unranked module sorts after the ranked ones because indexOf returns -1 → 999.
-const moduleBarOrder = (id, layout) => {
-  const ids = orderedModules(layout).map((m) => m[0]);
-  const i = ids.indexOf(id);
-  return i < 0 ? 999 : i;
-};
-// The unread count is the one fact worth knowing BEFORE opening the inbox, so the module bar asks
-// messages_api for it. Failure is silent by design: a badge that cannot load must not put an error
-// where a count goes, and the inbox itself reports its own failure when the customer opens it.
-function UnreadBadge({ token, lang }) {
-  const [unread, setUnread] = useState(0);
-  useEffect(() => {
-    let on = true;
-    call('messages_api', { action: 'threads' }, token)
-      .then((j) => { if (on) setUnread(((j && j.threads) || []).reduce((n, th) => n + (Number(th.unread) || 0), 0)); })
-      .catch(() => {});
-    return () => { on = false; };
-  }, [token]);
-  if (!unread) return null;
-  return <span className="ms-1.5 inline-block rounded-full bg-primary text-primary-foreground px-1.5 text-[10px] font-bold"
-    title={unread + ' ' + t(lang, unread === 1 ? 'unread_message' : 'unread_messages')}>{unread}</span>;
-}
 // A MODULE IS A PAGE NOW, NOT A POP-UP.
 //
 // These opened as a Dialog over the dashboard, and the reason was sound at the time: navigating to
@@ -1679,13 +1298,13 @@ function AccountSettings({ token, lang, onChanged }) {
     const j = await call('kyc', { action: 'save_customer', full_name: name, phone, dob: me.date_of_birth || '' }, token);
     setBusy('');
     if (j && j.ok) { setMsg(t(lang, j.phone_reverify_required ? 'acct_reverify' : 'acct_saved')); load(); if (onChanged) onChanged(); }
-    else setMsg((j && (j.error || j.message)) || t(lang, 'acct_failed'));
+    else setMsg(errText(j, lang, 'acct_failed'));
   };
   const saveLocale = async (loc) => {
     setBusy('loc'); setMsg('');
     const j = await call('customer_api', { action: 'set_locale', locale: loc }, token);
     setBusy('');
-    if (j && j.ok) { setMsg(t(lang, 'acct_saved')); load(); } else setMsg((j && j.error) || t(lang, 'acct_failed'));
+    if (j && j.ok) { setMsg(t(lang, 'acct_saved')); load(); } else setMsg(errText(j, lang, 'acct_failed'));
   };
   const Row = ({ label, children }) => (
     <div className="grid gap-1 sm:grid-cols-[190px_1fr] sm:items-center sm:gap-3">
@@ -1696,9 +1315,9 @@ function AccountSettings({ token, lang, onChanged }) {
   return (<div className="flex flex-col gap-4">
     <p className={S.sub}>{t(lang, 'acct_sub')}</p>
     <Card className="flex flex-col gap-3.5 p-4">
-      <Row label={t(lang, 'acct_name')}><Input value={name} onChange={(e) => setName(e.target.value)} /></Row>
+      <Row label={t(lang, 'acct_name')}><Input aria-label={t(lang, 'acct_name')} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} /></Row>
       <Row label={t(lang, 'acct_phone')}>
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+        <Input aria-label={t(lang, 'acct_phone')} autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
         <div className={cn('mt-1 text-[11.5px]', phoneChanged ? 'text-amber-300' : 'text-muted-foreground')}>
           {phoneChanged ? t(lang, 'acct_phone_warn') : (me.phone_verified ? t(lang, 'verified') : t(lang, 'acct_unverified'))}
         </div>
@@ -1724,7 +1343,6 @@ function AccountSettings({ token, lang, onChanged }) {
     <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
   </div>);
 }
-function Kpi({ label, v }) { return <Card className="p-3.5"><div className="text-[19px] font-extrabold text-foreground">{v}</div><div className="text-[11.5px] text-muted-foreground mt-1">{label}</div></Card>; }
 
 // THE REQUEST'S OWN JOURNEY. What stood here was five words separated by chevrons with 1.5px dots —
 // technically a stepper, visually a sentence. The stage a request is at is the single thing a

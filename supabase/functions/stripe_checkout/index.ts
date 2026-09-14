@@ -68,7 +68,9 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const base = safeBase(body.return_url) || 'https://quotesdone.com';
     const portal = /\/me$/.test(base) ? base : (base + '/me');
     const success = portal + '?session_id={CHECKOUT_SESSION_ID}&reveal=' + encodeURIComponent(qid);
-    const cancel = portal;
+    // A cancelled checkout used to land on the bare portal with nothing on screen, which reads as
+    // "did it charge me?". The marker lets the portal say plainly that nothing was paid.
+    const cancel = portal + '?payment=cancelled&reveal=' + encodeURIComponent(qid);
     const form = new URLSearchParams();
     form.set('mode', 'payment');
     form.set('success_url', success);

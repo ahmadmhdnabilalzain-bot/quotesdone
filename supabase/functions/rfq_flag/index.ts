@@ -1,37 +1,33 @@
-// rfq_flag — lets an approved supplier flag that an RFQ's scope is unclear.
-// Records a founder escalation (agent_actions) and notifies the customer so they
-// can add detail (self-correcting a weak Smart Engine brief). Supplier-JWT auth.
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+// rfq_flag — an approved supplier flags that an RFQ's scope is unclear.
+//
+// ONE CONCEPT, NOT TWO (14 Sep 2026, website audit). This used to write an agent_actions row of
+// kind 'rfq_clarification' for staff and email the customer "please add detail" — a question the
+// customer could read and never answer, because nothing before the reveal could carry a reply.
+// Production held 0 such rows when it was replaced. The pre-reveal anonymous Q&A now lives in
+// messages_api (clarify_ask / clarify_answer over public.rfq_clarification), so a flag IS a
+// question: this forwards the supplier's own session to clarify_ask and the customer answers it
+// in the portal, where every matched supplier sees the answer. Matching, masking, rate limiting and
+// the customer notification all happen in that one writer.
 import { observe } from '../_shared/observe.ts';
-const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
-async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+const DEFAULT_Q = 'The scope of this request is unclear to me. Could you add the missing detail — scope, quantities, location or timeline — so I can quote accurately?';
 Deno.serve(observe('rfq_flag', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
-    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const email = user.email.toLowerCase();
-    const { data: sup } = await admin.from('leads').select('id,company_name').eq('claimed_by', email).maybeSingle();
-    if (!sup) return J({ error: 'claim your company first' }, 400);
-    const body = await req.json().catch(() => ({} as any));
+    const auth = req.headers.get('Authorization') || '';
+    if (!/^Bearer\s+\S+/i.test(auth)) return J({ error: 'unauthorized' }, 401);
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const inquiryId = String(body.inquiry_id || '');
-    const note = String(body.note || '').slice(0, 500);
     if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
-    // must be a real match for this supplier
-    const { data: match } = await admin.from('inquiry_matches').select('id').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id).maybeSingle();
-    if (!match) return J({ error: 'not matched to this request' }, 403);
-    const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary').eq('id', inquiryId).maybeSingle();
-    if (!inq) return J({ error: 'request not found' }, 404);
-    // dedupe: one open clarification per inquiry+supplier
-    const { data: dupe } = await admin.from('agent_actions').select('id').eq('kind', 'rfq_clarification').eq('target_id', inquiryId).contains('detail', { supplier_id: sup.id }).in('status', ['pending', 'needs_review']).maybeSingle();
-    if (!dupe) {
-      await admin.from('agent_actions').insert({ agent: 'intake', kind: 'rfq_clarification', status: 'pending', risk: 'medium', title: 'Scope unclear flagged on RFQ ' + inquiryId.slice(0, 8), recommendation: 'A supplier flagged this brief as unclear' + (note ? ': ' + note : '') + '. Review the brief and, if needed, ask the customer to clarify.', detail: { supplier_id: sup.id, supplier: sup.company_name, note, category: inq.category, summary: inq.summary }, target_table: 'inquiries', target_id: inquiryId });
-    }
-    // notify the customer to add detail
-    try { const { data: c } = await admin.from('customers').select('email,full_name').eq('id', inq.customer_id).maybeSingle(); if (c?.email && /@/.test(c.email)) { await admin.from('notifications').insert({ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, channel: 'email', status: 'queued', subject: 'A supplier needs a quick clarification on your request', body: 'Hi ' + (c.full_name || 'there') + ',\n\nA supplier reviewing your request' + (inq.summary ? ' “' + inq.summary + '”' : '') + ' asked for a small clarification so they can quote accurately. Please open your request on QuotesDone and add any missing detail (scope, quantities, location or timeline).\n\nThis helps you get sharper, comparable quotes. Thank you!' }); } } catch (_e) { /* */ }
-    return J({ ok: true, flagged: true });
+    const note = String(body.note || '').trim().slice(0, 500);
+    const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/messages_api`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: auth, apikey: Deno.env.get('SUPABASE_ANON_KEY') || '' },
+      body: JSON.stringify({ action: 'clarify_ask', inquiry_id: inquiryId, text: note || DEFAULT_Q, source: 'rfq_flag' }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j?.ok) return J({ ok: false, ...(j || {}) }, r.ok ? 400 : r.status);
+    return J({ ok: true, flagged: true, clarification_id: j.id ?? null });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 500); }
 }));

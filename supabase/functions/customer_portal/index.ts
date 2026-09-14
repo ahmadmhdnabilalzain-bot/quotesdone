@@ -195,7 +195,19 @@ Deno.serve(observe('customer_portal', async (req) => {
         reason: saved?.reason || (pending.length ? 'approvals are blocking work' : (twin?.projects_active ? 'ordered by live project activity' : 'default order — no activity to rank on yet')),
       };
 
+      // ── ARE THE MODEL ROUTES OPEN ─────────────────────────────────────────────────────────────
+      // Voice (transcribe) and drawing reading (drawing_boq/drawing_redact) all go through
+      // ai_gateway. Measured 14 Sep 2026: 8 of 8 llm_route_health rows carry open_until in the
+      // future under the founder's hold, so every one of those calls fails AFTER the customer has
+      // recorded or uploaded. The portal reads this to say "paused" before they try, instead of
+      // after. No rows at all is reported as unknown (null), never as available.
+      const { data: routeRows } = await admin.from('llm_route_health').select('open_until');
+      const routesTotal = (routeRows || []).length;
+      const routesHeld = (routeRows || []).filter((r: { open_until: string | null }) => r.open_until && new Date(r.open_until) > new Date()).length;
+      const llm_available = routesTotal ? routesHeld < routesTotal : null;
+
       return J({ ok: true, customer: { id: cust.id, name: cust.full_name, industry: cust.industry },
+                 llm_available, llm_routes: { total: routesTotal, held: routesHeld },
                  stats, alerts, alerts_count: alerts.length,
                  headline: headline, twin: twin, layout: layout,
                  degraded: degraded.length ? degraded : undefined });
