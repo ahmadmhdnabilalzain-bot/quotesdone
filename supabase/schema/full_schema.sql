@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T21:21:08.162Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T21:58:29.132Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -45,6 +45,7 @@ CREATE SEQUENCE IF NOT EXISTS public.ai_model_register_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.allocation_change_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.artifact_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.autonomy_control_audit_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.backup_prune_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.bank_statement_line_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.board_opinion_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.board_reports_id_seq;
@@ -188,7 +189,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (515) =====
+-- ===== TABLES (516) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -886,6 +887,27 @@ CREATE TABLE IF NOT EXISTS public.autonomy_policy (
   founder_escalation_allowed boolean NOT NULL,
   constitution_note text NOT NULL,
   effective_from timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.backup_prune_log (
+  id bigint DEFAULT nextval('backup_prune_log_id_seq'::regclass) NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL,
+  decided_for date NOT NULL,
+  mode text NOT NULL,
+  day date NOT NULL,
+  origin text NOT NULL,
+  kind text NOT NULL,
+  day_status text,
+  reason text NOT NULL,
+  objects integer,
+  bytes bigint,
+  dropbox_files integer,
+  objects_removed integer DEFAULT 0 NOT NULL,
+  storage_attempts integer DEFAULT 0 NOT NULL,
+  storage_error text,
+  storage_deleted_at timestamp with time zone,
+  dropbox_done_at timestamp with time zone,
+  cancelled_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.bank_line_owner_ruling (
@@ -2220,7 +2242,9 @@ CREATE TABLE IF NOT EXISTS public.doc_backups (
   upload_state jsonb,
   last_attempt_at timestamp with time zone,
   claimed_at timestamp with time zone,
-  claimed_by text
+  claimed_by text,
+  prune_attempts integer DEFAULT 0 NOT NULL,
+  status_before_prune text
 );
 
 CREATE TABLE IF NOT EXISTS public.doc_reviews (
@@ -6736,7 +6760,8 @@ CREATE TABLE IF NOT EXISTS public.table_export_run (
   finished_at timestamp with time zone,
   state jsonb,
   manifest jsonb,
-  error text
+  error text,
+  pruned_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.target_contract (
@@ -7195,6 +7220,7 @@ ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_pkey PRIMARY K
 ALTER TABLE public.assistant_logs ADD CONSTRAINT assistant_logs_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_control_audit ADD CONSTRAINT autonomy_control_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_pkey PRIMARY KEY (id);
+ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_pkey PRIMARY KEY (line_id);
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_pkey PRIMARY KEY (source_ref);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_pkey PRIMARY KEY (id);
@@ -7801,6 +7827,8 @@ ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_verdict_check 
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_approval CHECK ((founder_approval_required = false));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_escalation CHECK ((founder_escalation_allowed = false));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_single CHECK ((id = 1));
+ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_mode_check CHECK ((mode = ANY (ARRAY['dry_run'::text, 'delete'::text])));
+ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_origin_check CHECK ((origin = ANY (ARRAY['export'::text, 'legacy'::text])));
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_ruling_check CHECK ((ruling = ANY (ARRAY['capital'::text, 'loan'::text])));
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_state_check CHECK ((state = ANY (ARRAY['parsed'::text, 'unreadable'::text])));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
@@ -8441,6 +8469,8 @@ CREATE INDEX ai_usage_email_time_idx ON public.ai_usage USING btree (email, crea
 CREATE UNIQUE INDEX ap_bills_vendor_billno_uidx ON public.ap_bills USING btree (vendor_id, bill_no) WHERE ((bill_no IS NOT NULL) AND (status <> 'void'::text));
 CREATE UNIQUE INDEX artifact_review_bytes ON public.artifact_review USING btree (subject_type, subject_id, artifact_sha256, revision);
 CREATE INDEX artifact_review_subject ON public.artifact_review USING btree (subject_type, subject_id, created_at DESC);
+CREATE UNIQUE INDEX backup_prune_log_open_uidx ON public.backup_prune_log USING btree (day) WHERE ((mode = 'delete'::text) AND (storage_deleted_at IS NULL) AND (cancelled_at IS NULL));
+CREATE UNIQUE INDEX backup_prune_log_pass_uidx ON public.backup_prune_log USING btree (decided_for, day, mode);
 CREATE INDEX bank_statement_line_match_idx ON public.bank_statement_line USING btree (account, amount_aed, value_date);
 CREATE INDEX boq_fixture_run_recent_idx ON public.boq_fixture_run USING btree (fixture_id, ran_at DESC);
 CREATE UNIQUE INDEX brand_assets_filename_key ON public.brand_assets USING btree (filename);
@@ -17785,16 +17815,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17820,6 +17840,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18531,135 +18561,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19175,6 +19076,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -20768,6 +20798,331 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_cancel(p_log_id bigint, p_why text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_reverted integer;
+begin
+  with cl as (
+    update public.backup_prune_log bl
+       set cancelled_at = now(),
+           storage_error = left('cancelled: the day is no longer due for deletion (' || coalesce(p_why, 'no reason given') || ')', 1000)
+     where bl.id = p_log_id and bl.mode = 'delete' and bl.cancelled_at is null
+    returning bl.day)
+  update public.doc_backups b
+     set status = coalesce(b.status_before_prune, 'pending'), status_before_prune = null,
+         claimed_at = null, claimed_by = null, error = null
+    from cl
+   where b.dedupe_key like 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/%'
+     and b.status in ('prune_pending', 'pruning');
+  get diagnostics v_reverted = row_count;
+  return v_reverted;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_days()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(t.x order by t.x->>'day'), '[]'::jsonb) from (
+    select jsonb_build_object('day', r.stamp, 'origin', 'export', 'kind', r.kind, 'status', r.status)
+      from public.table_export_run r where r.pruned_at is null
+    union all
+    select jsonb_build_object('day', lg.dy, 'origin', 'legacy', 'kind', 'full',
+                              'status', case when lg.has_manifest then 'done' else 'incomplete' end)
+      from (select split_part(o.name, '/', 1)::date as dy,
+                   bool_or(o.name = split_part(o.name, '/', 1) || '/_manifest.json') as has_manifest
+              from storage.objects o
+             where o.bucket_id = 'backups' and o.name ~ '^\d{4}-\d{2}-\d{2}/' and split_part(o.name, '/', 1) <= '2026-09-07'
+             group by 1) lg
+     where not exists (select 1 from public.table_export_run r where r.stamp = lg.dy)
+  ) t(x);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_decide(p_days jsonb, p_today date)
+ RETURNS TABLE(day date, origin text, kind text, day_status text, decision text, reason text)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with d as (
+    select (e->>'day')::date as dy, coalesce(e->>'origin', 'export') as og,
+           coalesce(e->>'kind', 'full') as kd, coalesce(e->>'status', '') as st
+      from jsonb_array_elements(coalesce(p_days, '[]'::jsonb)) e),
+  g as (
+    select max(d.dy) filter (where d.kd = 'full' and d.st = 'done') as newest_full,
+           max(d.dy) filter (where d.kd = 'full') as latest_full_attempt
+      from d),
+  -- kept for ever: the first complete full copy of each month, or a full-less month's last complete copy
+  mf as (
+    select date_trunc('month', d.dy)::date as mo,
+           min(d.dy) filter (where d.kd = 'full' and d.st = 'done') as first_full,
+           max(d.dy) filter (where d.st = 'done') as last_done
+      from d group by 1),
+  k as (
+    select d.dy, d.og, d.kd, d.st,
+           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as forever,
+           case when g.newest_full is null then 'blocked: no complete full copy exists, so nothing is deleted'
+                when g.latest_full_attempt > g.newest_full
+                  then 'blocked: the latest full copy (' || g.latest_full_attempt || ') did not complete, so nothing is deleted'
+           end as blocked,
+           d.dy = g.newest_full as is_newest_full,
+           d.dy > g.newest_full as after_newest_full,
+           d.st = 'running' as running,
+           (p_today - d.dy) <= 90 as within_90,
+           (d.kd = 'full' and d.st = 'done' and extract(isodow from d.dy) = 5
+            and d.dy > (p_today - interval '12 months')::date) as friday_kept
+      from d cross join g left join mf on mf.mo = date_trunc('month', d.dy)::date),
+  kp as (
+    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.forever or k.within_90 or k.friday_kept) as policy_keep from k),
+  anchor as (
+    select kp.dy as inc_day,
+           (select max(f.dy) from d f where f.kd = 'full' and f.st = 'done' and f.dy <= kp.dy) as full_day
+      from kp where kp.kd = 'incremental' and kp.policy_keep),
+  c as (
+    select kp.*, exists (select 1 from anchor a where kp.dy between a.full_day and a.inc_day) as in_kept_chain from kp)
+  select c.dy, c.og, c.kd, c.st,
+         case when c.blocked is not null or c.policy_keep or c.in_kept_chain then 'keep' else 'delete' end,
+         case when c.blocked is not null then c.blocked
+              when c.is_newest_full then 'the newest complete full copy'
+              when c.after_newest_full then 'part of the newest restore chain (the newest full copy and every day after it)'
+              when c.running then 'still being written'
+              when c.forever and c.kd = 'full' then 'the first complete full copy of its month, kept forever'
+              when c.forever then 'the last complete copy of a month with no full copy, kept forever'
+              when c.within_90 then 'within 90 days'
+              when c.friday_kept then 'a complete Friday full copy within 12 months'
+              when c.in_kept_chain then 'needed by a kept kb_chunks restore chain (its full copy, or a day between)'
+              when c.kd = 'full' and c.st = 'done' and extract(isodow from c.dy) = 5 then 'a Friday full copy older than 12 months'
+              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 90 days'
+              else 'a daily copy older than 90 days'
+         end
+    from c order by c.dy;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_dropbox_allowed(p_bucket text, p_path text, p_dedupe_key text, p_doc_type text, p_dropbox_path text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_doc_type = 'Database export'
+                  and p_dedupe_key = 'EXPORT:' || p_path
+                  and public.fn_backup_prune_path_allowed(p_bucket, p_path)
+                  and p_dropbox_path = '/QuotesDone Backup/Company/Database Exports/' || left(p_path, 7) || '/' || p_path,
+                  false);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_mode()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select 'delete' from public.app_secrets s where s.key = 'backup_prune_mode' and s.value = 'delete'), 'dry_run');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_path_allowed(p_bucket text, p_path text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- A table name starts with a letter, and no path segment may start with '_' except the exact
+  -- _manifest.json. Final review of #672 (HIGH): '[a-z0-9_]+' let v1's inventory of the backups bucket
+  -- itself, <day>/_storage_backups.json, through (the bucket name has no hyphen), so a document inventory
+  -- would have been deleted. The same rule is in supabase/functions/_shared/backup_prune_allow.ts.
+  select coalesce(p_bucket = 'backups'
+         and (p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$' or p_path !~ '/_')
+         and (p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$'                      -- the day's manifest
+           or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z][a-z0-9_]*/page_\d{4}\.json$'     -- backup v1 (paged) and v2
+           or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z][a-z0-9_]*\.json$'),              -- backup v1 (one file per table)
+         false);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_plan(p_today date DEFAULT NULL::date)
+ RETURNS TABLE(day date, origin text, kind text, day_status text, decision text, reason text, objects bigint, bytes bigint, dropbox_files bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p.day, p.origin, p.kind, p.day_status, p.decision, p.reason, s.n, s.b,
+         (select count(*) from public.doc_backups b
+           where b.dedupe_key like 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned'
+             and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path))
+    from public.fn_backup_prune_decide(public.fn_backup_prune_days(),
+                                       coalesce(p_today, (now() at time zone 'Asia/Dubai')::date)) p
+    cross join lateral (select count(*) as n, coalesce(sum((o.metadata->>'size')::bigint), 0)::bigint as b
+                          from storage.objects o
+                         where o.bucket_id = 'backups' and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
+                           and public.fn_backup_prune_path_allowed(o.bucket_id, o.name)) s;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_recheck()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_days jsonb := public.fn_backup_prune_days(); v_n integer := 0; x record;
+begin
+  v_days := v_days || coalesce((
+    select jsonb_agg(jsonb_build_object('day', bl.day, 'origin', bl.origin, 'kind', bl.kind, 'status', bl.day_status))
+      from public.backup_prune_log bl
+     where bl.mode = 'delete' and bl.cancelled_at is null and bl.dropbox_done_at is null
+       and not exists (select 1 from jsonb_array_elements(v_days) e where (e->>'day')::date = bl.day)), '[]'::jsonb);
+  for x in select bl.id, pd.decision, pd.reason
+             from public.backup_prune_log bl
+             left join public.fn_backup_prune_decide(v_days, (now() at time zone 'Asia/Dubai')::date) pd on pd.day = bl.day
+            where bl.mode = 'delete' and bl.cancelled_at is null
+              and (bl.storage_deleted_at is null or bl.dropbox_done_at is null)
+              and pd.decision is distinct from 'delete' loop
+    perform public.fn_backup_prune_cancel(x.id, coalesce(x.reason, 'the day is no longer listed'));
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_storage_done(p_log_id bigint, p_removed integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_log public.backup_prune_log; v_left bigint;
+begin
+  select * into v_log from public.backup_prune_log l where l.id = p_log_id and l.mode = 'delete';
+  if not found then raise exception 'fn_backup_prune_storage_done: no delete-mode log row %', p_log_id; end if;
+  update public.backup_prune_log l set objects_removed = l.objects_removed + greatest(coalesce(p_removed, 0), 0) where l.id = p_log_id;
+  if p_error is not null then
+    update public.backup_prune_log l set storage_attempts = l.storage_attempts + 1, storage_error = left(p_error, 1000) where l.id = p_log_id;
+    return jsonb_build_object('ok', false, 'day', v_log.day, 'error', left(p_error, 300));
+  end if;
+  select count(*) into v_left from storage.objects o
+   where o.bucket_id = 'backups' and o.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+     and public.fn_backup_prune_path_allowed(o.bucket_id, o.name);   -- the inventories that stay are not "left"
+  if v_left = 0 then
+    update public.backup_prune_log l set storage_deleted_at = now(), storage_error = null where l.id = p_log_id;
+    update public.table_export_run r set pruned_at = now() where r.stamp = v_log.day;
+  end if;
+  return jsonb_build_object('ok', true, 'day', v_log.day, 'left', v_left);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_storage_next()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_log public.backup_prune_log; v_cancelled integer; v_names text[];
+begin
+  if public.fn_backup_prune_mode() <> 'delete' then return jsonb_build_object('log_id', null, 'reason', 'dry run'); end if;
+  v_cancelled := public.fn_backup_prune_recheck();
+  select * into v_log from public.backup_prune_log l
+   where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null and l.storage_attempts < 3
+   order by l.day limit 1 for update skip locked;
+  if not found then return jsonb_build_object('log_id', null, 'cancelled', v_cancelled); end if;
+  select coalesce(array_agg(o.name order by o.name), '{}') into v_names
+    from (select o2.name from storage.objects o2
+           where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+             and public.fn_backup_prune_path_allowed(o2.bucket_id, o2.name)
+           order by o2.name limit 1000) o;
+  return jsonb_build_object('log_id', v_log.id, 'day', v_log.day, 'names', to_jsonb(v_names));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_mode text := public.fn_backup_prune_mode();
+  v_export public.table_export_run;
+  v_pass jsonb := null; v_logged int := 0; v_items jsonb := '[]'::jsonb; v_settle jsonb; x record;
+begin
+  -- A PASS: once per Dubai day, after that day's export finished.
+  select * into v_export from public.table_export_run r where r.stamp = v_today;
+  if found and (v_export.status = 'done' or (v_export.status = 'failed' and v_export.attempts >= 6))
+     and not exists (select 1 from public.agent_runs ar
+                      where ar.agent = 'it_engineer' and ar.counts->>'job' = 'backup_prune'
+                        and (ar.started_at at time zone 'Asia/Dubai')::date = v_today) then
+    insert into public.backup_prune_log (decided_for, mode, day, origin, kind, day_status, reason, objects, bytes, dropbox_files)
+    select v_today, v_mode, p.day, p.origin, p.kind, p.day_status, p.reason, p.objects, p.bytes, p.dropbox_files
+      from public.fn_backup_prune_plan(v_today) p
+     where p.decision = 'delete'
+       and not exists (select 1 from public.backup_prune_log l
+                        where l.day = p.day and l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null)
+    on conflict do nothing;
+    get diagnostics v_logged = row_count;
+    v_pass := jsonb_build_object('days', v_logged);
+    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'ok', jsonb_build_object('job', 'backup_prune', 'mode', v_mode, 'days', v_logged),
+            left(case when v_mode = 'delete' then 'Backup retention: ' || v_logged || ' export day(s) logged for deletion.'
+                      else 'Backup retention DRY RUN: ' || v_logged || ' export day(s) would be deleted; nothing was touched.' end, 500),
+            now(), now());
+  end if;
+
+  if v_mode = 'delete' then
+    perform public.fn_backup_prune_recheck();
+    -- the day's Dropbox copies leave the upload queue and join the delete queue; the status they had is kept
+    update public.doc_backups b set status = 'prune_pending', status_before_prune = b.status, claimed_at = null, claimed_by = null
+      from public.backup_prune_log l
+     where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+       and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
+       and b.status not in ('pruned', 'prune_pending', 'pruning', 'processing')
+       and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path);
+    update public.doc_backups b set status = 'pruned', error = null
+     where b.status = 'prune_pending' and b.dropbox_path is null;
+    update public.backup_prune_log l set dropbox_done_at = now()
+     where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+       and not exists (select 1 from public.doc_backups b
+                        where b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned');
+  end if;
+
+  -- A prune failure is an it_engineer finding; the same settle closes it once the deletion completes.
+  for x in select l.* from public.backup_prune_log l
+            where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null
+              and (l.storage_attempts >= 3 or l.decided_at < now() - interval '2 days') loop
+    v_items := v_items || jsonb_build_object('item', 'storage:' || x.day, 'owner_seat', 'it_engineer', 'subject', 'backups',
+      'title', 'Backup retention could not remove the ' || x.day || ' export from the backups bucket',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('backup_prune_log_id', x.id, 'attempts', x.storage_attempts, 'error', x.storage_error,
+                                     'objects_removed', x.objects_removed, 'logged_at', x.decided_at));
+  end loop;
+  for x in select split_part(substr(b.dedupe_key, 8), '/', 1) as dy, count(*) as n, max(b.error) as err
+             from public.doc_backups b
+            where b.status in ('prune_pending', 'pruning') and b.prune_attempts >= 5
+            group by 1 loop
+    v_items := v_items || jsonb_build_object('item', 'dropbox:' || x.dy, 'owner_seat', 'it_engineer', 'subject', 'dropbox',
+      'title', 'Backup retention could not remove ' || x.n || ' Dropbox copy(ies) of the ' || x.dy || ' export',
+      'blast', 'agent_facing', 'affected', x.n, 'evidence', jsonb_build_object('last_error', x.err));
+  end loop;
+  v_settle := public.fn_it_duty_settle('backup_prune', v_items);
+
+  return jsonb_build_object('mode', v_mode, 'pass', v_pass,
+    'storage_pending', case when v_mode = 'delete' then (select count(*) from public.backup_prune_log l
+                          where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null) else 0 end,
+    'dropbox_pending', case when v_mode = 'delete' then (select count(*) from public.doc_backups b
+                          where b.status = 'prune_pending' and b.prune_attempts < 5) else 0 end,
+    'findings', v_settle->'failing');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
  RETURNS TABLE(source text, kind text, bucket text, backed_up boolean, enqueue_rule text, reason text)
  LANGUAGE sql
@@ -20795,7 +21150,7 @@ AS $function$
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
     ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
-    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list())', null),
+    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list()); kept 90 days, Friday full copies 12 months (fn_backup_prune_tick)', null),
     -- The accountant's four (open gaps until 14 Sep 2026, closed by
     -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
     -- '<bucket>/<path>' names its bucket itself, so the bucket column is null for those two.
@@ -27447,6 +27802,75 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_doc_backups_prune_done(p_results jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r jsonb; n_ok int := 0; n_fail int := 0;
+begin
+  for r in select * from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) loop
+    if (r->>'ok')::boolean then
+      update public.doc_backups d set status = 'pruned', status_before_prune = null, claimed_at = null, claimed_by = null,
+             error = null, last_attempt_at = now()
+       where d.id = (r->>'id')::bigint and d.status = 'pruning';
+      if not found then
+        -- the day was cancelled while this delete was in flight: the Dropbox copy is gone but the rules keep
+        -- it, so the row goes back to the upload queue and says why (the uploader re-files it from storage)
+        update public.doc_backups d set status = 'pending', status_before_prune = null, backed_up_at = null, verified_at = null,
+               dropbox_content_hash = null, dropbox_size = null,
+               error = 'deleted from Dropbox after its retention deletion was cancelled; re-filed'
+         where d.id = (r->>'id')::bigint and d.status not in ('pruned', 'prune_pending', 'pruning');
+      end if;
+      n_ok := n_ok + 1;
+    else
+      update public.doc_backups d set status = 'prune_pending', claimed_at = null, claimed_by = null,
+             prune_attempts = d.prune_attempts + case when r->>'error' = 'deadline' then 0 else 1 end,
+             error = left('prune: ' || coalesce(r->>'error', 'unknown'), 300), last_attempt_at = now()
+       where d.id = (r->>'id')::bigint and d.status = 'pruning';
+      n_fail := n_fail + 1;
+    end if;
+  end loop;
+  update public.backup_prune_log l set dropbox_done_at = now()
+   where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+     and not exists (select 1 from public.doc_backups b
+                      where b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned');
+  return jsonb_build_object('deleted', n_ok, 'failed', n_fail);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_doc_backups_prune_next(p_limit integer DEFAULT 25, p_run text DEFAULT NULL::text)
+ RETURNS SETOF doc_backups
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(btrim(p_run), '') = '' then raise exception 'fn_doc_backups_prune_next: p_run (the claiming run id) is required'; end if;
+  if public.fn_backup_prune_mode() <> 'delete' then return; end if;
+  -- the rules again, before a single Dropbox path is handed over; a cancelled day's rows revert here
+  perform public.fn_backup_prune_recheck();
+  update public.doc_backups d set status = 'prune_pending', claimed_at = null, claimed_by = null
+   where d.status = 'pruning' and d.claimed_at < now() - interval '10 minutes';
+  return query
+    with c as (
+      select d.id from public.doc_backups d
+       where d.status = 'prune_pending' and d.prune_attempts < 5
+         and public.fn_backup_prune_dropbox_allowed(d.bucket, d.path, d.dedupe_key, d.doc_type, d.dropbox_path)
+         and exists (select 1 from public.backup_prune_log bl
+                      where bl.mode = 'delete' and bl.cancelled_at is null
+                        and d.dedupe_key like 'EXPORT:' || to_char(bl.day, 'YYYY-MM-DD') || '/%')
+         and (d.last_attempt_at is null or d.prune_attempts = 0
+              or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.prune_attempts, 8)))
+       order by d.id limit greatest(1, least(coalesce(p_limit, 25), 25))
+       for update skip locked)
+    update public.doc_backups d set status = 'pruning', claimed_at = now(), claimed_by = p_run
+      from c where d.id = c.id
+    returning d.*;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_doc_final_notice(p_days integer DEFAULT 7)
  RETURNS json
  LANGUAGE plpgsql
@@ -31721,6 +32145,9 @@ AS $function$
          'company:table_export:' || to_char(d.day, 'YYYY-MM-DD'), (d.day::date + time '03:00') at time zone 'Asia/Dubai'
     from generate_series((select min(r.stamp) from public.table_export_run r),
                          (now() at time zone 'Asia/Dubai')::date, interval '1 day') d(day)
+    -- a day removed under the retention rules is no longer expected (15 Sep 2026)
+    join lateral (select not exists (select 1 from public.table_export_run pr
+                                      where pr.stamp = d.day::date and pr.pruned_at is not null) as kept) k on k.kept
     cross join lateral (
       select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
       union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x
@@ -58840,6 +59267,7 @@ ALTER TABLE public.artifact_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assistant_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_control_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_prune_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_line_owner_ruling ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_line ENABLE ROW LEVEL SECURITY;
@@ -59311,6 +59739,7 @@ CREATE POLICY accountant_month_close_service_role_only ON public.accountant_mont
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_year_end_pack AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.ai_cost_log AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY backup_prune_log_service_role_only ON public.backup_prune_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_line_owner_ruling_service_role_only ON public.bank_line_owner_ruling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_intake_service_role_only ON public.bank_statement_intake AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_line AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
