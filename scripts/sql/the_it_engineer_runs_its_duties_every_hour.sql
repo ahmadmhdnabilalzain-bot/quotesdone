@@ -339,7 +339,8 @@ begin
     v_items := v_items || jsonb_build_object('item', 'window:' || x.id, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
       'title', 'Rehearsal window ' || x.run_tag || ' (' || x.opened_by || ') has been open since '
                || to_char(x.started_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
-      'blast', 'internal', 'affected', 1, 'demo', true,
+      -- agent_facing, so it is handed on at once: an open window already silences the failed-run pager.
+      'blast', 'agent_facing', 'affected', 1, 'demo', true,
       'evidence', jsonb_build_object('rehearsal_window_id', x.id, 'close', 'update public.rehearsal_window set ended_at = now() where id = ' || x.id));
   end loop;
   v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
