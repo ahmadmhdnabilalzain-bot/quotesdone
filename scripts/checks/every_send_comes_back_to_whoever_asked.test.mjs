@@ -8,7 +8,8 @@
 //     calls fn_customer_support_takes_delivery; every call site that used to write the table directly
 //     now goes through it, and the scan must actually find those callers (a scan that finds nothing
 //     proves nothing).
-//   * fn_seat_handoff_act routes every delivery.result to the asking seat's close.
+//   * no SQL routine except support's two door routines may mark a row as already tracked, and the
+//     trigger that adopts every other row written to the outbox table exists.
 // Against production (skipped without a management token), ONE aborted transaction, a pure probe with
 // no DDL, on ZZ DEMO / @example.invalid identities and a reserved fixture mobile only:
 //   A  delivered:   an edge-door notice, the dispatcher's success simulated (sent + provider id) ->
@@ -20,6 +21,8 @@
 //                   accountant gets 'not_queued' back and escalates; nothing is left failed and unread.
 //   D  overdue:     a notice still queued 25 hours after it was queued -> raised to the CEO once.
 //   E  another seat: an it_engineer notice comes back to the it_engineer and is escalated by it.
+//   F  a routine's own insert: adopted at once as a request from the seat that owns the type, and it
+//      comes back like any other; a row the door queued is never adopted a second time.
 //   and nothing the probe queued could have reached a person, and none of it survives.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -78,6 +81,28 @@ test('the watch answers every request, and the routine file is in the index', ()
   assert.ok(manifest.includes('scripts/sql/every_send_comes_back_to_whoever_asked.sql'), 'the routine file has no MANIFEST line');
 });
 
+// THE SQL SIDE. A routine may write the table (20 live routines did, 14 Sep 2026); the adoption
+// trigger loops every such row. The one way past it is the transaction-local tracked mark, so the
+// mark may be written only inside the two routines that track the row themselves.
+const SQL_DIR = join(REPO, 'scripts', 'sql');
+const LOOP_FILE = 'every_send_comes_back_to_whoever_asked.sql';
+const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
+test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
+  const bypass = []; let writers = 0;
+  for (const f of readdirSync(SQL_DIR).filter((x) => x.endsWith('.sql'))) {
+    const src = readFileSync(join(SQL_DIR, f), 'utf8');
+    if (f !== LOOP_FILE && MARK.test(src)) bypass.push(f);
+    if (RAW_SQL_WRITE.test(src)) writers++;
+  }
+  assert.deepEqual(bypass, [], 'these files mark rows as tracked without tracking them');
+  assert.ok(writers >= 10, `only ${writers} SQL files write the table: the scan is not reading the routines`);
+  const file = readFileSync(join(SQL_DIR, LOOP_FILE), 'utf8');
+  const chunks = file.split('create or replace function public.').slice(1);
+  const marking = chunks.filter((c) => MARK.test(c)).map((c) => c.slice(0, c.indexOf('(')));
+  assert.deepEqual([...new Set(marking)].sort(), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_delivery_watch']);
+  assert.match(file, /create trigger z90_every_send_is_tracked after insert on public\.notifications\s+for each row execute function public\.fn_customer_support_adopts_untracked_send\(\)/);
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
@@ -85,7 +110,7 @@ const PROBE = `
 do $probe$
 declare
   n0 bigint; a0 bigint; c uuid; l bigint; v jsonb; w jsonb; ra bigint; rb bigint; rc bigint; rd bigint; re bigint; rr bigint;
-  x public.agent_actions; y public.agent_actions; nid bigint; out jsonb := '{}'::jsonb; k int;
+  x public.agent_actions; y public.agent_actions; nid bigint; na bigint; out jsonb := '{}'::jsonb; k int;
   cust text := 'zz-demo-loop-cust@example.invalid'; sup text := 'zz-demo-loop-sup@example.invalid';
   door_row jsonb;
 begin
@@ -100,7 +125,7 @@ begin
   -- ── A. DELIVERED, CHECKED, CLOSED ──
   v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
          'type', 'new_quote', 'to_email', cust, 'to_role', 'customer', 'subject', 'ZZ DEMO probe A', 'body', 'ZZ DEMO probe A')));
-  ra := (v->0->>'handoff_id')::bigint; nid := (v->0->>'notification_id')::bigint;
+  ra := (v->0->>'handoff_id')::bigint; nid := (v->0->>'notification_id')::bigint; na := nid;
   if v->0->>'seat' <> 'sales_engineer' or v->0->>'status' <> 'done' or nid is null then raise exception 'ZZFAIL: A door %', v; end if;
   if not exists (select 1 from public.notifications where id = nid and requested_by = 'sales_engineer' and sender = 'customer_support'
                    and status = 'suppressed') then
@@ -195,6 +220,26 @@ begin
   end if;
   out := out || jsonb_build_object('E', jsonb_build_object('seat', 'it_engineer', 'result', x.detail->>'result', 'loop', x.detail->>'loop'));
 
+  -- ── F. A ROUTINE'S OWN INSERT IS ADOPTED, AND COMES BACK ──
+  insert into public.notifications (type, to_email, to_role, lead_id, channel, subject, body, status)
+  values ('quote_coaching', sup, 'supplier', l, 'email', 'ZZ DEMO probe F', 'ZZ DEMO probe F', 'queued') returning id into nid;
+  select * into x from public.agent_actions where kind = 'handoff' and target_id = 'delivery.request:notification:' || nid;
+  if x.id is null or x.detail->>'from' <> 'sales_engineer' or (x.evidence->>'notification_id')::bigint <> nid
+     or not coalesce((x.detail->>'adopted')::boolean, false) then
+    raise exception 'ZZFAIL: F the routine''s row was not adopted: %', x.detail;
+  end if;
+  w := public.fn_customer_support_delivery_watch(x.id);
+  select * into x from public.agent_actions where id = x.id;
+  if x.detail->>'result' <> 'suppressed' or x.detail->>'closed_by' <> 'sales_engineer' or x.detail->>'loop' is null then
+    raise exception 'ZZFAIL: F the adopted send did not come back and get acted on: %', x.detail;
+  end if;
+  -- the door's own row (A) is tracked by its request alone
+  if (select count(*) from public.agent_actions where kind = 'handoff' and detail->>'type' = 'delivery.request'
+        and (evidence->>'notification_id')::bigint = na) <> 1 then
+    raise exception 'ZZFAIL: F the door''s row was adopted a second time';
+  end if;
+  out := out || jsonb_build_object('F', jsonb_build_object('adopted_from', 'sales_engineer', 'result', x.detail->>'result', 'loop', x.detail->>'loop'));
+
   -- ── NOTHING COULD HAVE REACHED A PERSON ──
   select count(*) into k from public.notifications n
    where n.id > n0 and ((n.to_email is not null and n.to_email !~* '@example[.]invalid$')
@@ -214,7 +259,7 @@ test('production: every send comes back and the asking seat closes or acts (abor
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));
-  for (const k of ['A', 'B', 'C', 'D', 'E']) assert.ok(res[k], `scenario ${k} did not report`);
+  for (const k of ['A', 'B', 'C', 'D', 'E', 'F']) assert.ok(res[k], `scenario ${k} did not report`);
   assert.equal(res.reachable_rows, 0);
   console.log(JSON.stringify(res));
 });
