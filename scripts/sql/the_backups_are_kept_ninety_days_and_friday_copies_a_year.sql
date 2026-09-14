@@ -14,8 +14,9 @@
 --     old today, so NOTHING has reached 90 days yet: 2026-06-23 is 91 days old on 2026-09-22.
 --   * Read through fn_backup_prune_plan in an aborted transaction (15 Sep 2026, with the founder's
 --     documents-never and month-forever rules below): 64 days, 0 to delete, all 64 kept as "blocked: the
---     latest full copy (2026-09-07) did not complete". The allow-list covers 4,739 of the 5,199 dated
---     objects (13,468 MB); the other 460 are v1's document inventories, kept for ever. Kept for ever as
+--     latest full copy (2026-09-07) did not complete". The allow-list covers 4,652 of the 5,199 dated
+--     objects (13,468 MB; 4,739 before the final review's fix); the other 547 are v1's document
+--     inventories, kept for ever. Kept for ever as
 --     their month's copy: 2026-06-23, 2026-07-05, 2026-08-01, 2026-09-02. With a complete revived full on
 --     Friday 2026-09-18, the first deletion would be on 2026-09-27 (one day, 2026-06-28), and 55 days
 --     would be gone by 2026-12-31.
@@ -88,8 +89,12 @@
 --     goes through them, so a document (a trade licence, signed terms, a KYC file, a quotation PDF,
 --     anything in fn_backup_source_registry) can never be selected, in storage or in Dropbox, whatever
 --     the mode. Measured 15 Sep 2026: of 6,443 objects in all buckets, 0 outside a dated export folder
---     match; 460 inside them are backup v1's <day>/_storage_<bucket>.json inventories (which documents
---     existed that day). They are not on the allow-list, so they are kept for ever too.
+--     match; 547 inside them are backup v1's <day>/_storage_<bucket>.json inventories (which documents
+--     existed that day). None is on the allow-list, so they are kept for ever too. (The first version
+--     allowed [a-z0-9_]+ as a table name and let 87 of them through - _storage_brand, _storage_reports,
+--     _storage_site - found by the final review of #672. A table name now starts with a letter, and no
+--     path segment may start with '_' except _manifest.json. The edge functions check the same rule in
+--     supabase/functions/_shared/backup_prune_allow.ts.)
 --   * The first complete full copy of every calendar month is kept for ever, whatever its age; a month
 --     with no complete full copy keeps its last complete copy. Every table holding a registered customer,
 --     a verified supplier or an accepted term is a full copy every day (customers, customer_preference,
@@ -208,10 +213,15 @@ revoke execute on function public.fn_backup_prune_decide(jsonb, date) from publi
 create or replace function public.fn_backup_prune_path_allowed(p_bucket text, p_path text)
 returns boolean
 language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select coalesce(p_bucket = 'backups' and (
-           p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$'              -- the day's manifest
-        or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z0-9_]+/page_\d{4}\.json$'  -- backup v1 (paged) and v2
-        or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z0-9_]+\.json$'),           -- backup v1 (one file per table)
+  -- A table name starts with a letter, and no path segment may start with '_' except the exact
+  -- _manifest.json. Final review of #672 (HIGH): '[a-z0-9_]+' let v1's inventory of the backups bucket
+  -- itself, <day>/_storage_backups.json, through (the bucket name has no hyphen), so a document inventory
+  -- would have been deleted. The same rule is in supabase/functions/_shared/backup_prune_allow.ts.
+  select coalesce(p_bucket = 'backups'
+         and (p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$' or p_path !~ '/_')
+         and (p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$'                      -- the day's manifest
+           or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z][a-z0-9_]*/page_\d{4}\.json$'     -- backup v1 (paged) and v2
+           or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z][a-z0-9_]*\.json$'),              -- backup v1 (one file per table)
          false);
 $fn$;
 revoke execute on function public.fn_backup_prune_path_allowed(text, text) from public, anon, authenticated;
@@ -598,6 +608,10 @@ begin
      and not public.fn_backup_prune_path_allowed('backups', 'conversations/2026-09/x.pdf')
      and not public.fn_backup_prune_path_allowed('backups', 'accountant/year-end/2026/pack.pdf')
      and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_storage_supplier-docs.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_storage_backups.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_anything.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/_storage/page_0000.json')
+     and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/9leads.json')
      and not public.fn_backup_prune_path_allowed('backups', '2026-06-23/../supplier-docs/licence.pdf')
      and not public.fn_backup_prune_path_allowed(null, null), 'F: a document shape was allowed';
   -- and on production's own files, read-only: no stored document and no document backup row qualifies

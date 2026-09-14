@@ -48,6 +48,14 @@ begin
   values ('zz_demo', 'ZZ DEMO probe', 'Trade licence', 'supplier-docs', 'ZZ DEMO probe/licence.pdf', 'licence.pdf',
           '/QuotesDone Backup/Suppliers/ZZ DEMO probe/Trade licence - licence.pdf', 'storage',
           'EXPORT:2025-01-02/zz_demo_probe/licence.pdf', 'done');
+  -- AND backup v1's inventory of the backups bucket, filed exactly like an export file of the day (final
+  -- review of #672: the old pattern let <day>/_storage_backups.json through, the bucket has no hyphen)
+  insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key, status)
+  values ('zz_demo', 'ZZ DEMO probe', 'Database export', 'backups', '2025-01-02/_storage_backups.json', '_storage_backups.json',
+          '/QuotesDone Backup/Company/Database Exports/2025-01/2025-01-02/_storage_backups.json', 'storage',
+          'EXPORT:2025-01-02/_storage_backups.json', 'done');
+  assert not public.fn_backup_prune_path_allowed('backups', '2025-01-02/_storage_backups.json'),
+    'the allow-list lets <day>/_storage_backups.json through';
 
   insert into public.app_secrets (key, value) values ('backup_prune_mode', 'delete')
   on conflict (key) do update set value = excluded.value;
@@ -69,6 +77,9 @@ begin
   assert (select b.status = 'done' and b.status_before_prune is null from public.doc_backups b
            where b.dedupe_key = 'EXPORT:2025-01-02/zz_demo_probe/licence.pdf'),
     'DELETE MODE QUEUED A DOCUMENT: the licence row left done';
+  assert (select b.status = 'done' and b.status_before_prune is null from public.doc_backups b
+           where b.dedupe_key = 'EXPORT:2025-01-02/_storage_backups.json'),
+    'DELETE MODE QUEUED AN INVENTORY: the _storage_backups.json row left done';
 
   -- while the rules still say delete, the Dropbox picker claims the export files and only them
   select count(*) into v_n from public.fn_doc_backups_prune_next(25, 'zz_demo_probe_1') c where c.entity = 'zz_demo';
@@ -76,6 +87,9 @@ begin
   assert (select b.status = 'done' and b.claimed_by is null from public.doc_backups b
            where b.dedupe_key = 'EXPORT:2025-01-02/zz_demo_probe/licence.pdf'),
     'DELETE MODE CLAIMED A DOCUMENT for Dropbox deletion';
+  assert (select b.status = 'done' and b.claimed_by is null from public.doc_backups b
+           where b.dedupe_key = 'EXPORT:2025-01-02/_storage_backups.json'),
+    'DELETE MODE CLAIMED AN INVENTORY for Dropbox deletion';
 
   -- THE LATEST FULL COPY FAILS
   insert into public.table_export_run (stamp, kind, since, status, attempts, error)
@@ -89,7 +103,7 @@ begin
   select count(*) into v_n from public.doc_backups b
    where b.dedupe_key like 'EXPORT:2025-01-02/%' and b.status = 'done'
      and b.status_before_prune is null and b.claimed_by is null and b.claimed_at is null;
-  assert v_n = 3, format('%s of 3 rows (2 export files and the document) are back to or still done, unclaimed', v_n);
+  assert v_n = 4, format('%s of 4 rows (2 export files, the licence and the inventory) are back to or still done, unclaimed', v_n);
   assert public.fn_backup_prune_storage_next()->>'log_id' is null, 'the storage picker handed over a cancelled day';
 
   select count(*) into v_real_after from public.doc_backups b
@@ -97,5 +111,5 @@ begin
   assert v_real_before = 0 and v_real_after = 0,
     format('a real doc_backups row is in a retention state (before %s, after %s)', v_real_before, v_real_after);
 
-  raise exception 'CHK<<ok: delete mode queued and claimed the 2 export files and never the document; the month''s last copy kept forever; latest full failed -> Dropbox picker returned 0, log cancelled, all 3 rows done, storage picker idle, real rows untouched>>';
+  raise exception 'CHK<<ok: delete mode queued and claimed the 2 export files and never the licence or the _storage_backups.json inventory; the month''s last copy kept forever; latest full failed -> Dropbox picker returned 0, log cancelled, all 4 rows done, storage picker idle, real rows untouched>>';
 end $probe$;

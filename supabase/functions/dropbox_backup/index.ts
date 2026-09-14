@@ -31,6 +31,7 @@ import { observe } from '../_shared/observe.ts';
 import { dropboxContentHash } from './content_hash.ts';
 import { DropboxClient, refreshAccessToken } from './dropbox.ts';
 import { CHUNK, uploadFile, type ReadChunk, type UploadState } from './upload.ts';
+import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -221,6 +222,9 @@ async function prune() {
   // deno-lint-ignore no-explicit-any
   for (const row of rows as any[]) {
     if (Date.now() >= DEADLINE) { results.push({ id: row.id, ok: false, error: 'deadline' }); continue; }
+    // the allow-list again, here: only a table-export file is ever deleted from Dropbox (counted as a
+    // failure, so five refusals become an it_engineer finding)
+    if (!dropboxExportAllowed(row)) { results.push({ id: row.id, ok: false, error: 'refused by the allow-list: not a table-export file' }); continue; }
     try {
       const r = await dbx.call('api', 'files/delete_v2', { path: row.dropbox_path });
       const t = await r.text();

@@ -36,6 +36,7 @@
 // The layout in the bucket is unchanged, so the monthly restore drill (PR #661) reads these files.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/backup';
@@ -127,9 +128,16 @@ async function prune() {
     // deno-lint-ignore no-explicit-any
     const n = next as any;
     if (!n?.log_id) return { days, errors, idle: n?.reason ?? n?.cancelled ?? null };
-    const names: string[] = Array.isArray(n.names) ? n.names : [];
-    let removed = 0, err: string | null = null;
-    if (names.length) {
+    // The allow-list again, here: a path the database offered that is not a table-export file stops the
+    // day, nothing of it is removed, and the refusal is reported (fn_backup_prune_storage_done -> finding).
+    const offered: string[] = Array.isArray(n.names) ? n.names : [];
+    const names = offered.filter((p) => exportPathAllowed('backups', p));
+    const refused = offered.length - names.length;
+    let removed = 0;
+    let err: string | null = refused
+      ? `the allow-list refused ${refused} of ${offered.length} path(s) offered for ${n.day}; nothing was removed`
+      : null;
+    if (names.length && !err) {
       try {
         await retry('remove ' + n.day, async () => {
           const { data: gone, error: re } = await admin.storage.from('backups').remove(names);
