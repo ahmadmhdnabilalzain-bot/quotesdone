@@ -196,6 +196,16 @@ begin
     raise exception 'fn_seat_answers_it_finding: % is not an it.finding handoff', p_id;
   end if;
   d := a.detail;
+  -- THE CEO OWNS THE HARNESS, AND CAN CLOSE A REHEARSAL WINDOW A RUN LEFT OPEN. An open window keeps
+  -- the failed-run watcher from paging for anything it covers, so closing it is the remedy, not a risk.
+  if d->>'duty' = 'demo' and (d->'finding_evidence'->>'rehearsal_window_id') is not null then
+    update public.rehearsal_window set ended_at = now()
+     where id = (d->'finding_evidence'->>'rehearsal_window_id')::bigint and ended_at is null;
+    return jsonb_build_object('waiting', 'it_engineer re-verification', 'seat', a.agent, 'duty', 'demo',
+      'remedy', 'closed rehearsal_window ' || (d->'finding_evidence'->>'rehearsal_window_id'),
+      'reply', a.agent || ' closed rehearsal window ' || (d->'finding_evidence'->>'rehearsal_window_id')
+               || ', which its run had left open.');
+  end if;
   return jsonb_build_object(
     'waiting', 'it_engineer re-verification',
     'seat', a.agent,
@@ -440,12 +450,37 @@ begin
 end $fn$;
 revoke execute on function public.fn_it_daily_line() from public, anon, authenticated;
 
+-- ── 10b. A BROKEN STAGE OF THE LOOP IS ITSELF A FINDING ───────────────────────────────────────────
+-- Review of 14 Sep 2026: an error caught inside fn_it_loop_tick lived only in the tick's JSON. It now
+-- writes an agent_runs error row and an it_engineer_finding keyed on the stage (blast 'monitor', so it
+-- goes round the loop like any other), closed again the first tick that stage succeeds.
+create or replace function public.fn_it_loop_stage(p_step text, p_error text)
+returns void language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  if coalesce(btrim(p_step), '') = '' then raise exception 'fn_it_loop_stage: a stage name is required'; end if;
+  if p_error is null then
+    perform public.fn_it_engineer_finding_close('monitor:it_loop:' || p_step, 'the ' || p_step || ' stage of the IT loop ran cleanly');
+    return;
+  end if;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'error', now(), now(), jsonb_build_object('job', 'it_loop', 'stage', p_step), left(p_error, 600));
+  perform public.fn_it_engineer_finding_upsert('monitor:it_loop:' || p_step,
+    'The ' || p_step || ' stage of the IT engineer''s loop is failing', 'public.fn_it_loop_tick', 'monitor', 1,
+    jsonb_build_object('stage', p_step, 'error', left(p_error, 600), 'owner_seat', 'ceo'),
+    '{}'::text[], array['why the stage raises: ' || left(p_error, 300)], 'fn_it_loop_tick');
+end $fn$;
+revoke execute on function public.fn_it_loop_stage(text, text) from public, anon, authenticated;
+
+-- fn_it_loop_reverify, fn_it_daily_line and fn_it_ceo_silence_watch all filter handoffs this way.
+create index if not exists agent_actions_kind_type_from_idx
+  on public.agent_actions (kind, (detail->>'type'), (detail->>'from'));
+
 -- ── 11. THE TICK ─────────────────────────────────────────────────────────────────────────────────
 -- Called by fn_it_engineer_alert_tick every 15 minutes, after it has pulled the detectors. Each step
 -- is its own sub-transaction so one failing step is REPORTED in the result and does not stop the rest.
 create or replace function public.fn_it_loop_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb;
+declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
 begin
   for f in select x.issue_key, x.started_at from public.it_engineer_finding x
             where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
@@ -472,6 +507,11 @@ begin
   begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
   exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
 
+  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily'] loop
+    perform public.fn_it_loop_stage(v_step,
+      (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
+         from jsonb_array_elements(v_err) e where e->>'step' = v_step));
+  end loop;
   return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
 end $fn$;
 revoke execute on function public.fn_it_loop_tick() from public, anon, authenticated;
