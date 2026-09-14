@@ -29,14 +29,14 @@ const T = {
     // 14 Sep 2026: the old line sold 'AI-powered procurement' and an assistant that reads your catalog;
     // every model route is on hold, so the page promises only what runs today.
     valueProp: 'Quote on real UAE jobs. Keep 100% of what you win.',
-    sub: 'Anonymous requests for the trade your licence covers, in the emirates you serve. No commission — the customer pays the reveal fee.',
+    sub: 'Anonymous requests for the trade your licence covers, from customers anywhere in the UAE. No commission — the customer pays the reveal fee.',
     ctaPrimary: 'Become a Verified Supplier',
     ctaSecondary: 'See How It Works',
     stepsTitle: 'How It Works',
     steps: [
       ['Register your company', 'Company name, emirate and trade, then a verified mobile and email.'],
       ['Get verified', 'Upload a current trade licence and your company profile, enter the licence number and accept the supplier terms. Verification takes up to 3 working days.'],
-      ['Receive work that fits', 'Requests are matched on your trade, your service area and what you can actually do. Every match shows why.'],
+      ['Receive work that fits', 'Requests from anywhere in the UAE are matched on your trade and what you can actually do. Every match shows why.'],
       ['Quote and get paid', 'Quote from the portal. You are paid on the work; QuotesDone charges the customer a reveal fee.'],
     ],
     honest: 'QuotesDone is new. There are no completed jobs on the platform yet, so nothing here promises you a pipeline — only that when work arrives, it is matched on fit.',
@@ -47,14 +47,14 @@ const T = {
   ar: {
     kicker: 'للمورّدين والمصنّعين والمقاولين في الإمارات',
     valueProp: 'قدّم عروضك على مشاريع حقيقية في الإمارات. واحتفظ بكامل قيمة ما تفوز به.',
-    sub: 'طلبات مجهولة الهوية للنشاط الذي تغطيه رخصتك، في الإمارات التي تخدمها. بلا عمولة — العميل هو من يدفع رسوم الكشف.',
+    sub: 'طلبات مجهولة الهوية للنشاط الذي تغطيه رخصتك، من عملاء في أي مكان في الإمارات. بلا عمولة — العميل هو من يدفع رسوم الكشف.',
     ctaPrimary: 'كن مورّدًا موثّقًا',
     ctaSecondary: 'شاهد كيف يعمل',
     stepsTitle: 'كيف يعمل',
     steps: [
       ['سجّل شركتك', 'اسم الشركة والإمارة والنشاط، ثم رقم جوال وبريد إلكتروني موثّقان.'],
       ['احصل على التوثيق', 'ارفع رخصة تجارية سارية وملف الشركة، وأدخل رقم الرخصة، ووافق على شروط المورّدين. يستغرق التوثيق حتى 3 أيام عمل.'],
-      ['استقبل العمل المناسب', 'تُطابَق الطلبات حسب نشاطك ونطاق خدمتك وقدرتك الفعلية. وكل مطابقة تُظهر سببها.'],
+      ['استقبل العمل المناسب', 'تُطابَق الطلبات من أي مكان في الإمارات حسب نشاطك وقدرتك الفعلية. وكل مطابقة تُظهر سببها.'],
       ['قدّم عرضك واستلم', 'قدّم عرضك من البوابة. تُدفع لك قيمة العمل، وتتقاضى QuotesDone رسوم الكشف من العميل.'],
     ],
     honest: 'QuotesDone منصة جديدة. لا توجد أعمال منجزة بعد، لذا لا نعدك هنا بتدفق عمل — بل بأن ما يصل يُطابَق حسب الملاءمة.',

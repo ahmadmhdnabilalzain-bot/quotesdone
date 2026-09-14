@@ -11,17 +11,18 @@
     "closeMenu": "Close menu",
     "myPortal": "My portal",
     "supplierPortal": "Supplier portal",
-    "services": "Services"
+    "services": "Services",
+    "about": "About"
   },
   "hero": {
     "ctaPrimary": "Get quotes",
     "myPortal": "My portal",
     "supplierPortal": "Open the supplier portal",
     "supplierHow": "How it works for suppliers",
-    "kicker": "Construction · Fit-out · MEP · UAE",
-    "title": "Anonymous quotes from licence-checked UAE contractors.",
+    "kicker": "Every trade in the UAE · except food & beverage, for now",
+    "title": "Anonymous quotes from licence-checked UAE suppliers.",
     "sealed": "Every quote arrives sealed. Only the one you choose is ever opened.",
-    "how": "Describe the job once. We send it without your name to suppliers licensed for your trade and emirate, and their quotes reach you in 3–5 working days.",
+    "how": "Describe the job once. We send it without your name to suppliers licensed for your trade anywhere in the UAE, and their quotes reach you in 3–5 working days.",
     "price": [
       {
         "k": "Free",
@@ -51,9 +52,14 @@
   },
   "cats": {
     "eyebrow": "Categories",
-    "title": "Construction, fit-out & MEP — and home maintenance too",
-    "sub": "Built for construction, fit-out and MEP work. It also handles home-maintenance jobs such as cleaning, pest control and moving.",
-    "more": "All services",
+    "title": "Every trade in the UAE, except food & beverage for now",
+    "sub": "Post a job in any trade we cover. The list below is guides for common jobs, not the limit of what we do.",
+    "more": "All trades",
+    "guides": "Guides for common jobs",
+    "allTrades": "All trades — every trade except food & beverage",
+    "tradesN": "{n} trades",
+    "search": "Search trades",
+    "noMatch": "Not listed under that name? Post the job anyway. We cover every trade in the UAE except food & beverage.",
     "items": [
       {
         "title": "Fit-out & interiors",
@@ -151,8 +157,8 @@
     "policy": "Cookie Policy"
   },
   "meta": {
-    "siteTitle": "QuotesDone — Anonymous construction, fit-out & MEP quotes in the UAE",
-    "siteDesc": "Post your construction, fit-out or MEP job once. Licence-checked UAE suppliers quote anonymously; the top 3 come levelled in a comparison report, every other quote is listed too, and you pay 3% of the one you choose, nothing else."
+    "siteTitle": "QuotesDone — Anonymous quotes for every trade in the UAE",
+    "siteDesc": "Post your job once, in any trade except food & beverage. Licence-checked UAE suppliers quote anonymously; the top 3 come levelled in a comparison report, every other quote is listed too, and you pay 3% of the one you choose, nothing else."
   },
   "blog": {
     "onlyEnglish": "This article is currently available in English only."
@@ -165,6 +171,7 @@
     "ph": "e.g. SPC flooring for a 250 sqm villa in Dubai, supply and install",
     "submit": "Check my job",
     "busy": "Reading…",
+    "eg": "e.g.",
     "examples": [
       "Gypsum false ceiling for an apartment in Abu Dhabi",
       "Aluminium windows for a villa in Sharjah",
@@ -176,7 +183,7 @@
     "questions": "Suppliers will need to know",
     "docs": "Documents and approvals suppliers are held to",
     "noDocs": "No compliance checklist is published for this trade yet.",
-    "suppliers": "{count} licence-checked suppliers can quote this in your emirate today",
+    "suppliers": "{count} licence-checked suppliers across the UAE can quote this today",
     "continue": "Continue — post this job",
     "serviceTitle": "What suppliers will need for this job",
     "continueNote": "To post it, create your account: a verified email or mobile number, your name, your date of birth (18 or over) and the Terms. Your description comes with you.",
@@ -204,8 +211,8 @@
         "body": "The top 3 are levelled on price, completeness and delivery into one report. Every other quote is listed beside it, so the choice stays yours."
       },
       {
-        "title": "Incomplete quotes go back",
-        "body": "A quote missing its price, lead time, validity or warranty is returned to the supplier before it reaches you."
+        "title": "Incomplete quotes are held",
+        "body": "A quote missing its price, lead time, validity or warranty is held, with notes telling the supplier exactly what to add. Only a complete quote is shared with you."
       },
       {
         "title": "3% to reveal, nothing else",
@@ -250,7 +257,7 @@
       "Warranty",
       "Validity"
     ],
-    "returned": "Returned",
+    "returned": "On hold",
     "pctNote": "of the quote you choose, only if you reveal",
     "refund": "Full refund",
     "day1": "Working day 1",
@@ -274,7 +281,7 @@
       "title": "Post once. Compare every quote. Stay anonymous.",
       "bullets": [
         "Describe the job by text, photo, drawing or BOQ — no calls",
-        "Only licence-checked suppliers for your trade and emirate are invited",
+        "Only licence-checked suppliers for your trade are invited, from anywhere in the UAE",
         "The top 3 levelled into a comparison report on price, completeness and delivery, and every other quote listed, so you can pick any",
         "3% of the quote you choose, nothing else — quotes usually arrive in 3–5 working days",
         "Every quote states how long its price is valid, so you know when it expires",
@@ -287,7 +294,7 @@
       "title": "Free to quote. Invited only to jobs you can do.",
       "bullets": [
         "Free to quote — the customer pays the 3% reveal fee, you pay no commission",
-        "Invites only for your trade and emirate, checked against your licence",
+        "Invites only for the trades your licence covers, for jobs anywhere in the UAE",
         "Your quote is listed for the customer with every other one; the strongest three are also levelled into their comparison report",
         "Before a reveal you see the full scope, the emirate and drawings with identity removed — never the customer’s name"
       ],
@@ -306,7 +313,7 @@
       "Gypsum false ceiling per sqm",
       "SPC flooring per sqm",
       "Waterproofing per sqm",
-      "كم تكلفة الطلاء للمتر المربع؟"
+      "Painting per sqm"
     ],
     "titleService": "What does it cost in the UAE?",
     "per": "per {unit}",
@@ -363,11 +370,11 @@
     "rating": "Rated {r}/5"
   },
   "supplierLanding": {
-    "metaTitle": "For suppliers — QuotesDone, anonymous UAE construction quotes",
-    "metaDesc": "Quote on real UAE construction, fit-out and MEP jobs. No commission, free registration for the first 1,000 suppliers, invited only to jobs your licence covers.",
+    "metaTitle": "For suppliers — QuotesDone, anonymous quotes for every trade in the UAE",
+    "metaDesc": "Quote on real UAE jobs in every trade except food & beverage. No commission, free registration for the first 1,000 suppliers, invited only to jobs your licence covers.",
     "kicker": "For suppliers, manufacturers and contractors in the UAE",
     "title": "Quote on real UAE jobs. Keep 100% of what you win.",
-    "sub": "QuotesDone sends you anonymous briefs for the trade your licence covers, in the emirates you serve. You quote from the portal; the customer pays the reveal fee.",
+    "sub": "QuotesDone sends you anonymous briefs for the trade your licence covers, from customers anywhere in the UAE. You quote from the portal; the customer pays the reveal fee.",
     "cta": "Open the supplier portal",
     "cta2": "How the marketplace works",
     "econTitle": "The economics",
@@ -382,7 +389,7 @@
       },
       {
         "k": "Only jobs you can do",
-        "v": "You are invited only when your licensed trade and your service emirates match the brief."
+        "v": "You are invited when your licensed trade matches the brief, wherever in the UAE the job is."
       },
       {
         "k": "The buyer stays anonymous",
@@ -405,11 +412,11 @@
       },
       {
         "title": "Confirm your scope",
-        "body": "Confirm the trades and emirates you actually cover. That scope decides which briefs reach you."
+        "body": "Confirm the trades you actually do. That scope decides which briefs reach you, from anywhere in the UAE."
       },
       {
         "title": "Quote from the portal",
-        "body": "Every quote is checked for price, lead time, validity and warranty before the customer sees it."
+        "body": "Every quote is checked for price, lead time, validity and warranty. An incomplete one is held, with notes on exactly what to add, until it is complete enough to share with the customer."
       }
     ],
     "ruleTitle": "The non-response rule",
@@ -420,10 +427,10 @@
   },
   "howPage": {
     "metaTitle": "How QuotesDone works — anonymous quotes, end to end",
-    "metaDesc": "How a construction, fit-out or MEP job moves through QuotesDone: the brief, licensed matching, checked quotes, the comparison report and the reveal.",
+    "metaDesc": "How a job in any trade moves through QuotesDone: the brief, licensed matching, checked quotes, the comparison report and the reveal.",
     "kicker": "How it works",
     "title": "How an anonymous quote works, end to end",
-    "sub": "Built for construction, fit-out and MEP — and it handles home-maintenance jobs too. Every step below is what the platform does, not what a person does for you.",
+    "sub": "Built for every trade in the UAE, except food & beverage for now. Every step below is what the platform does, not what a person does for you.",
     "steps": [
       {
         "title": "You describe the job",
@@ -435,11 +442,11 @@
       },
       {
         "title": "Licensed suppliers are invited",
-        "body": "Only suppliers licensed for that trade in your emirate, capped so the job never becomes a bidding flood. Your identity is removed first."
+        "body": "Only suppliers licensed for that trade, from anywhere in the UAE, capped so the job never becomes a bidding flood. Your identity is removed first."
       },
       {
         "title": "Quotes are checked",
-        "body": "A quote without a price, lead time, validity or warranty goes back to the supplier before you see it."
+        "body": "A quote without a price, lead time, validity or warranty is held, with notes telling the supplier what is missing. Only a complete quote reaches you."
       },
       {
         "title": "You compare every quote",
@@ -552,7 +559,7 @@
       }
     ],
     "revealed": "Name, phone, licence no.",
-    "rejected": "quotes without a removal line were returned to their suppliers and never shown.",
+    "rejected": "quotes without a removal line were held, with notes to their suppliers, and never shown.",
     "revealCta": "Reveal for AED 1,162.50 · 3%",
     "note": "Sample data: a worked illustration of the steps on a fixed job, not a live request.",
     "moreListed": "+ 4 more quotes listed under the report · any of them can be chosen"
