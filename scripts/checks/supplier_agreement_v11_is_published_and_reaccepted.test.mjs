@@ -17,7 +17,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const legal = JSON.parse(read('src/content/legal.json'));
-const sa = legal['supplier-agreement'];
+// v12 replaced v11 the same day (supplier_agreement_v12_notices_go_to_the_confirmed_whatsapp.test.mjs); v11's text
+// is now the archive, kept word for word, so the v11 assertions read it there.
+const sa = legal['supplier-agreement-v11'];
 const text = (h) => h.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/\s+/g, ' ');
 const EN = text(sa.en.html), AR = text(sa.ar.html);
 // The official wording of Civil Transactions Law (25/2025) Art 340(1), uaelegislation.gov.ae/en|ar/legislations/4011.
@@ -76,8 +78,7 @@ test('v10 stays readable, with its date, at /supplier-agreement/v10', () => {
 });
 
 test('the exported agreement text and the registry SQL are v11', () => {
-  const mod = read('supabase/functions/_shared/supplier_agreement.ts');
-  assert.match(mod, /SUPPLIER_AGREEMENT_VERSION = "v11"/);
+  // The exported module moved to v12 (asserted by the v12 check); the export must still match legal.json.
   const r = spawnSync(process.execPath, [join(ROOT, 'scripts/legal/export_supplier_agreement.mjs'), '--check'], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const f = 'scripts/sql/the_supplier_agreement_v11_arabic_governs_and_notices_reach_whatsapp.sql';
