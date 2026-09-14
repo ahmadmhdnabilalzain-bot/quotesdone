@@ -51,6 +51,19 @@ Deno.test('a detail a quote does not state is —, and with no baseline the valu
   assertEquals(t.terms.find((x) => x.code === 'warranty')!.cells.map((c) => c.marker), ['', '—']);
 });
 
+// Measured 14 Sep 2026 on both live e2e comparisons: every "missing" cell was a quote with no line on
+// a row that is another supplier's own item, and the report told the customer "not stated — ask for
+// it". A quote that does not include an item is not missing a detail of it.
+Deno.test('a quote that does not include an item is not_applicable on that row, never missing', () => {
+  const W = { ...B, quote_id: 'qw', lines: [{ line_no: 1, description: 'Wardrobe 16mm particle board, melamine finish', amount: 4000 }, { line_no: 2, description: 'Kitchen worktop quartz 20mm thick', amount: 2500 }] };
+  const t = technicalComparison({ category: 'joinery', request_lines: [], requirements: null, quotes: [A, W], on_hold: 0, now });
+  const worktop = t.lines.find((l) => /worktop/i.test(l.item))!;
+  assert(worktop, 'the extra item is its own row');
+  const aCells = worktop.attributes.flatMap((at) => at.cells.filter((c) => c.quote_id === 'qa'));
+  assert(aCells.length > 0);
+  assertEquals([...new Set(aCells.map((c) => c.flag))], ['not_applicable']);
+});
+
 Deno.test('the renderer view is exactly the shape PR #611\'s comparison report reads', () => {
   const t = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: REQ, quotes: [A, B], on_hold: 0, now });
   const r = rendererView(t, 'ar');

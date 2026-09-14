@@ -126,8 +126,15 @@ export function technicalComparison(input: { category: string | null; request_li
       const cells = assessed.map(({ q, a: qa }) => {
         const ln = r.picks.get(q.quote_id);
         const l = ln != null ? qa.lines.find((x) => x.line_no === ln) : undefined;
-        if (!l) return cellOf(q.quote_id, true, null, baseline, noPref);
-        return cellOf(q.quote_id, l.asked.includes(a.code) || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
+        // MEASURED 14 Sep 2026, both live e2e comparisons: all 20 "missing" cells were a quote with NO
+        // line on the row (another supplier's own item), and the report told the customer "not stated —
+        // ask for it". A quote that does not include an item is not missing a detail of it: not_applicable.
+        if (!l) return cellOf(q.quote_id, false, null, baseline, noPref);
+        // On a line the quote does include, a detail is owed only when it is MANDATORY for that line; a
+        // mandatory one left unstated holds the quote (assess.ts, rankable), so a compared quote never
+        // carries one. An optional detail the supplier did not state is not_applicable, not "missing".
+        const owed = l.defs.some((d) => d.code === a.code && d.mandatory);
+        return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
       });
       return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: defs.some((d) => d.code === a.code && d.mandatory), requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
     }).filter((row) => row.mandatory || row.requested || row.requested_source || row.cells.some((c) => c.value));

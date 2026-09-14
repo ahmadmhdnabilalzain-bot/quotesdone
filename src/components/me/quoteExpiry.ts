@@ -35,12 +35,14 @@ export function expiryOf(
   const ar = lang === 'ar';
   const d = new Date(ms).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
+  // Before the reveal the customer cannot reach a supplier (founder, 14 Sep 2026), so this states the
+  // fact and warns before paying; it never tells them to ask or re-confirm anything with the supplier.
   if (q.expired) {
     return {
       tone: 'expired',
       text: ar
-        ? `انتهت صلاحية هذا العرض في ${d} — اطلب من المورّد تأكيده من جديد قبل أن تدفع لكشفه.`
-        : `This quote expired on ${d} — ask the supplier to re-confirm the price before you pay to reveal them.`,
+        ? `انتهت صلاحية هذا العرض في ${d}، وقد لا يبقى سعر المورّد ساريًا — ضع ذلك في اعتبارك قبل أن تدفع لكشفه.`
+        : `This quote expired on ${d}, so the supplier's price may no longer apply — keep that in mind before you pay to reveal it.`,
     };
   }
 

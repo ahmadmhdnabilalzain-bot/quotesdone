@@ -372,7 +372,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   if (sum > 0) trows.push([T('Lines subtotal', 'مجموع البنود'), k.money(sum, true)]);
   trows.push([T('Total quoted', 'إجمالي العرض'), k.money(exVat, true), true]);
   const diff = sum > 0 && exVat > 0 && Math.abs(sum - exVat) > 1;
-  blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. Confirm the difference with the supplier.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. يُرجى تأكيد الفرق مع المورّد.`) : '' });
+  blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. The quoted total is the price this supplier offered.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. إجمالي العرض هو السعر الذي قدّمه هذا المورّد.`) : '' });
   blocks.push({ t: 'note', text: T(VAT_LINE.en, VAT_LINE.ar) });
 
   section('Completeness check', 'فحص اكتمال العرض');
@@ -605,7 +605,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     });
     blocks.push({ t: 'table', head: [T('Specification', 'المواصفة'), T('You asked for', 'طلبك'), ...cols.map((l) => k.label(l))], widths: [0.16, 0.18, ...cols.map(() => (0.66 / cols.length))], rows, zebra: true, fs: cols.length >= 4 ? 7.8 : 8.5 });
   } else {
-    blocks.push({ t: 'p', text: T('The suppliers\' line specifications for this request are not in a comparable form yet, so no line-by-line specification table is shown. The commercial comparison below still applies; confirm material specifications with the supplier before you pay.', 'لم تصل مواصفات البنود من المورّدين لهذا الطلب بصيغة قابلة للمقارنة بعد، لذا لا يظهر جدول المواصفات بندًا بندًا. المقارنة التجارية أدناه سارية؛ يُرجى تأكيد مواصفات المواد مع المورّد قبل الدفع.'), muted: true });
+    blocks.push({ t: 'p', text: T('The suppliers\' line specifications for this request are not in a comparable form yet, so no line-by-line specification table is shown. The commercial comparison below still applies, and each quotation shows its specification exactly as the supplier stated it.', 'لم تصل مواصفات البنود من المورّدين لهذا الطلب بصيغة قابلة للمقارنة بعد، لذا لا يظهر جدول المواصفات بندًا بندًا. المقارنة التجارية أدناه سارية، وكل عرض يعرض مواصفاته كما ذكرها المورّد تمامًا.'), muted: true });
   }
   if (tech) for (const l of held) blocks.push({ t: 'note', text: T(`${l} is on hold and is not compared here: its quote does not yet state everything a complete quote must.`, `${k.label(l)} معلّق ولا يُقارن هنا: عرضه لا يذكر بعد كل ما يجب أن يتضمنه العرض المكتمل.`) });
   if (arrOf(a.line_findings).length) {
@@ -657,9 +657,13 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
         const c = at.values?.[String(q.label)]; if (!c || (c.flag !== 'differs' && c.flag !== 'missing')) return;
         const name = ar ? (arAttr(at.key) ?? k.loc(at.label || at.key).text) : String(at.label || at.key).replace(/_/g, ' ').toLowerCase();
         const item = k.loc(ln.item, 60).text; const no = ln.line_no ?? i + 1;
+        // Before the reveal the customer cannot reach a supplier; QuotesDone chases a missing detail
+        // (founder, 14 Sep 2026). A mandatory detail left unstated holds the quote, and the hold desk
+        // asks the supplier through customer_support (WhatsApp and email) until it is filled — so the
+        // sentence says that, never "ask for it". A difference is stated as the supplier quoted it.
         pts.push(c.flag === 'missing'
-          ? T(`Line ${no} (${item}): ${name} not stated — ask for it.`, `البند ${no} (${item}): ${name} غير مذكورة — اطلبها.`)
-          : T(`Line ${no} (${item}): ${name} is ${c.value ?? '—'}; you asked for ${at.requested ?? '—'}.`, `البند ${no} (${item}): ${name} ${k.loc(c.value ?? '—', 60).text} بينما طلبت ${k.loc(at.requested ?? '—', 60).text}.`));
+          ? T(`Line ${no} (${item}): ${name} not stated — we have asked the supplier; this report updates when they answer.`, `البند ${no} (${item}): ${name} غير مذكورة — طلبناها من المورّد، وسيُحدَّث التقرير عند الرد.`)
+          : T(`Line ${no} (${item}): ${name} is ${c.value ?? '—'}; you asked for ${at.requested ?? '—'}. This is what the supplier quoted in writing.`, `البند ${no} (${item}): ${name} ${k.loc(c.value ?? '—', 60).text} بينما طلبت ${k.loc(at.requested ?? '—', 60).text}. هذا ما قدّمه المورّد كتابيًا في عرضه.`));
       }));
     }
     const uniq = [...new Set(pts.map((p) => p.trim()).filter(Boolean))];
@@ -668,7 +672,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   }
   if (risk.length) {
     section('Risks and clarifications by supplier', 'المخاطر والاستيضاحات لكل مورّد');
-    blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Confirm before you pay', 'أكّد قبل الدفع')], rows: risk, widths: [0.2, 0.8] });
+    blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('What to know before you choose', 'ما يجب معرفته قبل الاختيار')], rows: risk, widths: [0.2, 0.8] });
   }
 
   // 7 — Advice and next steps

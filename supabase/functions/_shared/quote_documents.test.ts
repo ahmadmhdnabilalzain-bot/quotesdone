@@ -110,6 +110,26 @@ function compareBody(c: CaseKey, lang: Lang, withTech = true) {
   const C = CASES[c];
   return compareDocument({ analysis: analysisFor(c, lang, withTech), inquiry: C.inq, lang, maskNames: C.ids(), portalUrl: portalLink(lang, C.inq.id), linkFor: (qid: string) => portalLink(lang, C.inq.id, qid), ...dates(lang) }).body;
 }
+// BEFORE THE REVEAL THE CUSTOMER CANNOT REACH A SUPPLIER (founder, 14 Sep 2026): QuotesDone holds an
+// incomplete quote and the sales engineer asks the supplier through customer_support. So no document
+// the customer receives may tell them to ask, contact or confirm something with a supplier. Measured
+// 14 Sep 2026: the comparison said "not stated — ask for it" / "اطلبها", the quotation said "Confirm
+// the difference with the supplier", and the analysis said "ask the supplier to reconfirm it".
+const TELLS_CUSTOMER_TO_ASK = /\bask (for it|them|the supplier)\b|\b(contact|call|email|message) the supplier\b|\bconfirm\b[^.]{0,60}\bwith the supplier\b|\bconfirm before (you pay|paying)\b|اطلبها|اطلبه\b|اسأل المورّ?د|تواصل مع المورّ?د|اتصل بالمورّ?د|مع المورّ?د قبل الدفع|تأكيد[^.]{0,40}مع المورّ?د|أكّد قبل الدفع/i;
+Deno.test('no document the customer receives tells them to ask or contact a supplier before the reveal', () => {
+  for (const c of Object.keys(CASES) as CaseKey[]) for (const lang of ['en', 'ar'] as Lang[]) {
+    const docs: Array<[string, unknown]> = [['comparison', compareBody(c, lang)], ['comparison without the technical section', compareBody(c, lang, false)]];
+    for (let i = 0; i < CASES[c].live().length; i++) docs.push([`quotation ${i}`, quoteBody(c, lang, i)]);
+    for (const [name, body] of docs) {
+      const hit = JSON.stringify(body).match(TELLS_CUSTOMER_TO_ASK);
+      assertEquals(hit?.[0] ?? null, null, `${c} ${lang} ${name} tells the customer to ask a supplier`);
+    }
+  }
+  // The pattern itself catches the wording that shipped before this change.
+  for (const s of ['Line 1 (x): glass not stated — ask for it.', 'البند 1: غير مذكورة — اطلبها.', 'Confirm the difference with the supplier.', 'This quote has expired — ask the supplier to reconfirm it.', 'Warranty not stated — confirm before paying.', 'أكّد قبل الدفع'])
+    assert(TELLS_CUSTOMER_TO_ASK.test(s), 'the guard misses: ' + s);
+});
+
 function assertNoIdentity(body: unknown, c: CaseKey) {
   const s = JSON.stringify(body);
   for (const id of CASES[c].ids()) assert(!s.includes(id), 'supplier identity reached the page: ' + id);
