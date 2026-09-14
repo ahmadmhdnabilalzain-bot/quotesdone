@@ -2,6 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
+import { detectCat } from '../_shared/trade_classify.ts';
+import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
@@ -34,14 +36,25 @@ const KW: Record<string, string[]> = {
   flooring: ['floor', 'flooring', 'spc', 'vinyl', 'lvt', 'parquet', 'laminate', 'epoxy', 'tile', 'tiles', 'marble', 'granite', 'carpet'], glass: ['glass', 'glazing', 'mirror', 'shower enclosure', 'partition', 'facade', 'curtain wall', 'window'], aluminium: ['aluminium', 'aluminum', 'pergola', 'cladding', 'composite panel', 'window frame'], steel: ['steel', 'metal', 'fabrication', 'welding', 'staircase', 'railing', 'gate', 'structure'], acrylic: ['acrylic', 'plexiglass', 'perspex', 'display stand'], carpentry: ['carpentry', 'wood', 'joinery', 'wardrobe', 'cabinet', 'kitchen', 'furniture', 'door'], gypsum: ['gypsum', 'false ceiling', 'drywall', 'partition wall', 'ceiling'], signage: ['sign', 'signage', '3d letters', 'lightbox', 'led sign', 'billboard', 'sticker', 'branding'], wallpaper: ['wallpaper', 'wall covering'], upholstery: ['upholstery', 'sofa', 'curtain', 'blinds', 'cushion', 'reupholster'], fitout: ['fitout', 'fit-out', 'fit out', 'interior', 'renovation', 'refurbish', 'turnkey', 'decoration'], painting: ['paint', 'painting', 'varnish', 'coating'], landscaping: ['landscaping', 'garden', 'grass', 'artificial grass', 'irrigation', 'swimming pool', 'pool'], scaffolding: ['scaffolding', 'scaffold', 'formwork'], security: ['cctv', 'camera', 'access control', 'intercom', 'alarm', 'security system', 'gate barrier'], safety: ['safety', 'ppe', 'fire extinguisher', 'fire alarm', 'first aid', 'helmet'],
 };
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
+// 14 Sep 2026: the category comes from _shared/trade_classify (the intake's own reading). This map
+// scored raw substrings one point each, so "ground floor fire alarm" tied flooring, security and
+// safety and went to flooring; KW below now only supplies supplier-matching keywords.
 function detect(text: string) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
-  let best: string | null = null, bestN = 0;
-  for (const [c, kws] of Object.entries(KW)) { let n = 0; for (const k of kws) if (t.includes(k)) n++; if (n > bestN) { bestN = n; best = c; } }
+  const best = detectCat(text);
   let em: string | null = null;
   for (const e of EMIRATES) { if (t.includes(e.toLowerCase())) { em = e; break; } }
   if (!em && t.includes('abudhabi')) em = 'Abu Dhabi'; if (!em && / rak /.test(t)) em = 'Ras Al Khaimah';
   return { category: best, emirate: em, keywords: best ? KW[best].filter((k) => t.includes(k)) : [] };
+}
+// The portal's drawing OCR (ocrPlan lines with page boxes, the sheet width, the symbol counts),
+// passed through to drawing_boq, which validates every field. Bounded here only by size.
+function drawingOcr(body: any): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (Array.isArray(body?.ocr_lines)) out.ocr_lines = body.ocr_lines.slice(0, 4000);
+  if (Number.isFinite(Number(body?.ocr_width))) out.ocr_width = Number(body.ocr_width);
+  if (body?.symbol_counts && typeof body.symbol_counts === 'object') out.symbol_counts = body.symbol_counts;
+  return out;
 }
 function labelize(s: string): string { return String(s || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }
 // 29 Jul 2026 - ANONYMITY. The scrubber lived only in supplier_api's portal READ path, so every
@@ -632,7 +645,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const secret = await getSecret('cred_fn_customer_api');
       let jd: any = null;
       try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: b64, mime, filename: name, hint, ocr_text: String(body.ocr_text || '').slice(0, 200_000) }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: b64, mime, filename: name, hint, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body) }) });
         jd = await r.json();
       } catch (_e) { /* answered below as document_unreadable */ }
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
@@ -714,7 +727,7 @@ Deno.serve(observe('customer_api', async (req) => {
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000) }) });
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body) }) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
@@ -853,6 +866,20 @@ Deno.serve(observe('customer_api', async (req) => {
       // file name wherever they appear, plus plot / Makani / address / permit patterns, and a residual
       // scan found nothing. A BOQ that still identifies the customer is HELD: not stored on the RFQ,
       // recorded as a 'boq_held' run so it is visible, and never sent. It does not fail open.
+      // THE DRAWING'S OPEN LINES ARE SETTLED AND RECORDED HERE (14 Sep 2026, _shared/boq_open_lines).
+      // The sales engineer asked the customer to confirm our count; whatever is true at Send is the
+      // outcome — confirmed, adjusted, not sure, or unanswered (the window closes when the customer
+      // sends). Lines nobody confirmed go out as "estimated from drawing, supplier to verify
+      // take-off", and the outcome is recorded on the inquiry, so nothing is silently assumed.
+      if (boqObj && Array.isArray(boqObj.boq)) {
+        const open = openLines(boqObj.boq);
+        if (open.length) {
+          const asked = briefObj?.boq_check && typeof briefObj.boq_check === 'object' ? briefObj.boq_check as BoqCheck : null;
+          const outcome: BoqCheck = asked && asked.status !== 'asked' ? asked : { status: 'unanswered', asked_at: asked?.asked_at, answered_at: null, lines: open };
+          boqObj = { ...boqObj, boq: settleLines(boqObj.boq, outcome) };
+          spec.boq_check = { status: outcome.status, asked_at: outcome.asked_at || null, answered_at: outcome.answered_at || null, answer: outcome.answer || null, adjustments: outcome.adjustments || {}, lines: open, recorded_at: new Date().toISOString(), recorded_by: 'sales_engineer' };
+        }
+      }
       if (boqObj) {
         let projName = '';
         { const want = String(body.project_id || briefObj?.project_id || '').trim();

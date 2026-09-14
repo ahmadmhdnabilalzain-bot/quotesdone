@@ -14,6 +14,9 @@ import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { empty } from '../_shared/doc_read/types.ts';
+import { drawingInput } from './drawing_input.ts';
+import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, type ConfirmReply } from './confirm.ts';
+import { lineKey } from '../_shared/boq_open_lines.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -25,6 +28,31 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// ── THE CONFIRM STEP (14 Sep 2026, confirm.ts) ────────────────────────────────────────────────────────
+// One vision call per drawing that checks the CODED draft; off unless app_secrets
+// drawing_boq_confirm_enabled is 'on'. Even then the call goes through ai_gateway under task_class
+// 'drawing_boq_confirm', where the founder's hold still refuses it unless public.paid_route_exception
+// enables that one route (token cap, daily spend cap). Any refusal, error or unparseable reply leaves
+// the coded result standing, its open lines marked "not confirmed by a second reading".
+async function confirmStep(coded: { boq: any[] }, body: any): Promise<Record<string, unknown>> {
+  const flag = String((await sec('drawing_boq_confirm_enabled')) || '').toLowerCase();
+  const img = Array.isArray(body.images) && body.images[0] ? body.images[0] : null;
+  if (!['on', 'true', '1'].includes(flag) || !img || !coded.boq.length) return { confirm: 'off' };
+  const key = await sec('cred_fn_ai');
+  const b64 = (img && (img.b64 || img.data)) || img; const mime = (img && img.mime) || 'image/jpeg';
+  let reply: ConfirmReply | null = null; let why = 'no_reply';
+  try {
+    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      __secret: key, fn: 'drawing_boq', task_class: CONFIRM_ROUTE, max: CONFIRM_MAX_TOKENS, temperature: 0, sys: CONFIRM_SYS,
+      input: [{ role: 'user', content: [{ type: 'text', text: confirmUserText(coded.boq) }, { type: 'image_url', image_url: { url: dataUrl(String(b64), String(mime)) } }] }] }) });
+    const jd = await r.json();
+    if (r.ok && jd?.ok !== false && jd?.content) { reply = parseConfirm(String(jd.content), new Set(coded.boq.map((l: any) => lineKey(l)))); why = reply ? 'ok' : 'unparseable'; }
+    else why = String(jd?.outcome || jd?.error || 'refused');
+  } catch (_e) { why = 'exception'; }
+  const m = mergeConfirm(coded.boq, reply);
+  return { boq: m.lines, confirm: m.status, confirm_detail: { why, disagreements: m.disagreements, model_only: m.model_only } };
+}
+
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
 function dataUrl(b64: string, mime: string){ return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/,'')}`; }
 function scrub(s: unknown){ let t = String(s == null ? '' : s); t = t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[removed]'); t = t.replace(/\b(?:https?:\/\/|www\.)[^\s)]+/gi, '[removed]'); return t; }
@@ -52,10 +80,14 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // document"). ANY document _shared/doc_read opens — Word, PowerPoint, ODF, RTF, text, email, DXF,
     // IFC, GAEB, zip, PDF — read with no model. ocr_text is the customer's browser OCR of a photo.
     const ocrText = String(body.ocr_text || '').slice(0, 200_000);
+    // 14 Sep 2026. The OCR plan's lines WITH their page boxes (ocrPlan.ts) and the browser's symbol
+    // counts. Both are customer-controlled input: shapes are validated here, and the counts are only
+    // ever ESTIMATES the customer is asked to confirm — the server re-does the address cross-check.
+    const drawing = drawingInput(body.ocr_lines, body.ocr_width, body.symbol_counts, ocrText);
     if (body.mode === 'document') {
       const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''));
       if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
-      return J({ ok: true, boq: boqFromExtracted(r, hint, ocrText), kind: r.kind, needs: r.needs });
+      return J({ ok: true, boq: boqFromExtracted(r, hint, ocrText, drawing), kind: r.kind, needs: r.needs });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
     // returned ai_error on every drawing and the customer's file never informed the brief (website
@@ -72,7 +104,11 @@ Deno.serve(observe('drawing_boq', async (req) => {
     const pdfB64 = (/pdf/i.test(String(body.mime || '')) || /^(data:[^;]+;base64,)?JVBER/.test(cand)) ? cand : '';
     const deterministic = async (why: string) => {
       // A photo has no text layer: the customer's browser OCR (ocr_text) is what can be read of it.
-      if (!pdfB64) return ocrText ? J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText), fallback_reason: why } }) : null;
+      if (!pdfB64) {
+        if (!ocrText && !drawing.lines?.length) return null;
+        const coded = boqFromExtracted(empty('image'), hint, ocrText, drawing);
+        return J({ ok: true, boq: { ...coded, ...(await confirmStep(coded, body)), fallback_reason: why } });
+      }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
         const out = boqFromPages(await pdfPages(bytes), hint);
