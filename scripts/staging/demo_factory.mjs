@@ -81,9 +81,25 @@ export async function keys() {
   if (_keys) return _keys;
   const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
     || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
-  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
-    { headers: { Authorization: 'Bearer ' + mgmt } });
-  const k = await r.json();
+  // 14 SEP 2026, smoke run 34885431255: in CI this answered with something that was not an array and
+  // the harness died on "k.find is not a function", which names neither the status nor the reason.
+  // The same token ran /database/query in the same job, so it is the api-keys call itself (a scope, or
+  // a throttle). A 429 waits like scripts/lib/db.mjs; anything else fails saying what came back.
+  let r, k;
+  for (let attempt = 0; ; attempt++) {
+    r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
+      { headers: { Authorization: 'Bearer ' + mgmt } });
+    if ((r.status === 429 || r.status >= 500) && attempt < 5) {
+      await new Promise((res) => setTimeout(res, Math.min(2000 * 2 ** attempt, 30000)));
+      continue;
+    }
+    break;
+  }
+  const text = await r.text();
+  try { k = JSON.parse(text); } catch { k = null; }
+  if (!Array.isArray(k)) {
+    throw new Error(`the management api refused the project's api keys: HTTP ${r.status} ${text.slice(0, 300)}`);
+  }
   const ANON = k.find((x) => x.name === 'anon')?.api_key;
   const SERVICE = k.find((x) => x.name === 'service_role')?.api_key;
   if (!ANON || !SERVICE) throw new Error('could not read staging api keys');
