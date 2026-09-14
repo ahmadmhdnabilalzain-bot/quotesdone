@@ -40,12 +40,13 @@ Deno.serve(observe('customer_portal', async (req) => {
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user) return J({ error: 'unauthorized' }, 401);
     const email = (user.email || '').toLowerCase();
-    let { data: cust } = await admin.from('customers').select('id,full_name,email,industry').eq('id', user.id).maybeSingle();
-    if (!cust && email) { const r = await admin.from('customers').select('id,full_name,email,industry').eq('email', email).maybeSingle(); cust = r.data; }
+    let { data: cust } = await admin.from('customers').select('id,full_name,email,industry,locale').eq('id', user.id).maybeSingle();
+    if (!cust && email) { const r = await admin.from('customers').select('id,full_name,email,industry,locale').eq('email', email).maybeSingle(); cust = r.data; }
     if (!cust) return J({ error: 'no_customer', hint: 'no customer profile for this account' }, 400);
     const b = await req.json().catch(() => ({} as any));
     const action = b.action;
-    const ar = String(b.lang || 'en') === 'ar';
+    // The registered language (customers.locale), not the b.lang the page happened to send.
+    const ar = /^ar/i.test(String(cust.locale || ''));
 
     if (action === 'overview') {
       const { data: stats, error } = await admin.rpc('fn_customer_stats', { p_customer: cust.id });

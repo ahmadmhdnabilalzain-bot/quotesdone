@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
@@ -1125,8 +1126,10 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'compare_pdf') {
       const iid = String(body.inquiry_id || '');
-      const wantAr = /^ar/i.test(String(body.lang || ''));
-      const lang = wantAr ? 'ar' : 'en';
+      // THE REGISTERED LANGUAGE, NOT THE REQUEST'S (founder, 14 Sep 2026: "if someone registered
+      // while the language was arabic then arabic follows through the whole workflow"). body.lang is
+      // ignored for every document here; customers.locale decides.
+      const lang = asLocale(cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1152,7 +1155,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // quote_compare analysis as compare_pdf, rendered through the same compareTable().
     if (action === 'compare_csv') {
       const iid = String(body.inquiry_id || '');
-      const lang = /^ar/i.test(String(body.lang || '')) ? 'ar' : 'en';
+      const lang = asLocale(cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1173,8 +1176,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'brief_pdf') {
       const iid = String(body.inquiry_id || '');
-      const wantAr = /^ar/i.test(String(body.lang || ''));
-      const lang = wantAr ? 'ar' : 'en';
+      const lang = asLocale(cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1193,7 +1195,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // ONE LANGUAGE PER DOCUMENT, BOTH ALWAYS ON OFFER (founder, 14 Sep 2026). The old 'bi' file —
       // English page, then an "Arabic" page whose content was English whenever ai_gateway failed —
       // is no longer produced; its cache rows are simply never read again.
-      const lang: 'en' | 'ar' = /^ar/i.test(String(body.lang || body.customer_lang || '')) ? 'ar' : 'en';
+      const lang: 'en' | 'ar' = asLocale(cust.locale);
       const { data: q } = await admin.from('quotes').select('*').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();

@@ -6,6 +6,7 @@
 // COST: prompt caching (cache_control ephemeral) on the system prompt — multi-turn chats bill it at ~10% on repeat turns.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
 import { detectCat, detectTrades, detectEmirate, detectUrgency, isArabic } from './classify.ts';
 import { ACTOR, requirementsStep, requirementQuestions, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -61,11 +62,12 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     // intake prompt back — nothing reached the RFQ or a supplier (website audit 14 Sep, finding 9).
     // Follow-ups belong to customer_api rfq_note. Refused before any customer or draft row is written.
     if (b && b.inquiry_id && !b.intake_id) return J({ ok: false, error: 'use_rfq_note', message: 'Questions about a request you have already sent go on that request, not into a new one.' }, 200);
-    let cust = (await admin.from('customers').select('id').eq('email', email).maybeSingle()).data;
+    let cust = (await admin.from('customers').select('id,locale').eq('email', email).maybeSingle()).data;
     if (!cust) {
+      // Created here, so this IS the registration: the page language they are using is what registers.
       const { data: made } = await admin.from('customers')
-        .insert({ email, full_name: (user.user_metadata as any)?.full_name || email.split('@')[0] })
-        .select('id').maybeSingle();
+        .insert({ email, full_name: (user.user_metadata as any)?.full_name || email.split('@')[0], locale: asLocale(b.lang) })
+        .select('id,locale').maybeSingle();
       cust = made || null;
     }
     const text = sanitizeInput(String(b.text || '').trim()).slice(0, 4000);
@@ -93,7 +95,11 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     const turns: any[] = Array.isArray(draft.turns) ? draft.turns : [];
     if (text) turns.push({ role: 'user', text });
     const allText = turns.filter((t) => t.role === 'user').map((t) => t.text).join(' \n ') + ' ' + (draft.raw_input || '');
-    const ar = isArabic(allText);
+    // THE SALES ENGINEER ANSWERS IN THE REGISTERED LANGUAGE (founder, 14 Sep 2026). This read the
+    // script of what the customer typed, so an Arabic-registered customer who typed one line in
+    // English was interviewed in English from then on. customers.locale decides; what they type in
+    // either language is still understood.
+    const ar = asLocale((cust as any)?.locale) === 'ar';
 
     let category = draft.category || detectCat(allText) || (drawingBoq && drawingBoq.category) || null;
     if (category && !validSlugs.includes(category)) { category = detectCat(allText) || null; }

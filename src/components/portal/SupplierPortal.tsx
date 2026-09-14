@@ -455,6 +455,16 @@ export function SupplierPortal() {
     } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
     try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
   };
+  // THE SUPPLIER'S REGISTERED LANGUAGE WINS ONCE SIGNED IN (founder, 14 Sep 2026). The portal took its
+  // language from the URL alone, so a supplier registered in Arabic who opened an English link worked
+  // in English while every notice reached them in Arabic. leads.locale decides; Settings changes it.
+  useEffect(() => {
+    if (phase !== 'app' || !token) return;
+    call('supplier_api', { action: 'settings' }, token).then((j) => {
+      const l = j && j.ok && j.settings ? j.settings.locale : null;
+      if ((l === 'ar' || l === 'en') && l !== initLang()) switchLang(l);
+    }).catch(() => {});
+  }, [phase, token]);
   useEffect(() => {
     setMounted(true);
     try { setLang(initLang()); } catch (_e) {}

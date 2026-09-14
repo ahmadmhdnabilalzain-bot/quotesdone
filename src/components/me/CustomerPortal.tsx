@@ -195,7 +195,10 @@ export function CustomerPortal() {
     } catch (_e) {}
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
-  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); };
+  // Switching language while signed in IS a change of the registered language (founder, 14 Sep 2026:
+  // the registered language follows every message), so it is saved to customers.locale exactly as
+  // Account settings saves it. Signed out, it only changes this page.
+  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); if (token) call('customer_api', { action: 'set_locale', locale: l }, token).catch(() => {}); };
 
   // THE DOCUMENT ITSELF NEVER LEARNED IT HAD SWITCHED LANGUAGE (13 Aug 2026). Measured in the
   // browser with the portal fully in Arabic: document.documentElement.dir was "ltr" and .lang was
@@ -216,12 +219,14 @@ export function CustomerPortal() {
   // language once got English on every new device, and the Arabic journey exercised a code path the
   // portal could never reach.
   //
-  // PRECEDENCE MATTERS: an explicit choice on THIS device wins. setLang writes qd-lang, so if that
-  // key exists the customer has chosen, and a profile field must not override a preference they set
-  // seconds ago. Only when they have chosen nothing here does the stored locale apply.
+  // 14 SEP 2026 - THE REGISTERED LANGUAGE WINS once signed in. This used to let this device's
+  // localStorage (or the NEXT_LOCALE cookie) override customers.locale, so an Arabic-registered
+  // customer on a browser that once saw English got an English portal while every message went out
+  // in Arabic. A choice made while signed in is saved to customers.locale by setLang above, so the
+  // stored value is always the latest choice, and it is written back here so this device agrees.
   const onServedLocale = (l) => {
     if (l !== 'ar' && l !== 'en') return;
-    try { if (localStorage.getItem('qd-lang')) return; } catch (_e) { return; }
+    try { localStorage.setItem('qd-lang', l); } catch (_e) {}
     setLangState(l);
   };
   const onAuth = (access, refresh) => { try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
