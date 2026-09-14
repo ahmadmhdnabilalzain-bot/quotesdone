@@ -121,9 +121,21 @@ const UNIT_OF: Record<string, Unit> = { day: 'day', days: 'day', week: 'week', w
 /** "2 weeks", "10-14 days", "12 months warranty", "3 working days", "immediate" → Arabic, or null. */
 export function arDuration(s: unknown): string | null {
   if (hasArabic(s)) return String(s);
-  const t = norm(s).replace(/\.$/, '');
+  let t = norm(s).replace(/\.$/, '');
   if (!t) return null;
   if (/^(immediate(ly)?|asap|ex[- ]?stock|from stock|same day)$/.test(t)) return t.includes('stock') ? 'من المخزون فورًا' : 'فوري';
+  // "21 days from order" is the commonest lead time a supplier writes; it fell through to the
+  // "original wording" line on every Arabic report (measured 14 Sep 2026). The anchor is kept.
+  let from = '';
+  const anchor = t.match(/\s+(?:from|after)\s+(?:the\s+)?(order confirmation|purchase order|order|po|lpo|confirmation|approval|advance payment|advance|payment|drawing approval)$/);
+  if (anchor) {
+    from = /approval/.test(anchor[1]) ? ' من الاعتماد' : /advance|payment/.test(anchor[1]) ? ' من استلام الدفعة المقدمة' : ' من تاريخ الطلب';
+    t = t.slice(0, anchor.index);
+  }
+  const r = arDurationCore(t);
+  return r ? r + from : null;
+}
+function arDurationCore(t: string): string | null {
   const m = t.match(/^(\d{1,4})(?:\s*(?:-|–|to)\s*(\d{1,4}))?\s*(working |business |calendar )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)(?: (?:warranty|validity|guarantee))?$/);
   if (!m) return null;
   const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3] && /working|business/.test(m[3]);
@@ -212,7 +224,10 @@ export function clipCell(s: unknown, n: number) { const t = String(s == null ? '
 // deno-lint-ignore no-explicit-any
 const arrOf = (x: any) => Array.isArray(x) ? x : [];
 /** "Supplier B" → "المورّد B" on an Arabic page; the letter stays the one on the customer's screen. */
-export function labelFor(label: unknown, lang: Lang) { const l = String(label ?? ''); return lang === 'ar' ? l.replace(/^Supplier\b/, 'المورّد') : l; }
+// "Option N" takes the same Arabic as labelQuotes' own .ar ("المورّد A – الخيار 2"). Measured 14 Sep
+// 2026: only "Supplier" was translated, so the Arabic report read "المورّد A – Option 1" in every table.
+export const arLabelWords = (s: string) => s.replace(/\bSupplier ([A-Z]{1,2})\b/g, 'المورّد $1').replace(/\bOption (\d{1,3})\b/g, 'الخيار $1');
+export function labelFor(label: unknown, lang: Lang) { const l = String(label ?? ''); return lang === 'ar' ? arLabelWords(l) : l; }
 
 // ── VAT never reaches the customer ─────────────────────────────────────────────────────────────
 // Founder, 14 Sep 2026: "our company is not vat registered so for our reveal fee there is no vat.
@@ -259,7 +274,7 @@ function kit(lang: Lang, names: string[] = []) {
   // Any sentence about VAT is dropped in both languages.
   // deno-lint-ignore no-explicit-any
   const sentence = (v: any): any => typeof v === 'string'
-    ? (ar ? stripVat(v).replace(/\bSupplier ([A-Z]{1,2})\b/g, 'المورّد $1').replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
+    ? (ar ? arLabelWords(stripVat(v)).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
     : Array.isArray(v) ? v.map(sentence) : (v && typeof v === 'object') ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'link' ? x : sentence(x)])) : v;
   const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   return { ar, T, money, loc, cell, dur, pay, label, sentence, today };
@@ -461,7 +476,11 @@ function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[
   push(T('Track record', 'سجل الأداء'), (q) => q.track_record_note ? k.cell(k.sentence(q.track_record_note), 180) : '—');
   push(T('Watch out', 'تنبيهات'), (q) => k.sentence(clipCell(joinList(q.flags, k.ar), 200)) || '—');
   // deno-lint-ignore no-explicit-any
-  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => clipCell(k.label(q.label), 20))], rows, labels: qs.map((q: any) => String(q.label)) };
+  // The FULL label, never clipped: a label is the only thing that tells two options of one supplier
+  // apart. Clipped to 20 characters, "Supplier A – Option 1" and "Supplier A – Option 2" both became
+  // "Supplier A – Option…" in the report's commercial table and in compare_csv (measured 14 Sep 2026,
+  // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
+  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
 }
 const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
@@ -473,8 +492,11 @@ export function compareTable(a: any, ar: boolean): { head: string[]; rows: strin
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)) };
 }
 /** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */
+// The trigger set is = + - @ AND a leading tab or carriage return (OWASP CSV injection): cells carry
+// supplier-written text (flags, inclusions, exclusions), and a spreadsheet trims a leading tab/CR
+// and then evaluates what follows. Until 14 Sep 2026 only the first four were escaped.
 export function toCsv(head: string[], rows: string[][]): string {
-  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   // The BOM is what makes Excel read the file as UTF-8; without it Arabic opens as mojibake.
   return '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
 }
