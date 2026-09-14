@@ -1015,7 +1015,11 @@ Deno.serve(observe('customer_api', async (req) => {
           notifyChild: async (id, tr) => {
             const tlabel = labelize(tr);
             const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-            const { matches } = await matchAndNotify(id, { category: tr, emirate, keywords: childKw(tr), summary: childSummary(tr), budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: false });
+            // Each child is ONE trade and is routed like any single request: through the capability
+            // matcher (sales_engineer.match), not keyword matching. Measured 14 Sep 2026: split children
+            // went to match_suppliers_kw, which matched a registered aluminium supplier and no one for
+            // the glass child, while the capability router knows glass as glazing.
+            const { matches } = await matchAndNotify(id, { category: tr, emirate, keywords: childKw(tr), summary: childSummary(tr), budget, extra: extra + supplierLine(reqStored), useRouter: true, multi: false });
             return matches;
           },
           finding: async (detail) => {
