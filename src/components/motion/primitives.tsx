@@ -21,13 +21,16 @@ import { useRef, type ReactNode, type CSSProperties } from 'react';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-/* ── Reveal: organic fade + rise + de-blur when scrolled into view ───────── */
+/* ── Reveal: ONE reveal system, the CSS one (website audit 14 Sep 2026) ─────────────────────
+   This was a motion/react whileInView wrapper whose SSR state was opacity:0 + blur(6px). Measured
+   on the live homepage: 29 elements shipped at opacity:0, the hero headline and CTAs among them,
+   and LCP was 7,648 ms of which 7,604 ms was render delay waiting for ~850 KB of JS to hydrate.
+   It now renders the CSS scroll-driven `.reveal` (globals.css), which has no failure path: without
+   JS, without scroll-timeline support (Safari/Firefox today) or with reduced motion, the content is
+   simply visible. `delay`, `y` and `once` are accepted and ignored so no call site has to change. */
 export function Reveal({
   children,
   className,
-  delay = 0,
-  y = 24,
-  once = true,
   style,
 }: {
   children: ReactNode;
@@ -37,35 +40,14 @@ export function Reveal({
   once?: boolean;
   style?: CSSProperties;
 }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      style={style}
-      initial={reduce ? false : { opacity: 0, y, filter: 'blur(6px)' }}
-      whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      viewport={{ once, margin: '-12% 0px -8% 0px' }}
-      transition={{ duration: 0.8, ease: EASE, delay }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className ? `reveal ${className}` : 'reveal'} style={style}>{children}</div>;
 }
 
-/* ── Stagger: a container that cascades its direct StaggerItem children ───── */
-const containerV: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
-};
-const itemV: Variants = {
-  hidden: { opacity: 0, y: 22, filter: 'blur(6px)' },
-  show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.75, ease: EASE } },
-};
-
+/* ── Stagger / StaggerItem: same collapse as Reveal — the container is a plain div and each item
+   takes the CSS scroll-driven .reveal, so items still cascade as they scroll into view. ───── */
 export function Stagger({
   children,
   className,
-  once = true,
   style,
 }: {
   children: ReactNode;
@@ -73,19 +55,7 @@ export function Stagger({
   once?: boolean;
   style?: CSSProperties;
 }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      style={style}
-      variants={containerV}
-      initial={reduce ? false : 'hidden'}
-      whileInView="show"
-      viewport={{ once, margin: '-10% 0px' }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className} style={style}>{children}</div>;
 }
 
 export function StaggerItem({
@@ -97,11 +67,7 @@ export function StaggerItem({
   className?: string;
   style?: CSSProperties;
 }) {
-  return (
-    <motion.div className={className} style={style} variants={itemV}>
-      {children}
-    </motion.div>
-  );
+  return <div className={className ? `reveal ${className}` : 'reveal'} style={style}>{children}</div>;
 }
 
 /* ── TiltCard: 3D parallax tilt + radial cursor-tracking glow ─────────────── */
