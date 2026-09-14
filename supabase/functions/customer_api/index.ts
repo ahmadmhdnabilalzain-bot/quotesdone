@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../_shared/attachment.ts';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET } from '../_shared/attachment.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -311,7 +311,8 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // an embedded /Launch action all stored cleanly as "a drawing". It also stored phone photos with
 // their EXIF intact, which on an anonymous marketplace means the supplier receives the customer's
 // GPS coordinates attached to the "masked" site photo.
-async function storeOriginal(custId: string, email: string, name: string, mime: string, b64: string): Promise<string | null> {
+// `allow` widens to SAFE_SHEET only on the analyze_boq path (14 Sep 2026); drawings keep PDF/image/CAD.
+async function storeOriginal(custId: string, email: string, name: string, mime: string, b64: string, allow: readonly string[] = [...SAFE_UPLOAD, ...SAFE_CAD]): Promise<string | null> {
   try {
     // 5 Aug 2026. The allow-list was SAFE_UPLOAD (PDF + jpeg/png/webp), which excludes CAD - on the
     // one path in the system that explicitly SUPPORTS CAD. analyze_drawing detects .dwg/.dxf and
@@ -323,7 +324,7 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
     // sniffer validates both formats structurally (DWG by its AC10xx magic, ASCII DXF by its
     // SECTION/HEADER shape, and it prefers the dangerous reading on ambiguity), so this widens the
     // accepted set without trusting the caller's declared type.
-    const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename: name, allow: [...SAFE_UPLOAD, ...SAFE_CAD], maxBytes: 25 * 1024 * 1024,
+    const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename: name, allow, maxBytes: 25 * 1024 * 1024,
                                        scan: { source: 'customer_api.drawing', subject: String(custId || email || ''), filename: name, bucket: 'drawing-files' } });
     if (!sc.ok) {
       console.warn(`[9.1] drawing rejected: ${sc.body.error} - ${sc.body.detail} (declared ${mime})`);
@@ -634,6 +635,30 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'me') return J({ customer: cust });
 
+    // ATTACH A BOQ (founder, 14 Sep 2026: "describe a job / drop a drawing is fine but add attach a
+    // BOQ also"). A spreadsheet BOQ (xlsx / xls / csv). drawing_boq mode 'sheet' sniffs it by its
+    // bytes, caps it at 5 MB, refuses macros and encryption, and reads cached cell values with no model.
+    // Only a file it accepted is stored, beside drawings, with the same owner ledger row, so pdpl_erase
+    // finds it the same way. A PDF BOQ does not come here: analyze_drawing reads its text layer.
+    if (action === 'analyze_boq') {
+      const name = String(body.file_name || 'boq').slice(0, 180);
+      const mime = String(body.mime || '');
+      const b64 = String(body.file_b64 || '');
+      if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
+      // 5 MB of bytes is about 6.7 MB of base64: refused here before anything is decoded or forwarded.
+      if (b64.length > 7 * 1024 * 1024) return J({ ok: false, error: 'file_too_large' });
+      const hint = String(body.hint || '').slice(0, 400);
+      const secret = await getSecret('cred_fn_customer_api');
+      let jd: any = null;
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'sheet', file_b64: b64, mime, filename: name, hint }) });
+        jd = await r.json();
+      } catch (_e) { /* answered below as boq_unreadable */ }
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'boq_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_SHEET);
+      return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
+    }
+
     if (action === 'analyze_drawing') {
       let images: any[] = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
@@ -761,7 +786,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if ((recent || 0) >= INQUIRY_LIMIT_PER_HOUR) return J({ error: 'You have created many requests in a short time. Please try again later.' }, 429);
       const drawing = body.drawing && typeof body.drawing === 'object' ? body.drawing : null;
       const boqObj = drawing?.boq && typeof drawing.boq === 'object' ? drawing.boq : null;
-      const briefSource = drawing ? (['drawing','quotation'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
+      const briefSource = drawing ? (['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
       let intake: any = null;
       if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it; }
       // INTAKE GATE BYPASS (27 Jul 2026). The mandatory intake used to be waived whenever the
@@ -870,7 +895,7 @@ Deno.serve(observe('customer_api', async (req) => {
           const childKw = Array.from(new Set([...(KW[tr] || []), tr])).slice(0, 30);
           const { data: child, error: ec } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parent!.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary, keywords: childKw, status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
           if (ec || !child) continue;
-          const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? ' A redacted drawing is attached.' : '');
+          const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
           const { matches } = await matchAndNotify(String(child.id), { category: tr, emirate, keywords: childKw, summary: childSummary, budget, extra, useRouter: false, multi: false });
           children.push({ inquiry_id: child.id, trade: tr, label: tlabel, matches });
         }
@@ -883,7 +908,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (e1) return J({ error: e1.message }, 500);
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
-        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? ' A redacted drawing is attached.' : '');
+        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
         const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra, useRouter: false, multi: true });
         return J({ ok: true, inquiry_id: inq!.id, scope_type: 'turnkey', matches });
       }
@@ -891,7 +916,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) return J({ error: e1.message }, 500);
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
-      const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : ' A drawing with a draft bill of quantities is attached.') : '';
+      const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra, useRouter: true, multi: false });
       return J({ ok: true, inquiry_id: inq!.id, matches, routing });
     }
