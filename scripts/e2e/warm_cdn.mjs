@@ -10,6 +10,11 @@
 // default is quotesdone.ae because UAE visitors are served there (TDRA, src/lib/domains.ts). The en
 // locale has no prefix: /en/me answers 307 -> /me, so the pages below are the unprefixed ones.
 //
+// THE CACHE IS PER EDGE REGION. Measured 15 Sep 2026 on deploy e74df4c: a GitHub runner (edge sfo1)
+// warmed all 47 assets (47 MISS, then 47 HIT); the next request from Dubai (edge bom1) was a MISS for
+// all 47. A run warms only the region it is requested from, so from a US runner this does not help a
+// UAE customer. It still proves every asset of the deploy answers 200.
+//
 // Which assets: the HTML names only the chunks needed to boot the page (17-19 of them). Chunks the
 // page loads later (next/dynamic, route segments) are named inside those chunks, as "static/chunks/…"
 // strings the Turbopack runtime resolves at run time; Next 16 + Turbopack serves no _buildManifest.js

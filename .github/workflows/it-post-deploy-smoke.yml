@@ -101,10 +101,10 @@ jobs:
           node-version: '24'
       - run: npm ci && npx playwright install --with-deps chromium
       - run: git diff --name-only "$SHA~1" "$SHA" > changed-files.txt
-      # Fill Vercel's edge cache with every /_next/static asset of /me, /ar/me, / and /ar on
-      # quotesdone.ae before the journeys (and the first real customer) touch them. A MISS after
-      # warming is only logged to the job summary; a non-200 asset fails the job (a broken deploy).
-      # Runs before the journeys so the E2E timings measure the warm site.
+      # Request every /_next/static asset of /me, /ar/me, / and /ar on quotesdone.ae (47 on 15 Sep
+      # 2026, chunks named inside chunks included). A non-200 asset fails the job (a broken deploy).
+      # The edge cache is per region: this warms the runner's US edge only, NOT the UAE edge (measured
+      # 15 Sep: 47/47 HIT at sfo1, then 47/47 MISS at bom1). See scripts/e2e/warm_cdn.mjs.
       - name: warm the CDN for the portal
         run: node scripts/e2e/warm_cdn.mjs
       # A failed journey step is the finding, not a failed job. The report below always runs, and it
