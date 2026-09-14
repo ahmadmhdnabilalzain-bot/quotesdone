@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { payReveal, priceToken, type StripeCall } from './element_pay.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
@@ -161,7 +162,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     // customer is pinned to 'en'. The portal's own reveal path (RevealPayment, Payment Element) passes
     // 'ar' for an Arabic-registered customer; this hosted fallback is left on Stripe's default for them
     // rather than risk a locale value the hosted page may refuse and so fail the payment outright.
-    if (!/^ar/i.test(String(cust?.locale || ''))) form.set('locale', 'en');
+    if (asLocale(cust?.locale) === 'en') form.set('locale', 'en');
     form.set('line_items[0][quantity]', '1');
     form.set('line_items[0][price_data][currency]', 'aed');
     form.set('line_items[0][price_data][unit_amount]', String(Math.round(ch.base_fee * 100)));
