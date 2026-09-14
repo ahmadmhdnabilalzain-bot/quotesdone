@@ -9,6 +9,7 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef } from '../_shared/quote_documents.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
+import { portalLink } from '../_shared/site_origins.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -364,7 +365,6 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
 // Arabic copy translates what the platform knows the meaning of and reproduces the supplier's own
 // words as written (see _shared/quote_documents.ts for why). translateQuoteAr — an ai_gateway call
 // whose failure under the OpenRouter hold silently shipped English under Arabic headings — is gone.
-const PORTAL_ORIGIN = 'https://quotesdone.com';
 // The anonymous letter of a quote is its place among the LIVE quotes by ascending price: the rule
 // my_inquiries and quote_compare both use. This used to count drafts too, so a draft priced below a
 // quote made its PDF say "Supplier C" on a card the customer sees as "Supplier B".
@@ -392,7 +392,7 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   } catch (_e) { items = []; }
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quoteRow = { ...q, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
-  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, maskNames: await supplierIdentities([q.supplier_id]) });
+  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, maskNames: await supplierIdentities([q.supplier_id]), requestUrl: portalLink(lang, inq.id, q.id) });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
   const j = await r.json();
@@ -455,8 +455,8 @@ const refundRef = (id: number | string) => 'QD-RF-' + String(id);
 async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
-  const portalUrl = PORTAL_ORIGIN + (lang === 'ar' ? '/ar/me' : '/me');
-  const { body, ref } = compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl });
+  const portalUrl = portalLink(lang, inq.id);
+  const { body, ref } = compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid) });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...body, __secret: secret }) });
