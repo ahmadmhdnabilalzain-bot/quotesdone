@@ -63,8 +63,14 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
 
   useEffect(() => { setLoading(true); loadList(); loadShared(); }, [loadList, loadShared]);
 
+  // Cleared on every switch: a failed load used to leave the PREVIOUS project on screen under the
+  // new chip with no error (the error card only shows when there is no project), and a successful
+  // one never cleared an earlier error. `detailTry` lets Retry re-ask for the detail that failed.
+  const [detailTry, setDetailTry] = useState(0);
   useEffect(() => {
-    if (!current) { setProject(null); setRfqs([]); return; }
+    setProject(null); setRfqs([]);
+    if (!current) return;
+    setErr('');
     let live = true;
     fetchProjectDetail(token, current).then((r) => {
       if (!live) return;
@@ -73,7 +79,7 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
       setRfqs(r.data.rfqs || []);
     });
     return () => { live = false; };
-  }, [token, current]);
+  }, [token, current, detailTry]);
 
   if (loading) return <div className="p-5 text-[13px] text-muted-foreground">{tx(lang, 'loading')}</div>;
 
@@ -81,7 +87,7 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
     return (
       <Card className="p-5">
         <div className="text-[13px] text-muted-foreground">{tx(lang, 'err_load')} <span className="text-foreground/70">({err})</span></div>
-        <Button className="mt-3" size="sm" onClick={() => { setLoading(true); loadList(); }}>{tx(lang, 'retry')}</Button>
+        <Button className="mt-3" size="sm" onClick={() => { setLoading(true); loadList(); setDetailTry((n) => n + 1); }}>{tx(lang, 'retry')}</Button>
       </Card>
     );
   }

@@ -98,19 +98,24 @@ export function NegotiationAssistant({ token, quoteId, lang = 'en', className }:
     setErrCode('');
     call('negotiation_assistant', { action: 'guidance', quote_id: quoteId }, token).then((res) => {
       if (!live) return;
+      // The code is stored and phrased at render time, so switching language re-words the error
+      // instead of re-fetching guidance the server answers identically in both languages.
       if (!res.ok) {
-        setError(errText(lang, res.error));
+        setError(String(res.error || 'error'));
         setErrCode(String(res.error || ''));
         return;
       }
       // The one cast, at the wire boundary. ./model is the transcription of what
       // fn_negotiation_guidance actually emits; nothing below re-derives a field it does not serve.
-      setNegotiation((res.data.negotiation as Negotiation | undefined) || null);
+      // An ok answer with no object is an error, not "still loading" — that left a skeleton forever.
+      const n = res.data.negotiation as Negotiation | undefined;
+      if (!n || typeof n !== 'object') { setError('no_response'); setErrCode('no_response'); return; }
+      setNegotiation(n);
     });
     return () => {
       live = false;
     };
-  }, [token, lang, quoteId, reloads]);
+  }, [token, quoteId, reloads]);
 
   const market = marketComparison(negotiation);
   const amount = numOrNull(negotiation?.quote_amount);
@@ -129,7 +134,7 @@ export function NegotiationAssistant({ token, quoteId, lang = 'en', className }:
         <div role="alert" title={errCode || undefined}
           className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-[13px] text-destructive">
           <span className="font-semibold">
-            {tr(lang, 'err_load_neg')} {error}
+            {tr(lang, 'err_load_neg')} {errText(lang, error)}
           </span>
           <Button type="button" size="sm" variant="outline" onClick={() => setReloads((n) => n + 1)}>
             {tr(lang, 'retry')}

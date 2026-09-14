@@ -81,7 +81,7 @@ const readinessPct = (r) => {
   const n = Number(r); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
 };
 
-export function NewRequest({ token, lang, call, llmAvailable, initialText, onDone, onCancel }) {
+export function NewRequest({ token, lang, call, llmAvailable, initialText, pickFile, onDone, onCancel }) {
   const ar = lang === 'ar';
   const reduce = useReducedMotion();
   const [messages, setMessages] = useState([{ role: 'assistant', text: t(lang, 'nr_greeting') }]);
@@ -122,6 +122,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
   const send = () => sendText(input);
   // THE HOMEPAGE HANDOFF. The draft is sent as the first message exactly once; the parent deletes the
   // localStorage key before mounting this, so a reload cannot send it twice.
+  // "Upload a drawing" (Quick actions) opens the composer WITH the picker open. It opened the
+  // composer alone, which left the customer looking for the paperclip the button was named after.
+  // Runs in the effect flush of that same click, so the browser still counts it as user-initiated.
+  useEffect(() => { if (pickFile && fileRef.current) fileRef.current.click(); }, [pickFile]);
   useEffect(() => { if (initialText && !sentDraft.current) { sentDraft.current = true; push({ role: 'assistant', text: t(lang, 'nr_draft_picked') }); sendText(initialText); } }, [initialText]);
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const answerChip = (q) => { setInput(q + (ar ? ' — ' : ' — ')); setTimeout(() => { try { inputRef.current.focus(); } catch (_e) {} }, 20); };

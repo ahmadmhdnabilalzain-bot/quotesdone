@@ -318,15 +318,20 @@ function ConversationView({
     if (r.data.message) setData((d) => (d ? { ...d, messages: [...(d.messages || []), r.data.message as ChatMessage] } : d));
   };
 
+  // THE QUESTION WAS THROWN AWAY. messages_api request_chat opens the chat and never reads
+  // `question` (index.ts: it answers {ok, status:'open', note:'Chat is open.'}), so a customer's
+  // question was shown back under "Sent for review" and reached nobody. Open the chat, then deliver
+  // the question through `send` — the same path, and the same contact filter, as the composer.
   const doAsk = async () => {
     const q = question.trim();
     if (!q) return;
     setBusy(true); setNotice(null);
     const r = await requestChat(token, thread.inquiry_id, thread.supplier_id, q);
+    if (!r.ok) { setBusy(false); setNotice({ tone: 'error', body: r.error }); return; }
+    if (r.data.answered && r.data.answer) { setBusy(false); setNotice({ tone: 'info', head: w.answered_h, body: r.data.answer }); setQuestion(''); return; }
+    const s = await sendMessage(token, thread.inquiry_id, thread.supplier_id, q);
     setBusy(false);
-    if (!r.ok) { setNotice({ tone: 'error', body: r.error }); return; }
-    if (r.data.answered && r.data.answer) { setNotice({ tone: 'info', head: w.answered_h, body: r.data.answer }); setQuestion(''); return; }
-    setNotice({ tone: 'info', head: w.requested_h, body: r.data.note || w.pending });
+    if (!s.ok) { setNotice({ tone: 'error', head: w.requested_h, body: s.error }); load(); return; }
     setQuestion('');
     load();
   };

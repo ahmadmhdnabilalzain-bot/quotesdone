@@ -45,7 +45,9 @@ export const fetchProjectList = (token: string) =>
     ENDPOINT.project_api, token, { action: 'list' });
 
 export const fetchProjectDetail = (token: string, project_id: string) =>
-  post<{ project: SpatialProject; rfqs: SpatialRfq[] }>(ENDPOINT.project_api, token, { action: 'detail', project_id });
+  // project_api detail reads body.id (index.ts, `const id = String(body.id || '')`). This sent
+  // `project_id`, so every Project room load was answered 400 "id required" and never rendered.
+  post<{ project: SpatialProject; rfqs: SpatialRfq[] }>(ENDPOINT.project_api, token, { action: 'detail', id: project_id });
 
 /**
  * The customer's orders. Every order, not just this project's: the chain map shows the whole

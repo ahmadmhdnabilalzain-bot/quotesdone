@@ -77,12 +77,25 @@ Deno.serve(observe('customer_portal', async (req) => {
       // against what THIS customer last paid in that category. A category the customer has never
       // bought produces nothing, and a category with too few quotes to have a median produces
       // nothing — `n` is printed in the card so the customer can see how thin the sample is.
+      //
+      // EVERY READ BELOW DEPENDS ONLY ON fn_customer_stats, NOT ON EACH OTHER, so they are started
+      // together here and awaited where each section uses them. They ran one after another — eight
+      // sequential round trips after the stats — and this overview is on the critical path of every
+      // portal load (747–1,534 ms measured on quotesdone.ae/me, 14 Sep 2026).
       const myCats = [...new Set(inqs.map((x: any) => String(x.category || '')).filter(Boolean))].slice(0, 12);
+      const openIds = inqs.filter((x: any) => !['completed', 'closed', 'cancelled'].includes(String(x.status))).map((x: any) => x.id).slice(0, 25);
+      const pPx = myCats.length ? admin.from('category_price_stats').select('category,n,median').in('category', myCats) : null;
+      const pMine = myCats.length ? admin.from('transactions')
+        .select('quote_amount,inquiry_id,inquiries!inner(category)')
+        .eq('customer_id', cust.id).eq('fee_status', 'paid').limit(200) : null;
+      const pMatched = openIds.length ? admin.from('inquiry_matches').select('supplier_id,inquiry_id').in('inquiry_id', openIds).limit(400) : null;
+      const pAppr = rpc('fn_approval_list', { p_customer: cust.id });
+      const pFc = rpc('fn_customer_forecast', { p_customer: cust.id, p_horizon_days: 90 });
+      const pTw = rpc('fn_twin', { p_kind: 'customer', p_id: String(cust.id) });
+      const pSaved = admin.from('customer_layout').select('layout,pinned,reason').eq('customer_id', cust.id).maybeSingle();
+      const pRoutes = admin.from('llm_route_health').select('open_until');
       if (myCats.length) {
-        const { data: px } = await admin.from('category_price_stats').select('category,n,median').in('category', myCats);
-        const { data: mine } = await admin.from('transactions')
-          .select('quote_amount,inquiry_id,inquiries!inner(category)')
-          .eq('customer_id', cust.id).eq('fee_status', 'paid').limit(200);
+        const [{ data: px }, { data: mine }] = await Promise.all([pPx!, pMine!]);
         const lastPaid: Record<string, number> = {};
         for (const t of (mine || []) as any[]) {
           const c = t?.inquiries?.category; const v = Number(t?.quote_amount);
@@ -107,9 +120,8 @@ Deno.serve(observe('customer_portal', async (req) => {
       // "5 suppliers have better lead times." Measured against the suppliers this customer's own
       // open RFQs actually reached — a faster supplier the customer never contacted is not news
       // about their procurement, it is an advert.
-      const openIds = inqs.filter((x: any) => !['completed', 'closed', 'cancelled'].includes(String(x.status))).map((x: any) => x.id).slice(0, 25);
       if (openIds.length) {
-        const { data: matched } = await admin.from('inquiry_matches').select('supplier_id,inquiry_id').in('inquiry_id', openIds).limit(400);
+        const { data: matched } = await pMatched!;
         const supIds = [...new Set((matched || []).map((m: any) => m.supplier_id).filter(Boolean))];
         if (supIds.length) {
           const { data: sc } = await admin.from('supplier_score').select('lead_id,avg_response_hours').in('lead_id', supIds);
@@ -130,7 +142,7 @@ Deno.serve(observe('customer_portal', async (req) => {
       // ── §1 APPROVALS DUE ──────────────────────────────────────────────────────────────────────
       // "2 quotes require approval." fn_approval_list already projects every request with its steps
       // for this customer; the entry screen simply had no reader of it.
-      const appr = await rpc('fn_approval_list', { p_customer: cust.id });
+      const appr = await pAppr;
       if (appr.err) degraded.push('approvals');
       const pending = ((appr.data && appr.data.requests) || []).filter((r: any) => String(r.status || '') === 'pending');
       if (pending.length) alerts.push({ kind: 'approval_due', severity: 'high',
@@ -141,7 +153,7 @@ Deno.serve(observe('customer_portal', async (req) => {
       // ── §20 FORECAST ──────────────────────────────────────────────────────────────────────────
       // "You will likely need electrical cables within 45 days." fn_customer_forecast computes it
       // per customer with a horizon; nothing customer-facing called it.
-      const fc = await rpc('fn_customer_forecast', { p_customer: cust.id, p_horizon_days: 90 });
+      const fc = await pFc;
       if (fc.err) degraded.push('forecast');
       const preds = (Array.isArray(fc.data) ? fc.data : (fc.data && fc.data.predictions) || []).slice(0, 3);
       for (const p of preds as any[]) {
@@ -166,7 +178,7 @@ Deno.serve(observe('customer_portal', async (req) => {
               : (top.title + (alerts.length > 1 ? ' — and ' + (alerts.length - 1) + ' other item' + (alerts.length > 2 ? 's' : '') + '.' : '.')));
 
       // ── §2 THE TWIN ───────────────────────────────────────────────────────────────────────────
-      const tw = await rpc('fn_twin', { p_kind: 'customer', p_id: String(cust.id) });
+      const tw = await pTw;
       if (tw.err) degraded.push('twin');
       const twin = tw.data && !tw.data.error ? tw.data : null;
 
@@ -174,7 +186,7 @@ Deno.serve(observe('customer_portal', async (req) => {
       // Panels ordered by what this customer actually has, most-pressing first, with the reason
       // recorded beside it. A stored layout the customer arranged by hand WINS: a computed order
       // that silently overrides a deliberate choice is worse than no adaptation at all.
-      const { data: saved } = await admin.from('customer_layout').select('layout,pinned,reason').eq('customer_id', cust.id).maybeSingle();
+      const { data: saved } = await pSaved;
       const weight: Record<string, number> = {
         projects: (twin?.projects_active || 0) * 10,
         approvals: pending.length * 40,
@@ -201,7 +213,7 @@ Deno.serve(observe('customer_portal', async (req) => {
       // future under the founder's hold, so every one of those calls fails AFTER the customer has
       // recorded or uploaded. The portal reads this to say "paused" before they try, instead of
       // after. No rows at all is reported as unknown (null), never as available.
-      const { data: routeRows } = await admin.from('llm_route_health').select('open_until');
+      const { data: routeRows } = await pRoutes;
       const routesTotal = (routeRows || []).length;
       const routesHeld = (routeRows || []).filter((r: { open_until: string | null }) => r.open_until && new Date(r.open_until) > new Date()).length;
       const llm_available = routesTotal ? routesHeld < routesTotal : null;

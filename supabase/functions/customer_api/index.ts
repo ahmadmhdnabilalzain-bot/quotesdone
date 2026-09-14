@@ -1334,10 +1334,17 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'supplier_history') {
       const qid = String(body.quote_id || '');
       const { data: q } = await admin.from('quotes').select('id,supplier_id,original_file_path,original_file_name').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
-      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
+      // The reveal check gates what is RETURNED, not what may be read, so the three reads that only
+      // need q.supplier_id run beside it instead of one after another (14 Sep 2026: four sequential
+      // round trips here, then three more below).
+      const [{ data: tx }, { data: sup }, { data: projs }, mine, { count: sentAll }] = await Promise.all([
+        admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle(),
+        admin.from('leads').select('id,company_name,emirate,phone,whatsapp,email,website,app_rating,app_reviews,description,capability_summary,founded_year,company_type').eq('id', q.supplier_id).maybeSingle(),
+        admin.from('transactions').select('revealed_at,quote_amount,inquiries(category,emirate)').eq('supplier_id', q.supplier_id).order('revealed_at', { ascending: false }).limit(20),
+        admin.from('inquiries').select('id').eq('customer_id', cust.id).limit(500),
+        admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id),
+      ]);
       if (!tx) return J({ error: 'Reveal this supplier first to see their profile.' }, 403);
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,phone,whatsapp,email,website,app_rating,app_reviews,description,capability_summary,founded_year,company_type').eq('id', q.supplier_id).maybeSingle();
-      const { data: projs } = await admin.from('transactions').select('revealed_at,quote_amount,inquiries(category,emirate)').eq('supplier_id', q.supplier_id).order('revealed_at', { ascending: false }).limit(20);
       const projects = (projs || []).map((p: any) => ({ category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, month: p.revealed_at ? new Date(p.revealed_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null, value_band: band(Number(p.quote_amount)) }));
       // §13 "History: 17 RFQs, 8 Orders" — TWO DIFFERENT NUMBERS, and this action served only the
       // second. projects[] is built from transactions, i.e. from PAID REVEALS, so an RFQ that was
@@ -1349,15 +1356,16 @@ Deno.serve(observe('customer_api', async (req) => {
       // Management" — it is this buyer's relationship with this supplier, not the supplier's
       // platform-wide record, which they can already see as the rating. The platform-wide count is
       // returned beside it and labelled, so the two can never be mistaken for one another.
-      const myInqIds = (await admin.from('inquiries').select('id').eq('customer_id', cust.id).limit(500)).data?.map((r: any) => r.id) || [];
+      const myInqIds = mine.data?.map((r: any) => r.id) || [];
       let rfqsSent = 0, quotesBack = 0;
       if (myInqIds.length) {
-        const { count: sent } = await admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds);
+        const [{ count: sent }, { count: back }] = await Promise.all([
+          admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds),
+          admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds).neq('status', 'draft'),
+        ]);
         rfqsSent = sent || 0;
-        const { count: back } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds).neq('status', 'draft');
         quotesBack = back || 0;
       }
-      const { count: sentAll } = await admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id);
       const relationship = {
         rfqs_sent: rfqsSent, quotes_returned: quotesBack, orders: projects.length,
         response_rate_pct: rfqsSent ? Math.round((quotesBack / rfqsSent) * 100) : null,
@@ -1496,10 +1504,10 @@ Deno.serve(observe('customer_api', async (req) => {
       // prevent. Only the explanation is added.
       let why_empty = null;
       if (!matches.length) {
-        const { count: holding } = await admin.from('supplier_capabilities')
-          .select('supplier_id', { count: 'exact', head: true }).overlaps('trades', filters.trades);
-        const { count: confirmedTotal } = await admin.from('supplier_capabilities')
-          .select('supplier_id', { count: 'exact', head: true }).not('confirmed_at', 'is', null);
+        const [{ count: holding }, { count: confirmedTotal }] = await Promise.all([
+          admin.from('supplier_capabilities').select('supplier_id', { count: 'exact', head: true }).overlaps('trades', filters.trades),
+          admin.from('supplier_capabilities').select('supplier_id', { count: 'exact', head: true }).not('confirmed_at', 'is', null),
+        ]);
         why_empty = {
           suppliers_holding_trade: holding || 0,
           confirmed_total: confirmedTotal || 0,

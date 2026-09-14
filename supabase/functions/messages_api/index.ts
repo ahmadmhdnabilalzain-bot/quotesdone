@@ -241,22 +241,34 @@ Deno.serve(observe('messages_api', async (req) => {
 
     if (action === 'threads') {
       const out: any[] = [];
+      // One thread's three reads run together, and every thread runs together: this was a strict
+      // sequence — per revealed quote a leads lookup, then three queries, one after another — so the
+      // unread badge the portal loads on every visit grew by four round trips per reveal. The list is
+      // sorted by last_at below, so the order threads finish in does not matter.
       const push = async (inquiry_id: string, supplier_id: number, counterpart: string, subject: string, senderUnread: 'customer'|'supplier') => {
-        const { data: th } = await admin.from('chat_threads').select('status').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).maybeSingle();
-        const { data: last } = await admin.from('messages').select('body,created_at').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).eq('blocked', false).order('created_at', { ascending: false }).limit(1).maybeSingle();
-        const { count } = await admin.from('messages').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).eq('sender', senderUnread).eq(senderUnread === 'customer' ? 'read_by_supplier' : 'read_by_customer', false).eq('blocked', false);
+        const [{ data: th }, { data: last }, { count }] = await Promise.all([
+          admin.from('chat_threads').select('status').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).maybeSingle(),
+          admin.from('messages').select('body,created_at').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).eq('blocked', false).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+          admin.from('messages').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).eq('sender', senderUnread).eq(senderUnread === 'customer' ? 'read_by_supplier' : 'read_by_customer', false).eq('blocked', false),
+        ]);
         out.push({ channel: 'chat', inquiry_id, supplier_id, counterpart, subject, chat_status: th?.status || 'none', last: last?.body || null, last_at: last?.created_at || null, unread: count || 0 });
       };
       if (supLead) {
         const { data: tx } = await admin.from('transactions').select('inquiry_id, inquiries(category,summary)').eq('supplier_id', supLead.id).not('revealed_at', 'is', null);
-        for (const t of (tx || [])) await push(t.inquiry_id, supLead.id, 'Customer', (t as any).inquiries?.summary || (t as any).inquiries?.category || 'Inquiry', 'customer');
+        await Promise.all((tx || []).map((t) => push(t.inquiry_id, supLead.id, 'Customer', (t as any).inquiries?.summary || (t as any).inquiries?.category || 'Inquiry', 'customer')));
         out.sort((a, b) => String(b.last_at || '').localeCompare(String(a.last_at || '')));
         return J({ ok: true, role: 'supplier', threads: out });
       }
       if (cust) {
         const { data: tx } = await admin.from('transactions').select('inquiry_id, supplier_id, inquiries(category,summary)').eq('customer_id', cust.id).not('revealed_at', 'is', null);
-        for (const t of (tx || [])) { const { data: lead } = await admin.from('leads').select('company_name').eq('id', t.supplier_id).maybeSingle(); await push(t.inquiry_id, t.supplier_id, lead?.company_name || 'Supplier', (t as any).inquiries?.summary || (t as any).inquiries?.category || 'Inquiry', 'supplier'); }
-        for (const c of (await otherChannels(cust))) out.push(c);
+        const supIds = [...new Set((tx || []).map((t) => t.supplier_id).filter((v) => v != null))];
+        const [{ data: leadRows }, others] = await Promise.all([
+          supIds.length ? admin.from('leads').select('id,company_name').in('id', supIds) : Promise.resolve({ data: [] as { id: number; company_name: string | null }[] }),
+          otherChannels(cust),
+        ]);
+        const nameOf = new Map((leadRows || []).map((l: any) => [Number(l.id), l.company_name]));
+        await Promise.all((tx || []).map((t) => push(t.inquiry_id, t.supplier_id, nameOf.get(Number(t.supplier_id)) || 'Supplier', (t as any).inquiries?.summary || (t as any).inquiries?.category || 'Inquiry', 'supplier')));
+        for (const c of others) out.push(c);
         out.sort((a, b) => String(b.last_at || '').localeCompare(String(a.last_at || '')));
         return J({ ok: true, role: 'customer', threads: out, channels: CHANNELS });
       }

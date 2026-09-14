@@ -196,15 +196,16 @@ Deno.serve(observe('customer_documents', async (req) => {
       if (error) return J({ error: 'document_read_failed', detail: error.message }, 500);
       if (!row) return J({ error: 'not_found', detail: 'No document with that id is in your vault.' }, 404);
 
-      // the metadata view of the same row, so supplier / expiry / coverage come from one place
-      const { data: meta } = await asUser.rpc('fn_customer_documents', { p_q: null, p_kind: null, p_lim: 200 });
+      // the metadata view of the same row, so supplier / expiry / coverage come from one place —
+      // read beside the signing, not before it: the two do not depend on each other, and "Open file"
+      // waited on both in turn.
+      const [{ data: meta }, url] = await Promise.all([
+        asUser.rpc('fn_customer_documents', { p_q: null, p_kind: null, p_lim: 200 }),
+        admin.storage.from(row.bucket).createSignedUrl(row.path, 3600)
+          .then(({ data: sig }) => sig?.signedUrl || null)
+          .catch(() => null) as Promise<string | null>,
+      ]);
       const m = ((meta || []) as Doc[]).find((d) => Number(d.id) === id) || null;
-
-      let url: string | null = null;
-      try {
-        const { data: sig } = await admin.storage.from(row.bucket).createSignedUrl(row.path, 3600);
-        url = sig?.signedUrl || null;
-      } catch (_e) { url = null; }
 
       return J({ ok: true, action: 'get',
         document: m ? { ...shape(m), file_url: url, extracted: row.extracted ?? null, indexed: row.indexed ?? false }
