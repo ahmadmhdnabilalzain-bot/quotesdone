@@ -79,7 +79,7 @@ function RegistrationFeeCard({ token, lang, base }) {
         ? 'التسجيل مجاني بشكل دائم لأول 1,000 مورّد؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم سنويًا. إن كانت رسوم مستحقة عليك تنتقل مباشرة إلى صفحة الدفع الآمنة في Stripe، وإلا نخبرك بالسبب.'
         : 'Registration is permanently free for the first 1,000 suppliers; from the 1,001st registration it is AED 1,000 per year. If a fee is due you go straight to Stripe’s secure checkout; if not, we tell you why.'}</div>
       <Button className="mt-3" variant="outline" disabled={busy} onClick={check}>{busy ? (ar ? 'جارٍ التحقق…' : 'Checking…') : (ar ? 'تحقّق من رسوم تسجيلي' : 'Check my registration fee')}</Button>
-      {res && <div role="status" className={cn('mt-2 text-[13px]', res.ok ? 'text-primary' : 'text-red-300')}>{res.text}</div>}
+      {res && <div role="status" className={cn('mt-2 text-[13px]', res.ok ? 'text-primary' : 'text-danger-fg')}>{res.text}</div>}
     </Card>
   );
 }
@@ -133,18 +133,15 @@ function BillingPanel({ token, lang, receipt }) {
   return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
 }
 
-function ensurePdfjs() { return new Promise((res, rej) => { if (window.pdfjsLib) return res(window.pdfjsLib); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (_e) {} res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); }); }
+// pdf.js is the bundled pdfjs-dist the customer portal uses (me/pdfRaster.ts), not a runtime script
+// from cdnjs: a network that blocks cdnjs made every PDF "unreadable", and the CSP can now drop it.
 async function fileToImages(file) {
   const b64 = await fileToB64(file);
   if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
   if (file.type === 'application/pdf') {
-    try { const L = await ensurePdfjs(); const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-      const pdf = await L.getDocument({ data: arr }).promise; const out = []; const n = Math.min(pdf.numPages, 6);
-      // Long edge capped for the same reason as the customer portal: scale 1.8 on an ANSI-D sheet
-      // is 21 megapixels, which killed drawing_redact's isolate outright (HTTP 546) on one page.
-      const MAX_EDGE = 2600;
-      for (let pnum = 1; pnum <= n; pnum++) { const pg = await pdf.getPage(pnum); const v1 = pg.getViewport({ scale: 1 }); const vp = pg.getViewport({ scale: Math.min(1.8, MAX_EDGE / Math.max(v1.width, v1.height)) }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height; await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] }); }
-      return { images: out, b64, mime: 'application/pdf' };
+    try { const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      const { rasterisePdf } = await import('@/components/me/pdfRaster');
+      return { images: await rasterisePdf(arr), b64, mime: 'application/pdf' };
     } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
   }
   return { images: [], b64, mime: file.type || 'application/octet-stream' };
@@ -219,7 +216,7 @@ const S = {
   sub: 'text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]',
   anon: 'ml-1.5 text-[11px] font-semibold text-muted-foreground/80',
   hint: 'text-xs text-muted-foreground my-2 leading-relaxed max-w-[68ch]',
-  err: 'text-[13px] text-red-300 mt-2',
+  err: 'text-[13px] text-danger-fg mt-2',
   wrap: 'max-w-[1040px] mx-auto px-[22px] py-7',
   frow: 'flex gap-2.5 flex-wrap mt-2.5',
   tabsWrap: 'qd-tabs inline-flex flex-wrap gap-1 p-1.5',
@@ -352,12 +349,12 @@ function CapabilityConfirmPanel({ token, lang }) {
       {/* The server refuses a confirm with no trade or no role. Say so here rather than letting the
           supplier press a button that returns 400. */}
       {(!trades.length || !roles.length) && (
-        <div className="mt-4 text-sm text-amber-400">
+        <div className="mt-4 text-sm text-warn">
           {ar ? 'اختر تخصصًا واحدًا ودورًا واحدًا على الأقل.' : 'Choose at least one trade and one role.'}
         </div>
       )}
-      {st.err && st.cap ? <div className="mt-3 text-sm text-red-400">{String(st.err)}</div> : null}
-      {saved ? <div className="mt-3 text-sm text-emerald-400">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
+      {st.err && st.cap ? <div className="mt-3 text-sm text-danger">{String(st.err)}</div> : null}
+      {saved ? <div className="mt-3 text-sm text-ok">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
 
       {/* STICKY, BECAUSE OF WHERE IT WAS. On a 375x812 phone this button rendered at y=2547 —
           3.1 screens below the fold, past 48 chips, after a 366px tab strip. The ask that unlocks
@@ -622,7 +619,7 @@ function Dashboard({ token, lang }) {
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
       {tab === 'overview' && <>
-        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
+        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
         <GetMatched token={token} lang={lang} go={go} />
         {/* Counts come from fn_supplier_document_impact: open enquiries in this trade, not an estimate. */}
         <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} /></div>
@@ -902,7 +899,7 @@ function QuoteCheck({ chk, lang }) {
         <div className="text-[13px] font-bold tabular-nums text-foreground">{pts}<span className="text-muted-foreground font-semibold">/100</span></div>
       </div>
       <div className="mt-1.5 h-2 rounded-full bg-secondary/50 overflow-hidden relative">
-        <div className={cn('h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none', pts >= pass ? 'bg-primary' : 'bg-amber-400')}
+        <div className={cn('h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none', pts >= pass ? 'bg-primary' : 'bg-warn')}
              style={{ width: Math.max(2, Math.min(100, pts)) + '%' }} />
         {/* the 70 pass mark, shown so the number has meaning */}
         <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: pass + '%' }} aria-hidden="true" />
@@ -923,7 +920,7 @@ function QuoteCheck({ chk, lang }) {
 
       {!!missing.length && <ul className="mt-2.5 flex flex-col gap-1">
         {missing.map((m, i) => <li key={i} className="flex items-start gap-2">
-          <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+          <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-warn shrink-0" />
           <span className="text-[13px] text-foreground">{LABEL[m] || m}</span>
         </li>)}
       </ul>}
@@ -1232,7 +1229,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         const pj = await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, token);
         if (!(pj && pj.ok)) { setBusy(false); setMsg(srvMsg(lang, pj, t(lang, 'save_error'))); return; }
       }
-      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: true, terms_version: 'v2' };
+      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: true };
       const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trade_license_no', 'license_authority', 'license_expiry', 'trn', 'egr_number', 'company_type', 'company_size', 'bank_name', 'bank_account_name'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
@@ -1280,7 +1277,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       <span dir="ltr">{me.claimed_by || ''}</span>
       {emailVerified
         ? <b className="text-primary"> · {t(lang, 'email_verified')}</b>
-        : <b className="text-amber-300"> · {t(lang, 'email_unverified')}</b>}
+        : <b className="text-warn-fg"> · {t(lang, 'email_unverified')}</b>}
     </div>
     {!emailVerified && (!mailSent
       ? <Button variant="link" className="px-0 h-auto" disabled={vbusy} onClick={sendMail}>{t(lang, 'verify_my_email')}</Button>
@@ -1333,7 +1330,7 @@ function Thread({ token, th, onBack, lang }) {
   if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
   return <Card className="qd-panel p-5">
     <div className="flex justify-between items-center gap-2.5"><div className={S.h2}>{data.counterpart || th.counterpart}</div><Button variant="link" className="px-0 h-auto" onClick={onBack}>{t(lang, 'back')}</Button></div>
-    {data.warning && <div className="rounded-md border border-amber-400/30 bg-amber-400/10 text-amber-300 px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
+    {data.warning && <div className="rounded-md border border-warn/30 bg-warn/10 text-warn-fg px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
     {data.chat_status === 'open' ? (<>
       <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto">{(data.messages || []).map((m) => <div key={m.id} className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground rounded-br-sm' : 'self-start bg-white/8 text-foreground rounded-bl-sm')}>{m.body}</div>)}</div>
       <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'type_message')}><Input placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl><Button size="sm" disabled={busy} onClick={send}>{t(lang, 'send')}</Button></div>

@@ -123,10 +123,10 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
           )}
           {status === 'no_products_found' && <p className="text-muted-foreground">{t(lang, 'none')}</p>}
           {(status === 'unsupported_format' || status === 'conversion_unavailable' || status === 'conversion_failed') && (
-            <p className="text-amber-300/90">{t(lang, 'unsupported')} <span className="text-muted-foreground">{res.why}</span></p>
+            <p className="text-warn-fg/90">{t(lang, 'unsupported')} <span className="text-muted-foreground">{res.why}</span></p>
           )}
-          {status === 'extraction_failed' && <p className="text-amber-300/90">{t(lang, 'failed')} <span className="text-muted-foreground">{res.why}</span></p>}
-          {res.error && <p className="text-amber-300/90">{res.error}</p>}
+          {status === 'extraction_failed' && <p className="text-warn-fg/90">{t(lang, 'failed')} <span className="text-muted-foreground">{res.why}</span></p>}
+          {res.error && <p className="text-warn-fg/90">{res.error}</p>}
           {res.note && (
             <p className="mt-1 text-[11px] text-muted-foreground/70">
               <span className="uppercase tracking-wide">{t(lang, 'route')}:</span> {res.note}

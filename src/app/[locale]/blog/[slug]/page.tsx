@@ -1,5 +1,5 @@
 import { setRequestLocale } from 'next-intl/server';
-import { BlogPost, blogSlugs, blogMeta } from '@/components/BlogPost';
+import { BlogPost, blogSlugs, blogMeta, localized, blogT, type Post } from '@/components/BlogPost';
 import posts from '@/content/blog.json';
 import { SITE, ldHtml, blogPostingLd, breadcrumbLd, textFromHtml } from '@/lib/seo';
 
@@ -8,7 +8,6 @@ import { SITE, ldHtml, blogPostingLd, breadcrumbLd, textFromHtml } from '@/lib/s
 // English path.
 export function generateStaticParams() { return blogSlugs().map((slug) => ({ slug })); }
 
-type Post = { title: string; excerpt: string | null; meta_desc: string | null; body_html: string; author: string | null; category: string | null; published_at: string | null };
 const P = posts as unknown as Record<string, Post>;
 
 export async function generateMetadata(props: { params: Promise<{ locale: string; slug: string }> }) {
@@ -22,14 +21,19 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
   const { locale, slug } = await props.params;
   setRequestLocale(locale);
   const p = P[slug];
+  // W22: the structured data speaks the page's language. A post with no Arabic body stays English
+  // (localized() says which), but the crumbs and URLs follow the /ar page the reader is on.
+  const b = p ? localized(p, locale) : null;
+  const t = blogT(locale);
+  const base = `${SITE}${locale === 'ar' ? '/ar' : ''}`;
   return (<>
-    {p && <script type="application/ld+json" dangerouslySetInnerHTML={ldHtml([
-      blogPostingLd({ slug, title: p.title, description: p.meta_desc || p.excerpt || textFromHtml(p.body_html),
-        published: p.published_at, author: p.author, category: p.category }),
+    {p && b && <script type="application/ld+json" dangerouslySetInnerHTML={ldHtml([
+      blogPostingLd({ slug, title: b.title, description: b.meta_desc || b.excerpt || textFromHtml(b.body_html),
+        published: p.published_at, author: p.author, category: b.category, locale: b.lang === 'ar' ? 'ar' : undefined }),
       breadcrumbLd([
-        { name: 'Home', url: SITE },
-        { name: 'Blog', url: `${SITE}/blog` },
-        { name: p.title, url: `${SITE}/blog/${slug}` },
+        { name: t.home, url: base },
+        { name: t.blog, url: `${base}/blog` },
+        { name: b.title, url: `${base}/blog/${slug}` },
       ]),
     ])} />}
     <BlogPost slug={slug} locale={locale} />

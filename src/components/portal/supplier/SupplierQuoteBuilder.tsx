@@ -96,9 +96,9 @@ const aed = (n?: number | null, cur = 'AED') =>
   n === null || n === undefined ? '—' : cur + ' ' + Math.round(n).toLocaleString('en-US');
 
 const RISK_TONE: Record<string, string> = {
-  low: 'text-emerald-300 border-emerald-300/25 bg-emerald-300/[0.06]',
-  medium: 'text-amber-300 border-amber-300/25 bg-amber-300/[0.06]',
-  high: 'text-rose-300 border-rose-300/25 bg-rose-300/[0.06]',
+  low: 'text-ok-fg border-ok/25 bg-ok/[0.06]',
+  medium: 'text-warn-fg border-warn/25 bg-warn/[0.06]',
+  high: 'text-danger-fg border-danger/25 bg-danger/[0.06]',
 };
 
 // One proposed term. Every card on this screen is a thing the AI SUGGESTS, so they share a shell
@@ -187,7 +187,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
   return (
     <div className="space-y-4">
       {demo && (
-        <p className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-snug text-amber-200/80">
+        <p className="rounded-xl border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
           {t(lang, 'demoBanner')}
         </p>
       )}
@@ -225,8 +225,8 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       </section>
 
       {busy && <p className="text-xs opacity-60 px-1">{t(lang, 'building')}</p>}
-      {err && <p className="text-xs text-rose-300/90 px-1">{err}</p>}
-      {sent && <p className="text-xs text-emerald-300/90 px-1">{sent}</p>}
+      {err && <p className="text-xs text-danger-fg/90 px-1">{err}</p>}
+      {sent && <p className="text-xs text-ok-fg/90 px-1">{sent}</p>}
       {!chosen && !busy && <p className="text-xs opacity-50 px-1">{t(lang, 'pickOne')}</p>}
 
       {/* A recommendation the routine refused to make, shown with the reason it gave. */}

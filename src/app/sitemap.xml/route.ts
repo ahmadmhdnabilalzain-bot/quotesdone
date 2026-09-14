@@ -27,7 +27,7 @@ const lastmod = (() => {
   };
 })();
 
-type Post = { published_at: string | null };
+type Post = { published_at: string | null; ar?: { title?: string } };
 
 export async function GET() {
   const rows: string[] = [];
@@ -46,9 +46,17 @@ export async function GET() {
   // (src/lib/seo.ts splitServiceSlug) and a sitemap lists canonical URLs only.
   const sv = lastmod('src/content/services.json');
   for (const slug of Object.keys(services as Record<string, unknown>)) push('/services/' + slug, 0.7, sv);
-  // Blog posts come from the same baked content file the /blog/[slug] route uses. English only.
+  // Two public pages that are React routes, not marketing.json entries. /supplier stopped being the
+  // portal on 14 Sep 2026 and is the supplier sales page; its copy lives in messages/*.json.
+  const msgs = ['messages/en.json', 'messages/ar.json'];
+  push('/supplier', 0.7, lastmod('src/app/[locale]/supplier/page.tsx', ...msgs));
+  push('/how-it-works', 0.6, lastmod('src/app/[locale]/how-it-works', ...msgs));
+  // Blog posts come from the same baked content file the /blog/[slug] route uses. The /ar URL is
+  // listed only for a post that carries an Arabic branch.
   for (const [slug, p] of Object.entries(blog as unknown as Record<string, Post>)) {
-    rows.push(url(`${BASE}/blog/${slug}`, p.published_at ? p.published_at.slice(0, 10) : null, 'monthly', 0.5));
+    const mod = p.published_at ? p.published_at.slice(0, 10) : null;
+    rows.push(url(`${BASE}/blog/${slug}`, mod, 'monthly', 0.5));
+    if (p.ar?.title) rows.push(url(`${BASE}/ar/blog/${slug}`, mod, 'monthly', 0.45));
   }
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>`;
   return new Response(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } });

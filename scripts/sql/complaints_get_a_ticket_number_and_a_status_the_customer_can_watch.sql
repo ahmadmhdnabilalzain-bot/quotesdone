@@ -41,6 +41,9 @@
 -- revoked from public/anon/authenticated for its one signature (CREATE grants EXECUTE to PUBLIC, so
 -- the revokes follow the creates), then granted to service_role only.
 --
+-- Re-applied 14 Sep 2026 (D4): adds complaint_tickets.decision_ref and returns it, with decided_by,
+-- from fn_complaint_lookup so the status page shows the customer the reference of the decision.
+--
 -- The probe at the end writes one @example.invalid row, proves the contract, deletes the row, asserts
 -- it is gone and ends in raise notice - never raise exception, which would roll back the DDL above.
 --
@@ -71,6 +74,15 @@ create table if not exists public.complaint_tickets (
                         check (handled_by in ('customer_support','ceo')),
   check (status <> 'final_response' or (final_response_at is not null and coalesce(btrim(final_response),'') <> ''))
 );
+
+-- THE DECISION REFERENCE (website audit D4, 14 Sep 2026). The final response IS the decision on a
+-- complaint, and it had no reference of its own for the customer to quote back: the ticket number
+-- names the complaint, not the outcome. decision_ref is derived from the row, so it exists exactly
+-- when a final response exists and can never disagree with it. Measured: 0 tickets on production,
+-- so no existing row changes meaning.
+alter table public.complaint_tickets
+  add column if not exists decision_ref text
+  generated always as (case when final_response_at is not null then ticket_no || '-FR' end) stored;
 
 create index if not exists complaint_tickets_open_idx
   on public.complaint_tickets (respond_due) where status <> 'final_response';
@@ -151,6 +163,9 @@ begin
     'in_review_at', v_row.in_review_at,
     'final_response_at', v_row.final_response_at,
     'final_response', v_row.final_response,
+    -- who decided and the reference to quote; null until a final response exists
+    'decision_ref', v_row.decision_ref,
+    'decided_by', case when v_row.final_response_at is not null then v_row.handled_by end,
     -- working days still left before each promise falls due (0 once today is the due day or later)
     'acknowledge_days_left', public.fn_working_days_between(now(), v_row.acknowledge_due),
     'respond_days_left', public.fn_working_days_between(now(), v_row.respond_due));

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T04:46:59.201Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T05:19:54.034Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1594,7 +1594,12 @@ CREATE TABLE IF NOT EXISTS public.complaint_tickets (
   in_review_at timestamp with time zone,
   final_response_at timestamp with time zone,
   final_response text,
-  handled_by text DEFAULT 'customer_support'::text NOT NULL
+  handled_by text DEFAULT 'customer_support'::text NOT NULL,
+  decision_ref text GENERATED ALWAYS AS (
+CASE
+    WHEN (final_response_at IS NOT NULL) THEN (ticket_no || '-FR'::text)
+    ELSE NULL::text
+END) STORED
 );
 
 CREATE TABLE IF NOT EXISTS public.compliance_sources (
@@ -3759,7 +3764,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   exception_outcome text,
   enrich_retry jsonb,
   invite_followups integer DEFAULT 0 NOT NULL,
-  invite_last_followup_at timestamp with time zone
+  invite_last_followup_at timestamp with time zone,
+  accepted_terms_sha256 text
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -7294,6 +7300,7 @@ ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
+ALTER TABLE public.leads ADD CONSTRAINT leads_accepted_terms_sha256_check CHECK (((accepted_terms_sha256 IS NULL) OR (accepted_terms_sha256 ~ '^[0-9a-f]{64}$'::text)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_approved_implies_verified CHECK (((COALESCE(approval_status, ''::text) <> 'approved'::text) OR (COALESCE(verified, false) = true)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_status_check CHECK (((registration_status IS NULL) OR (registration_status = ANY (ARRAY['exempt'::text, 'paid'::text, 'not_due'::text, 'due'::text]))));
@@ -20084,6 +20091,9 @@ begin
     'in_review_at', v_row.in_review_at,
     'final_response_at', v_row.final_response_at,
     'final_response', v_row.final_response,
+    -- who decided and the reference to quote; null until a final response exists
+    'decision_ref', v_row.decision_ref,
+    'decided_by', case when v_row.final_response_at is not null then v_row.handled_by end,
     -- working days still left before each promise falls due (0 once today is the due day or later)
     'acknowledge_days_left', public.fn_working_days_between(now(), v_row.acknowledge_due),
     'respond_days_left', public.fn_working_days_between(now(), v_row.respond_due));

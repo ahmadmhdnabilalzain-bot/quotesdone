@@ -398,7 +398,7 @@ export function SupplierHistoryPanel({
   if (err) {
     return (
       <Card className="p-3.5">
-        <div className={cn(S.sub, 'text-red-300')}>{err}</div>
+        <div className={cn(S.sub, 'text-danger-fg')}>{err}</div>
       </Card>
     );
   }

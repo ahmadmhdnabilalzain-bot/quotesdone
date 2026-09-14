@@ -35,6 +35,7 @@ Deno.serve(observe('complaint_status', async (req) => {
       acknowledge_due: d.acknowledge_due, respond_due: d.respond_due,
       acknowledged_at: d.acknowledged_at, in_review_at: d.in_review_at,
       final_response_at: d.final_response_at, final_response: d.final_response,
+      decision_ref: d.decision_ref ?? null, decided_by: d.decided_by ?? null,
       acknowledge_days_left: d.acknowledge_days_left, respond_days_left: d.respond_days_left });
   } catch (_e) { return J({ ok: false, error: 'unavailable' }, 500); }
 }));

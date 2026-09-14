@@ -37,10 +37,10 @@ export interface SupplyChainMapProps {
 
 const STAGE_TONE: Record<ChainStage, string> = {
   placed: 'bg-slate-400',
-  approved: 'bg-sky-400',
-  in_transit: 'bg-amber-400',
-  arrived: 'bg-emerald-400',
-  cancelled: 'bg-red-400',
+  approved: 'bg-info',
+  in_transit: 'bg-warn',
+  arrived: 'bg-ok',
+  cancelled: 'bg-danger',
 };
 
 export function SupplyChainMap({ orders, lang = 'en', onOpenRfq }: SupplyChainMapProps) {

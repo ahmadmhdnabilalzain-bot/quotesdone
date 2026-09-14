@@ -247,10 +247,10 @@ export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
 // request that is being matched, then quoted, then decided, then revealed, then closed. Colour
 // carries meaning and is never the ONLY carrier — the word is always present.
 export const RFQ_STATE = {
-  matching:  { key: 'st_matching',  cls: 'bg-sky-500/12 text-sky-300 border-sky-500/25' },
-  quoting:   { key: 'st_quoting',   cls: 'bg-amber-500/12 text-amber-300 border-amber-500/25' },
+  matching:  { key: 'st_matching',  cls: 'bg-info/12 text-info-fg border-info/25' },
+  quoting:   { key: 'st_quoting',   cls: 'bg-warn/12 text-warn-fg border-warn/25' },
   quotes_in: { key: 'st_quotes_in', cls: 'bg-primary/12 text-primary border-primary/30' },
-  revealed:  { key: 'st_revealed',  cls: 'bg-emerald-500/12 text-emerald-300 border-emerald-500/25' },
+  revealed:  { key: 'st_revealed',  cls: 'bg-ok/12 text-ok-fg border-ok/25' },
   closed:    { key: 'st_closed',    cls: 'bg-secondary/60 text-muted-foreground border-border' },
 };
 // Derived from facts the row already carries, never from the clock.
@@ -469,7 +469,7 @@ export function PortalShell({
                         {alertList.map((a, i) => (
                           <li key={i} className="flex items-start gap-3 px-4 py-3">
                             <span className={cn('mt-0.5 h-2 w-2 shrink-0 rounded-full',
-                              a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} aria-hidden />
+                              a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} aria-hidden />
                             <div className="min-w-0">
                               <div className="text-[13px] font-semibold text-foreground">{a.title}</div>
                               {a.detail ? <div className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{a.detail}</div> : null}

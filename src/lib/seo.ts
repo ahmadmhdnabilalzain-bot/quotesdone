@@ -88,16 +88,16 @@ export function buildMeta(opts: {
 }
 
 /**
- * Metadata for the signed-in app shells (/me, /portal, /supplier). They were exporting a static
- * English title only — /ar/supplier said 'QuotesDone — Supplier Portal' with no description — and
- * were indexable. next.config.mjs already sends X-Robots-Tag: noindex for these paths; this gives
- * the page the same answer in <meta> plus a title in the visitor's language.
+ * Metadata for the signed-in app shells (/me, /portal). They were exporting a static English title
+ * only and were indexable. next.config.mjs already sends X-Robots-Tag: noindex for these paths; this
+ * gives the page the same answer in <meta> plus a title in the visitor's language. (/supplier is the
+ * public supplier sales page now, with its own indexable metadata in its page file.)
  * Usage in a page file:
  *   export async function generateMetadata(p: { params: Promise<{ locale: string }> }) {
- *     return appShellMeta((await p.params).locale, 'supplier');
+ *     return appShellMeta((await p.params).locale, 'portal');
  *   }
  */
-const SHELL: Record<'me' | 'portal' | 'supplier', { en: [string, string]; ar: [string, string] }> = {
+const SHELL: Record<'me' | 'portal', { en: [string, string]; ar: [string, string] }> = {
   me: {
     en: ['My requests — QuotesDone', 'Post a job, compare anonymous quotes and reveal the supplier you choose.'],
     ar: ['طلباتي — QuotesDone', 'انشر طلبك وقارن عروض الأسعار المجهولة واكشف هوية المورد الذي تختاره.'],
@@ -106,17 +106,11 @@ const SHELL: Record<'me' | 'portal' | 'supplier', { en: [string, string]; ar: [s
     en: ['Supplier portal — QuotesDone', 'Quote on UAE jobs matched to your licence, trade and emirate.'],
     ar: ['بوابة الموردين — QuotesDone', 'قدّم عروض أسعارك على طلبات في الإمارات تطابق رخصتك ومجالك وإمارتك.'],
   },
-  supplier: {
-    en: ['Supplier portal — QuotesDone', 'Quote on UAE jobs matched to your licence, trade and emirate.'],
-    ar: ['بوابة الموردين — QuotesDone', 'قدّم عروض أسعارك على طلبات في الإمارات تطابق رخصتك ومجالك وإمارتك.'],
-  },
 };
 export function appShellMeta(locale: string, shell: keyof typeof SHELL): Metadata {
   const [title, description] = SHELL[shell][locale === 'ar' ? 'ar' : 'en'];
-  // /supplier renders the same component as /portal; one canonical URL for both.
-  const path = shell === 'supplier' ? '/portal' : '/' + shell;
   return {
-    ...buildMeta({ locale, path, title, description }),
+    ...buildMeta({ locale, path: '/' + shell, title, description }),
     robots: { index: false, follow: false },
   };
 }
@@ -226,8 +220,11 @@ export function faqLd(pairs: { q: string; a: string }[], locale: string) {
   };
 }
 
-export function blogPostingLd(p: { slug: string; title: string; description: string; published: string | null; author: string | null; category: string | null }) {
-  const url = `${SITE}/blog/${p.slug}`;
+// /ar pages carried the English headline, English URL and inLanguage 'en' (website audit W22).
+// The locale is accepted either as p.locale or as the second argument; both callers exist.
+export function blogPostingLd(p: { slug: string; title: string; description: string; published: string | null; author: string | null; category: string | null; locale?: string }, locale: string = 'en') {
+  const ar = (p.locale ?? locale) === 'ar';
+  const url = `${SITE}${ar ? '/ar' : ''}/blog/${p.slug}`;
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -235,8 +232,8 @@ export function blogPostingLd(p: { slug: string; title: string; description: str
     description: clampDesc(p.description, 300),
     url,
     mainEntityOfPage: url,
-    image: `${SITE}/blog/${p.slug}/opengraph-image`,
-    inLanguage: 'en',
+    image: `${url}/opengraph-image`,
+    inLanguage: ar ? 'ar-AE' : 'en',
     ...(p.published ? { datePublished: p.published, dateModified: p.published } : {}),
     ...(p.category ? { articleSection: p.category } : {}),
     author: p.author && p.author !== BRAND ? { '@type': 'Person', name: p.author } : { '@id': ORG_ID },

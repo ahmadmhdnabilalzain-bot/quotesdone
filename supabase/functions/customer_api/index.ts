@@ -439,6 +439,42 @@ async function buildBriefPdf(inq: any, lang: string) {
   const j = await r.json();
   return { j, ref };
 }
+// The refund case reference the Terms (§5) and Refund Policy (§3, §6) promise to quote.
+const refundRef = (id: number | string) => 'QD-RF-' + String(id);
+
+// THE SIDE-BY-SIDE TABLE, ONCE. compare_pdf renders it; compare_csv (W10, 14 Sep 2026) exports the
+// same rows, so the spreadsheet can never disagree with the document. Labels are the analysis
+// labels, which are the anonymous "Supplier A/B" letters before a reveal.
+function compareTable(a: any, ar: boolean): { head: string[]; rows: string[][] } | null {
+  const T = (en: string, arx: string) => (ar ? arx : en);
+  const money = (v: any) => (v == null || v === '') ? '—' : ('AED ' + Number(v).toLocaleString('en-AE', { maximumFractionDigits: 0 }));
+  const arrOf = (x: any) => Array.isArray(x) ? x : [];
+  const qs = arrOf(a?.quotes);
+  if (!qs.length) return null;
+  const rows: string[][] = [];
+  const push = (label: string, get: (q: any) => string) => { const vals = qs.map(get); if (vals.some((v: string) => v && v !== '—')) rows.push([label, ...vals]); };
+  push(T('Price', 'السعر'), (q) => money(q.price));
+  push(T('Lead time', 'مدة التنفيذ'), (q) => clipCell(q.lead_time, 60) || '—');
+  push(T('Warranty', 'الضمان'), (q) => clipCell(q.warranty, 60) || '—');
+  push(T('Payment terms', 'شروط الدفع'), (q) => clipCell(q.payment_terms, 60) || '—');
+  push(T('Valid for', 'مدة الصلاحية'), (q) => clipCell(q.validity, 40) || '—');
+  push(T('What you get', 'ما ستحصل عليه'), (q) => clipCell(q.getting, 240) || '—');
+  push(T('Included', 'مشمول'), (q) => clipCell(arrOf(q.includes).join('; '), 240) || '—');
+  push(T('Not included', 'غير مشمول'), (q) => clipCell(arrOf(q.excludes).join('; '), 200) || '—');
+  push(T('Missing from your request', 'ناقص مما طلبت'), (q) => clipCell(arrOf(q.missing_from_request).join('; '), 200) || '—');
+  push(T('Differs from your spec', 'اختلاف عن مواصفاتك'), (q) => clipCell(arrOf(q.spec_deviation).join('; '), 200) || '—');
+  push(T('Track record', 'سجل الأداء'), (q) => clipCell(q.track_record_note, 180) || '—');
+  push(T('Watch out', 'تنبيهات'), (q) => clipCell(arrOf(q.flags).join('; '), 200) || '—');
+  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => clipCell(q.label, 20))], rows };
+}
+
+// RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula.
+function toCsv(head: string[], rows: string[][]): string {
+  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  // The BOM is what makes Excel read the file as UTF-8; without it Arabic opens as mojibake.
+  return '\uFEFF' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
+}
+
 async function buildComparePdf(a: any, inq: any, lang: string) {
   const ar = lang === 'ar';
   const T = (en: string, arx: string) => (ar ? arx : en);
@@ -460,24 +496,11 @@ async function buildComparePdf(a: any, inq: any, lang: string) {
       rows: arrOf(a.top3).map((r: any, i: number) => [String(r.rank ?? i + 1), clipCell(r.label, 24), clipCell(r.why, 220), clipCell(r.tradeoff, 160) || '—']),
       widths: [0.06, 0.16, 0.46, 0.32] });
   }
-  if (qs.length) {
+  const side = compareTable(a, ar);
+  if (side) {
     blocks.push({ t: 'h2', text: T('Side by side', 'مقارنة جنبًا إلى جنب') });
-    const rows: string[][] = [];
-    const push = (label: string, get: (q: any) => string) => { const vals = qs.map(get); if (vals.some((v) => v && v !== '—')) rows.push([label, ...vals]); };
-    push(T('Price', 'السعر'), (q) => money(q.price));
-    push(T('Lead time', 'مدة التنفيذ'), (q) => clipCell(q.lead_time, 60) || '—');
-    push(T('Warranty', 'الضمان'), (q) => clipCell(q.warranty, 60) || '—');
-    push(T('Payment terms', 'شروط الدفع'), (q) => clipCell(q.payment_terms, 60) || '—');
-    push(T('Valid for', 'مدة الصلاحية'), (q) => clipCell(q.validity, 40) || '—');
-    push(T('What you get', 'ما ستحصل عليه'), (q) => clipCell(q.getting, 240) || '—');
-    push(T('Included', 'مشمول'), (q) => clipCell(arrOf(q.includes).join('; '), 240) || '—');
-    push(T('Not included', 'غير مشمول'), (q) => clipCell(arrOf(q.excludes).join('; '), 200) || '—');
-    push(T('Missing from your request', 'ناقص مما طلبت'), (q) => clipCell(arrOf(q.missing_from_request).join('; '), 200) || '—');
-    push(T('Differs from your spec', 'اختلاف عن مواصفاتك'), (q) => clipCell(arrOf(q.spec_deviation).join('; '), 200) || '—');
-    push(T('Track record', 'سجل الأداء'), (q) => clipCell(q.track_record_note, 180) || '—');
-    push(T('Watch out', 'تنبيهات'), (q) => clipCell(arrOf(q.flags).join('; '), 200) || '—');
     const colW = 0.76 / Math.max(1, qs.length);
-    blocks.push({ t: 'table', head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => clipCell(q.label, 20))], rows, widths: [0.24, ...qs.map(() => colW)] });
+    blocks.push({ t: 'table', head: side.head, rows: side.rows, widths: [0.24, ...qs.map(() => colW)] });
   }
   if (arrOf(a.line_findings).length) {
     blocks.push({ t: 'h2', text: T('Line by line', 'بندًا بندًا') });
@@ -965,7 +988,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (ids.length) { try { const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids); for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ } }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
-      if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,app_rating,app_reviews,emirate,verified,founded_year').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null }; }
+      if (supIds.length) { const { data: ls } = await admin.from('leads').select('id,app_rating,app_reviews,emirate,verified,founded_year,rv_response_rate,rv_reveals').in('id', supIds); const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
       // public.transactions HAS NO created_at COLUMN - in staging or in production. Selecting it
       // made PostgREST answer 400, so `txs` came back null, `for (const t of txs || [])` iterated
@@ -978,7 +1001,12 @@ Deno.serve(observe('customer_api', async (req) => {
       // on — when they paid, whether the supplier acknowledged, and any refund already in motion.
       // All four are columns on the sale; nothing is inferred.
       const guaranteeByQuote: Record<string, Record<string, unknown>> = {};
-      if (ids.length) { const { data: txs, error: txErr } = await admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline').eq('customer_id', cust.id); if (txErr) console.error('my_inquiries: transactions read failed —', txErr.message); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; } }
+      if (ids.length) { const { data: txs, error: txErr } = await admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline').eq('customer_id', cust.id); if (txErr) console.error('my_inquiries: transactions read failed —', txErr.message); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; }
+        // D4 (14 Sep 2026): the refund case and the chief executive's decision behind it, so the
+        // customer can quote both. refunds.refund_decision_id references ceo_approval(decision_id);
+        // it is null until the decision exists, and the portal says "awaiting" rather than inventing one.
+        const txIds = (txs || []).map((t) => t.id);
+        if (txIds.length) { const { data: rfs } = await admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds); const qByTx: Record<string, string> = {}; for (const [qk, tk] of Object.entries(txByQuote)) qByTx[tk] = qk; for (const rf of rfs || []) { const g = guaranteeByQuote[qByTx[String(rf.transaction_id)]]; if (g) { g.refund_ref = refundRef(rf.id); g.decision_ref = rf.refund_decision_id ? 'QD-D-' + rf.refund_decision_id : null; } } } }
       const { data: revs } = await admin.from('reviews').select('transaction_id').eq('customer_id', cust.id); const ratedTx = new Set((revs || []).map((r) => String(r.transaction_id)));
       const now = new Date();
       // Pre-reveal quote rows carry BANDS only (see ratingBand/reviewCountBand/yearsBand above);
@@ -1003,7 +1031,11 @@ Deno.serve(observe('customer_api', async (req) => {
         applied_filters: appliedFilters(i.routing),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
-        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
+        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+          // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
+          // to a 10% band and the rating stays out (the banded rating above already shows it), so a
+          // badge can never be an exact fingerprint of one company.
+          badges: { licence_verified: m.verified === true, response_rate: m.rr == null ? null : (revealed ? m.rr : Math.floor((m.rr <= 1 ? m.rr : m.rr / 100) * 10) / 10), jobs_completed: Number(m.jobs_won) > 0 ? Number(m.jobs_won) : null, rating: revealed && typeof r.value === 'number' ? r.value : null } }; }) });
       const out = [] as any[];
       for (const i of (tops || [])) {
         // mapRow returns an object literal, so its inferred type has no is_combined / child_count /
@@ -1052,6 +1084,29 @@ Deno.serve(observe('customer_api', async (req) => {
         if (j?.ok && j.url) return J({ ok: true, url: j.url, ref });
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
+    }
+
+    // W10: the comparison as a spreadsheet. Same ownership check, same rate limit and the same
+    // quote_compare analysis as compare_pdf, rendered through the same compareTable().
+    if (action === 'compare_csv') {
+      const iid = String(body.inquiry_id || '');
+      const lang = /^ar/i.test(String(body.lang || '')) ? 'ar' : 'en';
+      const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', iid).maybeSingle();
+      if (!inq) return J({ error: 'Request not found' }, 404);
+      if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
+      const hourAgo = new Date(Date.now() - 3600e3).toISOString();
+      const { count: gens } = await admin.from('quote_pdf_cache').select('quote_id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);
+      if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
+      let analysis: any = null;
+      try {
+        const secret = await getSecret('cred_fn_customer_api');
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/quote_compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: iid, lang }) });
+        const jd = await r.json();
+        if (jd?.ok && jd.analysis) analysis = jd.analysis; else return J({ error: jd?.note || jd?.error || 'comparison_unavailable' }, 200);
+      } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
+      const side = compareTable(analysis, lang === 'ar');
+      if (!side) return J({ error: 'comparison_unavailable' }, 200);
+      return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + iid.slice(0, 8).toUpperCase() + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
     }
 
     if (action === 'brief_pdf') {
@@ -1144,7 +1199,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // customer_api has no logRun of its own — it is wrapped in observe(), which records the call.
       // A refusal is carried back in the response instead, so a customer is never told their
       // request is under review when no case was opened.
-      return J({ ok: true, refund_status: 'requested', refund_id: refundId,
+      return J({ ok: true, refund_status: 'requested', refund_id: refundId, refund_ref: refundId ? refundRef(refundId) : null,
         not_opened: refundNote,
         note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due the fee is refunded in full.' });
     }

@@ -95,7 +95,7 @@ export function DrawingGallery({ pages, lang }: { pages: string[]; lang: Lang })
 export type BoqRow = { section?: string; description?: string; qty?: number | null; unit?: string; basis?: string; confidence?: string };
 const CONF: Record<string, { en: string; ar: string; cls: string }> = {
   high: { en: 'high', ar: 'عالية', cls: 'bg-primary/15 text-primary border-primary/40' },
-  medium: { en: 'medium', ar: 'متوسطة', cls: 'bg-amber-300/10 text-amber-200 border-amber-300/30' },
+  medium: { en: 'medium', ar: 'متوسطة', cls: 'bg-warn/10 text-warn-fg border-warn/30' },
   low: { en: 'low', ar: 'منخفضة', cls: 'bg-white/5 text-muted-foreground border-white/15' },
 };
 export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confidence?: string | null; lang: Lang; onQuote?: (rows: BoqRow[]) => void }) {

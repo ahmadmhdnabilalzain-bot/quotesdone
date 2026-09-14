@@ -43,7 +43,7 @@ export function Categories() {
                 <TradeCount trade={it.trade} template={t('suppliersN')} />
               </Link>
               <div className="border-t border-[var(--line)] px-5 py-3 md:px-6">
-                <GetQuotesFor category={it.category} label={t('getQuotes')} />
+                <GetQuotesFor category={it.category} label={t('getQuotes')} draft={t('draft', { trade: it.title })} />
               </div>
             </div>
           </StaggerItem>

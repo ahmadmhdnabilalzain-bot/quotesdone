@@ -7,6 +7,8 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { registrationMissing } from '../_shared/supplier_registration.ts';
+import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_AR } from '../_shared/supplier_agreement.ts';
+const agreementSha256 = async () => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -529,7 +531,11 @@ Deno.serve(observe('supplier_api', async (req) => {
       // supplier could pin themselves to an old or invented version by editing one JSON field.
       // The current version is now read server-side from app_secrets('terms_version'); the key is
       // not set today, so the existing 'v2' default still applies until it is.
-      if (body.accept_terms) { const tv = String((await secretVal('terms_version')) || 'v2').trim().slice(0, 20) || 'v2'; upd.accepted_terms_at = new Date().toISOString(); upd.accepted_terms_version = tv; upd.accepted_terms_ip = clientIp(req) || null; }
+      // SPF5 (14 Sep 2026): a version label does not prove which words were on screen, so the SHA-256
+      // of the exact agreement text is stored beside it. It is recomputed here from the text itself
+      // (not trusted from the generated constant) and written only while the live terms_version is the
+      // version that text was exported for; otherwise null, never a hash of the wrong agreement.
+      if (body.accept_terms) { const tv = String((await secretVal('terms_version')) || 'v2').trim().slice(0, 20) || 'v2'; upd.accepted_terms_at = new Date().toISOString(); upd.accepted_terms_version = tv; upd.accepted_terms_ip = clientIp(req) || null; upd.accepted_terms_sha256 = tv === SUPPLIER_AGREEMENT_VERSION ? await agreementSha256() : null; if (tv !== SUPPLIER_AGREEMENT_VERSION) console.error(`supplier_api: terms_version ${tv} has no exported agreement text (module is ${SUPPLIER_AGREEMENT_VERSION}); hash not stored`); }
       // THE MANDATORY SIX, ENFORCED WHERE REGISTRATION IS SUBMITTED (14 Sep 2026). Until now this
       // action checked the licence alone while the portal demanded a company profile and the
       // Documents tab said only the licence was required. The one definition lives in

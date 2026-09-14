@@ -170,6 +170,7 @@
         "trade": "gypsum"
       }
     ],
+    "draft": "I need {trade} work",
     "getQuotes": "Get quotes for this",
     "suppliersN": "{count} licence-verified suppliers"
   },
@@ -235,7 +236,8 @@
     "noDocs": "No compliance checklist is published for this trade yet.",
     "suppliers": "{count} licence-checked suppliers can quote this in your emirate today",
     "continue": "Continue — post this job",
-    "continueNote": "You sign in with your mobile or email next; your description comes with you.",
+    "serviceTitle": "What suppliers will need for this job",
+    "continueNote": "You sign in with your email next; your description comes with you.",
     "unknown": "I could not place that in a trade yet. Add what is being supplied or installed, and where.",
     "clarify": "To place it:",
     "error": "Something went wrong. Please try again.",
@@ -284,7 +286,9 @@
         "Describe the job by text, photo, drawing or BOQ — no calls",
         "Only licence-checked suppliers for your trade and emirate are invited",
         "The top 3 quotes, levelled on price, completeness and delivery",
-        "3% of the quote you choose, nothing else — quotes usually arrive in 3–5 working days"
+        "3% of the quote you choose, nothing else — quotes usually arrive in 3–5 working days",
+        "Every quote states how long its price is valid, so you know when it expires",
+        "Updates reach you on WhatsApp as well as by email"
       ],
       "cta": "Get quotes"
     },

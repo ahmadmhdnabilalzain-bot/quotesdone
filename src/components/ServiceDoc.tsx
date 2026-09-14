@@ -29,8 +29,9 @@ function sub(txt: string, loc: Loc, locale: string): string {
   const bare = locale === 'ar' ? loc.ar : loc.en;
   return txt.replace(/\{\{LOC_THE\}\}/g, the).replace(/\{\{LOC\}\}/g, bare);
 }
-// For Arabic, keep internal cross-links inside the /ar locale — one shared rule in src/lib/arabicDoc.ts.
-import { arLinks } from '@/lib/arabicDoc';
+// For Arabic: internal links keep the /ar prefix and Latin runs (AED figures, phones) get bidi
+// isolation — the one shared pass in src/lib/arabicDoc.ts that the legal, FAQ and contact pages use.
+import { arDoc } from '@/lib/arabicDoc';
 export function svcParams(): string[] {
   const out: string[] = [];
   for (const s of Object.keys(S)) { out.push(s); for (const e of Object.keys(EM)) out.push(s + '-in-' + e); }
@@ -44,17 +45,20 @@ export function svcMeta(slug: string, locale: string) {
   const body = textFromHtml(sub(c.html, loc, locale)).replace(title, '').trim();
   return buildMeta({ locale, path: '/services/' + slug, title, description: body });
 }
-export function ServiceDoc({ slug, locale }: { slug: string; locale: string }) {
+// `children` render after the service copy and BEFORE the footer. The price guide used to be placed
+// after <ServiceDoc/> in the page file, which put it (measured at 375px, 14 Sep 2026) below the
+// footer, so the page ended in a card instead of the footer's launcher-clear bottom padding.
+export function ServiceDoc({ slug, locale, children }: { slug: string; locale: string; children?: React.ReactNode }) {
   const { service, loc } = parse(slug); const d = S[service];
   if (!d) return notFound();
   const c = (d as any)[locale] || d.en;
-  let html = sub(c.html, loc, locale);
-  if (locale === 'ar') html = arLinks(html);
+  const html = arDoc(sub(c.html, loc, locale), locale);
   return (
     <>
       <SiteHeader />
       <style dangerouslySetInnerHTML={{ __html: SERVICES_CSS }} />
       <main id="main" className="mk" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} />
+      {children}
       <SiteFooter />
     </>
   );
