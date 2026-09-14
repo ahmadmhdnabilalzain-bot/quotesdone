@@ -52,6 +52,7 @@ const DOLLAR = /^\$(?:[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*)?\$/;
 export function scan(src) {
   const out = [];
   let depth = 0, line = 1, i = 0, opened = [];
+  const bodies = [];   // tags of the routine/DO bodies currently open, innermost last
   const n = src.length;
   const skipTo = (end) => { for (; i < end; i++) if (src[i] === '\n') line++; };
   while (i < n) {
@@ -85,11 +86,16 @@ export function scan(src) {
       const m = DOLLAR.exec(src.slice(i, i + 64));
       if (m) {
         const tag = m[0];
-        const close = src.indexOf(tag, i + tag.length);
+        // A dollar quote closes at the next occurrence of its own tag, so a tag equal to the
+        // innermost open body CLOSES it, and scanning resumes as plain SQL. It is never classed
+        // afresh: doing that read a routine's closing $$ as a literal's opener and skipped the next
+        // routine's signature (review of #660, HIGH).
+        if (bodies.length && bodies[bodies.length - 1] === tag) { bodies.pop(); i += tag.length; continue; }
         const before = src.slice(Math.max(0, i - 40), i).toLowerCase();
-        const isBody = /\b(as|do)\s*$/.test(before);
-        if (!isBody && close > 0) { skipTo(close + tag.length); continue; }   // a literal
-        i += tag.length; continue;                                              // a body: transparent
+        if (/\b(as|do)\s*$/.test(before)) { bodies.push(tag); i += tag.length; continue; }   // a body: scanned
+        const close = src.indexOf(tag, i + tag.length);                                       // a literal: skipped
+        if (close > 0) { skipTo(close + tag.length); continue; }
+        i += tag.length; continue;
       }
     }
     if (c === '(') { depth++; opened.push(line); }
@@ -128,6 +134,29 @@ test('quoting and comments that must not count', () => {
   assert.equal(kinds("select /* ( /* ) */ ' */ 1;"), '', 'nested block comment with a quote');
   assert.equal(kinds('select "a(""b" from t;'), '', 'quoted identifier');
   assert.equal(kinds("select $$ ( $$;"), '', 'bare $$ literal');
+});
+
+// Review of #660, 14 Sep 2026 (HIGH): a routine's CLOSING tag was classed as a literal's opener,
+// so the scanner jumped to the next routine's opening tag and never saw its signature. Two routines
+// sharing a tag is this repo's dominant style (approvals_and_orders.sql has six $$ bodies).
+const twoRoutines = (tag) => `create function a() returns int language plpgsql as ${tag}
+begin
+  return f(1);
+end
+${tag};
+
+create function b(x int default (1+1)) ) returns int language plpgsql as ${tag}
+begin
+  return g(2);
+end
+${tag};`;
+
+test('a closing dollar tag never re-opens: the next routine with the same tag is scanned', () => {
+  assert.equal(kinds(twoRoutines('$$')), 'extra )', 'reused $$');
+  assert.equal(kinds(twoRoutines('$fn$')), 'extra )', 'reused named tag');
+  assert.equal(kinds(twoRoutines('$fn$').replace(' ) returns', ' returns')), '', 'the balanced version is clean');
+  assert.equal(kinds("create function a() returns text as $fn$ begin return format($q$(%s$q$, 1); end $fn$;\n"
+    + "create function b() returns int as $fn$ begin return g(2)); end $fn$;"), 'extra )', 'nested literal, then a reused body tag');
 });
 
 test('every scripts/sql file and MANIFEST entry has balanced parentheses', () => {
