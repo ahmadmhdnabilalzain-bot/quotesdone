@@ -141,7 +141,8 @@ begin
     'roofing',   public.fn_taxonomy_trades_for(array['roofing']),
     'acrylic',   public.fn_taxonomy_trades_for(array['acrylic']),
     'new_cat',   public.fn_taxonomy_trades_for(array['packaging-services']),
-    'new_reg',   public.fn_taxonomy_trades_for(array['Packaging Services']));
+    'new_reg',   public.fn_taxonomy_trades_for(array['Packaging Services']),
+    'new_ar',    public.fn_taxonomy_trades_for(array[' خدمات التغليف ']));
   if bad_codes is not null
      or r->'aluminium' <> '["aluminium"]'::jsonb
      or r->'glass'     <> '["glass", "glazing"]'::jsonb
@@ -149,7 +150,8 @@ begin
      or r->'roofing'   <> '["roofing"]'::jsonb
      or r->'acrylic'   <> '["acrylic"]'::jsonb
      or r->'new_cat'   <> '["packaging_services"]'::jsonb
-     or r->'new_reg'   <> '["packaging_services"]'::jsonb then
+     or r->'new_reg'   <> '["packaging_services"]'::jsonb
+     or r->'new_ar'    <> '["خدمات_التغليف"]'::jsonb then
     raise exception 'resolver wrong: unknown codes %, results %', bad_codes, r;
   end if;
   raise notice 'CHK<<exact-only resolver: %>>', r;

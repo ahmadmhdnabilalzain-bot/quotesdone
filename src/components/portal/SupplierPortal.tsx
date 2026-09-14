@@ -283,8 +283,9 @@ const S = {
 // leads.business_role, so the supplier is asked to correct a proposal rather than fill in a blank.
 // On a cold B2B onboarding those are very different asks.
 //
-// Nothing here can widen a scope silently: every code is rendered from the vocabulary the server
-// returns, and the server re-validates against taxonomy_trade / taxonomy_role on the way in.
+// The listed codes come from the vocabulary the server returns. "Another trade" lets a supplier add
+// one we don't list yet (the trade list is open, founder 14 Sep); the server normalises it with
+// tradeCode, so it matches only a request in that exact same trade.
 function CapabilityConfirmPanel({ token, lang }) {
   const ar = lang === 'ar';
   const [st, setSt] = useState({ loading: true, err: '', confirmed: false, cap: null, vocab: { trades: [], roles: [] } });
