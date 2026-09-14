@@ -25,6 +25,42 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
+import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
+
+// ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
+// Every model route is held, so detection below fails and no drawing page has reached a supplier
+// (website audit 14 Sep, finding 3: pages_out=0, redaction_complete=false). Two model-free inputs:
+//
+// 1. manual_boxes — the customer draws the boxes. One entry per image: an array of normalised
+//    {x,y,w,h} (an EMPTY array is the customer's own statement that the page shows nothing to hide);
+//    a missing/non-array entry means the page was not reviewed and is NOT published. The customer
+//    owns the drawing and is the one person who knows which names on it are theirs, so their boxes
+//    are the redaction and no model vote is needed — method 'manual'.
+// 2. The PDF text layer — when original_b64 is the source PDF, identity text that exists as real
+//    text (emails, URLs, phones, company-suffix names, and "Drawn by / Client / Project / Plot"
+//    labels with the words beside them) is located and boxed on the matching raster page. Added to
+//    BOTH paths. It never publishes a page on its own: a logo or a scanned title block has no text,
+//    so text-layer boxes without the customer's review or the verifier are not a clean page.
+const ID_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\b(?:https?:\/\/|www\.)\S+|(?:\+|00)?971[\s-]?\d|\b0\d[\s-]?\d{3}[\s-]?\d{4}\b|\b05\d[\s-]?\d{3}[\s-]?\d{4}\b|\b(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.|Establishment|Consultants?|Contracting|Architects?|Developers?|Properties)\b|شركة|مؤسسة|ذ\.م\.م|مكتب\s+هندسي/i;
+const ID_LABEL = /\b(drawn|checked|approved|prepared|reviewed|designed)\s*(by)?\b|\b(client|owner|employer|consultant|contractor|developer|project(?:\s*(?:name|no|number|title))?|plot(?:\s*no)?|makani|dwg\.?\s*no|drawing\s*no|address|tel|phone|mobile|fax|e-?mail)\b\s*[:.#]?|المالك|العميل|الاستشاري|المقاول|المشروع|رقم\s*القطعة|مكاني|رسم\s*بواسطة|اعتمد/i;
+function textLayerBoxes(pages: PdfPage[], pageIndex: number): { boxes: Array<{x:number;y:number;w:number;h:number}>; rotated: boolean } {
+  const p = pages[pageIndex];
+  if (!p) return { boxes: [], rotated: false };
+  // A rotated page's raster no longer shares the PDF's axes; boxing it would miss by a quarter turn.
+  if (p.rotate) return { boxes: [], rotated: true };
+  const boxes: Array<{x:number;y:number;w:number;h:number}> = [];
+  for (const r of p.runs) {
+    if (ID_TEXT.test(r.text)) { boxes.push({ x: r.x, y: r.y, w: r.w, h: r.h }); continue; }
+    if (ID_LABEL.test(r.text)) {
+      // The label's value is the text to its right on the same line; cover the label and that run.
+      const base = r.y + r.h;
+      const line = p.runs.filter((o) => Math.abs((o.y + o.h) - base) <= r.h * 0.6 && o.x >= r.x && o.x <= r.x + r.w + 0.25);
+      const x2 = Math.max(...line.map((o) => o.x + o.w), r.x + r.w);
+      boxes.push({ x: r.x, y: r.y, w: Math.min(1 - r.x, x2 - r.x), h: r.h });
+    }
+  }
+  return { boxes, rotated: false };
+}
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -214,7 +250,6 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_redact');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
-    const key = await sec('cred_fn_ai'); if (!key) return J({ error: 'no_ai_key' }, 500);
     const job_id = crypto.randomUUID();
     // ANONYMITY 27 Jul 2026. These objects are handed to matched suppliers as SIGNED URLs before any
     // reveal or payment, and a signed URL necessarily contains the object path. The path is therefore
@@ -234,6 +269,54 @@ Deno.serve(observe('drawing_redact', async (req) => {
     const prefix = `${ns}/${crypto.randomUUID()}/page`;
     const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, 8) : [];
     if (!imgs.length) { const recorded = await recordRun(job_id, body, { status: 'empty', paths: [], pages_in: 0, pages_out: 0, skipped: 0 }); return J({ ok: true, job_id, recorded, paths: [], pages_in: 0, pages_out: 0 }); }
+
+    // Text layer of the source PDF, if the caller sent it. page_offset maps this batch's images onto
+    // PDF pages, because customer_api sends a drawing set to this function 4 pages at a time.
+    const pageOffset = Math.max(0, Number(body.page_offset) || 0);
+    let pdf: PdfPage[] = [];
+    if (body.original_b64 && typeof body.original_b64 === 'string') {
+      try { pdf = await pdfPages(b64ToBytes(body.original_b64)); } catch (_e) { pdf = []; }
+    }
+    const textBoxes = (i: number) => textLayerBoxes(pdf, pageOffset + i);
+    const paintBoxes = (target: any, gs: Array<{x:number;y:number;w:number;h:number}>) => {
+      const W2 = target.width, H2 = target.height;
+      for (const g of gs) {
+        let x = Math.floor((g.x - MARGIN) * W2), y = Math.floor((g.y - MARGIN) * H2);
+        let w = Math.ceil((g.w + 2 * MARGIN) * W2), h = Math.ceil((g.h + 2 * MARGIN) * H2);
+        x = Math.max(0, Math.min(x, W2 - 1)); y = Math.max(0, Math.min(y, H2 - 1));
+        w = Math.max(1, Math.min(w, W2 - x)); h = Math.max(1, Math.min(h, H2 - y));
+        target.composite(new Image(w, h).fill(0x000000ff), x, y);
+      }
+    };
+
+    // ── MANUAL PATH: the customer's own boxes, no model involved ──────────────────────────────────
+    if (Array.isArray(body.manual_boxes)) {
+      const paths: string[] = []; let skipped = 0; let textHits = 0; const detail: any[] = [];
+      for (let i = 0; i < imgs.length; i++) {
+        const mb = body.manual_boxes[i];
+        if (!Array.isArray(mb)) { skipped++; detail.push({ page: i, skipped: 'not_reviewed_by_customer' }); continue; }
+        try {
+          const boxes = mb.slice(0, 60).map((g: any) => ({ x: Math.max(0, Math.min(1, Number(g?.x) || 0)), y: Math.max(0, Math.min(1, Number(g?.y) || 0)), w: Math.max(0, Math.min(1, Number(g?.w) || 0)), h: Math.max(0, Math.min(1, Number(g?.h) || 0)) })).filter((g: any) => g.w > 0 && g.h > 0);
+          const tl = textBoxes(i); textHits += tl.boxes.length;
+          const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
+          let img = await Image.decode(b64ToBytes(String(b)));
+          if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);
+          paintBoxes(img, [...boxes, ...tl.boxes]);
+          const jpg = await img.encodeJPEG(82);
+          const path = `${prefix}_p${i}.jpg`;
+          const up = await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true });
+          if (up.error) { skipped++; detail.push({ page: i, skipped: 'upload_failed' }); continue; }
+          paths.push(path); detail.push({ page: i, manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length, rotated: tl.rotated || undefined });
+        } catch (_e) { skipped++; detail.push({ page: i, skipped: 'decode_failed' }); }
+      }
+      const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
+      const recorded = await recordRun(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: { method: 'manual', pages: detail } });
+      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, redaction_complete: recorded && paths.length === imgs.length });
+    }
+
+    const key = await sec('cred_fn_ai');
+    // No model and no customer boxes: nothing may be published. Say what would unblock it.
+    if (!key) { const recorded = await recordRun(job_id, body, { status: 'detect_failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'no_ai_key', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const content: any[] = [{ type: 'text', text: 'Find identifying regions to black out on each of the following ' + imgs.length + ' drawing page(s). Return the JSON.' }];
     for (const im of imgs) { const b = (im && (im.b64 || im.data)) || im; const m = (im && im.mime) || 'image/jpeg'; if (b && typeof b === 'string') content.push({ type: 'image_url', image_url: { url: 'data:' + m + ';base64,' + stripB64(b) } }); }
@@ -255,11 +338,11 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // Fails closed either way — nothing is published — but `detect_truncated` says "raise the
       // ceiling" where `detect_failed` says "the model misbehaved", and session 9 lost a day to
       // exactly that confusion on the verify call.
-      if (jd?.truncated === true || jd?.finish_reason === 'length') { const recorded = await recordRun(job_id, body, { status: 'detect_truncated', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_truncated', job_id, recorded }, 200); }
+      if (jd?.truncated === true || jd?.finish_reason === 'length') { const recorded = await recordRun(job_id, body, { status: 'detect_truncated', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_truncated', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
       const parsed = parseJson(jd?.content || '');
-      if (!parsed || !Array.isArray(parsed.pages)) { const recorded = await recordRun(job_id, body, { status: 'detect_failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_failed', job_id, recorded }, 200); }
+      if (!parsed || !Array.isArray(parsed.pages)) { const recorded = await recordRun(job_id, body, { status: 'detect_failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_failed', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
       for (const p of parsed.pages) { const i = Number(p?.i); if (!Number.isFinite(i)) continue; identityByPage[i] = p?.has_identity !== false; regionsByPage[i] = Array.isArray(p?.regions) ? p.regions.map((g:any)=>({x:Number(g.x)||0,y:Number(g.y)||0,w:Number(g.w)||0,h:Number(g.h)||0})).filter((g:any)=>g.w>0&&g.h>0) : []; }
-    } catch (_e) { const recorded = await recordRun(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded }, 200); }
+    } catch (_e) { const recorded = await recordRun(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
     for (let i = 0; i < imgs.length; i++) {
@@ -286,7 +369,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
             target.composite(new Image(w, h).fill(0x000000ff), x, y);
           }
         };
-        paint(img, regions);
+        // Identity the text layer locates is boxed as well as what the model named; the verifier
+        // below still decides whether the page is published.
+        paint(img, [...regions, ...textBoxes(i).boxes]);
         let jpg = await img.encodeJPEG(82);
         // Adversarial second pass over what the supplier will actually see. Fails closed.
         //
@@ -331,6 +416,6 @@ Deno.serve(observe('drawing_redact', async (req) => {
     }
     const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
     const recorded = await recordRun(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail.length ? verifyDetail : null });
-    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status });
+    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status, method: 'model', redaction_complete: recorded && paths.length === imgs.length });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

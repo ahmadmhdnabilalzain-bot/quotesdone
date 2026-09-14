@@ -26,7 +26,10 @@
 
 const DEC = new TextDecoder('latin1');   // a content stream is bytes; latin1 is byte-transparent
 
-async function inflate(bytes: Uint8Array, format: 'deflate' | 'deflate-raw'): Promise<Uint8Array | null> {
+// inflate / unescapePdfString / hexToString are exported (14 Sep 2026) for pdf_text_positions.ts,
+// which reads the same streams with coordinates for deterministic drawing redaction. Behaviour here
+// is unchanged; exporting is the alternative to a second copy of the same three decoders.
+export async function inflate(bytes: Uint8Array, format: 'deflate' | 'deflate-raw'): Promise<Uint8Array | null> {
   try {
     const ds = new DecompressionStream(format);
     const buf = await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(ds)).arrayBuffer();
@@ -35,7 +38,7 @@ async function inflate(bytes: Uint8Array, format: 'deflate' | 'deflate-raw'): Pr
 }
 
 /** PDF literal-string escapes: \n \r \t \b \f \( \) \\ \ddd, and a backslash-newline continuation. */
-function unescapePdfString(s: string): string {
+export function unescapePdfString(s: string): string {
   return s.replace(/\\(?:(\d{1,3})|(\r\n|\n|\r)|(.))/g, (_m, oct, nl, ch) => {
     if (oct) return String.fromCharCode(parseInt(oct, 8) & 0xff);
     if (nl) return '';
@@ -43,7 +46,7 @@ function unescapePdfString(s: string): string {
   });
 }
 
-function hexToString(h: string): string {
+export function hexToString(h: string): string {
   const clean = h.replace(/[^0-9A-Fa-f]/g, '');
   let out = '';
   for (let i = 0; i + 1 < clean.length; i += 2) out += String.fromCharCode(parseInt(clean.slice(i, i + 2), 16));
