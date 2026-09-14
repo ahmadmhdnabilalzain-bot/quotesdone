@@ -514,25 +514,36 @@ async function itDetectTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
-// KEEP THE PORTAL'S FIVE COLD ISOLATES WARM (14 Sep 2026 e2e finding). The customer Overview
-// warms kyc, customer_api, customer_portal, project_api and messages_api together on every sign-in
-// (CustomerPortal.tsx warmDashboard) — five separate Deno isolates that any one of which, cold, adds
-// full V8-boot-plus-module-import latency on top of its query. Measured: 4.5-5.7s when idle-evicted,
-// 1.4-2.2s back-to-back. None of these five needs a correct answer here — a request that 401s still
-// forces the isolate through cold start and leaves it resident for the next real customer, which is
-// the whole point. Piggybacks on this file's existing ~15min external trigger
-// (.github/workflows/resilience-ping.yml) so no new schedule or SQL is needed. Every call is
-// best-effort and swallowed; a warm-ping failure must never affect the watchdog's own health verdict.
+// KEEP THE PORTAL'S FIVE COLD ISOLATES WARM (14 Sep 2026 e2e finding; reviewed and corrected same
+// day). The customer Overview warms kyc, customer_api, customer_portal, project_api and messages_api
+// together on every sign-in (CustomerPortal.tsx warmDashboard) — five separate Deno isolates, any
+// one of which, cold, adds full V8-boot-plus-module-import latency on top of its query. This closes
+// isolate eviction BETWEEN sign-ins; the portal's own warmDashboard already covers a single sign-in.
+//
+// THE FIRST VERSION OF THIS RELIED ON A 401. That is only confirmed harmless for kyc and
+// customer_api; for customer_portal, project_api and messages_api an unauthenticated call could run
+// real code before failing, and every one of the five would write a 'warn' row to agent_runs every
+// ~15 minutes forever. Each of the five functions now checks `x-qd-warm: 1` as the very first thing
+// in its handler — before auth, before any DB read — and returns 204 with no side effect at all.
+// verify_jwt:true (customer_api, project_api, messages_api) still requires a signed JWT to pass the
+// PLATFORM GATEWAY before the handler ever runs, so the service key travels alongside the warm
+// header for those three; kyc and customer_portal (verify_jwt:false) do not need it and are sent it
+// anyway for one code path instead of two. A 204 classifies 'ok' in observe.ts (see classify()), so
+// none of this can be counted as a failure by any alerting the estate already runs.
+//
+// Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
+// so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
+// must never affect the watchdog's own health verdict.
 async function warmPortalTick(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
   const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {
-      const r = await fetch(FN + '/' + fn, { method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
-        body: JSON.stringify({ action: 'warm_ping' }), signal: AbortSignal.timeout(8000) });
-      await r.text().catch(() => {}); // drain so the connection is actually released, whatever the status
-      return { fn, ms: Date.now() - t0, ok: true };
+      const r = await fetch(FN + '/' + fn, { method: 'GET',
+        headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
+        signal: AbortSignal.timeout(8000) });
+      await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
+      return { fn, ms: Date.now() - t0, ok: r.status === 204 };
     } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
   }));
 }

@@ -230,6 +230,9 @@ async function notifyMatched(inquiry_id: string, _inq: unknown, type: string, su
 
 Deno.serve(observe('messages_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
+  // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
