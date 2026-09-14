@@ -183,6 +183,18 @@ Deno.serve(observe('sales_engineer', async (req) => {
             String(x.content)).join('\n\n')
         : String(r.handoff || 'I do not have that yet.');
 
+      // 14 SEP 2026. This exchange was never saved: the customer's question and the answer existed
+      // only in the widget. The founder: "all conversations need to be saved and the sales agent
+      // has access to them at any time". assistant_logs is the store the website assistant already
+      // writes; audience 'customer:<id>' is what fn_conversation_party files it under.
+      try {
+        await admin.from('assistant_logs').insert({
+          message, reply, seat: 'sales_engineer', answered: r.answered === true,
+          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind,
+          path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null,
+        });
+      } catch { /* the customer already has the answer; a failed log must not take it back */ }
+
       await run('assist', 'ok', {
         answered: r.answered === true,
         cited: Array.isArray(r.cited) ? r.cited.length : 0,
@@ -206,6 +218,28 @@ Deno.serve(observe('sales_engineer', async (req) => {
         basis: 'retrieved across sales_knowledge, ops_knowledge, kb_chunks, agent_knowledge, support_knowledge, category_specs and category_quote_specs under a similarity floor with lexical corroboration (embedded rows) or a stricter lexical-only bar (rows with no embedding); no model was called, so passages are quoted, never fused or restated',
         scope: caller.kind === 'customer' ? { customer_id: caller.customerId } : { caller: caller.kind },
       });
+    }
+
+    // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────
+    // The founder, 14 Sep 2026: "all conversations need to be saved and the sales agent has access
+    // to them at any time. just in case we needed them for any reason". Every store - email in and
+    // out, WhatsApp, portal chat, clarifications, the website assistant, forms - read whole through
+    // fn_conversation_record, with a link to the PDF kept in the backups bucket. A customer caller
+    // reads its own record and nobody else's: the party comes from the session, never the body.
+    if (action === 'conversations') {
+      const contact = caller.kind === 'customer' ? 'customer:' + caller.customerId : String(body.contact || '').trim();
+      const { data, error } = await admin.rpc('fn_conversation_record', { p_contact: contact, p_limit: Number(body.limit ?? 200) });
+      if (error) return J({ ok: false, error: 'record_failed', detail: error.message }, 503);
+      const rec = data as { messages?: Array<Record<string, unknown>> } & Record<string, unknown>;
+      for (const m of (rec.messages || []).slice(0, 50)) {
+        const pdf = m.pdf as { bucket?: string; path?: string } | null;
+        if (pdf?.bucket && pdf.path) {
+          const { data: s } = await admin.storage.from(pdf.bucket).createSignedUrl(pdf.path, 3600);
+          m.pdf_url = s?.signedUrl ?? null;
+        }
+      }
+      await run('conversations', 'ok', { messages: Array.isArray(rec.messages) ? rec.messages.length : 0 });
+      return J({ seat: 'sales_engineer', ...rec });
     }
 
     // ── REPORT ─────────────────────────────────────────────────────────────────────────────────

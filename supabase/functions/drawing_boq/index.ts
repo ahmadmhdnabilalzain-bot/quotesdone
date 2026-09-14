@@ -63,7 +63,13 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // text, and boq_from_text reads those with no model. It runs when there is no AI key, when the
     // gateway refuses, or when the caller asks for it (deterministic:true). It needs the ORIGINAL
     // PDF (original_b64, or file_b64 with a PDF mime): page images carry no text layer.
-    const pdfB64 = String(body.original_b64 || (/pdf/i.test(String(body.mime || '')) ? body.file_b64 || '' : '') || '');
+    // 14 SEP 2026. original_b64 was taken as a PDF whatever it was. The portal sends original_b64 for
+    // EVERY upload (NewRequest.tsx), so a photographed or exported drawing (PNG/JPEG/WebP) never
+    // reached the photo branch below and the customer's browser OCR was thrown away - measured on a
+    // real fire-alarm layout submitted through the customer path: boq [] with the OCR text unused.
+    // Only bytes that ARE a PDF (the mime says so, or they begin %PDF = base64 'JVBER') go this way.
+    const cand = String(body.original_b64 || body.file_b64 || '');
+    const pdfB64 = (/pdf/i.test(String(body.mime || '')) || /^(data:[^;]+;base64,)?JVBER/.test(cand)) ? cand : '';
     const deterministic = async (why: string) => {
       // A photo has no text layer: the customer's browser OCR (ocr_text) is what can be read of it.
       if (!pdfB64) return ocrText ? J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText), fallback_reason: why } }) : null;
