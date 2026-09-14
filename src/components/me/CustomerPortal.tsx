@@ -48,6 +48,7 @@ import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
 import { NewRequest } from './NewRequest';
 import { Clarifications } from './Clarifications';
+import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
 import { QuoteBadges } from '@/components/QuoteBadges';
 import { useConfirm } from './ConfirmDialog';
@@ -1028,6 +1029,10 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
+    {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
+        alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
+        has to open the card to find is a question that goes unanswered, and the reply window runs. */}
+    {inq.spec_offers && inq.spec_offers.length ? <div className="mt-3"><SpecOffer inq={inq} token={token} lang={lang} call={call} onDone={onChange} /></div> : null}
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <QuoteSpread quotes={quotes} lang={lang} />

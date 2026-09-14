@@ -29,7 +29,10 @@ export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; s
 const safe = (v: string | null) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
 export type RequestLine = { line_no: number; description: string; qty?: number | string | null; unit?: string | null };
 export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string };
-export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference';
+// 'accepted': the customer accepted this value in place of their own when no supplier could quote
+// their exact spec (founder_instruction #321; inquiries.accepted_alternatives). It is then the request.
+export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference' | 'accepted';
+export type AcceptedSpec = { line_no: number; attr: string; accepted: string };
 export type AttrRow = { code: string; label_en: string; label_ar: string; unit: string | null; unit_ar: string | null; mandatory: boolean; requested: string | null; requested_source: ReqSource | null; cells: Cell[] };
 export type LineRow = { row: number; item: string; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[] };
 export type TermCell = { quote_id: string; applies: boolean; value: string | null; flag: Flag; marker: string };
@@ -71,8 +74,11 @@ const cellOf = (quote_id: string, applies: boolean, value: string | null, reques
  * request line — a quote's own values are never its own baseline, or every quote would "match the
  * request" by construction), then from the intake's component answers.
  */
-function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req: Requirements, fromRequest: boolean) {
+function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req: Requirements, fromRequest: boolean, accepted: AcceptedSpec[] = []) {
   const out: Record<string, { value: string; source: ReqSource }> = {};
+  // Applied last (below): what the customer ACCEPTED replaces what they first asked for, so a quote
+  // offering the accepted value matches and is not shown as a deviation (founder_instruction #321).
+  const acceptedHere = accepted.filter((x) => x && Number(x.line_no) === Number(rl.line_no) && x.accepted);
   if (fromRequest) for (const a of attrs) { const v = a.find(rl.description); if (v) out[a.code] = { value: v, source: 'boq' }; }
   const base = trade ? attrsForLine(trade, rl.description) : [];
   for (const m of req?.materials ?? []) {
@@ -82,10 +88,11 @@ function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req:
     const v = requestedValue(m);
     if (v) out[a.code] = { value: v, source: m.choice === 'other' ? 'intake_other' : 'intake' };
   }
+  for (const x of acceptedHere) out[x.attr] = { value: String(x.accepted), source: 'accepted' };
   return out;
 }
 
-export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date }): TechnicalComparison {
+export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date; accepted?: AcceptedSpec[] }): TechnicalComparison {
   const trade = tradeOfCategory(input.category);
   const req = input.requirements ?? null;
   const assessed = input.quotes.map((q) => ({ q, a: assessQuote({ category: input.category, lines: q.lines, terms: q.terms, requirements: req }) }));
@@ -121,7 +128,7 @@ export function technicalComparison(input: { category: string | null; request_li
     const defs = lineDefs(lt, text, req);
     const replaced = defs.some((d) => d.code.startsWith('component_'));
     const attrs: Attr[] = [...defs, ...(lt ? TRADES[lt].attrs.filter((a) => !defs.some((d) => d.code === a.code) && !(replaced && MATERIAL_ATTRS.includes(a.code))) : [])];
-    const requested = r.rl ? requestedFor(r.rl, lt, attrs, req, fromRequest) : {};
+    const requested = r.rl ? requestedFor(r.rl, lt, attrs, req, fromRequest, input.accepted ?? []) : {};
     const attributes: AttrRow[] = attrs.map((a) => {
       const rq = requested[a.code];
       const noPref = rq?.source === 'no_preference';
