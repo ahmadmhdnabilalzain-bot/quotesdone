@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T23:04:39.479Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T23:10:24.866Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17850,16 +17850,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17885,6 +17875,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -33569,6 +33569,95 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_dropbox_health_due()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select not exists (select 1 from public.agent_runs r where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_health'
+                        and r.status in ('ok', 'warn') and r.started_at > now() - interval '1 day'
+                        and (r.started_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date)
+     and not exists (select 1 from public.agent_runs r where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_health'
+                        and r.status = 'error' and r.started_at > now() - interval '2 hours');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_dropbox_health_record(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_quiet numeric := coalesce(public.fn_it_threshold('dropbox_space_quiet_pct'), 70);
+  v_loud  numeric := coalesce(public.fn_it_threshold('dropbox_space_loud_pct'), 85);
+  v_ok boolean; v_cls text; v_pct numeric; v_status text;
+  v_login jsonb := '[]'::jsonb; v_space jsonb := '[]'::jsonb; v_login_out jsonb; v_space_out jsonb;
+  v_classes constant text[] := array['auth', 'quota', 'rate_limit', 'provider_outage', 'network', 'internal'];
+begin
+  if jsonb_typeof(p) is distinct from 'object' then raise exception 'fn_it_dropbox_health_record: the reading must be a json object'; end if;
+
+  v_ok := p->>'error' is null and coalesce((p->>'write_ok')::boolean, false) and coalesce((p->>'read_ok')::boolean, false)
+          and coalesce((p->>'delete_ok')::boolean, false);
+  if not v_ok then
+    -- a class the edge did not name, or named wrongly, is ours to explain: internal
+    v_cls := case when p->>'class' = any (v_classes) then p->>'class' else 'internal' end;
+    v_login := jsonb_build_array(jsonb_build_object('item', v_cls,
+      'title', case v_cls
+        when 'auth'            then 'Dropbox refused the company''s stored login; backups are not reaching Dropbox'
+        when 'quota'           then 'Dropbox refused the daily probe write because the account is full'
+        when 'rate_limit'      then 'Dropbox rate-limited the daily probe'
+        when 'provider_outage' then 'Dropbox answered the daily probe with a server error'
+        when 'network'         then 'Dropbox could not be reached for the daily probe'
+        else                        'The daily Dropbox probe failed for an internal reason' end,
+      'blast', case when v_cls in ('rate_limit', 'provider_outage', 'network') then 'internal' else 'agent_facing' end,
+      'affected', 1, 'owner_seat', 'ceo', 'subject', 'dropbox_backup',
+      'evidence', jsonb_build_object('class', v_cls, 'error', left(p->>'error', 300), 'auth_ok', p->'auth_ok',
+                                     'write_ok', p->'write_ok', 'read_ok', p->'read_ok', 'delete_ok', p->'delete_ok',
+                                     'look_at', 'dropbox_backup op health; agent_runs job dropbox_health')));
+  end if;
+  v_login_out := public.fn_it_duty_settle('dropbox_login', v_login);
+
+  if coalesce(p->>'allocated', '') ~ '^[0-9]+(\.[0-9]+)?$' and coalesce(p->>'used', '') ~ '^[0-9]+(\.[0-9]+)?$'
+     and (p->>'allocated')::numeric > 0 then
+    v_pct := round((p->>'used')::numeric * 100 / (p->>'allocated')::numeric, 1);
+    if v_pct >= v_loud then
+      v_space := jsonb_build_array(jsonb_build_object('item', 'space_loud',
+        'title', 'Dropbox is ' || v_pct || '% full (loud at ' || v_loud || '%); at 100% new documents stop reaching Dropbox',
+        'blast', 'agent_facing', 'affected', 1, 'owner_seat', 'ceo', 'subject', 'dropbox_backup',
+        'evidence', jsonb_build_object('pct_used', v_pct, 'used', p->'used', 'allocated', p->'allocated', 'plan', p->'plan', 'threshold', v_loud)));
+    elsif v_pct >= v_quiet then
+      v_space := jsonb_build_array(jsonb_build_object('item', 'space_quiet',
+        'title', 'Dropbox is ' || v_pct || '% full (quiet at ' || v_quiet || '%, loud at ' || v_loud || '%)',
+        'blast', 'internal', 'affected', 0, 'owner_seat', 'ceo', 'subject', 'dropbox_backup',
+        'evidence', jsonb_build_object('pct_used', v_pct, 'used', p->'used', 'allocated', p->'allocated', 'plan', p->'plan', 'threshold', v_quiet)));
+    end if;
+    v_space_out := public.fn_it_duty_settle('dropbox_space', v_space);
+  elsif v_ok then
+    -- the login works and the space did not read: say so, and leave what the last reading found open
+    perform public.fn_it_engineer_finding_upsert('duty:dropbox_space:space_unread',
+      'The Dropbox login works but the space used could not be read', 'IT engineer duty: dropbox_space',
+      'internal', 0, jsonb_build_object('duty', 'dropbox_space', 'owner_seat', 'ceo', 'subject', 'dropbox_backup', 'demo', false,
+        'space_error', left(p->>'space_error', 300), 'space_class', p->>'space_class'),
+      '{}'::text[], '{}'::text[], 'it_engineer.dropbox_space');
+  else
+    -- login probe AND space read both failed: any open dropbox_space finding is deliberately left untouched this tick; the login finding is already loud, and space is re-evaluated on the next good reading
+    null;
+  end if;
+
+  v_status := case when not v_ok then 'error'
+                   when v_pct is null or v_pct >= v_quiet then 'warn' else 'ok' end;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', v_status, jsonb_build_object('job', 'dropbox_health', 'pct_used', v_pct, 'class', v_cls) || p,
+          left('Dropbox health: write ' || coalesce(p->>'write_ok', 'false') || ', read ' || coalesce(p->>'read_ok', 'false')
+               || ', delete ' || coalesce(p->>'delete_ok', 'false') || '; '
+               || coalesce(v_pct::text || '% of the ' || coalesce(p->>'plan', 'unknown') || ' plan used', 'space not read')
+               || coalesce('; ' || v_cls || ': ' || (p->>'error'), ''), 500), now(), now());
+  return jsonb_build_object('status', v_status, 'pct_used', v_pct, 'class', v_cls, 'login', v_login_out, 'space', v_space_out);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_duties(p_r jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41486,16 +41575,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41666,6 +41745,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
