@@ -7,6 +7,7 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef } from '../_shared/quote_documents.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -359,43 +360,44 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
     return path;
   } catch { return null; }
 }
-async function translateQuoteAr(q: any): Promise<any|null> {
-  const key = await getSecret('cred_fn_customer_api'); if (!key) return null;
-  const payload = { job_category:q.job_category||'', job_summary:q.job_summary||'', emirate:q.emirate||'', items:(q.items||[]).map((it:any)=>({desc:it.desc||'',unit:it.unit||''})), lead_time:q.lead_time||'', validity:q.validity||'', warranty:q.warranty||'', payment_terms:q.payment_terms||'', conditions:q.conditions||'', exclusions:q.exclusions||'', notes:q.notes||'', scope:q.scope||'' };
-  const sys = 'You are a professional Arabic translator for UAE B2B construction and services quotations. Translate every string VALUE in the given JSON into clear, formal Modern Standard Arabic. Keep ALL numbers, measurements, dimensions, currency codes (AED), percentages, dates and Latin brand/model codes EXACTLY as they are. Translate the emirate name to Arabic. Return ONLY a valid JSON object with the SAME keys and structure (items is an array of {desc,unit}); no commentary, no code fences.';
-  {
-    try {
-      const r = await fetch(`${SUPABASE_URL}/functions/v1/ai_gateway`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn:'customer_api', sys, input: JSON.stringify(payload), max:2200, temperature:0.2 }) });
-      const jd = await r.json(); let c = jd?.content || ''; const m = c.match(/\{[\s\S]*\}/); if (m) c = m[0]; const t = JSON.parse(c);
-      return { supplier_label:q.supplier_label, job_category:t.job_category||q.job_category, job_summary:t.job_summary||q.job_summary, emirate:t.emirate||q.emirate, items:(q.items||[]).map((it:any,i:number)=>({ desc:(t.items&&t.items[i]&&t.items[i].desc)||it.desc, qty:it.qty, unit:(t.items&&t.items[i]&&t.items[i].unit)||it.unit })), lead_time:t.lead_time||q.lead_time, validity:t.validity||q.validity, warranty:t.warranty||q.warranty, payment_terms:t.payment_terms||q.payment_terms, conditions:t.conditions||q.conditions, exclusions:t.exclusions||q.exclusions, notes:t.notes||q.notes, scope:t.scope||q.scope, total:q.total };
-    } catch (_e) { /* fall through to null */ }
-  }
-  return null;
+// THE QUOTATION DOCUMENT (14 Sep 2026, agent: ceo). quoteDocument lays it out with no model; the
+// Arabic copy translates what the platform knows the meaning of and reproduces the supplier's own
+// words as written (see _shared/quote_documents.ts for why). translateQuoteAr — an ai_gateway call
+// whose failure under the OpenRouter hold silently shipped English under Arabic headings — is gone.
+const PORTAL_ORIGIN = 'https://quotesdone.com';
+// The anonymous letter of a quote is its place among the LIVE quotes by ascending price: the rule
+// my_inquiries and quote_compare both use. This used to count drafts too, so a draft priced below a
+// quote made its PDF say "Supplier C" on a card the customer sees as "Supplier B".
+async function letterOf(q: any): Promise<string> {
+  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).neq('status', 'draft').order('quote_amount', { ascending: true });
+  const idx = (sibs || []).findIndex((s: any) => s.id === q.id); return supplierLabel(idx >= 0 ? idx : 0);
 }
-async function buildQuotePdf(q: any, inq: any, wantAr: boolean) {
-  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).order('quote_amount', { ascending: true });
-  const idx = (sibs || []).findIndex((s: any) => s.id === q.id); const letter = supplierLabel(idx >= 0 ? idx : 0);
-  // The supplier's OWN priced breakdown lives in quote_items. This previously read
-  // q.boq || q.line_items — neither is a column on quotes, so it was always undefined and
-  // the quotation PDF silently fell back to the customer's requested BOQ instead.
+// The strings that must not appear on a customer's document before the reveal.
+async function supplierIdentities(ids: any[]): Promise<string[]> {
+  const uniq = [...new Set((ids || []).filter((x) => x != null).map(String))];
+  if (!uniq.length) return [];
+  try {
+    const { data } = await admin.from('leads').select('company_name,email,phone,whatsapp,website').in('id', uniq);
+    return (data || []).flatMap((l: any) => [l.company_name, l.email, l.phone, l.whatsapp, l.website]).filter((v: any) => v && String(v).trim().length >= 3).map(String);
+  } catch (_e) { return []; }
+}
+async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
+  const letter = await letterOf(q);
+  // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
+  // the fallback when the supplier priced a lump sum.
   let items: { desc: string; qty: string; unit: string }[] = [];
   try {
     const { data: qi } = await admin.from('quote_items').select('line_no,description,qty,unit').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
     items = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc);
   } catch (_e) { items = []; }
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
-  const quote = { supplier_label: letter, job_category: inq?.category, job_summary: inq?.summary, emirate: inq?.emirate, items, scope: items.length ? String(q.scope || '') : String(q.scope || inq?.summary || ''), lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes, total: q.quote_amount };
-  const ref = 'QD-' + String(q.inquiry_id || '').slice(0, 8).toUpperCase() + '-' + letter;
+  const quoteRow = { ...q, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
+  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, maskNames: await supplierIdentities([q.supplier_id]) });
   const secret = await getSecret('cred_fn_customer_api');
-  const payload: any = { __secret: secret, quote, lang: wantAr ? 'bi' : 'en', ref, name: ref };
-  if (wantAr) { const quoteAr = await translateQuoteAr(quote); payload.quote_ar = quoteAr || quote; }
-  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
   const j = await r.json();
   return { j, ref };
 }
-// The comparison report as a branded document, rendered by the same engine as the
-// quotations so header band, logo, letterhead, gold rule and footer all match.
-function clipCell(s: any, n: number) { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
 // The anonymised supplier brief as a branded document. Same engine as the quotations
 // and the comparison report, so the customer sees exactly what left the building on
 // QuotesDone letterhead instead of a browser print-out.
@@ -447,80 +449,17 @@ async function buildBriefPdf(inq: any, lang: string) {
 // The refund case reference the Terms (§5) and Refund Policy (§3, §6) promise to quote.
 const refundRef = (id: number | string) => 'QD-RF-' + String(id);
 
-// THE SIDE-BY-SIDE TABLE, ONCE. compare_pdf renders it; compare_csv (W10, 14 Sep 2026) exports the
-// same rows, so the spreadsheet can never disagree with the document. Labels are the analysis
-// labels, which are the anonymous "Supplier A/B" letters before a reveal.
-function compareTable(a: any, ar: boolean): { head: string[]; rows: string[][] } | null {
-  const T = (en: string, arx: string) => (ar ? arx : en);
-  const money = (v: any) => (v == null || v === '') ? '—' : ('AED ' + Number(v).toLocaleString('en-AE', { maximumFractionDigits: 0 }));
-  const arrOf = (x: any) => Array.isArray(x) ? x : [];
-  const qs = arrOf(a?.quotes);
-  if (!qs.length) return null;
-  const rows: string[][] = [];
-  const push = (label: string, get: (q: any) => string) => { const vals = qs.map(get); if (vals.some((v: string) => v && v !== '—')) rows.push([label, ...vals]); };
-  push(T('Price', 'السعر'), (q) => money(q.price));
-  push(T('Lead time', 'مدة التنفيذ'), (q) => clipCell(q.lead_time, 60) || '—');
-  push(T('Warranty', 'الضمان'), (q) => clipCell(q.warranty, 60) || '—');
-  push(T('Payment terms', 'شروط الدفع'), (q) => clipCell(q.payment_terms, 60) || '—');
-  push(T('Valid for', 'مدة الصلاحية'), (q) => clipCell(q.validity, 40) || '—');
-  push(T('What you get', 'ما ستحصل عليه'), (q) => clipCell(q.getting, 240) || '—');
-  push(T('Included', 'مشمول'), (q) => clipCell(arrOf(q.includes).join('; '), 240) || '—');
-  push(T('Not included', 'غير مشمول'), (q) => clipCell(arrOf(q.excludes).join('; '), 200) || '—');
-  push(T('Missing from your request', 'ناقص مما طلبت'), (q) => clipCell(arrOf(q.missing_from_request).join('; '), 200) || '—');
-  push(T('Differs from your spec', 'اختلاف عن مواصفاتك'), (q) => clipCell(arrOf(q.spec_deviation).join('; '), 200) || '—');
-  push(T('Track record', 'سجل الأداء'), (q) => clipCell(q.track_record_note, 180) || '—');
-  push(T('Watch out', 'تنبيهات'), (q) => clipCell(arrOf(q.flags).join('; '), 200) || '—');
-  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => clipCell(q.label, 20))], rows };
-}
-
-// RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula.
-function toCsv(head: string[], rows: string[][]): string {
-  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  // The BOM is what makes Excel read the file as UTF-8; without it Arabic opens as mojibake.
-  return '\uFEFF' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
-}
-
-async function buildComparePdf(a: any, inq: any, lang: string) {
-  const ar = lang === 'ar';
-  const T = (en: string, arx: string) => (ar ? arx : en);
-  const money = (v: any) => (v == null || v === '') ? '—' : ('AED ' + Number(v).toLocaleString('en-AE', { maximumFractionDigits: 0 }));
-  const arrOf = (x: any) => Array.isArray(x) ? x : [];
-  const qs = arrOf(a.quotes);
-  const blocks: any[] = [];
-  blocks.push({ t: 'kv', pairs: [
-    [T('Request', 'الطلب'), clipCell(inq?.summary, 120) || '—'],
-    [T('Category', 'الفئة'), clipCell(inq?.category, 40) || '—'],
-    [T('Emirate', 'الإمارة'), clipCell(inq?.emirate, 40) || '—'],
-    [T('Quotes evaluated', 'العروض المُقيّمة'), String(a.considered ?? a.total_quotes ?? qs.length)] ] });
-  if (a.bottom_line) { blocks.push({ t: 'h2', text: T('Bottom line', 'الخلاصة') }); blocks.push({ t: 'p', text: String(a.bottom_line) }); }
-  if (a.overview) blocks.push({ t: 'p', text: String(a.overview) });
-  if (a.shortlist_reason) blocks.push({ t: 'note', text: String(a.shortlist_reason) });
-  if (arrOf(a.top3).length) {
-    blocks.push({ t: 'h2', text: T('Recommended', 'التوصية') });
-    blocks.push({ t: 'table', head: [T('#', '#'), T('Supplier', 'المورّد'), T('Why', 'السبب'), T('Catch', 'الاعتبار')],
-      rows: arrOf(a.top3).map((r: any, i: number) => [String(r.rank ?? i + 1), clipCell(r.label, 24), clipCell(r.why, 220), clipCell(r.tradeoff, 160) || '—']),
-      widths: [0.06, 0.16, 0.46, 0.32] });
-  }
-  const side = compareTable(a, ar);
-  if (side) {
-    blocks.push({ t: 'h2', text: T('Side by side', 'مقارنة جنبًا إلى جنب') });
-    const colW = 0.76 / Math.max(1, qs.length);
-    blocks.push({ t: 'table', head: side.head, rows: side.rows, widths: [0.24, ...qs.map(() => colW)] });
-  }
-  if (arrOf(a.line_findings).length) {
-    blocks.push({ t: 'h2', text: T('Line by line', 'بندًا بندًا') });
-    blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Finding', 'الملاحظة')],
-      rows: arrOf(a.line_findings).map((f: any) => [clipCell(f.item, 60), clipCell(f.finding, 300)]), widths: [0.28, 0.72] });
-  }
-  if (a.best_value_reason) { blocks.push({ t: 'h2', text: T('Why that pick', 'سبب الاختيار') }); blocks.push({ t: 'p', text: String(a.best_value_reason) }); }
-  if (arrOf(a.watch_outs).length) { blocks.push({ t: 'h2', text: T('Watch out', 'انتبه') }); for (const w of arrOf(a.watch_outs)) blocks.push({ t: 'li', text: String(w) }); }
-  if (a.advice) { blocks.push({ t: 'h2', text: T('Advice', 'النصيحة') }); blocks.push({ t: 'p', text: String(a.advice) }); }
-  blocks.push({ t: 'space', h: 6 });
-  blocks.push({ t: 'note', text: String(a.disclaimer || '') });
-  const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-CMP';
+// The comparison report: the analysis quote_compare returned, laid out by compareDocument (see
+// _shared/quote_documents.ts — the side-by-side table, the roster of every quote, the anonymity
+// mask). compare_csv exports the same compareTable rows, so the two can never disagree.
+async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
+  const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
+  const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
+  const portalUrl = PORTAL_ORIGIN + (lang === 'ar' ? '/ar/me' : '/me');
+  const { body, ref } = compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ __secret: secret, title: T('Quote comparison report', 'تقرير مقارنة العروض'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
+    body: JSON.stringify({ ...body, __secret: secret }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -1213,27 +1152,30 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'quote_pdf') {
       const qid = String(body.quote_id || '');
-      const wantAr = /^ar/i.test(String(body.lang || body.customer_lang || ''));
-      const cacheLang = wantAr ? 'bi' : 'en';
+      // ONE LANGUAGE PER DOCUMENT, BOTH ALWAYS ON OFFER (founder, 14 Sep 2026). The old 'bi' file —
+      // English page, then an "Arabic" page whose content was English whenever ai_gateway failed —
+      // is no longer produced; its cache rows are simply never read again.
+      const lang: 'en' | 'ar' = /^ar/i.test(String(body.lang || body.customer_lang || '')) ? 'ar' : 'en';
       const { data: q } = await admin.from('quotes').select('*').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
-      const refOf = async () => { const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).order('quote_amount', { ascending: true }); const ix = (sibs || []).findIndex((s: any) => s.id === q.id); const letter = supplierLabel(ix >= 0 ? ix : 0); return 'QD-' + String(q.inquiry_id || '').slice(0, 8).toUpperCase() + '-' + letter; };
-      const { data: cached } = await admin.from('quote_pdf_cache').select('bucket,path,created_at').eq('quote_id', qid).eq('lang', cacheLang).maybeSingle();
+      // A draft is not a quote the customer has; it has no letter and no document.
+      if (q.status === 'draft') return J({ error: 'Quote not found' }, 404);
+      const { data: cached } = await admin.from('quote_pdf_cache').select('bucket,path,created_at').eq('quote_id', qid).eq('lang', lang).maybeSingle();
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
       if (cached && (!touched || new Date(cached.created_at) >= touched)) {
         const url = await signedDoc(cached.bucket, cached.path);
-        if (url) return J({ ok: true, url, ref: await refOf(), cached: true });
+        if (url) return J({ ok: true, url, ref: quoteRef(q.inquiry_id, await letterOf(q)), lang, cached: true });
       }
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: gens } = await admin.from('quote_pdf_cache').select('quote_id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);
       if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
       try {
-        const { j, ref } = await buildQuotePdf(q, inq, wantAr);
+        const { j, ref } = await buildQuotePdf(q, inq, lang);
         if (j?.ok && j.url) {
-          try { await admin.from('quote_pdf_cache').upsert({ quote_id: qid, lang: cacheLang, customer_id: cust.id, bucket: j.bucket || 'agent-docs', path: j.path, created_at: new Date().toISOString() }, { onConflict: 'quote_id,lang' }); } catch (_e) { /* */ }
-          return J({ ok: true, url: j.url, ref });
+          try { await admin.from('quote_pdf_cache').upsert({ quote_id: qid, lang, customer_id: cust.id, bucket: j.bucket || 'agent-docs', path: j.path, created_at: new Date().toISOString() }, { onConflict: 'quote_id,lang' }); } catch (_e) { /* */ }
+          return J({ ok: true, url: j.url, ref, lang });
         }
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

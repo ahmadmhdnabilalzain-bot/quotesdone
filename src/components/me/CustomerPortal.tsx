@@ -1008,10 +1008,40 @@ function OpenSeal({ play, children }) {
   return <Seal open={open} className="qd-revealed !text-accent max-w-full">{children}</Seal>;
 }
 
+// A WINDOW OPENED AFTER AN AWAIT IS A POPUP. These buttons used to `await` the signed URL and only
+// then call window.open — by which time the click's user activation can have lapsed, and Safari and
+// strict popup settings drop the window silently: the customer presses the quotation and nothing
+// opens. The tab is now opened INSIDE the click, shows a one-line holding message, and is pointed
+// at the document when the URL arrives (or closed again if it does not). 14 Sep 2026, agent: ceo.
+async function openDocument(lang, fetchUrl) {
+  let w = null;
+  try { w = window.open('', '_blank'); } catch (_e) { w = null; }
+  if (w) { try { w.document.title = 'QuotesDone'; w.document.body.style.cssText = 'font:14px system-ui,sans-serif;padding:24px;color:#0c2330'; w.document.body.textContent = lang === 'ar' ? 'جارٍ تجهيز المستند…' : 'Preparing your document…'; } catch (_e) { /* cross-origin already */ } }
+  let url = null;
+  try { url = await fetchUrl(); } catch (_e) { url = null; }
+  if (url) {
+    if (w && !w.closed) { try { w.opener = null; } catch (_e) { /* */ } w.location.replace(url); } else window.open(url, '_blank', 'noopener');
+    return true;
+  }
+  if (w && !w.closed) w.close();
+  return false;
+}
+// THIS quote's own PDF, by id, in the customer's language — and the other language one click away:
+// the English document always exists and the Arabic one is always offered (founder, 14 Sep 2026).
 function QuotePdfLink({ q, token, lang }) {
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const open = async (e) => { e.stopPropagation(); setBusy(true); setMsg(''); const j = await call('customer_api', { action: 'quote_pdf', quote_id: q.id, lang }, token); setBusy(false); if (j && j.ok && j.url) { window.open(j.url, '_blank', 'noopener'); } else setMsg(errText(j, lang, 'q_pdf_fail')); };
-  return (<><button className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? (lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…') : (lang === 'ar' ? '📄 عرض السعر (PDF)' : '📄 View quote (PDF)')}</button>{msg ? <span className={cn(S.sub, 'ml-2 text-danger')}>{msg}</span> : null}</>);
+  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
+  const open = (docLang) => async (e) => {
+    e.stopPropagation(); setBusy(docLang); setMsg(''); let j = null;
+    const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'quote_pdf', quote_id: q.id, lang: docLang }, token); return j && j.ok && j.url ? j.url : null; });
+    setBusy(''); if (!ok) setMsg(errText(j, lang, 'q_pdf_fail'));
+  };
+  const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
+  return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    <button type="button" className="text-primary font-semibold text-[12.5px]" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? '📄 عرض السعر (PDF)' : '📄 View quote (PDF)')}</button>
+    <button type="button" lang={other} className="text-muted-foreground underline underline-offset-2 text-[11.5px]" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
+    {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
+  </span>);
 }
 function Timeline({ inq, quotes, anyRevealed, lang }) {
   const steps = lang === 'ar' ? RFQ_STAGES.ar : RFQ_STAGES.en;
@@ -1104,13 +1134,14 @@ function Comparison({ inqId, token, lang }) {
 // the analysis the customer is reading.
 function ExportComparison({ inqId, token, lang }) {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
-  const go = async () => {
-    setBusy(true); setErr('');
+  // The report opens in a tab opened inside the click (see openDocument), in the customer's
+  // language, with the other language one click away.
+  const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
+  const go = (docLang) => async () => {
+    setBusy(true); setErr(''); let j = null;
     try {
-      const j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang }, token);
-      const url = j && (j.url || j.pdf_url || j.file_url);
-      if (url) window.open(url, '_blank', 'noopener');
-      else setErr(errText(j, lang, 'cmp_save_fail'));
+      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token); return j && (j.url || j.pdf_url || j.file_url) || null; });
+      if (!ok) setErr(errText(j, lang, 'cmp_save_fail'));
     } catch (_e) {
       setErr(t(lang, 'cmp_save_fail'));
     } finally { setBusy(false); }
@@ -1134,7 +1165,8 @@ function ExportComparison({ inqId, token, lang }) {
   };
   return (<div className="mt-2">
     <div className="flex flex-wrap gap-2">
-      <Button size="sm" variant="secondary" disabled={busy} onClick={go}>{busy ? t(lang, 'cmp_saving') : t(lang, 'cmp_save')}</Button>
+      <Button size="sm" variant="secondary" disabled={busy} onClick={go(mine)}>{busy ? t(lang, 'cmp_saving') : t(lang, 'cmp_save')}</Button>
+      <Button size="sm" variant="ghost" lang={other} disabled={busy} onClick={go(other)}>{other === 'ar' ? 'التقرير بالعربية (PDF)' : 'Report in English (PDF)'}</Button>
       <Button size="sm" variant="outline" disabled={busy} onClick={csv}>{t(lang, 'cmp_csv')}</Button>
     </div>
     {err ? <div className={cn(S.err, 'mt-1')} role="alert">{err}</div> : null}
