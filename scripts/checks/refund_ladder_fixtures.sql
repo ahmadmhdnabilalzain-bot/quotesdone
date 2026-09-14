@@ -1,9 +1,8 @@
 -- THE REFUND LADDER, END TO END, ON ZZ DEMO FIXTURES, INSIDE A TRANSACTION THAT ALWAYS ROLLS BACK.
 --
--- Run by scripts/checks/payments_are_the_accountant.test.mjs AFTER the three routine files
--- (payments_are_the_accountant_and_it_talks_to_the_sales_engineer.sql,
---  a_refund_returns_everything_the_customer_paid.sql, the_ceo_checks_every_step_of_a_refund.sql),
--- in the SAME statement batch, so it proves the files as written whether or not they are applied yet.
+-- Run by scripts/checks/payments_are_the_accountant.test.mjs AFTER the routine file
+-- (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql)
+-- in the SAME statement batch, so it proves the file as written whether or not they are applied yet.
 -- It ends in raise exception 'CHK<<...>>' on success and 'ZZFAIL: ...' on the first failed assertion;
 -- either way nothing it wrote survives.
 --
@@ -135,6 +134,12 @@ begin
   perform pg_temp.zz_assert(k = 0 and (select interest_amount from public.supplier_dues where id = d1.id) = 2.61, 's1 accrual is not idempotent ' || n || '/' || k);
   v := public.fn_accountant_raise_nonresponse_charge(tx1);
   perform pg_temp.zz_assert(not (v->>'created')::boolean and (v->>'due_id')::bigint = d1.id, 's1 the charge was raised twice');
+  -- support is up to date: the customer's timeline carries the handoffs about them
+  v := public.fn_contact_timeline('zz-demo-cust-s1@example.invalid', 200);
+  perform pg_temp.zz_assert(coalesce((v->'counts'->>'handoff')::int, 0) >= 3, 's1 the case timeline does not show the handoffs: ' || coalesce(v->>'counts', 'null'));
+  perform pg_temp.zz_assert(exists (select 1 from public.notifications where to_email = 'zz-demo-cust-s1@example.invalid'
+                                     and requested_by = 'sales_engineer' and sender = 'customer_support'), 's1 a delivery does not name the seat that asked');
+  res := res || jsonb_build_object('1_timeline_handoff_events', (v->'counts'->>'handoff')::int);
   res := res || jsonb_build_object('1_happy_ladder', 'approved, settled, charged AED 103 + 250, both told, no incident',
                                    '1_interest_30_days_aed', 2.61, '1_accrual_second_run_changed', k);
 

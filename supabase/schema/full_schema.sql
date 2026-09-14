@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T11:32:46.529Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T12:02:51.769Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -146,7 +146,11 @@ CREATE SEQUENCE IF NOT EXISTS public.prompt_versions_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.quote_comparisons_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.quote_items_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.refund_case_refund_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.refund_ceo_check_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.refund_ceo_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.refund_event_quarantine_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.refund_incident_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.refund_ladder_evidence_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.refunds_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.removed_trigger_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.resource_pool_id_seq;
@@ -180,7 +184,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (470) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (474) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -5262,6 +5266,33 @@ CREATE TABLE IF NOT EXISTS public.refund_case (
   status_reported_state text
 );
 
+CREATE TABLE IF NOT EXISTS public.refund_ceo_check (
+  id bigint DEFAULT nextval('refund_ceo_check_id_seq'::regclass) NOT NULL,
+  transaction_id uuid NOT NULL,
+  refund_id bigint,
+  phase text NOT NULL,
+  item text NOT NULL,
+  passed boolean NOT NULL,
+  reason text,
+  evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.refund_ceo_review (
+  id bigint DEFAULT nextval('refund_ceo_review_id_seq'::regclass) NOT NULL,
+  refund_id bigint NOT NULL,
+  transaction_id uuid,
+  cycle integer NOT NULL,
+  outcome text NOT NULL,
+  failed jsonb DEFAULT '[]'::jsonb NOT NULL,
+  tasks jsonb DEFAULT '[]'::jsonb NOT NULL,
+  decision_id bigint,
+  trigger text,
+  sealed boolean DEFAULT false NOT NULL,
+  rechecked_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.refund_event_quarantine (
   id bigint DEFAULT nextval('refund_event_quarantine_id_seq'::regclass) NOT NULL,
   stripe_refund_id text,
@@ -5273,6 +5304,35 @@ CREATE TABLE IF NOT EXISTS public.refund_event_quarantine (
   resolved_at timestamp with time zone,
   resolved_by text,
   resolution_note text
+);
+
+CREATE TABLE IF NOT EXISTS public.refund_incident (
+  id bigint DEFAULT nextval('refund_incident_id_seq'::regclass) NOT NULL,
+  transaction_id uuid NOT NULL,
+  refund_id bigint,
+  kinds text[] DEFAULT '{}'::text[] NOT NULL,
+  approved_aed numeric(12,2),
+  actual_aed numeric(12,2),
+  difference_aed numeric(12,2),
+  status text DEFAULT 'open'::text NOT NULL,
+  sealed boolean DEFAULT false NOT NULL,
+  fixes jsonb DEFAULT '[]'::jsonb NOT NULL,
+  evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  closed_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.refund_ladder_evidence (
+  id bigint DEFAULT nextval('refund_ladder_evidence_id_seq'::regclass) NOT NULL,
+  transaction_id uuid NOT NULL,
+  refund_id bigint,
+  step text NOT NULL,
+  result text NOT NULL,
+  delivered boolean NOT NULL,
+  evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+  request_handoff_id bigint,
+  result_handoff_id bigint,
+  attached_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.refund_status_transition (
@@ -6978,7 +7038,11 @@ ALTER TABLE public.quote_spec_hold ADD CONSTRAINT quote_spec_hold_pkey PRIMARY K
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_pkey PRIMARY KEY (id);
 ALTER TABLE public.red_episode ADD CONSTRAINT red_episode_pkey PRIMARY KEY (id);
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_pkey PRIMARY KEY (refund_id);
+ALTER TABLE public.refund_ceo_check ADD CONSTRAINT refund_ceo_check_pkey PRIMARY KEY (id);
+ALTER TABLE public.refund_ceo_review ADD CONSTRAINT refund_ceo_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.refund_event_quarantine ADD CONSTRAINT refund_event_quarantine_pkey PRIMARY KEY (id);
+ALTER TABLE public.refund_incident ADD CONSTRAINT refund_incident_pkey PRIMARY KEY (id);
+ALTER TABLE public.refund_ladder_evidence ADD CONSTRAINT refund_ladder_evidence_pkey PRIMARY KEY (id);
 ALTER TABLE public.refund_status_transition ADD CONSTRAINT refund_status_transition_pkey PRIMARY KEY (from_status, to_status);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_pkey PRIMARY KEY (id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_pkey PRIMARY KEY (id);
@@ -7133,6 +7197,7 @@ ALTER TABLE public.prompt_benchmarks ADD CONSTRAINT prompt_benchmarks_prompt_key
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_version_key UNIQUE (prompt_key, version);
 ALTER TABLE public.qualification_playbooks ADD CONSTRAINT qualification_playbooks_category_version_key UNIQUE (category, version);
 ALTER TABLE public.quote_reviews ADD CONSTRAINT quote_reviews_inquiry_id_supplier_id_key UNIQUE (inquiry_id, supplier_id);
+ALTER TABLE public.refund_ceo_review ADD CONSTRAINT refund_ceo_review_one_per_cycle UNIQUE (refund_id, cycle);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_stripe_refund_id_key UNIQUE (stripe_refund_id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_authority_code_name_key UNIQUE (authority, code_name);
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_resource_key UNIQUE (resource);
@@ -7401,6 +7466,11 @@ ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_decline_ck CHECK (((st
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_destination_basis_ck CHECK (((destination_ref IS NULL) OR (COALESCE(destination_basis, ''::text) <> ''::text)));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_execution_ck CHECK (((state <> ALL (ARRAY['submitted'::text, 'provider_pending'::text, 'succeeded'::text, 'reconciled'::text])) OR ((decided_by = 'ceo'::text) AND (decided_at IS NOT NULL))));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_state_ck CHECK ((state = ANY (ARRAY['requested'::text, 'investigating'::text, 'eligible'::text, 'ineligible'::text, 'ceo_authorized'::text, 'ceo_declined'::text, 'submitted'::text, 'provider_pending'::text, 'succeeded'::text, 'failed'::text, 'canceled'::text, 'reconciled'::text, 'communicated'::text])));
+ALTER TABLE public.refund_ceo_check ADD CONSTRAINT refund_ceo_check_phase_check CHECK ((phase = ANY (ARRAY['approve'::text, 'verify'::text])));
+ALTER TABLE public.refund_ceo_review ADD CONSTRAINT refund_ceo_review_outcome_check CHECK ((outcome = ANY (ARRAY['approved'::text, 'rejected'::text, 'declined'::text, 'escalated'::text])));
+ALTER TABLE public.refund_incident ADD CONSTRAINT refund_incident_status_check CHECK ((status = ANY (ARRAY['open'::text, 'paused'::text, 'fixed'::text])));
+ALTER TABLE public.refund_ladder_evidence ADD CONSTRAINT refund_ladder_evidence_result_check CHECK ((result = ANY (ARRAY['proof_of_response'::text, 'no_response_confirmation'::text])));
+ALTER TABLE public.refund_ladder_evidence ADD CONSTRAINT refund_ladder_evidence_step_check CHECK ((step = ANY (ARRAY['chase'::text, 'final_call'::text, 'customer_notice'::text, 'customer_proof'::text, 'unknown'::text])));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_fils_check CHECK (((amount_fils IS NULL) OR (amount_fils > 0)));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_amount_source_check CHECK (((amount_source IS NULL) OR (amount_source = ANY (ARRAY['in_platform_request'::text, 'webhook_event'::text, 'stripe_api'::text, 'manual'::text, 'unknown'::text]))));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_currency_check CHECK ((currency = 'AED'::text));
@@ -8059,7 +8129,9 @@ CREATE UNIQUE INDEX red_episode_one_open_per_key ON public.red_episode USING btr
 CREATE INDEX red_episode_open ON public.red_episode USING btree (resolved_at) WHERE (resolved_at IS NULL);
 CREATE UNIQUE INDEX refund_case_one_live_per_transaction ON public.refund_case USING btree (transaction_id) WHERE (state <> ALL (ARRAY['ineligible'::text, 'ceo_declined'::text, 'failed'::text, 'canceled'::text]));
 CREATE INDEX refund_case_open_idx ON public.refund_case USING btree (state, created_at);
+CREATE INDEX refund_ceo_check_tx_idx ON public.refund_ceo_check USING btree (transaction_id, phase, checked_at DESC);
 CREATE INDEX refund_event_quarantine_open_idx ON public.refund_event_quarantine USING btree (resolved_at, created_at);
+CREATE INDEX refund_ladder_evidence_tx_idx ON public.refund_ladder_evidence USING btree (transaction_id, step, id DESC);
 CREATE INDEX refunds_customer_idx ON public.refunds USING btree (customer_id);
 CREATE INDEX refunds_inquiry_idx ON public.refunds USING btree (inquiry_id);
 CREATE INDEX refunds_status_idx ON public.refunds USING btree (status, created_at DESC);
@@ -11310,6 +11382,180 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_acts_on_handoff(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions; d jsonb; t text; r public.refunds; tx public.transactions; du public.supplier_dues;
+  v_expected bigint; v_ok boolean; v_checks jsonb; v jsonb; v_lines text[] := '{}'; v_match boolean; x record;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  d := a.detail; t := d->>'type';
+
+  if t = 'refund.requested' then
+    select * into r from public.refunds where id = (d->>'subject_id')::bigint;
+    select * into tx from public.transactions where id = r.transaction_id;
+    v_expected := round(coalesce(tx.total_charged, tx.reveal_fee, 0) * 100)::bigint;
+    v_checks := jsonb_build_object(
+      'transaction_found', tx.id is not null,
+      'fee_settled', coalesce(tx.fee_status, '') = 'paid',
+      'stripe_reference_matches', coalesce(btrim(tx.payment_ref), '') <> '' and btrim(tx.payment_ref) = btrim(coalesce(r.stripe_payment_intent, '')),
+      'amount_is_total_charged', r.amount_fils = v_expected,
+      'total_charged_recorded', tx.total_charged is not null,
+      'expected_fils', v_expected, 'requested_fils', r.amount_fils);
+    v_ok := (v_checks->>'transaction_found')::boolean and (v_checks->>'fee_settled')::boolean
+            and (v_checks->>'stripe_reference_matches')::boolean and (v_checks->>'amount_is_total_charged')::boolean;
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.request_checked', 'refunds', r.id::text,
+      jsonb_build_object('refund_id', r.id, 'transaction_id', r.transaction_id, 'customer_id', r.customer_id,
+                         'inquiry_id', r.inquiry_id, 'quote_id', r.quote_id, 'money_ok', v_ok,
+                         'amount_aed', round(coalesce(r.amount_fils, 0) / 100.0, 2)));
+    return v_checks || jsonb_build_object('money_ok', v_ok);
+
+  elsif t = 'billing.question' then
+    if d->>'party' = 'supplier' then
+      perform public.fn_supplier_dues_accrue_interest(null);
+      for x in select * from public.supplier_dues
+                where supplier_id = (d->>'supplier_id')::bigint and coalesce(status, '') not in ('cancelled')
+                order by id loop
+        v_lines := v_lines || ('Charge #' || x.id || ' (reveal of ' || coalesce(x.reveal_date::text, '?') || '): AED '
+          || coalesce(x.amount_due, 0) || ' refunded to the customer + AED ' || coalesce(x.admin_fee, 0) || ' administration + AED '
+          || coalesce(x.interest_amount, 0) || ' interest = AED ' || coalesce(x.total_claim, coalesce(x.amount_due, 0) + coalesce(x.admin_fee, 0) + coalesce(x.interest_amount, 0))
+          || ', due ' || coalesce(x.due_date::text, '?') || ', ' || case when x.paid_at is not null then 'paid' else coalesce(x.status, 'open') end || '.');
+      end loop;
+      v := public.fn_supplier_registration_state((d->>'supplier_id')::bigint);
+      if v is not null then
+        v_lines := v_lines || ('Registration: ' || coalesce(v->>'status', 'unknown') || coalesce(', fee due AED ' || nullif(v->>'fee_due', '0'), '') || '.');
+      end if;
+    else
+      for x in select t2.*, i.summary from public.transactions t2 left join public.inquiries i on i.id = t2.inquiry_id
+                where t2.customer_id = (d->>'customer_id')::uuid
+                  and ((d->>'transaction_id') is null or t2.id = (d->>'transaction_id')::uuid)
+                  and t2.revealed_at is not null
+                order by t2.revealed_at desc limit 10 loop
+        v_lines := v_lines || ('Reveal on ' || to_char(x.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY')
+          || coalesce(' for "' || left(x.summary, 60) || '"', '') || ': you paid AED ' || coalesce(x.total_charged, x.reveal_fee)
+          || case when x.total_charged is not null and x.total_charged > coalesce(x.reveal_fee, 0)
+                  then ' (reveal fee AED ' || x.reveal_fee || ' + card processing AED ' || (x.total_charged - x.reveal_fee) || ')' else '' end
+          || '. Invoice ' || coalesce(x.stripe_invoice_number, 'not yet issued') || coalesce(' — ' || x.stripe_invoice_hosted_url, '')
+          || '. Refund: ' || case when x.refund_status in ('refunded', 'succeeded') then 'AED ' || coalesce(x.refund_amount_aed::text, '?') || ' returned'
+                                  when x.refund_status = 'requested' then 'requested and under review'
+                                  when x.refund_status = 'rejected' then 'declined'
+                                  else 'none requested' end || '.');
+      end loop;
+    end if;
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'billing.answer', 'agent_actions', a.id::text,
+      jsonb_build_object('party', d->>'party', 'customer_id', d->>'customer_id', 'supplier_id', d->>'supplier_id',
+                         'question', d->>'question', 'facts', to_jsonb(v_lines)));
+    return jsonb_build_object('facts', to_jsonb(v_lines));
+
+  elsif t = 'charge.disputed' then
+    select * into du from public.supplier_dues where id = coalesce((d->>'due_id')::bigint, (d->>'subject_id')::bigint);
+    v := public.fn_accountant_nonresponse_charge(du.transaction_id, null);
+    v_match := coalesce((v->>'ok')::boolean, false)
+               and du.amount_due = (v->>'refunded_aed')::numeric
+               and du.admin_fee = (v->>'admin_fee_aed')::numeric
+               and du.due_date = (v->>'due_date')::date;
+    v_lines := array[
+      'Charged: AED ' || coalesce(du.amount_due, 0) || ' + AED ' || coalesce(du.admin_fee, 0) || ' administration, due ' || coalesce(du.due_date::text, '?') || '.',
+      'Payment record: ' || coalesce('AED ' || (v->>'refunded_aed') || ' refunded to the customer (' || (v->>'refund_source') || ') + AED '
+                                     || (v->>'admin_fee_aed') || ' administration, due ' || (v->>'due_date') || '.', coalesce(v->>'reason', 'unreadable')),
+      'Interest to date: AED ' || coalesce(v->>'interest_aed', '0') || ' at ' || coalesce(round((v->>'interest_apr')::numeric * 100, 2)::text, '?') || '% a year over '
+        || coalesce(v->>'interest_days', '0') || ' day(s).'];
+    if not v_match then
+      insert into public.ceo_task (title, detail)
+      values (left('Supplier disputed charge #' || du.id || ' and it does not match the refund record', 200),
+              'The accountant recomputed charge #' || du.id || ' from the refund record and the figures differ. ' || array_to_string(v_lines, ' '));
+    end if;
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'charge.dispute_answer', 'supplier_dues', du.id || ':' || a.id,
+      jsonb_build_object('supplier_id', du.supplier_id, 'due_id', du.id, 'figures_match', v_match, 'lines', to_jsonb(v_lines), 'reason', d->>'reason'));
+    return jsonb_build_object('figures_match', v_match, 'recomputed', v);
+
+  elsif t = 'refund.remediate' then
+    return public.fn_accountant_remediates(p_id);
+
+  elsif t = 'incident.fix' then
+    return public.fn_accountant_applies_incident_fix(p_id);
+  end if;
+  raise exception 'accountant has no handler for %', t;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_applies_incident_fix(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d jsonb; v_fix text; v_tx uuid; v_old bigint; v_orig bigint; v jsonb; v_j bigint; v_amt numeric; v_res jsonb; v_du public.supplier_dues;
+begin
+  select detail into d from public.agent_actions where id = p_id;
+  v_fix := d->>'fix'; v_tx := (d->>'transaction_id')::uuid;
+  if v_fix in ('refund_difference', 'retry_refund', 'cancel_duplicate') then
+    return jsonb_build_object('waiting', 'stripe: the accountant runtime executes ' || v_fix || ' (accountant action execute_refunds)');
+  end if;
+
+  perform set_config('app.qd_incident_fix', 'on', true);
+  if v_fix = 'book_over_refund_loss' then
+    v_amt := round((d->>'amount_aed')::numeric, 2);
+    select g.id into v_j from public.gl_journal g where g.source = 'refund_over_loss' and g.source_ref = v_tx || ':' || (d->>'incident_id');
+    if v_j is null and v_amt > 0 then
+      v_j := public.fn_gl_entry(current_date,
+        'Over-refund on reveal ' || left(v_tx::text, 8) || ' booked as company loss (incident #' || (d->>'incident_id') || '); the supplier charge stays at the approved amount',
+        'refund_over_loss', v_tx || ':' || (d->>'incident_id'),
+        jsonb_build_array(jsonb_build_object('account', '6900', 'debit', v_amt), jsonb_build_object('account', '1050', 'credit', v_amt)), 'accountant');
+    end if;
+    v_res := jsonb_build_object('journal_id', v_j, 'amount_aed', v_amt);
+  elsif v_fix = 'reissue_charge' then
+    -- supplier_dues holds ONE row per transaction (supplier_dues_transaction_id_key), so the charge is
+    -- reissued IN PLACE: the figures become the routine's, and the old ones are kept in the evidence.
+    select * into v_du from public.supplier_dues where transaction_id = v_tx order by id limit 1;
+    v_old := v_du.id;
+    select (a.evidence->>'notification_id')::bigint into v_orig from public.agent_actions a
+     where a.kind = 'handoff' and a.agent = 'customer_support' and a.target_id = 'delivery.request:nonresponse_charge:' || v_old
+     order by a.id desc limit 1;
+    v := public.fn_accountant_nonresponse_charge(v_tx, null);
+    if not coalesce((v->>'ok')::boolean, false) then
+      perform set_config('app.qd_incident_fix', '', true);
+      return jsonb_build_object('waiting', 'the charge cannot be recomputed: ' || coalesce(v->>'reason', '?'));
+    end if;
+    update public.supplier_dues
+       set amount_due = (v->>'refunded_aed')::numeric, admin_fee = (v->>'admin_fee_aed')::numeric,
+           interest_amount = (v->>'interest_aed')::numeric, total_claim = (v->>'total_aed')::numeric,
+           due_date = (v->>'due_date')::date, due_date_30 = (v->>'due_date')::date + 23,
+           status = case when status = 'cancelled' then 'due' else status end
+     where id = v_old;
+    v := v || jsonb_build_object('due_id', v_old, 'transaction_id', v_tx, 'supplier_id', v_du.supplier_id,
+                                 'inquiry_id', (select inquiry_id from public.transactions where id = v_tx),
+                                 'quote_id', (select quote_id from public.transactions where id = v_tx));
+    if coalesce((d->>'sent')::boolean, false) then
+      -- Already in the supplier's hands: a correction that supersedes it, to whoever got the original.
+      perform public.fn_seat_handoff('accountant', 'sales_engineer', 'charge.corrected', 'supplier_dues', v_old::text,
+        v || jsonb_build_object('original_notification_id', v_orig));
+    else
+      -- Not sent yet: withdraw it from the outbox and send the right one instead.
+      update public.notifications set status = 'cancelled', last_error = 'withdrawn before sending: the charge was reissued with the correct figures'
+       where id = v_orig and status in ('queued', 'pending', 'held');
+      update public.agent_actions set status = 'failed', detail = detail || jsonb_build_object('superseded_by_incident', d->>'incident_id')
+       where kind = 'handoff' and status = 'done'
+         and target_id in ('nonresponse.charge_raised:' || v_old, 'delivery.request:nonresponse_charge:' || v_old);
+      perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.charge_raised', 'supplier_dues', v_old::text, v);
+    end if;
+    v_res := jsonb_build_object('reissued_due', v_old,
+      'was', jsonb_build_object('amount_due', v_du.amount_due, 'admin_fee', v_du.admin_fee, 'due_date', v_du.due_date),
+      'now', v, 'correction_sent_to_original_recipients', coalesce((d->>'sent')::boolean, false));
+  elsif v_fix = 'raise_charge' then
+    v_res := public.fn_accountant_raise_nonresponse_charge(v_tx, true);
+  else
+    v_res := jsonb_build_object('waiting', 'no handler for fix ' || coalesce(v_fix, '?'));
+  end if;
+  perform set_config('app.qd_incident_fix', '', true);
+  return v_res;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_assist(p_text text, p_embedding vector DEFAULT NULL::vector, p_min_similarity numeric DEFAULT 0.86, p_min_rank numeric DEFAULT 0.05, p_k integer DEFAULT 5, p_min_overlap numeric DEFAULT 0.60)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -11520,6 +11766,30 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_incident_fix_failed(p_id bigint, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  update public.agent_actions
+     set status = 'failed', decided_at = now(), detail = detail || jsonb_build_object('error', left(p_reason, 500), 'failed_at', now())
+   where id = p_id and kind = 'handoff' and detail->>'type' = 'incident.fix' and status = 'pending'
+  returning * into a;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no pending incident fix ' || p_id); end if;
+  perform public.fn_seat_handoff_event(p_id, 'failed');
+  -- A duplicate Stripe will not cancel is money gone: book it as the company's loss.
+  if a.detail->>'fix' = 'cancel_duplicate' then
+    perform public.fn_seat_handoff('ceo', 'accountant', 'incident.fix', 'refund_incident', (a.detail->>'incident_id') || ':book_over_refund_loss',
+      jsonb_build_object('incident_id', a.detail->>'incident_id', 'transaction_id', a.detail->>'transaction_id',
+                         'fix', 'book_over_refund_loss', 'amount_aed', a.detail->>'excess_aed'));
+  end if;
+  return jsonb_build_object('ok', true, 'advance', public.fn_ceo_incident_advance((a.detail->>'incident_id')::bigint));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_knowledge_search_vector()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -11531,6 +11801,72 @@ begin
    || setweight(to_tsvector('english'::regconfig, coalesce(array_to_string(new.tags,' '),'')), 'B')
    || setweight(to_tsvector('english'::regconfig, coalesce(new.content,'')), 'C');
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_nonresponse_charge(p_transaction_id uuid, p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t public.transactions; c public.pricing_config; v_n int; v_sum bigint;
+  v_refunded numeric; v_approved numeric; v_base numeric; v_settled timestamptz; v_src text;
+  v_cap numeric; v_apr numeric; v_due_days int; v_due date; v_as_of date; v_days int; v_int numeric;
+begin
+  select * into t from public.transactions where id = p_transaction_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such transaction'); end if;
+
+  -- THE REFUND RECORD: every refund Stripe settled against this payment, summed (a top-up the CEO's
+  -- playbook issued is part of what the customer got back), dated from the FIRST settlement so a
+  -- top-up does not move the due date. The approved amount caps it, so a duplicate or an over-refund
+  -- is the company's loss and never a larger charge on the supplier.
+  select count(*), sum(x.amount_fils), min(coalesce(x.settled_at, x.updated_at)),
+         string_agg(coalesce(x.stripe_refund_id, 'refunds #' || x.id), ', ' order by x.id)
+    into v_n, v_sum, v_settled, v_src
+    from public.refunds x
+   where x.status = 'succeeded' and x.amount_fils is not null
+     and (x.transaction_id = p_transaction_id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref));
+  select a.amount_aed into v_approved
+    from public.refunds x join public.ceo_approval a on a.decision_id = x.refund_decision_id
+   where x.transaction_id = p_transaction_id and a.decision = 'approved' order by x.id desc limit 1;
+  if v_n > 0 then
+    v_refunded := round(v_sum / 100.0, 2);
+    v_src      := v_n || ' settled refund(s): ' || v_src;
+  elsif t.refund_amount_aed is not null and coalesce(t.refund_status, '') in ('refunded', 'succeeded') then
+    v_refunded := round(t.refund_amount_aed, 2);
+    v_settled  := coalesce(t.refund_confirmed_at, t.refund_resolved_at);
+    v_src      := 'transactions.refund_amount_aed (Stripe ' || coalesce(t.refund_stripe_id, 'reference not recorded') || ')';
+  else
+    return jsonb_build_object('ok', false, 'reason', 'no settled refund on this transaction, so there is nothing to recover from the supplier');
+  end if;
+  if v_settled is null then
+    return jsonb_build_object('ok', false, 'reason', 'the refund carries no settlement time, so the charge''s due date cannot be set');
+  end if;
+
+  v_approved := coalesce(v_approved, t.total_charged, t.reveal_fee, v_refunded);
+  v_base     := least(v_refunded, v_approved);
+
+  select * into c from public.pricing_config order by id limit 1;
+  v_cap      := (select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_charge_max_lawful_apr');
+  v_apr      := least(c.supplier_nonresponse_interest_apr, coalesce(v_cap, c.supplier_nonresponse_interest_apr));
+  v_due_days := coalesce((select (d.value #>> '{}')::int from public.decision_policy d where d.key = 'supplier_charge_due_days'), 7);
+  v_due      := (v_settled at time zone 'Asia/Dubai')::date + v_due_days;
+  v_as_of    := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_days     := greatest(v_as_of - v_due, 0);
+  v_int      := round((v_base + c.supplier_nonresponse_admin_fee_aed) * v_apr * v_days / 365.0, 2);
+
+  return jsonb_build_object(
+    'ok', true, 'transaction_id', t.id, 'supplier_id', t.supplier_id,
+    'refunded_aed', v_base, 'actually_refunded_aed', v_refunded, 'approved_aed', v_approved, 'refund_source', v_src,
+    'admin_fee_aed', c.supplier_nonresponse_admin_fee_aed,
+    'interest_apr', v_apr, 'interest_apr_configured', c.supplier_nonresponse_interest_apr, 'interest_apr_lawful_max', v_cap,
+    'due_date', v_due, 'as_of', v_as_of, 'interest_days', v_days, 'interest_aed', v_int,
+    'total_aed', round(v_base + c.supplier_nonresponse_admin_fee_aed + v_int, 2),
+    'basis', 'base = the amount refunded to the customer, read from the refund record and capped at the amount the CEO approved; '
+          || '+ the administration fee from pricing_config; + simple interest on (base + admin fee) at the lower of pricing_config''s APR and '
+          || 'the lawful maximum, from the due date (' || v_due_days || ' days after the refund settled) to the as-of date. Nothing is typed.');
 end $function$
 
 
@@ -11777,6 +12113,49 @@ begin
 end;$function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_raise_nonresponse_charge(p_transaction_id uuid, p_notify boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; t public.transactions; v_due bigint; v_new boolean := false;
+begin
+  if public.fn_refunds_paused() and coalesce(current_setting('app.qd_incident_fix', true), '') <> 'on' then
+    return jsonb_build_object('ok', false, 'held', true,
+      'reason', 'refunds and supplier charges are paused by the CEO''s circuit breaker; fn_ceo_refund_loop_sweep raises this charge when it lifts');
+  end if;
+  v := public.fn_accountant_nonresponse_charge(p_transaction_id, null);
+  if not coalesce((v->>'ok')::boolean, false) then return v; end if;
+  select * into t from public.transactions where id = p_transaction_id;
+
+  select id into v_due from public.supplier_dues
+   where transaction_id = p_transaction_id and coalesce(status, '') <> 'cancelled' order by id limit 1;
+  if v_due is null then
+    insert into public.supplier_dues (transaction_id, supplier_id, quote_id, quote_amount, commission_pct,
+                                      amount_due, admin_fee, interest_amount, total_claim, currency,
+                                      reveal_date, due_date, due_date_30, status)
+    values (t.id, t.supplier_id, t.quote_id, t.quote_amount, null,
+            (v->>'refunded_aed')::numeric, (v->>'admin_fee_aed')::numeric, (v->>'interest_aed')::numeric, (v->>'total_aed')::numeric, 'AED',
+            (t.revealed_at at time zone 'Asia/Dubai')::date, (v->>'due_date')::date, (v->>'due_date')::date + 23, 'due')
+    returning id into v_due;
+    update public.leads
+       set matching_blocked = true,
+           matching_block_reason = 'Unsettled non-response charge (the customer was refunded because the supplier did not respond)',
+           rv_nonresponse_refunds = coalesce(rv_nonresponse_refunds, 0) + 1
+     where id = t.supplier_id;
+    v_new := true;
+  end if;
+
+  if p_notify then
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.charge_raised', 'supplier_dues', v_due::text,
+      v || jsonb_build_object('due_id', v_due, 'transaction_id', t.id, 'supplier_id', t.supplier_id,
+                              'inquiry_id', t.inquiry_id, 'quote_id', t.quote_id));
+  end if;
+  return v || jsonb_build_object('due_id', v_due, 'created', v_new);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_cadence_gaps(p_as_of date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -11902,6 +12281,52 @@ begin
                 || 'book should not be called complete while one stands unexplained.' end);
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_refund_settled(p_transaction_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t public.transactions; v_reason text; v_charge jsonb; v_verify jsonb;
+begin
+  select * into t from public.transactions where id = p_transaction_id;
+  select coalesce((select r.reason_code from public.refunds r where r.transaction_id = t.id order by r.id desc limit 1),
+                  t.refund_reason, 'supplier_unresponsive') into v_reason;
+  if v_reason = 'supplier_unresponsive' then
+    v_charge := public.fn_accountant_raise_nonresponse_charge(t.id, true);
+  end if;
+  perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.paid', 'transactions', t.id::text,
+    jsonb_build_object('transaction_id', t.id, 'customer_id', t.customer_id, 'supplier_id', t.supplier_id,
+                       'inquiry_id', t.inquiry_id, 'quote_id', t.quote_id, 'revealed_at', t.revealed_at,
+                       'amount_aed', round(t.refund_amount_aed, 2)));
+  v_verify := public.fn_ceo_refund_verify(t.id);
+  return jsonb_build_object('charge', v_charge, 'verify', v_verify);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_remediates(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d jsonb; v_fils bigint; v_n int;
+begin
+  select detail into d from public.agent_actions where id = p_id;
+  if d->'checks' ? 'amount_equals_total_charged' then
+    update public.refunds r
+       set amount_fils = round(coalesce(t.total_charged, t.reveal_fee) * 100)::bigint
+      from public.transactions t
+     where r.id = (d->>'refund_id')::bigint and t.id = r.transaction_id and r.status = 'requested'
+    returning r.amount_fils into v_fils;
+    get diagnostics v_n = row_count;
+    return jsonb_build_object('fixed', v_n = 1, 'amount_fils', v_fils,
+      'basis', 'refunds.amount_fils set to the payment''s total_charged; a00_refund_amount_is_the_fee_paid re-checked it against the Stripe reference on write');
+  end if;
+  return jsonb_build_object('waiting', 'no automatic remedy for ' || coalesce(d->>'checks', '?') || '; the accountant runtime or a person must act');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_spend_report(p_as_of date DEFAULT NULL::date)
@@ -14052,6 +14477,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -14077,16 +14512,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -14798,135 +15223,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -15442,6 +15738,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -18027,6 +18452,173 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_founder_summary(p_event text, p_detail text, p_dedupe text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'founder', p_dedupe,
+    jsonb_build_object('recipient_role', 'founder', 'kind', 'refund_ceo_summary', 'level', 'high',
+                       'event', left(p_event, 200), 'detail', left(p_detail, 1500), 'dedupe_key', p_dedupe));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_incident_advance(p_incident_id bigint, p_depth integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.refund_incident; v jsonb; v_paused boolean; v_what text; v_fixed text; t public.transactions; v_new int;
+begin
+  select * into i from public.refund_incident where id = p_incident_id for update;
+  if not found or not i.sealed or i.status = 'fixed' then return jsonb_build_object('moved', false); end if;
+  if exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'incident.fix'
+               and a.detail->>'incident_id' = p_incident_id::text and a.status = 'pending') then
+    return jsonb_build_object('moved', false, 'waiting', true);
+  end if;
+  select * into t from public.transactions where id = i.transaction_id;
+  v := public.fn_ceo_refund_checklist(i.transaction_id, 'verify', true);
+
+  if not (v->>'ok')::boolean and p_depth < 1 then
+    -- A fix can surface the next thing to fix (a top-up changes what the supplier owes). One more
+    -- round, bounded: each fix is applied once per incident.
+    v_new := public.fn_ceo_incident_fix_round(i.id, v);
+    if v_new > 0 then return public.fn_ceo_incident_advance(i.id, p_depth + 1); end if;
+  end if;
+
+  select * into i from public.refund_incident where id = p_incident_id;
+  v_what := 'Refund mismatch on reveal #' || left(i.transaction_id::text, 8) || ' (' || array_to_string(i.kinds, ', ')
+         || '): approved AED ' || coalesce(i.approved_aed::text, '?') || ', refunded AED ' || coalesce(i.actual_aed::text, '?') || '.';
+  v_fixed := (select string_agg(f->>'fix', '; ') from jsonb_array_elements(i.fixes) f);
+
+  if (v->>'ok')::boolean then
+    update public.refund_incident set status = 'fixed', closed_at = now() where id = i.id;
+    if not exists (select 1 from public.refund_incident x where x.status in ('open', 'paused') and x.id <> i.id) then
+      update public.decision_policy set value = 'false'::jsonb, updated_at = now() where key = 'refunds_and_supplier_charges_paused';
+    end if;
+    v_paused := public.fn_refunds_paused();
+    perform public.fn_ceo_founder_summary('Refund mismatch fixed: reveal #' || left(i.transaction_id::text, 8),
+      v_what || ' Fixed: ' || coalesce(v_fixed, 'nothing needed') || '. Every check passes again. Refunds and supplier charges are '
+        || case when v_paused then 'still PAUSED by another open incident' else 'running again' end || '.',
+      'refund_incident:' || i.id || ':fixed');
+    return jsonb_build_object('moved', true, 'status', 'fixed', 'paused', v_paused);
+  end if;
+
+  update public.refund_incident set status = 'paused' where id = i.id;
+  -- A refund the retry could not settle: the customer is told it is in progress, nothing more.
+  if exists (select 1 from jsonb_array_elements(v->'failed') f where f->>'kind' = 'stripe_failed_or_pending')
+     and exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'incident.fix'
+                   and a.detail->>'incident_id' = i.id::text and a.detail->>'fix' = 'retry_refund' and a.status in ('done', 'failed')) then
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.in_progress', 'transactions', t.id::text,
+      jsonb_build_object('transaction_id', t.id, 'customer_id', t.customer_id, 'inquiry_id', t.inquiry_id, 'quote_id', t.quote_id,
+                         'amount_aed', coalesce(t.total_charged, t.reveal_fee)));
+  end if;
+  perform public.fn_ceo_founder_summary('Refund mismatch still open: reveal #' || left(i.transaction_id::text, 8),
+    v_what || ' Tried: ' || coalesce(v_fixed, 'nothing automatic') || '. Still failing: '
+      || (select string_agg((f->>'item') || ' (' || coalesce(f->>'reason', '') || ')', '; ') from jsonb_array_elements(v->'failed') f)
+      || '. Refunds and supplier charges stay PAUSED.',
+    'refund_incident:' || i.id || ':paused');
+  return jsonb_build_object('moved', true, 'status', 'paused', 'failed', v->'failed');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_incident_fix_round(p_incident_id bigint, p_verify jsonb)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  i public.refund_incident; t public.transactions; v_kinds text[]; v_kind text; v_fix text; v_subject text; v_payload jsonb;
+  v_money jsonb; v_app numeric; v_act numeric; du public.supplier_dues; y record; v_new int := 0; v_fixes jsonb := '[]'::jsonb;
+begin
+  select * into i from public.refund_incident where id = p_incident_id;
+  select * into t from public.transactions where id = i.transaction_id;
+  select x->'evidence' into v_money from jsonb_array_elements(p_verify->'items') x where x->>'item' = 'money_moved_as_approved';
+  v_app := (v_money->>'approved_aed')::numeric; v_act := (v_money->>'actual_aed')::numeric;
+  select coalesce(array_agg(distinct x->>'kind'), '{}') into v_kinds from jsonb_array_elements(p_verify->'failed') x;
+  -- A refund that never settled is retried, never also topped up; a duplicate is cancelled first, and
+  -- only booked as a loss if Stripe will not cancel it.
+  if 'stripe_failed_or_pending' = any(v_kinds) then v_kinds := array_remove(v_kinds, 'under_refund'); end if;
+  if 'duplicate_refund' = any(v_kinds) then v_kinds := array_remove(v_kinds, 'over_refund'); end if;
+
+  foreach v_kind in array v_kinds loop
+    v_fix := case v_kind when 'under_refund' then 'refund_difference' when 'over_refund' then 'book_over_refund_loss'
+                         when 'stripe_failed_or_pending' then 'retry_refund' when 'duplicate_refund' then 'cancel_duplicate'
+                         when 'charge_missing' then 'raise_charge' when 'wrong_charge_unsent' then 'reissue_charge'
+                         when 'wrong_charge_sent' then 'reissue_charge' end;
+    if v_fix is not null then
+      v_subject := p_incident_id || ':' || v_fix || case when v_fix = 'reissue_charge' then ':' || v_kind else '' end;
+      continue when exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'accountant'
+                              and a.target_id = 'incident.fix:' || v_subject);
+      v_payload := jsonb_build_object('incident_id', p_incident_id, 'transaction_id', t.id, 'refund_id', i.refund_id, 'fix', v_fix,
+                                      'payment_ref', t.payment_ref, 'sent', v_kind = 'wrong_charge_sent');
+      if v_fix = 'refund_difference' then v_payload := v_payload || jsonb_build_object('amount_fils', round((v_app - v_act) * 100)::bigint); end if;
+      if v_fix = 'book_over_refund_loss' then v_payload := v_payload || jsonb_build_object('amount_aed', v_act - v_app); end if;
+      if v_fix = 'cancel_duplicate' then
+        v_payload := v_payload || jsonb_build_object('excess_aed', v_act - v_app,
+          'refund_ids', (select jsonb_agg(x.stripe_refund_id order by x.id) from public.refunds x
+                          where x.status = 'succeeded' and (x.transaction_id = t.id or x.stripe_payment_intent = t.payment_ref)));
+      end if;
+      perform public.fn_seat_handoff('ceo', 'accountant', 'incident.fix', 'refund_incident', v_subject, v_payload);
+      v_fixes := v_fixes || jsonb_build_object('kind', v_kind, 'fix', v_fix);
+      v_new := v_new + 1;
+
+    elsif v_kind = 'missed_handoff' then
+      -- THE CEO RE-TRIGGERS WHAT DID NOT HAPPEN. A sales-engineer handoff that finished without a
+      -- delivery behind it is superseded and sent again; a failed one never blocks a new one.
+      select * into du from public.supplier_dues where transaction_id = t.id and coalesce(status, '') <> 'cancelled' order by id limit 1;
+      for y in
+        select a.id from public.agent_actions a
+         where a.kind = 'handoff' and a.agent = 'sales_engineer' and a.status = 'done'
+           and ((a.target_id = 'refund.paid:' || t.id
+                 and not exists (select 1 from public.agent_actions b where b.kind = 'handoff' and b.agent = 'customer_support'
+                                   and b.target_id = 'delivery.request:refund_issued:' || t.id and b.status = 'done'
+                                   and coalesce((b.evidence->>'delivered')::boolean, false)))
+             or (du.id is not null and a.target_id = 'nonresponse.charge_raised:' || du.id
+                 and not exists (select 1 from public.agent_actions b where b.kind = 'handoff' and b.agent = 'customer_support'
+                                   and b.target_id = 'delivery.request:nonresponse_charge:' || du.id and b.status = 'done'
+                                   and coalesce((b.evidence->>'delivered')::boolean, false))))
+      loop
+        update public.agent_actions set status = 'failed', detail = detail || jsonb_build_object('superseded_by_incident', p_incident_id) where id = y.id;
+        -- its delivery request, if any, goes with it, so the new one is not deduplicated into the old
+        update public.agent_actions b set status = 'failed', detail = b.detail || jsonb_build_object('superseded_by_incident', p_incident_id)
+         where b.kind = 'handoff' and b.agent = 'customer_support' and b.status = 'done'
+           and b.target_id in ('delivery.request:refund_issued:' || t.id, 'delivery.request:nonresponse_charge:' || coalesce(du.id::text, '-'))
+           and not coalesce((b.evidence->>'delivered')::boolean, false);
+        v_new := v_new + 1;
+      end loop;
+      if not exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'sales_engineer'
+                       and a.target_id = 'refund.paid:' || t.id and a.status <> 'failed') then
+        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.paid', 'transactions', t.id::text,
+          jsonb_build_object('transaction_id', t.id, 'customer_id', t.customer_id, 'supplier_id', t.supplier_id, 'inquiry_id', t.inquiry_id,
+                             'quote_id', t.quote_id, 'revealed_at', t.revealed_at, 'amount_aed', coalesce(round(t.refund_amount_aed, 2), v_act)));
+        v_new := v_new + 1;
+      end if;
+      if du.id is not null
+         and not exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'sales_engineer'
+                           and a.target_id = 'nonresponse.charge_raised:' || du.id and a.status <> 'failed') then
+        perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.charge_raised', 'supplier_dues', du.id::text,
+          public.fn_accountant_nonresponse_charge(t.id, null)
+            || jsonb_build_object('due_id', du.id, 'transaction_id', t.id, 'supplier_id', t.supplier_id, 'inquiry_id', t.inquiry_id, 'quote_id', t.quote_id));
+        v_new := v_new + 1;
+      end if;
+      v_fixes := v_fixes || jsonb_build_object('kind', v_kind, 'fix', 'retriggered the handoffs that had no delivery behind them');
+    else
+      v_fixes := v_fixes || jsonb_build_object('kind', v_kind, 'fix', 'none automatic: stays paused for the CEO');
+    end if;
+  end loop;
+
+  update public.refund_incident
+     set fixes = fixes || v_fixes, kinds = (select array_agg(distinct k) from unnest(kinds || v_kinds) k)
+   where id = p_incident_id;
+  return v_new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_knowledge_search(p_query text, p_limit integer DEFAULT 8, p_kind text DEFAULT NULL::text, p_domain text DEFAULT NULL::text)
  RETURNS TABLE(record_id text, record_version text, record_kind text, title text, domain text, body text, body_sha256 text, source_ids text[], source_path text, review_status text, authority_effect text, contains_synthetic_example boolean, requires_current_verification boolean, relevance real, matched_how text, warning text)
  LANGUAGE plpgsql
@@ -18111,6 +18703,437 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_approval_checks_the_process()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_tx uuid; v jsonb;
+begin
+  if TG_TABLE_NAME = 'ceo_approval' then
+    if NEW.subject_kind <> 'refund' or NEW.decision <> 'approved' then return NEW; end if;
+    if coalesce(NEW.subject_id, '') !~ '^[0-9]+$' then
+      raise exception 'a refund approval names the refund by its id; % is not one', coalesce(NEW.subject_id, '(nothing)') using errcode = '23514';
+    end if;
+    select transaction_id into v_tx from public.refunds where id = NEW.subject_id::bigint;
+  else
+    if NEW.state <> 'ceo_authorized' or (TG_OP = 'UPDATE' and OLD.state = 'ceo_authorized') then return NEW; end if;
+    v_tx := NEW.transaction_id;
+  end if;
+  if v_tx is null then
+    raise exception 'the CEO may not approve a refund that names no payment' using errcode = '23514';
+  end if;
+  v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+  if not (v->>'ok')::boolean then
+    raise exception 'the CEO may not approve this refund: % check(s) failed — %', jsonb_array_length(v->'failed'),
+      (select string_agg((i->>'item') || ': ' || coalesce(i->>'reason', ''), ' | ') from jsonb_array_elements(v->'failed') i)
+      using errcode = '23514',
+            hint = 'Founder, 14 Sep 2026: the CEO''s approval exists to make sure the process was done correctly. fn_ceo_refund_review runs the checklist, records the evidence and sends each failure to the seat that owns it.';
+  end if;
+  return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_checklist(p_transaction_id uuid, p_phase text, p_record boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t public.transactions; r public.refunds; rs public.refunds; ap public.ceo_approval; du public.supplier_dues;
+  e_chase public.refund_ladder_evidence; e_final public.refund_ladder_evidence;
+  v_items jsonb := '[]'::jsonb; v_failed jsonb; v_ok boolean; v_cust text; v_total numeric; v_reason text; v_unresp boolean;
+  v_complaint timestamptz; v_in_time boolean; v_cc boolean; v_attached boolean; v_proofs int; v_live boolean; v_proof_ev jsonb;
+  v_prior boolean; v_hired boolean; v_rated boolean; v_offp boolean; v_excl text[] := '{}'; v_exp bigint;
+  v_succ int; v_succ_fils bigint; v_extra int; v_actual numeric; v_approved numeric; v_loss numeric; v_charge jsonb; v_sent boolean;
+  v_told boolean; v_sup_told boolean; v_kind text; v_rid bigint;
+begin
+  select * into t from public.transactions where id = p_transaction_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'phase', p_phase, 'transaction_id', p_transaction_id,
+      'failed', jsonb_build_array(jsonb_build_object('item', 'transaction_exists', 'passed', false, 'reason', 'no such transaction', 'remediable', false)));
+  end if;
+  select * into r from public.refunds where transaction_id = t.id and status not in ('rejected', 'cancelled', 'failed')
+     and lower(coalesce(requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe') order by id desc limit 1;
+  select lower(email) into v_cust from public.customers where id = t.customer_id;
+  v_total := coalesce(t.total_charged, t.reveal_fee);
+  v_reason := coalesce(r.reason_code, t.refund_reason, 'supplier_unresponsive');
+  v_unresp := v_reason = 'supplier_unresponsive';
+  select * into e_chase from public.refund_ladder_evidence e where e.transaction_id = t.id and e.step = 'chase' order by e.id desc limit 1;
+  select * into e_final from public.refund_ladder_evidence e where e.transaction_id = t.id and e.step = 'final_call' order by e.id desc limit 1;
+
+  if p_phase = 'approve' then
+    v_rid := r.id;
+    -- 1. The complaint, within 7 days, with proof.
+    v_complaint := least(t.customer_notified_at,
+                         (select min(x.requested_at) from public.refunds x where x.transaction_id = t.id and lower(coalesce(x.requested_by, '')) = 'customer'));
+    v_in_time := v_complaint is not null and v_complaint <= t.revealed_at + interval '7 days';
+    v_cc := exists (select 1 from public.inbound_messages im
+                     where v_cust is not null and lower(im.from_email) = v_cust and im.created_at > t.revealed_at
+                       and (im.to_email ilike 'supplier@%' or im.raw::text ilike '%supplier@mail.quotesdone.com%'));
+    v_attached := exists (select 1 from public.refund_ladder_evidence e where e.transaction_id = t.id and e.step = 'customer_proof');
+    v_items := v_items || jsonb_build_object('item', 'complaint_within_7_days_with_proof',
+      'passed', v_in_time and (v_cc or t.customer_notified_at is not null or v_attached),
+      'evidence', jsonb_build_object('revealed_at', t.revealed_at, 'complaint_at', v_complaint,
+        'customer_emailed_supplier_with_supplier_at_in_copy', v_cc, 'formal_notice_through_portal_at', t.customer_notified_at,
+        'proof_attached_by_sales_engineer', v_attached),
+      'reason', case when v_complaint is null then 'no complaint from the customer is recorded (no portal notice and no refund request of their own)'
+                     when not v_in_time then 'the complaint came ' || round(extract(epoch from (v_complaint - t.revealed_at)) / 86400.0, 1) || ' days after the reveal, beyond the 7 days the terms allow'
+                     else 'no proof: no email from the customer reached supplier@ in copy and no formal notice went through the portal' end,
+      'remedy', 'the sales engineer asks the customer to forward their email to the supplier with supplier@mail.quotesdone.com in copy',
+      'owner', 'sales_engineer', 'remedy_key', 'customer_proof', 'remediable', v_in_time, 'kind', 'process');
+
+    -- 2 and 3. The day-3 chase and the day-5 final call, as support reported them.
+    v_items := v_items || jsonb_build_object('item', 'day3_chase_happened',
+      'passed', e_chase.id is not null and e_chase.delivered,
+      'evidence', case when e_chase.id is null then '{}'::jsonb
+                       else jsonb_build_object('ladder_evidence_id', e_chase.id, 'result', e_chase.result, 'delivered', e_chase.delivered, 'delivery', e_chase.evidence) end,
+      'reason', case when e_chase.id is null then 'support has returned no result for a day-3 chase' else 'the day-3 chase was not delivered' end,
+      'remedy', 'the sales engineer has support deliver the chase again and watch every channel for a reply',
+      'owner', 'sales_engineer', 'remedy_key', 'chase', 'remediable', true, 'kind', 'process');
+    v_items := v_items || jsonb_build_object('item', 'day5_final_call_happened',
+      'passed', e_final.id is not null and e_final.delivered,
+      'evidence', case when e_final.id is null then '{}'::jsonb
+                       else jsonb_build_object('ladder_evidence_id', e_final.id, 'result', e_final.result, 'delivered', e_final.delivered, 'delivery', e_final.evidence) end,
+      'reason', case when e_final.id is null then 'support has returned no result for the day-5 final call' else 'the day-5 final call was not delivered' end,
+      'remedy', 'the sales engineer has support deliver the final call again and watch every channel for a reply',
+      'owner', 'sales_engineer', 'remedy_key', 'final_call', 'remediable', true, 'kind', 'process');
+
+    -- 4. The supplier did not respond to either party, on any channel.
+    select count(*), (array_agg(e.evidence order by e.id desc))[1] into v_proofs, v_proof_ev
+      from public.refund_ladder_evidence e where e.transaction_id = t.id and e.result = 'proof_of_response';
+    v_live := coalesce((public.fn_refund_state(t.id)->>'supplier_responded')::boolean, false)
+              or exists (select 1 from public.supplier_response_watch w where w.transaction_id = t.id and w.first_response_at is not null);
+    v_items := v_items || jsonb_build_object('item', 'supplier_never_responded',
+      'passed', v_proofs = 0 and not v_live
+                and coalesce(e_chase.result, '') = 'no_response_confirmation' and coalesce(e_chase.delivered, false)
+                and coalesce(e_final.result, '') = 'no_response_confirmation' and coalesce(e_final.delivered, false),
+      'evidence', jsonb_build_object('proofs_of_response', v_proofs, 'latest_proof', v_proof_ev, 'responded_by_live_record', v_live,
+                                     'chase_result', e_chase.result, 'final_call_result', e_final.result),
+      'reason', case when v_proofs > 0 or v_live then 'the supplier responded' || coalesce(': ' || (v_proof_ev->'reply')::text, '')
+                     else 'silence is not confirmed on both steps: a result is missing, or the delivery behind it failed' end,
+      'remedy', 'the sales engineer has support make the final call again and return proof or a confirmed no-response',
+      'owner', 'sales_engineer', 'remedy_key', 'final_call', 'remediable', v_proofs = 0 and not v_live, 'kind', 'process');
+
+    -- 5. None of the exclusions in the signed terms applies.
+    v_prior := exists (select 1 from public.transactions x where x.customer_id = t.customer_id and x.supplier_id = t.supplier_id
+                         and x.id <> t.id and x.revealed_at < t.revealed_at);
+    v_hired := exists (select 1 from public.inquiries i where i.id = t.inquiry_id and i.status in ('completed', 'closed') and i.hired_supplier_id = t.supplier_id);
+    v_rated := exists (select 1 from public.reviews v where v.transaction_id = t.id);
+    v_offp := coalesce(r.reason_note, '') ~* 'off.?platform'
+              or exists (select 1 from public.supplier_response_watch w where w.transaction_id = t.id and coalesce(w.close_reason, '') ~* 'off.?platform');
+    if not v_unresp then v_excl := v_excl || ('the reason is ' || v_reason || ', not supplier non-response (price dissatisfaction and a change of mind are not refundable)'); end if;
+    if v_prior then v_excl := v_excl || 'the customer revealed this same supplier before'::text; end if;
+    if v_hired then v_excl := v_excl || 'the customer completed the job with this supplier'::text; end if;
+    if v_rated then v_excl := v_excl || 'the customer already rated this supplier'::text; end if;
+    if v_offp then v_excl := v_excl || 'the customer engaged the supplier off the platform'::text; end if;
+    v_items := v_items || jsonb_build_object('item', 'no_refund_exclusion_applies',
+      'passed', cardinality(v_excl) = 0,
+      'evidence', jsonb_build_object('reason_code', v_reason, 'same_supplier_revealed_before', v_prior, 'job_completed_with_supplier', v_hired,
+                                     'supplier_rated', v_rated, 'off_platform_engagement_recorded', v_offp,
+                                     'supplier_responded', 'checked by supplier_never_responded'),
+      'reason', array_to_string(v_excl, '; '), 'remedy', 'none: an exclusion in the signed terms means the refund is declined',
+      'owner', 'sales_engineer', 'remedy_key', 'decline', 'remediable', false, 'kind', 'process');
+
+    -- 6. The amount is exactly what the customer paid.
+    v_exp := round(coalesce(v_total, 0) * 100)::bigint;
+    v_items := v_items || jsonb_build_object('item', 'amount_equals_total_charged',
+      'passed', r.id is not null and r.amount_fils = v_exp and v_exp > 0,
+      'evidence', jsonb_build_object('refund_id', r.id, 'refund_fils', r.amount_fils, 'total_charged_fils', v_exp,
+                                     'total_charged_recorded', t.total_charged is not null, 'stripe_reference', t.payment_ref),
+      'reason', case when r.id is null then 'there is no open refund request on this payment' else 'the refund amount is not what the customer paid' end,
+      'remedy', 'the accountant sets the refund to the payment''s total_charged',
+      'owner', 'accountant', 'remedy_key', 'amount', 'remediable', r.id is not null, 'kind', 'money');
+
+  elsif p_phase = 'verify' then
+    select count(*), coalesce(sum(x.amount_fils), 0) into v_succ, v_succ_fils
+      from public.refunds x
+     where x.status = 'succeeded' and (x.transaction_id = t.id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref));
+    -- A top-up the playbook issued is not a duplicate: its Stripe id is on the incident fix.
+    select count(*) into v_extra
+      from public.refunds x
+     where x.status = 'succeeded' and (x.transaction_id = t.id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref))
+       and not exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'incident.fix'
+                        and a.evidence->>'stripe_refund_id' = x.stripe_refund_id);
+    -- The platform refund the CEO approved, whatever state it reached. An external row Stripe reported
+    -- (a top-up, a dashboard refund) is never it.
+    select * into rs from public.refunds x where x.transaction_id = t.id
+       and lower(coalesce(x.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe') order by x.id desc limit 1;
+    v_rid := rs.id;
+    select * into ap from public.ceo_approval a where a.decision_id = rs.refund_decision_id;
+    v_actual := case when v_succ > 0 then round(v_succ_fils / 100.0, 2)
+                     when t.refund_status in ('refunded', 'succeeded') then t.refund_amount_aed end;
+    v_approved := coalesce(ap.amount_aed, v_total);
+    v_loss := coalesce((select sum(l.debit) from public.gl_journal g join public.gl_journal_lines l on l.journal_id = g.id
+                         where g.source = 'refund_over_loss' and g.source_ref like t.id::text || ':%' and l.account_code = '6900'), 0);
+
+    v_items := v_items || jsonb_build_object('item', 'ceo_approved_this_refund',
+      'passed', ap.decision_id is not null and ap.decision = 'approved' and ap.subject_id = v_rid::text and ap.superseded_by is null,
+      'evidence', jsonb_build_object('decision_id', ap.decision_id, 'decision', ap.decision, 'subject_id', ap.subject_id, 'refund_id', v_rid),
+      'reason', 'money moved without a CEO approval naming this refund', 'kind', 'moved_without_ceo_approval', 'remediable', false);
+
+    v_items := v_items || jsonb_build_object('item', 'stripe_refund_succeeded',
+      'passed', (v_succ > 0 and exists (select 1 from public.refunds x
+                                         where (x.transaction_id = t.id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref))
+                                           and x.status = 'succeeded' and x.stripe_refund_id is not null))
+                or (v_succ = 0 and t.refund_stripe_id is not null and t.refund_status in ('refunded', 'succeeded')),
+      'evidence', jsonb_build_object('refund_status', rs.status, 'stripe_refund_id', coalesce(rs.stripe_refund_id, t.refund_stripe_id), 'failure_reason', rs.failure_reason),
+      'reason', 'Stripe has not settled the refund (' || coalesce(rs.status, t.refund_status, 'unknown') || ')', 'kind', 'stripe_failed_or_pending', 'remediable', true);
+
+    v_kind := case when coalesce(v_actual, 0) = 0 then 'stripe_failed_or_pending'
+                   when v_approved is distinct from v_total then 'approved_amount_is_not_total_charged'
+                   when v_actual < v_approved then 'under_refund'
+                   when v_actual > v_approved then 'over_refund' end;
+    v_items := v_items || jsonb_build_object('item', 'money_moved_as_approved',
+      'passed', v_actual is not null and v_approved = v_total
+                and (v_actual = v_approved or (v_actual > v_approved and v_loss >= v_actual - v_approved)),
+      'evidence', jsonb_build_object('approved_aed', v_approved, 'actual_aed', v_actual, 'total_charged_aed', v_total,
+                                     'difference_aed', v_actual - v_approved, 'over_refund_loss_booked_aed', v_loss, 'settled_refunds', v_succ),
+      'reason', 'approved AED ' || coalesce(v_approved::text, '?') || ', refunded AED ' || coalesce(v_actual::text, 'nothing') || ', total charged AED ' || coalesce(v_total::text, '?'),
+      'kind', v_kind, 'remediable', true);
+
+    v_items := v_items || jsonb_build_object('item', 'no_duplicate_refund',
+      'passed', v_extra <= 1 or v_loss >= coalesce(v_actual - v_approved, 0),
+      'evidence', jsonb_build_object('settled_refunds_not_issued_by_a_fix', v_extra),
+      'reason', v_extra || ' refunds settled on one payment', 'kind', 'duplicate_refund', 'remediable', true);
+
+    -- What follows the money (the supplier's charge, the two messages) is checked only once money
+    -- actually moved; a refund Stripe has not settled is the retry's business, not a missed message.
+    if coalesce(v_actual, 0) > 0 and v_unresp then
+      select * into du from public.supplier_dues where transaction_id = t.id and coalesce(status, '') <> 'cancelled' order by id limit 1;
+      v_charge := public.fn_accountant_nonresponse_charge(t.id, null);
+      v_sent := du.id is not null and exists (
+        select 1 from public.agent_actions a join public.notifications n on n.id = (a.evidence->>'notification_id')::bigint
+         where a.kind = 'handoff' and a.agent = 'customer_support' and a.target_id = 'delivery.request:nonresponse_charge:' || du.id
+           and (n.status = 'sent' or n.sent_at is not null));
+      v_items := v_items || jsonb_build_object('item', 'supplier_charge_raised_correctly',
+        'passed', du.id is not null and coalesce((v_charge->>'ok')::boolean, false)
+                  and du.amount_due = (v_charge->>'refunded_aed')::numeric and du.admin_fee = (v_charge->>'admin_fee_aed')::numeric
+                  and du.due_date = (v_charge->>'due_date')::date,
+        'evidence', jsonb_build_object('due_id', du.id, 'charged', jsonb_build_object('amount_due', du.amount_due, 'admin_fee', du.admin_fee, 'due_date', du.due_date),
+                                       'expected', v_charge, 'charge_message_sent', v_sent),
+        'reason', case when du.id is null then 'no supplier charge was raised' else 'the supplier charge does not match the refund record' end,
+        'kind', case when du.id is null then 'charge_missing' when v_sent then 'wrong_charge_sent' else 'wrong_charge_unsent' end, 'remediable', true);
+    end if;
+
+    if coalesce(v_actual, 0) > 0 then
+    v_told := exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'sales_engineer'
+                        and a.target_id = 'refund.paid:' || t.id and a.status = 'done')
+              and exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'customer_support'
+                            and a.target_id = 'delivery.request:refund_issued:' || t.id and a.status = 'done'
+                            and coalesce((a.evidence->>'delivered')::boolean, false));
+    v_items := v_items || jsonb_build_object('item', 'customer_told',
+      'passed', v_told, 'evidence', jsonb_build_object('handoff', 'refund.paid:' || t.id, 'delivery', 'delivery.request:refund_issued:' || t.id),
+      'reason', 'the customer''s refund message was not handed off and delivered', 'kind', 'missed_handoff', 'remediable', true);
+    if v_unresp and du.id is not null then
+      v_sup_told := exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'sales_engineer'
+                              and a.target_id in ('nonresponse.charge_raised:' || du.id, 'charge.corrected:' || du.id) and a.status = 'done')
+                    and exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.agent = 'customer_support'
+                                  and a.target_id in ('delivery.request:nonresponse_charge:' || du.id, 'delivery.request:charge_corrected:' || du.id)
+                                  and a.status = 'done' and coalesce((a.evidence->>'delivered')::boolean, false));
+      v_items := v_items || jsonb_build_object('item', 'supplier_told',
+        'passed', v_sup_told, 'evidence', jsonb_build_object('handoff', 'nonresponse.charge_raised:' || du.id),
+        'reason', 'the supplier''s charge message was not handed off and delivered', 'kind', 'missed_handoff', 'remediable', true);
+    end if;
+    end if;
+  else
+    raise exception 'phase is approve or verify, not %', p_phase;
+  end if;
+
+  select coalesce(jsonb_agg(i), '[]'::jsonb) into v_failed from jsonb_array_elements(v_items) i where not coalesce((i->>'passed')::boolean, false);
+  v_ok := jsonb_array_length(v_failed) = 0;
+  if p_record then
+    insert into public.refund_ceo_check (transaction_id, refund_id, phase, item, passed, reason, evidence)
+    select t.id, v_rid, p_phase, i->>'item', coalesce((i->>'passed')::boolean, false),
+           case when coalesce((i->>'passed')::boolean, false) then null else i->>'reason' end, coalesce(i->'evidence', '{}'::jsonb)
+      from jsonb_array_elements(v_items) i;
+  end if;
+  return jsonb_build_object('ok', v_ok, 'phase', p_phase, 'transaction_id', t.id, 'refund_id', v_rid, 'items', v_items, 'failed', v_failed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_loop_advance(p_refund_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v public.refund_ceo_review;
+begin
+  select * into v from public.refund_ceo_review where refund_id = p_refund_id and outcome = 'rejected' order by cycle desc limit 1;
+  if not found or not v.sealed or v.rechecked_at is not null then return jsonb_build_object('moved', false); end if;
+  if exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'refund.remediate'
+               and a.detail->>'refund_id' = p_refund_id::text and (a.detail->>'cycle')::int = v.cycle and a.status <> 'done') then
+    return jsonb_build_object('moved', false, 'waiting', true, 'cycle', v.cycle);
+  end if;
+  if exists (select 1 from public.refund_ceo_review x where x.refund_id = p_refund_id and x.cycle > v.cycle) then
+    return jsonb_build_object('moved', false);
+  end if;
+  update public.refund_ceo_review set rechecked_at = now() where id = v.id;
+  return jsonb_build_object('moved', true, 'review', public.fn_ceo_refund_review(p_refund_id, 'remediation_closed'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_loop_sweep()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a record; v jsonb; n_closed int := 0; n_overdue int := 0; n_raised int := 0; x record;
+begin
+  for a in select * from public.agent_actions
+            where kind = 'handoff' and detail->>'type' = 'refund.remediate' and status = 'pending' order by id loop
+    v := public.fn_ceo_refund_checklist((a.detail->>'transaction_id')::uuid, 'approve', false);
+    if not exists (select 1 from jsonb_array_elements(v->'items') i
+                    where (a.detail->'checks') ? (i->>'item') and not coalesce((i->>'passed')::boolean, false)) then
+      perform public.fn_seat_handoff_complete(a.id, jsonb_build_object('resolved_by', 're-measured', 'checks', a.detail->'checks'));
+      n_closed := n_closed + 1;
+    elsif now() > (a.detail->>'deadline')::timestamptz and not (a.detail ? 'escalated_at') then
+      update public.agent_actions set detail = detail || jsonb_build_object('escalated_at', now()) where id = a.id;
+      perform public.fn_ceo_founder_summary('Refund task overdue: refund #' || (a.detail->>'refund_id'),
+        'The ' || a.agent || ' has not closed the CEO''s task on refund #' || (a.detail->>'refund_id') || ' (' || (a.detail->>'checks')
+          || ') by its deadline ' || to_char((a.detail->>'deadline')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY')
+          || '. The refund stays blocked. Refunds and supplier charges are ' || case when public.fn_refunds_paused() then 'PAUSED' else 'running' end || '.',
+        'refund_task_overdue:' || a.id);
+      n_overdue := n_overdue + 1;
+    end if;
+  end loop;
+
+  if not public.fn_refunds_paused() then
+    for x in select t.id from public.transactions t
+              where t.refund_status in ('refunded', 'succeeded') and t.refund_amount_aed is not null
+                and coalesce(t.refund_reason, 'supplier_unresponsive') = 'supplier_unresponsive'
+                and not exists (select 1 from public.supplier_dues d where d.transaction_id = t.id and coalesce(d.status, '') <> 'cancelled') loop
+      v := public.fn_accountant_raise_nonresponse_charge(x.id, true);
+      if coalesce((v->>'created')::boolean, false) then n_raised := n_raised + 1; end if;
+    end loop;
+  end if;
+  return jsonb_build_object('remediation_closed', n_closed, 'remediation_overdue', n_overdue, 'held_charges_raised', n_raised);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_mismatch_playbook(p_transaction_id uuid, p_verify jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_inc bigint; v_money jsonb; v_app numeric; v_act numeric;
+begin
+  -- (a) PAUSE. Every refund and charge path reads this.
+  update public.decision_policy set value = 'true'::jsonb, updated_at = now() where key = 'refunds_and_supplier_charges_paused';
+  -- (b) THE INCIDENT: approved vs actual vs difference.
+  select x->'evidence' into v_money from jsonb_array_elements(p_verify->'items') x where x->>'item' = 'money_moved_as_approved';
+  v_app := (v_money->>'approved_aed')::numeric; v_act := (v_money->>'actual_aed')::numeric;
+  insert into public.refund_incident (transaction_id, refund_id, approved_aed, actual_aed, difference_aed, status, evidence)
+  values (p_transaction_id, (p_verify->>'refund_id')::bigint, v_app, v_act, v_act - v_app, 'open', p_verify)
+  returning id into v_inc;
+  -- (c) FIX BY TYPE, then seal so no fix can close the incident before every fix exists.
+  perform public.fn_ceo_incident_fix_round(v_inc, p_verify);
+  update public.refund_incident set sealed = true where id = v_inc;
+  -- (d) and (e): re-run the checklist; resume only when green; tell the founder.
+  return jsonb_build_object('incident_id', v_inc, 'advance', public.fn_ceo_incident_advance(v_inc, 0));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_review(p_refund_id bigint, p_trigger text DEFAULT 'manual'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.refunds; v jsonb; v_cycle int; v_nonrem jsonb; v_rev bigint; v_dec bigint; x record; v_task bigint;
+  v_tasks jsonb := '[]'::jsonb; v_rat text; v_deadline timestamptz; v_chase int; v_adv jsonb;
+begin
+  select * into r from public.refunds where id = p_refund_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such refund'); end if;
+  if r.status <> 'requested' then return jsonb_build_object('ok', false, 'reason', 'refund is ' || r.status || '; the CEO reviews only an open request'); end if;
+  if r.refund_decision_id is not null then return jsonb_build_object('ok', true, 'outcome', 'already_approved', 'decision_id', r.refund_decision_id); end if;
+  if exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'refund.remediate'
+               and a.detail->>'refund_id' = r.id::text and a.status = 'pending') then
+    return jsonb_build_object('ok', false, 'outcome', 'waiting_on_remediation');
+  end if;
+
+  select coalesce(max(cycle), 0) + 1 into v_cycle from public.refund_ceo_review where refund_id = r.id;
+  v := public.fn_ceo_refund_checklist(r.transaction_id, 'approve', true);
+
+  if (v->>'ok')::boolean then
+    v_rat := 'Cycle ' || v_cycle || ': every pre-approval check passed ('
+          || (select string_agg(i->>'item', ', ') from jsonb_array_elements(v->'items') i) || '). Evidence: refund_ceo_check for this transaction.';
+    insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, amount_aed, rationale)
+    values ('refund', r.id::text, 'approved', 'ceo', round(r.amount_fils / 100.0, 2), v_rat) returning decision_id into v_dec;
+    update public.refunds set refund_decision_id = v_dec, decided_by = 'ceo', decided_at = now(), decision_note = v_rat where id = r.id;
+    insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, decision_id, trigger, sealed)
+    values (r.id, r.transaction_id, v_cycle, 'approved', v_dec, p_trigger, true);
+    return jsonb_build_object('ok', true, 'outcome', 'approved', 'cycle', v_cycle, 'decision_id', v_dec);
+  end if;
+
+  select coalesce(jsonb_agg(i), '[]'::jsonb) into v_nonrem from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false);
+  if jsonb_array_length(v_nonrem) > 0 then
+    v_rat := 'Declined: ' || (select string_agg((i->>'item') || ' — ' || coalesce(i->>'reason', ''), '; ') from jsonb_array_elements(v_nonrem) i);
+    insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, amount_aed, rationale)
+    values ('refund', r.id::text, 'refused', 'ceo', round(r.amount_fils / 100.0, 2), left(v_rat, 2000)) returning decision_id into v_dec;
+    insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, decision_id, trigger, sealed)
+    values (r.id, r.transaction_id, v_cycle, 'declined', v->'failed', v_dec, p_trigger, true);
+    perform public.fn_refund_decide(r.id, false, 'ceo', left(v_rat, 900));
+    return jsonb_build_object('ok', true, 'outcome', 'declined', 'cycle', v_cycle, 'reason', v_rat);
+  end if;
+
+  if v_cycle > 3 then
+    insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, trigger, sealed)
+    values (r.id, r.transaction_id, v_cycle, 'escalated', v->'failed', p_trigger, true);
+    perform public.fn_ceo_founder_summary('Refund approval loop stuck: refund #' || r.id,
+      'The CEO rejected refund #' || r.id || ' three times and these checks still fail: '
+        || (select string_agg((i->>'item') || ' (' || coalesce(i->>'reason', '') || ')', '; ') from jsonb_array_elements(v->'failed') i)
+        || '. No money moves until they pass. Refunds and supplier charges are ' || case when public.fn_refunds_paused() then 'PAUSED' else 'running' end || '.',
+      'refund_loop_stuck:' || r.id);
+    return jsonb_build_object('ok', false, 'outcome', 'escalated', 'cycle', v_cycle);
+  end if;
+
+  insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, trigger)
+  values (r.id, r.transaction_id, v_cycle, 'rejected', v->'failed', p_trigger) returning id into v_rev;
+  select chase_after_working_days into v_chase from public.pricing_config order by id limit 1;
+  v_deadline := public.fn_add_working_days(now(), coalesce(v_chase, 3));
+  for x in
+    select i->>'owner' as owner, i->>'remedy_key' as rk, jsonb_agg(i->>'item') as checks, jsonb_agg(i) as items
+      from jsonb_array_elements(v->'failed') i group by 1, 2 order by 1, 2
+  loop
+    v_task := public.fn_seat_handoff('ceo', x.owner, 'refund.remediate', 'refunds', r.id || ':c' || v_cycle || ':' || x.rk,
+      jsonb_build_object('refund_id', r.id, 'transaction_id', r.transaction_id, 'cycle', v_cycle, 'review_id', v_rev,
+                         'remedy_key', x.rk, 'checks', x.checks, 'items', x.items, 'deadline', v_deadline));
+    v_tasks := v_tasks || jsonb_build_object('handoff_id', v_task, 'owner', x.owner, 'checks', x.checks);
+  end loop;
+  update public.refund_ceo_review set sealed = true, tasks = v_tasks where id = v_rev;
+  v_adv := public.fn_ceo_refund_loop_advance(r.id);
+  return jsonb_build_object('ok', false, 'outcome', 'rejected', 'cycle', v_cycle, 'tasks', v_tasks, 'advance', v_adv);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_verify(p_transaction_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; v_inc bigint;
+begin
+  -- An incident already open on this payment owns the re-verification: it re-runs the checklist and
+  -- either closes (and resumes) or stays paused. A second incident on the same money is never opened.
+  select id into v_inc from public.refund_incident i
+   where i.transaction_id = p_transaction_id and i.status in ('open', 'paused') order by id desc limit 1;
+  if v_inc is not null then
+    return jsonb_build_object('incident', v_inc, 'advance', public.fn_ceo_incident_advance(v_inc, 0));
+  end if;
+  v := public.fn_ceo_refund_checklist(p_transaction_id, 'verify', true);
+  if (v->>'ok')::boolean then return v; end if;
+  return v || jsonb_build_object('incident', public.fn_ceo_refund_mismatch_playbook(p_transaction_id, v));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_request_decision(p_case_id bigint, p_subject text, p_evidence jsonb, p_recommendation text, p_idempotency_key text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -18159,12 +19182,12 @@ begin
         -- WHAT IT DID: every run, and every run that failed. Same source for all five, so the
         -- comparison between seats is honest.
         'runs',        (select count(*) from agent_runs r
-                         where regexp_replace(r.agent,'^fn:','') = s.seat and r.started_at >= v_from),
+                         where public.fn_run_seat(r.agent) = s.seat and r.started_at >= v_from),
         'errors',      (select count(*) from agent_runs r
-                         where regexp_replace(r.agent,'^fn:','') = s.seat
+                         where public.fn_run_seat(r.agent) = s.seat
                            and r.status = 'error' and r.started_at >= v_from),
         'last_seen',   (select max(r.started_at) from agent_runs r
-                         where regexp_replace(r.agent,'^fn:','') = s.seat),
+                         where public.fn_run_seat(r.agent) = s.seat),
 
         -- WHAT IS WAITING ON IT: work assigned and not finished. This is the half the CEO had no
         -- sight of at all.
@@ -20209,6 +21232,16 @@ begin
     select pm.created_at, 'message', 'portal_chat', case when pm.customer_id = any (v_cust) and pm.sender = 'customer' then 'in' else 'out' end,
            'sales_engineer', pm.id::text, left(coalesce(pm.redacted_body, ''), 140)
       from public.messages pm where pm.customer_id = any (v_cust) or pm.supplier_id = any (v_lead)
+    -- every handoff between the seats about this party (payments_are_the_accountant_and_it_talks_to_the_
+    -- sales_engineer.sql): who handed what to whom, and where it stands, so support reads the money and
+    -- the refund loops before it answers
+    union all
+    select a.created_at, 'handoff', 'internal', 'internal', a.agent, a.id::text,
+           coalesce(a.detail->>'type', a.kind) || ' from ' || coalesce(a.detail->>'from', '?') || ' to ' || a.agent || ': ' || a.status
+      from public.agent_actions a
+     where a.kind = 'handoff'
+       and ((a.detail->>'customer_id') = any (v_cust::text[]) or (a.detail->>'supplier_id') = any (v_lead::text[])
+            or (a.detail->>'transaction_id') = any (v_txn::text[]) or (a.detail->>'refund_id') = any (v_ref::text[]))
     union all
     select cm.created_at, 'message', 'contact_form', 'in', 'customer_support', cm.id::text, left(coalesce(cm.message, ''), 140)
       from public.contact_messages cm
@@ -21301,6 +22334,155 @@ begin
     'your_rating_dimensions', case when v_reviews > 0 then v_dims end,
     'components', v_parts,
     'platform_wide', coalesce(v_global, 'null'::jsonb));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_acts_on_handoff(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions; d jsonb; v_ar boolean; v_subject text; v_body text; v_nid bigint; v_fan jsonb; v_cc text[]; v_res jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  d := a.detail;
+  if d->>'type' <> 'delivery.request' then raise exception 'customer_support has no handler for %', d->>'type'; end if;
+
+  if d->>'recipient_role' = 'founder' then
+    -- A TEST NEVER REACHES HIM. The fixture ladder sets app.qd_stub_founder_notify; the probe also
+    -- aborts its transaction, so even the queued rows are never committed.
+    if coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on' then
+      return jsonb_build_object('channel', 'founder', 'stubbed', true, 'event', d->>'event');
+    end if;
+    v_res := public.fn_notify_founder(d->>'event', d->>'detail', coalesce(d->>'level', 'high'), d->>'kind', d->>'dedupe_key', 'customer_support');
+    return jsonb_build_object('channel', 'founder', 'notify', v_res);
+  end if;
+
+  if a.detail->>'from' <> 'sales_engineer' then
+    raise exception 'only the sales engineer addresses customers and suppliers; % may address the founder only', a.detail->>'from';
+  end if;
+  if coalesce(d->>'to_email', '') !~ '@' then
+    return jsonb_build_object('delivered', false, 'reason', 'no email address on file for the ' || coalesce(d->>'recipient_role', 'recipient'));
+  end if;
+
+  v_ar := d->>'locale' = 'ar' and d->>'body_ar' is not null;
+  v_subject := case when v_ar then coalesce(d->>'subject_ar', d->>'subject_en') else d->>'subject_en' end;
+  v_body    := case when v_ar then d->>'body_ar' else d->>'body_en' end;
+  select coalesce(array_agg(x), '{}') into v_cc from jsonb_array_elements_text(coalesce(d->'cc', '[]'::jsonb)) x;
+
+  -- requested_by names the seat that asked (customer_support_is_the_only_sender_on_email_and_whatsapp.sql);
+  -- sender stays customer_support by that file's default and check.
+  insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
+  values (d->>'msg_type', d->>'msg_type', d->>'to_email', v_cc, d->>'recipient_role',
+          (d->>'supplier_id')::bigint, (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid, 'email', v_subject, v_body, 'queued',
+          a.detail->>'from')
+  returning id into v_nid;
+  select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
+   where n.channel = 'whatsapp' and n.type = d->>'msg_type' and n.id > v_nid
+     and n.to_email = d->>'to_email' and n.created_at >= now() - interval '1 minute';
+
+  return jsonb_build_object('delivered', true, 'queued_at', now(), 'notification_id', v_nid, 'whatsapp_ids', v_fan,
+                            'language', case when v_ar then 'ar' else 'en' end,
+                            'watch_until', d->'watch_until', 'watching', (d->>'watch_until') is not null);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_delivery_watch(p_request_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  q record; n public.notifications; tx public.transactions; sup record; v_since timestamptz;
+  v_reply jsonb; v_result text; v_evidence jsonb; v_retries int; v_nid bigint; v_done int := 0; v_waiting int := 0; v_retried int := 0;
+begin
+  for q in
+    select a.* from public.agent_actions a
+     where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'done'
+       and a.detail->>'type' = 'delivery.request' and (a.detail->>'watch_until') is not null
+       and (a.detail->>'result_handoff_id') is null
+       and (p_request_id is null or a.id = p_request_id)
+     order by a.id
+  loop
+    v_nid := coalesce((q.detail->>'retry_notification_id')::bigint, (q.evidence->>'notification_id')::bigint);
+    select * into n from public.notifications where id = v_nid;
+    select * into tx from public.transactions where id = (q.detail->>'transaction_id')::uuid;
+    select l.id, lower(coalesce(l.claimed_by, l.email)) as email,
+           regexp_replace(coalesce(nullif(btrim(l.whatsapp), ''), l.phone_e164, l.phone, ''), '[^0-9]', '', 'g') as phone
+      into sup from public.leads l where l.id = (q.detail->>'supplier_id')::bigint;
+    v_since := coalesce(tx.revealed_at, q.created_at);
+    v_retries := coalesce((q.detail->>'retries')::int, 0);
+
+    -- ANY CHANNEL, EVERY TIME. The first thing that came back wins.
+    select jsonb_build_object('channel', ch, 'at', at, 'ref', ref) into v_reply from (
+      select 'portal' ch, m.created_at at, 'messages#' || m.id ref from public.messages m
+       where tx.id is not null and m.inquiry_id = tx.inquiry_id and m.supplier_id = tx.supplier_id
+         and m.sender = 'supplier' and coalesce(m.blocked, false) = false and m.created_at > v_since
+      union all
+      select 'supplier_ack', tx.supplier_ack_at, 'transactions.supplier_ack_at' where tx.supplier_ack_at > v_since
+      union all
+      select coalesce(w.response_channel, 'recorded'), w.first_response_at, coalesce(w.response_ref, 'supplier_response_watch#' || w.id)
+        from public.supplier_response_watch w where tx.id is not null and w.transaction_id = tx.id and w.first_response_at > v_since
+      union all
+      select 'email', im.created_at, 'inbound_messages#' || im.id from public.inbound_messages im
+       where sup.email is not null and lower(im.from_email) = sup.email and im.created_at > v_since
+      union all
+      select 'whatsapp', wm.created_at, 'wa_messages#' || wm.id from public.wa_messages wm
+       where length(coalesce(sup.phone, '')) >= 8 and regexp_replace(coalesce(wm.wa_from, ''), '[^0-9]', '', 'g') = sup.phone
+         and wm.created_at > v_since
+      order by 2 limit 1) z;
+
+    if v_reply is not null and q.detail->>'recipient_role' = 'supplier' then
+      v_result := 'proof_of_response';
+      v_evidence := jsonb_build_object('reply', v_reply);
+    elsif n.id is null or n.status in ('failed', 'bounced', 'error') then
+      if v_retries < 1 and n.id is not null then
+        insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
+        values (n.type, n.kind, n.to_email, n.cc_emails, n.to_role, n.lead_id, n.inquiry_id, n.quote_id, 'email', n.subject, n.body, 'queued', n.requested_by)
+        returning id into v_nid;
+        update public.agent_actions
+           set detail = detail || jsonb_build_object('retries', v_retries + 1, 'retry_notification_id', v_nid,
+                                                     'first_failure', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error))
+         where id = q.id;
+        perform public.fn_seat_handoff_event(q.id, 'retried');
+        v_retried := v_retried + 1;
+        continue;
+      end if;
+      v_result := 'no_response_confirmation';
+      v_evidence := jsonb_build_object('delivered', false, 'retries', v_retries,
+        'delivery', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error),
+        'first_failure', q.detail->'first_failure');
+    elsif now() >= (q.detail->>'watch_until')::timestamptz then
+      v_result := 'no_response_confirmation';
+      v_evidence := jsonb_build_object('delivered', n.status = 'sent' or n.sent_at is not null,
+        'delivery', jsonb_build_object('notification_id', n.id, 'status', n.status, 'sent_at', n.sent_at,
+                                       'provider_message_id', n.provider_message_id, 'attempts', n.attempts),
+        'whatsapp', (select coalesce(jsonb_agg(jsonb_build_object('notification_id', w.id, 'status', w.status, 'sent_at', w.sent_at,
+                                                                  'provider_message_id', w.provider_message_id)), '[]'::jsonb)
+                       from public.notifications w
+                      where w.id in (select (x)::bigint from jsonb_array_elements_text(coalesce(q.evidence->'whatsapp_ids', '[]'::jsonb)) x)),
+        'window_closed_at', q.detail->'watch_until',
+        'channels_checked', jsonb_build_array('portal', 'supplier_ack', 'recorded_reply', 'email', 'whatsapp'));
+    else
+      v_waiting := v_waiting + 1;
+      continue;
+    end if;
+
+    update public.agent_actions set detail = detail || jsonb_build_object('result', v_result) where id = q.id;
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('result_handoff_id',
+             public.fn_seat_handoff('customer_support', 'sales_engineer', 'delivery.result', 'agent_actions', q.id::text,
+               jsonb_build_object('request_id', q.id, 'result', v_result, 'evidence', v_evidence,
+                                  'step', q.detail->>'step', 'refund_id', q.detail->>'refund_id',
+                                  'transaction_id', q.detail->>'transaction_id', 'supplier_id', q.detail->>'supplier_id',
+                                  'remediation_id', q.detail->>'remediation_id')))
+     where id = q.id;
+    v_done := v_done + 1;
+  end loop;
+  return jsonb_build_object('results_returned', v_done, 'still_watching', v_waiting, 'retried', v_retried);
 end $function$
 
 
@@ -24030,6 +25212,32 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_external_refund_is_verified()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_tx uuid;
+begin
+  if NEW.status <> 'succeeded' or (TG_OP = 'UPDATE' and OLD.status = 'succeeded') then return NEW; end if;
+  if lower(coalesce(NEW.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe') then return NEW; end if;
+  v_tx := coalesce(NEW.transaction_id,
+                   (select t.id from public.transactions t
+                     where coalesce(NEW.stripe_payment_intent, '') <> '' and t.payment_ref = NEW.stripe_payment_intent limit 1));
+  if v_tx is not null then
+    begin
+      perform public.fn_ceo_refund_verify(v_tx);
+    exception when others then
+      insert into public.ceo_task (title, detail)
+      values (left('A refund Stripe reported on reveal ' || left(v_tx::text, 8) || ' could not be verified', 200),
+              'fn_ceo_refund_verify raised: ' || sqlerrm || '. Stripe refund ' || coalesce(NEW.stripe_refund_id, '?') || ' is recorded.');
+    end;
+  end if;
+  return NEW;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_faq_answer(p_text text, p_min_rank numeric DEFAULT 0.15, p_embedding vector DEFAULT NULL::vector, p_min_similarity numeric DEFAULT 0.86)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -24973,14 +26181,14 @@ begin
 
   -- 1) Reveal-fee revenue with Stripe fee split (refunded transactions excluded)
   for r in
-    select id, reveal_fee, coalesce(revealed_at::date, current_date) as d
+    select id, reveal_fee, total_charged, processing_fee, stripe_fee_fils, coalesce(revealed_at::date, current_date) as d
     from public.transactions
     where fee_status='paid' and coalesce(reveal_fee,0) > 0
-      and coalesce(refund_status,'') not in ('refunded','refund_approved')
+      and coalesce(refund_status,'') not in ('refunded','refund_approved','succeeded')
       and not exists (select 1 from public.gl_journal g where g.source='reveal_fee' and g.source_ref=transactions.id::text)
   loop
-    gross := round(r.reveal_fee,2);
-    fee   := round(gross*fee_pct/100 + fee_fixed, 2);
+    gross := round(coalesce(r.total_charged, r.reveal_fee),2);
+    fee   := coalesce(round(r.stripe_fee_fils / 100.0, 2), r.processing_fee, round(gross*fee_pct/100 + fee_fixed, 2));
     if fee >= gross then fee := 0; end if;
     net   := gross - fee;
     perform public.fn_gl_entry(r.d, 'Reveal fee (net of Stripe fee)', 'reveal_fee', r.id::text,
@@ -24997,22 +26205,38 @@ begin
     n := n + 1;
   end loop;
 
-  -- 1b) REFUND PAID OUT TO THE CUSTOMER (previously never posted at all).
-  -- If revenue was booked before the refund, this also reverses its effect on the P&L.
+  -- 1b) REFUND PAID OUT: everything the customer paid (total_charged) goes back. Stripe keeps its
+  --     processing fee and QuotesDone absorbs it (founder, 14 Sep 2026). 'succeeded' is the status the
+  --     refunds-table path writes, and it was missing here, so a Stripe-settled refund never posted.
+  --     If the sale was booked, the refund reverses it through 6900 and the fee booked at sale stays in
+  --     6100 as the absorbed cost. If it was not, the only real movement is the fee: 6100 / 1050.
   for r in
-    select t.id, coalesce(t.reveal_fee, t.app_fee, 0) as amt,
+    select t.id, coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0) as amt,
+           coalesce(round(t.stripe_fee_fils / 100.0, 2), t.processing_fee, round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0)*fee_pct/100 + fee_fixed, 2)) as fee_absorbed,
+           exists (select 1 from public.gl_journal g where g.source='reveal_fee' and g.source_ref=t.id::text) as sale_booked,
            coalesce(t.refund_resolved_at::date, t.revealed_at::date, current_date) as d
     from public.transactions t
-    where coalesce(t.refund_status,'') in ('refunded','refund_approved')
-      and coalesce(coalesce(t.reveal_fee, t.app_fee), 0) > 0
+    where coalesce(t.refund_status,'') in ('refunded','refund_approved','succeeded')
+      and coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='refund_paid' and g.source_ref=t.id::text)
   loop
     gross := round(r.amt,2);
-    perform public.fn_gl_entry(r.d, 'Reveal fee refunded to customer (paid from our balance)',
-      'refund_paid', r.id::text,
-      jsonb_build_array(jsonb_build_object('account','6900','debit',gross),
-                        jsonb_build_object('account','1050','credit',gross)), 'gl_sync');
-    n := n + 1;
+    if r.sale_booked then
+      perform public.fn_gl_entry(r.d, 'Reveal charge refunded in full to the customer; the Stripe fee booked at sale stays in 6100, absorbed',
+        'refund_paid', r.id::text,
+        jsonb_build_array(jsonb_build_object('account','6900','debit',gross),
+                          jsonb_build_object('account','1050','credit',gross)), 'gl_sync');
+      n := n + 1;
+    else
+      fee := least(round(coalesce(r.fee_absorbed,0),2), gross);
+      if fee > 0 then
+        perform public.fn_gl_entry(r.d, 'Stripe processing fee absorbed on a reveal refunded in full before its sale was booked',
+          'refund_paid', r.id::text,
+          jsonb_build_array(jsonb_build_object('account','6100','debit',fee),
+                            jsonb_build_object('account','1050','credit',fee)), 'gl_sync');
+        n := n + 1;
+      end if;
+    end if;
   end loop;
 
   -- 2) Clawback RAISED on the supplier. Credits 6900 (recovering the refund), NOT 4100.
@@ -29234,62 +30458,43 @@ CREATE OR REPLACE FUNCTION public.fn_notify_supplier(p_transaction uuid, p_actor
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare t record; st jsonb; sup record; cust_email text; v_subject text; v_body text;
-        v_window int; v_final_at timestamptz; v_fee numeric;
+declare t record; st jsonb; sup record; cust_email text; v_window int; v_final_at timestamptz; v_amt numeric; v_req bigint;
 begin
   st := public.fn_refund_state(p_transaction);
   if st ? 'error' then return st; end if;
   if (st->>'can_notify') <> 'true' then
-    return jsonb_build_object('ok', false, 'error', 'not_available', 'state', st->>'state',
-                              'notify_available_at', st->>'notify_available_at');
+    return jsonb_build_object('ok', false, 'error', 'not_available', 'state', st->>'state', 'notify_available_at', st->>'notify_available_at');
   end if;
-
-  select * into t from transactions where id = p_transaction;
-  select company_name, coalesce(claimed_by, email) as email into sup from leads where id = t.supplier_id;
-  select email into cust_email from customers where id = t.customer_id;
+  select * into t from public.transactions where id = p_transaction;
+  select company_name, coalesce(claimed_by, email) as email into sup from public.leads where id = t.supplier_id;
+  select email into cust_email from public.customers where id = t.customer_id;
   v_window   := coalesce((st->>'refund_window_working_days')::int, 5);
   v_final_at := (st->>'founder_call_due_at')::timestamptz;
-  v_fee      := round(coalesce(t.reveal_fee, 0), 2);
+  v_amt      := round(coalesce(t.total_charged, t.reveal_fee, 0), 2);
 
-  -- The customer's own formal notice. It does NOT move the ladder: the window is fixed at
-  -- pricing_config.refund_window_working_days from payment (founder, 6 Sep 2026).
-  v_subject := 'Awaiting your response — QuotesDone reveal #' || left(t.id::text, 8);
-  v_body :=
-    'Hello,' || chr(10) || chr(10) ||
-    'A customer paid to reveal your contact details on QuotesDone on ' ||
-      to_char(t.revealed_at at time zone 'Asia/Dubai','DD Mon YYYY') ||
-      ' and has not yet heard from you. The customer is copied on this email so you can simply reply to all and pick it up here.' || chr(10) || chr(10) ||
-    'Under the Supplier Agreement you must respond within ' || v_window::text || ' working days of the reveal, that is by ' ||
-      to_char(v_final_at at time zone 'Asia/Dubai','DD Mon YYYY') || '. If we have not seen a response by then, the case goes to our founder for a final call and the customer''s reveal fee is refunded. ' ||
-    'Under the supplier terms that refund is then recovered from your account: the reveal fee (AED ' || v_fee::text ||
-      '), an administrative fee of AED 250 and interest at 9% per annum until it is settled, and matching is paused until it is paid.' || chr(10) || chr(10) ||
-    'If you have already been in touch with this customer, reply here and we will close this off.' || chr(10) || chr(10) ||
-    'QuotesDone';
+  -- The customer's own formal notice, in the sales engineer's voice, delivered by support. It does
+  -- NOT move the ladder: the window is fixed from payment (founder, 6 Sep 2026).
+  v_req := public.fn_sales_engineer_writes('reveal_no_response_notice', 'supplier', sup.email, t.supplier_id, null, t.inquiry_id, t.quote_id,
+    'Awaiting your response — QuotesDone reveal #' || left(t.id::text, 8),
+    'Hello,' || E'\n\n'
+      || 'A customer paid to reveal your contact details on QuotesDone on ' || to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY')
+      || ' and has not yet heard from you. The customer is copied on this email so you can simply reply to all and pick it up here.' || E'\n\n'
+      || 'Under the Supplier Agreement you must respond within ' || v_window || ' working days of the reveal, that is by '
+      || to_char(v_final_at at time zone 'Asia/Dubai', 'DD Mon YYYY') || '. If we have not seen a response by then, our chief executive decides the case and the customer is refunded everything they paid (AED '
+      || v_amt || '). Under the supplier terms that amount is then recovered from your account, with an administrative fee of AED 250 and interest at 9% per annum until it is settled, and matching is paused until it is paid.' || E'\n\n'
+      || 'If you have already been in touch with this customer, reply here and we will close this off.',
+    'بانتظار ردّك — QuotesDone',
+    'دفع عميل للكشف عن بيانات التواصل معك ولم يتلقَّ ردًّا بعد، والعميل في نسخة هذه الرسالة. يجب الرد خلال ' || v_window
+      || ' أيام عمل من الكشف، وإلا يُردّ للعميل كامل ما دفعه (' || v_amt || ' درهم) ويُسترد من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا.',
+    array_remove(array[cust_email], null), 'customer_notice:' || t.id, null,
+    jsonb_build_object('step', 'customer_notice', 'transaction_id', t.id));
 
-  insert into notifications(type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, channel, subject, body, status)
-  values ('reveal_no_response_notice', 'refund_ladder_notice', sup.email,
-          array_remove(array[cust_email], null),
-          'supplier', t.supplier_id, t.inquiry_id, 'email', v_subject, v_body, 'queued');
-
-  update transactions
-     set customer_notified_at = now(),
-         refund_deadline = coalesce(refund_deadline, v_final_at)
+  update public.transactions
+     set customer_notified_at = now(), refund_deadline = coalesce(refund_deadline, v_final_at)
    where id = p_transaction;
 
-  insert into agent_actions(agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('customer_success','supplier_unresponsive','needs_review','high',
-          'Supplier not responding after a paid reveal: ' || coalesce(sup.company_name,'#'||t.supplier_id),
-          'Customer has formally notified them. The ladder sweep chases at day ' || (st->>'chase_after_working_days') ||
-            ' and files the refund for the founder''s final call at day ' || v_window::text || '; a refund may only be approved once that has elapsed.',
-          jsonb_build_object('transaction_id', t.id, 'supplier_id', t.supplier_id,
-                             'inquiry_id', t.inquiry_id, 'notified_at', now(),
-                             'chase_due_at', st->'chase_due_at',
-                             'founder_call_due_at', v_final_at),
-          'transactions', t.id::text);
-
-  return jsonb_build_object('ok', true, 'notified_at', now(),
-                            'recipients', jsonb_build_array(sup.email, cust_email),
-                            'founder_call_due_at', v_final_at,
+  return jsonb_build_object('ok', true, 'notified_at', now(), 'recipients', jsonb_build_array(sup.email, cust_email),
+                            'founder_call_due_at', v_final_at, 'delivery_request', v_req,
                             'state', public.fn_refund_state(p_transaction));
 end $function$
 
@@ -32825,16 +34030,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -33005,6 +34200,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -34332,7 +35537,7 @@ begin
       NEW.transaction_id using errcode = '23503';
   end if;
 
-  if t.reveal_fee is null or t.reveal_fee <= 0 then
+  if coalesce(t.total_charged, t.reveal_fee) is null or coalesce(t.total_charged, t.reveal_fee) <= 0 then
     raise exception 'refunds: transaction % records no reveal fee (reveal_fee %), so there is nothing to give back. A refund of an unpaid reveal is a payment, not a refund. (refund_no_fee_was_paid)',
       NEW.transaction_id, coalesce(t.reveal_fee::text,'null') using errcode = '23514';
   end if;
@@ -34371,14 +35576,14 @@ begin
   -- whole or not at all, so "cannot exceed what the payment took" is enforced by the stricter rule
   -- that it must EQUAL it. A platform refund with no amount is refused outright -- an unstated
   -- figure is not a smaller figure, it is an unbounded one.
-  v_expected := round(t.reveal_fee * 100)::bigint;
+  v_expected := round(coalesce(t.total_charged, t.reveal_fee) * 100)::bigint;
   if NEW.amount_fils is null then
     raise exception 'refunds: a platform refund must state its amount. Transaction % took % fils (AED %), and that is the only figure this refund may carry. (refund_states_no_amount)',
-      NEW.transaction_id, v_expected, round(t.reveal_fee,2) using errcode = '23514';
+      NEW.transaction_id, v_expected, round(coalesce(t.total_charged, t.reveal_fee),2) using errcode = '23514';
   end if;
   if NEW.amount_fils <> v_expected then
-    raise exception 'refunds: the amount must equal the reveal fee the customer actually paid on transaction % — expected % fils (AED %), got % fils (AED %). A refund figure is read off the payment, never typed. (refund_amount_is_not_the_fee_paid)',
-      NEW.transaction_id, v_expected, round(t.reveal_fee,2), NEW.amount_fils, round(NEW.amount_fils/100.0,2)
+    raise exception 'refunds: the amount must equal what the customer actually paid, the 3%% and the processing part together (total_charged), on transaction % — expected % fils (AED %), got % fils (AED %). A refund figure is read off the payment, never typed. (refund_amount_is_not_the_fee_paid)',
+      NEW.transaction_id, v_expected, round(coalesce(t.total_charged, t.reveal_fee),2), NEW.amount_fils, round(NEW.amount_fils/100.0,2)
       using errcode = '23514';
   end if;
 
@@ -34448,50 +35653,41 @@ CREATE OR REPLACE FUNCTION public.fn_refund_decide(p_refund_id bigint, p_approve
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.refunds; v_new text;
+declare r public.refunds; v_app public.ceo_approval; v_new text;
 begin
   select * into r from public.refunds where id = p_refund_id;
   if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
-  if r.status <> 'requested' then
-    return jsonb_build_object('ok', false, 'error', 'not_decidable', 'status', r.status);
-  end if;
-  if coalesce(btrim(p_decided_by),'') = '' then
-    return jsonb_build_object('ok', false, 'error', 'decider_required');
-  end if;
-
-  -- 9 SEP 2026 -- PHASE MACHINERY REMOVED, and this one is deliberately NOT removed to nothing.
-  --
-  -- WHAT STOOD HERE: a lookup in the founder-identity register that refused any decider who was
-  -- not an active row in that register. The founder has retired the whole concept -- he approves
-  -- nothing now, every approval is the CEO's -- and the register is deleted in this sweep.
-  --
-  -- WHY IT IS NOT SIMPLY DELETED: without any test, decided_by falls back to "a non-empty string",
-  -- which is exactly the state that let fn_refund_request auto-approve every refund inside the
-  -- promised window under org_authority(customer_success, refund_within_window), writing
-  -- decided_by = 'policy:auto_window' and moving customer money with nobody deciding. Removing the
-  -- check outright would re-open that, so this REFUSES instead: a refund may be decided by a named
-  -- actor, never by a policy string. It no longer asks WHICH actor, because there is no longer a
-  -- register that could answer, and naming the CEO here would just rebuild the same thing under a
-  -- new name. Re-point it at whatever the CEO seat uses for identity when that seat has a runtime.
+  if r.status <> 'requested' then return jsonb_build_object('ok', false, 'error', 'not_decidable', 'status', r.status); end if;
+  if coalesce(btrim(p_decided_by), '') = '' then return jsonb_build_object('ok', false, 'error', 'decider_required'); end if;
   if lower(btrim(p_decided_by)) like 'policy:%' then
     return jsonb_build_object('ok', false, 'error', 'automatic_decider_refused',
-      'hint', 'A refund is decided by an actor, not by a rule. decided_by = ' || btrim(p_decided_by)
-           || ' is an automatic window policy, which is how refunds were auto-approved before '
-           || '17 Aug 2026. Approvals belong to the CEO; pass the deciding actor.');
+      'hint', 'A refund is decided by an actor, not by a rule. Approvals are the CEO''s.');
   end if;
 
-  v_new := case when p_approve then 'approved' else 'rejected' end;
-  update public.refunds set status = v_new, decided_by = p_decided_by, decided_at = now(), decision_note = p_note
-   where id = p_refund_id;
-  if r.transaction_id is not null then
-    update public.transactions set refund_status = v_new, refund_resolved_at = now(),
-           refund_note = coalesce(p_note, refund_note) where id = r.transaction_id;
+  if p_approve then
+    select * into v_app from public.ceo_approval a
+     where a.subject_kind = 'refund' and a.subject_id = p_refund_id::text and a.decision = 'approved' and a.superseded_by is null
+     order by a.decision_id desc limit 1;
+    if not found then
+      return jsonb_build_object('ok', false, 'error', 'no_ceo_approval',
+        'hint', 'A refund is approved only by a CEO approval that passed the process checklist (fn_ceo_refund_review, or ceo_agent decide). This routine records that decision; it cannot make one.');
+    end if;
+    update public.refunds set status = 'approved', decided_by = v_app.decided_by, decided_at = now(),
+           decision_note = coalesce(p_note, v_app.rationale), refund_decision_id = v_app.decision_id
+     where id = p_refund_id;
+    v_new := 'approved';
+  else
+    update public.refunds set status = 'rejected', decided_by = p_decided_by, decided_at = now(), decision_note = p_note where id = p_refund_id;
+    v_new := 'rejected';
   end if;
-  return jsonb_build_object('ok', true, 'refund_id', p_refund_id, 'status', v_new, 'decided_by', p_decided_by);
-end
-$function$
+  if r.transaction_id is not null then
+    update public.transactions set refund_status = v_new, refund_resolved_at = now(), refund_note = coalesce(p_note, refund_note)
+     where id = r.transaction_id;
+  end if;
+  return jsonb_build_object('ok', true, 'refund_id', p_refund_id, 'status', v_new, 'decided_by', coalesce(v_app.decided_by, p_decided_by));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_refund_document(p_refund_id bigint)
@@ -34700,32 +35896,6 @@ end
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_refund_founder_decision_only()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-begin
-  if new.status <> 'approved' then return new; end if;
-
-  if coalesce(btrim(new.decided_by), '') <> ''
-     and lower(btrim(new.decided_by)) not like 'policy:%' then
-    return new;
-  end if;
-
-  raise exception
-    'refund %: approved by %, which is not an actor.',
-    coalesce(new.id::text, '(new)'), coalesce(nullif(btrim(new.decided_by), ''), '(nobody)')
-    using errcode = '42501',
-          hint = 'A refund reaches ''approved'' only through fn_refund_decide, and only with a '
-              || 'decided_by naming the actor who decided it. An empty decider, or one of the form '
-              || '''policy:...'', means a rule approved the money and no one did: that is how '
-              || 'fn_refund_request auto-approved every in-window refund before 17 Aug 2026. '
-              || 'Approvals are the CEO''s (founder ruling, 8 Sep 2026); pass the deciding actor.';
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_refund_ladder_sweep()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -34733,27 +35903,16 @@ CREATE OR REPLACE FUNCTION public.fn_refund_ladder_sweep()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  t record; st jsonb; sup record; cust record;
-  v_window int; v_chase int; v_agent text; v_dept text;
-  v_subject text; v_body text; v_amounts jsonb; v_req jsonb; v_refund_id bigint; v_task bigint;
-  v_chase_at timestamptz; v_final_at timestamptz; v_fee numeric;
-  n_seen int := 0; n_chased int := 0; n_final int := 0; v_ids jsonb := '[]'::jsonb;
+  t record; st jsonb; v_window int; v_chase int; v_refund bigint;
+  n_seen int := 0; n_chased int := 0; n_final int := 0; v_ids jsonb := '[]'::jsonb; v_watch jsonb; v_loop jsonb;
 begin
-  select refund_window_working_days, chase_after_working_days into v_window, v_chase
-    from pricing_config order by id limit 1;
+  select refund_window_working_days, chase_after_working_days into v_window, v_chase from public.pricing_config order by id limit 1;
   v_window := coalesce(v_window, 5); v_chase := coalesce(v_chase, 3);
 
-  -- THE OWNER of the chase is the existing employee who owns supplier follow-up: the Customer Success
-  -- Director (org_role customer_success_director, runtime agent 'followup'; workflow_step refund #3/#4
-  -- already names this role). Never a new agent (founder, 6 Sep 2026).
-  select r.runtime_agent_key, r.primary_department_id into v_agent, v_dept
-    from org_role r where r.role_id = 'customer_support' and r.status = 'active';
-  v_agent := coalesce(v_agent, 'followup'); v_dept := coalesce(v_dept, 'customer_experience');
-
   for t in
-    select x.* from transactions x
-     where x.revealed_at is not null and coalesce(x.reveal_fee, 0) > 0
-       and coalesce(x.refund_status, '') not in ('approved','refunded','processing','succeeded','rejected','cancelled','failed')
+    select x.* from public.transactions x
+     where x.revealed_at is not null and coalesce(x.total_charged, x.reveal_fee, 0) > 0
+       and coalesce(x.refund_status, '') not in ('approved', 'refunded', 'processing', 'succeeded', 'rejected', 'cancelled', 'failed')
        and x.revealed_at > now() - interval '120 days'
      order by x.revealed_at
   loop
@@ -34762,96 +35921,34 @@ begin
     continue when st ? 'error' or coalesce((st->>'supplier_responded')::boolean, false);
     continue when st->>'state' not in ('chase_due', 'final_call_due');
 
-    select company_name, coalesce(claimed_by, email) as email into sup from leads where id = t.supplier_id;
-    select email, full_name into cust from customers where id = t.customer_id;
-    v_chase_at := (st->>'chase_due_at')::timestamptz;
-    v_final_at := (st->>'founder_call_due_at')::timestamptz;
-    v_fee      := round(coalesce(t.reveal_fee, 0), 2);
-
-    -- DAY 3: the chase. One email to the supplier, customer cc'd (fn_wa_fanout adds the WhatsApp copy
-    -- when the supplier opted in), and one task on the owning employee. fn_refund_state reads the
-    -- email back as chased_at, so a second tick cannot chase twice.
     if st->>'state' = 'chase_due' then
-      v_subject := 'Action needed: a customer is waiting for your response — QuotesDone reveal #' || left(t.id::text, 8);
-      v_body :=
-        'Hello ' || coalesce(sup.company_name, '') || ',' || chr(10) || chr(10) ||
-        'A customer paid to reveal your contact details on QuotesDone on ' ||
-          to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY') ||
-          ' and has not heard from you. ' || v_chase::text || ' working days have passed. The customer is copied on this email so you can reply to all and pick it up here.' || chr(10) || chr(10) ||
-        'Under the Supplier Agreement you must respond within ' || v_window::text || ' working days of the reveal, that is by ' ||
-          to_char(v_final_at at time zone 'Asia/Dubai', 'DD Mon YYYY') ||
-          '. If we have not seen a response by then, the case goes to our founder for a final call and the customer''s reveal fee is refunded. ' ||
-        'Under the supplier terms that refund is then recovered from your account: the reveal fee (AED ' || v_fee::text ||
-          '), an administrative fee of AED 250 and interest at 9% per annum until it is settled, and matching is paused until it is paid.' || chr(10) || chr(10) ||
-        'If you have already been in touch with this customer, reply here and we will close this off.' || chr(10) || chr(10) ||
-        'QuotesDone — Customer Success';
-      insert into notifications(type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status)
-      values ('supplier_no_response_chase', 'refund_ladder_chase', sup.email,
-              array_remove(array[cust.email], null), 'supplier', t.supplier_id, t.inquiry_id, t.quote_id,
-              'email', v_subject, v_body, 'queued');
-      insert into org_tasks(dept_key, title, detail, status, tier, needs_founder, decided_by,
-                            action_class, assigned_agent, priority, result)
-      values (v_dept,
-              left('Chase ' || coalesce(sup.company_name, 'supplier #' || t.supplier_id::text) || ': no response ' ||
-                   v_chase::text || ' working days after a paid reveal', 200),
-              'Reveal #' || t.id::text || ' (inquiry ' || coalesce(t.inquiry_id::text, '?') || '). The customer paid AED ' || v_fee::text ||
-                ' on ' || to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY') ||
-                ' and the supplier has not responded. The chase email has been queued to ' || coalesce(sup.email, '(no email)') ||
-                ' with the customer copied. Reach the supplier by every channel on file today. If they respond, record it ' ||
-                '(supplier_ack_at or a portal message) so the case closes. If not, on ' ||
-                to_char(v_final_at at time zone 'Asia/Dubai', 'DD Mon YYYY') ||
-                ' the sweep files the refund and the founder makes the final call.',
-              'assigned', 'advisory', false, 'fn_refund_ladder_sweep', 'routine_operational_decision', v_agent, 2,
-              jsonb_build_object('refund_ladder', jsonb_build_object(
-                'transaction_id', t.id, 'inquiry_id', t.inquiry_id, 'supplier_id', t.supplier_id,
-                'step', 'chase', 'chase_due_at', v_chase_at, 'founder_call_due_at', v_final_at)))
-      returning id into v_task;
+      perform public.fn_sales_engineer_ladder_step(t.id, 'chase', null, null);
       n_chased := n_chased + 1;
-      v_ids := v_ids || jsonb_build_object('transaction_id', t.id, 'step', 'chase', 'task_id', v_task);
-    end if;
-
-    -- DAY 5: the founder's final call. The refund is FILED through the one existing door
-    -- (fn_refund_request -> refunds 'requested', founder-gated by fn_refund_decide and the z00/z05
-    -- guards) and he is notified with the facts. founder_alerts.dedupe_key is the idempotency record.
-    if st->>'state' = 'final_call_due' then
-      v_amounts := public.fn_refund_amount_aed(t.reveal_fee, t.revealed_at, now());
-      if not exists (select 1 from refunds r where r.transaction_id = t.id) then
-        v_req := public.fn_refund_request(
-          round(t.reveal_fee * 100)::bigint, 'supplier_unresponsive', 'refund_ladder_sweep',
+      v_ids := v_ids || jsonb_build_object('transaction_id', t.id, 'step', 'chase');
+    else
+      -- DAY 5: the refund is filed through the one door (fn_refund_request; the CEO decides, the guards
+      -- on refunds refuse money moving any other way) and the sales engineer makes the final call.
+      if not exists (select 1 from public.refunds r where r.transaction_id = t.id) then
+        perform public.fn_refund_request(
+          round(coalesce(t.total_charged, t.reveal_fee) * 100)::bigint, 'supplier_unresponsive', 'refund_ladder_sweep',
           t.inquiry_id, t.customer_id, t.supplier_id, t.quote_id, t.payment_ref, null,
-          'Day ' || v_window::text || ' of the refund ladder: the supplier responded neither to the customer nor to the day-' ||
-            v_chase::text || ' chase. Filed by the deterministic ladder sweep for the founder''s final call.',
+          'Day ' || v_window || ' of the refund ladder: the supplier responded neither to the customer nor to the day-' || v_chase
+            || ' chase. Filed by the ladder; the sales engineer makes the final call through support and the CEO decides on what comes back.',
           t.id);
       end if;
-      select r.id into v_refund_id from refunds r where r.transaction_id = t.id order by r.id desc limit 1;
-
-      perform public.fn_notify_founder(
-        p_event => 'Refund final call: ' || coalesce(sup.company_name, 'supplier #' || t.supplier_id::text) ||
-          ' silent for ' || v_window::text || ' working days on reveal #' || left(t.id::text, 8) || ' (AED ' || v_fee::text || ')',
-        p_detail => 'Day ' || v_window::text || ' of the refund ladder. The supplier has not responded to the customer, to the day-' || v_chase::text ||
-          ' chase' || case when (st->>'chased_at') is not null then ' sent ' || to_char((st->>'chased_at')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY') else ' (chase not recorded)' end ||
-          case when t.customer_notified_at is not null then ', or to the customer''s formal notice of ' || to_char(t.customer_notified_at at time zone 'Asia/Dubai', 'DD Mon YYYY') else '' end || '.' || chr(10) || chr(10) ||
-        'SUPPLIER: ' || coalesce(sup.company_name, '#' || t.supplier_id::text) || ' · ' || coalesce(sup.email, '(no email)') || ' · ' ||
-          coalesce((select coalesce(nullif(btrim(l.whatsapp), ''), l.phone_e164, l.phone) from leads l where l.id = t.supplier_id), '(no phone)') || chr(10) ||
-        'CUSTOMER: ' || coalesce(cust.full_name, '') || ' · ' || coalesce(cust.email, '') || chr(10) ||
-        'REVEAL: transaction ' || t.id::text || ' · inquiry ' || coalesce(t.inquiry_id::text, '?') || ' · quotation AED ' || coalesce(t.quote_amount::text, '?') ||
-          ' · reveal fee AED ' || v_fee::text || ' paid ' || to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || chr(10) ||
-        'REFUND REQUEST: #' || coalesce(v_refund_id::text, '?') || ' is in your queue (status requested).' || chr(10) ||
-        'AMOUNTS (fn_refund_amount_aed): customer refund AED ' || (v_amounts->>'customer_refund_aed') || ' in full; supplier charge AED ' ||
-          (v_amounts->>'supplier_charge_aed') || ' = fee ' || (v_amounts->>'paid_aed') || ' + admin fee AED ' || (v_amounts->>'admin_fee_aed') ||
-          ' + ' || (v_amounts->>'interest_pct_pa') || '% p.a. interest (AED ' || (v_amounts->>'interest_aed') || ' for ' || (v_amounts->>'interest_days') || ' day(s) so far).' || chr(10) || chr(10) ||
-        'YOUR CALL: phone the supplier. If there is still no response, approve refund #' || coalesce(v_refund_id::text, '?') ||
-          ' in the OS; the customer is then refunded in full and told that banks take ' || (v_amounts->>'bank_settlement_working_days') ||
-          ' working days, and the supplier''s charge is raised. If the supplier responds, reject it with a note and the case closes.',
-        p_level => 'high', p_kind => 'refund_final_call', p_dedupe_key => 'refund_final_call:' || t.id::text, p_owner_agent => null);
+      select r.id into v_refund from public.refunds r where r.transaction_id = t.id order by r.id desc limit 1;
+      perform public.fn_sales_engineer_ladder_step(t.id, 'final_call', v_refund, null);
       n_final := n_final + 1;
-      v_ids := v_ids || jsonb_build_object('transaction_id', t.id, 'step', 'final_call', 'refund_id', v_refund_id);
+      v_ids := v_ids || jsonb_build_object('transaction_id', t.id, 'step', 'final_call', 'refund_id', v_refund);
     end if;
   end loop;
 
+  v_watch := public.fn_customer_support_delivery_watch(null);
+  v_loop  := public.fn_ceo_refund_loop_sweep();
   return jsonb_build_object('ok', true, 'seen', n_seen, 'chased', n_chased, 'final_calls', n_final,
                             'window_working_days', v_window, 'chase_after_working_days', v_chase,
-                            'owner_agent', v_agent, 'cases', v_ids, 'ran_at', now());
+                            'owner_agent', 'sales_engineer writes, customer_support delivers, ceo decides',
+                            'cases', v_ids, 'support_watch', v_watch, 'ceo_loop', v_loop, 'ran_at', now());
 end $function$
 
 
@@ -34978,7 +36075,7 @@ begin
   values
     (p_transaction_id, t.quote_id, t.inquiry_id, t.customer_id, t.supplier_id,
      t.payment_ref,
-     round(coalesce(t.reveal_fee, 0) * 100)::bigint, 'AED',
+     round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint, 'AED',
      'supplier_unresponsive',
      coalesce(p_reason_note, 'The customer reported that the revealed supplier has not responded.'),
      'requested', coalesce(p_requested_by, 'customer'), now(), 'in_platform_request')
@@ -35124,6 +36221,23 @@ begin
                             'awaiting', 'ceo');
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_refund_request_hands_to_accountant()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.transaction_id is not null and NEW.status = 'requested'
+     and lower(coalesce(NEW.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe') then
+    perform public.fn_seat_handoff('sales_engineer', 'accountant', 'refund.requested', 'refunds', NEW.id::text,
+      jsonb_build_object('refund_id', NEW.id, 'transaction_id', NEW.transaction_id, 'customer_id', NEW.customer_id,
+                         'inquiry_id', NEW.inquiry_id, 'quote_id', NEW.quote_id));
+  end if;
+  return NEW;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_refund_settle(p_stripe_refund_id text, p_status text, p_amount_fils bigint DEFAULT NULL::bigint, p_payment_intent text DEFAULT NULL::text, p_charge_id text DEFAULT NULL::text, p_failure_reason text DEFAULT NULL::text, p_amount_source text DEFAULT 'webhook_event'::text, p_stripe_event_id text DEFAULT NULL::text)
@@ -35287,8 +36401,13 @@ begin
    where n.type = 'supplier_no_response_chase' and n.channel = 'email'
      and n.inquiry_id = t.inquiry_id and n.lead_id = t.supplier_id
      and t.revealed_at is not null and n.created_at > t.revealed_at;
-  select min(f.created_at) into v_final_sent_at from founder_alerts f
-   where f.dedupe_key = 'refund_final_call:' || t.id::text;
+  -- The day-5 final call is the sales engineer's notice delivered by support (type refund_final_notice).
+  -- The founder_alerts marker the ladder wrote before 14 Sep is still honoured for cases already on it.
+  select least((select min(n.created_at) from notifications n
+                 where n.type = 'refund_final_notice' and n.inquiry_id = t.inquiry_id and n.lead_id = t.supplier_id
+                   and t.revealed_at is not null and n.created_at > t.revealed_at),
+               (select min(f.created_at) from founder_alerts f where f.dedupe_key = 'refund_final_call:' || t.id::text))
+    into v_final_sent_at;
 
   v_state := case
     when t.revealed_at is null                                                          then 'not_revealed'
@@ -35335,6 +36454,17 @@ CREATE OR REPLACE FUNCTION public.fn_refund_transition_allowed(p_from text, p_to
 AS $function$
   select coalesce((select allowed from public.refund_status_transition
                     where from_status = p_from and to_status = p_to), false);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_refunds_paused()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select (d.value #>> '{}')::boolean from public.decision_policy d
+                    where d.key = 'refunds_and_supplier_charges_paused'), false);
 $function$
 
 
@@ -36352,6 +37482,18 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_run_seat(p_agent text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select fo.owner from public.function_owner fo
+                    where fo.function_slug = regexp_replace(coalesce(p_agent, ''), '^fn:', '')),
+                  regexp_replace(coalesce(p_agent, ''), '^fn:', ''));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_runner_silence_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -36842,6 +37984,381 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_acts_on_handoff(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions; d jsonb; t text;
+  v_cust record; v_sup record; v_inq text; v_window int; v_chase int; v_min int; v_max int;
+  v_tx public.transactions; v_amt text; v_req bigint; v_lines text; v_orig public.notifications;
+  v_revealed text; v_rid text;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  d := a.detail; t := d->>'type';
+  select refund_window_working_days, chase_after_working_days, bank_settlement_working_days_min, bank_settlement_working_days_max
+    into v_window, v_chase, v_min, v_max from public.pricing_config order by id limit 1;
+  v_window := coalesce(v_window, 5); v_chase := coalesce(v_chase, 3); v_min := coalesce(v_min, 7); v_max := coalesce(v_max, 14);
+
+  select null::uuid as id, null::text as email, null::text as full_name into v_cust;
+  select null::bigint as id, null::text as company_name, null::text as email into v_sup;
+  if (d->>'customer_id') is not null then
+    select id, email, full_name into v_cust from public.customers where id = (d->>'customer_id')::uuid;
+  end if;
+  if (d->>'supplier_id') is not null then
+    select id, company_name, coalesce(claimed_by, email) as email into v_sup from public.leads where id = (d->>'supplier_id')::bigint;
+  end if;
+  if (d->>'inquiry_id') is not null then
+    select summary into v_inq from public.inquiries where id = (d->>'inquiry_id')::uuid;
+  end if;
+  v_revealed := coalesce(to_char((d->>'revealed_at')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'the reveal date');
+  v_rid := left(coalesce(d->>'transaction_id', d->>'subject_id', ''), 8);
+
+  if t = 'reveal.paid' then
+    -- The words trg_reveal_receipt used to write itself, unchanged, now composed by the seat whose
+    -- voice the portal is and carried by the seat that owns the pipe.
+    if v_cust.email is not null then
+      v_req := public.fn_sales_engineer_writes('reveal_receipt', 'customer', v_cust.email, null, v_cust.id,
+        (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+        'Reveal confirmed — ' || coalesce(v_sup.company_name, 'supplier'),
+        'You have unlocked ' || coalesce(v_sup.company_name, 'the supplier') || '''s contact details'
+          || coalesce(' for: ' || left(v_inq, 80), '')
+          || '. You can now message them directly in the app. We track this reveal from the moment you paid: if the supplier has not responded within '
+          || v_chase::text || ' working days we chase them for you and copy you; if there is still no response by working day '
+          || v_window::text || ' the case is decided by our chief executive, and if the supplier never responded everything you paid is refunded in full. '
+          || 'Banks usually take ' || v_min || '-' || v_max || ' working days to show a refund. You can also open the request and Report an issue at any time.',
+        'تم تأكيد الكشف — ' || coalesce(v_sup.company_name, 'المورّد'),
+        'أصبحت بيانات التواصل مع ' || coalesce(v_sup.company_name, 'المورّد') || ' متاحة لك الآن، ويمكنك مراسلته مباشرة من التطبيق. '
+          || 'نتابع هذا الكشف منذ لحظة الدفع: إن لم يردّ المورّد خلال ' || v_chase::text || ' أيام عمل نتواصل معه نيابةً عنك مع نسخة لك، '
+          || 'وإن لم يردّ حتى يوم العمل ' || v_window::text || ' يقرّر رئيسنا التنفيذي في الحالة، وإن لم يردّ المورّد إطلاقًا نردّ إليك كامل ما دفعته.',
+        '{}', 'reveal_receipt:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
+    end if;
+    if coalesce(v_sup.email, '') like '%@%' then
+      perform public.fn_sales_engineer_writes('quote_accepted', 'supplier', v_sup.email, v_sup.id, null,
+        (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+        'A customer revealed your quote on QuotesDone',
+        'A customer paid to reveal your contact for: ' || coalesce(v_inq, '')
+          || '. Please respond promptly — under the Supplier Agreement you must respond within ' || v_window::text
+          || ' working days of the reveal. If you have not responded after ' || v_chase::text
+          || ' working days we chase you with the customer copied; if there is still no response on working day ' || v_window::text
+          || ' our chief executive decides the case, the customer is refunded, and the amount refunded plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.',
+        'كشف عميل عن عرضك على QuotesDone',
+        'دفع عميل للكشف عن بيانات التواصل معك بخصوص: ' || coalesce(v_inq, '') || '. يُرجى الرد سريعًا — بموجب اتفاقية المورّد يجب الرد خلال '
+          || v_window::text || ' أيام عمل من الكشف، وإلا يُردّ للعميل ما دفعه ويُسترد المبلغ من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا.',
+        '{}', 'quote_accepted:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
+    end if;
+    return jsonb_build_object('customer_reachable', v_cust.email is not null,
+                              'supplier_reachable', coalesce(v_sup.email, '') like '%@%',
+                              'delivery_request', v_req);
+
+  elsif t = 'payment.failed' then
+    if v_cust.email is null then return jsonb_build_object('customer_reachable', false); end if;
+    v_req := public.fn_sales_engineer_writes('reveal_payment_incomplete', 'customer', v_cust.email, null, v_cust.id,
+      (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+      'Your reveal payment did not complete',
+      'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
+        || 'Your payment to unlock the supplier''s contact details did not go through, and nothing was charged to your card.' || E'\n\n'
+        || 'You can try again at any time: open the request in your QuotesDone portal and choose Reveal on the quote you picked. If the card was declined, your bank can tell you why, and a different card also works.',
+      'لم تكتمل عملية الدفع للكشف',
+      'لم تنجح عملية الدفع للكشف عن بيانات المورّد، ولم يُخصم أي مبلغ من بطاقتك. يمكنك المحاولة مجددًا في أي وقت من بوابتك في QuotesDone.',
+      '{}', 'payment_failed:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req);
+
+  elsif t = 'payment.received' then
+    if coalesce(v_sup.email, '') not like '%@%' then return jsonb_build_object('supplier_reachable', false); end if;
+    v_req := public.fn_sales_engineer_writes(coalesce(d->>'msg_type', 'dues_paid'), 'supplier', v_sup.email, v_sup.id, null, null, null,
+      case when d->>'kind' = 'supplier_registration' then 'Registration confirmed - thank you' else 'Payment received - thank you' end,
+      case when d->>'kind' = 'supplier_registration'
+           then 'We have received your registration payment of AED ' || (d->>'amount_aed') || '. Your QuotesDone supplier account is registered for the next 12 months.'
+           else 'We have received your payment of AED ' || (d->>'amount_aed') || ' settling ' || coalesce(d->>'items', '1') || ' outstanding charge(s). Your account is now up to date.' end,
+      'تم استلام دفعتك', 'استلمنا دفعتك بقيمة ' || (d->>'amount_aed') || ' درهم. شكرًا لك.',
+      '{}', 'payment_received:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req);
+
+  elsif t = 'refund.request_checked' then
+    if v_cust.email is null then return jsonb_build_object('customer_reachable', false); end if;
+    v_amt := case when (d->>'money_ok')::boolean then ' — AED ' || (d->>'amount_aed') else '' end;
+    v_req := public.fn_sales_engineer_writes('refund_request_received', 'customer', v_cust.email, null, v_cust.id,
+      (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+      'We have your refund request',
+      'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
+        || 'We have received your refund request for the reveal on ' || coalesce('"' || left(v_inq, 80) || '"', 'your request') || '.' || E'\n\n'
+        || 'What happens next: we check whether the supplier ever replied to you, our chief executive decides on that record, and if the refund is due you get back everything you paid'
+        || v_amt || ', the reveal fee and the card processing part together, to the card you paid with. Banks usually take ' || v_min || '–' || v_max || ' working days to show it.' || E'\n\n'
+        || 'If you have an email thread with the supplier, keep it: it is the proof we rely on.',
+      'استلمنا طلب الاسترداد',
+      'استلمنا طلب استرداد مبلغ الكشف. نتحقق أولًا من ردّ المورّد، ثم يقرّر رئيسنا التنفيذي، وإن كان الاسترداد مستحقًا يعود إليك كامل ما دفعته إلى البطاقة نفسها خلال '
+        || v_min || '–' || v_max || ' يوم عمل بحسب البنك.',
+      '{}', 'refund_request_received:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req, 'money_ok', d->'money_ok');
+
+  elsif t = 'refund.paid' then
+    if v_cust.email is null then return jsonb_build_object('customer_reachable', false); end if;
+    v_req := public.fn_sales_engineer_writes('refund_issued', 'customer', v_cust.email, (d->>'supplier_id')::bigint, v_cust.id,
+      (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+      'Your QuotesDone refund of AED ' || (d->>'amount_aed') || ' has been issued',
+      'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
+        || 'We have issued a refund of AED ' || (d->>'amount_aed') || ' — everything you paid on ' || v_revealed
+        || ', the reveal fee and the card processing part together — to your original payment method, because the supplier did not respond within '
+        || v_window::text || ' working days. Nothing is deducted.' || E'\n\n'
+        || 'Banks and card issuers usually take ' || v_min || '–' || v_max || ' working days to show it on your statement. If it has not appeared after '
+        || v_max || ' working days, reply to this email and we will trace it with the payment processor.' || E'\n\n'
+        || 'You are welcome to post the request again; we will introduce you to another supplier.',
+      'تم إصدار استرداد بقيمة ' || (d->>'amount_aed') || ' درهم',
+      'أصدرنا لك استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم، وهو كامل ما دفعته، إلى وسيلة الدفع الأصلية لأن المورّد لم يردّ خلال '
+        || v_window::text || ' أيام عمل. قد يستغرق ظهوره في كشف حسابك ' || v_min || '–' || v_max || ' يوم عمل.',
+      '{}', 'refund_issued:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req, 'amount_aed', d->'amount_aed');
+
+  elsif t = 'refund.declined' then
+    if v_cust.email is null then return jsonb_build_object('customer_reachable', false); end if;
+    v_req := public.fn_sales_engineer_writes('refund_declined', 'customer', v_cust.email, null, v_cust.id,
+      (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+      'About your refund request',
+      'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
+        || 'We looked at your refund request for the reveal on ' || coalesce('"' || left(v_inq, 80) || '"', 'your request') || ' and it was not approved.' || E'\n\n'
+        || 'The reason: ' || coalesce(nullif(btrim(d->>'note'), ''), 'the record shows the supplier did respond.') || E'\n\n'
+        || 'If you think we have missed something, reply to this email with what you have — an email thread with the supplier, dates, anything — and we will look again.',
+      'بخصوص طلب الاسترداد',
+      'راجعنا طلب الاسترداد ولم تتم الموافقة عليه. السبب: ' || coalesce(nullif(btrim(d->>'note'), ''), 'السجل يُظهر أن المورّد قد ردّ.')
+        || ' إن كان لديك ما يثبت خلاف ذلك فردّ على هذه الرسالة وسنراجع الطلب مجددًا.',
+      '{}', 'refund_declined:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req);
+
+  elsif t = 'refund.in_progress' then
+    if v_cust.email is null then return jsonb_build_object('customer_reachable', false); end if;
+    v_req := public.fn_sales_engineer_writes('refund_in_progress', 'customer', v_cust.email, null, v_cust.id,
+      (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+      'Your refund is being processed',
+      'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
+        || 'Your refund of AED ' || coalesce(d->>'amount_aed', '') || ' has been approved and is being processed with the payment provider. It has not reached your card yet; we will write again the moment it has.',
+      'استردادك قيد المعالجة',
+      'تمت الموافقة على استردادك وهو قيد المعالجة لدى مزوّد الدفع، ولم يصل إلى بطاقتك بعد. سنراسلك فور وصوله.',
+      '{}', 'refund_in_progress:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req);
+
+  elsif t in ('nonresponse.charge_raised', 'charge.corrected') then
+    if coalesce(v_sup.email, '') not like '%@%' then return jsonb_build_object('supplier_reachable', false); end if;
+    v_lines := '  Amount refunded to the customer: AED ' || (d->>'refunded_aed') || E'\n'
+            || '  Administration fee: AED ' || (d->>'admin_fee_aed') || E'\n'
+            || '  Interest: ' || round((d->>'interest_apr')::numeric * 100, 2) || '% a year, simple, on AED '
+            || round((d->>'refunded_aed')::numeric + (d->>'admin_fee_aed')::numeric, 2) || ' from ' || (d->>'due_date') || ' until paid' || E'\n'
+            || '  Due by: ' || (d->>'due_date');
+    if t = 'nonresponse.charge_raised' then
+      v_req := public.fn_sales_engineer_writes('nonresponse_charge', 'supplier', v_sup.email, v_sup.id, null,
+        (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+        'Charge under the Supplier Agreement — reveal #' || left(coalesce(d->>'transaction_id', ''), 8),
+        'Hello ' || coalesce(v_sup.company_name, '') || E',\n\n'
+          || 'A customer paid to reveal your contact details and did not hear from you within ' || v_window::text
+          || ' working days, despite the reminders we sent. Under the Supplier Agreement the customer has been refunded in full, and that refund is recovered from your account:' || E'\n\n'
+          || v_lines || E'\n\n'
+          || 'Matching is paused until this is settled. You can pay it from the Billing section of your supplier portal. If you believe it is wrong, use "Dispute this charge" there or reply to this email and we will check the figures against the payment record.',
+        'رسوم بموجب اتفاقية المورّد',
+        'دفع عميل للكشف عن بيانات التواصل معك ولم يتلقَّ ردًّا خلال ' || v_window::text || ' أيام عمل رغم التذكيرات. بموجب اتفاقية المورّد رُدّ للعميل كامل ما دفعه ويُسترد من حسابك: المبلغ المسترد '
+          || (d->>'refunded_aed') || ' درهم، ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، وفائدة بسيطة ' || round((d->>'interest_apr')::numeric * 100, 2)
+          || '% سنويًا من ' || (d->>'due_date') || ' حتى السداد. يمكنك السداد أو الاعتراض من قسم الفواتير في بوابتك.',
+        '{}', 'nonresponse_charge:' || (d->>'subject_id'));
+    else
+      -- THE CORRECTION MUST REACH WHOEVER GOT THE ORIGINAL: its To and every Cc, not today's address book.
+      select * into v_orig from public.notifications where id = (d->>'original_notification_id')::bigint;
+      v_req := public.fn_sales_engineer_writes('nonresponse_charge_correction', 'supplier',
+        coalesce(v_orig.to_email, v_sup.email), v_sup.id, null, (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
+        'Correction: ' || coalesce(v_orig.subject, 'your charge under the Supplier Agreement'),
+        'This replaces our message of ' || coalesce(to_char(v_orig.created_at at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'earlier')
+          || ' about this charge, which carried the wrong figures. Please disregard it. The correct figures are:' || E'\n\n' || v_lines,
+        'تصحيح: رسوم بموجب اتفاقية المورّد',
+        'هذه الرسالة تحلّ محلّ رسالتنا السابقة التي تضمنت أرقامًا غير صحيحة. الأرقام الصحيحة: المبلغ المسترد ' || (d->>'refunded_aed')
+          || ' درهم، ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، مستحقة في ' || (d->>'due_date') || '.',
+        coalesce(v_orig.cc_emails, '{}'), 'charge_corrected:' || (d->>'subject_id'));
+    end if;
+    return jsonb_build_object('delivery_request', v_req);
+
+  elsif t = 'subscription.due' then
+    if coalesce(v_sup.email, '') not like '%@%' then return jsonb_build_object('supplier_reachable', false); end if;
+    v_req := public.fn_sales_engineer_writes('subscription_due', 'supplier', v_sup.email, v_sup.id, null, null, null,
+      'Your QuotesDone annual subscription is due',
+      'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour QuotesDone annual supplier subscription of '
+        || coalesce(d->>'currency', 'AED') || ' ' || (d->>'fee') || E' is now due.\n\nYou keep paying no commission on the jobs you win — this is the annual subscription only. You can settle it securely on the supplier portal: https://quotesdone.com/suppliers\n\nIf it is not settled, your profile is paused from receiving new customer requests until it is.\n\nThank you for being part of QuotesDone.',
+      'اشتراكك السنوي في QuotesDone مستحق',
+      'اشتراكك السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم مستحق الآن. يمكنك السداد بأمان من بوابة المورّد.',
+      '{}', 'subscription_due:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req);
+
+  elsif t = 'billing.answer' then
+    v_lines := (select string_agg('  ' || x, E'\n') from jsonb_array_elements_text(d->'facts') x);
+    if d->>'party' = 'supplier' then
+      if coalesce(v_sup.email, '') not like '%@%' then return jsonb_build_object('supplier_reachable', false); end if;
+      v_req := public.fn_sales_engineer_writes('billing_answer', 'supplier', v_sup.email, v_sup.id, null, null, null,
+        'Your question about a charge', E'Here is what our records show:\n\n' || coalesce(v_lines, '  Nothing is recorded against your account.'),
+        null, null, '{}', 'billing_answer:' || (d->>'subject_id'));
+    else
+      if v_cust.email is null then return jsonb_build_object('customer_reachable', false); end if;
+      v_req := public.fn_sales_engineer_writes('billing_answer', 'customer', v_cust.email, null, v_cust.id, null, null,
+        'Your question about a charge', E'Here is what our records show:\n\n' || coalesce(v_lines, '  No payment is recorded on your account.'),
+        null, null, '{}', 'billing_answer:' || (d->>'subject_id'));
+    end if;
+    return jsonb_build_object('delivery_request', v_req, 'facts', d->'facts');
+
+  elsif t = 'charge.dispute_answer' then
+    if coalesce(v_sup.email, '') not like '%@%' then return jsonb_build_object('supplier_reachable', false); end if;
+    v_lines := (select string_agg('  ' || x, E'\n') from jsonb_array_elements_text(d->'lines') x);
+    v_req := public.fn_sales_engineer_writes('charge_dispute_answer', 'supplier', v_sup.email, v_sup.id, null, null, null,
+      'Your query about charge #' || coalesce(d->>'due_id', ''),
+      case when (d->>'figures_match')::boolean
+           then E'We checked the charge against the payment record and the figures stand:\n\n'
+           else E'We checked the charge against the payment record and the figures do not match it. It is on hold while our chief executive reviews it; you do not need to pay it until we write again.\n\n' end
+        || coalesce(v_lines, ''),
+      null, null, '{}', 'charge_dispute_answer:' || (d->>'subject_id'));
+    return jsonb_build_object('delivery_request', v_req, 'figures_match', d->'figures_match');
+
+  elsif t = 'refund.remediate' then
+    return public.fn_sales_engineer_remediates(p_id);
+
+  elsif t = 'delivery.result' then
+    return public.fn_sales_engineer_attaches_delivery_result(p_id);
+  end if;
+  raise exception 'sales_engineer has no handler for %', t;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_attaches_delivery_result(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d jsonb; v_tx uuid; v_ev bigint; v_ref bigint; v_delivered boolean; v_rev jsonb; v_rem bigint;
+begin
+  select detail into d from public.agent_actions where id = p_id;
+  v_tx := (d->>'transaction_id')::uuid;
+  if v_tx is null then return jsonb_build_object('attached', false, 'reason', 'this delivery was not about a refund'); end if;
+  v_delivered := case when d->>'result' = 'proof_of_response' then true
+                      else coalesce((d->'evidence'->>'delivered')::boolean, false) end;
+  insert into public.refund_ladder_evidence (transaction_id, refund_id, step, result, delivered, evidence, request_handoff_id, result_handoff_id)
+  values (v_tx, (d->>'refund_id')::bigint,
+          case when d->>'step' in ('chase', 'final_call', 'customer_notice', 'customer_proof') then d->>'step' else 'unknown' end,
+          d->>'result', v_delivered, coalesce(d->'evidence', '{}'::jsonb), (d->>'request_id')::bigint, p_id)
+  returning id into v_ev;
+
+  if d->>'result' = 'proof_of_response' then
+    insert into public.supplier_response_watch (transaction_id, lead_id, first_response_at, response_channel, response_ref)
+    select v_tx, t.supplier_id, coalesce((d->'evidence'->'reply'->>'at')::timestamptz, now()),
+           d->'evidence'->'reply'->>'channel', d->'evidence'->'reply'->>'ref'
+      from public.transactions t where t.id = v_tx
+    on conflict (transaction_id) do update
+      set first_response_at = coalesce(public.supplier_response_watch.first_response_at, excluded.first_response_at),
+          response_channel  = coalesce(public.supplier_response_watch.response_channel, excluded.response_channel),
+          response_ref      = coalesce(public.supplier_response_watch.response_ref, excluded.response_ref);
+  end if;
+
+  v_rem := (d->>'remediation_id')::bigint;
+  if v_rem is not null then
+    perform public.fn_seat_handoff_complete(v_rem, jsonb_build_object('ladder_evidence_id', v_ev, 'result', d->>'result', 'delivered', v_delivered));
+  elsif d->>'step' = 'final_call' then
+    select id into v_ref from public.refunds where transaction_id = v_tx and status = 'requested' order by id desc limit 1;
+    if v_ref is not null then v_rev := public.fn_ceo_refund_review(v_ref, 'final_call_result'); end if;
+  end if;
+  return jsonb_build_object('attached', true, 'ladder_evidence_id', v_ev, 'result', d->>'result', 'delivered', v_delivered, 'ceo_review', v_rev);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_ladder_step(p_transaction_id uuid, p_step text, p_refund_id bigint DEFAULT NULL::bigint, p_remediation_id bigint DEFAULT NULL::bigint)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t public.transactions; sup record; cust record; st jsonb; v_window int; v_chase int;
+  v_final timestamptz; v_watch timestamptz; v_amt numeric; v_key text; v_days int; v_when text; v_extra jsonb;
+begin
+  select * into t from public.transactions where id = p_transaction_id;
+  if not found then raise exception 'no transaction %', p_transaction_id; end if;
+  select id, company_name, coalesce(claimed_by, email) as email into sup from public.leads where id = t.supplier_id;
+  select id, email, full_name into cust from public.customers where id = t.customer_id;
+  select refund_window_working_days, chase_after_working_days into v_window, v_chase from public.pricing_config order by id limit 1;
+  v_window := coalesce(v_window, 5); v_chase := coalesce(v_chase, 3);
+  st := public.fn_refund_state(t.id);
+  v_final := (st->>'founder_call_due_at')::timestamptz;
+  v_amt := round(coalesce(t.total_charged, t.reveal_fee, 0), 2);
+  v_key := p_step || ':' || t.id || coalesce(':r' || p_remediation_id, '');
+  v_days := coalesce((select (d.value #>> '{}')::int from public.decision_policy d where d.key = 'refund_final_call_watch_working_days'), 1);
+  v_when := to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY');
+  v_extra := jsonb_build_object('step', p_step, 'transaction_id', t.id, 'refund_id', p_refund_id, 'remediation_id', p_remediation_id);
+
+  if p_step = 'chase' then
+    v_watch := case when p_remediation_id is not null then public.fn_add_working_days(now(), 1)
+                    else coalesce(v_final, public.fn_add_working_days(now(), greatest(v_window - v_chase, 1))) end;
+    return public.fn_sales_engineer_writes('supplier_no_response_chase', 'supplier', sup.email, t.supplier_id, null, t.inquiry_id, t.quote_id,
+      'Action needed: a customer is waiting for your response — QuotesDone reveal #' || left(t.id::text, 8),
+      'Hello ' || coalesce(sup.company_name, '') || E',\n\n'
+        || 'A customer paid to reveal your contact details on QuotesDone on ' || v_when || ' and has not heard from you. ' || v_chase
+        || ' working days have passed. The customer is copied on this email so you can reply to all and pick it up here.' || E'\n\n'
+        || 'Under the Supplier Agreement you must respond within ' || v_window || ' working days of the reveal, that is by '
+        || coalesce(to_char(v_final at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'the deadline')
+        || '. If there is no response by then, our chief executive decides the case and the customer is refunded everything they paid (AED ' || v_amt
+        || '). Under the supplier terms that amount is then recovered from your account with an administrative fee of AED 250 and interest at 9% a year until settled, and matching is paused until it is paid.' || E'\n\n'
+        || 'If you have already been in touch with this customer, reply here and we will close this off.',
+      'مطلوب إجراء: عميل ينتظر ردّك — QuotesDone',
+      'دفع عميل للكشف عن بيانات التواصل معك في ' || v_when || ' ولم يتلقَّ ردًّا منك بعد مرور ' || v_chase || ' أيام عمل، والعميل في نسخة هذه الرسالة. '
+        || 'بموجب اتفاقية المورّد يجب الرد خلال ' || v_window || ' أيام عمل من الكشف، وإلا يُردّ للعميل كامل ما دفعه (' || v_amt
+        || ' درهم) ويُسترد من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا حتى السداد. إن كنت قد تواصلت مع العميل فردّ على هذه الرسالة.',
+      array_remove(array[cust.email], null), v_key, v_watch, v_extra);
+
+  elsif p_step = 'final_call' then
+    v_watch := public.fn_add_working_days(now(), v_days);
+    return public.fn_sales_engineer_writes('refund_final_notice', 'supplier', sup.email, t.supplier_id, null, t.inquiry_id, t.quote_id,
+      'Final call: a customer is still waiting — QuotesDone reveal #' || left(t.id::text, 8),
+      'Hello ' || coalesce(sup.company_name, '') || E',\n\n'
+        || 'This is our final call about the customer who paid to reveal your contact details on ' || v_when
+        || '. The ' || v_window || ' working days the Supplier Agreement allows have passed with no response from you, to the customer or to our reminder.' || E'\n\n'
+        || 'If we do not hear from you by ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY')
+        || ', the customer is refunded everything they paid (AED ' || v_amt || ') and that amount is recovered from your account with an administrative fee of AED 250 and interest at 9% a year. '
+        || 'Reply to this email, message the customer in your portal, or answer us on WhatsApp — any of them stops this.',
+      'النداء الأخير: عميل ما زال ينتظر — QuotesDone',
+      'هذا نداؤنا الأخير بخصوص العميل الذي كشف عن بيانات التواصل معك في ' || v_when || '. انقضت أيام العمل المسموح بها دون ردّ منك. '
+        || 'إن لم نسمع منك حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' يُردّ للعميل كامل ما دفعه (' || v_amt
+        || ' درهم) ويُسترد من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا. أي ردّ منك عبر البريد أو البوابة أو واتساب يوقف ذلك.',
+      array_remove(array[cust.email], null), v_key, v_watch, v_extra);
+
+  elsif p_step = 'customer_proof' then
+    return public.fn_sales_engineer_writes('refund_proof_request', 'customer', cust.email, null, t.customer_id, t.inquiry_id, t.quote_id,
+      'One thing we need for your refund',
+      'Hello ' || coalesce(nullif(btrim(cust.full_name), ''), 'there') || E',\n\n'
+        || 'To decide your refund our chief executive needs the proof that you contacted the supplier within 7 days of the reveal. '
+        || 'Please forward the email you sent the supplier to supplier@mail.quotesdone.com, or reply to that email with supplier@mail.quotesdone.com in copy. '
+        || 'If you sent your notice through the portal''s "Notify supplier" button, there is nothing to do.',
+      'ما نحتاجه لإتمام استردادك',
+      'ليقرّر رئيسنا التنفيذي في استردادك نحتاج ما يثبت أنك تواصلت مع المورّد خلال 7 أيام من الكشف. يُرجى إعادة توجيه رسالتك إلى المورّد إلى supplier@mail.quotesdone.com أو الرد عليها مع إضافة هذا العنوان في النسخة.',
+      '{}', v_key, null, v_extra);
+  end if;
+  raise exception 'no such ladder step %', p_step;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_remediates(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d jsonb; v_tx uuid; v_req bigint; v_step text;
+begin
+  select detail into d from public.agent_actions where id = p_id;
+  v_tx := (d->>'transaction_id')::uuid;
+  v_step := case d->>'remedy_key' when 'final_call' then 'final_call' when 'chase' then 'chase' when 'customer_proof' then 'customer_proof' end;
+  if v_step is null then
+    return jsonb_build_object('waiting', 'no automatic remedy for ' || coalesce(d->>'remedy_key', '?'));
+  end if;
+  v_req := public.fn_sales_engineer_ladder_step(v_tx, v_step, (d->>'refund_id')::bigint, p_id);
+  return jsonb_build_object('delivery_request', v_req,
+    'waiting', case v_step when 'customer_proof' then 'the customer: the proof is requested and this closes when it arrives'
+                           else 'the supplier: support is delivering the ' || replace(v_step, '_', ' ') || ' and watching every channel for a reply' end);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_customer_invoice_ready()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -36871,6 +38388,32 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_writes(p_msg_type text, p_role text, p_email text, p_lead bigint, p_customer uuid, p_inquiry uuid, p_quote uuid, p_subject_en text, p_body_en text, p_subject_ar text DEFAULT NULL::text, p_body_ar text DEFAULT NULL::text, p_cc text[] DEFAULT '{}'::text[], p_subject_id text DEFAULT NULL::text, p_watch_until timestamp with time zone DEFAULT NULL::timestamp with time zone, p_extra jsonb DEFAULT '{}'::jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_locale text;
+begin
+  if p_role = 'customer' and p_customer is not null then
+    select locale into v_locale from public.customers where id = p_customer;
+  elsif p_role = 'supplier' and p_lead is not null then
+    select locale into v_locale from public.leads where id = p_lead;
+  end if;
+  return public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
+    coalesce(p_subject_id, p_msg_type || ':' || coalesce(p_quote::text, p_inquiry::text, p_lead::text, p_customer::text, 'x')),
+    coalesce(p_extra, '{}'::jsonb) || jsonb_build_object(
+      'msg_type', p_msg_type, 'recipient_role', p_role, 'to_email', p_email, 'cc', to_jsonb(coalesce(p_cc, '{}'::text[])),
+      'supplier_id', p_lead, 'customer_id', p_customer, 'inquiry_id', p_inquiry, 'quote_id', p_quote,
+      'locale', coalesce(v_locale, 'en'),
+      'subject_en', p_subject_en, 'body_en', p_body_en || E'\n\nQuotesDone sales engineer',
+      'subject_ar', p_subject_ar,
+      'body_ar', case when p_body_ar is null then null else p_body_ar || E'\n\nمهندس المبيعات في QuotesDone' end,
+      'watch_until', p_watch_until));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_figure(p_value numeric, p_universe bigint, p_note text DEFAULT NULL::text)
@@ -37252,6 +38795,159 @@ begin
 
   return v_seat;
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_handoff(p_from text, p_to text, p_type text, p_subject_table text, p_subject_id text, p_payload jsonb DEFAULT '{}'::jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint; v_key text := p_type || ':' || p_subject_id;
+begin
+  if not exists (select 1 from public.fn_seat_handoff_types() h
+                  where h.type = p_type and h.from_seat = p_from and h.to_seat = p_to) then
+    raise exception 'no such handoff: % from % to % (fn_seat_handoff_types lists every conversation the seats have)', p_type, p_from, p_to;
+  end if;
+  if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
+
+  select id into v_id from public.agent_actions
+   where kind = 'handoff' and agent = p_to and target_id = v_key and status <> 'failed'
+   order by id limit 1;
+  if v_id is not null then return v_id; end if;
+
+  insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+  values (p_to, 'handoff', 'pending', 'low',
+          left(p_type || ' from ' || p_from || ' about ' || p_subject_table || ' ' || p_subject_id, 200),
+          coalesce(p_payload, '{}'::jsonb) || jsonb_build_object(
+            'type', p_type, 'from', p_from, 'from_name', p_from, 'to', p_to,
+            'subject_table', p_subject_table, 'subject_id', p_subject_id),
+          p_subject_table, v_key)
+  returning id into v_id;
+  perform public.fn_seat_handoff_event(v_id, 'sent');
+
+  -- THE RECEIVING SEAT ACTS NOW. A failure is recorded on the row and in the stream and never
+  -- rolls back the money event that raised it: a refund that settled stays settled.
+  begin
+    perform public.fn_seat_handoff_act(v_id);
+  exception when others then
+    update public.agent_actions
+       set status = 'failed', decided_at = now(),
+           detail = detail || jsonb_build_object('error', left(sqlerrm, 500))
+     where id = v_id;
+    perform public.fn_seat_handoff_event(v_id, 'failed');
+  end;
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_handoff_act(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; v jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
+  if not found then raise exception 'no handoff %', p_id; end if;
+  if a.status = 'done' then return a.evidence; end if;
+
+  v := case a.agent
+         when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)
+         when 'accountant'       then public.fn_accountant_acts_on_handoff(p_id)
+         when 'customer_support' then public.fn_customer_support_acts_on_handoff(p_id)
+         else null end;
+  if v is null then raise exception 'seat % has no handler for %', a.agent, a.detail->>'type'; end if;
+
+  if v ? 'waiting' then
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('awaiting', v->>'waiting'), evidence = v
+     where id = p_id;
+    perform public.fn_seat_handoff_event(p_id, 'waiting');
+    return v;
+  end if;
+  perform public.fn_seat_handoff_complete(p_id, v);
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_handoff_complete(p_id bigint, p_evidence jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  update public.agent_actions
+     set status = 'done', decided_at = now(), decided_by = agent,
+         evidence = coalesce(p_evidence, '{}'::jsonb),
+         detail = detail - 'awaiting'
+   where id = p_id and kind = 'handoff' and status <> 'done'
+  returning * into a;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no open handoff ' || p_id); end if;
+  perform public.fn_seat_handoff_event(p_id, 'done');
+
+  if a.detail->>'type' = 'refund.remediate' and (a.detail->>'refund_id') is not null then
+    perform public.fn_ceo_refund_loop_advance((a.detail->>'refund_id')::bigint);
+  elsif a.detail->>'type' = 'incident.fix' and (a.detail->>'incident_id') is not null then
+    perform public.fn_ceo_incident_advance((a.detail->>'incident_id')::bigint);
+  end if;
+  return jsonb_build_object('ok', true, 'handoff_id', p_id, 'type', a.detail->>'type');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_handoff_event(p_id bigint, p_status text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  if not found then return; end if;
+  insert into public.company_event (event_type, entity_type, entity_id, actor, payload)
+  values ('handoff.' || coalesce(a.detail->>'type', '?') || '.' || p_status, 'agent_actions', a.id::text,
+          coalesce(a.detail->>'from', 'system'),
+          jsonb_build_object('handoff_id', a.id, 'type', a.detail->>'type', 'from', a.detail->>'from',
+                             'to', a.agent, 'status', p_status, 'subject_table', a.detail->>'subject_table',
+                             'subject_id', a.detail->>'subject_id', 'refund_id', a.detail->>'refund_id',
+                             'transaction_id', a.detail->>'transaction_id', 'awaiting', a.detail->>'awaiting'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_handoff_types()
+ RETURNS TABLE(type text, from_seat text, to_seat text, meaning text)
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  values
+    ('reveal.paid',              'accountant',       'sales_engineer',   'A reveal charge settled at Stripe: tell the customer the contact is released and the supplier that they were revealed.'),
+    ('payment.failed',           'accountant',       'sales_engineer',   'A reveal checkout expired or failed: tell the customer nothing was charged and how to try again.'),
+    ('payment.received',         'accountant',       'sales_engineer',   'A supplier paid an outstanding charge or the registration fee: confirm it to them.'),
+    ('refund.request_checked',   'accountant',       'sales_engineer',   'The books checked a refund request: acknowledge it to the customer.'),
+    ('refund.paid',              'accountant',       'sales_engineer',   'A refund settled: tell the customer what came back and when the bank shows it.'),
+    ('refund.declined',          'accountant',       'sales_engineer',   'A refund was declined: tell the customer why.'),
+    ('refund.in_progress',       'accountant',       'sales_engineer',   'A refund is approved but not settled after a retry: tell the customer it is in progress.'),
+    ('nonresponse.charge_raised','accountant',       'sales_engineer',   'The non-response charge was raised: tell the supplier the figures.'),
+    ('charge.corrected',         'accountant',       'sales_engineer',   'A charge already sent was wrong: send a correction to whoever got the original.'),
+    ('subscription.due',         'accountant',       'sales_engineer',   'The yearly registration fee fell due: tell the supplier.'),
+    ('billing.answer',           'accountant',       'sales_engineer',   'The books answered a billing question: relay it.'),
+    ('charge.dispute_answer',    'accountant',       'sales_engineer',   'The books checked a disputed charge: relay the result to the supplier.'),
+    ('refund.requested',         'sales_engineer',   'accountant',       'A customer asked for a refund in the portal: check the money behind it.'),
+    ('billing.question',         'sales_engineer',   'accountant',       'A customer or supplier asked about a charge, an invoice or a refund: read the books.'),
+    ('charge.disputed',          'sales_engineer',   'accountant',       'A supplier disputed a charge: recompute it from the refund record.'),
+    ('refund.remediate',         'ceo',              'accountant',       'The CEO refused approval on a money check the accountant owns: fix it and report back.'),
+    ('refund.remediate',         'ceo',              'sales_engineer',   'The CEO refused approval on a ladder check the sales engineer owns: fix it and report back.'),
+    ('incident.fix',             'ceo',              'accountant',       'Post-payment re-verification found a mismatch: apply the fix the playbook names.'),
+    ('delivery.request',         'sales_engineer',   'customer_support', 'Deliver these words to a customer or supplier through the outbox, and watch for the reply when asked.'),
+    ('delivery.request',         'ceo',              'customer_support', 'Deliver this summary to the founder on his command channel.'),
+    ('delivery.request',         'accountant',       'customer_support', 'Deliver this money exception to the founder on his command channel.'),
+    ('delivery.result',          'customer_support', 'sales_engineer',   'What came back: proof the supplier responded, or confirmation that nothing did.')
 $function$
 
 
@@ -37923,36 +39619,34 @@ CREATE OR REPLACE FUNCTION public.fn_subscription_billing_run(p_dry_run boolean 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v_flagged int := 0; v_cfg record; v_admin text;
+declare r record; v_flagged int := 0; v_cfg record;
 begin
   select * into v_cfg from public.fn_supplier_subscription();
-  v_admin := coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com');
-
   for r in
-    select b.* from v_supplier_billing b
-    where b.billing_status in ('due','past_due')
-      and coalesce(b.email,'') <> ''
-      and not exists (
-        select 1 from notifications n
-        where n.type='subscription_due' and n.lead_id = b.supplier_id
-          and n.created_at > now() - interval '30 days')
+    select b.* from public.v_supplier_billing b
+     where b.billing_status in ('due', 'past_due')
+       and coalesce(b.email, '') <> ''
+       and not exists (select 1 from public.notifications n
+                        where n.type = 'subscription_due' and n.lead_id = b.supplier_id
+                          and n.created_at > now() - interval '30 days')
   loop
     if not p_dry_run then
-      update leads set registration_fee_due = v_cfg.fee, registration_status = 'due' where id = r.supplier_id;
-      insert into notifications(type,to_email,to_role,lead_id,channel,subject,body,status)
-      values('subscription_due', r.email, 'supplier', r.supplier_id, 'email',
-        'Your QuotesDone annual subscription is due',
-        'Dear '||coalesce(r.company_name,'there')||E',\n\nYour QuotesDone annual supplier subscription of '||v_cfg.currency||' '||v_cfg.fee||E' is now due.\n\nYou keep paying no commission on the jobs you win — this is the annual subscription only. You can settle it securely on the supplier portal: https://quotesdone.com/suppliers\n\nIf it is not settled, your profile is paused from receiving new customer requests until it is.\n\nThank you for being part of QuotesDone.',
-        'queued');
+      update public.leads set registration_fee_due = v_cfg.fee, registration_status = 'due' where id = r.supplier_id;
+      perform public.fn_seat_handoff('accountant', 'sales_engineer', 'subscription.due', 'leads',
+        r.supplier_id || ':' || to_char(current_date, 'YYYY-MM'),
+        jsonb_build_object('supplier_id', r.supplier_id, 'fee', v_cfg.fee, 'currency', v_cfg.currency));
     end if;
     v_flagged := v_flagged + 1;
   end loop;
 
   if v_flagged > 0 and not p_dry_run then
-    insert into notifications(type,to_email,to_role,channel,subject,body,status)
-    values('subscription_billing_summary', v_admin,'admin','email','Supplier subscriptions invoiced',
-      v_flagged||' supplier(s) were invoiced '||v_cfg.currency||' '||v_cfg.fee||' for their annual subscription. Founding suppliers (first '||
-      v_cfg.free_limit||') are exempt and were not billed.','queued');
+    perform public.fn_seat_handoff('accountant', 'customer_support', 'delivery.request', 'founder',
+      'subscription_billing_summary:' || current_date,
+      jsonb_build_object('recipient_role', 'founder', 'kind', 'finance_reminder', 'level', 'info',
+        'event', 'Supplier subscriptions invoiced',
+        'detail', v_flagged || ' supplier(s) were invoiced ' || v_cfg.currency || ' ' || v_cfg.fee
+                  || ' for their annual subscription. Founding suppliers (first ' || v_cfg.free_limit || ') are exempt and were not billed.',
+        'dedupe_key', 'subscription_billing_summary:' || current_date));
   end if;
 
   return json_build_object('billing_starts', v_cfg.start_date, 'fee', v_cfg.fee, 'currency', v_cfg.currency,
@@ -38378,6 +40072,30 @@ AS $function$
       from scored s)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_dues_accrue_interest(p_as_of date DEFAULT NULL::date)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v jsonb; n int := 0;
+begin
+  for x in select id, transaction_id from public.supplier_dues
+            where paid_at is null and transaction_id is not null
+              and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled') loop
+    v := public.fn_accountant_nonresponse_charge(x.transaction_id, p_as_of);
+    continue when not coalesce((v->>'ok')::boolean, false);
+    update public.supplier_dues
+       set interest_amount = (v->>'interest_aed')::numeric, total_claim = amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric
+     where id = x.id
+       and (interest_amount is distinct from (v->>'interest_aed')::numeric
+            or total_claim is distinct from amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric);
+    if found then n := n + 1; end if;
+  end loop;
+  return n;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_exception_close(p_lead_id bigint, p_outcome text)
@@ -38898,37 +40616,6 @@ AS $function$
     )
   );
 $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_supplier_nonresponse_penalty(p_job_value_aed numeric, p_refunded_on date, p_as_of date DEFAULT CURRENT_DATE)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare c public.pricing_config; v_recover numeric; v_days int; v_interest numeric;
-begin
-  select * into c from public.pricing_config limit 1;
-  if p_job_value_aed is null or p_job_value_aed <= 0 then
-    raise exception 'a penalty cannot be computed from a job value of %', coalesce(p_job_value_aed::text,'null');
-  end if;
-
-  v_recover  := round(p_job_value_aed * c.standard_reveal_rate, 2);
-  v_days     := greatest((p_as_of - p_refunded_on), 0);
-  v_interest := round((v_recover + c.supplier_nonresponse_admin_fee_aed)
-                      * c.supplier_nonresponse_interest_apr * v_days / 365.0, 2);
-
-  return jsonb_build_object(
-    'job_value_aed', p_job_value_aed,
-    'reveal_fee_recovered_aed', v_recover,
-    'reveal_rate', c.standard_reveal_rate,
-    'admin_fee_aed', c.supplier_nonresponse_admin_fee_aed,
-    'interest_apr', c.supplier_nonresponse_interest_apr,
-    'interest_days', v_days,
-    'interest_aed', v_interest,
-    'total_due_aed', round(v_recover + c.supplier_nonresponse_admin_fee_aed + v_interest, 2),
-    'basis', 'pricing_config: reveal rate, admin fee and APR are read, never typed; interest is simple, daily, from the refund date');
-end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_opportunities(p_lead_id bigint)
@@ -40650,7 +42337,7 @@ begin
     return jsonb_build_object('ok', false, 'reason', v_grant->>'reason', 'route', v_grant->>'route');
   end if;
 
-  select id, quote_amount, reveal_fee, fee_status, refund_status, refund_amount_aed
+  select id, quote_amount, reveal_fee, total_charged, fee_status, refund_status, refund_amount_aed
     into t from public.transactions where id = p_transaction_id;
   if not found then
     -- "A tool error means cannot verify now, not no inquiry." A missing transaction is a real answer;
@@ -40681,7 +42368,7 @@ begin
   values
     (p_transaction_id, p_case_id,
      case when v_elig = 'eligible' then 'eligible' else 'ineligible' end,
-     coalesce(t.reveal_fee, 0), p_reason, now(),
+     coalesce(t.total_charged, t.reveal_fee, 0), p_reason, now(),
      jsonb_build_object('fee_status', t.fee_status, 'reveal_fee', t.reveal_fee,
                         'prior_successful_refunds', v_prior, 'read_at', now()),
      v_elig, v_why)
@@ -42288,6 +43975,33 @@ begin
     'state', (select document_state from public.v_revenue_documents where id = p_transaction_id));
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_transaction_refund_outcome_follows_through()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if NEW.refund_status in ('succeeded', 'refunded') and NEW.refund_amount_aed is not null
+     and (OLD.refund_status is distinct from NEW.refund_status or OLD.refund_amount_aed is distinct from NEW.refund_amount_aed) then
+    begin
+      perform public.fn_accountant_refund_settled(NEW.id);
+    exception when others then
+      insert into public.ceo_task (title, detail)
+      values (left('Refund on reveal ' || left(NEW.id::text, 8) || ' settled but its follow-through failed', 200),
+              'fn_accountant_refund_settled raised: ' || sqlerrm || '. The refund itself is recorded; the supplier charge, the customer''s message or the re-verification did not complete.');
+    end;
+  elsif NEW.refund_status = 'failed' and OLD.refund_status is distinct from 'failed' then
+    perform public.fn_ceo_refund_verify(NEW.id);
+  elsif NEW.refund_status = 'rejected' and OLD.refund_status is distinct from 'rejected' then
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.declined', 'transactions', NEW.id::text,
+      jsonb_build_object('transaction_id', NEW.id, 'customer_id', NEW.customer_id, 'inquiry_id', NEW.inquiry_id,
+                         'quote_id', NEW.quote_id, 'note', NEW.refund_note));
+  end if;
+  return NEW;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_twin(p_kind text, p_id text DEFAULT NULL::text)
@@ -47334,82 +49048,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.qd_on_refund_resolved()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_fee numeric; v_admin numeric; v_cust record; v_min int; v_max int; v_window int; v_amount numeric; v_amounts jsonb;
-begin
-  if NEW.refund_status in ('refunded','approved') and (OLD.refund_status is distinct from NEW.refund_status) then
-    v_fee   := coalesce(NEW.reveal_fee, NEW.app_fee, 0);
-    v_admin := coalesce((select num_value from public.gl_settings where key='clawback_admin_fee_aed'), 250);
-    -- 6 Sep 2026: the one arithmetic. The supplier's charge at issue = the refunded fee + the AED 250
-    -- administrative fee (unchanged, from gl_settings as before) + 9% p.a. simple interest pro-rated
-    -- by calendar days from the customer's payment to this issue (founder ruling, verbatim in
-    -- decision_policy.refund_policy_founder_decision_2026_09_06). collections_legal keeps accruing on
-    -- the overdue balance from the due date exactly as before.
-    v_amounts := public.fn_refund_amount_aed(v_fee, NEW.revealed_at, now());
-  -- 9 SEP 2026 -- PHASE MACHINERY REMOVED. An emit into the kernel source table stood here, carrying
-  -- a run id resolved by the kernel run-lookup routine so the resolution attached to the transaction's
-  -- existing W17 run instead of opening a second one. Both routines are deleted in this sweep. The
-  -- supplier_dues row, the matching block on the supplier and the customer's refund_issued email
-  -- below are the money-and-customer effects of this trigger and are unchanged.
-
-
-    if not exists (select 1 from public.supplier_dues where transaction_id=NEW.id and coalesce(status,'')<>'cancelled') then
-      insert into public.supplier_dues(
-        transaction_id, supplier_id, quote_id, quote_amount, commission_pct,
-        amount_due, admin_fee, interest_amount, currency,
-        reveal_date, due_date, due_date_30, status, created_at)
-      values(
-        NEW.id, NEW.supplier_id, NEW.quote_id, NEW.quote_amount, 3,
-        v_fee,          -- the 3% reveal fee QuotesDone already refunded to the customer
-        v_admin,        -- flat administration fee, charged immediately per the supplier terms
-        coalesce((v_amounts->>'interest_aed')::numeric, 0),  -- 9% p.a. from the customer's payment to this issue (fn_refund_amount_aed)
-        'AED',
-        NEW.revealed_at, (now()+interval '7 days'), (now()+interval '30 days'), 'due', now());
-    end if;
-
-    update public.leads
-      set matching_blocked = true,
-          matching_block_reason = 'Unsettled non-response charge (customer refunded due to no response)',
-          rv_nonresponse_refunds = coalesce(rv_nonresponse_refunds,0)+1
-    where id = NEW.supplier_id;
-
-    if NEW.refund_resolved_at is null then NEW.refund_resolved_at := now(); end if;
-
-    -- 6 Sep 2026: once the money has actually moved ('refunded' is written by refunds_api after
-    -- Stripe returned it), the customer is told, and told what the bank takes.
-    if NEW.refund_status = 'refunded' then
-      select email, full_name into v_cust from public.customers where id = NEW.customer_id;
-      select bank_settlement_working_days_min, bank_settlement_working_days_max, refund_window_working_days
-        into v_min, v_max, v_window from public.pricing_config order by id limit 1;
-      v_amount := round(coalesce(NEW.refund_amount_aed, v_fee), 2);
-      if v_cust.email is not null and not exists (
-           select 1 from public.notifications n where n.type = 'refund_issued' and n.inquiry_id = NEW.inquiry_id
-              and n.to_email = v_cust.email and n.lead_id = NEW.supplier_id) then
-        insert into public.notifications(type, kind, to_email, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status)
-        values ('refund_issued', 'refund_issued', v_cust.email, 'customer', NEW.supplier_id, NEW.inquiry_id, NEW.quote_id, 'email',
-          'Your QuotesDone reveal fee refund of AED ' || v_amount::text || ' has been issued',
-          'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || ',' || chr(10) || chr(10) ||
-          'We have issued a refund of AED ' || v_amount::text || ' — the full reveal fee you paid on ' ||
-            coalesce(to_char(NEW.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'the reveal date') ||
-            ' — to your original payment method, because the supplier did not respond within ' ||
-            coalesce(v_window, 5)::text || ' working days. No administrative charge is deducted from your refund.' || chr(10) || chr(10) ||
-          'Banks and card issuers usually take ' || coalesce(v_min, 7)::text || '–' || coalesce(v_max, 14)::text ||
-            ' working days to show it on your statement. If it has not appeared after ' || coalesce(v_max, 14)::text ||
-            ' working days, reply to this email and we will trace it with the payment processor.' || chr(10) || chr(10) ||
-          'You are welcome to post the request again; we will introduce you to another supplier.' || chr(10) || chr(10) ||
-          'QuotesDone', 'queued');
-      end if;
-    end if;
-  end if;
-  return NEW;
-end;
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.qd_project_ref()
  RETURNS text
  LANGUAGE plpgsql
@@ -48313,59 +49951,14 @@ CREATE OR REPLACE FUNCTION public.trg_reveal_receipt()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  cemail  text;
-  semail  text;
-  comp    text;
-  inq     record;
-  v_window int; v_chase int;
 begin
   if NEW.revealed_at is not null and (TG_OP = 'INSERT' or OLD.revealed_at is null) then
-    -- 9 SEP 2026 -- PHASE MACHINERY REMOVED. An emit into the kernel source table stood here that
-    -- declared the reveal payment the start of a W16 kernel run. The kernel is deleted; nothing
-    -- consumed the event. The two receipts below (customer, supplier) and the WhatsApp fan-out
-    -- they feed are the real work of this trigger and are untouched.
-
-    select email into cemail from public.customers where id = NEW.customer_id;
-    select company_name, email into comp, semail from public.leads where id = NEW.supplier_id;
-    select summary, category into inq from public.inquiries where id = NEW.inquiry_id;
-    -- 6 Sep 2026: both receipts state the ladder from pricing_config (window 5, chase 3), one source.
-    select refund_window_working_days, chase_after_working_days into v_window, v_chase
-      from public.pricing_config order by id limit 1;
-    v_window := coalesce(v_window, 5); v_chase := coalesce(v_chase, 3);
-
-    -- 1. customer email
-    if cemail is not null then
-      insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, status)
-      values ('reveal_receipt', cemail, 'customer', NEW.inquiry_id, NEW.quote_id,
-              'Reveal confirmed — ' || coalesce(comp, 'supplier'),
-              'You have unlocked ' || coalesce(comp, 'the supplier') || '''s contact details'
-                || coalesce(' for: ' || left(inq.summary, 80), '')
-                || '. You can now message them directly in the app. We track this reveal from the moment you paid: if the supplier has not responded within '
-                || v_chase::text || ' working days we chase them for you and copy you; if there is still no response by working day '
-                || v_window::text || ' the case is decided by our chief executive, and if the supplier never responded your reveal fee is refunded in full. '
-                || 'Banks usually take 7-14 working days to show a refund. You can also open the request and Report an issue at any time.',
-              'queued');
-    end if;
-
-    -- 2. supplier email (moved here from stripe_webhook)
-    if semail is not null and semail like '%@%' then
-      insert into public.notifications (type, to_email, to_role, lead_id, inquiry_id, quote_id, subject, body, status)
-      values ('quote_accepted', semail, 'supplier', NEW.supplier_id, NEW.inquiry_id, NEW.quote_id,
-              'A customer revealed your quote on QuotesDone',
-              'A customer paid to reveal your contact for: ' || coalesce(inq.summary, '')
-                || '. Please respond promptly — under the Supplier Agreement you must respond within ' || v_window::text
-                || ' working days of the reveal. If you have not responded after ' || v_chase::text
-                || ' working days we chase you with the customer copied; if there is still no response on working day ' || v_window::text
-                || ' our chief executive decides the case, the customer is refunded, and the reveal fee plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.',
-              'queued');
-    end if;
-
-    -- 3 and 4: the WhatsApp to each opted-in party is queued by trg_wa_fanout from the two email rows above.
+    perform public.fn_seat_handoff('accountant', 'sales_engineer', 'reveal.paid', 'transactions', NEW.id::text,
+      jsonb_build_object('transaction_id', NEW.id, 'customer_id', NEW.customer_id, 'supplier_id', NEW.supplier_id,
+                         'inquiry_id', NEW.inquiry_id, 'quote_id', NEW.quote_id, 'revealed_at', NEW.revealed_at));
   end if;
   return NEW;
-end
-$function$
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_reveal_window()
@@ -48665,13 +50258,14 @@ CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR 
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER a05_ceo_refund_approval_checks_the_process BEFORE INSERT ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
 CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command FOR EACH ROW EXECUTE FUNCTION fn_ceo_command_state_guard();
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
-CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
@@ -48703,14 +50297,14 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
 CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
 CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -48720,74 +50314,77 @@ CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON 
 CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
+CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
 CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
-CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
+CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
-CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
-CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
-CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
+CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
 CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
-CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
+CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
+CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
+CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
-CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
-CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
-CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
+CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
+CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
+CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
+CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
+CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
 CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
 CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
-CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
+CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
+CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
-CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
-CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
+CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
+CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
 CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
-CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
+CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a10_sales_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.sales_knowledge FOR EACH ROW EXECUTE FUNCTION fn_sales_knowledge_search_vector();
@@ -48797,11 +50394,12 @@ CREATE TRIGGER trg_event_selfreview AFTER INSERT ON public.self_review FOR EACH 
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
 CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
 CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
+CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
 CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
@@ -49184,7 +50782,11 @@ ALTER TABLE public.quote_spec_hold ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.red_episode ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_case ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.refund_ceo_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.refund_ceo_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_event_quarantine ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.refund_incident ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.refund_ladder_evidence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_status_transition ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refunds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reg_catalog ENABLE ROW LEVEL SECURITY;
@@ -49303,6 +50905,10 @@ CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT 
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY quote_spec_hold_service_role_only ON public.quote_spec_hold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY refund_ceo_check_service_role_only ON public.refund_ceo_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY refund_ceo_review_service_role_only ON public.refund_ceo_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY refund_incident_service_role_only ON public.refund_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY refund_ladder_evidence_service_role_only ON public.refund_ladder_evidence AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY rfq_clarification_service_role_only ON public.rfq_clarification AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY os_owner_admin_read ON public.risk_register AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

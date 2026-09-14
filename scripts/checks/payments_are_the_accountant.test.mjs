@@ -7,12 +7,12 @@
 // Statically (runs in CI without a token):
 //   * only accountant-owned functions call Stripe, and none of them writes the outbox itself
 //   * the list of conversations in supabase/functions/_shared/payment_handoffs.ts is the list in
-//     fn_seat_handoff_types (scripts/sql/payments_are_the_accountant_and_it_talks_to_the_sales_engineer.sql)
+//     fn_seat_handoff_types (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql)
 //   * every conversation has a producer (something that starts it) and the receiving seat has a handler
 // Against production (skipped without a management token):
 //   * function_owner and llm_seat_binding for every payment slug say 'accountant'
 //   * the live fn_seat_handoff_types() is the same list, and every trigger that starts a conversation exists
-//   * THE WHOLE LADDER on ZZ DEMO fixtures -- the three routine files and scripts/checks/refund_ladder_fixtures.sql
+//   * THE WHOLE LADDER on ZZ DEMO fixtures -- the routine file and scripts/checks/refund_ladder_fixtures.sql
 //     run as ONE batch that always rolls back -- eleven scenarios, from the happy path through every
 //     mismatch the CEO's playbook fixes. Nothing it writes survives and nothing it queues is sent.
 import { test } from 'node:test';
@@ -25,8 +25,7 @@ import { fileURLToPath } from 'node:url';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
 const SQL = join(REPO, 'scripts', 'sql');
-const FILES = ['payments_are_the_accountant_and_it_talks_to_the_sales_engineer.sql',
-  'a_refund_returns_everything_the_customer_paid.sql', 'the_ceo_checks_every_step_of_a_refund.sql'];
+const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql'];
 
 // Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
 // in this repository (it is not deployed from here); it is checked against production only.
@@ -53,7 +52,7 @@ function sqlRegistry() {
 }
 function fnBody(name) {
   const at = sqlText.indexOf(`create or replace function public.${name}(`);
-  assert.ok(at >= 0, `${name} is not defined in the three files`);
+  assert.ok(at >= 0, `${name} is not defined in the routine file`);
   return sqlText.slice(at, sqlText.indexOf('$fn$;', at));
 }
 

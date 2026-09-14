@@ -5,7 +5,7 @@
 // eventually."
 //
 // This file is the ONE list of the conversations the two seats have about money. The database holds
-// the same list in public.fn_seat_handoff_types() (scripts/sql/payments_are_the_accountant_and_it_talks_to_the_sales_engineer.sql),
+// the same list in public.fn_seat_handoff_types() (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql),
 // and scripts/checks/payments_are_the_accountant.test.mjs fails if the two ever differ, so a new
 // handoff cannot exist on one side and not the other.
 //
