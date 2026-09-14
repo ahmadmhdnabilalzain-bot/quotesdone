@@ -1,6 +1,6 @@
 // supplier_charge.ts — the arithmetic of the clause 33 non-response charge, and nothing else.
 //
-// 14 Sep 2026, agent: accountant. Supplier Agreement v10, clause 33: when a supplier never answers a
+// 14 Sep 2026, agent: accountant. Supplier Agreement clause 33 (v10, and v11 with the same numbering): when a supplier never answers a
 // customer who paid the reveal fee, QuotesDone refunds the customer and the supplier owes
 //   (a) the exact amount refunded (3% reveal fee + the card processing fee charged on it),
 //   (b) an administrative fee of AED 250, and

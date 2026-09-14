@@ -22,8 +22,9 @@ export const DEMO_CASE: CaseFile = {
     signatory: 'ZZ DEMO Manager',
   },
   acceptance: {
-    version: 'v10', accepted_at: '2026-09-15T09:12:44Z', ip: '192.0.2.10',
-    sha256: 'cdafedd34ced86b0a764bdd1c72d4441b0ce8e4dd37a228c6fcb1f79f8435ee8',
+    version: 'v11', accepted_at: '2026-09-15T09:12:44Z', ip: '192.0.2.10',
+    // Supplier Agreement v11 (EN + AR text hash, as supplier_api stores it at acceptance).
+    sha256: 'b30996342e38cb93b397f9c184eb449ce583ffde6a1adb86707b92b1c3fb6e9e',
   },
   inquiry: { id: 'zzd3m0aa-7c1e-4f00-9a00-000000000001', summary: 'Supply and install ducted split AC, 3-bedroom villa, Al Barsha', summary_ar: 'توريد وتركيب مكيف سبليت مخفي بمجاري هواء لفيلا 3 غرف نوم في البرشاء' },
   quote_value: QUOTE_VALUE,

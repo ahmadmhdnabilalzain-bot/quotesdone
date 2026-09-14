@@ -236,7 +236,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'li', text: `${LEGAL.civil.ar}، المادة (340) البند (1) (التعويض الاتفاقي — أساس الرسم الإداري البالغ 250 درهمًا المنصوص عليه في البند 33): ${LEGAL.civil_340_1.ar}` },
     { t: 'li', text: `${LEGAL.cpl.ar}، ${LEGAL.cpl_service.ar}، والبند 21 من اتفاقية المورّد (الإشعارات).` },
     { t: 'li', text: `${LEGAL.etl.ar} (حجية القبول والتوقيع الإلكترونيين).` },
-    { t: 'li', text: 'اتفاقية المورّد، البنود 31 و33 و34 (الاختصاص الحصري لمحاكم دبي).' },
+    { t: 'li', text: 'اتفاقية المورّد، البنود 21 (الإشعارات) و22 (النص العربي هو المعتمد أمام المحاكم) و31 و33 و34 (الاختصاص الحصري لمحاكم دبي).' },
     { t: 'section', n: 7, text: 'الطلبات' },
     { t: 'p', text: `يلتمس الطالب إصدار أمر أداء بإلزام المطلوب ضده بأن يؤدي إليه مبلغ ${money(ch.principal, 'ar')} (أصل الدين)، والفائدة البسيطة بواقع 9% سنويًا من تاريخ الاستحقاق ${fmtDate(ch.due_date, 'ar')} حتى السداد التام (وقدرها ${money(ch.interest, 'ar')} حتى ${fmtDate(ch.as_of, 'ar')})، مع إلزامه بالرسوم والمصاريف.` },
     { t: 'callout', tone: 'grey', title: 'مسودة للتقديم', text: 'هذه مسودة أعدّها محاسب QuotesDone ليقدّمها صاحب المؤسسة بنفسه عبر الخدمات الذكية لمحاكم دبي. تُراجَع البيانات مع نموذج الطلب الإلكتروني وقت التقديم، وتُرفق المستندات الواردة في فهرس الأدلة.' },
@@ -260,7 +260,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'li', text: `${LEGAL.civil.en}, Article 340(1) (agreed compensation — the basis of the AED 250 administrative fee stipulated in clause 33): ${LEGAL.civil_340_1.en}` },
     { t: 'li', text: `${LEGAL.cpl.en}, ${LEGAL.cpl_service.en}, and Supplier Agreement clause 21 (Notices).` },
     { t: 'li', text: `${LEGAL.etl.en} (validity of electronic acceptance and signature).` },
-    { t: 'li', text: 'Supplier Agreement clauses 31, 33 and 34 (exclusive jurisdiction of the Dubai courts).' },
+    { t: 'li', text: 'Supplier Agreement clauses 21 (notices), 22 (the Arabic text prevails before the courts), 31, 33 and 34 (exclusive jurisdiction of the Dubai courts).' },
     { t: 'section', n: 7, text: 'Relief sought' },
     { t: 'p', text: `The Applicant asks for a payment order requiring the Respondent to pay ${money(ch.principal)} (principal), simple interest at 9% per annum from the due date ${fmtDate(ch.due_date, 'en')} until payment in full (${money(ch.interest)} to ${fmtDate(ch.as_of, 'en')}), and the court fees and costs.` },
     { t: 'callout', tone: 'grey', title: 'Draft for filing', text: 'Prepared by the QuotesDone accountant for the owner to file himself on the Dubai Courts smart services. The Arabic version is the one filed. Check the fields against the e-form at the time of filing and attach the documents in the evidence index.' },
@@ -296,7 +296,7 @@ export function evidenceIndexDocument(c: CaseFile, lang: Lang) {
     [[ar ? 'المرجع' : 'Reference', ref], [ar ? 'عدد المستندات' : 'Documents', String(rows.length)]], [],
     [
       { t: 'table', head: ar ? ['#', 'المستند', 'التاريخ / القيمة', 'المرجع'] : ['#', 'Document', 'Date / value', 'Reference'], rows: rows.map((r, i) => [String(i + 1), ...r]), widths: [0.06, 0.46, 0.24, 0.24] },
-      { t: 'note', text: ar ? 'تُقدَّم المستندات باللغة العربية بصيغة PDF؛ وما كان منها بلغة أخرى (ومنه النص الإنجليزي لاتفاقية المورّد، وهو النص الحاكم) تُرفق معه ترجمة مترجم قانوني معتمد من وزارة العدل.' : 'Documents are filed in Arabic, as PDF; any document in another language (including the English Supplier Agreement, which is the governing text) is attached with a translation by an MOJ-approved legal translator.' },
+      { t: 'note', text: ar ? 'تُقدَّم المستندات باللغة العربية بصيغة PDF؛ ويُقدَّم النص العربي لاتفاقية المورّد، وهو النص المعتمد لجميع الأغراض بما فيها أمام المحاكم (البند 22)؛ وما كان منها بلغة أخرى تُرفق معه ترجمة مترجم قانوني معتمد من وزارة العدل.' : 'Documents are filed in Arabic, as PDF; the Supplier Agreement is filed in its Arabic text, which prevails for all purposes including before the courts (clause 22); any other document in another language is attached with a translation by an MOJ-approved legal translator.' },
     ], false);
 }
 

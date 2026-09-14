@@ -95,8 +95,9 @@ official pages.
   - QuotesDone is a **sole establishment**, so the founder is himself the litigant and files in person. That
     reading is **not verified** with Dubai Courts.
 - **Language.** *"Arabic shall be the official language of courts"* (CPL Art 5(1)). The documents here are drafted
-  in Arabic. The English Supplier Agreement, which is its governing text, needs an MOJ-approved translation for the
-  file.
+  in Arabic. From Supplier Agreement v11 the Arabic text prevails for all purposes, including before the courts
+  (clause 22), so the agreement is filed in its own Arabic text; any other document not in Arabic needs an
+  MOJ-approved translation. (Under v10 the English text governed and needed a translation.)
 
 ### c) Serving the notice
 - **CPL Art 9(1)(a)** permits *"Audio or video recorded call, SMS to mobile phone, smart applications, email, fax,
@@ -154,7 +155,7 @@ official pages.
   - 340(5): *"Any agreement contrary to the provisions of this Article shall be void."*
 - **The documents cite 340(1)** for the AED 250, which clause 33 stipulates. The Arabic application quotes the
   official Arabic wording; nothing in it is a translation made here.
-- **Transition (Art 4(1)).** The new law does not apply to acts before 1 June 2026. Every supplier acceptance of v10
+- **Transition (Art 4(1)).** The new law does not apply to acts before 1 June 2026. Every supplier acceptance of v10 or v11
   is after that date, so Art 340 governs.
 - **Enforceability.** The AED 250 is enforceable as agreed, subject to the 340(2) reduction power. Its best defence
   is that clause 33 already ties it to QuotesDone's real cost of processing the refund.
@@ -218,22 +219,24 @@ Code:
 
 Nothing here sends, files or writes a row.
 
-## 6. What the Supplier Agreement (v10) says today, and what it still needs
+## 6. The Supplier Agreement: what v10 said, and what v11 says
 
-| Point | v10 today | Needed / recommended |
+The founder approved all five changes on 14 Sep 2026. They are built as **Supplier Agreement v11** (a separate PR,
+branch `website/supplier-agreement-v11`), with the same clause numbers, so every clause this file and the documents
+cite (21, 22, 31, 33, 34) is unchanged. v11 takes effect when its registry SQL is applied; until then v10 is live.
+
+| Point | v10 | v11 |
 |---|---|---|
-| The charge | Clause 33: (a) the exact refund incl. card processing fee; (b) AED 250; (c) simple interest 9% p.a. at the clause 31 rate, from the due date; payable within 7 days of notice | Sufficient for CTL 73/84/86. Recommended: say expressly that the total is "a sum of money certain and due on the due date", to meet the Art 84 point in §3f |
-| Interest | Clause 31: *"simple interest at nine percent (9%) per annum, or the maximum permitted by UAE law if lower"* | Sufficient. Drop the idea that 9% is "as per UAE law": it is the agreed rate |
-| AED 250 | Called an "administrative fee" that "reflect[s] QuotesDone's cost of the refund" | Recommended: add that it is agreed compensation under Civil Transactions Law 25/2025 Art 340 and a genuine pre-estimate of handling cost |
-| Notices | Clause 21: registered email or the supplier portal. Clause 32 consents to messages by email, SMS and WhatsApp, but as communications, not notices | **Add WhatsApp/SMS to the registered mobile as an agreed notice channel, deemed served when sent** (CPL 9(1)(a), 11(3); CTL 81), and oblige the supplier to keep its email and mobile current |
-| Jurisdiction | Clause 34: UAE law; exclusive jurisdiction of the competent courts of Dubai | Sufficient |
-| Electronic acceptance | Clauses 1 and 30; 46/2021 | Sufficient, if the acceptance record (time, IP, text hash) is kept, as `leads.accepted_terms_*` does |
-| Language | "The English version of this document is the governing version" | The court works in Arabic. Every filing needs an MOJ-approved translation of the English text. Recommended: make the Arabic text equally authentic for proceedings before UAE courts |
-| Operator description | EN says "Dubai DET E-Trader (Professional) Licence"; AR says "رخصة تاجر إلكتروني (مهني)". The letterhead (`doc_template.ts`) reads `company_registration`: "Trader License" | A court filing must name the claimant exactly as the licence does. Reconcile the T&C with the licence certificate |
+| Notices (clause 21) | registered email or the supplier portal | email, portal, **WhatsApp and SMS to the registered mobile**, each an agreed method for CTL Art 81 and CPL Art 9(1)(a); served on delivery as the provider records it; the supplier keeps its details current |
+| Language (head, clause 22) | "The English version … is the governing version" | **the Arabic text prevails for all purposes, including before the courts**; the English is for convenience |
+| The charge (clause 33) | refund + AED 250 + 9% simple from the due date | adds: once the notice issues, (a)+(b) are **a sum of money of a specified amount, certain and due on the due date**; 9% simple, never compounded (fits CPL Art 143 and CTL Art 84) |
+| AED 250 (clause 33) | "administrative fee" reflecting cost | adds: **agreed compensation under Civil Transactions Law 25/2025 Art 340(1)**, quoted in the official wording of each language, and a genuine pre-estimate of handling cost |
+| Licence wording (clauses 1, 35) | "E-Trader (Professional) Licence" | **"Trader License No. 1633275"**, as the DET licence prints it (title رخصة تاجر / Trader License; Arabic trade name كوتس دن للتكنولوجيا). The licence does not print the Commercial Register No. 2883503 the agreement also cites; that number comes from src/content/company.json |
+| Interest (clause 31), jurisdiction (clause 34), e-acceptance (clauses 1, 30) | sufficient | unchanged |
 
-This PR does **not** change the Supplier Agreement. Its text is hashed into the signed-terms registry and changing
-it is a production change. As measured on 14 Sep 2026, **0 suppliers have accepted any version**, so the
-recommendations above can go into the next version without re-notifying anyone.
+A supplier who accepted v10 is asked to accept v11 on the next portal sign-in (supplier_api accept_terms records
+time, version, IP and the text hash). The recovery documents cite the version the supplier actually accepted (the
+case record's acceptance.version); the ZZ DEMO case is a v11 acceptance.
 
 ## 7. Checks written into the build
 - The demand's period (7 days) is asserted to be at least the legal minimum (5 days).
