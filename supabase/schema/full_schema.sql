@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T22:59:36.361Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T23:04:39.479Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -58156,14 +58156,15 @@ CREATE OR REPLACE FUNCTION public.trg_doc_backups_admit()
 AS $function$
 begin
   new.dropbox_path := public.fn_dbx_path(new.dropbox_path);
-  -- A rehearsal's documents are never uploaded: its fixtures are torn down minutes later, and the
-  -- row would then fail as 'supplier_missing' for ever (measured: 4 such error rows and 22 parked
-  -- rows, all ZZ DEMO suppliers/customers of a harness run, on the day this was written).
+  -- A rehearsal's documents are never queued: its fixtures are torn down minutes later, and a queued
+  -- row could never drain (fn_doc_backups_next leaves zz_demo rows to the probes). Measured: 662 such
+  -- rows piled up in one day (a_rehearsal_never_queues_a_backup.sql). A row a probe inserts as
+  -- 'zz_demo' itself is not caught here and is still admitted.
   if new.entity is distinct from 'zz_demo' and (
        coalesce(new.dropbox_path, '') ~* 'zz[ _-]?demo' or coalesce(new.path, '') ~* 'zz[ _-]?demo'
        or (new.entity = 'supplier' and exists (select 1 from public.leads l where l.id::text = new.entity_id and l.is_demo))
        or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))) then
-    new.entity := 'zz_demo';
+    return null;
   end if;
   if new.source = 'storage' and new.status = 'pending'
      and not exists (select 1 from storage.objects o where o.bucket_id = new.bucket and o.name = new.path) then
