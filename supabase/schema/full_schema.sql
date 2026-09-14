@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T22:52:28.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T22:59:36.361Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6472,7 +6472,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_dues (
   payment_order_issued_on date,
   payment_order_served_on date,
   grievance_filed_on date,
-  court_reference text
+  court_reference text,
+  status_reason text
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_kpi_snapshots (
@@ -12630,6 +12631,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_applies_incident_fix(p_id bigint
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare d jsonb; v_fix text; v_tx uuid; v_old bigint; v_orig bigint; v jsonb; v_j bigint; v_amt numeric; v_res jsonb; v_du public.supplier_dues;
+        v_why text;
 begin
   select detail into d from public.agent_actions where id = p_id;
   v_fix := d->>'fix'; v_tx := (d->>'transaction_id')::uuid;
@@ -12639,6 +12641,12 @@ begin
 
   perform set_config('app.qd_incident_fix', 'on', true);
   if v_fix = 'book_over_refund_loss' then
+    -- test money never reaches the books: a fixture or orphaned transaction's loss is not the company's
+    v_why := public.fn_gl_fixture_or_orphan(v_tx, null, null);
+    if v_why is not null then
+      perform set_config('app.qd_incident_fix', '', true);
+      return jsonb_build_object('refused', 'not booked: ' || v_why);
+    end if;
     v_amt := round((d->>'amount_aed')::numeric, 2);
     select g.id into v_j from public.gl_journal g where g.source = 'refund_over_loss' and g.source_ref = v_tx || ':' || (d->>'incident_id');
     if v_j is null and v_amt > 0 then
@@ -29994,10 +30002,12 @@ declare e record; fx numeric; acct text; amt_aed numeric(18,2); vat_aed numeric(
         net_aed numeric(18,2); jid bigint; lines jsonb;
 begin
   select id, vendor, category, amount, upper(coalesce(currency,'AED')) as cur, vat_amount,
-         coalesce(charged_on, created_at::date) as d
+         coalesce(charged_on, created_at::date) as d, note
     into e
     from public.expense_entries where id = p_entry_id;
   if not found or coalesce(e.amount,0) <= 0 then return null; end if;
+  -- a ZZ DEMO expense is a rehearsal's, never the company's (same marker as fn_gl_sync_business)
+  if (coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo' then return null; end if;
 
   -- already posted (by this routine or by fn_gl_sync_business): return it, never post twice
   select g.id into jid from public.gl_journal g
@@ -30882,6 +30892,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_gl_fixture_or_orphan(p_transaction uuid, p_supplier bigint, p_customer uuid)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_found boolean; v_sup bigint := p_supplier; v_cust uuid := p_customer; v_demo boolean;
+begin
+  if p_transaction is not null then
+    select true, coalesce(v_sup, t.supplier_id), coalesce(v_cust, t.customer_id)
+      into v_found, v_sup, v_cust
+      from public.transactions t where t.id = p_transaction;
+    if v_found is null then return 'orphan: transaction ' || p_transaction || ' no longer exists'; end if;
+  end if;
+  if v_sup is not null then
+    select coalesce(l.is_demo, false) into v_demo from public.leads l where l.id = v_sup;
+    if not found then return 'orphan: supplier ' || v_sup || ' no longer exists'; end if;
+    if v_demo then return 'fixture: supplier ' || v_sup || ' is a demo identity'; end if;
+  end if;
+  if v_cust is not null then
+    select coalesce(c.is_demo, false) into v_demo from public.customers c where c.id = v_cust;
+    if not found then return 'orphan: customer ' || v_cust || ' no longer exists'; end if;
+    if v_demo then return 'fixture: customer ' || v_cust || ' is a demo identity'; end if;
+  end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_gl_journal_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -31037,7 +31075,7 @@ CREATE OR REPLACE FUNCTION public.fn_gl_sync_business()
 AS $function$
 declare r record; n int := 0; acct text;
         fee_pct numeric; fee_fixed numeric; fee numeric(18,2); gross numeric(18,2); net numeric(18,2);
-        fx numeric; amt_aed numeric(18,2); diff numeric(18,2); extra numeric(18,2); lines jsonb;
+        fx numeric; amt_aed numeric(18,2); diff numeric(18,2); extra numeric(18,2); lines jsonb; v_orphans jsonb;
 begin
   select num_value into fee_pct   from public.gl_settings where key='stripe_fee_pct';
   select num_value into fee_fixed from public.gl_settings where key='stripe_fee_fixed';
@@ -31046,6 +31084,10 @@ begin
   fee_fixed := coalesce(fee_fixed,0);
   fx        := coalesce(fx, 3.6725);
 
+  -- TEST MONEY NEVER REACHES THE BOOKS (15 Sep 2026). Every business branch below books only a row that
+  -- fn_gl_fixture_or_orphan passes. Journal #690 was an E2E fixture due whose supplier and transaction the
+  -- teardown had deleted; it posted the first tick after the bank-booking hold was lifted.
+
   -- 1) Reveal-fee revenue with Stripe fee split (refunded transactions excluded)
   for r in
     select id, reveal_fee, total_charged, processing_fee, stripe_fee_fils, coalesce(revealed_at::date, current_date) as d
@@ -31053,6 +31095,7 @@ begin
     where fee_status='paid' and coalesce(reveal_fee,0) > 0
       and coalesce(refund_status,'') not in ('refunded','refund_approved','succeeded')
       and not exists (select 1 from public.gl_journal g where g.source='reveal_fee' and g.source_ref=transactions.id::text)
+      and public.fn_gl_fixture_or_orphan(transactions.id, null, null) is null
   loop
     gross := round(coalesce(r.total_charged, r.reveal_fee),2);
     fee   := coalesce(round(r.stripe_fee_fils / 100.0, 2), r.processing_fee, round(gross*fee_pct/100 + fee_fixed, 2));
@@ -31086,6 +31129,7 @@ begin
     where coalesce(t.refund_status,'') in ('refunded','refund_approved','succeeded')
       and coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='refund_paid' and g.source_ref=t.id::text)
+      and public.fn_gl_fixture_or_orphan(t.id, null, null) is null
   loop
     gross := round(r.amt,2);
     if r.sale_booked then
@@ -31108,6 +31152,7 @@ begin
 
   -- 2) Clawback RAISED on the supplier. Credits 6900 (recovering the refund), NOT 4100.
   --    Any admin fee / interest assessed at the same time is genuine income -> 4400.
+  --    A due with no supplier is judged as one whose supplier is gone (-1 is never a lead id).
   for r in
     select id, amount_due,
            coalesce(admin_fee,0) + coalesce(interest_amount,0) as extra_owed,
@@ -31116,6 +31161,7 @@ begin
     where coalesce(amount_due,0) > 0
       and coalesce(status,'') not in ('waived','cancelled','reversed')
       and not exists (select 1 from public.gl_journal g where g.source='commission_accrue' and g.source_ref=supplier_dues.id::text)
+      and public.fn_gl_fixture_or_orphan(supplier_dues.transaction_id, coalesce(supplier_dues.supplier_id, -1), null) is null
   loop
     extra := round(coalesce(r.extra_owed,0),2);
     lines := jsonb_build_array(
@@ -31136,6 +31182,7 @@ begin
     from public.supplier_dues
     where status in ('paid','settled') and paid_at is not null and coalesce(amount_due,0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='commission_collect' and g.source_ref=supplier_dues.id::text)
+      and public.fn_gl_fixture_or_orphan(supplier_dues.transaction_id, coalesce(supplier_dues.supplier_id, -1), null) is null
   loop
     extra := round(coalesce(r.extra_owed,0),2);
     gross := round(r.amount_due,2) + extra;
@@ -31163,6 +31210,7 @@ begin
       and coalesce(l.subscription_exempt,false) = false
       and not exists (select 1 from public.gl_journal g
                       where g.source='subscription' and g.source_ref = l.id::text || ':' || l.registration_paid_at::date)
+      and public.fn_gl_fixture_or_orphan(null, l.id, null) is null
   loop
     gross := round(coalesce(r.registration_fee_due,0),2);
     if gross <= 0 then continue; end if;
@@ -31177,13 +31225,15 @@ begin
     n := n + 1;
   end loop;
 
-  -- 3) Expense charges, converted to AED (the ledger currency)
+  -- 3) Expense charges, converted to AED (the ledger currency). A ZZ DEMO expense is a rehearsal's, never
+  --    the company's (the same marker the receipt duty uses).
   for r in
     select e.id, e.amount, upper(coalesce(e.currency,'AED')) as cur, e.category, e.vendor,
            coalesce(e.charged_on, e.created_at::date) as d
     from public.expense_entries e
     where coalesce(e.amount,0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='expense' and g.source_ref=e.id::text)
+      and not ((coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo')
   loop
     if r.cur not in ('AED','USD') then
       begin
@@ -31217,6 +31267,7 @@ begin
       and coalesce(e.amount,0) > 0
       and exists (select 1 from public.gl_journal g where g.source='expense' and g.source_ref=e.id::text)
       and not exists (select 1 from public.gl_journal g where g.source='expense_fx_adj' and g.source_ref=e.id::text)
+      and not ((coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo')
   loop
     diff := round(r.amount * fx, 2) - coalesce(r.posted_aed, 0);
     if diff is null or diff = 0 then continue; end if;
@@ -31228,6 +31279,30 @@ begin
                         jsonb_build_object('account','1000','credit',diff)), 'gl_fx_fix');
     n := n + 1;
   end loop;
+
+  -- 4) AN ORPHAN IS NEVER BOOKED SILENTLY. Every open money row whose transaction, supplier or customer is
+  --    gone is an accountant finding; the same call closes it once the row is reversed, cancelled or
+  --    waived. Fixtures are expected and raise nothing.
+  select coalesce(jsonb_agg(jsonb_build_object('item', x.item, 'owner_seat', 'accountant', 'subject', x.subject,
+           'title', x.subject || ' #' || x.id || ' (' || x.amount || ' AED) was not booked: ' || x.why,
+           'blast', 'internal', 'affected', 0, 'demo', false,
+           'evidence', jsonb_build_object('row', x.id, 'amount_aed', x.amount, 'why', x.why, 'no_founder_email', true,
+             'remedy', 'find what created it; reverse any journal already posted from it (fn_gl_reverse), then set the row reversed or cancelled with status_reason'))
+           order by x.item), '[]'::jsonb)
+    into v_orphans
+    from (select 'supplier_dues:' || d.id as item, 'supplier_dues' as subject, d.id::text as id,
+                 round(coalesce(d.total_claim, d.amount_due), 2) as amount,
+                 public.fn_gl_fixture_or_orphan(d.transaction_id, coalesce(d.supplier_id, -1), null) as why
+            from public.supplier_dues d
+           where coalesce(d.amount_due, 0) > 0 and coalesce(d.status, '') not in ('waived', 'cancelled', 'reversed')
+          union all
+          select 'transactions:' || t.id, 'transactions', t.id::text,
+                 round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0), 2),
+                 public.fn_gl_fixture_or_orphan(t.id, null, null)
+            from public.transactions t
+           where t.fee_status = 'paid' or coalesce(t.refund_status, '') in ('refunded', 'refund_approved', 'succeeded')) x
+   where x.why like 'orphan:%';
+  perform public.fn_it_duty_settle('ledger_orphan', v_orphans);
 
   return n;
 end
@@ -41411,6 +41486,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41581,16 +41666,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
