@@ -48,6 +48,7 @@ import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
 import { NewRequest } from './NewRequest';
 import { Clarifications } from './Clarifications';
+import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
 import { QuoteBadges } from '@/components/QuoteBadges';
 import { WhatsAppChoice } from '@/components/portal/WhatsAppChoice';
@@ -681,7 +682,14 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         account_incomplete (with `missing`), and the Account page lists exactly what is missing. */}
     {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} pickFile={pickFile}
       call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
-      onDone={() => { setShowNew(false); setPickFile(false); setDraft(''); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
+      onDone={(r) => {
+        setShowNew(false); setPickFile(false); setDraft(''); refresh();
+        // The request just posted is opened by its stable id: a split opens its combined parent, which
+        // lists one card per trade; the note says how many trades were sent separately.
+        const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
+        setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        if (r && r.inquiry_id) openRfq(r.inquiry_id);
+      }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
 
     {/* The severity marker was a 4px border-l — which is both a well-worn generated-UI tell and,
         more to the point here, LEFT: in Arabic it lands on the wrong edge of the card. A tinted
@@ -1034,6 +1042,10 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
+    {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
+        alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
+        has to open the card to find is a question that goes unanswered, and the reply window runs. */}
+    {inq.spec_offers && inq.spec_offers.length ? <div className="mt-3"><SpecOffer inq={inq} token={token} lang={lang} call={call} onDone={onChange} /></div> : null}
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <QuoteSpread quotes={quotes} lang={lang} />

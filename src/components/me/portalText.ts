@@ -25,7 +25,7 @@ export const T = {
     my_requests:'My requests', messages:'Messages', projects:'Projects', back_requests:'← Back to requests', new_request:'New request', close:'Close',
     k_requests:'Requests', k_open:'Open', k_quotes:'Quotes received', k_avg:'Avg quotes/req', k_hired:'Hired', k_spend:'Spend',
     your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, a photo or a drawing.',
-    request_sent:'Request sent — matching you with suppliers now.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
+    request_sent:'Request sent — matching you with suppliers now.', request_sent_split:'Request sent as {n} separate trades — each goes to its own specialist suppliers, all under one request.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
     payment_pending:'Your payment is still being processed. Please refresh this page in a moment — do not pay again. Keep this page open so we can finish confirming it.',
     payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email management@quotesdone.com if you were charged.",
     link_not_yours:"This quote isn't on your account. If the link was sent to a different email address, sign in with that one.",
@@ -119,7 +119,7 @@ export const T = {
     my_requests:'طلباتي', messages:'الرسائل', projects:'المشاريع', back_requests:'→ العودة إلى الطلبات', new_request:'طلب جديد', close:'إغلاق',
     k_requests:'الطلبات', k_open:'المفتوحة', k_quotes:'العروض المستلمة', k_avg:'متوسط العروض/طلب', k_hired:'المُتعاقد معهم', k_spend:'الإنفاق',
     your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو بصورة أو برسم.',
-    request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.',
+    request_sent:'تم إرسال الطلب — نطابقك مع المورّدين الآن.', request_sent_split:'تم إرسال الطلب كـ {n} تخصصات منفصلة — يذهب كل منها إلى مورّديه المتخصصين، وكلها ضمن طلب واحد.', payment_confirmed:'تم تأكيد الدفع — تم فتح بيانات تواصل المورّد أدناه.',
     payment_pending:'لا تزال عملية الدفع قيد المعالجة. يُرجى تحديث الصفحة بعد قليل — لا تدفع مرة أخرى. أبقِ هذه الصفحة مفتوحة حتى نُكمل التأكيد.',
     payment_failed:'تعذّر تأكيد عملية الدفع حتى الآن. يُرجى الاحتفاظ برابط هذه الصفحة ومراسلتنا على management@quotesdone.com إذا تم خصم المبلغ.',
     link_not_yours:'هذا العرض غير موجود في حسابك. إذا أُرسل الرابط إلى بريد إلكتروني آخر، سجّل الدخول به.',
@@ -226,6 +226,7 @@ Object.assign(T.en, {
   nr_multi_tk_h: 'One turnkey company', nr_multi_tk_b: 'a single fit-out company handles the whole project end to end.',
   nr_note: 'Note:', nr_send_suppliers: 'Send to suppliers', nr_sending: 'Sending…', nr_keep_typing: 'or keep typing below to add more detail',
   nr_more_details: 'Just a couple more details first, so suppliers can quote accurately.', nr_could_not_send: 'Could not send your request.',
+  nr_split_failed: 'Your request could not go out to every trade ({list}), so nothing was sent. Nothing is lost — please press Send again.',
   nr_readiness: 'Ready for suppliers', nr_handled_by: 'Handled by {name}',
   nr_left: '{n} left before this can go to suppliers', nr_req_title: 'What you asked for', nr_req_change: 'Change', nr_req_keep: 'Keep', nr_suggested: 'Suggested',
   nr_req_invalid: 'One of your changes could not be read. Pick one of the options instead.',
@@ -262,6 +263,10 @@ Object.assign(T.en, {
   cl_note_send: 'Add to request', cl_note_sent: 'Added — {n} invited supplier(s) notified.', cl_note_sent0: 'Added to your request. It reaches suppliers as they are invited.',
   cl_asked: '{label} asked', cl_you_added: 'You added', cl_answer_ph: 'Your answer — every invited supplier will see it…', cl_answer: 'Answer', cl_answered: 'Your answer',
   cl_none: 'No questions yet. Anything you add here goes to every invited supplier.', cl_removed: 'Contact details were removed — they are shared only after a reveal.', cl_loading: 'Loading questions…',
+  so_title: 'Your answer is needed', so_body: 'No supplier could quote the exact specification you asked for. Suppliers offered the alternatives below.',
+  so_line: 'Line {n}', so_asked: 'You asked for: {v}', so_yes: 'Yes, proceed with {v}', so_no: 'No', so_by: 'Please answer by {d}.',
+  so_accepted: 'We will proceed with {v}.', so_declined: 'Understood. Your request is closed and nothing was charged.', so_sending: 'Sending…',
+  so_sup_one: '1 supplier', so_sup_many: '{n} suppliers',
   cmp_title: 'Expert comparison report', cmp_title_rules: 'Comparison by our rules', cmp_badge_rules: 'Ranked on stated figures — specs not assessed', cmp_preparing: 'Preparing your comparison…',
   cmp_top: 'Top picks', cmp_catch: 'catch', cmp_missing: 'Missing from your request: ', cmp_dev: 'Spec differences: ', cmp_watch: 'Watch out: ', cmp_guidance: 'Guidance only — the final decision is yours.',
   cmp_price: 'Price', cmp_delivery: 'Delivery', cmp_quality: 'Quality', cmp_of5: 'out of 5', cmp_save: 'Save this comparison as a document', cmp_saving: 'Preparing…', cmp_save_fail: 'Could not build the document.',
@@ -344,6 +349,7 @@ Object.assign(T.ar, {
   nr_multi_tk_h: 'شركة واحدة تسليم مفتاح', nr_multi_tk_b: 'شركة تشطيبات واحدة تتولى المشروع كاملًا من البداية إلى النهاية.',
   nr_note: 'ملاحظة:', nr_send_suppliers: 'أرسل إلى الموردين', nr_sending: 'جارٍ الإرسال…', nr_keep_typing: 'أو تابع الكتابة أدناه لإضافة تفاصيل',
   nr_more_details: 'بعض التفاصيل الإضافية أولًا، حتى يسعّر الموردون بدقة.', nr_could_not_send: 'تعذّر إرسال طلبك.',
+  nr_split_failed: 'تعذّر إرسال طلبك إلى كل التخصصات ({list})، لذلك لم يُرسل شيء. لم يضع شيء — اضغط «إرسال» مرة أخرى.',
   nr_readiness: 'جاهزية الطلب للموردين', nr_handled_by: 'يتولاه {name}',
   nr_left: 'تبقّى {n} قبل أن يُرسل الطلب إلى الموردين', nr_req_title: 'ما طلبته', nr_req_change: 'تغيير', nr_req_keep: 'إبقاء', nr_suggested: 'مقترح',
   nr_req_invalid: 'تعذّرت قراءة أحد التغييرات. اختر أحد الخيارات بدلاً من ذلك.',
@@ -380,6 +386,10 @@ Object.assign(T.ar, {
   cl_note_send: 'أضف إلى الطلب', cl_note_sent: 'تمت الإضافة — أُبلغ {n} من الموردين المدعوين.', cl_note_sent0: 'أُضيفت إلى طلبك، وتصل إلى الموردين عند دعوتهم.',
   cl_asked: 'سأل {label}', cl_you_added: 'أضفتَ', cl_answer_ph: 'إجابتك — سيراها جميع الموردين المدعوين…', cl_answer: 'أجب', cl_answered: 'إجابتك',
   cl_none: 'لا توجد أسئلة بعد. كل ما تضيفه هنا يصل إلى جميع الموردين المدعوين.', cl_removed: 'أُزيلت بيانات التواصل — فهي لا تُشارك إلا بعد الكشف.', cl_loading: 'جارٍ تحميل الأسئلة…',
+  so_title: 'نحتاج إلى ردّك', so_body: 'لم يتمكن أي مورّد من تسعير المواصفات المطلوبة بالضبط. عرض الموردون البدائل التالية.',
+  so_line: 'البند {n}', so_asked: 'طلبتَ: {v}', so_yes: 'نعم، تابِع بـ {v}', so_no: 'لا', so_by: 'يُرجى الردّ قبل {d}.',
+  so_accepted: 'سنتابع بـ {v}.', so_declined: 'تم. أُغلق طلبك ولم يُخصم أي مبلغ.', so_sending: 'جارٍ الإرسال…',
+  so_sup_one: 'مورّد واحد', so_sup_two: 'مورّدان', so_sup_few: '{n} مورّدين', so_sup_many: '{n} مورّدًا',
   cmp_title: 'تقرير المقارنة من الخبير', cmp_title_rules: 'مقارنة وفق قواعدنا', cmp_badge_rules: 'مرتّب وفق الأرقام المذكورة — دون تقييم المواصفات', cmp_preparing: 'جارٍ إعداد المقارنة…',
   cmp_top: 'أفضل الخيارات', cmp_catch: 'الاعتبار', cmp_missing: 'ناقص مما طلبت: ', cmp_dev: 'اختلاف عن المواصفات: ', cmp_watch: 'انتبه: ', cmp_guidance: 'إرشادي فقط — القرار النهائي لك.',
   cmp_price: 'السعر', cmp_delivery: 'التسليم', cmp_quality: 'الجودة', cmp_of5: 'من 5', cmp_save: 'حفظ المقارنة كمستند', cmp_saving: 'جارٍ التجهيز…', cmp_save_fail: 'تعذّر إنشاء المستند.',
@@ -439,6 +449,14 @@ Object.assign(T.ar, {
 
 /** t() with {name} placeholders filled. */
 export const tf = (lang, k, v = {}) => String(t(lang, k)).replace(/\{(\w+)\}/g, (_m, n) => (v[n] == null ? '' : String(v[n])));
+/** "2 suppliers" / "مورّدان". Arabic counts take the dual at 2, the plural at 3-10 and the singular
+ *  accusative from 11 (١١ مورّدًا), so one plural key would be wrong for most numbers. */
+export function supplierCount(lang, n) {
+  n = Number(n) || 0;
+  if (n === 1) return t(lang, 'so_sup_one');
+  if (lang === 'ar') return n === 2 ? t(lang, 'so_sup_two') : tf(lang, n >= 3 && n <= 10 ? 'so_sup_few' : 'so_sup_many', { n });
+  return tf(lang, 'so_sup_many', { n });
+}
 export const EMIRATE_AR = { Dubai: 'دبي', 'Abu Dhabi': 'أبوظبي', Sharjah: 'الشارقة', Ajman: 'عجمان', 'Ras Al Khaimah': 'رأس الخيمة', 'Umm Al Quwain': 'أم القيوين', Fujairah: 'الفجيرة' };
 export const emirateName = (e, lang) => (lang === 'ar' && EMIRATE_AR[e]) || e;
 
