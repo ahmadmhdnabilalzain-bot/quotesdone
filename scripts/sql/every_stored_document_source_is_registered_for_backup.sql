@@ -101,6 +101,9 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('accountant_month_close.csv_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close (CSV) is not yet in the Dropbox tree'),
     ('accountant_issued_document.file_path', 'column', null, false, null, 'OPEN GAP: a document the accountant issued is not yet in the Dropbox tree'),
     ('bank_statement_intake.doc_path',       'column', null, false, null, 'OPEN GAP: a bank statement received from Mashreq is not yet in the Dropbox tree'),
+    -- The IT engineer's incident PDF (PR #641, duty 18): rendered into agent-docs from the fixed template
+    -- fn_it_incident_pdf_blocks over the public.it_incident row, which is the record.
+    ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
     ('quote-files',                          'bucket', null, false, null, 'OPEN GAP: quotation files are not yet in the Dropbox tree'),
     ('compliance-docs',                      'bucket', null, false, null, 'OPEN GAP: compliance documents are not yet in the Dropbox tree')
 $fn$;
