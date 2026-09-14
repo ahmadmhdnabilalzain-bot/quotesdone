@@ -12,8 +12,12 @@ const EMIRATE_NAME: Record<string, { en: string; ar: string }> = {
 
 export async function generateMetadata(props: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await props.params;
-  const m = svcMeta(slug, locale);
   const { service, emirate } = splitServiceSlug(slug);
+  // The service's own card (./opengraph-image.tsx). Measured after the first build: config images
+  // win over the segment file, so the page names it explicitly. Emirate pages share the parent's.
+  const img = `${SITE}${locale === 'ar' ? '/ar' : ''}/services/${service}/opengraph-image`;
+  const base = svcMeta(slug, locale);
+  const m = { ...base, openGraph: { ...base.openGraph, images: [{ url: img, width: 1200, height: 630 }] }, twitter: { ...base.twitter, images: [img] } };
   // Emirate pages are {{LOC}} substitutions of the parent service page; until they carry content of
   // their own, the canonical (and hreflang set) is the parent's.
   if (emirate && typeof m.title === 'string') {

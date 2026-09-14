@@ -13,7 +13,10 @@ const P = posts as unknown as Record<string, Post>;
 
 export async function generateMetadata(props: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await props.params;
-  return blogMeta(slug, locale);
+  const m = blogMeta(slug, locale);
+  // The post's own card (./opengraph-image.tsx); config images otherwise win over the segment file.
+  const img = `${SITE}${locale === 'ar' ? '/ar' : ''}/blog/${slug}/opengraph-image`;
+  return { ...m, openGraph: { ...m.openGraph, images: [{ url: img, width: 1200, height: 630 }] }, twitter: { ...m.twitter, images: [img] } };
 }
 export default async function Page(props: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await props.params;
