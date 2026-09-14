@@ -95,7 +95,17 @@ create table if not exists public.it_security_baseline (
 );
 alter table public.it_security_baseline add column if not exists reason text;
 alter table public.it_security_baseline add column if not exists accepted_by text;
+-- Each reasonless row is written to agent_runs before it goes, so the deletion leaves a trace.
+insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+select 'it_engineer', 'ok', now(), now(),
+       jsonb_build_object('job', 'security_baseline_cleanup', 'object', object, 'kind', kind, 'recorded_at', recorded_at),
+       'removed from it_security_baseline: accepted with no reason and nobody named'
+  from public.it_security_baseline
+ where coalesce(btrim(reason), '') = '' or coalesce(btrim(accepted_by), '') = '';
 delete from public.it_security_baseline where coalesce(btrim(reason), '') = '' or coalesce(btrim(accepted_by), '') = '';
+alter table public.it_security_baseline drop constraint if exists it_security_baseline_kind_check;
+alter table public.it_security_baseline add constraint it_security_baseline_kind_check
+  check (kind in ('anon_executable_definer', 'authenticated_executable_definer', 'rls_off', 'rls_no_policy'));
 alter table public.it_security_baseline alter column reason set not null;
 alter table public.it_security_baseline alter column accepted_by set not null;
 alter table public.it_security_baseline drop constraint if exists it_security_baseline_accepted_with_reason;
@@ -111,10 +121,31 @@ revoke all on public.it_security_baseline from anon, authenticated;
 create or replace function public.fn_it_security_exposures()
 returns table(object text, kind text)
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  -- Review of #639: this used to call a routine anon-executable when anon OR authenticated could run
+  -- it, and so flagged the two portal RPCs fn_customer_documents and fn_customer_document_refs, which
+  -- are authenticated-only (anon_exec false, measured). The two are different findings now:
+  --   anon_executable_definer          anyone at all can run it with the definer's rights — always raised
+  --   authenticated_executable_definer a signed-in user can, and the body never asks who they are
+  --                                    (no auth.uid(), auth.email() or auth.jwt()) — raised
+  -- A signed-in RPC that scopes itself by the caller's identity is the portals working, not a finding.
   select p.oid::regprocedure::text, 'anon_executable_definer'
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prosecdef
-     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+     and has_function_privilege('anon', p.oid, 'execute')
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+  union all
+  select p.oid::regprocedure::text, 'authenticated_executable_definer'
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and not has_function_privilege('anon', p.oid, 'execute')
+     and has_function_privilege('authenticated', p.oid, 'execute')
+     and p.prosrc !~* 'auth\.(uid|email|jwt)\s*\('
+     -- Scoping by delegation counts: fn_customer_documents asks no identity itself and joins
+     -- fn_customer_document_refs(), which does (measured 14 Sep 2026). One level of call is followed.
+     and not exists (select 1 from pg_proc q join pg_namespace qn on qn.oid = q.pronamespace
+                      where qn.nspname = 'public' and q.oid <> p.oid
+                        and q.prosrc ~* 'auth\.(uid|email|jwt)\s*\('
+                        and p.prosrc ~* ('public\.' || q.proname || '\s*\('))
      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
   union all
   select c.oid::regclass::text, case when not c.relrowsecurity then 'rls_off' else 'rls_no_policy' end
@@ -283,7 +314,8 @@ begin
   for x in select e.object, e.kind from public.fn_it_security_exposures() e
             where not exists (select 1 from public.it_security_baseline b where b.object = e.object and b.kind = e.kind) loop
     v_items := v_items || jsonb_build_object('item', x.kind || ':' || x.object, 'owner_seat', 'ceo', 'subject', x.object,
-      'title', case x.kind when 'anon_executable_definer' then 'A browser can run ' || x.object || ' with the definer''s rights'
+      'title', case x.kind when 'anon_executable_definer' then 'Anyone, signed in or not, can run ' || x.object || ' with the definer''s rights'
+                           when 'authenticated_executable_definer' then 'Any signed-in user can run ' || x.object || ' with the definer''s rights, and it never checks who they are'
                            when 'rls_off' then 'Table ' || x.object || ' has row security switched off'
                            else 'Table ' || x.object || ' has row security on and no policy, and a browser role can read it' end,
       'blast', 'security', 'affected', 1,
