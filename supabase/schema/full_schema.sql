@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T22:25:37.354Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T22:52:28.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -12983,7 +12983,7 @@ begin
         'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode,
         'evidence', to_jsonb(p) || jsonb_build_object('nearest_stripe_credits', (
           select coalesce(jsonb_agg(jsonb_build_object('line', bl.id, 'value_date', bl.value_date, 'amount_aed', bl.amount_aed,
-                                                       'description', bl.description) order by abs(bl.value_date - p.arrival_date)), '[]'::jsonb)
+                                                       'description', public.fn_mask_bank_text(bl.description)) order by abs(bl.value_date - p.arrival_date)), '[]'::jsonb)
             from (select * from public.bank_statement_line b2
                    where ((p.livemode and b2.account <> 'zz_demo') or (not p.livemode and b2.account = 'zz_demo'))
                      and b2.amount_aed > 0 and b2.value_date between p.arrival_date - v_before and p.arrival_date + v_after
@@ -13025,7 +13025,9 @@ begin
               and not exists (select 1 from public.stripe_payout s where s.bank_line_id = bl.id) loop
     v_items := v_items || jsonb_build_object('item', 'unexplained:' || x.id, 'owner_seat', 'accountant', 'subject', 'bank_statement',
       'title', 'The bank shows a Stripe credit of AED ' || x.amount_aed || ' on ' || x.value_date || ' that no recorded payout explains',
-      'blast', 'agent_facing', 'affected', 1, 'demo', x.account = 'zz_demo', 'evidence', to_jsonb(x));
+      'blast', 'agent_facing', 'affected', 1, 'demo', x.account = 'zz_demo',
+      'evidence', to_jsonb(x) || jsonb_build_object('description', public.fn_mask_bank_text(x.description),
+                                                    'reference', public.fn_mask_bank_text(x.reference)));
   end loop;
 
   v_settle := public.fn_accountant_duty_settle('bank', v_items);
@@ -30887,15 +30889,21 @@ CREATE OR REPLACE FUNCTION public.fn_gl_journal_immutable()
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
 begin
-  if tg_op in ('UPDATE','DELETE') and old.status = 'posted'
-     and not (tg_op='UPDATE' and new.status='void' and old.status='posted' and new.reverses is not null) then
-    -- allow only the controlled void marking done by fn_gl_reverse (new.status='void'), and a memo
-    -- replaced by its own masked form (a journal memo never carries a bank or IBAN number)
-    if tg_op='DELETE' or (tg_op='UPDATE' and old.status='posted' and new.status='posted'
-         and (new.entry_date<>old.entry_date or new.source<>old.source
-              or (new.memo is distinct from old.memo and new.memo is distinct from public.fn_mask_bank_text(old.memo)))) then
-      raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
+  if old.status = 'posted' then
+    if tg_op = 'UPDATE' and (
+         (new.status = 'posted' and (to_jsonb(new) - 'memo') = (to_jsonb(old) - 'memo')
+          and (new.memo is not distinct from old.memo or new.memo = public.fn_mask_bank_text(old.memo)))
+      or (new.status = 'void' and new.reverses is not null
+          and (to_jsonb(new) - 'status' - 'reverses') = (to_jsonb(old) - 'status' - 'reverses'))) then
+      return new;
     end if;
+    raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
+  end if;
+  -- A void journal is terminal: fn_gl_reverse already set it void with its reversal link. Measured
+  -- 15 Sep 2026: no routine or code path updates or deletes a void journal (the only writers are
+  -- fn_gl_reverse's posted-to-void statement and fn_gl_post, which is only ever called on drafts).
+  if old.status = 'void' then
+    raise exception 'Void journal % is terminal: it was reversed and can never change again', old.id;
   end if;
   return case when tg_op='DELETE' then old else new end;
 end $function$
@@ -36997,19 +37005,17 @@ CREATE OR REPLACE FUNCTION public.fn_mask_bank_text(p text)
  IMMUTABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v text := p; m text;
+declare v text := p;
 begin
   if v is null then return null; end if;
   -- An IBAN printed in groups of four, then a compact one.
   v := regexp_replace(v, '\m[A-Z]{2}[0-9]{2} [A-Z0-9]{4}( [0-9]{4}){2,6}( [0-9]{1,4})?\M', '[IBAN]', 'g');
   v := regexp_replace(v, '\m[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}\M', '[IBAN]', 'g');
-  -- Any alphanumeric token holding 8+ digits. A date splits into short tokens and survives.
-  for m in select distinct t[1] from regexp_matches(v, '[A-Za-z0-9]+', 'g') t
-            where length(regexp_replace(t[1], '[^0-9]', '', 'g')) >= 8
-            order by 1 desc loop
-    v := replace(v, m, '[ref]');
-  end loop;
-  return v;
+  -- Any alphanumeric token holding 8+ digits, in ONE positional pass. The lookahead holds at a token's
+  -- first character exactly when the token has 8+ digits, and the match then runs to the token's end.
+  -- (Review of #684: a per-token text replace let one overlapping token rewrite another first and
+  -- leaked 9 digits.) A date splits into short tokens and survives; output holds no digit run to re-mask.
+  return regexp_replace(v, '(?=(?:[A-Za-z]*[0-9]){8})[A-Za-z0-9]+', '[ref]', 'g');
 end $function$
 
 
