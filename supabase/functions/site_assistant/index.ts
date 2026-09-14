@@ -143,9 +143,32 @@ Deno.serve(observe('site_assistant', async (req) => {
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
     const ipLimit = await secNum('site_assistant_ip_hour', RL_IP_HOUR_DEFAULT);
     const dayLimit = await secNum('site_assistant_global_day', RL_GLOBAL_DAY_DEFAULT);
-    const rlKey = who ? 'site_assistant_acct:' + who.email : 'site_assistant_ip:' + ip;
-    const rlLimit = who ? await secNum('site_assistant_acct_hour', RL_ACCT_HOUR_DEFAULT) : ipLimit;
-    const ipOk = await rl(rlKey, rlLimit, 3600);
+    // THE VISITOR CAP IS KEYED ON CONVERSATION DEPTH (14 Sep 2026). A flat 10 messages/hour per IP
+    // refused 12 of 41 widget messages (29%) — a real visitor asking a fourth or fifth follow-up hit
+    // it. Anonymous callers that send the widget's conversation id now spend from three buckets:
+    //   - new conversations per IP        (site_assistant_ip_hour, default 10) — the old number, now
+    //     counting conversations started rather than messages;
+    //   - depth of THIS conversation      (site_assistant_conv_hour, default 40);
+    //   - a hard per-IP message ceiling   (site_assistant_ip_hard_hour, default 80), so a script that
+    //     forges a fresh id on every call cannot escape the IP bucket.
+    // Callers without a conv id (older clients) keep the original per-IP message bucket.
+    const conv = String(b.conv || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 64);
+    const firstTurn = !Array.isArray(b.history) || b.history.filter((h: any) => h && h.role === 'user').length <= 1;
+    const hasConv = !who && conv.length >= 8;
+    // rlKey / rlLimit are also handed to ai_gateway (rate_key below), so the gateway spends from the
+    // same bucket rather than re-imposing the old flat per-IP cap on a conversation.
+    const rlKey = who ? 'site_assistant_acct:' + who.email
+      : hasConv ? 'site_assistant_conv:' + ip + ':' + conv : 'site_assistant_ip:' + ip;
+    const rlLimit = who ? await secNum('site_assistant_acct_hour', RL_ACCT_HOUR_DEFAULT)
+      : hasConv ? await secNum('site_assistant_conv_hour', 40) : ipLimit;
+    let ipOk: boolean;
+    if (hasConv) {
+      const hardOk = await rl('site_assistant_ip_hard:' + ip, await secNum('site_assistant_ip_hard_hour', 80), 3600);
+      const startOk = !hardOk ? false : (firstTurn ? await rl('site_assistant_ipconv:' + ip, ipLimit, 3600) : true);
+      ipOk = hardOk && startOk && await rl(rlKey, rlLimit, 3600);
+    } else {
+      ipOk = await rl(rlKey, rlLimit, 3600);
+    }
     const globalOk = ipOk ? await rl('site_assistant_global_day', dayLimit, 86400) : true;
     if (!ipOk || !globalOk) {
       await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'global_day' },

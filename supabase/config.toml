@@ -49,6 +49,9 @@ verify_jwt = false
 [functions.complaint_status]
 verify_jwt = false
 
+[functions.public_site]
+verify_jwt = false
+
 [functions.compliance_archive]
 verify_jwt = false
 

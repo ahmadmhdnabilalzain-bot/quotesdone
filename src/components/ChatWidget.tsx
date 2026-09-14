@@ -14,11 +14,13 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 const T = {
   en: { title: 'QuotesDone Assistant', sub: 'Powered by the Smart Engine', open: 'Ask QuotesDone', close: 'Close',
         ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…',
-        greet: 'Hi! I can help with how QuotesDone works, fees, posting a job, or joining as a supplier. What would you like to know?',
+        greet: 'Hi! Ask me what a trade typically costs in the UAE, which documents a supplier will need, or how anonymous quotes work. Try one of these:',
+        chips: ['What does gypsum ceiling cost per sqm in Dubai?', 'Which documents will a fit-out supplier need?', 'كم تكلفة الأرضيات SPC للمتر؟'],
         err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.' },
   ar: { title: 'مساعد QuotesDone', sub: 'مدعوم بالمحرك الذكي', open: 'اسأل QuotesDone', close: 'إغلاق',
         ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…',
-        greet: 'مرحباً! يمكنني مساعدتك في معرفة كيفية عمل QuotesDone، الرسوم، طلب عروض الأسعار، أو الانضمام كمورد. كيف أستطيع مساعدتك؟',
+        greet: 'مرحباً! اسألني عن التكلفة المعتادة لأي نشاط في الإمارات، أو عن المستندات التي يحتاجها المورّد، أو عن طريقة عمل عروض الأسعار المجهولة. جرّب أحد هذه الأسئلة:',
+        chips: ['كم تكلفة السقف الجبسي للمتر المربع في دبي؟', 'ما المستندات التي يحتاجها مورّد التشطيبات؟', 'كم تكلفة الأرضيات SPC للمتر؟'],
         err: 'عذراً، حدث خطأ. يرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.' }
 };
 
@@ -54,14 +56,36 @@ export function ChatWidget() {
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
   useEffect(() => { if (open) { if (!msgs.length) setMsgs([{ role: 'assistant', content: t.greet }]); setTimeout(() => inpRef.current?.focus(), 60); } }, [open]);
 
-  // Never show the public assistant inside the internal OS console.
-  // The OS console has its own copilot. /me now has one too, docked in the portal shell and signed
-  // in — so on the portal this bubble was a SECOND assistant in the corner, the weaker one, with no
-  // session and no account data. Two assistants on one screen is worse than either alone.
-  if (/(^|\/)(os|me)(\/|$)/.test(pathname)) return null;
+  // One id per browser tab's conversation. site_assistant keys its per-visitor ceiling on
+  // conversation depth rather than raw message count (29% of widget traffic was refused by the
+  // flat 10/hour cap — website audit, "Where the smart shows").
+  const conv = useRef('');
+  useEffect(() => {
+    try {
+      conv.current = sessionStorage.getItem('qd-chat-conv') || '';
+      if (!conv.current) { conv.current = crypto.randomUUID(); sessionStorage.setItem('qd-chat-conv', conv.current); }
+    } catch (_e) { conv.current = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  }, []);
 
-  const send = async () => {
-    const m = val.trim();
+  // On a phone the launcher sat over the hero's demonstration card. Below 640px it waits for the
+  // first scroll; on wider screens it is there from the start.
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const check = () => { if (window.innerWidth >= 640 || window.scrollY > 240) setShown(true); };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => { window.removeEventListener('scroll', check); window.removeEventListener('resize', check); };
+  }, []);
+
+  // Never show the public assistant inside a signed-in surface. The OS console has its own copilot,
+  // /me has one docked in the portal shell, and /portal carries the supplier portal's own assistant —
+  // two assistants on one screen is worse than either alone. /supplier is now the public supplier
+  // LANDING page, so the widget stays there.
+  if (/(^|\/)(os|me|portal|supplier-app)(\/|$)/.test(pathname)) return null;
+
+  const send = async (preset?: string) => {
+    const m = (preset ?? val).trim();
     if (!m || busy) return;
     setVal('');
     const next = [...msgs, { role: 'user' as const, content: m }];
@@ -73,7 +97,7 @@ export function ChatWidget() {
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
         // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
         // was unreachable code. useLocale() already knows; the value simply never left the browser.
-        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale })
+        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale, conv: conv.current })
       });
       const j = await r.json();
       setMsgs([...next, { role: 'assistant', content: (j && j.reply) || t.err }]);
@@ -113,6 +137,17 @@ export function ChatWidget() {
             {msgs.map((m, i) => (
               <div key={i} dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />
             ))}
+            {msgs.length === 1 && !busy && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {t.chips.map((c) => (
+                  <button key={c} type="button" dir="auto" onClick={() => send(c)}
+                    style={{ background: 'rgba(45,212,191,.08)', border: '1px solid rgba(45,212,191,.35)', color: '#6EE7D4',
+                      borderRadius: 999, padding: '6px 11px', fontSize: 12.5, cursor: 'pointer', textAlign: 'start' }}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
             {busy && <div dir="auto" style={{ ...bubble('assistant'), opacity: .7, fontStyle: 'italic' }}>{t.thinking}</div>}
           </div>
           <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid rgba(255,255,255,.10)' }}>
@@ -120,13 +155,13 @@ export function ChatWidget() {
               onKeyDown={(e) => { if (e.key === 'Enter') send(); }} placeholder={t.ph} aria-label={t.ph}
               style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.14)',
                 color: '#EAF4F2', borderRadius: 10, padding: '10px 12px', font: 'inherit', fontSize: 14, textAlign: 'start' }} />
-            <button onClick={send} disabled={busy}
+            <button onClick={() => send()} disabled={busy}
               style={{ background: 'linear-gradient(135deg,#14B8A6,#0B8276)', color: '#04222b', border: 0, borderRadius: 10,
                 padding: '0 15px', fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1 }}>{t.send}</button>
           </div>
         </div>
       )}
-      <button onClick={() => setOpen(!open)} aria-label={open ? t.close : t.open}
+      <button onClick={() => setOpen(!open)} aria-label={open ? t.close : t.open} hidden={!shown && !open}
         style={{ width: 54, height: 54, borderRadius: 999, border: 0, cursor: 'pointer',
           marginInlineStart: rtl ? 0 : 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'linear-gradient(135deg,#2DD4BF,#14B8A6)', boxShadow: '0 14px 34px -12px rgba(45,212,191,.75)' }}>

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { MobileNav } from './MobileNav';
 import { LangSwitch } from './LangSwitch';
-import { SpringHover } from '@/components/motion/primitives';
 
 /**
  * THE HEADER HAD NO CONCEPT OF AUDIENCE.
@@ -31,12 +30,14 @@ import { SpringHover } from '@/components/motion/primitives';
  */
 type Item = { href: string; label: string };
 export type AudienceLabels = {
-  how: string; why: string; blog: string; suppliers: string;
+  how: string; why: string; blog: string; suppliers: string; services: string; categories: string;
   login: string; getQuotes: string; menu: string; closeMenu: string;
   myPortal: string; supplierPortal: string;
 };
+export type Audience = 'customer' | 'supplier' | 'visitor';
 
-function readAudience(): 'customer' | 'supplier' | 'visitor' {
+// Exported: the hero and the closing band read the same tokens (HeroCtas).
+export function readAudience(): Audience {
   try {
     if (localStorage.getItem('qd-cust-token')) return 'customer';
     if (localStorage.getItem('qd-sup-token')) return 'supplier';
@@ -59,19 +60,24 @@ export function AudienceNav({ labels, linkClass }: { labels: AudienceLabels; lin
   // The marketing anchors point at sections of the HOME page. They are absolute (`/#how`), so from
   // any other page they navigate home and then scroll — which is why they are kept for every
   // audience rather than hidden off the home page.
+  // 14 Sep 2026: "How it works" now opens its own page, "Services" and "Categories" join the header
+  // (192 service pages were reachable only from the footer), and "For suppliers" opens the supplier
+  // landing page rather than the portal's login box.
   const shared: Item[] = [
-    { href: '/#how', label: labels.how },
+    { href: '/how-it-works', label: labels.how },
+    { href: '/services', label: labels.services },
+    { href: '/#cats', label: labels.categories },
     { href: '/#why', label: labels.why },
     { href: '/blog/', label: labels.blog },
   ];
   const own: Item =
-    !mounted || audience === 'visitor' ? { href: '/portal', label: labels.suppliers }
+    !mounted || audience === 'visitor' ? { href: '/supplier', label: labels.suppliers }
     : audience === 'customer' ? { href: '/me', label: labels.myPortal }
     : { href: '/portal', label: labels.supplierPortal };
-  // Visitors get the marketing order (how · why · suppliers · blog). A signed-in person gets their
-  // own destination first, because it is the reason they came back.
+  // Visitors get the marketing order (how · services · categories · why · suppliers · blog). A
+  // signed-in person gets their own destination first, because it is the reason they came back.
   const items: Item[] = (!mounted || audience === 'visitor')
-    ? [shared[0], shared[1], own, shared[2]]
+    ? [...shared.slice(0, 4), own, shared[4]]
     : [own, ...shared];
 
   const cta = audience === 'supplier'
@@ -82,7 +88,7 @@ export function AudienceNav({ labels, linkClass }: { labels: AudienceLabels; lin
 
   return (
     <>
-      <nav className="ms-2 hidden items-center gap-0.5 md:flex">
+      <nav className="ms-2 hidden items-center gap-0.5 lg:flex">
         {items.map((n) => (
           <Link key={n.href + n.label} href={n.href} className={linkClass}>{n.label}</Link>
         ))}
@@ -95,16 +101,15 @@ export function AudienceNav({ labels, linkClass }: { labels: AudienceLabels; lin
             {labels.login}
           </Link>
         ) : null}
-        <SpringHover className="rounded-full">
-          <Link
-            href={cta.href}
-            className="btn-key whitespace-nowrap rounded-full bg-teal px-2.5 py-2.5 text-[12.5px] font-bold leading-none text-[#04231F] shadow-[0_10px_30px_-14px_rgba(20,184,166,.55)] transition-colors duration-200 hover:bg-[#1ED0BC] sm:px-5 sm:text-[14px]"
-          >
-            {cta.label}
-          </Link>
-        </SpringHover>
+        <Link
+          href={cta.href}
+          className="btn-key whitespace-nowrap rounded-full bg-teal px-2.5 py-2.5 text-[12.5px] font-bold leading-none text-[#04231F] shadow-[0_10px_30px_-14px_rgba(20,184,166,.55)] transition-[transform,background-color] duration-300 ease-expo hover:-translate-y-0.5 hover:bg-[#1ED0BC] motion-reduce:hover:translate-y-0 sm:px-5 sm:text-[14px]"
+        >
+          {cta.label}
+        </Link>
         <MobileNav
           items={items}
+          cta={audience === 'supplier' ? { href: '/me', label: labels.getQuotes } : undefined}
           login="/me"
           loginLabel={labels.login}
           menuLabel={labels.menu}

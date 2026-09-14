@@ -15,6 +15,7 @@ export function SiteHeader() {
   // translation moves to the client. See AudienceNav for why only one slot waits for mount.
   const labels = {
     how: t('how'), why: t('why'), blog: t('blog'), suppliers: t('suppliers'),
+    services: t('services'), categories: t('categories'),
     login: t('login'), getQuotes: t('getQuotes'), menu: t('menu'), closeMenu: t('closeMenu'),
     myPortal: t('myPortal'), supplierPortal: t('supplierPortal'),
   };

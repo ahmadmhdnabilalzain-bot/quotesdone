@@ -1,5 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
 import { ServiceDoc, svcParams, svcMeta } from '@/components/ServiceDoc';
+import { PriceGuide } from '@/components/PriceGuide';
 import { SITE, buildMeta, splitServiceSlug, ldHtml, serviceLd, breadcrumbLd } from '@/lib/seo';
 
 export function generateStaticParams() { return svcParams().map((slug) => ({ slug })); }
@@ -46,5 +47,8 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
       ]),
     ])} />
     <ServiceDoc slug={slug} locale={locale} />
+    {/* Audit 14 Sep: the price routine answers "what does it cost in the UAE" deterministically, but
+        only the homepage asked it. Emirate pages ask for the parent trade, the only key it knows. */}
+    <div className="mx-auto max-w-[1100px] px-5 pb-16"><PriceGuide slug={splitServiceSlug(slug).service} /></div>
   </>);
 }
