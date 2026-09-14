@@ -26,6 +26,9 @@
 -- account as Dr 1000 / Cr 3000 Owner Capital (founder_instruction 357) and the bank's month-end interest as
 -- Dr 1000 / Cr 7000 Bank Interest Income (type other_income: no revenue total counts it), under the same hold,
 -- and makes every other unmatched credit an accountant finding. Probe: scripts/checks/owner_capital_fixtures.sql.
+-- 15 Sep 2026: fn_accountant_book_bank_charges and fn_accountant_book_bank_credits are now canonical in
+-- a_journal_memo_never_carries_a_bank_or_iban_number.sql, which masks the bank description before it
+-- reaches a journal memo. Do not re-apply this file: later files also redefine two of its other routines.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_companys_own_bank_and_stripe_costs_book_themselves.sql --apply --ddl
 
