@@ -34,7 +34,7 @@ export function WorkedCase() {
               <div className="flex items-center gap-2">
                 <span className="redact redact-sq !h-5 !w-5" aria-hidden />
                 <span className="text-[13px] text-muted">{t('quote', { n: i + 1 })}</span>
-                {q.chosen && <span className="ms-auto rounded-full bg-gold/90 px-2 py-px text-[11px] font-semibold text-[#2A2000]">{t('chosen')}</span>}
+                {q.chosen && <span className="ms-auto rounded-full bg-gold/90 px-2 py-px text-[12px] font-semibold text-[#2A2000]">{t('chosen')}</span>}
               </div>
               <div dir="ltr" className="mt-3 text-start font-mono text-[18px] font-semibold text-white rtl:text-end">
                 {locale === 'ar' ? `${fmtNum(q.amount, locale)} درهم` : `AED ${fmtNum(q.amount, locale)}`}

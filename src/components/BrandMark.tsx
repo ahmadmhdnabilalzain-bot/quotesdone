@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 type BrandMarkProps = {
   className?: string;
   title?: string;
@@ -11,8 +13,11 @@ type BrandMarkProps = {
  * to expose an accessible label.
  */
 export function BrandMark({ className, title }: BrandMarkProps) {
-  // Unique gradient ids so multiple marks on one page never collide.
-  const uid = title ? `bm-${title.replace(/\W+/g, '')}` : 'bm';
+  // Unique gradient ids per instance. This was 'bm' for every untitled mark, so the header and the
+  // footer both emitted id="bm-teal"/"bm-gold" (duplicate ids, flagged by the Front-End Checklist
+  // audit of the live homepage, 14 Sep 2026). useId works in server components and is stable
+  // across server render and hydration; the colons it contains are stripped for url(#…).
+  const uid = `bm${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   return (
     <svg
       viewBox="0 0 800 800"

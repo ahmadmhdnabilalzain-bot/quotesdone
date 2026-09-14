@@ -34,7 +34,7 @@ export function MapPoster({ locale }: { locale: Locale }) {
   return (
     <div className={frame} aria-hidden>
       <div className="absolute inset-[12%] rounded-[40%] bg-[radial-gradient(closest-side,rgba(20,184,166,.14),transparent)]" />
-      <span className="absolute bottom-3 start-4 font-mono text-[10px] uppercase tracking-[0.18em] text-faint">
+      <span className="absolute bottom-3 start-4 font-mono text-[12px] uppercase tracking-[0.18em] text-faint">
         {locale === 'ar' ? 'الإمارات السبع' : 'Seven emirates'}
       </span>
     </div>

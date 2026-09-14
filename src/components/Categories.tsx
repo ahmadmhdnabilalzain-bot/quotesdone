@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Stagger, StaggerItem } from '@/components/motion/primitives';
+import { Stagger, StaggerItem } from '@/components/motion/reveal';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TradeCount } from '@/components/Counters';
 import { GetQuotesFor } from '@/components/GetQuotesFor';
@@ -27,7 +27,7 @@ export function Categories() {
             <div className="tile neon-edge group relative flex h-full flex-col overflow-hidden rounded-[18px] border border-[var(--line2)] bg-navy-deep/50 backdrop-blur-sm hover:border-teal/40">
               <Link href={`/services/${it.slug}`} className="flex flex-1 flex-col p-5 md:p-6">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] tabular text-faint transition-colors duration-300 group-hover:text-teal-light">
+                  <span className="font-mono text-[12px] tabular text-faint transition-colors duration-300 group-hover:text-teal-light">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <span className="corners h-3.5 w-3.5 opacity-40 transition-opacity duration-300 group-hover:opacity-100" aria-hidden />
@@ -37,7 +37,7 @@ export function Categories() {
                 </h3>
                 <ul className="mt-3 flex flex-wrap gap-1.5">
                   {toTags(it.tags).map((tag) => (
-                    <li key={tag} className="rounded-full border border-[var(--line)] bg-teal-light/[0.03] px-2.5 py-0.5 text-[11.5px] text-muted">{tag}</li>
+                    <li key={tag} className="rounded-full border border-[var(--line)] bg-teal-light/[0.03] px-2.5 py-0.5 text-[12px] text-muted">{tag}</li>
                   ))}
                 </ul>
                 <TradeCount trade={it.trade} template={t('suppliersN')} />

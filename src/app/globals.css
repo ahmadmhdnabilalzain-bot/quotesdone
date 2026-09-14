@@ -25,6 +25,10 @@
 html{color-scheme:dark;scroll-behavior:smooth;-webkit-text-size-adjust:100%;
   background:linear-gradient(178deg,var(--navy-hi) 0%,var(--navy) 34%,var(--navy-deep) 100%) fixed,var(--navy-deep)}
 html,body{padding:0;margin:0}
+/* Root guard: nothing decorative may widen the document. At 375 px the live page measured
+   scrollWidth 600 vs clientWidth 375 (aurora + hero marquee), so phones scrolled sideways and zoomed
+   out. `clip` (not hidden) creates no scroll container, so position:sticky on the header still works. */
+html,body{overflow-x:clip}
 body{background:transparent;color:var(--paper);min-height:100dvh;-webkit-font-smoothing:antialiased}
 
 /* every in-page anchor must clear the sticky header */
@@ -124,9 +128,15 @@ p{text-wrap:pretty}
    GPU-cheap (transform/opacity only) and fully disabled for reduced-motion.
    ══════════════════════════════════════════════════════════════════════ */
 
-/* AURORA — a slow drift of teal/gold light behind the whole document. */
-.aurora{
-  position:fixed;inset:-25% -12% auto -12%;height:135vh;z-index:-1;pointer-events:none;
+/* AURORA — a slow drift of teal/gold light behind the whole document.
+   The light is drawn on ::before inside a viewport-sized, clipped box (website audit 14 Sep 2026).
+   It used to be the element itself, 124% of the viewport wide and scaled to 1.16 by the animation:
+   measured at 375 px its right edge sat at 717 px, document.scrollWidth was 600 against a
+   clientWidth of 375, phones zoomed out, and Lighthouse attributed the page's entire CLS (0.481)
+   to this one div. The drawing and the animation are unchanged; only the overflow is clipped. */
+.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.aurora::before{
+  content:'';position:absolute;inset:-25% -12% auto -12%;height:135vh;
   background:
     radial-gradient(38% 44% at 20% 26%,rgba(20,184,166,.22),transparent 60%),
     radial-gradient(34% 40% at 84% 18%,rgba(227,192,101,.13),transparent 62%),
@@ -140,7 +150,7 @@ p{text-wrap:pretty}
   50% {transform:translate3d(5%, 3%,0)  scale(1.16) rotate(4deg);  opacity:1}
   100%{transform:translate3d(-2%,4%,0)  scale(1.08) rotate(-3deg); opacity:.8}
 }
-@media(max-width:1040px){.aurora{opacity:.62;filter:blur(26px)}}
+@media(max-width:1040px){.aurora::before{opacity:.62;filter:blur(26px)}}
 
 /* FLOAT — a gentle vertical drift for raised instruments/cards. */
 @keyframes qd-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
@@ -165,8 +175,29 @@ p{text-wrap:pretty}
 
 @media (prefers-reduced-motion:reduce){
   .neon-edge::before{transition:none}
-  .aurora,.qd-float,.qd-pulse,.qd-scan{animation:none}
+  .aurora::before,.qd-float,.qd-pulse,.qd-scan{animation:none}
 }
+
+/* AMBIENT MOTION WAITS FOR THE VISITOR (website audit 14 Sep 2026). Measured locally on mobile
+   Lighthouse (next build, / and /ar) once the JS scenes were deferred: script evaluation was down to
+   0.9–1.9 s, but "other" + paint/composite + style/layout still took ~5 s of the load, because the
+   blurred full-viewport aurora, the rotating blurred halo, the scan sweep, the headline shimmer,
+   the marquee and the pulsing dots all animate from first paint, and every glass panel's
+   backdrop-filter re-rasterises what moves behind it. These hold their first frame until the first
+   scroll/touch/pointer/key (src/lib/firstInteraction.ts adds .qd-awake to <html>), so the page looks
+   the same at rest. `.reveal` is deliberately NOT here: pausing a scroll-driven entrance could hold
+   content at opacity 0. */
+html:not(.qd-awake) :is(.aurora,.qd-float,.qd-pulse,.qd-scan,.text-brand-grad,.marquee,.halo),
+html:not(.qd-awake) :is(.aurora,.node-dot,.beam)::before,
+html:not(.qd-awake) :is(.node-dot,.beam)::after{animation-play-state:paused}
+
+/* SPRING HOVER — the footer's social icons. Was a motion/react spring (scale 1.12, lift -3px), the
+   last thing keeping the motion runtime in every page's first load; the site's expo ease gives the
+   same lift in CSS. */
+.spring-hover{transition:transform .32s var(--e)}
+@media (hover:hover){.spring-hover:hover{transform:translateY(-3px) scale(1.12)}}
+.spring-hover:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){.spring-hover{transition:none}.spring-hover:hover,.spring-hover:active{transform:none}}
 
 /* ══════════════════════════════════════════════════════════════════════
    HUD / TECHNICAL LAYER

@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Reveal } from '@/components/motion/primitives';
+import { Reveal } from '@/components/motion/reveal';
 import { SectionHeader } from '@/components/SectionHeader';
 
 // Paired "For customers / For suppliers" blocks (website audit ADOPT 3). The supplier half of the
@@ -13,7 +13,7 @@ function Block({ s, href, tone }: { s: Side; href: string; tone: 'teal' | 'gold'
   return (
     <div className="glass depth neon-edge relative flex h-full flex-col overflow-hidden rounded-[22px] p-7 md:p-9">
       <span className="grid-tech grid-tech-sm opacity-40" aria-hidden />
-      <span className={`relative font-mono text-[11px] font-medium uppercase tracking-[0.2em] ${accent} rtl:tracking-normal`}>{s.kicker}</span>
+      <span className={`relative font-mono text-[12px] font-medium uppercase tracking-[0.2em] ${accent} rtl:tracking-normal`}>{s.kicker}</span>
       <h3 className="crisp relative mt-4 text-balance font-head text-[clamp(22px,2.4vw,30px)] font-semibold leading-[1.1] tracking-[-0.03em] text-white rtl:tracking-normal">
         {s.title}
       </h3>

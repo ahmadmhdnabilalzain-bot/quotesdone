@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { Reveal } from '@/components/motion/primitives';
+import { Reveal } from '@/components/motion/reveal';
 import { HeroCtas } from '@/components/HeroCtas';
 import { MeasuredMedian } from '@/components/Counters';
 
@@ -17,7 +17,7 @@ export function CtaBand() {
             <span className="grid-tech" aria-hidden />
             <span className="halo left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 opacity-80" aria-hidden />
             <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal/60 to-transparent" />
-            <span className="relative mx-auto mb-7 flex w-fit items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-4 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-teal-light backdrop-blur-sm rtl:tracking-normal">
+            <span className="relative mx-auto mb-7 flex w-fit items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-4 py-1.5 font-mono text-[12px] font-medium uppercase tracking-[0.2em] text-teal-light backdrop-blur-sm rtl:tracking-normal">
               <span className="node-dot" aria-hidden />
               {t('cta.eyebrow')}
             </span>

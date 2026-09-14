@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { Reveal, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Link } from '@/i18n/routing';
 

@@ -4,8 +4,11 @@ import { BriefBox } from '@/components/BriefBox';
 import { HeroCtas } from '@/components/HeroCtas';
 import { Counters } from '@/components/Counters';
 import { HeroScene } from '@/components/visual/slots';
+import { Link } from '@/i18n/routing';
 
 type Proof = { k: string; v: string };
+// hero.proof[2] is "Verified — licence checked before quoting" (ar: "موثّقون") in both message files.
+const VERIFIED = 2;
 
 // THE HERO PAINTS AT TTFB.
 //
@@ -30,7 +33,7 @@ export function Hero() {
       </div>
       <section className="container-x relative z-10 grid items-start gap-12 pb-16 pt-12 md:pt-20 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20">
         <div className="flex flex-col items-start text-start">
-          <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-4 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-teal-light backdrop-blur-sm rtl:font-sans rtl:normal-case rtl:tracking-normal">
+          <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-4 py-1.5 font-mono text-[12px] font-medium uppercase tracking-[0.16em] text-teal-light backdrop-blur-sm rtl:font-sans rtl:normal-case rtl:tracking-normal">
             <span className="qd-pulse h-1.5 w-1.5 shrink-0 rounded-full bg-teal" />
             {t('badge')}
           </span>
@@ -78,13 +81,24 @@ export function Hero() {
         <div className="relative z-10 border-y border-[var(--line)] bg-navy-deep/40 py-5 backdrop-blur-sm">
           <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
             <div className="marquee items-center gap-0">
-              {ticker.map((p, i) => (
-                <span key={i} className="flex items-center gap-3 whitespace-nowrap px-7" aria-hidden={i >= proof.length}>
-                  <span className="node-dot" aria-hidden />
-                  <span className="font-head text-[15px] font-semibold tracking-[-0.01em] text-white">{p.k}</span>
-                  <span className="text-[14px] text-faint">{p.v}</span>
-                </span>
-              ))}
+              {ticker.map((p, i) => {
+                const body = (
+                  <>
+                    <span className="node-dot" aria-hidden />
+                    <span className="font-head text-[15px] font-semibold tracking-[-0.01em] text-white">{p.k}</span>
+                    <span className="text-[14px] text-faint">{p.v}</span>
+                  </>
+                );
+                const cls = 'flex items-center gap-3 whitespace-nowrap px-7';
+                const copy = i >= proof.length;
+                // The "Verified / licence checked" claim links to the page that shows the check.
+                // The duplicated marquee copy is aria-hidden, so its link is taken out of tab order.
+                return i % proof.length === VERIFIED ? (
+                  <Link key={i} href="/how-we-verify" className={`${cls} underline-offset-4 hover:underline`} aria-hidden={copy || undefined} tabIndex={copy ? -1 : undefined}>{body}</Link>
+                ) : (
+                  <span key={i} className={cls} aria-hidden={copy}>{body}</span>
+                );
+              })}
             </div>
           </div>
         </div>

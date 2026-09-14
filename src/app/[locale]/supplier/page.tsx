@@ -3,7 +3,7 @@ import { buildMeta } from '@/lib/seo';
 import { Link } from '@/i18n/routing';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
-import { Reveal, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal';
 import { EmiratesMap } from '@/components/visual/slots';
 
 // /supplier WAS THE PORTAL ITSELF — a second copy of /portal behind a login box, and every supplier
@@ -35,7 +35,7 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
           <span className="grid-tech" aria-hidden />
           <div className="container-x relative z-10 grid items-center gap-12 pb-16 pt-16 md:pt-24 lg:grid-cols-[1.1fr_.9fr]">
             <div>
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold rtl:tracking-normal">{t('kicker')}</span>
+              <span className="font-mono text-[12px] uppercase tracking-[0.18em] text-gold rtl:tracking-normal">{t('kicker')}</span>
               <h1 className="crisp mt-5 font-head text-[clamp(34px,5.2vw,64px)] font-semibold leading-[1.0] tracking-[-0.045em] text-white rtl:leading-[1.25] rtl:tracking-normal">
                 {t('title')}
               </h1>
@@ -73,7 +73,7 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
           <Stagger className="mt-10 grid gap-px overflow-hidden rounded-[22px] border border-[var(--line2)] bg-[var(--line)] md:grid-cols-2 lg:grid-cols-3">
             {econ.map((e, i) => (
               <StaggerItem key={e.k} className={`relative bg-navy-deep/90 p-7 ${i === 0 ? 'lg:col-span-2 mesh-glow' : ''}`}>
-                <span className="font-mono text-[11px] text-gold">{String(i + 1).padStart(2, '0')}</span>
+                <span className="font-mono text-[12px] text-gold">{String(i + 1).padStart(2, '0')}</span>
                 <h3 className="mt-4 font-head text-[21px] font-semibold tracking-[-0.02em] text-white">{e.k}</h3>
                 <p className="mt-2.5 max-w-[52ch] text-[14.5px] leading-relaxed text-muted">{e.v}</p>
               </StaggerItem>
