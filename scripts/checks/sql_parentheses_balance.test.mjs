@@ -27,7 +27,10 @@
 //     wiring_for_the_boq_fixture_runner, wiring_for_the_employee_side_of_the_engine.
 //   * dfbd98f (6 Sep) deduped pricing_has_no_date_no_discount_and_no_cap.sql 534 -> 470 lines and
 //     "was not re-applied"; the dedup left two `and ... cap >= 99999999);` lines after a closed check.
-// Each of those files fails on re-apply today; the check is red until their owners remove the tails.
+// The same PR (#660) deleted those orphaned tails, and only those, with nothing re-applied: the live objects were never
+// affected. The pricing file still has `comment on constraint pricing_config_no_discount_no_cap_ck`
+// but no longer the `add constraint` it describes (dfbd98f removed it). The constraint is live, but
+// this file alone would fail on a fresh database. That is a missing definition, not a paren count.
 //
 //   node --test scripts/checks/sql_parentheses_balance.test.mjs        (part of npm test)
 //   node scripts/checks/sql_parentheses_balance.test.mjs a.sql b.sql   (also scans the named files)

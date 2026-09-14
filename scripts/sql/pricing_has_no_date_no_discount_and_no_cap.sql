@@ -50,8 +50,6 @@ alter table public.pricing_config add column if not exists category_open_min_sup
 alter table public.pricing_config drop constraint if exists pricing_config_category_open_ck;
 alter table public.pricing_config add constraint pricing_config_category_open_ck
   check (category_open_min_suppliers >= 1);
-         and promo_reveal_cap >= 99999999
-         and standard_reveal_cap >= 99999999);
 comment on column public.pricing_config.supplier_charging_starts is
   'Founder, 6 Sep 2026: NULL and stays NULL - supplier charging starts with the registration after supplier_free_count, never on a calendar date. Every reader treats NULL as "no date".';
 comment on column public.pricing_config.category_open_min_suppliers is
