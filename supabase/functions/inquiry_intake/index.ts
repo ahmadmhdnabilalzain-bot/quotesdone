@@ -8,7 +8,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { detectCat, detectTrades, detectEmirate, detectUrgency, isArabic } from './classify.ts';
+import { detectCat, detectTrades, detectEmirate, detectUrgency } from './classify.ts';
 import { ACTOR, requirementsStep, requirementQuestions, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();

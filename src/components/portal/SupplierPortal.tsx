@@ -463,7 +463,8 @@ export function SupplierPortal() {
     call('supplier_api', { action: 'settings' }, token).then((j) => {
       const l = j && j.ok && j.settings ? j.settings.locale : null;
       if ((l === 'ar' || l === 'en') && l !== initLang()) switchLang(l);
-    }).catch(() => {});
+      else if (!(j && j.ok)) console.error('supplier settings unavailable - portal language left as the URL gives it', j);
+    }).catch((e) => console.error('supplier settings failed - portal language left as the URL gives it', e));
   }, [phase, token]);
   useEffect(() => {
     setMounted(true);

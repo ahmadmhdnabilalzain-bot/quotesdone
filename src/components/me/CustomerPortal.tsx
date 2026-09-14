@@ -198,7 +198,7 @@ export function CustomerPortal() {
   // Switching language while signed in IS a change of the registered language (founder, 14 Sep 2026:
   // the registered language follows every message), so it is saved to customers.locale exactly as
   // Account settings saves it. Signed out, it only changes this page.
-  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); if (token) call('customer_api', { action: 'set_locale', locale: l }, token).catch(() => {}); };
+  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); if (token) call('customer_api', { action: 'set_locale', locale: l }, token).then((j) => { if (!j || !j.ok) console.error('set_locale refused - customers.locale unchanged', j); }).catch((e) => console.error('set_locale failed - customers.locale unchanged', e)); };
 
   // THE DOCUMENT ITSELF NEVER LEARNED IT HAD SWITCHED LANGUAGE (13 Aug 2026). Measured in the
   // browser with the portal fully in Arabic: document.documentElement.dir was "ltr" and .lang was

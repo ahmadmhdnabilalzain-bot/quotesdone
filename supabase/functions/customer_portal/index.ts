@@ -19,6 +19,7 @@
 // database with no traffic, and none of these branches invents a number to avoid one.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -46,7 +47,7 @@ Deno.serve(observe('customer_portal', async (req) => {
     const b = await req.json().catch(() => ({} as any));
     const action = b.action;
     // The registered language (customers.locale), not the b.lang the page happened to send.
-    const ar = /^ar/i.test(String(cust.locale || ''));
+    const ar = asLocale(cust.locale) === 'ar';
 
     if (action === 'overview') {
       const { data: stats, error } = await admin.rpc('fn_customer_stats', { p_customer: cust.id });
