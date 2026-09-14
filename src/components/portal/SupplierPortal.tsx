@@ -13,6 +13,7 @@ import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import GetMatched from './supplier/GetMatched';
 import Insights, { INSIGHT_PANELS } from './supplier/Insights';
 import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer } from './supplier/RfqParts';
+import { SpecHoldPanel } from './supplier/SpecHold';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
 import { call } from './supplier/api';
@@ -728,7 +729,11 @@ const QUOTE_ST = {
 const quoteSt = (q) => QUOTE_ST[q && q.status] || { v: 'secondary', en: String((q && q.status) || '').replace(/_/g, ' '), ar: 'حالة أخرى' };
 // The notes a held quote carries: what fn_quote_structured_score says is missing, in words, and the
 // one button that reopens the form to fix it.
-function HeldNotes({ q, lang, onFix }) {
+// 14 Sep 2026: a quote the sales engineer holds for exact details carries `spec_hold`; its notes are the
+// per-line list and the two ways out (./supplier/SpecHold). Otherwise the commercial draft notes below.
+const optLabel = (lang, n) => (lang === 'ar' ? `الخيار ${n}` : `Option ${n}`);
+function HeldNotes({ q, lang, onFix, token = null, onChanged = null, title = null }) {
+  if (q.spec_hold && token) return <SpecHoldPanel quoteId={q.id} lang={lang} token={token} onChanged={onChanged || undefined} onResubmit={onFix || undefined} title={title} />;
   const ar = lang === 'ar';
   const miss = Array.isArray(q.missing) ? q.missing : [];
   return (
@@ -744,22 +749,24 @@ function HeldNotes({ q, lang, onFix }) {
 function MyQuotes({ token, lang, goRfqs, openRfq }) {
   const ar = lang === 'ar';
   const [data, setData] = useState(null);
-  useEffect(() => { call('supplier_api', { action: 'inbox' }, token).then(setData); }, [token]);
+  const load = () => call('supplier_api', { action: 'inbox' }, token).then(setData);
+  useEffect(() => { load(); }, [token]);
   if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
   if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
-  const list = (data.inquiries || []).filter((i) => i.quote);
+  // Every option is its own quotation (founder, 14 Sep 2026), so each gets its own card.
+  const list = (data.inquiries || []).flatMap((i) => { const qs = i.quotes && i.quotes.length ? i.quotes : (i.quote ? [i.quote] : []); return qs.map((q) => ({ ...i, quote: q, multi: qs.length > 1 })); });
   if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{ar ? 'لم تقدّم أي عرض بعد' : 'No quotes yet'}</div><div className={S.sub}>{ar ? 'تظهر هنا عروضك بعد أن تسعّر طلبًا من تبويب طلبات التسعير.' : 'Your quotes appear here once you price a request from the RFQs tab.'}</div><Button className="mt-3" variant="outline" onClick={goRfqs}>{t(lang, 't_rfqs')}</Button></Card>;
   return <ul className={S.list}>{list.map((i) => { const q = i.quote; const st = quoteSt(q); const editable = !i.concluded && !i.revealed; return (
-    <li key={i.id}><Card className="qd-panel qd-panel-hover p-5">
+    <li key={i.id + ':' + (q.option_no || 1)}><Card className="qd-panel qd-panel-hover p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" className="min-w-0 text-start" onClick={() => openRfq(i.id)} aria-label={(ar ? 'افتح الطلب ' : 'Open request ') + String(i.id).slice(0, 8).toUpperCase()}>
-          <div className="font-semibold text-foreground underline-offset-2 hover:underline">{categoryLabel(i.category || '', lang) || t(lang, 'request_w')} · {emirateLabel(lang, i.emirate || '')}</div>
+          <div className="font-semibold text-foreground underline-offset-2 hover:underline">{categoryLabel(i.category || '', lang) || t(lang, 'request_w')} · {emirateLabel(lang, i.emirate || '')}{i.multi ? ' · ' + optLabel(lang, q.option_no || 1) : ''}</div>
           <div className="mt-1 flex flex-wrap gap-2 items-center"><Badge variant={st.v}>{ar ? st.ar : st.en}</Badge>{i.you_won ? <Badge variant="ok">{t(lang, 'you_won').replace(' · ', '')}</Badge> : i.concluded ? <Badge variant="secondary">{t(lang, 'concluded').replace(' · ', '')}</Badge> : null}{q.lead_time ? <span className={S.sub}>{(ar ? 'مدة التنفيذ: ' : 'Lead time: ') + q.lead_time}</span> : null}</div>
         </button>
         <div className="text-end"><div className="font-[family-name:var(--font-head)] text-[18px] font-extrabold tabular-nums text-foreground"><Ltr>{aed(q.quote_amount)}</Ltr></div>
           {editable && q.status !== 'draft' ? <Button size="sm" variant="outline" className="mt-1" onClick={() => openRfq(i.id)}>{ar ? 'عدّل العرض' : 'Edit quote'}</Button> : null}</div>
       </div>
-      {q.status === 'draft' && editable ? <HeldNotes q={q} lang={lang} onFix={() => openRfq(i.id)} /> : null}
+      {q.status === 'draft' && editable ? <HeldNotes q={q} lang={lang} token={token} onChanged={load} onFix={() => openRfq(i.id)} /> : null}
     </Card></li>); })}</ul>;
 }
 // Label above figure, not below: the eye lands on the number, and the label is
@@ -849,6 +856,8 @@ function Spark({ hist, lang }) { if (!hist || !hist.length) return <div classNam
 function Rfqs({ token, lang, focus = null, onFocused = null }) {
   const ar = lang === 'ar';
   const [data, setData] = useState(null); const [open, setOpen] = useState(null); const [prefill, setPrefill] = useState({});
+  // A second form on a card: "<inquiry>#<option_no>" edits that option, "<inquiry>#new" adds another option.
+  const [extra, setExtra] = useState(null);
   const reload = () => call('supplier_api', { action: 'inbox' }, token).then((j) => setData(j));
   useEffect(() => { reload(); }, [token]);
   // Opened from a Quotes card: open THAT request's form (if it can still be edited) and scroll to it.
@@ -892,7 +901,18 @@ function Rfqs({ token, lang, focus = null, onFocused = null }) {
           {canQuote ? <Button size="sm" variant={q ? 'outline' : 'default'} aria-expanded={open === i.id} aria-controls={'qd-qf-' + i.id} onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : q ? (q.status === 'draft' ? (ar ? 'أصلح العرض' : 'Fix quote') : (ar ? 'عدّل العرض' : 'Edit quote')) : t(lang, 'quote')}</Button> : null}
         </div>
       </div>
-      {q && q.status === 'draft' && canQuote && open !== i.id ? <HeldNotes q={q} lang={lang} onFix={() => setOpen(i.id)} /> : null}
+      {q && q.status === 'draft' && canQuote && open !== i.id && !(i.quotes && i.quotes.length > 1) ? <HeldNotes q={q} lang={lang} token={token} onChanged={reload} onFix={() => setOpen(i.id)} /> : null}
+      {i.quotes && i.quotes.length > 1 ? <ul className="mt-3 flex flex-col gap-2" aria-label={ar ? 'خياراتك لهذا الطلب' : 'Your options on this request'}>{i.quotes.map((o) => (
+        <li key={o.id} className="rounded-md border border-border px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[13.5px] font-semibold text-foreground">{optLabel(lang, o.option_no || 1)} · <Ltr>{aed(o.quote_amount)}</Ltr></span>
+            <span className="flex items-center gap-2"><Badge variant={quoteSt(o).v}>{ar ? quoteSt(o).ar : quoteSt(o).en}</Badge>
+              {canQuote ? <Button size="sm" variant="outline" onClick={() => setExtra(extra === i.id + '#' + (o.option_no || 1) ? null : i.id + '#' + (o.option_no || 1))}>{ar ? 'عدّل هذا الخيار' : 'Edit this option'}</Button> : null}</span>
+          </div>
+          {o.status === 'draft' && canQuote && extra !== i.id + '#' + (o.option_no || 1) ? <HeldNotes q={o} lang={lang} token={token} onChanged={reload} onFix={() => setExtra(i.id + '#' + (o.option_no || 1))} /> : null}
+        </li>))}</ul> : null}
+      {canQuote && q ? <div className="mt-2.5"><Button size="sm" variant="ghost" onClick={() => setExtra(extra === i.id + '#new' ? null : i.id + '#new')}>{ar ? '+ أضف خيارًا آخر (عرض مستقل)' : '+ Add another option (its own quotation)'}</Button></div> : null}
+      {canQuote && extra && extra.startsWith(i.id + '#') ? <div id={'qd-qf-' + extra}><QuoteForm key={extra} inquiry={i} token={token} lang={lang} newOption={extra.endsWith('#new')} quote={extra.endsWith('#new') ? null : (i.quotes || []).find((o) => i.id + '#' + (o.option_no || 1) === extra) || null} onDone={() => { setExtra(null); reload(); }} /></div> : null}
       {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
       <DrawingGallery pages={i.drawing_pages || []} lang={lang} />
       <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote && !q ? (rows) => quoteBoq(i.id, rows) : undefined} />
@@ -902,16 +922,25 @@ function Rfqs({ token, lang, focus = null, onFocused = null }) {
     </Card></li>;
   })}</ul>;
 }
-function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
+function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = null, newOption = false }) {
   // An existing quote (a held draft, or one already sent) reopens with what was sent, lines included.
-  const q0 = inquiry.quote || {};
+  // `quote` names one option to edit; `newOption` starts another option, which is its own quotation.
+  const q0 = quote || (newOption ? {} : inquiry.quote || {});
+  const optionArgs = newOption ? { new_option: true } : (q0.option_no ? { option_no: q0.option_no } : {});
+  // VAT (founder, 14 Sep 2026): the customer compares and pays on the price EXCLUDING VAT, and never
+  // sees the supplier's VAT details. The supplier says how the total is stated; if it includes VAT,
+  // they give the ex-VAT figure.
+  const VAT_BASIS = ['exclusive', 'inclusive', 'not_registered'];
+  const [vat, setVat] = useState(VAT_BASIS.includes(q0.vat_treatment) ? q0.vat_treatment : '');
+  const [exVat, setExVat] = useState(q0.vat_treatment === 'inclusive' && q0.price_ex_vat != null ? String(q0.price_ex_vat) : '');
   const lines0 = initialItems && initialItems.length ? initialItems
     : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
   const [amount, setAmount] = useState(q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
-  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
-  const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form' };
+  const vatArgs = { vat_treatment: vat || undefined, price_ex_vat: vat === 'inclusive' && Number(exVat) > 0 ? Number(exVat) : undefined };
+  const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name, subtotal: prop.subtotal ?? undefined, vat_amount: prop.vat_amount ?? undefined, trn: prop.trn ?? undefined, option_totals: prop.option_totals || undefined, ...vatArgs, ...optionArgs } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form', ...vatArgs, ...optionArgs };
   // Preflight. submit_quote accepts dry_run: it runs the REAL scorer and the REAL accept rule,
   // then stops — no status change, no customer notification, and deliberately no coaching email,
   // because fn_quote_coach queues mail that must not fire while someone is mid-edit.
@@ -926,14 +955,16 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
     setChecking(true); setMsg(''); setChk(null);
     const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token);
     setChecking(false);
-    if (j && j.ok) setChk(j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
+    if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
   const submit = async () => {
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     setBusy(true); setMsg('');
     const j = await call('supplier_api', buildPayload(), token);
     setBusy(false);
-    if (j && j.ok && j.accepted) onDone();
+    // Accepted, held by the sales engineer (the card then shows exactly what is missing and the two
+    // ways out) or split into options: the card is the next thing the supplier needs to see.
+    if (j && j.ok && (j.accepted || j.held || j.options)) onDone();
     else if (j && j.ok) setMsg(srvMsg(lang, j, t(lang, 'draft_saved')));
     else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
@@ -946,6 +977,17 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept={QUOTE_ACCEPT} onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
     <div className={cn(grp, 'border-t border-border pt-4')}>{ar ? 'السعر والشروط' : 'Price and terms'}</div>
     <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
+    <div className="flex gap-2.5 flex-wrap">
+      <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'الإجمالي أعلاه' : 'The total above'}>
+        <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px]" value={vat} onChange={(e) => setVat(e.target.value)}>
+          <option value="">{ar ? 'اختر: هل يشمل ضريبة القيمة المضافة؟' : 'Choose: does it include VAT?'}</option>
+          <option value="exclusive">{ar ? 'غير شامل ضريبة القيمة المضافة' : 'Excludes VAT'}</option>
+          <option value="inclusive">{ar ? 'شامل ضريبة القيمة المضافة' : 'Includes VAT'}</option>
+          <option value="not_registered">{ar ? 'لسنا مسجلين في ضريبة القيمة المضافة' : 'We are not VAT-registered'}</option>
+        </select></Lbl>
+      {vat === 'inclusive' ? <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'السعر غير شامل الضريبة (درهم)' : 'Price excluding VAT (AED)'}><Input className="tabular font-mono" inputMode="decimal" value={exVat} onChange={(e) => setExVat(e.target.value)} /></Lbl> : null}
+    </div>
+    <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقمك الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
     <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
     <div className="border-t border-border pt-4">
       <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
@@ -1026,7 +1068,12 @@ function QuoteCheck({ chk, lang }) {
           <span className="text-[13px] text-foreground">{missingLabel(lang, m)}</span>
         </li>)}
       </ul>}
-      {!missing.length && <div className={cn(S.sub, 'mt-2.5')}>{ar ? 'لا ينقص شيء. عرض مكتمل.' : 'Nothing missing — this is a complete quote.'}</div>}
+      {!missing.length && !(chk.spec_missing && chk.spec_missing.length) && <div className={cn(S.sub, 'mt-2.5')}>{ar ? 'لا ينقص شيء. عرض مكتمل.' : 'Nothing missing — this is a complete quote.'}</div>}
+      {Array.isArray(chk.spec_missing) && chk.spec_missing.length > 0 && <div className="mt-2.5 border-t border-border pt-2.5">
+        <div className="text-[13px] font-semibold text-foreground">{ar ? 'سيُعلّق مهندس المبيعات العرض حتى تُذكر هذه التفاصيل الدقيقة:' : 'The sales engineer will hold this quote until these exact details are stated:'}</div>
+        <ul className="mt-1.5 flex flex-col gap-1">{chk.spec_missing.map((m, i) => <li key={i} className="flex items-start gap-2 text-[13px] text-foreground"><span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />{m.scope === 'line' ? (ar ? `البند ${m.line_no}: ` : `Line ${m.line_no}: `) : ''}{ar ? m.label_ar : m.label_en}</li>)}</ul>
+      </div>}
+      {Array.isArray(chk.options) && chk.options.length > 1 && <div className={cn(S.sub, 'mt-2.5')}>{srvText(lang, 'options_split', { count: chk.options.length })}</div>}
       {chk.total_items != null && <div className={cn(S.sub, 'mt-2.5 pt-2.5 border-t border-border')}>
         {ar ? `${chk.priced_items} من ${chk.total_items} بند مُسعّر` : `${chk.priced_items} of ${chk.total_items} line items priced`}
       </div>}
