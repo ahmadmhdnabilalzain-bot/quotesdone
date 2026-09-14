@@ -5,7 +5,7 @@
 // no document charges VAT; and no real party can appear (ZZ DEMO / example.invalid only).
 import { assert, assertEquals, assertStringIncludes, assertThrows } from 'jsr:@std/assert@1';
 import { computeCharge } from './supplier_charge.ts';
-import { recoveryPack, finalDemandDocument, invoiceDocument, claimDocument, LEGAL } from './supplier_charge_documents.ts';
+import { recoveryPack, finalDemandDocument, invoiceDocument, claimDocument, LEGAL, signingRecord, sha256Hex } from './supplier_charge_documents.ts';
 import { DEMO_CASE as C } from './supplier_charge.fixture.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 
@@ -71,6 +71,20 @@ Deno.test('documents agree, give the legal minimum, and charge no VAT', () => {
     assertStringIncludes(fd, lang === 'ar' ? 'البند 33' : 'Clause 33');
   }
   for (const p of recoveryPack(C)) assert(!/\b5%|vat of|ضريبة القيمة المضافة بواقع/i.test(JSON.stringify(p.body)), p.name + ' charges VAT');
+});
+
+Deno.test('every recovery document but the guide is signed, and each signing is recorded with its hash', async () => {
+  const pack = recoveryPack(C);
+  for (const p of pack) assertEquals(!!p.body.options.sign && !!p.body.options.stamp, p.name !== '4c_filing_guide', p.name);
+  assert(!/2883503/.test(JSON.stringify(pack)), 'a register number the licence does not print');
+  const bytes = new TextEncoder().encode('%PDF-1.7 demo');
+  const inv = pack.find((p) => p.name === '1_invoice' && p.lang === 'en')!;
+  const rec = await signingRecord(C, inv, bytes, 1, { signature: new Uint8Array([1]), stamp: null });
+  assert(rec);
+  assertEquals([rec.document, rec.ref, rec.agreement_version, rec.issued, rec.signature_asset, rec.stamp_asset_sha256], ['1_invoice', C.invoice.number, C.acceptance.version, C.invoice.date, 'brand/qd_signature.png', null]);
+  assertEquals(rec.pdf_sha256, await sha256Hex(bytes));
+  assertEquals(rec.pdf_sha256.length, 64);
+  assertEquals(await signingRecord(C, pack.find((p) => p.name === '4c_filing_guide')!, bytes, 1), null);
 });
 
 Deno.test('every document renders to a PDF', async () => {

@@ -231,7 +231,7 @@ cite (21, 22, 31, 33, 34) is unchanged. v11 takes effect when its registry SQL i
 | Language (head, clause 22) | "The English version … is the governing version" | **the Arabic text prevails for all purposes, including before the courts**; the English is for convenience |
 | The charge (clause 33) | refund + AED 250 + 9% simple from the due date | adds: once the notice issues, (a)+(b) are **a sum of money of a specified amount, certain and due on the due date**; 9% simple, never compounded (fits CPL Art 143 and CTL Art 84) |
 | AED 250 (clause 33) | "administrative fee" reflecting cost | adds: **agreed compensation under Civil Transactions Law 25/2025 Art 340(1)**, quoted in the official wording of each language, and a genuine pre-estimate of handling cost |
-| Licence wording (clauses 1, 35) | "E-Trader (Professional) Licence" | **"Trader License No. 1633275"**, as the DET licence prints it (title رخصة تاجر / Trader License; Arabic trade name كوتس دن للتكنولوجيا). The licence does not print the Commercial Register No. 2883503 the agreement also cites; that number comes from src/content/company.json |
+| Licence wording (clauses 1, 35) | "E-Trader (Professional) Licence" | **"Trader License No. 1633275"**, as the DET licence prints it (title رخصة تاجر / Trader License; Arabic trade name كوتس دن للتكنولوجيا). The licence prints no Commercial Register number, so none is printed any more (founder: take it from the licence); the company is identified by Trader License No. 1633275 only |
 | Interest (clause 31), jurisdiction (clause 34), e-acceptance (clauses 1, 30) | sufficient | unchanged |
 
 A supplier who accepted v10 is asked to accept v11 on the next portal sign-in (supplier_api accept_terms records

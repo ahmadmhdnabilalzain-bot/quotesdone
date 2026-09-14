@@ -37,7 +37,8 @@ export type CaseFile = {
   refund: { refunded_at: string; refund_id: string; reveal_fee: number; processing_fee: number };
   invoice: { number: string; date: string };
   reminders: { n: number; date: string }[];
-  final_demand: { date: string; service: string; service_ar: string };
+  // service_ref: the delivery ids alone, for the evidence index (the demand letter prints the full sentence).
+  final_demand: { date: string; service: string; service_ar: string; service_ref?: string };
   as_of: string;
   payments?: { date: string; amount: number }[];
 };
@@ -68,12 +69,12 @@ export function fmtDate(iso: string, lang: Lang): string {
 const pct = (r: number) => (r * 100).toFixed(0) + '%';
 
 const CO = {
-  en: { name: FALLBACK.name, form: 'Sole Establishment', licence: 'Trade Licence No. 1633275 issued by the Department of Economy and Tourism — Dubai', cr: 'Commercial Register No. 2883503', city: 'Dubai, United Arab Emirates', email: FALLBACK.email, phone: FALLBACK.phone, signer: FALLBACK.signer, title: FALLBACK.title },
-  ar: { name: FALLBACK.name, form: 'مؤسسة فردية', licence: 'رخصة تجارية رقم 1633275 صادرة عن دائرة الاقتصاد والسياحة في دبي', cr: 'السجل التجاري رقم 2883503', city: 'دبي، الإمارات العربية المتحدة', email: FALLBACK.email, phone: FALLBACK.phone, signer: 'أحمد الزين', title: 'المؤسس والمدير الإداري' },
+  en: { name: FALLBACK.name, form: 'Sole Establishment', licence: 'Trader License No. 1633275 issued by the Dubai Department of Economy and Tourism', city: 'Dubai, United Arab Emirates', email: FALLBACK.email, phone: FALLBACK.phone, signer: FALLBACK.signer, title: FALLBACK.title },
+  ar: { name: FALLBACK.name, form: 'مؤسسة فردية', licence: 'رخصة تاجر رقم 1633275 صادرة عن دائرة الاقتصاد والسياحة في دبي', city: 'دبي، الإمارات العربية المتحدة', email: FALLBACK.email, phone: FALLBACK.phone, signer: 'أحمد الزين', title: 'المؤسس والمدير الإداري' },
 };
 const NO_VAT = { en: 'QuotesDone Technologies is not registered for VAT; no VAT is charged on this invoice.', ar: 'QuotesDone Technologies غير مسجّلة في ضريبة القيمة المضافة؛ ولا تُحتسب أي ضريبة على هذه الفاتورة.' };
 const FORMULA = {
-  en: (c: Charge) => `Interest = unpaid principal × ${pct(c.rate_pa)} × days after the due date ÷ 365 (simple interest, never compounded). Daily accrual on ${money(c.unpaid_principal)}: ${money(c.daily_interest)}.`,
+  en: (c: Charge) => `Interest = unpaid principal × ${pct(c.rate_pa)} × days after the due date ÷ 365, simple, never compounded: ${money(c.daily_interest)} a day.`,
   ar: (c: Charge) => `الفائدة = أصل المبلغ غير المسدَّد × ${pct(c.rate_pa)} × عدد الأيام بعد تاريخ الاستحقاق ÷ 365 (فائدة بسيطة غير مركّبة). الاستحقاق اليومي على ${money(c.unpaid_principal, 'ar')}: ${money(c.daily_interest, 'ar')}.`,
 };
 
@@ -89,8 +90,8 @@ function breakdown(ch: Charge, lang: Lang, withInterest = true): Block[] {
     ? [['1', 'رسم عدم الاستجابة (أ): رسوم الكشف المستردّة إلى العميل (3% من قيمة عرض السعر)', money(ch.refunded_reveal_fee, 'ar')],
       ['2', 'رسم عدم الاستجابة (أ): رسوم معالجة البطاقة المستردّة إلى العميل', money(ch.refunded_processing_fee, 'ar')],
       ['3', 'الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
-    : [['1', 'Non-response charge (a): reveal fee refunded to the customer (3% of the quotation value)', money(ch.refunded_reveal_fee)],
-      ['2', 'Non-response charge (a): card processing fee refunded to the customer', money(ch.refunded_processing_fee)],
+    : [['1', 'Non-response charge (a): reveal fee refunded (3% of quotation value)', money(ch.refunded_reveal_fee)],
+      ['2', 'Non-response charge (a): card processing fee refunded', money(ch.refunded_processing_fee)],
       ['3', 'Administrative fee (b)', money(ch.admin_fee)]];
   const tot: (string | boolean)[][] = [[ar ? 'أصل المبلغ المستحق' : 'Principal due', money(ch.principal, lang), !withInterest]];
   if (ch.paid > 0) tot.push([ar ? 'المسدَّد' : 'Paid', '− ' + money(ch.paid, lang), false]);
@@ -106,9 +107,11 @@ function breakdown(ch: Charge, lang: Lang, withInterest = true): Block[] {
 }
 function parties(c: CaseFile, lang: Lang, roleTo: string, roleFrom: string): Block[] {
   const ar = lang === 'ar', s = c.supplier, co = CO[lang];
+  // One block, the two parties side by side: as two blocks each took half the width and stacked,
+  // ~300pt of page 1, which pushed Reminder 2's totals alone onto an 80%-empty page 2 (14 Sep 2026).
   return [
-    { t: 'kv', pairs: [[roleFrom, `${co.name} (${co.form}) · ${co.licence} · ${co.cr} · ${co.city} · ${co.email}`]] },
-    { t: 'kv', pairs: [[roleTo, `${ar ? s.legal_name_ar : s.legal_name} · ${ar ? 'رخصة تجارية رقم' : 'Trade Licence No.'} ${s.licence_no} (${ar ? s.licence_authority_ar : s.licence_authority}) · ${ar ? s.address_ar : s.address} · ${s.email} · ${s.mobile}`]] },
+    { t: 'kv', pairs: [[roleFrom, `${co.name} (${co.form}) · ${co.licence} · ${co.city} · ${co.email}`],
+      [roleTo, `${ar ? s.legal_name_ar : s.legal_name} · ${ar ? 'رخصة تجارية رقم' : 'Trade Licence No.'} ${s.licence_no} (${ar ? s.licence_authority_ar : s.licence_authority}) · ${ar ? s.address_ar : s.address} · ${s.email} · ${s.mobile}`]] },
   ];
 }
 function basisBlocks(c: CaseFile, lang: Lang): Block[] {
@@ -131,10 +134,17 @@ function doc(lang: Lang, ref: string, dateIso: string, title: string, kicker: st
     lang, ref, name: `${ref}-${lang}`, title,
     cover: { kicker, title, subtitle, meta, figures },
     control: `${ref} · ${RECOVERY_DOC_VERSION} · ${ar ? 'أُصدر في' : 'Issued'} ${fmtDate(dateIso, lang)} · ${ar ? 'أعدّه محاسب QuotesDone' : 'Prepared by the QuotesDone accountant'}`,
-    blocks, options: { letterhead: true, sign, stamp: sign },
+    // Founder, 14 Sep 2026: "with stamp and signature of course". Every recovery document except the filing
+    // guide carries his signature image and the company stamp. The renderer fetches both from the brand
+    // bucket (qd_signature.png, qd_stamp.png) — one controlled store, nothing copied into code — and refuses
+    // to issue a signed document if any character would be missing. signingRecord() records what went out.
+    blocks, options: { letterhead: true, sign, stamp: sign }, issued_iso: dateIso,
     ...(ar ? { date_ar: fmtDate(dateIso, 'ar') } : { date: fmtDate(dateIso, 'en') }),
   };
 }
+
+/** The renderer's compact cover band (58pt shorter) for letters and indexes that must fit, signed, on one page. */
+function compact<T extends { cover: Record<string, unknown> }>(b: T): T { b.cover.compact = true; return b; }
 
 // ── 1. The commercial invoice ────────────────────────────────────────────────────────────────
 export function invoiceDocument(c: CaseFile, lang: Lang) {
@@ -166,16 +176,20 @@ export function reminderDocument(c: CaseFile, n: number, lang: Lang) {
       : `رغم تذكيرنا السابق، لا تزال الفاتورة رقم ${c.invoice.number} غير مسدَّدة. نرجو السداد خلال سبعة (7) أيام من تاريخ هذا الخطاب، وإلا ستوجّه QuotesDone إليكم إنذارًا رسميًا بالوفاء تمهيدًا لاتخاذ الإجراءات القضائية أمام محاكم دبي.`)
     : (n === 1 ? `This is a reminder that invoice ${c.invoice.number} dated ${fmtDate(c.invoice.date, 'en')} fell due on ${fmtDate(ch.due_date, 'en')} and remains unpaid. Please settle it promptly; the agreed interest has accrued daily since the due date.`
       : `Despite our earlier reminder, invoice ${c.invoice.number} remains unpaid. Please pay within seven (7) days of this letter; otherwise QuotesDone will serve a formal demand for payment as the step before proceedings in the Dubai Courts.`);
-  return doc(lang, ref, r.date, ar ? `تذكير بالسداد رقم ${n}` : `Payment Reminder ${n}`, ar ? 'تذكير' : 'Reminder',
+  // A compact cover (renderer cover.compact) keeps a reminder, its statement and the signature on one page.
+  return compact(doc(lang, ref, r.date, ar ? `تذكير بالسداد رقم ${n}` : `Payment Reminder ${n}`, ar ? 'تذكير' : 'Reminder',
     ar ? `الفاتورة ${c.invoice.number} — القضية ${c.case_ref}` : `Invoice ${c.invoice.number} — case ${c.case_ref}`,
     [[ar ? 'المرجع' : 'Reference', ref], [ar ? 'التاريخ' : 'Date', fmtDate(r.date, lang)], [ar ? 'تاريخ الاستحقاق' : 'Due date', fmtDate(ch.due_date, lang)]],
-    [[ar ? 'المستحق اليوم' : 'Due today', money(ch.total_due, lang)], [ar ? 'أيام التأخير' : 'Days overdue', String(ch.days_overdue)]],
+    // No key-figures strip: the totals block below states the amount due today, and the strip's 84pt is what
+    // keeps a signed reminder on one page.
+    [],
     [
-      ...parties(c, lang, ar ? 'إلى (المورّد)' : 'To (Supplier)', ar ? 'من' : 'From'),
+      // A letter on letterhead names its addressee; the sender is the letterhead. The sign-off closes the
+      // letter text, so it can never fall alone onto a second page (14 Sep 2026: it did, 94% empty).
+      { t: 'kv', pairs: [[ar ? 'إلى (المورّد)' : 'To (Supplier)', `${ar ? c.supplier.legal_name_ar : c.supplier.legal_name} · ${c.supplier.email}`]] },
       { t: 'p', text },
       { t: 'section', n: 1, text: ar ? 'كشف الحساب' : 'Statement' }, ...breakdown(ch, lang),
-      ...signOff(lang),
-    ], false);
+    ], true));
 }
 
 // ── 3. The formal final demand (إنذار بالوفاء) ────────────────────────────────────────────────
@@ -185,7 +199,7 @@ export function finalDemandDocument(c: CaseFile, lang: Lang) {
   const D = fmtDate(deadline, lang);
   const body: Block[] = ar ? [
     { t: 'p', text: `إلى السادة/ ${c.supplier.legal_name_ar} المحترمين،` },
-    { t: 'p', text: `تحية طيبة وبعد، تُنذركم ${CO.ar.name} (${CO.ar.form}، ${CO.ar.licence}، ${CO.ar.cr}) بموجب هذا الإنذار الرسمي بالوفاء بالمبلغ المستحق عليكم المبيّن أدناه، وذلك للأسباب الآتية:` },
+    { t: 'p', text: `تحية طيبة وبعد، تُنذركم ${CO.ar.name} (${CO.ar.form}، ${CO.ar.licence}) بموجب هذا الإنذار الرسمي بالوفاء بالمبلغ المستحق عليكم المبيّن أدناه، وذلك للأسباب الآتية:` },
     ...basisBlocks(c, lang),
     { t: 'p', label: 'المطالبات السابقة', text: `أُرسلت إليكم الفاتورة رقم ${c.invoice.number} بتاريخ ${fmtDate(c.invoice.date, 'ar')} واستحقت في ${fmtDate(ch.due_date, 'ar')}، ثم التذكيرات المؤرخة ${c.reminders.map((r) => fmtDate(r.date, 'ar')).join(' و')}، ولم تُسدَّد حتى تاريخه.` },
     { t: 'section', n: 1, text: 'المبلغ المطالب به' }, ...breakdown(ch, lang),
@@ -196,7 +210,7 @@ export function finalDemandDocument(c: CaseFile, lang: Lang) {
     { t: 'p', text: 'وتفضلوا بقبول فائق الاحترام،' },
   ] : [
     { t: 'p', text: `To: ${c.supplier.legal_name}` },
-    { t: 'p', text: `${CO.en.name} (${CO.en.form}, ${CO.en.licence}, ${CO.en.cr}) hereby gives you formal notice to pay the amount due from you set out below, for the following reasons:` },
+    { t: 'p', text: `${CO.en.name} (${CO.en.form}, ${CO.en.licence}) hereby gives you formal notice to pay the amount due from you set out below, for the following reasons:` },
     ...basisBlocks(c, lang),
     { t: 'p', label: 'Earlier requests', text: `Invoice ${c.invoice.number} was sent to you on ${fmtDate(c.invoice.date, 'en')} and fell due on ${fmtDate(ch.due_date, 'en')}, followed by reminders dated ${c.reminders.map((r) => fmtDate(r.date, 'en')).join(' and ')}. It remains unpaid.` },
     { t: 'section', n: 1, text: 'Amount demanded' }, ...breakdown(ch, lang),
@@ -219,7 +233,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
   const blocks: Block[] = ar ? [
     { t: 'p', text: 'إلى: السيد القاضي المختص بإصدار أوامر الأداء — محاكم دبي' },
     { t: 'section', n: 1, text: 'بيانات الطالب (الدائن)' },
-    { t: 'kv', pairs: [['الاسم', `${co.name} (${co.form})`], ['الرخصة', co.licence], ['السجل التجاري', co.cr], ['العنوان', co.city], ['البريد الإلكتروني والهاتف', `${co.email} · ${co.phone}`], ['الممثل', `${co.signer} — ${co.title} (مالك المؤسسة)`]] },
+    { t: 'kv', pairs: [['الاسم', `${co.name} (${co.form})`], ['الرخصة', co.licence], ['العنوان', co.city], ['البريد الإلكتروني والهاتف', `${co.email} · ${co.phone}`], ['الممثل', `${co.signer} — ${co.title} (مالك المؤسسة)`]] },
     { t: 'section', n: 2, text: 'بيانات المطلوب ضده (المدين)' },
     { t: 'kv', pairs: [['الاسم', s.legal_name_ar], ['الرخصة', `${s.licence_no} — ${s.licence_authority_ar}`], ['العنوان', s.address_ar], ['البريد الإلكتروني', s.email], ['الهاتف', s.mobile]] },
     { t: 'section', n: 3, text: 'الوقائع' }, ...basisBlocks(c, lang),
@@ -243,7 +257,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
   ] : [
     { t: 'p', text: 'To: the Judge competent to issue payment orders — Dubai Courts' },
     { t: 'section', n: 1, text: 'Applicant (creditor)' },
-    { t: 'kv', pairs: [['Name', `${co.name} (${co.form})`], ['Licence', co.licence], ['Commercial register', co.cr], ['Address', co.city], ['Email and phone', `${co.email} · ${co.phone}`], ['Represented by', `${co.signer} — ${co.title} (owner)`]] },
+    { t: 'kv', pairs: [['Name', `${co.name} (${co.form})`], ['Licence', co.licence], ['Address', co.city], ['Email and phone', `${co.email} · ${co.phone}`], ['Represented by', `${co.signer} — ${co.title} (owner)`]] },
     { t: 'section', n: 2, text: 'Respondent (debtor)' },
     { t: 'kv', pairs: [['Name', s.legal_name], ['Licence', `${s.licence_no} — ${s.licence_authority}`], ['Address', s.address], ['Email', s.email], ['Phone', s.mobile]] },
     { t: 'section', n: 3, text: 'Facts' }, ...basisBlocks(c, lang),
@@ -269,7 +283,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     ar ? `${co.name} ضد ${s.legal_name_ar}` : `${co.name} v. ${s.legal_name}`,
     [[ar ? 'المرجع' : 'Reference', ref], [ar ? 'التاريخ' : 'Date', fmtDate(asOf, lang)], [ar ? 'المحكمة' : 'Court', ar ? 'محاكم دبي' : 'Dubai Courts']],
     [[ar ? 'أصل الدين' : 'Principal', money(ch.principal, lang)], [ar ? 'الفائدة حتى تاريخه' : 'Interest to date', money(ch.interest, lang)], [ar ? 'الإجمالي' : 'Total', money(ch.total_due, lang)]],
-    [...blocks, ...signOff(lang)], false);
+    [...blocks, ...signOff(lang)], true);
 }
 
 // ── 4b. Evidence index ───────────────────────────────────────────────────────────────────────
@@ -279,25 +293,25 @@ export function evidenceIndexDocument(c: CaseFile, lang: Lang) {
   const rows: string[][] = [
     [T('Supplier Agreement v' + c.acceptance.version.replace(/^v/, '') + ', signed copy (clauses 31, 33, 34)', 'اتفاقية المورّد الإصدار ' + c.acceptance.version + '، نسخة موقّعة (البنود 31 و33 و34)'), T('Accepted ', 'قُبلت ') + fmtDate(c.acceptance.accepted_at, lang), 'SHA-256 ' + c.acceptance.sha256.slice(0, 16) + '…'],
     [T('Acceptance record (time, IP, text hash)', 'سجلّ القبول الإلكتروني (الوقت، عنوان IP، بصمة النص)'), c.acceptance.accepted_at.replace('T', ' ').replace('Z', ' UTC'), 'IP ' + (c.acceptance.ip ?? '—')],
-    [T('QuotesDone trade licence and commercial register', 'الرخصة التجارية والسجل التجاري لـ QuotesDone'), '1633275 · 2883503', T('DET Dubai', 'دائرة الاقتصاد والسياحة')],
+    [T('QuotesDone Trader License (DET Dubai)', 'رخصة تاجر لـ QuotesDone (دائرة الاقتصاد والسياحة في دبي)'), '1633275', T('valid to 24 June 2027', 'سارية حتى 24 يونيو 2027')],
     [T('Owner\'s Emirates ID (the person filing)', 'الهوية الإماراتية لمالك المؤسسة (مقدّم الطلب)'), '—', T('attach at filing', 'تُرفق عند التقديم')],
     [T('The customer\'s request (inquiry)', 'طلب العميل'), T(c.inquiry.summary, c.inquiry.summary_ar), c.inquiry.id],
     [T('Reveal payment receipt', 'إيصال دفع رسوم الكشف'), fmtDate(c.reveal.paid_at, lang) + ' · ' + money(c.reveal.reveal_fee + c.reveal.processing_fee, lang), c.reveal.payment_intent],
-    [T('Day-3 chase to the supplier, copying the customer, with delivery confirmation', 'متابعة اليوم الثالث للمورّد مع نسخة للعميل وتأكيد التسليم'), fmtDate(c.ladder.chase_day3_at, lang), T(c.ladder.chase_delivery, c.ladder.chase_delivery_ar)],
+    [T('Day-3 chase (customer copied) and its delivery record', 'متابعة اليوم الثالث للمورّد مع نسخة للعميل وتأكيد التسليم'), fmtDate(c.ladder.chase_day3_at, lang), T(c.ladder.chase_delivery, c.ladder.chase_delivery_ar)],
     [T('Day-5 final call by the CEO and its outcome', 'الاتصال الأخير في اليوم الخامس ونتيجته'), fmtDate(c.ladder.final_call_day5_at, lang), T(c.ladder.final_call_outcome, c.ladder.final_call_outcome_ar)],
     [T('Refund to the customer (payment-provider record)', 'ردّ المبلغ إلى العميل (سجلّ مزوّد الدفع)'), fmtDate(c.refund.refunded_at, lang) + ' · ' + money(c.refund.reveal_fee + c.refund.processing_fee, lang), c.refund.refund_id],
     [T('Invoice and its delivery confirmation', 'الفاتورة وتأكيد تسليمها'), fmtDate(c.invoice.date, lang), c.invoice.number],
     ...c.reminders.map((r) => [T(`Reminder ${r.n} and its delivery confirmation`, `التذكير رقم ${r.n} وتأكيد تسليمه`), fmtDate(r.date, lang), `${c.invoice.number}-R${r.n}`]),
-    [T('Formal demand and proof of service', 'الإنذار الرسمي بالوفاء وإثبات الإعلان'), fmtDate(c.final_demand.date, lang), T(c.final_demand.service, c.final_demand.service_ar)],
+    [T('Formal demand and proof of service', 'الإنذار الرسمي بالوفاء وإثبات الإعلان'), fmtDate(c.final_demand.date, lang), c.final_demand.service_ref ?? T(c.final_demand.service, c.final_demand.service_ar)],
     [T('Statement of account with the interest calculation', 'كشف الحساب مع احتساب الفائدة'), fmtDate(c.as_of, lang), c.case_ref],
   ];
-  return doc(lang, ref, c.as_of, ar ? 'فهرس المستندات والأدلة' : 'Evidence Index', ar ? 'حافظة مستندات' : 'Filing pack',
+  return compact(doc(lang, ref, c.as_of, ar ? 'فهرس المستندات والأدلة' : 'Evidence Index', ar ? 'حافظة مستندات' : 'Filing pack',
     ar ? `مرفقات طلب أمر الأداء — القضية ${c.case_ref}` : `Attachments to the payment-order application — case ${c.case_ref}`,
     [[ar ? 'المرجع' : 'Reference', ref], [ar ? 'عدد المستندات' : 'Documents', String(rows.length)]], [],
     [
-      { t: 'table', head: ar ? ['#', 'المستند', 'التاريخ / القيمة', 'المرجع'] : ['#', 'Document', 'Date / value', 'Reference'], rows: rows.map((r, i) => [String(i + 1), ...r]), widths: [0.06, 0.46, 0.24, 0.24] },
-      { t: 'note', text: ar ? 'تُقدَّم المستندات باللغة العربية بصيغة PDF؛ ويُقدَّم النص العربي لاتفاقية المورّد، وهو النص المعتمد لجميع الأغراض بما فيها أمام المحاكم (البند 22)؛ وما كان منها بلغة أخرى تُرفق معه ترجمة مترجم قانوني معتمد من وزارة العدل.' : 'Documents are filed in Arabic, as PDF; the Supplier Agreement is filed in its Arabic text, which prevails for all purposes including before the courts (clause 22); any other document in another language is attached with a translation by an MOJ-approved legal translator.' },
-    ], false);
+      { t: 'table', head: ar ? ['#', 'المستند', 'التاريخ / القيمة', 'المرجع'] : ['#', 'Document', 'Date / value', 'Reference'], rows: rows.map((r, i) => [String(i + 1), ...r]), widths: [0.05, 0.41, 0.19, 0.35], fs: 7 },
+      { t: 'note', text: ar ? 'تُقدَّم المستندات باللغة العربية بصيغة PDF؛ ويُقدَّم النص العربي لاتفاقية المورّد، وهو النص المعتمد لجميع الأغراض بما فيها أمام المحاكم (البند 22)؛ وما كان منها بلغة أخرى تُرفق معه ترجمة مترجم قانوني معتمد من وزارة العدل.' : 'Filed in Arabic as PDF: the agreement in its Arabic text (clause 22); any other document with an MOJ-approved translation.' },
+    ], true));
 }
 
 // ── 4c. The founder's one-page guide ─────────────────────────────────────────────────────────
@@ -330,6 +344,31 @@ export function founderGuideDocument(c: CaseFile, lang: Lang) {
       { t: 'callout', tone: 'grey', title: ar ? 'ليس أمرًا للشرطة' : 'Not a police matter', text: ar ? 'عدم سداد رسم تعاقدي دَين مدني تجاري يُطالَب به أمام المحاكم، وليس جريمة تُبلَّغ بها الشرطة.' : 'An unpaid contractual charge is a civil and commercial debt claimed in the courts; it is not a crime to report to the police.' },
       { t: 'note', text: ar ? 'هذا الدليل وثيقة عمل أعدّها برنامج QuotesDone وليس استشارة قانونية؛ تُراجع النقاط المذكورة في ملف البحث مع محاكم دبي قبل أول تقديم.' : 'This guide was prepared by QuotesDone software and is not legal advice; check the points listed in the research file with the Dubai Courts before the first filing.' },
     ], false);
+}
+
+// ── What went out under the founder's signature ─────────────────────────────────────────────────
+// One record per signed PDF: which document, its reference and version, the case and the agreement
+// version it rests on, the SHA-256 of the exact bytes issued, who signed, and the brand-store assets
+// (and their hashes, when the caller has them) that carried the signature and stamp. Null for a document
+// that is not signed (the filing guide). The caller keeps these with the sent message.
+export type SigningRecord = {
+  document: string; ref: string; lang: Lang; doc_version: string; case_ref: string; agreement_version: string;
+  issued: string; pdf_sha256: string; pages: number; signed_by: string; signer_title: string;
+  signature_asset: string; stamp_asset: string; signature_asset_sha256: string | null; stamp_asset_sha256: string | null;
+};
+const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
+export async function sha256Hex(bytes: Uint8Array): Promise<string> { return hex(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes))); }
+export async function signingRecord(c: CaseFile, doc: { name: string; lang: Lang; body: ReturnType<typeof invoiceDocument> }, pdf: Uint8Array, pages: number,
+  assets: { signature?: Uint8Array | null; stamp?: Uint8Array | null } = {}): Promise<SigningRecord | null> {
+  if (!doc.body.options.sign) return null;
+  return {
+    document: doc.name, ref: doc.body.ref, lang: doc.lang, doc_version: RECOVERY_DOC_VERSION, case_ref: c.case_ref,
+    agreement_version: c.acceptance.version, issued: doc.body.issued_iso, pdf_sha256: await sha256Hex(pdf), pages,
+    signed_by: FALLBACK.signer, signer_title: FALLBACK.title,
+    signature_asset: 'brand/qd_signature.png', stamp_asset: 'brand/qd_stamp.png',
+    signature_asset_sha256: assets.signature ? await sha256Hex(assets.signature) : null,
+    stamp_asset_sha256: assets.stamp ? await sha256Hex(assets.stamp) : null,
+  };
 }
 
 /** Every document of a case, in filing order, both languages. */

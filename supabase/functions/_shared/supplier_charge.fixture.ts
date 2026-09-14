@@ -24,7 +24,7 @@ export const DEMO_CASE: CaseFile = {
   acceptance: {
     version: 'v11', accepted_at: '2026-09-15T09:12:44Z', ip: '192.0.2.10',
     // Supplier Agreement v11 (EN + AR text hash, as supplier_api stores it at acceptance).
-    sha256: 'b30996342e38cb93b397f9c184eb449ce583ffde6a1adb86707b92b1c3fb6e9e',
+    sha256: '3ea45ef6ab9180df2197c632b5948c7e868bc10bccf83bc9345abd4a70ae3b40',
   },
   inquiry: { id: 'zzd3m0aa-7c1e-4f00-9a00-000000000001', summary: 'Supply and install ducted split AC, 3-bedroom villa, Al Barsha', summary_ar: 'توريد وتركيب مكيف سبليت مخفي بمجاري هواء لفيلا 3 غرف نوم في البرشاء' },
   quote_value: QUOTE_VALUE,
@@ -39,6 +39,6 @@ export const DEMO_CASE: CaseFile = {
   refund: { refunded_at: '2026-10-09T08:00:00Z', refund_id: 're_ZZDEMO0000000000000001', reveal_fee: paidFor.base_fee, processing_fee: paidFor.processing_fee },
   invoice: { number: 'QD-INV-NR-2026-0001', date: '2026-10-09' },
   reminders: [{ n: 1, date: '2026-10-20' }, { n: 2, date: '2026-11-03' }],
-  final_demand: { date: '2026-11-17', service: 'email to the registered address (ZZDEMO-OUTBOX-301, delivered), WhatsApp to the registered mobile (ZZDEMO-WA-301, delivered) and the supplier portal', service_ar: 'البريد الإلكتروني المسجّل (ZZDEMO-OUTBOX-301، سُلِّم) وواتساب على الهاتف المسجّل (ZZDEMO-WA-301، سُلِّم) وبوابة المورّد' },
+  final_demand: { date: '2026-11-17', service_ref: 'ZZDEMO-OUTBOX-301 · ZZDEMO-WA-301 · portal', service: 'email to the registered address (ZZDEMO-OUTBOX-301, delivered), WhatsApp to the registered mobile (ZZDEMO-WA-301, delivered) and the supplier portal', service_ar: 'البريد الإلكتروني المسجّل (ZZDEMO-OUTBOX-301، سُلِّم) وواتساب على الهاتف المسجّل (ZZDEMO-WA-301، سُلِّم) وبوابة المورّد' },
   as_of: '2026-11-17',
 };
