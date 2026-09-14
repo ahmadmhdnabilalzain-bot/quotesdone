@@ -87,7 +87,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       f.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
       f.set('invoice_creation[enabled]', 'true');
       f.set('invoice_creation[invoice_data][description]', 'QuotesDone supplier registration — annual listing fee');
-      f.set('invoice_creation[invoice_data][footer]', 'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+      f.set('invoice_creation[invoice_data][footer]', 'QuotesDone Technologies · DET Dubai Trader License No. 1633275 · not registered for VAT');
       f.set('metadata[kind]', 'supplier_registration');
       f.set('metadata[supplier_id]', String(lead.id));
       f.set('payment_intent_data[metadata][kind]', 'supplier_registration');
@@ -174,7 +174,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
     form.set('invoice_creation[invoice_data][metadata][due_ids]', ids.join(','));
     form.set('invoice_creation[invoice_data][metadata][supplier_id]', String(lead.id));
     form.set('invoice_creation[invoice_data][footer]',
-      'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+      'QuotesDone Technologies · DET Dubai Trader License No. 1633275 · not registered for VAT');
 
     form.set('metadata[due_ids]', ids.join(','));
     form.set('metadata[supplier_id]', String(lead.id));

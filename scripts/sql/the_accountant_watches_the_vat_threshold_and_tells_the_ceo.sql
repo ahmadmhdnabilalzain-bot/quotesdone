@@ -45,6 +45,27 @@ insert into public.gl_settings (key, num_value, txt_value) values
    'Report to the CEO once rolling turnover reaches this fraction of the threshold, so registration is prepared rather than discovered.')
 on conflict (key) do update set txt_value = excluded.txt_value;
 
+-- 14 SEP 2026 (duty 4 of the eight, founder: "yea add them all"): the CEO is warned at EACH configured
+-- fraction of the threshold, and the founder is asked for a decision — by email, through customer_support
+-- — once turnover reaches the decision fraction, well before the line is crossed. Configuration, not
+-- literals: decision_policy holds both.
+insert into public.decision_policy (key, value, description) values
+  ('vat_threshold_report_fractions', '[0.5, 0.7, 0.8, 0.9, 1.0]'::jsonb,
+   'Fractions of the VAT registration threshold at which the accountant reports rolling 12-month turnover to the CEO (once per fraction per month).'),
+  ('vat_threshold_founder_decision_fraction', '0.8'::jsonb,
+   'From this fraction of the threshold the founder is emailed once per fraction, through customer_support, to decide on VAT registration before the threshold is crossed.')
+on conflict (key) do nothing;
+
+-- The highest configured fraction a turnover has reached, or null.
+create or replace function public.fn_vat_threshold_fraction_reached(p_turnover_aed numeric)
+returns numeric language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select max(e::numeric)
+    from public.decision_policy d, jsonb_array_elements_text(d.value) e
+   where d.key = 'vat_threshold_report_fractions'
+     and coalesce(p_turnover_aed, 0) >= e::numeric * (select num_value from public.gl_settings where key = 'vat_registration_threshold_aed');
+$fn$;
+revoke execute on function public.fn_vat_threshold_fraction_reached(numeric) from public, anon, authenticated;
+
 -- ── THE DECISION, SEPARATED FROM THE MEASUREMENT ────────────────────────────────────────────────
 -- Pure: given a turnover figure, what is the position? Separated so the rule can be proved
 -- exhaustively without writing a single journal — the ledger is immutable by trigger, so a probe
@@ -82,7 +103,7 @@ create or replace function public.fn_accountant_vat_threshold_check(p_notify boo
 returns jsonb language plpgsql security definer set search_path to 'public' as $fn$
 declare
   v_turn numeric; v_pos jsonb; v_band text; v_key text; v_rpt jsonb;
-  v_m3 numeric; v_runrate numeric; v_since date;
+  v_m3 numeric; v_runrate numeric; v_since date; v_frac numeric; v_dec numeric;
 begin
   v_since := (current_date - interval '12 months')::date;
 
@@ -106,19 +127,38 @@ begin
      and j.entry_date >= (current_date - interval '3 months')::date;
   v_runrate := round(v_m3 * 4, 2);
 
-  if v_band = 'below' or not p_notify then
+  v_frac := public.fn_vat_threshold_fraction_reached(v_turn);
+  v_pos := v_pos || jsonb_build_object('fraction_reached', v_frac);
+
+  if v_frac is null or not p_notify then
     return v_pos || jsonb_build_object('reported_to_ceo', false,
       'window_from', v_since, 'run_rate_annualised_aed', v_runrate,
       'run_rate_note', 'The preceding-12-months test is decided above. This annualised figure is the forward-looking limb of the UAE rule and is INFORMATION for the CEO and the founder, not a determination — a projection is a judgement about the future, not a measurement.');
   end if;
 
-  -- One report per band per month. The tick runs every 15 minutes; without this the CEO would
-  -- receive the same finding ninety-six times a day and would stop reading it.
-  v_key := 'vat_threshold:' || v_band || ':' || to_char(current_date, 'YYYY-MM');
+  -- One report per configured fraction per month. The tick runs every 15 minutes; without this the
+  -- CEO would receive the same finding ninety-six times a day and would stop reading it.
+  v_key := 'vat_threshold:' || v_frac || ':' || to_char(current_date, 'YYYY-MM');
+
+  -- THE FOUNDER DECIDES REGISTRATION, AND HEARS IT BEFORE THE LINE (14 Sep 2026). Once per fraction,
+  -- through customer_support; fn_notify_founder dedupes on the key as well.
+  select (value #>> '{}')::numeric into v_dec from public.decision_policy where key = 'vat_threshold_founder_decision_fraction';
+  if v_dec is not null and v_frac >= v_dec then
+    perform public.fn_seat_handoff('accountant', 'customer_support', 'delivery.request', 'founder', 'vat_decision:' || v_frac,
+      jsonb_build_object('recipient_role', 'founder', 'kind', 'finance_alert', 'level', 'high',
+        'event', 'VAT registration: your decision is needed (' || round(v_frac * 100) || '% of the threshold)',
+        'detail', 'Taxable turnover over the last 12 months is AED ' || (v_pos->>'turnover_aed') || ', which is '
+                  || (v_pos->>'pct_of_threshold') || '% of the AED ' || (v_pos->>'threshold_aed') || ' mandatory VAT registration threshold. '
+                  || case when v_band = 'crossed' then 'It has been crossed, so registration is required now. '
+                          else 'It has not been crossed yet; AED ' || (v_pos->>'headroom_aed') || ' of headroom is left. ' end
+                  || 'Please decide whether QuotesDone registers for VAT now or at the threshold, and reply with your decision. '
+                  || 'The annualised run rate of the last three months is AED ' || v_runrate || '.',
+        'dedupe_key', 'vat_decision:' || v_frac));
+  end if;
 
   v_rpt := public.fn_support_report_to_ceo(
     p_idempotency_key => v_key,
-    p_severity        => case when v_band = 'crossed' then 'high' else 'routine' end,
+    p_severity        => case when v_band = 'crossed' then 'serious' when v_frac >= coalesce(v_dec, 1) then 'elevated' else 'routine' end,
     p_subject         => case when v_band = 'crossed'
                               then 'VAT registration is now required: rolling 12-month turnover AED '
                                    || (v_pos->>'turnover_aed') || ' has passed AED ' || (v_pos->>'threshold_aed')

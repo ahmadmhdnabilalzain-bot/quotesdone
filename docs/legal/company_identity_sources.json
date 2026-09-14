@@ -1,0 +1,27 @@
+{
+  "_what": "The document each identity number printed on the site was read from. Not customer content: read only by scripts/checks/identity_numbers_come_from_the_licence.test.mjs, which requires every number printed next to a licence or permit label to equal src/content/company.json AND have its entry here. Agent: website, 14 Sep 2026.",
+  "licence_no": {
+    "value": "1633275",
+    "field": "licence_no",
+    "source": "DET Dubai Trader License PDF, 'License Number' field. File: Dropbox/QuotesDone Backup/Assets/639183403868888392.pdf (printed 29 Jun 2026). Title on the licence: رخصة تاجر / Trader License."
+  },
+  "licence_issued": {
+    "value": "2026-06-25",
+    "field": "licence_issued",
+    "source": "The same licence PDF, 'Issue Date' field (25-Jun-2026)."
+  },
+  "licence_expiry": {
+    "value": "2027-06-24",
+    "field": "licence_expiry",
+    "source": "The same licence PDF, 'Expiry Date' field (24-Jun-2027)."
+  },
+  "tdra_nol_no": {
+    "value": "NOL-26-100000665",
+    "field": "tdra_nol_no",
+    "source": "TDRA No-Objection Letter for www.quotesdone.ae, issued 14 Sep 2026, expires 14 Sep 2027; stated in the founder's 14 Sep 2026 brief. Not on the trade licence."
+  },
+  "not_printed": {
+    "2883503": "Was printed as 'Commercial Register No.' until 14 Sep 2026; entered company.json that day (6a42b59) with no source. The trade licence prints no Commercial Register number. Founder, 14 Sep 2026: take it from the licence.",
+    "2063672": "The owner's member number in the licence's members table. Not a register number; never printed."
+  }
+}
