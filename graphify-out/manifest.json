@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "src/components/portal/SupplierPortal.tsx": {
-    "mtime": 1789406335.946586,
-    "ast_hash": "33cd39f74dcdfe6cdd13cf6aed005b9d",
+    "mtime": 1789408276.2653904,
+    "ast_hash": "8d1e31549ee618f7da0f8ca71f75061f",
     "semantic_hash": ""
   },
   "src/components/ui/badge.tsx": {
@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/customer_api/index.ts": {
-    "mtime": 1789407390.3617098,
-    "ast_hash": "a4d72067bbbeb2024fea9822b114090d",
+    "mtime": 1789408276.2735379,
+    "ast_hash": "aef54baf0cff3feb4a29bc85e5297c08",
     "semantic_hash": ""
   },
   "supabase/functions/customer_portal/index.ts": {
@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1789407390.3863513,
-    "ast_hash": "7377a3d83d9031411b00f3d31a94023c",
+    "mtime": 1789408276.291319,
+    "ast_hash": "73538dbbdba8c9b9abe4663096ccf989",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -11935,8 +11935,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1789407437.2368102,
-    "ast_hash": "b3eae66ee8f4268306820cb2017dbc94",
+    "mtime": 1789408299.1516163,
+    "ast_hash": "9bc34bd50eb45b580df3729e4f8a81b8",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -17595,8 +17595,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/supplier_capability.ts": {
-    "mtime": 1789405850.585514,
-    "ast_hash": "20bd13bd81ceade876a1b5f4d7f95de5",
+    "mtime": 1789408276.2673903,
+    "ast_hash": "9ede26f85bcf0d0558df13f47d353cc2",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/supplier_copy.ts": {
@@ -17695,8 +17695,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/sales_engineer/index.ts": {
-    "mtime": 1789407390.3651998,
-    "ast_hash": "d09168a1f2c4394ec35402896a66ea6d",
+    "mtime": 1789408276.2745373,
+    "ast_hash": "23682971b29341367aa4455454e1e316",
     "semantic_hash": ""
   },
   ".claude/skills/quotesdone-apply-discipline/SKILL.md": {
@@ -18610,13 +18610,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/trade_classify.test.ts": {
-    "mtime": 1789405850.6068876,
-    "ast_hash": "b835c145b7614d46933db15ac2977748",
+    "mtime": 1789408276.268391,
+    "ast_hash": "ef189788d9ae6a7e6e30897c6311113f",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/trade_classify.ts": {
-    "mtime": 1789405850.6094072,
-    "ast_hash": "9174987f8104e556b928329bf80f5360",
+    "mtime": 1789408276.2705395,
+    "ast_hash": "a9b1f2dda57d5092ff7267cb373c4ef0",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/whatsapp_choice.test.ts": {
@@ -18727,6 +18727,26 @@
   "supabase/functions/_shared/line_specs/no_exact_spec.ts": {
     "mtime": 1789407390.35871,
     "ast_hash": "b170dae3a929929b5eff135971e1e946",
+    "semantic_hash": ""
+  },
+  "scripts/checks/a_ready_request_reaches_the_suppliers_registered_for_its_trade.test.mjs": {
+    "mtime": 1789408276.2593908,
+    "ast_hash": "6c0c2e5eafc05e67cf07816ffe5c223d",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_intake_trade_resolves_to_the_capability_vocabulary.sql": {
+    "mtime": 1789408276.2623909,
+    "ast_hash": "da6fd67184e49917b4829117cfd4ee14",
+    "semantic_hash": ""
+  },
+  "src/components/nocheck_files_have_no_redeclarations.test.mjs": {
+    "mtime": 1789408219.1310103,
+    "ast_hash": "ae0d56ecf07d131d25bc010910c66b50",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/supplier_capability.test.ts": {
+    "mtime": 1789408276.2663898,
+    "ast_hash": "86aa9a6df2dc80f64862e910812f88ac",
     "semantic_hash": ""
   }
 }
