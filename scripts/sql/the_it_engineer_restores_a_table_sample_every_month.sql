@@ -85,8 +85,13 @@ create or replace function public.fn_it_restore_table_due()
 returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select ('restore_table' = any (public.fn_it_scheduled_due())
           or (exists (select 1 from public.it_engineer_finding where closed_at is null and issue_key like 'duty:restore\_table:%')
-              and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'
-                               and started_at > now() - interval '20 hours')))
+              and (not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'
+                                and started_at > now() - interval '20 hours')
+                   -- a finished export newer than the one the last drill read: re-check at once, so a
+                   -- stale-export finding closes the tick after the export lands, inside the loop's window
+                   or exists (select 1 from public.table_export_run r
+                               where r.status = 'done' and r.stamp::text > coalesce(
+                                 (select d.detail->>'newest_export_day' from public.it_restore_drill_result d order by d.id desc limit 1), '')))))
      and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'restore_table_pick'
                       and started_at > now() - interval '6 hours')
 $fn$;
@@ -121,10 +126,13 @@ begin
   select t.table_name into v_tab
     from public.it_restore_drill_table t
     join storage.objects o on o.bucket_id = 'backups' and o.name = v_newest || '/' || t.table_name || '/page_0000.json'
+    left join pg_class pc on pc.oid = to_regclass('public.' || t.table_name)
    where v_manifest is null
       or (v_manifest->'tables' ? t.table_name
           and coalesce(v_manifest->'tables'->t.table_name->>'mode', 'full') not like 'changes_since%')
-   order by random() limit 1;
+   -- A table with rows first: the first live drill (14 Sep 2026) drew supplier_dues, empty, and had
+   -- nothing to compare.
+   order by (coalesce(pc.reltuples, 0) > 0) desc, random() limit 1;
   return jsonb_build_object('newest_export_day', v_newest,
     'sample_rows', coalesce(public.fn_it_threshold('restore_table_sample_rows'), 50),
     'table', case when v_tab is not null
@@ -138,7 +146,7 @@ returns jsonb language plpgsql security definer set search_path to 'public', 'pg
 declare
   t jsonb := p->'table'; v_items jsonb := '[]'::jsonb; v_key text; v_tab text := p->'table'->>'table';
   n_rest int := 0; n_match int := 0; n_changed int := 0; n_missing int := 0; v_err text; v_age int; v_max int;
-  v_ok boolean; v_detail jsonb; v_out jsonb; v_drop text[]; v_full date; v_last date; v_gaps text;
+  v_ok boolean; v_detail jsonb; v_out jsonb; v_drop text[]; v_full date; v_last date; v_gaps text; v_live_empty boolean;
 begin
   if jsonb_typeof(p) is distinct from 'object' then
     raise exception 'fn_it_restore_table_record takes the drill reading from _shared/it_restore_drill.ts';
@@ -206,7 +214,11 @@ begin
     exception when others then v_err := 'restore into scratch failed: ' || sqlerrm;
     end;
   end if;
-  v_ok := v_err is null and n_rest > 0 and n_match > 0;
+  -- An empty page of a table that is empty live restored exactly what there is: that passes.
+  if v_err is null and n_rest = 0 and v_key is not null then
+    execute format('select not exists (select 1 from public.%I)', v_tab) into v_live_empty;
+  end if;
+  v_ok := v_err is null and ((n_rest > 0 and n_match > 0) or coalesce(v_live_empty, false));
   v_detail := jsonb_build_object('table', v_tab, 'path', t->>'path', 'rows_in_file', t->'rows_in_file', 'restored', n_rest,
                                  'identical_to_live', n_match, 'changed_since_export', n_changed, 'gone_from_live', n_missing,
                                  'not_compared', to_jsonb(v_drop), 'error', v_err,

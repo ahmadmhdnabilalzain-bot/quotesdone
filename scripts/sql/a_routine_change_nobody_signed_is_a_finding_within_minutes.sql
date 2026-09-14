@@ -201,13 +201,21 @@ begin
   if jsonb_typeof(p) is distinct from 'array' then
     raise exception 'fn_it_change_revisions_record takes the array verifyRevisions returns';
   end if;
-  for x in select e from jsonb_array_elements(p) e
-            where e->>'verdict' in ('on_main', 'merged_pr', 'open_pr', 'not_on_main') loop
-    update public.it_change_revision
-       set verdict = x->>'verdict', pr_number = (x->>'pr_number')::int, checked_at = now(),
-           detail = coalesce(x->'detail', '{}'::jsonb)
-     where rev = x->>'rev';
-    n := n + 1;
+  for x in select e from jsonb_array_elements(p) e loop
+    if x->>'verdict' in ('on_main', 'merged_pr', 'open_pr', 'not_on_main') then
+      update public.it_change_revision
+         set verdict = x->>'verdict', pr_number = (x->>'pr_number')::int, checked_at = now(),
+             detail = coalesce(x->'detail', '{}'::jsonb)
+       where rev = x->>'rev';
+      n := n + 1;
+    else
+      -- No verdict: the revision stays pending, but what GitHub answered is kept, so "could not be
+      -- asked" names its cause. Applied 14 Sep 2026: the first live tick asked about 7cd70b4 and left
+      -- nothing but verdict 'pending', checked never.
+      update public.it_change_revision
+         set checked_at = now(), detail = coalesce(x->'detail', '{}'::jsonb) || jsonb_build_object('no_verdict_at', now())
+       where rev = x->>'rev';
+    end if;
   end loop;
   return jsonb_build_object('recorded', n) || public.fn_it_change_watch();
 end $fn$;
