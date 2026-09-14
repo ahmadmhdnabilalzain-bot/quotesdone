@@ -661,18 +661,35 @@ Deno.serve(observe('accountant', async (req) => {
           results.push({ fix: f.id, error: 'payer_unknown' }); continue;
         }
         if (d.fix === 'refund_difference' || d.fix === 'retry_refund') {
-          let amount = Number(d.amount_fils || 0);
-          if (d.fix === 'retry_refund') {
-            const { data: rr } = await admin.from('refunds').select('amount_fils').eq('id', Number(d.refund_id)).maybeSingle();
-            amount = Number(rr?.amount_fils || 0);
+          // ONE RAIL FOR THE PLAYBOOK TOO (PR #640 re-review, 14 Sep 2026). Until today these sent a
+          // refund to Stripe under 'qd_incident_<fix>' and only recorded it afterwards; fn_refund_settle
+          // then filed the top-up as an external row with no transaction, outside every per-payment
+          // guard. Now the money is RESERVED on public.refunds first, through every guard on the table
+          // (the window, the CEO decision, and a01's cap: never more than the customer paid), and only
+          // then sent, under a key rooted in the transaction. A refusal releases the reservation.
+          const txId = String(d.transaction_id || '');
+          const failFix = async (why: string) => { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: why.slice(0, 500) }); results.push({ fix: f.id, error: why }); };
+          let rowId = 0, amount = 0, idem = '';
+          if (d.fix === 'refund_difference') {
+            const { data: rv, error: rvErr } = await admin.rpc('fn_accountant_reserves_topup',
+              { p_transaction_id: txId, p_amount_fils: Number(d.amount_fils || 0), p_fix_id: f.id });
+            if (rvErr || !rv?.ok) { await failFix(rvErr?.message || String(rv?.reason || 'the top-up could not be reserved')); continue; }
+            rowId = Number(rv.refund_id); amount = Number(rv.amount_fils); idem = refundIdempotencyKey(txId, 'topup' + rowId);
+          } else {
+            rowId = Number(d.refund_id);
+            const { data: rr, error: rrErr } = await admin.from('refunds').update({ status: 'processing' })
+              .eq('id', rowId).eq('status', 'failed').select('amount_fils').maybeSingle();
+            if (rrErr || !rr) { await failFix(rrErr?.message || 'refund #' + rowId + ' is not a failed refund that can be retried'); continue; }
+            amount = Number(rr.amount_fils); idem = refundIdempotencyKey(txId, 'retry' + f.id);
           }
-          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), amountFils: amount, idem: 'qd_incident_' + f.id,
-            metadata: { incident_id: String(d.incident_id || ''), fix: String(d.fix) } });
-          if (!res.ok) { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: res.error }); results.push({ fix: f.id, error: res.error }); continue; }
-          if (d.fix === 'retry_refund') {
-            await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id), failure_reason: null })
-              .eq('id', Number(d.refund_id)).eq('status', 'failed');
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), amountFils: amount, idem,
+            metadata: { incident_id: String(d.incident_id || ''), fix: String(d.fix), refund_id: String(rowId) } });
+          if (!res.ok) {
+            await admin.from('refunds').update({ status: d.fix === 'retry_refund' ? 'failed' : 'cancelled', failure_reason: res.error.slice(0, 500) })
+              .eq('id', rowId).eq('status', d.fix === 'retry_refund' ? 'processing' : 'requested');
+            await failFix(res.error); continue;
           }
+          await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id) }).eq('id', rowId);
           // Recorded first, so the re-verification the completion triggers already sees this money.
           await settle(res.refund, res.pi);
           await admin.rpc('fn_seat_handoff_complete', { p_id: f.id, p_evidence: { stripe_refund_id: res.refund.id, amount_fils: res.refund.amount, status: res.refund.status } });

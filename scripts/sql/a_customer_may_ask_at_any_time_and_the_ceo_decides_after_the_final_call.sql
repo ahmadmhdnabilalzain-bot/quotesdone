@@ -41,6 +41,10 @@
 --      refuses a second live platform refund on one payment for every writer. The second rail it
 --      closes, refunds_api 'resolve', is retired in the same PR, and execute_refunds keys Stripe once
 --      per transaction (_shared/stripe_refund.ts refundIdempotencyKey).
+--   6. THE PLAYBOOK ON THE SAME RAIL (re-review): refunds.topup_of; a01 caps every live platform
+--      write so a payment's live refunds never exceed total_charged; fn_accountant_reserves_topup
+--      reserves a capped top-up row before Stripe; a00 lets a top-up carry only the part still owed;
+--      z05 lets a top-up cite its case's CEO decision (and nothing else may cite another row's).
 --
 -- WHAT IT DOES NOT CHANGE: the ladder sweep, the CEO's review, the day-3 and day-5 checks, the Stripe
 -- reference and amount guards, and who approves (the CEO). The Stripe key a refund uses is fixed in
@@ -117,6 +121,19 @@ begin
   -- that it must EQUAL it. A platform refund with no amount is refused outright -- an unstated
   -- figure is not a smaller figure, it is an unbounded one.
   v_expected := round(coalesce(t.total_charged, t.reveal_fee) * 100)::bigint;
+  -- A TOP-UP (topup_of set) completes a case on THIS payment and carries only the part still owed, so
+  -- it is exempt from equality; a01 caps it, and every live refund on the payment together, at
+  -- total_charged (PR #640 re-review, 14 Sep 2026).
+  if NEW.topup_of is not null then
+    if not exists (select 1 from public.refunds c where c.id = NEW.topup_of and c.transaction_id = NEW.transaction_id and c.topup_of is null) then
+      raise exception 'refunds: a top-up must name a refund case on the same payment; % is not one for transaction %. (refund_topup_names_no_case)',
+        NEW.topup_of, NEW.transaction_id using errcode = '23514';
+    end if;
+    if NEW.amount_fils is null or NEW.amount_fils <= 0 then
+      raise exception 'refunds: a top-up must state a positive amount. (refund_states_no_amount)' using errcode = '23514';
+    end if;
+    return NEW;
+  end if;
   if NEW.amount_fils is null then
     raise exception 'refunds: a platform refund must state its amount. Transaction % took % fils (AED %), and that is the only figure this refund may carry. (refund_states_no_amount)',
       NEW.transaction_id, v_expected, round(coalesce(t.total_charged, t.reveal_fee),2) using errcode = '23514';
@@ -540,13 +557,167 @@ revoke execute on function public.fn_ceo_refund_checklist(uuid, text, boolean) f
 -- follow one that ended. Refunds Stripe reported (stripe_webhook / stripe_dashboard / stripe) are
 -- facts, not requests, and a top-up the mismatch playbook issues is recorded that way, so they are
 -- outside it. Measured before adding it: 0 rows in public.refunds, 0 transactions that would violate.
+--
+-- RE-REVIEW, SAME DAY: the CEO's mismatch playbook also sent money (accountant incident fixes
+-- 'refund_difference' and 'retry_refund') straight to Stripe and recorded it afterwards through
+-- fn_refund_settle, which files a refund it does not recognise as an external row with NO
+-- transaction_id -- outside the index above and outside any per-payment total. A top-up is a
+-- legitimate second refund, so it is modelled, not forbidden:
+--   * refunds.topup_of names the case a row tops up. The index holds ONE live CASE per payment;
+--   * a01 caps every live platform write: what is live on a payment (its rows, and any refund Stripe
+--     reported against its payment reference) may never exceed total_charged. It locks the
+--     transaction row, so two writers cannot both pass the sum;
+--   * fn_accountant_reserves_topup reserves a capped top-up row BEFORE Stripe is called, idempotent per
+--     fix, citing the case's CEO decision -- the CEO approved returning what was paid, and a top-up is
+--     the rest of that same approved amount (z05 accepts that one citation and no other).
+alter table public.refunds add column if not exists topup_of bigint references public.refunds(id);
+comment on column public.refunds.topup_of is
+  'Set on a top-up: the refund case (id) whose approved amount this row completes. Null on a case. A top-up is reserved by fn_accountant_reserves_topup and capped by a01 at what the customer paid (PR #640, 14 Sep 2026).';
+
 create unique index if not exists refunds_one_live_platform_refund_per_payment
   on public.refunds (transaction_id)
-  where transaction_id is not null
+  where transaction_id is not null and topup_of is null
     and status not in ('failed', 'rejected', 'cancelled')
     and lower(coalesce(requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe');
 comment on index public.refunds_one_live_platform_refund_per_payment is
-  'At most one live platform refund per payment, enforced for every writer (PR #640, 14 Sep 2026). With refundIdempotencyKey (one Stripe key per transaction) a second refund of one reveal is refused here and, if a row ever got past, returned by Stripe as the first.';
+  'At most one live platform refund CASE per payment, enforced for every writer (PR #640, 14 Sep 2026). Top-ups (topup_of) are capped by a01_refunds_never_return_more_than_was_paid instead.';
+
+create or replace function public.fn_refunds_never_return_more_than_was_paid()
+returns trigger language plpgsql set search_path to 'public', 'pg_temp' as $fn$
+declare t public.transactions; v_cap bigint; v_other bigint;
+begin
+  -- A refund Stripe already issued is a fact to record, never refused; it still counts below.
+  if lower(coalesce(NEW.requested_by, '')) in ('stripe_webhook', 'stripe_dashboard', 'stripe') then return NEW; end if;
+  if NEW.transaction_id is null or NEW.status in ('failed', 'rejected', 'cancelled') then return NEW; end if;
+  select * into t from public.transactions where id = NEW.transaction_id for update;
+  if not found then return NEW; end if;   -- a00 refuses a missing transaction with its own reason
+  v_cap := round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint;
+  select coalesce(sum(r.amount_fils), 0) into v_other
+    from public.refunds r
+   where r.id is distinct from NEW.id and r.status not in ('failed', 'rejected', 'cancelled')
+     and (r.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and r.stripe_payment_intent = t.payment_ref));
+  if v_other + coalesce(NEW.amount_fils, 0) > v_cap then
+    raise exception 'refunds: transaction % took % fils and % fils are already refunded or on their way, so % more would return more than the customer paid. (refund_exceeds_what_was_paid)',
+      t.id, v_cap, v_other, coalesce(NEW.amount_fils, 0) using errcode = '23514';
+  end if;
+  return NEW;
+end $fn$;
+revoke execute on function public.fn_refunds_never_return_more_than_was_paid() from public, anon, authenticated;
+drop trigger if exists a01_refunds_never_return_more_than_was_paid on public.refunds;
+create trigger a01_refunds_never_return_more_than_was_paid
+  before insert or update on public.refunds
+  for each row execute function public.fn_refunds_never_return_more_than_was_paid();
+
+-- THE TOP-UP, RESERVED BEFORE THE MONEY. Called by accountant execute_refunds for the playbook's
+-- 'refund_difference'. The amount is capped at what is left of total_charged; the same fix asked
+-- twice (a crash between the reservation and Stripe) gets the same row back.
+create or replace function public.fn_accountant_reserves_topup(p_transaction_id uuid, p_amount_fils bigint, p_fix_id bigint)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare t public.transactions; c public.refunds; x public.refunds; v_cap bigint; v_live bigint; v_amt bigint; v_marker text;
+begin
+  v_marker := 'incident.fix #' || p_fix_id;
+  select * into t from public.transactions where id = p_transaction_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no such transaction'); end if;
+  select * into x from public.refunds
+   where transaction_id = t.id and topup_of is not null and reason_note like v_marker || ':%' order by id limit 1;
+  if found then
+    return jsonb_build_object('ok', true, 'refund_id', x.id, 'amount_fils', x.amount_fils, 'status', x.status, 'existing', true);
+  end if;
+  select * into c from public.refunds
+   where transaction_id = t.id and topup_of is null and refund_decision_id is not null
+     and lower(coalesce(requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')
+   order by id desc limit 1;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no CEO-approved refund case on this payment to top up'); end if;
+  v_cap := round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint;
+  select coalesce(sum(r.amount_fils), 0) into v_live
+    from public.refunds r
+   where r.status not in ('failed', 'rejected', 'cancelled')
+     and (r.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and r.stripe_payment_intent = t.payment_ref));
+  v_amt := least(coalesce(p_amount_fils, 0), v_cap - v_live);
+  if v_amt <= 0 then
+    return jsonb_build_object('ok', false, 'reason', 'nothing left to refund: ' || v_live || ' of the ' || v_cap || ' fils paid are already refunded or on their way',
+                              'refunded_fils', v_live, 'paid_fils', v_cap);
+  end if;
+  insert into public.refunds
+    (transaction_id, quote_id, inquiry_id, customer_id, supplier_lead_id, stripe_payment_intent, amount_fils, currency,
+     reason_code, reason_note, status, requested_by, amount_source, topup_of, refund_decision_id, decided_by, decided_at)
+  values
+    (t.id, t.quote_id, t.inquiry_id, t.customer_id, t.supplier_id, t.payment_ref, v_amt, 'AED',
+     c.reason_code, v_marker || ': the CEO''s mismatch playbook tops refund #' || c.id || ' up towards what the customer paid',
+     'requested', 'accountant', 'in_platform_request', c.id, c.refund_decision_id, 'ceo', now())
+  returning * into x;
+  return jsonb_build_object('ok', true, 'refund_id', x.id, 'amount_fils', v_amt, 'capped', v_amt < coalesce(p_amount_fils, 0), 'case_refund_id', c.id);
+end $fn$;
+revoke execute on function public.fn_accountant_reserves_topup(uuid, bigint, bigint) from public, anon, authenticated;
+
+-- THE CEO-DECISION GATE (z05), the live definition with one change: a top-up cites its case's decision.
+CREATE OR REPLACE FUNCTION public.fn_refund_execution_requires_ceo_approval()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_money_moved constant text[] := array['approved','processing','succeeded'];
+  -- A refund Stripe already issued is a FACT to be recorded, not a request to be approved. Refusing
+  -- the row would delete our only record of real money leaving, which is worse than admitting it.
+  v_external    constant text[] := array['stripe_webhook','stripe_dashboard','stripe'];
+  d public.ceo_approval%rowtype;
+begin
+  if not (new.status = any(v_money_moved)) then return new; end if;
+  if tg_op = 'UPDATE' and old.status = any(v_money_moved)
+     and new.refund_decision_id is not distinct from old.refund_decision_id then
+    return new;   -- already past this boundary and not changing which decision it cites
+  end if;
+  if lower(coalesce(new.requested_by, '')) = any(v_external) then
+    return new;
+  end if;
+
+  if new.refund_decision_id is null then
+    raise exception 'refunds %: a platform-originated refund may not reach status % without naming the CEO decision that authorised it.',
+      coalesce(new.id::text, '(new)'), new.status
+      using errcode = '23514',
+            hint = 'Record one in public.ceo_approval (subject_kind = ''refund'', subject_id = this '
+                || 'refund''s id) and cite its decision_id. Founder ruling, 8 Sep 2026: all '
+                || 'approvals are the CEO''s.';
+  end if;
+
+  select * into d from public.ceo_approval where decision_id = new.refund_decision_id;
+  if not found then
+    raise exception 'refunds %: refund_decision_id % names no CEO decision',
+      coalesce(new.id::text, '(new)'), new.refund_decision_id using errcode = '23503';
+  end if;
+  if d.subject_kind <> 'refund' then
+    raise exception 'refunds %: decision % is a % decision, not a refund decision',
+      coalesce(new.id::text, '(new)'), d.decision_id, d.subject_kind using errcode = '23514';
+  end if;
+
+  -- THE BINDING THIS ROUTINE WAS MISSING UNTIL 9 SEP 2026. Everything above this line was already
+  -- checked; subject_id was read and never compared, so one approved decision could authorise every
+  -- refund in the table. ONE APPROVAL, ONE REFUND, ALWAYS.
+  -- A TOP-UP (topup_of) completes the amount the CEO approved for its case, so it cites THAT decision
+  -- (PR #640 re-review, 14 Sep 2026). Any other row still needs a decision naming itself.
+  if d.subject_id is distinct from new.id::text
+     and not (new.topup_of is not null and d.subject_id = new.topup_of::text) then
+    raise exception 'refunds %: decision % approved refund %, not this one. One approval authorises one refund.',
+      coalesce(new.id::text, '(new)'), d.decision_id, coalesce(d.subject_id, '(nothing)')
+      using errcode = '23514',
+            hint = 'The CEO decides each refund on its own facts. Reusing another refund''s approval '
+                || 'would move money nobody approved. Record a ceo_approval row whose subject_id is '
+                || 'this refund''s id, and cite that.';
+  end if;
+
+  if d.decision <> 'approved' then
+    raise exception 'refunds %: decision % refused this refund; it may not reach %',
+      coalesce(new.id::text, '(new)'), d.decision_id, new.status using errcode = '23514';
+  end if;
+  if d.superseded_by is not null then
+    raise exception 'refunds %: decision % was superseded by %; cite the decision that stands',
+      coalesce(new.id::text, '(new)'), d.decision_id, d.superseded_by using errcode = '23514';
+  end if;
+  return new;
+end
+$function$;
+
 
 -- ── THE PROBE ────────────────────────────────────────────────────────────────────────────────────
 -- Every write happens inside an inner BEGIN ... EXCEPTION block that ALWAYS ends in a raise, so the
@@ -597,7 +768,8 @@ begin
         v_err := 'no error';
       exception when others then v_err := sqlerrm;
       end;
-      if v_err not like '%refunds_one_live_platform_refund_per_payment%' then
+      -- a01 (the cap) fires before the unique index is checked, so either refusal proves it.
+      if v_err not like '%refund_exceeds_what_was_paid%' and v_err not like '%refunds_one_live_platform_refund_per_payment%' then
         raise exception 'PROBE FAILED: the ladder path opened a second refund on one payment: %', v_err; end if;
       begin
         insert into public.refunds (transaction_id, customer_id, supplier_lead_id, stripe_payment_intent, amount_fils, currency, reason_code, status, requested_by, amount_source)
@@ -605,10 +777,49 @@ begin
         v_err := 'no error';
       exception when others then v_err := sqlerrm;
       end;
-      if v_err not like '%refunds_one_live_platform_refund_per_payment%' then
+      if v_err not like '%refund_exceeds_what_was_paid%' and v_err not like '%refunds_one_live_platform_refund_per_payment%' then
         raise exception 'PROBE FAILED: a raw insert opened a second refund on one payment: %', v_err; end if;
       if (select count(*) from public.refunds where transaction_id = v_tx) <> 1 then
         raise exception 'PROBE FAILED: more than one refund row on one payment'; end if;
+
+      -- 2c. THE PLAYBOOK'S TOP-UP IS A CAPPED ROW ON THE SAME RAIL (re-review). A refused CEO decision
+      -- satisfies the foreign key without the approval trigger and without moving any money status.
+      insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, rationale)
+      values ('refund', v_rid::text, 'refused', 'ceo', 'ZZ DEMO probe: a decision row for the top-up test only') returning decision_id into v_n;
+      update public.refunds set refund_decision_id = v_n where id = v_rid;
+      -- With the case live for everything paid there is nothing left to top up.
+      r := public.fn_accountant_reserves_topup(v_tx, 500, 9001);
+      if coalesce((r->>'ok')::boolean, true) then raise exception 'PROBE FAILED: a top-up was reserved on a fully refunded payment: %', r; end if;
+      begin
+        insert into public.refunds (transaction_id, customer_id, supplier_lead_id, stripe_payment_intent, amount_fils, currency, reason_code, status, requested_by, amount_source, topup_of)
+        values (v_tx, v_cust, v_lead, 'pi_ZZDEMO_ask_1', 1, 'AED', 'supplier_unresponsive', 'requested', 'accountant', 'in_platform_request', v_rid);
+        v_err := 'no error';
+      exception when others then v_err := sqlerrm;
+      end;
+      if v_err not like '%refund_exceeds_what_was_paid%' then raise exception 'PROBE FAILED: a raw top-up went past the cap: %', v_err; end if;
+      -- The case fails in Stripe: nothing is live, so a top-up of 5000 is capped at the 3150 paid.
+      update public.refunds set status = 'failed' where id = v_rid;
+      r := public.fn_accountant_reserves_topup(v_tx, 5000, 9001);
+      if not coalesce((r->>'ok')::boolean, false) or (r->>'amount_fils')::bigint <> 3150 or not (r->>'capped')::boolean then
+        raise exception 'PROBE FAILED: the top-up was not capped at what was paid: %', r; end if;
+      -- The same fix asked again gets the same row; a different fix finds nothing left.
+      r2 := public.fn_accountant_reserves_topup(v_tx, 5000, 9001);
+      if (r2->>'refund_id') is distinct from (r->>'refund_id') or not coalesce((r2->>'existing')::boolean, false) then
+        raise exception 'PROBE FAILED: the same fix reserved a second top-up: %', r2; end if;
+      r2 := public.fn_accountant_reserves_topup(v_tx, 1, 9002);
+      if coalesce((r2->>'ok')::boolean, true) then raise exception 'PROBE FAILED: a second fix reserved past the cap: %', r2; end if;
+      -- A top-up may only complete a case on its own payment.
+      insert into public.transactions (id, customer_id, supplier_id, revealed_at, reveal_fee, total_charged, payment_ref)
+      values (gen_random_uuid(), v_cust, v_lead, now() - interval '10 days', 30, 31.5, 'pi_ZZDEMO_ask_other') returning id into v_tx2;
+      begin
+        insert into public.refunds (transaction_id, customer_id, supplier_lead_id, stripe_payment_intent, amount_fils, currency, reason_code, status, requested_by, amount_source, topup_of)
+        values (v_tx2, v_cust, v_lead, 'pi_ZZDEMO_ask_other', 1, 'AED', 'supplier_unresponsive', 'requested', 'accountant', 'in_platform_request', v_rid);
+        v_err := 'no error';
+      exception when others then v_err := sqlerrm;
+      end;
+      if v_err not like '%refund_topup_names_no_case%' then raise exception 'PROBE FAILED: a top-up of another payment''s case was not refused as such: %', v_err; end if;
+      if (select coalesce(sum(amount_fils), 0) from public.refunds where transaction_id = v_tx and status not in ('failed', 'rejected', 'cancelled')) <> 3150 then
+        raise exception 'PROBE FAILED: live refunds on one payment are not exactly what was paid'; end if;
 
       -- 3. THE DECISION WAITS: approving before refund_deadline is refused at the table.
       begin
@@ -656,7 +867,7 @@ begin
          and a.detail->>'msg_type' = 'refund_request_received' and a.detail->>'to_email' not like '%@example.invalid';
       if v_n > 0 then raise exception 'PROBE FAILED: a confirmation addressed someone outside @example.invalid'; end if;
 
-      raise exception 'PROBE_OK request inside the window opened case % at requested for 3150 fils, sale requested, accountant handoff + support confirmation (en); second press returned the same case; a second refund on the same payment refused on the ladder path (fn_refund_request) and by a raw insert (refunds_one_live_platform_refund_per_payment); early approval refused (refund_window_not_yet_open); no_payment and supplier_rated refused, recorded, nothing changed; Arabic customer answered and written to in Arabic; checklist item 1 passes with no complaint', v_rid;
+      raise exception 'PROBE_OK request inside the window opened case % at requested for 3150 fils, sale requested, accountant handoff + support confirmation (en); second press returned the same case; a second refund on the same payment refused on the ladder path (fn_refund_request) and by a raw insert (a01 cap / one-case index); top-up: none reserved while the case is live, a raw top-up refused past the cap, after the case failed a 5000-fils top-up capped at 3150, the same fix returned the same row, a second fix and another payment''s case refused, live total exactly 3150; early approval refused (refund_window_not_yet_open); no_payment and supplier_rated refused, recorded, nothing changed; Arabic customer answered and written to in Arabic; checklist item 1 passes with no complaint', v_rid;
     end;
   exception when others then v_out := sqlerrm;
   end;

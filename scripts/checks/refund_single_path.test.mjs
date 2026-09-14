@@ -69,4 +69,9 @@ test('only the accountant reaches Stripe refunds, through the one door, keyed on
   assert.match(acc, /idem:\s*refundIdempotencyKey\(String\(r\.transaction_id\)\)/,
     'execute_refunds must key a case refund on its transaction (refundIdempotencyKey), never on the refunds row id');
   assert.doesNotMatch(read('refunds_api'), /from '\.\.\/_shared\/stripe_refund\.ts'/, 'refunds_api must not import the Stripe refund door');
+  // The playbook's top-up and retry are keyed on the transaction too, and reserved on public.refunds
+  // before Stripe (re-review of #640): no key may be minted from an incident handoff id.
+  assert.doesNotMatch(acc, /idem:\s*'qd_incident_/, 'an incident fix must not mint its own Stripe key; use refundIdempotencyKey(transaction, topup<n>|retry<n>)');
+  assert.match(acc, /fn_accountant_reserves_topup/, 'a top-up must be reserved (capped) on public.refunds before Stripe is called');
+  assert.match(acc, /refundIdempotencyKey\(txId, 'topup' \+ rowId\)/, 'a top-up is keyed on its transaction and its reserved row');
 });

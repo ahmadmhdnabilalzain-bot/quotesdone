@@ -9,6 +9,11 @@ Deno.test('a second refund of the same payment reaches Stripe as the same reques
   assertEquals(refundIdempotencyKey(tx), refundIdempotencyKey(tx));
   assertEquals(refundIdempotencyKey(tx), 'qd_refund_' + tx);
   assertThrows(() => refundIdempotencyKey(''));
+  // A top-up and a retry are their own requests, deterministic and still rooted in the transaction.
+  assertEquals(refundIdempotencyKey(tx, 'topup72031'), 'qd_refund_' + tx + '_topup72031');
+  assertEquals(refundIdempotencyKey(tx, 'retry9'), 'qd_refund_' + tx + '_retry9');
+  assert(refundIdempotencyKey(tx, 'topup72031') !== refundIdempotencyKey(tx) && refundIdempotencyKey(tx, 'retry9') !== refundIdempotencyKey(tx, 'topup9'));
+  assertThrows(() => refundIdempotencyKey(tx, 'incident9'));
   // Two different refund rows for one payment send the SAME Idempotency-Key.
   const keys: string[] = [];
   const f = (async (url: string | URL, init?: RequestInit) => {

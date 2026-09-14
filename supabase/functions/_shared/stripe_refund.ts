@@ -33,10 +33,18 @@ export type RefundRefused = { ok: false; error: string; mode?: StripeMode };
  * (PR #640 review: the retired refunds_api 'resolve' used qd_refund_<transaction> and execute_refunds
  * used qd_refund_<refund row>, so one reveal could be refunded twice.)
  */
-export function refundIdempotencyKey(transactionId: string | number): string {
+// A SECOND LEGITIMATE REFUND OF ONE PAYMENT (re-review, 14 Sep 2026): the CEO's mismatch playbook may
+// top an under-refund up, or retry a refund Stripe failed. Each is its own Stripe request with its own
+// deterministic key, still rooted in the transaction: `topup<refund row>` for a top-up (the row is
+// reserved, capped, before Stripe is called) and `retry<fix handoff>` for a retry (a fresh key, because
+// reusing the failed attempt's key would return the failed refund). The table caps the total at what
+// the customer paid, whatever the key.
+export function refundIdempotencyKey(transactionId: string | number, attempt?: string): string {
   const id = String(transactionId ?? '').trim();
   if (!id) throw new Error('a refund idempotency key needs the transaction id');
-  return 'qd_refund_' + id;
+  const a = String(attempt ?? '').trim();
+  if (a && !/^(topup|retry)\d+$/.test(a)) throw new Error('a refund attempt suffix is topup<n> or retry<n>, not ' + a);
+  return 'qd_refund_' + id + (a ? '_' + a : '');
 }
 
 /** The mode a stored Stripe key belongs to, read off its prefix; null when it is not a Stripe secret. */
