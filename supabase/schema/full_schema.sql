@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T21:21:08.162Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T22:52:28.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -45,6 +45,7 @@ CREATE SEQUENCE IF NOT EXISTS public.ai_model_register_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.allocation_change_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.artifact_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.autonomy_control_audit_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.backup_prune_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.bank_statement_line_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.board_opinion_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.board_reports_id_seq;
@@ -188,7 +189,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (515) =====
+-- ===== TABLES (516) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -886,6 +887,27 @@ CREATE TABLE IF NOT EXISTS public.autonomy_policy (
   founder_escalation_allowed boolean NOT NULL,
   constitution_note text NOT NULL,
   effective_from timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.backup_prune_log (
+  id bigint DEFAULT nextval('backup_prune_log_id_seq'::regclass) NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL,
+  decided_for date NOT NULL,
+  mode text NOT NULL,
+  day date NOT NULL,
+  origin text NOT NULL,
+  kind text NOT NULL,
+  day_status text,
+  reason text NOT NULL,
+  objects integer,
+  bytes bigint,
+  dropbox_files integer,
+  objects_removed integer DEFAULT 0 NOT NULL,
+  storage_attempts integer DEFAULT 0 NOT NULL,
+  storage_error text,
+  storage_deleted_at timestamp with time zone,
+  dropbox_done_at timestamp with time zone,
+  cancelled_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.bank_line_owner_ruling (
@@ -2220,7 +2242,9 @@ CREATE TABLE IF NOT EXISTS public.doc_backups (
   upload_state jsonb,
   last_attempt_at timestamp with time zone,
   claimed_at timestamp with time zone,
-  claimed_by text
+  claimed_by text,
+  prune_attempts integer DEFAULT 0 NOT NULL,
+  status_before_prune text
 );
 
 CREATE TABLE IF NOT EXISTS public.doc_reviews (
@@ -6736,7 +6760,8 @@ CREATE TABLE IF NOT EXISTS public.table_export_run (
   finished_at timestamp with time zone,
   state jsonb,
   manifest jsonb,
-  error text
+  error text,
+  pruned_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.target_contract (
@@ -7195,6 +7220,7 @@ ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_pkey PRIMARY K
 ALTER TABLE public.assistant_logs ADD CONSTRAINT assistant_logs_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_control_audit ADD CONSTRAINT autonomy_control_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_pkey PRIMARY KEY (id);
+ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_pkey PRIMARY KEY (line_id);
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_pkey PRIMARY KEY (source_ref);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_pkey PRIMARY KEY (id);
@@ -7801,6 +7827,8 @@ ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_verdict_check 
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_approval CHECK ((founder_approval_required = false));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_escalation CHECK ((founder_escalation_allowed = false));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_single CHECK ((id = 1));
+ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_mode_check CHECK ((mode = ANY (ARRAY['dry_run'::text, 'delete'::text])));
+ALTER TABLE public.backup_prune_log ADD CONSTRAINT backup_prune_log_origin_check CHECK ((origin = ANY (ARRAY['export'::text, 'legacy'::text])));
 ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_ruling_check CHECK ((ruling = ANY (ARRAY['capital'::text, 'loan'::text])));
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_state_check CHECK ((state = ANY (ARRAY['parsed'::text, 'unreadable'::text])));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
@@ -8441,6 +8469,8 @@ CREATE INDEX ai_usage_email_time_idx ON public.ai_usage USING btree (email, crea
 CREATE UNIQUE INDEX ap_bills_vendor_billno_uidx ON public.ap_bills USING btree (vendor_id, bill_no) WHERE ((bill_no IS NOT NULL) AND (status <> 'void'::text));
 CREATE UNIQUE INDEX artifact_review_bytes ON public.artifact_review USING btree (subject_type, subject_id, artifact_sha256, revision);
 CREATE INDEX artifact_review_subject ON public.artifact_review USING btree (subject_type, subject_id, created_at DESC);
+CREATE UNIQUE INDEX backup_prune_log_open_uidx ON public.backup_prune_log USING btree (day) WHERE ((mode = 'delete'::text) AND (storage_deleted_at IS NULL) AND (cancelled_at IS NULL));
+CREATE UNIQUE INDEX backup_prune_log_pass_uidx ON public.backup_prune_log USING btree (decided_for, day, mode);
 CREATE INDEX bank_statement_line_match_idx ON public.bank_statement_line USING btree (account, amount_aed, value_date);
 CREATE INDEX boq_fixture_run_recent_idx ON public.boq_fixture_run USING btree (fixture_id, ran_at DESC);
 CREATE UNIQUE INDEX brand_assets_filename_key ON public.brand_assets USING btree (filename);
@@ -12953,7 +12983,7 @@ begin
         'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode,
         'evidence', to_jsonb(p) || jsonb_build_object('nearest_stripe_credits', (
           select coalesce(jsonb_agg(jsonb_build_object('line', bl.id, 'value_date', bl.value_date, 'amount_aed', bl.amount_aed,
-                                                       'description', bl.description) order by abs(bl.value_date - p.arrival_date)), '[]'::jsonb)
+                                                       'description', public.fn_mask_bank_text(bl.description)) order by abs(bl.value_date - p.arrival_date)), '[]'::jsonb)
             from (select * from public.bank_statement_line b2
                    where ((p.livemode and b2.account <> 'zz_demo') or (not p.livemode and b2.account = 'zz_demo'))
                      and b2.amount_aed > 0 and b2.value_date between p.arrival_date - v_before and p.arrival_date + v_after
@@ -12995,7 +13025,9 @@ begin
               and not exists (select 1 from public.stripe_payout s where s.bank_line_id = bl.id) loop
     v_items := v_items || jsonb_build_object('item', 'unexplained:' || x.id, 'owner_seat', 'accountant', 'subject', 'bank_statement',
       'title', 'The bank shows a Stripe credit of AED ' || x.amount_aed || ' on ' || x.value_date || ' that no recorded payout explains',
-      'blast', 'agent_facing', 'affected', 1, 'demo', x.account = 'zz_demo', 'evidence', to_jsonb(x));
+      'blast', 'agent_facing', 'affected', 1, 'demo', x.account = 'zz_demo',
+      'evidence', to_jsonb(x) || jsonb_build_object('description', public.fn_mask_bank_text(x.description),
+                                                    'reference', public.fn_mask_bank_text(x.reference)));
   end loop;
 
   v_settle := public.fn_accountant_duty_settle('bank', v_items);
@@ -13070,7 +13102,7 @@ begin
             order by b.value_date, b.id loop
     v_lines := jsonb_build_array(jsonb_build_object('account', '6300', 'debit', abs(l.amount_aed)),
                                  jsonb_build_object('account', '1000', 'credit', abs(l.amount_aed)));
-    v_memo := case when l.account = 'zz_demo' then 'ZZ DEMO ' else '' end || 'Bank charge (' || l.account || ', ' || l.value_date || '): ' || left(l.description, 120);
+    v_memo := case when l.account = 'zz_demo' then 'ZZ DEMO ' else '' end || 'Bank charge (' || l.account || ', ' || l.value_date || '): ' || left(public.fn_mask_bank_text(l.description), 120);
     if v_hold or l.account = 'zz_demo' then
       perform public.fn_accountant_draft_entry(l.value_date, v_memo, 'bank_charge', l.id::text, v_lines);
       n_draft := n_draft + 1;
@@ -13139,18 +13171,18 @@ begin
       v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
                                    jsonb_build_object('account', '3000', 'credit', l.amount_aed));
       v_memo := 'Owner capital contribution (' || l.account || ', ' || l.value_date
-                || '), a transfer from the licence holder''s own account: capital unless he says loan (founder_instruction 357): ' || left(l.description, 120);
+                || '), a transfer from the licence holder''s own account: capital unless he says loan (founder_instruction 357): ' || left(public.fn_mask_bank_text(l.description), 120);
     elsif v_pat ? 'bank_interest_pattern' and v_pat ? 'bank_interest_reference_pattern'
           and l.description ~* (v_pat->>'bank_interest_pattern') and l.description ~ (v_pat->>'bank_interest_reference_pattern') then
       v_src := 'bank_interest';
       v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
                                    jsonb_build_object('account', '7000', 'credit', l.amount_aed));
-      v_memo := 'Bank interest credited (' || l.account || ', ' || l.value_date || '): ' || left(l.description, 120);
+      v_memo := 'Bank interest credited (' || l.account || ', ' || l.value_date || '): ' || left(public.fn_mask_bank_text(l.description), 120);
     elsif l.value_date + v_after < v_today then
       v_items := v_items || jsonb_build_object('item', 'unrecognised:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
         'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' is neither a Stripe payout, a transfer from the licence holder''s own account nor the bank''s interest, so it is not booked',
         'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
-        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'description', left(l.description, 200),
+        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'description', left(public.fn_mask_bank_text(l.description), 200),
                                        'remedy', 'the founder names what it is; an owner transfer is recorded in bank_line_owner_ruling'));
     end if;
     continue when v_src is null;
@@ -16037,6 +16069,31 @@ begin
     'status', 'pending - send_outbox will download the object, base64 it onto the Resend payload and fail the row rather than send a covering note without it');
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_statement_reader_defects()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item', i.source_ref, 'owner_seat', 'accountant', 'subject', 'bank_statement',
+           'title', 'The statement reader could not read a real ' || i.account || ' statement'
+                    || coalesce(' for ' || to_char(i.statement_month, 'Mon YYYY'), '')
+                    || ': a parser defect to fix, not a question for the founder',
+           'blast', 'agent_facing', 'affected', 1, 'demo', false,
+           'evidence', jsonb_build_object('source_ref', i.source_ref, 'doc_path', i.doc_path, 'reader_said', i.note,
+             'no_founder_email', true,
+             'remedy', 'fix supabase/functions/_shared/bank_statement_parse.ts against this document, then run the accountant expense_sweep with email_id so the same source_ref is ingested with lines'))
+           order by i.source_ref), '[]'::jsonb)
+    into v_items
+    from public.bank_statement_intake i
+   where i.state = 'unreadable' and i.account <> 'zz_demo';
+  return public.fn_it_duty_settle('bank_statement_reader', v_items);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_subscription_payment_failed(p_supplier_id bigint, p_session text, p_reason text)
@@ -20768,6 +20825,331 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_cancel(p_log_id bigint, p_why text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_reverted integer;
+begin
+  with cl as (
+    update public.backup_prune_log bl
+       set cancelled_at = now(),
+           storage_error = left('cancelled: the day is no longer due for deletion (' || coalesce(p_why, 'no reason given') || ')', 1000)
+     where bl.id = p_log_id and bl.mode = 'delete' and bl.cancelled_at is null
+    returning bl.day)
+  update public.doc_backups b
+     set status = coalesce(b.status_before_prune, 'pending'), status_before_prune = null,
+         claimed_at = null, claimed_by = null, error = null
+    from cl
+   where b.dedupe_key like 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/%'
+     and b.status in ('prune_pending', 'pruning');
+  get diagnostics v_reverted = row_count;
+  return v_reverted;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_days()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(t.x order by t.x->>'day'), '[]'::jsonb) from (
+    select jsonb_build_object('day', r.stamp, 'origin', 'export', 'kind', r.kind, 'status', r.status)
+      from public.table_export_run r where r.pruned_at is null
+    union all
+    select jsonb_build_object('day', lg.dy, 'origin', 'legacy', 'kind', 'full',
+                              'status', case when lg.has_manifest then 'done' else 'incomplete' end)
+      from (select split_part(o.name, '/', 1)::date as dy,
+                   bool_or(o.name = split_part(o.name, '/', 1) || '/_manifest.json') as has_manifest
+              from storage.objects o
+             where o.bucket_id = 'backups' and o.name ~ '^\d{4}-\d{2}-\d{2}/' and split_part(o.name, '/', 1) <= '2026-09-07'
+             group by 1) lg
+     where not exists (select 1 from public.table_export_run r where r.stamp = lg.dy)
+  ) t(x);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_decide(p_days jsonb, p_today date)
+ RETURNS TABLE(day date, origin text, kind text, day_status text, decision text, reason text)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with d as (
+    select (e->>'day')::date as dy, coalesce(e->>'origin', 'export') as og,
+           coalesce(e->>'kind', 'full') as kd, coalesce(e->>'status', '') as st
+      from jsonb_array_elements(coalesce(p_days, '[]'::jsonb)) e),
+  g as (
+    select max(d.dy) filter (where d.kd = 'full' and d.st = 'done') as newest_full,
+           max(d.dy) filter (where d.kd = 'full') as latest_full_attempt
+      from d),
+  -- kept for ever: the first complete full copy of each month, or a full-less month's last complete copy
+  mf as (
+    select date_trunc('month', d.dy)::date as mo,
+           min(d.dy) filter (where d.kd = 'full' and d.st = 'done') as first_full,
+           max(d.dy) filter (where d.st = 'done') as last_done
+      from d group by 1),
+  k as (
+    select d.dy, d.og, d.kd, d.st,
+           (d.st = 'done' and (d.dy = mf.first_full or (mf.first_full is null and d.dy = mf.last_done))) as forever,
+           case when g.newest_full is null then 'blocked: no complete full copy exists, so nothing is deleted'
+                when g.latest_full_attempt > g.newest_full
+                  then 'blocked: the latest full copy (' || g.latest_full_attempt || ') did not complete, so nothing is deleted'
+           end as blocked,
+           d.dy = g.newest_full as is_newest_full,
+           d.dy > g.newest_full as after_newest_full,
+           d.st = 'running' as running,
+           (p_today - d.dy) <= 90 as within_90,
+           (d.kd = 'full' and d.st = 'done' and extract(isodow from d.dy) = 5
+            and d.dy > (p_today - interval '12 months')::date) as friday_kept
+      from d cross join g left join mf on mf.mo = date_trunc('month', d.dy)::date),
+  kp as (
+    select k.*, (k.is_newest_full or k.after_newest_full or k.running or k.forever or k.within_90 or k.friday_kept) as policy_keep from k),
+  anchor as (
+    select kp.dy as inc_day,
+           (select max(f.dy) from d f where f.kd = 'full' and f.st = 'done' and f.dy <= kp.dy) as full_day
+      from kp where kp.kd = 'incremental' and kp.policy_keep),
+  c as (
+    select kp.*, exists (select 1 from anchor a where kp.dy between a.full_day and a.inc_day) as in_kept_chain from kp)
+  select c.dy, c.og, c.kd, c.st,
+         case when c.blocked is not null or c.policy_keep or c.in_kept_chain then 'keep' else 'delete' end,
+         case when c.blocked is not null then c.blocked
+              when c.is_newest_full then 'the newest complete full copy'
+              when c.after_newest_full then 'part of the newest restore chain (the newest full copy and every day after it)'
+              when c.running then 'still being written'
+              when c.forever and c.kd = 'full' then 'the first complete full copy of its month, kept forever'
+              when c.forever then 'the last complete copy of a month with no full copy, kept forever'
+              when c.within_90 then 'within 90 days'
+              when c.friday_kept then 'a complete Friday full copy within 12 months'
+              when c.in_kept_chain then 'needed by a kept kb_chunks restore chain (its full copy, or a day between)'
+              when c.kd = 'full' and c.st = 'done' and extract(isodow from c.dy) = 5 then 'a Friday full copy older than 12 months'
+              when c.st <> 'done' then 'an incomplete export (' || coalesce(nullif(c.st, ''), 'unknown') || ') older than 90 days'
+              else 'a daily copy older than 90 days'
+         end
+    from c order by c.dy;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_dropbox_allowed(p_bucket text, p_path text, p_dedupe_key text, p_doc_type text, p_dropbox_path text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_doc_type = 'Database export'
+                  and p_dedupe_key = 'EXPORT:' || p_path
+                  and public.fn_backup_prune_path_allowed(p_bucket, p_path)
+                  and p_dropbox_path = '/QuotesDone Backup/Company/Database Exports/' || left(p_path, 7) || '/' || p_path,
+                  false);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_mode()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select 'delete' from public.app_secrets s where s.key = 'backup_prune_mode' and s.value = 'delete'), 'dry_run');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_path_allowed(p_bucket text, p_path text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- A table name starts with a letter, and no path segment may start with '_' except the exact
+  -- _manifest.json. Final review of #672 (HIGH): '[a-z0-9_]+' let v1's inventory of the backups bucket
+  -- itself, <day>/_storage_backups.json, through (the bucket name has no hyphen), so a document inventory
+  -- would have been deleted. The same rule is in supabase/functions/_shared/backup_prune_allow.ts.
+  select coalesce(p_bucket = 'backups'
+         and (p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$' or p_path !~ '/_')
+         and (p_path ~ '^\d{4}-\d{2}-\d{2}/_manifest\.json$'                      -- the day's manifest
+           or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z][a-z0-9_]*/page_\d{4}\.json$'     -- backup v1 (paged) and v2
+           or p_path ~ '^\d{4}-\d{2}-\d{2}/[a-z][a-z0-9_]*\.json$'),              -- backup v1 (one file per table)
+         false);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_plan(p_today date DEFAULT NULL::date)
+ RETURNS TABLE(day date, origin text, kind text, day_status text, decision text, reason text, objects bigint, bytes bigint, dropbox_files bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p.day, p.origin, p.kind, p.day_status, p.decision, p.reason, s.n, s.b,
+         (select count(*) from public.doc_backups b
+           where b.dedupe_key like 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned'
+             and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path))
+    from public.fn_backup_prune_decide(public.fn_backup_prune_days(),
+                                       coalesce(p_today, (now() at time zone 'Asia/Dubai')::date)) p
+    cross join lateral (select count(*) as n, coalesce(sum((o.metadata->>'size')::bigint), 0)::bigint as b
+                          from storage.objects o
+                         where o.bucket_id = 'backups' and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
+                           and public.fn_backup_prune_path_allowed(o.bucket_id, o.name)) s;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_recheck()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_days jsonb := public.fn_backup_prune_days(); v_n integer := 0; x record;
+begin
+  v_days := v_days || coalesce((
+    select jsonb_agg(jsonb_build_object('day', bl.day, 'origin', bl.origin, 'kind', bl.kind, 'status', bl.day_status))
+      from public.backup_prune_log bl
+     where bl.mode = 'delete' and bl.cancelled_at is null and bl.dropbox_done_at is null
+       and not exists (select 1 from jsonb_array_elements(v_days) e where (e->>'day')::date = bl.day)), '[]'::jsonb);
+  for x in select bl.id, pd.decision, pd.reason
+             from public.backup_prune_log bl
+             left join public.fn_backup_prune_decide(v_days, (now() at time zone 'Asia/Dubai')::date) pd on pd.day = bl.day
+            where bl.mode = 'delete' and bl.cancelled_at is null
+              and (bl.storage_deleted_at is null or bl.dropbox_done_at is null)
+              and pd.decision is distinct from 'delete' loop
+    perform public.fn_backup_prune_cancel(x.id, coalesce(x.reason, 'the day is no longer listed'));
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_storage_done(p_log_id bigint, p_removed integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_log public.backup_prune_log; v_left bigint;
+begin
+  select * into v_log from public.backup_prune_log l where l.id = p_log_id and l.mode = 'delete';
+  if not found then raise exception 'fn_backup_prune_storage_done: no delete-mode log row %', p_log_id; end if;
+  update public.backup_prune_log l set objects_removed = l.objects_removed + greatest(coalesce(p_removed, 0), 0) where l.id = p_log_id;
+  if p_error is not null then
+    update public.backup_prune_log l set storage_attempts = l.storage_attempts + 1, storage_error = left(p_error, 1000) where l.id = p_log_id;
+    return jsonb_build_object('ok', false, 'day', v_log.day, 'error', left(p_error, 300));
+  end if;
+  select count(*) into v_left from storage.objects o
+   where o.bucket_id = 'backups' and o.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+     and public.fn_backup_prune_path_allowed(o.bucket_id, o.name);   -- the inventories that stay are not "left"
+  if v_left = 0 then
+    update public.backup_prune_log l set storage_deleted_at = now(), storage_error = null where l.id = p_log_id;
+    update public.table_export_run r set pruned_at = now() where r.stamp = v_log.day;
+  end if;
+  return jsonb_build_object('ok', true, 'day', v_log.day, 'left', v_left);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_storage_next()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_log public.backup_prune_log; v_cancelled integer; v_names text[];
+begin
+  if public.fn_backup_prune_mode() <> 'delete' then return jsonb_build_object('log_id', null, 'reason', 'dry run'); end if;
+  v_cancelled := public.fn_backup_prune_recheck();
+  select * into v_log from public.backup_prune_log l
+   where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null and l.storage_attempts < 3
+   order by l.day limit 1 for update skip locked;
+  if not found then return jsonb_build_object('log_id', null, 'cancelled', v_cancelled); end if;
+  select coalesce(array_agg(o.name order by o.name), '{}') into v_names
+    from (select o2.name from storage.objects o2
+           where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+             and public.fn_backup_prune_path_allowed(o2.bucket_id, o2.name)
+           order by o2.name limit 1000) o;
+  return jsonb_build_object('log_id', v_log.id, 'day', v_log.day, 'names', to_jsonb(v_names));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_prune_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_mode text := public.fn_backup_prune_mode();
+  v_export public.table_export_run;
+  v_pass jsonb := null; v_logged int := 0; v_items jsonb := '[]'::jsonb; v_settle jsonb; x record;
+begin
+  -- A PASS: once per Dubai day, after that day's export finished.
+  select * into v_export from public.table_export_run r where r.stamp = v_today;
+  if found and (v_export.status = 'done' or (v_export.status = 'failed' and v_export.attempts >= 6))
+     and not exists (select 1 from public.agent_runs ar
+                      where ar.agent = 'it_engineer' and ar.counts->>'job' = 'backup_prune'
+                        and (ar.started_at at time zone 'Asia/Dubai')::date = v_today) then
+    insert into public.backup_prune_log (decided_for, mode, day, origin, kind, day_status, reason, objects, bytes, dropbox_files)
+    select v_today, v_mode, p.day, p.origin, p.kind, p.day_status, p.reason, p.objects, p.bytes, p.dropbox_files
+      from public.fn_backup_prune_plan(v_today) p
+     where p.decision = 'delete'
+       and not exists (select 1 from public.backup_prune_log l
+                        where l.day = p.day and l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null)
+    on conflict do nothing;
+    get diagnostics v_logged = row_count;
+    v_pass := jsonb_build_object('days', v_logged);
+    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'ok', jsonb_build_object('job', 'backup_prune', 'mode', v_mode, 'days', v_logged),
+            left(case when v_mode = 'delete' then 'Backup retention: ' || v_logged || ' export day(s) logged for deletion.'
+                      else 'Backup retention DRY RUN: ' || v_logged || ' export day(s) would be deleted; nothing was touched.' end, 500),
+            now(), now());
+  end if;
+
+  if v_mode = 'delete' then
+    perform public.fn_backup_prune_recheck();
+    -- the day's Dropbox copies leave the upload queue and join the delete queue; the status they had is kept
+    update public.doc_backups b set status = 'prune_pending', status_before_prune = b.status, claimed_at = null, claimed_by = null
+      from public.backup_prune_log l
+     where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+       and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
+       and b.status not in ('pruned', 'prune_pending', 'pruning', 'processing')
+       and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path);
+    update public.doc_backups b set status = 'pruned', error = null
+     where b.status = 'prune_pending' and b.dropbox_path is null;
+    update public.backup_prune_log l set dropbox_done_at = now()
+     where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+       and not exists (select 1 from public.doc_backups b
+                        where b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned');
+  end if;
+
+  -- A prune failure is an it_engineer finding; the same settle closes it once the deletion completes.
+  for x in select l.* from public.backup_prune_log l
+            where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null
+              and (l.storage_attempts >= 3 or l.decided_at < now() - interval '2 days') loop
+    v_items := v_items || jsonb_build_object('item', 'storage:' || x.day, 'owner_seat', 'it_engineer', 'subject', 'backups',
+      'title', 'Backup retention could not remove the ' || x.day || ' export from the backups bucket',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('backup_prune_log_id', x.id, 'attempts', x.storage_attempts, 'error', x.storage_error,
+                                     'objects_removed', x.objects_removed, 'logged_at', x.decided_at));
+  end loop;
+  for x in select split_part(substr(b.dedupe_key, 8), '/', 1) as dy, count(*) as n, max(b.error) as err
+             from public.doc_backups b
+            where b.status in ('prune_pending', 'pruning') and b.prune_attempts >= 5
+            group by 1 loop
+    v_items := v_items || jsonb_build_object('item', 'dropbox:' || x.dy, 'owner_seat', 'it_engineer', 'subject', 'dropbox',
+      'title', 'Backup retention could not remove ' || x.n || ' Dropbox copy(ies) of the ' || x.dy || ' export',
+      'blast', 'agent_facing', 'affected', x.n, 'evidence', jsonb_build_object('last_error', x.err));
+  end loop;
+  v_settle := public.fn_it_duty_settle('backup_prune', v_items);
+
+  return jsonb_build_object('mode', v_mode, 'pass', v_pass,
+    'storage_pending', case when v_mode = 'delete' then (select count(*) from public.backup_prune_log l
+                          where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null) else 0 end,
+    'dropbox_pending', case when v_mode = 'delete' then (select count(*) from public.doc_backups b
+                          where b.status = 'prune_pending' and b.prune_attempts < 5) else 0 end,
+    'findings', v_settle->'failing');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
  RETURNS TABLE(source text, kind text, bucket text, backed_up boolean, enqueue_rule text, reason text)
  LANGUAGE sql
@@ -20795,7 +21177,7 @@ AS $function$
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
     ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
-    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list())', null),
+    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list()); kept 90 days, Friday full copies 12 months (fn_backup_prune_tick)', null),
     -- The accountant's four (open gaps until 14 Sep 2026, closed by
     -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
     -- '<bucket>/<path>' names its bucket itself, so the bucket column is null for those two.
@@ -27447,6 +27829,75 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_doc_backups_prune_done(p_results jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r jsonb; n_ok int := 0; n_fail int := 0;
+begin
+  for r in select * from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) loop
+    if (r->>'ok')::boolean then
+      update public.doc_backups d set status = 'pruned', status_before_prune = null, claimed_at = null, claimed_by = null,
+             error = null, last_attempt_at = now()
+       where d.id = (r->>'id')::bigint and d.status = 'pruning';
+      if not found then
+        -- the day was cancelled while this delete was in flight: the Dropbox copy is gone but the rules keep
+        -- it, so the row goes back to the upload queue and says why (the uploader re-files it from storage)
+        update public.doc_backups d set status = 'pending', status_before_prune = null, backed_up_at = null, verified_at = null,
+               dropbox_content_hash = null, dropbox_size = null,
+               error = 'deleted from Dropbox after its retention deletion was cancelled; re-filed'
+         where d.id = (r->>'id')::bigint and d.status not in ('pruned', 'prune_pending', 'pruning');
+      end if;
+      n_ok := n_ok + 1;
+    else
+      update public.doc_backups d set status = 'prune_pending', claimed_at = null, claimed_by = null,
+             prune_attempts = d.prune_attempts + case when r->>'error' = 'deadline' then 0 else 1 end,
+             error = left('prune: ' || coalesce(r->>'error', 'unknown'), 300), last_attempt_at = now()
+       where d.id = (r->>'id')::bigint and d.status = 'pruning';
+      n_fail := n_fail + 1;
+    end if;
+  end loop;
+  update public.backup_prune_log l set dropbox_done_at = now()
+   where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+     and not exists (select 1 from public.doc_backups b
+                      where b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned');
+  return jsonb_build_object('deleted', n_ok, 'failed', n_fail);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_doc_backups_prune_next(p_limit integer DEFAULT 25, p_run text DEFAULT NULL::text)
+ RETURNS SETOF doc_backups
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(btrim(p_run), '') = '' then raise exception 'fn_doc_backups_prune_next: p_run (the claiming run id) is required'; end if;
+  if public.fn_backup_prune_mode() <> 'delete' then return; end if;
+  -- the rules again, before a single Dropbox path is handed over; a cancelled day's rows revert here
+  perform public.fn_backup_prune_recheck();
+  update public.doc_backups d set status = 'prune_pending', claimed_at = null, claimed_by = null
+   where d.status = 'pruning' and d.claimed_at < now() - interval '10 minutes';
+  return query
+    with c as (
+      select d.id from public.doc_backups d
+       where d.status = 'prune_pending' and d.prune_attempts < 5
+         and public.fn_backup_prune_dropbox_allowed(d.bucket, d.path, d.dedupe_key, d.doc_type, d.dropbox_path)
+         and exists (select 1 from public.backup_prune_log bl
+                      where bl.mode = 'delete' and bl.cancelled_at is null
+                        and d.dedupe_key like 'EXPORT:' || to_char(bl.day, 'YYYY-MM-DD') || '/%')
+         and (d.last_attempt_at is null or d.prune_attempts = 0
+              or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.prune_attempts, 8)))
+       order by d.id limit greatest(1, least(coalesce(p_limit, 25), 25))
+       for update skip locked)
+    update public.doc_backups d set status = 'pruning', claimed_at = now(), claimed_by = p_run
+      from c where d.id = c.id
+    returning d.*;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_doc_final_notice(p_days integer DEFAULT 7)
  RETURNS json
  LANGUAGE plpgsql
@@ -30438,15 +30889,35 @@ CREATE OR REPLACE FUNCTION public.fn_gl_journal_immutable()
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
 begin
-  if tg_op in ('UPDATE','DELETE') and old.status = 'posted'
-     and not (tg_op='UPDATE' and new.status='void' and old.status='posted' and new.reverses is not null) then
-    -- allow only the controlled void marking done by fn_gl_reverse (new.status='void')
-    if tg_op='DELETE' or (tg_op='UPDATE' and old.status='posted' and new.status='posted'
-         and (new.entry_date<>old.entry_date or new.memo is distinct from old.memo or new.source<>old.source)) then
-      raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
+  if old.status = 'posted' then
+    if tg_op = 'UPDATE' and (
+         (new.status = 'posted' and (to_jsonb(new) - 'memo') = (to_jsonb(old) - 'memo')
+          and (new.memo is not distinct from old.memo or new.memo = public.fn_mask_bank_text(old.memo)))
+      or (new.status = 'void' and new.reverses is not null
+          and (to_jsonb(new) - 'status' - 'reverses') = (to_jsonb(old) - 'status' - 'reverses'))) then
+      return new;
     end if;
+    raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
+  end if;
+  -- A void journal is terminal: fn_gl_reverse already set it void with its reversal link. Measured
+  -- 15 Sep 2026: no routine or code path updates or deletes a void journal (the only writers are
+  -- fn_gl_reverse's posted-to-void statement and fn_gl_post, which is only ever called on drafts).
+  if old.status = 'void' then
+    raise exception 'Void journal % is terminal: it was reversed and can never change again', old.id;
   end if;
   return case when tg_op='DELETE' then old else new end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_gl_journal_memo_masked()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.memo := public.fn_mask_bank_text(new.memo);
+  return new;
 end $function$
 
 
@@ -31721,6 +32192,9 @@ AS $function$
          'company:table_export:' || to_char(d.day, 'YYYY-MM-DD'), (d.day::date + time '03:00') at time zone 'Asia/Dubai'
     from generate_series((select min(r.stamp) from public.table_export_run r),
                          (now() at time zone 'Asia/Dubai')::date, interval '1 day') d(day)
+    -- a day removed under the retention rules is no longer expected (15 Sep 2026)
+    join lateral (select not exists (select 1 from public.table_export_run pr
+                                      where pr.stamp = d.day::date and pr.pruned_at is not null) as kept) k on k.kept
     cross join lateral (
       select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
       union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x
@@ -36522,6 +36996,26 @@ begin
     'generated_at', now()
   ) into res;
   return res;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mask_bank_text(p text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v text := p;
+begin
+  if v is null then return null; end if;
+  -- An IBAN printed in groups of four, then a compact one.
+  v := regexp_replace(v, '\m[A-Z]{2}[0-9]{2} [A-Z0-9]{4}( [0-9]{4}){2,6}( [0-9]{1,4})?\M', '[IBAN]', 'g');
+  v := regexp_replace(v, '\m[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}\M', '[IBAN]', 'g');
+  -- Any alphanumeric token holding 8+ digits, in ONE positional pass. The lookahead holds at a token's
+  -- first character exactly when the token has 8+ digits, and the match then runs to the token's end.
+  -- (Review of #684: a per-token text replace let one overlapping token rewrite another first and
+  -- leaked 9 digits.) A date splits into short tokens and survives; output holds no digit run to re-mask.
+  return regexp_replace(v, '(?=(?:[A-Za-z]*[0-9]){8})[A-Za-z0-9]+', '[ref]', 'g');
 end $function$
 
 
@@ -58655,22 +59149,23 @@ CREATE TRIGGER z90_security_detect AFTER INSERT ON public.file_scan FOR EACH ROW
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.finance_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
 CREATE TRIGGER a10_founder_instruction_needs_evidence BEFORE INSERT OR UPDATE ON public.founder_instruction FOR EACH ROW EXECUTE FUNCTION fn_founder_instruction_needs_evidence();
+CREATE TRIGGER trg_gl_journal_memo_masked BEFORE INSERT OR UPDATE OF memo ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_memo_masked();
 CREATE TRIGGER trg_gl_journal_immutable BEFORE DELETE OR UPDATE ON public.gl_journal FOR EACH ROW EXECUTE FUNCTION fn_gl_journal_immutable();
 CREATE TRIGGER trg_gl_lines_immutable BEFORE INSERT OR DELETE OR UPDATE ON public.gl_journal_lines FOR EACH ROW EXECUTE FUNCTION fn_gl_lines_immutable();
 CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.gl_settings FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
 CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -58683,23 +59178,23 @@ CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
-CREATE TRIGGER kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_kb_chunks_export_change();
 CREATE TRIGGER kb_chunks_export_change_upd AFTER UPDATE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_kb_chunks_export_change();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_kb_chunks_export_change();
 CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
@@ -58711,26 +59206,26 @@ CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW E
 CREATE TRIGGER z06_supplier_notice_whatsapp_twin_under_v11 AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_supplier_notice_whatsapp_twin_under_v11();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
 CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
+CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
-CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
-CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
 CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
+CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
 CREATE TRIGGER otp_served_country_lifts_blocks AFTER INSERT OR UPDATE OF prefix ON public.otp_served_country FOR EACH ROW EXECUTE FUNCTION trg_otp_served_country_lifts_blocks();
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
@@ -58740,27 +59235,27 @@ CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON publ
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER z10_hold_answered_resets_the_run AFTER UPDATE OF state ON public.quote_spec_hold FOR EACH ROW EXECUTE FUNCTION trg_hold_answered_resets_the_run();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
-CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
-CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
 CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
+CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
 CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
 CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
+CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
+CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
+CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
+CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
+CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
-CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
-CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
-CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
-CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
-CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
-CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
-CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
@@ -58776,14 +59271,14 @@ CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories F
 CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_collaboration_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_collaboration_event_append_only();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
-CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
-CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
-CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
-CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
 CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
+CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
+CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
+CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
@@ -58840,6 +59335,7 @@ ALTER TABLE public.artifact_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assistant_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_control_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_prune_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_line_owner_ruling ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_line ENABLE ROW LEVEL SECURITY;
@@ -59311,6 +59807,7 @@ CREATE POLICY accountant_month_close_service_role_only ON public.accountant_mont
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_year_end_pack AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.ai_cost_log AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY backup_prune_log_service_role_only ON public.backup_prune_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_line_owner_ruling_service_role_only ON public.bank_line_owner_ruling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_intake_service_role_only ON public.bank_statement_intake AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_line AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

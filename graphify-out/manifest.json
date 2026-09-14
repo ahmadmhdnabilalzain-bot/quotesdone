@@ -390,8 +390,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/dropbox_backup/index.ts": {
-    "mtime": 1789421190.3056476,
-    "ast_hash": "2a5f38ef39d6c56cea818651d13df00d",
+    "mtime": 1789426631.4425845,
+    "ast_hash": "a1fb890052ce7f7831dee2f878975a81",
     "semantic_hash": ""
   },
   "supabase/functions/email_cron/index.ts": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/kyc/index.ts": {
-    "mtime": 1789421731.248247,
-    "ast_hash": "5f7b0823ea9124185dc01420866fa51c",
+    "mtime": 1789426695.7605932,
+    "ast_hash": "5d146ed69012c5083b7e215138db93b2",
     "semantic_hash": ""
   },
   "supabase/functions/license_extract/index.ts": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/login_otp/index.ts": {
-    "mtime": 1789421190.319846,
-    "ast_hash": "d545a4b867c7c1f8b262c3134836cd68",
+    "mtime": 1789426631.446591,
+    "ast_hash": "470d809a5ea1f1c45fe55d667117c9f4",
     "semantic_hash": ""
   },
   "supabase/functions/messages_api/index.ts": {
@@ -440,8 +440,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/mobile_otp/index.ts": {
-    "mtime": 1789421190.3218453,
-    "ast_hash": "6261ccd5c3f9acb789c6a1b51ec9454a",
+    "mtime": 1789426631.4494698,
+    "ast_hash": "fae892e9c225815263be0283edd6a77e",
     "semantic_hash": ""
   },
   "supabase/functions/pdf_native/index.ts": {
@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/resend_inbound/index.ts": {
-    "mtime": 1789421190.3382194,
-    "ast_hash": "a7e4f5492d50b1ed88ec9f7f3dd2b9fa",
+    "mtime": 1789426631.4541702,
+    "ast_hash": "c6a19d6a0c54842064109658bb6f0f44",
     "semantic_hash": ""
   },
   "supabase/functions/resend_webhook/index.ts": {
@@ -500,13 +500,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/send_sms/index.ts": {
-    "mtime": 1789421190.3497756,
-    "ast_hash": "ded7f99dfddd9dfd80bf8bc748e178f7",
+    "mtime": 1789426631.459837,
+    "ast_hash": "23db9dc76a20e2d5d2d01f1856aa1d39",
     "semantic_hash": ""
   },
   "supabase/functions/send_whatsapp/index.ts": {
-    "mtime": 1789421190.3507767,
-    "ast_hash": "1da6e66cc97267ee94f47188eba23ed6",
+    "mtime": 1789426631.461343,
+    "ast_hash": "ffb65d0c7b91ecf4da06e6b0ffd2113f",
     "semantic_hash": ""
   },
   "supabase/functions/site_assistant/index.ts": {
@@ -580,8 +580,8 @@
     "semantic_hash": "c05bb7006148909ef3b2e15fcadf593a"
   },
   "supabase/functions/wa_inbound/index.ts": {
-    "mtime": 1789421190.3782516,
-    "ast_hash": "bd1e51b78c177aee4c95d596fe0f49f5",
+    "mtime": 1789426631.4635525,
+    "ast_hash": "c2faabcb68471c342b8dced640979bd0",
     "semantic_hash": ""
   },
   "supabase/functions/wa_templates_watch/index.ts": {
@@ -980,8 +980,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/run.mjs": {
-    "mtime": 1789421188.7685368,
-    "ast_hash": "5b337490d3bc80a422293e90f5f52fed",
+    "mtime": 1789426631.4213834,
+    "ast_hash": "7d44b1f0f1e6e1b9b5391381bc1e760d",
     "semantic_hash": ""
   },
   "scripts/checks/schema_dump_not_replayable.test.mjs": {
@@ -1705,8 +1705,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/resilience_ping/index.ts": {
-    "mtime": 1789421190.3405414,
-    "ast_hash": "d07e34b8e6ba89dfd22e52a0b8bf3370",
+    "mtime": 1789426631.456762,
+    "ast_hash": "0de4ccb62ff7f63204736e4747eecebe",
     "semantic_hash": ""
   },
   "supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql": {
@@ -1810,8 +1810,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1789421190.9431992,
-    "ast_hash": "996212ae424fcd6508cf53f63a69c442",
+    "mtime": 1789426631.477883,
+    "ast_hash": "965b5070c8d9dc0ba1d8657137a62052",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -10330,8 +10330,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/a_phone_cannot_select_an_account.test.mjs": {
-    "mtime": 1789421188.6508546,
-    "ast_hash": "2ae996a8f4485dbf136a3cb29f95ee01",
+    "mtime": 1789426631.417377,
+    "ast_hash": "ecb10fcfca75ac304aaf4db2c0872507",
     "semantic_hash": ""
   },
   "scripts/checks/agent_action_fields_are_filled_after_the_gate.test.mjs": {
@@ -11930,8 +11930,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1789421188.933725,
-    "ast_hash": "80b0df4a7fd597de81888fb1c8436b91",
+    "mtime": 1789426631.4246604,
+    "ast_hash": "9f1780fd7bdf57882b2c2197c8c5d522",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -17615,8 +17615,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/accountant/index.ts": {
-    "mtime": 1789421190.2668664,
-    "ast_hash": "024ce2875cfa38215aa0b168f7d43dc9",
+    "mtime": 1789426631.4392757,
+    "ast_hash": "6b95272ba725414e4aa65ceed03e2cbc",
     "semantic_hash": ""
   },
   "supabase/functions/ceo_agent/index.ts": {
@@ -18160,18 +18160,18 @@
     "semantic_hash": ""
   },
   "scripts/e2e/browser.mjs": {
-    "mtime": 1789421920.655393,
-    "ast_hash": "48be6e141814122972610dca7db5dcfb",
+    "mtime": 1789426708.0662885,
+    "ast_hash": "09290e60fe78c75f7ae284959efa948a",
     "semantic_hash": ""
   },
   "scripts/e2e/fixtures.mjs": {
-    "mtime": 1789421988.1895857,
-    "ast_hash": "5f16630e50f8641b9b48577b0065dfee",
+    "mtime": 1789426631.4223835,
+    "ast_hash": "c007bf42413e22e1482600a96143aaf9",
     "semantic_hash": ""
   },
   "scripts/e2e/journeys.mjs": {
-    "mtime": 1789421957.918902,
-    "ast_hash": "acbaf20ffd1f453289ae9306e2769398",
+    "mtime": 1789426782.125172,
+    "ast_hash": "34afcd87669dd0eececa632c49413253",
     "semantic_hash": ""
   },
   "scripts/e2e/run.mjs": {
@@ -18245,8 +18245,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/demo_identity.ts": {
-    "mtime": 1789421190.164548,
-    "ast_hash": "0b707915289e2314517c7db64d4b77f5",
+    "mtime": 1789426631.4352734,
+    "ast_hash": "1f13988a85ba3c148f91120b23725d68",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/payment_handoffs.test.ts": {
@@ -18365,8 +18365,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_stored_document_source_is_registered_for_backup.sql": {
-    "mtime": 1789421189.1412702,
-    "ast_hash": "9e608367760f7696017867226befc406",
+    "mtime": 1789426631.4286597,
+    "ast_hash": "08934aadd4fb4d584ab5408523d5a83c",
     "semantic_hash": ""
   },
   "scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql": {
@@ -18615,13 +18615,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/whatsapp_choice.test.ts": {
-    "mtime": 1789421683.9205186,
-    "ast_hash": "d3cd6db4ef069925c22e75df0e7fe456",
+    "mtime": 1789426705.9881222,
+    "ast_hash": "7356e8f767b40431be57453ab2ebc7a8",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/whatsapp_choice.ts": {
-    "mtime": 1789421875.346287,
-    "ast_hash": "7cb3f83886e84ca131c1524e942bbfe7",
+    "mtime": 1789426700.7800117,
+    "ast_hash": "5505bd00ca80430e8cc48f7c62a471d0",
     "semantic_hash": ""
   },
   "supabase/functions/drawing_boq/cad_blocks_devices.test.ts": {
@@ -18785,8 +18785,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs": {
-    "mtime": 1789421188.7849524,
-    "ast_hash": "c7ccb4df8d0b225018c11deeb8606d75",
+    "mtime": 1789426631.4223835,
+    "ast_hash": "e76f2c6e6c56fcd1bd5a79af43fd3591",
     "semantic_hash": ""
   },
   "scripts/sql/a_browser_cannot_run_the_customer_document_routines_unsigned.sql": {
@@ -18840,8 +18840,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/the_companys_own_bank_and_stripe_costs_book_themselves.sql": {
-    "mtime": 1789421189.5834215,
-    "ast_hash": "455e4d0d493a65a8c1da3dce38baa4c2",
+    "mtime": 1789426631.4315093,
+    "ast_hash": "f84899ef660b7f287df6d70f79d7e10f",
     "semantic_hash": ""
   },
   "scripts/sql/the_founder_approved_ten_more_it_engineer_duties.sql": {
@@ -18879,14 +18879,24 @@
     "ast_hash": "ec4d449e99512087dfbe510fb46d9318",
     "semantic_hash": ""
   },
+  "scripts/checks/backup_retention_cancels_both_halves.probe.sql": {
+    "mtime": 1789426631.4183867,
+    "ast_hash": "e6ca7517955e26f36cc3b8c3da34bba8",
+    "semantic_hash": ""
+  },
+  "scripts/checks/every_whatsapp_notice_is_a_utility_template.mjs": {
+    "mtime": 1789426631.4193892,
+    "ast_hash": "e31f311ddb4d1d922292a3913f5158a7",
+    "semantic_hash": ""
+  },
   "scripts/checks/it_engineer_duties_19_to_24.test.mjs": {
     "mtime": 1789421188.6991453,
     "ast_hash": "8c0395051ab68ad07056e9098a2e5582",
     "semantic_hash": ""
   },
   "scripts/checks/it_engineer_duties_9_to_18.test.mjs": {
-    "mtime": 1789421188.7002683,
-    "ast_hash": "21179c95f7991592a8ac2651018ce59f",
+    "mtime": 1789426631.4203851,
+    "ast_hash": "cede4bb2347027f7d60127893cd78351",
     "semantic_hash": ""
   },
   "scripts/checks/no_module_level_supabase_client.test.mjs": {
@@ -18944,6 +18954,11 @@
     "ast_hash": "f2be2311eed770de995ffcd10372528a",
     "semantic_hash": ""
   },
+  "scripts/sql/a_statement_the_reader_cannot_read_is_the_it_engineers_defect.sql": {
+    "mtime": 1789426631.42766,
+    "ast_hash": "4fce5fcf6f2c1d8490bda9921032d342",
+    "semantic_hash": ""
+  },
   "scripts/sql/an_expense_the_founder_vouches_for_is_documented_by_his_word.sql": {
     "mtime": 1789421189.0108275,
     "ast_hash": "30cb281f7a5abbe7738bd511bece20c2",
@@ -18987,6 +19002,11 @@
   "scripts/sql/the_accountant_tells_the_ceo_every_month_what_is_in_the_bank_and_how_long_it_lasts.sql": {
     "mtime": 1789421189.5326436,
     "ast_hash": "d363584724afa4df35407fb37a0e40c6",
+    "semantic_hash": ""
+  },
+  "scripts/sql/the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql": {
+    "mtime": 1789426631.429662,
+    "ast_hash": "4c65307bf2ae5b1126fde72054dfbfa1",
     "semantic_hash": ""
   },
   "scripts/sql/the_founder_approved_it_engineer_duties_19_to_24.sql": {
@@ -19034,6 +19054,21 @@
     "ast_hash": "01212ed98e99104f2c28dc8b9ba1b3cf",
     "semantic_hash": ""
   },
+  "supabase/functions/_shared/backup_prune_allow.test.ts": {
+    "mtime": 1789426631.4327612,
+    "ast_hash": "bc3ab2e1f849c9923bdcb5f601692e4d",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/backup_prune_allow.ts": {
+    "mtime": 1789426631.4337585,
+    "ast_hash": "eb04ec2e4d0123ea47843c293932c685",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/bank_statement_intake.ts": {
+    "mtime": 1789426631.434266,
+    "ast_hash": "42e3d28750996e633448c05f774d6625",
+    "semantic_hash": ""
+  },
   "supabase/functions/_shared/it_duties_19_to_24.test.ts": {
     "mtime": 1789421190.200597,
     "ast_hash": "da09a03d7a473be16bd3e627f26f21eb",
@@ -19054,9 +19089,44 @@
     "ast_hash": "26aabe2706bfae99894460c218224b11",
     "semantic_hash": ""
   },
+  "supabase/functions/_shared/twilio_free_harness.ts": {
+    "mtime": 1789426631.4362724,
+    "ast_hash": "95975cbd4dd30c7d0ea3aacd59bc091b",
+    "semantic_hash": ""
+  },
   "supabase/functions/backup/index.ts": {
-    "mtime": 1789421190.269865,
-    "ast_hash": "e87ad4e8e0460dbf4f5f8355aa5836fa",
+    "mtime": 1789426631.44128,
+    "ast_hash": "965ca5dffe8853aa058c7bba93fa0ab6",
+    "semantic_hash": ""
+  },
+  "supabase/functions/kyc/fixture_number.test.ts": {
+    "mtime": 1789426631.4425845,
+    "ast_hash": "f563f7a2e3e4975232b9509cf6a59653",
+    "semantic_hash": ""
+  },
+  "supabase/functions/login_otp/fixture_number.test.ts": {
+    "mtime": 1789426631.4445899,
+    "ast_hash": "ff898a461474a3ade787d356f0be2f96",
+    "semantic_hash": ""
+  },
+  "supabase/functions/mobile_otp/fixture_number.test.ts": {
+    "mtime": 1789426631.4475906,
+    "ast_hash": "1c15f50149892dcddcaa5cdb37aa011e",
+    "semantic_hash": ""
+  },
+  "supabase/functions/resend_inbound/index.test.ts": {
+    "mtime": 1789426631.4507556,
+    "ast_hash": "285f84a948047a214c23fc24562123da",
+    "semantic_hash": ""
+  },
+  "supabase/functions/send_sms/fixture_number.test.ts": {
+    "mtime": 1789426631.458837,
+    "ast_hash": "083412e6411c9a51444bf346b9b667e3",
+    "semantic_hash": ""
+  },
+  "supabase/functions/wa_inbound/fixture_number.test.ts": {
+    "mtime": 1789426631.4623597,
+    "ast_hash": "127e5d28f62e2dec2244de5c969c4e2a",
     "semantic_hash": ""
   },
   ".github/workflows/it-post-deploy-smoke.yml": {
@@ -19067,6 +19137,41 @@
   ".github/workflows/it-weekly-readings.yml": {
     "mtime": 1789421187.1008942,
     "ast_hash": "156a6bb6cdabc28f4816ef7f83fe21c3",
+    "semantic_hash": ""
+  },
+  "scripts/checks/a_journal_memo_never_carries_a_bank_number.test.mjs": {
+    "mtime": 1789426631.4151998,
+    "ast_hash": "e7e9ba54f06c10e842bc8aaac977e4db",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_journal_memo_never_carries_a_bank_or_iban_number.sql": {
+    "mtime": 1789426631.4266603,
+    "ast_hash": "ff57422df25af751027bf3855e4c8fa0",
+    "semantic_hash": ""
+  },
+  "docs/prs/whatsapp-sign-up/g_signup_after_code_ar.png": {
+    "mtime": 1789422698.5672412,
+    "ast_hash": "36c14d0cd0f593f39b4a4554be804ae1",
+    "semantic_hash": ""
+  },
+  "docs/prs/whatsapp-sign-up/g_signup_after_yes_en.png": {
+    "mtime": 1789422698.5902073,
+    "ast_hash": "0656ae4684cffcd9c3f987a0983f3378",
+    "semantic_hash": ""
+  },
+  "docs/prs/whatsapp-sign-up/g_signup_code_sent_ar.png": {
+    "mtime": 1789422698.6028383,
+    "ast_hash": "bd19e13e596aaaa156ff1d8856fb531f",
+    "semantic_hash": ""
+  },
+  "docs/prs/whatsapp-sign-up/g_signup_step_ar.png": {
+    "mtime": 1789422698.623837,
+    "ast_hash": "7a84dbcb865266580bf7abe03f7d8135",
+    "semantic_hash": ""
+  },
+  "docs/prs/whatsapp-sign-up/g_signup_step_en.png": {
+    "mtime": 1789422698.6352665,
+    "ast_hash": "7ec0fd59256f022b0b380c116a3978ea",
     "semantic_hash": ""
   }
 }

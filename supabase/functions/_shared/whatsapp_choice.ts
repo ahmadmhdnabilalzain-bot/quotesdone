@@ -71,18 +71,6 @@ export async function sendWhatsAppFirst(send: (channel: 'whatsapp' | 'sms') => P
   return { ...res, ok, refused, channel: ok ? deliveredChannel(res.jd, refused ? 'sms' : 'whatsapp') : null };
 }
 
-// E2E FIXTURES ONLY: an identity that can reach nobody — an RFC 2606 .invalid mailbox AND a number in
-// the reserved +971 50 000 00xx block (scripts/e2e/fixtures.mjs). Both must hold. For these kyc never
-// calls Twilio; the code is derived from otp_hmac_key, which only the service side holds, so the
-// harness can compute it and a browser cannot.
-export const isFixtureIdentity = (email: string, phone: string) =>
-  /@example\.invalid$/i.test(email) && /^\+9715000000\d{2}$/.test(phone);
-export async function fixtureCode(hmacKey: string, email: string, phone: string): Promise<string> {
-  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(hmacKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode('e2e-whatsapp:' + email.toLowerCase() + ':' + phone)));
-  return String(((mac[0] << 16) | (mac[1] << 8) | mac[2]) % 1000000).padStart(6, '0');
-}
-
 export type Patch = Record<string, string | boolean | null>;
 
 // whatsapp_choose. Caller has already refused 'same' when the mobile is not verified; verifiedMobile

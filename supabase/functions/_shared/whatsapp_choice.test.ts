@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { askedPatch, choosePatch, fixtureCode, isFixtureIdentity, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, whatsappUnavailable } from './whatsapp_choice.ts';
+import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, whatsappUnavailable } from './whatsapp_choice.ts';
 
 const NOW = '2026-09-14T10:00:00.000Z';
 
@@ -102,16 +102,6 @@ Deno.test('fallback: any other refusal is a failure and never falls back', async
   const both = fake({ whatsapp: { status: 400, jd: { code: 68008 } }, sms: { status: 400, jd: { code: 21211 } } });
   const r2 = await sendWhatsAppFirst(both.send);
   assertEquals([both.calls, r2.ok, r2.channel], [['whatsapp', 'sms'], false, null]);
-});
-
-Deno.test('fixtures: both reserved markers required; the code is deterministic and 6 digits', async () => {
-  assert(isFixtureIdentity('qd-x-cust1@example.invalid', '+971500000042'));
-  assert(!isFixtureIdentity('someone@gmail.com', '+971500000042'));
-  assert(!isFixtureIdentity('qd-x-cust1@example.invalid', '+971501234567'));
-  const a = await fixtureCode('k', 'QD-x@example.invalid', '+971500000042');
-  assert(/^\d{6}$/.test(a));
-  assertEquals(a, await fixtureCode('k', 'qd-x@example.invalid', '+971500000042'));
-  assert(a !== await fixtureCode('other-key', 'qd-x@example.invalid', '+971500000042'));
 });
 
 Deno.test('state: an unverified phone is reported as no phone; asked covers opt or timestamp', () => {

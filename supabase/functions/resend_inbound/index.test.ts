@@ -1,0 +1,128 @@
+// The live webhook takes a forwarded Mashreq statement in AS A STATEMENT (15 Sep 2026, agent: accountant).
+// Drives resend_inbound's OWN handler with a signed delivery carrying an invented e-statement PDF, over a
+// stubbed fetch (PostgREST, storage, VirusTotal). Asserts it goes to fn_accountant_bank_statement_ingest, is
+// never HELD as a receipt and never reaches ai_gateway. No value below is real: ZZ DEMO, example.invalid.
+import { assert, assertEquals } from 'jsr:@std/assert@1';
+
+const SECRET_RAW = new Uint8Array(32).map((_, i) => i + 1);
+const SIGNING = 'whsec_' + btoa(String.fromCharCode(...SECRET_RAW));
+const TOKEN = 'zz-demo-inbound-token';
+const FOUNDER = 'founder@example.invalid';
+const SECRETS: Record<string, string> = {
+  resend_inbound_token: TOKEN, resend_inbound_signing_secret: SIGNING,
+  admin_emails: 'management@example.invalid', expense_forwarders: FOUNDER, cred_fn_ai: 'zz-demo-ai',
+};
+
+Deno.env.set('SUPABASE_URL', 'http://stub.invalid');
+Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key');
+Deno.env.set('RESEND_INBOUND_NO_SERVE', '1');
+
+type Call = { url: string; method: string; body: string };
+const calls: Call[] = [];
+globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
+  const req = new Request(input, init);
+  const url = req.url; const body = req.method === 'GET' ? '' : await req.text();
+  calls.push({ url, method: req.method, body });
+  const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
+  const u = new URL(url);
+  if (u.hostname !== 'stub.invalid') return json({ error: 'not found' }, 404);          // VirusTotal etc.
+  if (u.pathname.startsWith('/storage/v1/object/')) return json({ Key: u.pathname, Id: 'zz' });
+  if (u.pathname === '/rest/v1/rpc/fn_accountant_bank_statement_ingest') {
+    const p = JSON.parse(body);
+    return json({ source_ref: p.p_source_ref, lines: p.p_lines.length, new_lines: p.p_lines.length, state: p.p_lines.length ? 'parsed' : 'unreadable' });
+  }
+  if (u.pathname.startsWith('/rest/v1/rpc/')) return json({ ok: true });
+  const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
+  let row: Record<string, unknown> = { id: 1 };
+  if (u.pathname === '/rest/v1/app_secrets') {
+    const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')];
+    if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]);
+    row = { value: v };
+  }
+  return one ? json(row) : json([row]);
+}) as typeof fetch;
+
+const { handler } = await import('./index.ts');
+
+// An invented e-statement in the real layout; the bank is named ONLY inside the document.
+const LINES = [
+  'Mashreqbank PSC is regulated by the Central Bank of the United Arab Emirates.',
+  'Current Account Statement',
+  'Account No 000111222333 AED',
+  'Statement for Period 01/08/2026 to 31/08/2026',
+  'Date Transaction Reference no Debit Credit Balance',
+  'OPENING BALANCE 0.000 0.000 12,345.670',
+  'TRANSFER IN',
+  '000000000000ZZ000000000000000000000',
+  '07/08/2026 000ZZZZ00000000ZZZ 0.000 2,500.000 14,845.670',
+  '- ZZ DEMO SENDER - P_2_P -',
+  '000000000000Z00000000000000000000',
+  '09/08/2026 Monthly Maintenance Fee 000111222333 0ZZREFAED 00001 150.000 0.000 14,695.670',
+  'VALUE DATE: 01-09-2026 Interest',
+  '31/08/2026 0ZZCIDAED 00001 0.000 1,234.560 15,930.230',
+  '000111222333',
+  'CLOSING BALANCE 0.000 0.000 15,930.230',
+];
+
+function statementPdf(lines: string[]): Uint8Array {
+  const content = lines.map((t, i) => `BT /F1 9 Tf 1 0 0 1 40 ${800 - i * 14} Tm (${t}) Tj ET`).join('\n');
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 595 842] >>',
+    '<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>',
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+  ];
+  let pdf = '%PDF-1.4\n';
+  objs.forEach((o, i) => { pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  pdf += 'trailer << /Root 1 0 R >>\n%%EOF\n';
+  return Uint8Array.from(pdf, (c) => c.charCodeAt(0) & 0xff);
+}
+
+async function delivery(pdf: Uint8Array): Promise<Request> {
+  const raw = JSON.stringify({ type: 'email.received', data: {
+    email_id: 'zz-demo-0001', from: 'ZZ DEMO Founder <' + FOUNDER + '>', to: ['expenses@mail.quotesdone.com'],
+    subject: 'statement', text: '',
+    attachments: [{ filename: 'eStatement_02 Sep 2026_0000000000.pdf', content_type: 'application/pdf',
+                    content: btoa(String.fromCharCode(...pdf)) }] } });
+  const id = 'msg_zz_demo'; const ts = String(Math.floor(Date.now() / 1000));
+  const key = await crypto.subtle.importKey('raw', SECRET_RAW, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(id + '.' + ts + '.' + raw)))));
+  return new Request('http://stub.invalid/functions/v1/resend_inbound?s=' + TOKEN, {
+    method: 'POST', body: raw, headers: { 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': 'v1,' + sig } });
+}
+
+const ingests = () => calls.filter((c) => c.url.endsWith('/rpc/fn_accountant_bank_statement_ingest')).map((c) => JSON.parse(c.body));
+const noReceiptPath = () => {
+  assertEquals(calls.filter((c) => /ai_gateway/.test(c.url)).length, 0);                      // never the model
+  assertEquals(calls.filter((c) => /fn_receipt_hand_to_bookkeeper/.test(c.url)).length, 0);   // never handed over as a receipt
+  assertEquals(calls.filter((c) => /inbound_messages/.test(c.url) && /\[HELD/.test(c.body)).length, 0);
+  assertEquals(calls.filter((c) => /expense_entries/.test(c.url) && c.method !== 'GET').length, 0);
+};
+
+Deno.test({ name: 'a forwarded Mashreq statement goes to the statement intake, not to receipt-held', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  const res = await handler(await delivery(statementPdf(LINES)));
+  const out = await res.json();
+  assertEquals(res.status, 200);
+  assertEquals([out.bank_statement, out.receipt, out.lines, out.adds_up], [true, false, 3, true]);
+  const [ing] = ingests();
+  assertEquals(ing.p_source_ref, 'resend:zz-demo-0001');
+  assertEquals(ing.p_statement_month, '2026-08-01');
+  assertEquals(ing.p_lines.map((l: { amount_aed: number }) => l.amount_aed), [2500, -150, 1234.56]);
+  assertEquals(ing.p_note, null);
+  const bal = calls.filter((c) => c.url.endsWith('/rpc/fn_accountant_bank_balance_record')).map((c) => JSON.parse(c.body));
+  assertEquals(bal, [{ p_source_ref: 'resend:zz-demo-0001', p_balance_aed: 15930.23, p_on: '2026-08-31' }]);
+  noReceiptPath();
+} });
+
+Deno.test({ name: 'a statement that does not add up is ingested empty with a finding note, still never a receipt', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  const bad = LINES.map((l) => l.replace('CLOSING BALANCE 0.000 0.000 15,930.230', 'CLOSING BALANCE 0.000 0.000 15,930.240'));
+  const out = await (await handler(await delivery(statementPdf(bad)))).json();
+  assertEquals([out.bank_statement, out.lines, out.adds_up], [true, 0, false]);
+  const [ing] = ingests();
+  assertEquals(ing.p_lines, []);
+  assert(/does not add up/.test(ing.p_note));
+  assertEquals(calls.filter((c) => /fn_accountant_bank_balance_record/.test(c.url)).length, 0);
+  noReceiptPath();
+} });

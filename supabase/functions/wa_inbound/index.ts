@@ -24,6 +24,7 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 // can reach the API line, which makes it the least-authenticated file entry in the estate.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -383,6 +384,9 @@ async function renderReportPdf(title: string, markdown: string): Promise<{ url: 
 }
 
 async function sendWa(to: string, body: string, mediaUrl?: string | null): Promise<{ ok: boolean; err?: string }> {
+  // Every reply leaves through here, so this one line covers all of them: a fixture number is never
+  // replied to. The caller stores err as send_error in wa_messages, which is the capture record.
+  if (isDemoPhone(to)) return { ok: false, err: FIXTURE_CAPTURE_NOTE };
   const sid = await sec('twilio_account_sid'); const kSid = await sec('twilio_api_key_sid'); const kSec = await sec('twilio_api_key_secret'); const from = await sec('twilio_wa_from');
   if (!sid || !kSid || !kSec || !from) return { ok: false, err: 'twilio_not_configured' };
   const form = new URLSearchParams({ From: 'whatsapp:' + (from.startsWith('+') ? from : '+' + from), To: to.startsWith('whatsapp:') ? to : ('whatsapp:' + to), Body: body });

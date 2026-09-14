@@ -58,18 +58,6 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
       localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
     } catch { /* storage blocked: the page will show sign-in, and the journey reports it */ }
   }, [k, s, lang]);
-  // QD_KYC_URL: the kyc edge function served from THIS checkout (deno, against the same project), so a
-  // kyc change is driven through the real screens before it is deployed. Only kyc is rerouted; the
-  // round trip is made from Node, so an https page can reach a local http server.
-  if (process.env.QD_KYC_URL) {
-    await ctx.route(/\/functions\/v1\/kyc(\?|$)/, async (route) => {
-      const req = route.request();
-      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info', 'access-control-allow-methods': 'POST, OPTIONS' };
-      if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
-      const res = await fetch(process.env.QD_KYC_URL, { method: req.method(), headers: { authorization: req.headers()['authorization'] || '', 'content-type': 'application/json' }, body: req.postData() });
-      return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': 'application/json' }, body: await res.text() });
-    });
-  }
   const page = await ctx.newPage();
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 300)); });

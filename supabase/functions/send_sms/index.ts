@@ -8,6 +8,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -58,6 +59,7 @@ Deno.serve(observe('send_sms', async (req) => {
     // Single send
     if (body.to && body.body) {
       const to = normPhone(String(body.to)); if (!to || to.length < 8) { await logRun('error', { direct: true }, 'bad_phone on direct send: ' + String(body.to || '').slice(0, 40)); return J({ ok: false, error: 'bad_phone' }, 200); }
+      if (isDemoPhone(to)) { await logRun('skipped', { direct: true, captured: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const res = await twilioSend(acct, ks, kk, from, to, String(body.body).slice(0, 600));
       if (!res.ok) await logRun('error', { direct: true, http: res.status }, 'direct SMS rejected by Twilio: ' + String(res.error || '').slice(0, 200));
       return J({ ok: res.ok, sid: res.sid, error: res.error });
@@ -68,6 +70,7 @@ Deno.serve(observe('send_sms', async (req) => {
     let sent = 0, failed = 0, badPhone = 0; let lastErr = '';
     for (const n of (rows || [])) {
       const to = normPhone(String(n.to_phone || '')); if (!to) { await admin.from('notifications').update({ status: 'failed' }).eq('id', n.id); failed++; badPhone++; continue; }
+      if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: FIXTURE_CAPTURE_NOTE }).eq('id', n.id); continue; }
       const res = await twilioSend(acct, ks, kk, from, to, String(n.body || '').slice(0, 600));
       await admin.from('notifications').update({ status: res.ok ? 'sent' : 'failed', sent_at: res.ok ? new Date().toISOString() : null, last_error: res.ok ? null : String(res.error).slice(0,300) }).eq('id', n.id);
       if (res.ok) sent++; else { failed++; lastErr = String(res.error || '').slice(0, 200); }

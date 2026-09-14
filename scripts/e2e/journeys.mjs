@@ -652,24 +652,31 @@ export async function journeyCrawl(ctx) {
 // with a 6-digit code (Arabic). A supplier proves a second number through the same kyc actions.
 //
 // NOTHING REACHES A PERSON: every number is in the reserved +971 50 000 00xx block and every mailbox is
-// @example.invalid, and for exactly that pair kyc never calls Twilio (_shared/whatsapp_choice.ts
-// isFixtureIdentity): it plays Verify's WhatsApp refusal, takes the real SMS fallback, and accepts the
-// code derived from otp_hmac_key, which this harness computes. The code branch needs that kyc, so it
-// runs only when QD_KYC_URL points at it (a local deno serve, or a deployed kyc that carries the door);
-// against a kyc without it the branch is SKIPPED rather than sent to Twilio.
-async function fixtureCodeFor(email, phone) {
-  const { createHmac } = await import('node:crypto');
-  const key = (await read(`select value from public.app_secrets where key = 'otp_hmac_key'`))[0]?.value;
-  if (!key) throw new Error('otp_hmac_key is not readable');
-  const mac = createHmac('sha256', key).update('e2e-whatsapp:' + email.toLowerCase() + ':' + phone).digest();
-  return String(((mac[0] << 16) | (mac[1] << 8) | mac[2]) % 1000000).padStart(6, '0');
-}
+// @example.invalid. kyc refuses a fixture number on every code action BEFORE any Twilio call
+// (_shared/demo_identity.ts isDemoPhone, #681), and the "No" branch asserts exactly that refusal.
+//
+// THE "NO" BRANCH, IN TWO PARTS (coordinator decision, 15 Sep 2026):
+//   1. The safety property, asserted: sending a code to a fixture number is refused (captured: true),
+//      a 'captured' kyc run is recorded, no phone_verifications row is written (so no Twilio request
+//      was made), and nothing is stored as the WhatsApp number.
+//   2. HARNESS-ONLY: the second number is then marked confirmed directly in the database, exactly as
+//      makeDemoCustomer marks the SMS mobile verified, so the screens after the code stay under E2E.
+//      No code exists for a fixture number (#681 has no test-code bypass), so kyc's real code check
+//      (whatsapp_verify -> Twilio VerificationCheck -> verifiedPatch) is NOT exercised here; it is
+//      covered by supabase/functions/_shared/whatsapp_choice.test.ts and kyc/fixture_number.test.ts.
 const waRow = async (table, key, email) => (await read(`select whatsapp_opt, whatsapp_phone, whatsapp_verified_at is not null as verified, whatsapp_asked_at is not null as asked
   from public.${table} where ${key} = ${q(email)}`))[0] || {};
-const kycLocal = async (jwt, body) => {
-  const r = await fetch(process.env.QD_KYC_URL, { method: 'POST', headers: { authorization: 'Bearer ' + jwt, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  return { status: r.status, json: await r.json().catch(() => null) };
+// Part 1's evidence for one number: the kyc capture note and the absence of any verification row.
+const refusalEvidence = async (email, phone, since) => {
+  const cap = await read(`select count(*)::int n from public.agent_runs where agent = 'kyc' and status = 'skipped'
+    and counts->>'action' = 'whatsapp_send_code' and note like 'captured: reserved fixture mobile%' and started_at >= ${q(since)}`);
+  const pv = await read(`select count(*)::int n from public.phone_verifications where phone = ${q(phone)} and created_at >= ${q(since)}`);
+  return { captured_runs: cap[0]?.n ?? 0, verification_rows: pv[0]?.n ?? -1 };
 };
+// Part 2 (harness-only): the same fields kyc's verifiedPatch writes, on a demo row only.
+const markWhatsAppConfirmed = (table, key, email, phone) => write(`update public.${table}
+  set whatsapp_opt = 'other', whatsapp_phone = ${q(phone)}, whatsapp_verified_at = now(), whatsapp_asked_at = now()
+  where ${key} = ${q(email)} and is_demo = true and ${key} like '%@example.invalid'`, 'e2e: second WhatsApp number confirmed (harness-only, #681 forbids a fixture code)');
 
 export async function journeySignupWhatsApp(ctx) {
   const { rep, browser, run, dir } = ctx;
@@ -700,59 +707,61 @@ export async function journeySignupWhatsApp(ctx) {
     } finally { await s.ctx.close(); }
   }
 
-  if (!process.env.QD_KYC_URL) {
-    rep.step(J, 'No + code branch', 'SKIP', 'QD_KYC_URL is not set: the code branch runs only against a kyc that carries the fixture door, never against Twilio');
-    return;
-  }
-
-  // NO + CODE — Arabic. A second fixture number, WhatsApp first, SMS on refusal, 6-digit code.
-  const no = await makeDemoCustomer(run, { label: 'WA no', locale: 'ar', stopBeforeWhatsApp: true });
-  const other = demoMobile();
-  {
-    const s = await signedInPage(browser, no, { lang: 'ar' });
+  // NO — English and Arabic. Part 1 proves the refusal; part 2 (harness-only) continues the screens.
+  const SEND = { en: 'Send code', ar: 'أرسل الرمز' };
+  for (const lang of ['en', 'ar']) {
+    const no = await makeDemoCustomer(run, { label: `WA no ${lang}`, locale: lang, stopBeforeWhatsApp: true });
+    const other = demoMobile();
+    const s = await signedInPage(browser, no, { lang });
     try {
-      await s.page.goto(portalUrl('customer', 'ar'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await s.page.goto(portalUrl('customer', lang), { waitUntil: 'domcontentloaded', timeout: 60000 });
       const q2 = section(s.page);
       await q2.waitFor({ state: 'visible', timeout: 30000 });
       const title = (await q2.locator('h2').innerText()).replace(/\s+/g, ' ').trim();
       const dirAttr = await q2.getAttribute('dir');
-      rep.step(J, 'the step asks the question in Arabic, right-to-left, naming the mobile (ar)', title.includes(no.phone) && title.includes('WhatsApp') && dirAttr === 'rtl' ? 'PASS' : 'FAIL', `${title} · dir=${dirAttr}`, { shot: await shot(s.page, dir, 'g_signup_step_ar') });
+      rep.step(J, `the step names the mobile, ${lang === 'ar' ? 'right-to-left' : 'left-to-right'} (${lang})`, title.includes(no.phone) && title.includes('WhatsApp') && dirAttr === (lang === 'ar' ? 'rtl' : 'ltr') ? 'PASS' : 'FAIL', `${title} · dir=${dirAttr}`, { shot: await shot(s.page, dir, `g_signup_step_${lang}`) });
+      // Part 1 — the safety property.
+      const since = (await read(`select now()::text t`))[0].t;
       await q2.locator('input[type=radio][value="other"]').check();
       await q2.locator('input[type=tel]').fill(other);
-      await q2.getByRole('button', { name: 'أرسل الرمز' }).click();
-      const note = q2.locator('p[role=status]');
-      await note.waitFor({ state: 'visible', timeout: 20000 });
-      const noteText = await note.innerText();
+      const resp = s.page.waitForResponse((r) => r.url().includes('/functions/v1/kyc') && (r.request().postData() || '').includes('whatsapp_send_code'), { timeout: 20000 });
+      await q2.getByRole('button', { name: SEND[lang] }).click();
+      const body = await (await resp).json().catch(() => null);
+      const ev = await refusalEvidence(no.email, other, since);
       const before = await waRow('customers', 'email', no.email);
-      rep.step(J, 'the screen says the code went by SMS because WhatsApp refused it (ar)', /رسالة نصية/.test(noteText) ? 'PASS' : 'FAIL', noteText, { shot: await shot(s.page, dir, 'g_signup_code_sent_ar') });
-      rep.step(J, 'nothing is stored as the WhatsApp number before the code is approved', before.whatsapp_phone == null && before.whatsapp_opt == null ? 'PASS' : 'FAIL', JSON.stringify(before));
-      const pv = await read(`select code from public.phone_verifications where phone = ${q(other)} and email = ${q(no.email)} order by created_at desc limit 1`);
-      rep.step(J, 'the verification row records the channel that delivered', pv[0]?.code === 'fixture:sms' ? 'PASS' : 'FAIL', `code marker=${pv[0]?.code}`);
-      // A wrong code is refused and stores nothing.
-      await q2.locator('input[autocomplete="one-time-code"]').fill('000000');
-      await q2.getByRole('button', { name: 'تحقّق' }).click();
-      const alert = q2.locator('[role=alert]');
-      await alert.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
-      rep.step(J, 'a wrong code is refused (ar)', (await alert.count()) > 0 && (await waRow('customers', 'email', no.email)).whatsapp_opt == null ? 'PASS' : 'FAIL', (await alert.innerText().catch(() => '')) || 'no alert');
-      await q2.locator('input[autocomplete="one-time-code"]').fill(await fixtureCodeFor(no.email, other));
-      await q2.getByRole('button', { name: 'تحقّق' }).click();
-      await q2.waitFor({ state: 'detached', timeout: 20000 });
+      rep.step(J, `a fixture number gets no code: refused, captured, no Twilio request, nothing stored (${lang})`,
+        body?.captured === true && body?.ok === false && ev.captured_runs >= 1 && ev.verification_rows === 0 && before.whatsapp_phone == null && before.whatsapp_opt == null ? 'PASS' : 'FAIL',
+        `response=${JSON.stringify(body)} evidence=${JSON.stringify(ev)} row=${JSON.stringify(before)}`, { shot: await shot(s.page, dir, `g_signup_refused_${lang}`) });
+      // Part 2 — HARNESS-ONLY: the number is marked confirmed in the database (see the header).
+      await markWhatsAppConfirmed('customers', 'email', no.email, other);
+      await s.page.reload({ waitUntil: 'domcontentloaded' });
+      await s.page.locator('input[type=checkbox]').first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
+      const stepGone = (await section(s.page).count()) === 0;
+      const terms = await s.page.locator('input[type=checkbox]').count();
       const row = await waRow('customers', 'email', no.email);
-      rep.step(J, 'No + code stores the second number as confirmed only after the code', row.whatsapp_opt === 'other' && row.whatsapp_phone === other && row.verified ? 'PASS' : 'FAIL', JSON.stringify(row), { shot: await shot(s.page, dir, 'g_signup_after_code_ar') });
-      ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[g no] ${e}`));
+      rep.step(J, `after the second number is confirmed, the step closes and the terms step appears (${lang})`, stepGone && terms > 0 && row.whatsapp_opt === 'other' && row.whatsapp_phone === other ? 'PASS' : 'FAIL',
+        `step gone=${stepGone} terms=${terms} row=${JSON.stringify(row)}`, { shot: await shot(s.page, dir, `g_signup_after_confirm_${lang}`) });
+      ctx.consoleErrors.push(...realErrors(s.consoleErrors).filter((e) => !/status of 4\d\d/.test(e)).map((e) => `[g no ${lang}] ${e}`));
     } finally { await s.ctx.close(); }
   }
 
-  // SUPPLIER — the same kyc actions serve suppliers (no + code).
+  // SUPPLIER — the same kyc actions and the same guard serve suppliers. The supplier fixture is an
+  // approved account, so there is no registration screen to drive; this is asserted through kyc itself.
   const sup = await makeDemoSupplier(run, { label: 'WA', trade: 'aluminium' });
   const sOther = demoMobile();
-  const sent = await kycLocal(sup.jwt, { action: 'whatsapp_send_code', phone: sOther });
-  const bad = await kycLocal(sup.jwt, { action: 'whatsapp_verify', phone: sOther, code: '000000' });
-  const good = await kycLocal(sup.jwt, { action: 'whatsapp_verify', phone: sOther, code: await fixtureCodeFor(sup.email, sOther) });
+  const since = (await read(`select now()::text t`))[0].t;
+  const sent = await call('kyc', sup.jwt, { action: 'whatsapp_send_code', phone: sOther });
+  const check = await call('kyc', sup.jwt, { action: 'whatsapp_verify', phone: sOther, code: '123456' });
+  const ev = await refusalEvidence(sup.email, sOther, since);
   const srow = await waRow('leads', 'claimed_by', sup.email);
-  rep.step(J, 'supplier: No + code, SMS fallback, wrong code refused, number stored only after the code',
-    sent.json?.ok && sent.json.channel === 'sms' && bad.status === 400 && good.json?.ok && srow.whatsapp_opt === 'other' && srow.whatsapp_phone === sOther && srow.verified ? 'PASS' : 'FAIL',
-    `send=${JSON.stringify(sent.json)} wrong=${bad.status} verify=${JSON.stringify(good.json)} row=${JSON.stringify(srow)}`);
+  rep.step(J, 'supplier: a fixture number is refused on send AND check, captured, nothing sent or stored',
+    sent.json?.captured === true && check.json?.captured === true && ev.captured_runs >= 1 && ev.verification_rows === 0 && srow.whatsapp_opt === 'same' && srow.whatsapp_phone === sup.phone ? 'PASS' : 'FAIL',
+    `send=${JSON.stringify(sent.json)} verify=${JSON.stringify(check.json)} evidence=${JSON.stringify(ev)} row=${JSON.stringify(srow)}`);
+  // Part 2 for the supplier (harness-only), then kyc's own state reports the confirmed second number.
+  await markWhatsAppConfirmed('leads', 'claimed_by', sup.email, sOther);
+  const st = await call('kyc', sup.jwt, { action: 'state' });
+  rep.step(J, 'supplier: once confirmed, kyc serves the second number as the verified WhatsApp number',
+    st.json?.whatsapp?.opt === 'other' && st.json?.whatsapp?.phone === sOther && st.json?.whatsapp?.verified === true ? 'PASS' : 'FAIL', JSON.stringify(st.json?.whatsapp));
 }
 
 export const JOURNEYS = { a: journeyCustomerRequest, b: journeySuppliers, c: journeyComparison, d: journeyPayment, e: journeyInvoiceRefund, f: journeyCrawl, g: journeySignupWhatsApp };
