@@ -456,39 +456,82 @@ revoke execute on function public.fn_originator_checks_delivery(bigint) from pub
 -- statement, the watch's retry, the founder alert the handler raises), and those two routines mark
 -- them with a transaction-local setting for the length of the insert. No other routine may set it:
 -- scripts/checks/every_send_comes_back_to_whoever_asked.test.mjs scans every file in scripts/sql.
--- The requester is the row's requested_by (the sender-of-record trigger always sets one). A sign-in
--- code (requested_by 'platform') is the OTP service's, not a notice, and is not adopted. A seat with no
--- delivery conversation in the register is adopted as support's own notice, with the seat recorded,
--- rather than skipped: skipping is how a send goes one-way.
+--
+-- WHAT ADOPTION RECORDS, AND WHAT IT DOES NOT (review of #637, 14 Sep 2026). The request is filed in
+-- exactly the state a door request reaches once support has queued it: status 'done' means QUEUED,
+-- never delivered. Delivery is decided only by fn_customer_support_delivery_watch, which reads the
+-- notification's own status on every heartbeat, waits while it is pending or queued, and returns ONE
+-- delivery.result on the terminal status; the asking seat then re-reads the row and closes it only on
+-- sent + provider id, and otherwise retries on the other channel or escalates. So the loop is OPEN at
+-- adoption (no result, no loop, no closed_by) and a later failure or bounce is exactly what comes back.
+-- The evidence says 'queued', not 'delivered', so no reader can take adoption for proof of delivery.
+--
+-- THE REQUESTER IS NEVER REASSIGNED. The row's requested_by is the asking seat, always. A seat with no
+-- delivery.request conversation in fn_seat_handoff_types is still filed under its own name, and the
+-- gap is raised to the CEO once per seat ('unregistered_sender:<seat>'): its result cannot be
+-- addressed back until the register lists it, and saying so loudly is the point. A sign-in code
+-- (requested_by 'platform') is the OTP service's, not a notice, and is not adopted.
+--
+-- NO PARTIAL RECORD. The insert and both stream events sit in ONE exception block, which PL/pgSQL runs
+-- as a subtransaction: an error in any of them rolls back all three, and the send itself goes through.
+-- That failure is raised to the CEO rather than left as a warning in a log nobody reads.
 create or replace function public.fn_customer_support_adopts_untracked_send()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_from text; v_id bigint;
 begin
   if coalesce(current_setting('app.qd_delivery_tracked', true), '') = 'on' then return null; end if;
   if coalesce(NEW.requested_by, '') = 'platform' then return null; end if;
-  v_from := case when exists (select 1 from public.fn_seat_handoff_types() t
-                               where t.type = 'delivery.request' and t.from_seat = NEW.requested_by and t.to_seat = 'customer_support')
-                 then NEW.requested_by else 'customer_support' end;
-  insert into public.agent_actions (agent, kind, status, risk, title, detail, evidence, target_table, target_id, decided_at, decided_by)
-  values ('customer_support', 'handoff', 'done', 'low',
-          left('delivery.request from ' || v_from || ' about notifications ' || NEW.id, 200),
-          jsonb_build_object('type', 'delivery.request', 'from', v_from, 'from_name', v_from, 'to', 'customer_support',
-                             'subject_table', 'notifications', 'subject_id', NEW.id::text, 'adopted', true,
-                             'requested_by_of_record', NEW.requested_by, 'msg_type', NEW.type, 'recipient_role', NEW.to_role,
-                             'to_email', NEW.to_email, 'supplier_id', NEW.lead_id, 'inquiry_id', NEW.inquiry_id, 'quote_id', NEW.quote_id),
-          jsonb_build_object('delivered', true, 'adopted', true, 'notification_id', NEW.id, 'channel', NEW.channel),
-          'notifications', 'delivery.request:notification:' || NEW.id, now(), 'customer_support')
-  returning id into v_id;
-  perform public.fn_seat_handoff_event(v_id, 'sent');
-  perform public.fn_seat_handoff_event(v_id, 'done');
-  return null;
-exception when others then
-  -- ponytail: an adoption failure must never drop the send it was about, so it warns and lets the row
-  -- through untracked. Upgrade path: record the failure in agent_runs for the watch to raise.
-  raise warning 'fn_customer_support_adopts_untracked_send: notification % not adopted: %', NEW.id, sqlerrm;
+  v_from := coalesce(nullif(btrim(NEW.requested_by), ''), 'customer_support');
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, evidence, target_table, target_id, decided_at, decided_by)
+    values ('customer_support', 'handoff', 'done', 'low',
+            left('delivery.request from ' || v_from || ' about notifications ' || NEW.id, 200),
+            jsonb_build_object('type', 'delivery.request', 'from', v_from, 'from_name', v_from, 'to', 'customer_support',
+                               'subject_table', 'notifications', 'subject_id', NEW.id::text, 'adopted', true,
+                               'msg_type', NEW.type, 'recipient_role', NEW.to_role, 'to_email', NEW.to_email,
+                               'supplier_id', NEW.lead_id, 'inquiry_id', NEW.inquiry_id, 'quote_id', NEW.quote_id),
+            jsonb_build_object('queued', true, 'adopted', true, 'notification_id', NEW.id, 'channel', NEW.channel),
+            'notifications', 'delivery.request:notification:' || NEW.id, now(), 'customer_support')
+    returning id into v_id;
+    perform public.fn_seat_handoff_event(v_id, 'sent');
+    perform public.fn_seat_handoff_event(v_id, 'done');
+  exception when others then
+    begin
+      perform public.fn_support_report_to_ceo('adoption_failed:' || NEW.id, 'serious',
+        'A ' || coalesce(NEW.type, 'notice') || ' left the outbox without a loop: adopting it failed',
+        jsonb_build_object('notification_id', NEW.id, 'requested_by', NEW.requested_by, 'error', left(sqlerrm, 500)),
+        jsonb_build_array('the send itself was kept'),
+        'Find why fn_customer_support_adopts_untracked_send failed and track this notification by hand.',
+        'notifications#' || NEW.id);
+    exception when others then
+      raise warning 'fn_customer_support_adopts_untracked_send: notification % not adopted and not reported: %', NEW.id, sqlerrm;
+    end;
+    return null;
+  end;
+  -- a seat the register does not list: filed under its own name above, and the gap raised once
+  if v_from <> 'customer_support' and not exists (select 1 from public.fn_seat_handoff_types() t
+       where t.type = 'delivery.request' and t.from_seat = v_from and t.to_seat = 'customer_support') then
+    perform public.fn_support_report_to_ceo('unregistered_sender:' || v_from, 'elevated',
+      v_from || ' sends notices but has no delivery conversation with customer_support',
+      jsonb_build_object('seat', v_from, 'first_notification_id', NEW.id, 'request_id', v_id),
+      jsonb_build_array('the request was filed under ' || v_from || ', not reassigned'),
+      'Add delivery.request (' || v_from || ' -> customer_support) and delivery.result (customer_support -> ' || v_from || ') to fn_seat_handoff_types.',
+      'agent_actions#' || v_id);
+  end if;
   return null;
 end $fn$;
 revoke execute on function public.fn_customer_support_adopts_untracked_send() from public, anon, authenticated;
+
+-- ── 6. THE LOOKUPS THIS LOOP ADDS, INDEXED ───────────────────────────────────────────────────────
+-- Measured 14 Sep 2026 (370 handoffs). fn_seat_handoff's duplicate check reads (agent, kind, target_id)
+-- for every status except 'failed', and agent_actions_dedupe covers 'pending' rows only. The watch reads
+-- every open customer_support delivery.request on each heartbeat, and adoption now files one for every
+-- row any routine writes (fn_wa_fanout twins and digest rows included). The partial index holds only
+-- the requests still waiting for a result, so it shrinks as results return instead of growing forever.
+create index if not exists agent_actions_handoff_target_idx on public.agent_actions (agent, kind, target_id);
+create index if not exists agent_actions_open_delivery_request_idx on public.agent_actions (id)
+  where kind = 'handoff' and agent = 'customer_support' and detail->>'type' = 'delivery.request'
+    and (detail->>'result_handoff_id') is null;
 
 drop trigger if exists z90_every_send_is_tracked on public.notifications;
 create trigger z90_every_send_is_tracked after insert on public.notifications

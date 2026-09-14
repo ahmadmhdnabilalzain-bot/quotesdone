@@ -23,6 +23,8 @@
 //   E  another seat: an it_engineer notice comes back to the it_engineer and is escalated by it.
 //   F  a routine's own insert: adopted at once as a request from the seat that owns the type, and it
 //      comes back like any other; a row the door queued is never adopted a second time.
+//   G  an adopted send the dispatcher FAILS: open at adoption (no result, no close), then it comes back
+//      'failed' and the asking seat retries it on the other channel, then escalates -- never closes it.
 //   and nothing the probe queued could have reached a person, and none of it survives.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -110,7 +112,7 @@ const PROBE = `
 do $probe$
 declare
   n0 bigint; a0 bigint; c uuid; l bigint; v jsonb; w jsonb; ra bigint; rb bigint; rc bigint; rd bigint; re bigint; rr bigint;
-  x public.agent_actions; y public.agent_actions; nid bigint; na bigint; out jsonb := '{}'::jsonb; k int;
+  x public.agent_actions; y public.agent_actions; nid bigint; na bigint; rg bigint; rgr bigint; out jsonb := '{}'::jsonb; k int;
   cust text := 'zz-demo-loop-cust@example.invalid'; sup text := 'zz-demo-loop-sup@example.invalid';
   door_row jsonb;
 begin
@@ -240,6 +242,33 @@ begin
   end if;
   out := out || jsonb_build_object('F', jsonb_build_object('adopted_from', 'sales_engineer', 'result', x.detail->>'result', 'loop', x.detail->>'loop'));
 
+  -- ── G. AN ADOPTED SEND THAT FAILS LATER IS RETRIED, THEN ESCALATED -- NEVER CLOSED ──
+  insert into public.notifications (type, to_email, to_role, lead_id, channel, subject, body, status)
+  values ('doc_final_notice', sup, 'supplier', l, 'email', 'ZZ DEMO probe G', 'ZZ DEMO probe G', 'queued') returning id into nid;
+  select * into x from public.agent_actions where kind = 'handoff' and target_id = 'delivery.request:notification:' || nid;
+  rg := x.id;
+  if rg is null or x.detail ? 'result' or x.detail ? 'loop' or x.detail ? 'closed_by'
+     or coalesce((x.evidence->>'delivered')::boolean, false) or not coalesce((x.evidence->>'queued')::boolean, false) then
+    raise exception 'ZZFAIL: G adoption claimed more than queued, or closed the loop: % / %', x.detail, x.evidence;
+  end if;
+  -- the dispatcher's failure, simulated after adoption (the reserved address never reaches Resend)
+  update public.notifications set status = 'failed', attempts = 3, last_error = 'ZZ DEMO probe G: provider rejected' where id = nid;
+  w := public.fn_customer_support_delivery_watch(rg);
+  select * into x from public.agent_actions where id = rg;
+  rgr := (x.detail->>'retry_request_id')::bigint;
+  if x.detail->>'result' <> 'failed' or x.detail->>'loop' <> 'retried_on_whatsapp' or rgr is null then
+    raise exception 'ZZFAIL: G the failed adopted send was not retried on the other channel: %', x.detail;
+  end if;
+  w := public.fn_customer_support_delivery_watch(rgr);
+  select * into y from public.agent_actions where id = rgr;
+  select * into x from public.agent_actions where id = rg;
+  if y.detail->>'loop' <> 'escalated' or x.detail->>'loop' <> 'retry_escalated' or not exists (
+       select 1 from public.support_ceo_report where idempotency_key = 'delivery_undelivered:' || rgr and source_agent = 'sales_engineer') then
+    raise exception 'ZZFAIL: G the failed retry was not escalated: % / %', y.detail, x.detail->>'loop';
+  end if;
+  out := out || jsonb_build_object('G', jsonb_build_object('at_adoption', 'open, queued', 'first', 'failed -> retried_on_whatsapp',
+                                   'retry', 'suppressed -> escalated', 'original_loop', x.detail->>'loop'));
+
   -- ── NOTHING COULD HAVE REACHED A PERSON ──
   select count(*) into k from public.notifications n
    where n.id > n0 and ((n.to_email is not null and n.to_email !~* '@example[.]invalid$')
@@ -259,7 +288,7 @@ test('production: every send comes back and the asking seat closes or acts (abor
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));
-  for (const k of ['A', 'B', 'C', 'D', 'E', 'F']) assert.ok(res[k], `scenario ${k} did not report`);
+  for (const k of ['A', 'B', 'C', 'D', 'E', 'F', 'G']) assert.ok(res[k], `scenario ${k} did not report`);
   assert.equal(res.reachable_rows, 0);
   console.log(JSON.stringify(res));
 });
