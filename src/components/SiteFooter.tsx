@@ -12,84 +12,66 @@ const SOCIALS = [
   { name: 'Facebook', href: 'https://www.facebook.com/quotesdone.UAE', d: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
 ];
 
+// Sealed footer: the ground drops to navy-deep under a ruled edge (measurement ticks), the lockup
+// sits on a key-lit plane, and the columns read as an index — mono caps heads, quiet links that
+// light teal. The oversized wordmark at the foot is the brand signing off, not navigation.
 export function SiteFooter() {
   const t = useTranslations();
   const locale = useLocale();
-  const col = 'font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-teal-light/75';
-  // inline-flex + min-height gives a comfortable mobile hit area (WCAG 2.5.8)
-  // without changing the visual rhythm on desktop.
-  const link =
-    'inline-flex min-h-[26px] items-center text-[14px] text-muted transition-colors duration-200 hover:text-white';
+  const col = 'font-mono text-label font-medium uppercase tracking-caps text-faint';
+  const link = 'inline-flex min-h-[28px] items-center text-copy text-muted transition-colors duration-base hover:text-teal-light';
+  const cols: [string, [string, string][]][] = [
+    [t('footer.company'), [['/about', t('footer.about')], ['/contact', t('footer.contact')], ['/faq', t('footer.faq')], ['/services', t('footer.services')]]],
+    [t('footer.legal'), [['/terms', t('footer.terms')], ['/privacy', t('footer.privacy')], ['/cookie-policy', t('footer.cookies')], ['/refund-policy', t('footer.refunds')]]],
+    [t('footer.more'), [['/supplier-agreement', t('footer.supplier')], ['/acceptable-use', t('footer.aup')], ['/disclaimer', t('footer.disclaimer')], ['/complaints', t('footer.complaints')]]],
+  ];
   return (
-    // pb-24: the fixed chat launcher (ChatWidget: 54px at bottom 18px = 72px) sat over the last footer
-    // line on a 375px phone; 96px keeps that line clear of it at every width.
-    <footer className="mt-beat-s border-t border-[var(--line)] pt-14 pb-24 md:mt-beat">
-      <div className="container-x">
-        <Reveal className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12">
+    <footer className="qd-ticks relative mt-beat-s overflow-hidden border-t border-line bg-navy-deep/70 pt-16 md:mt-beat">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(50%_100%_at_50%_0%,rgba(20,184,166,.10),transparent_70%)]" />
+      <div className="container-x relative">
+        <Reveal className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-10">
           <div>
-            <Link
-              href="/"
-              aria-label="QuotesDone"
-              className="group inline-flex items-center gap-2.5 font-head text-[19px] font-bold tracking-tight text-white"
-            >
-              <BrandMark className="h-8 w-8 shrink-0 drop-shadow-[0_2px_8px_rgba(20,184,166,.35)] transition-transform duration-300 ease-expo group-hover:rotate-[8deg] group-hover:scale-110" />
-              <span>
-                Quotes<span className="text-teal">Done</span>
+            <Link href="/" aria-label="QuotesDone" className="group inline-flex items-center gap-3 font-head text-[21px] font-semibold tracking-tight text-white">
+              <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-panel border border-line2 bg-surf shadow-e1">
+                <BrandMark className="h-11 w-11 origin-[56%_52%] scale-[2.05]" />
               </span>
+              <span>Quotes<span className="text-teal-light">Done</span></span>
             </Link>
-            <p className="mt-4 max-w-[34ch] text-pretty text-[14px] leading-relaxed text-muted">
-              {t('footer.tagline')}
-            </p>
-            <div className="mt-6 flex items-center gap-2.5" style={{ direction: 'ltr' }}>
+            <p className="mt-5 max-w-[36ch] text-copy text-muted">{t('footer.tagline')}</p>
+            <div className="mt-7 flex items-center gap-2" style={{ direction: 'ltr' }}>
               {SOCIALS.map((s) => (
-                <span key={s.name} className="spring-hover inline-flex rounded-full">
-                  <a
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.name}
-                    title={s.name}
-                    className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line2)] bg-teal-light/[0.03] text-muted transition-colors duration-200 hover:border-teal hover:bg-teal/[0.09] hover:text-teal-light hover:shadow-[0_10px_26px_-12px_rgba(20,184,166,.8)]"
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false">
-                      <path d={s.d} />
-                    </svg>
-                  </a>
-                </span>
+                <a
+                  key={s.name}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.name}
+                  title={s.name}
+                  className="qd-hoverlit qd-magnet grid h-10 w-10 place-items-center rounded-btn border border-line2 bg-surf/60 text-muted shadow-key transition-colors duration-base hover:border-teal hover:text-teal-light"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d={s.d} /></svg>
+                </a>
               ))}
             </div>
           </div>
-          <div>
-            <div className={col}>{t('footer.company')}</div>
-            <ul className="mt-3 space-y-1">
-              <li><Link className={link} href="/about">{t('footer.about')}</Link></li>
-              <li><Link className={link} href="/contact">{t('footer.contact')}</Link></li>
-              <li><Link className={link} href="/faq">{t('footer.faq')}</Link></li>
-              <li><Link className={link} href="/services">{t('footer.services')}</Link></li>
-            </ul>
-          </div>
-          <div>
-            <div className={col}>{t('footer.legal')}</div>
-            <ul className="mt-3 space-y-1">
-              <li><Link className={link} href="/terms">{t('footer.terms')}</Link></li>
-              <li><Link className={link} href="/privacy">{t('footer.privacy')}</Link></li>
-              <li><Link className={link} href="/cookie-policy">{t('footer.cookies')}</Link></li>
-              <li><Link className={link} href="/refund-policy">{t('footer.refunds')}</Link></li>
-            </ul>
-          </div>
-          <div>
-            <div className={col}>{t('footer.more')}</div>
-            <ul className="mt-3 space-y-1">
-              <li><Link className={link} href="/supplier-agreement">{t('footer.supplier')}</Link></li>
-              <li><Link className={link} href="/acceptable-use">{t('footer.aup')}</Link></li>
-              <li><Link className={link} href="/disclaimer">{t('footer.disclaimer')}</Link></li>
-              <li><Link className={link} href="/complaints">{t('footer.complaints')}</Link></li>
-            </ul>
-          </div>
+          {cols.map(([head, links]) => (
+            <nav key={head} aria-label={head}>
+              <div className={col}>{head}</div>
+              <ul className="mt-4 space-y-1.5">
+                {links.map(([href, label]) => <li key={href}><Link className={link} href={href}>{label}</Link></li>)}
+              </ul>
+            </nav>
+          ))}
         </Reveal>
-        <div className="mt-12 border-t border-[var(--line)] pt-6 font-mono text-[12px] leading-relaxed text-faint">
+        {/* pb-10 + the wordmark below keep this last text line clear of the fixed chat launcher
+            (ChatWidget: 54px at bottom 18px = 72px) on a 375px phone (release 7). */}
+        <div className="mt-14 border-t border-line pb-10 pt-6 font-mono text-label leading-relaxed text-faint">
           <CompanyIdentity locale={locale} variant="footer" rights={t('footer.rights')} />
         </div>
+      </div>
+      {/* the sign-off: the wordmark set huge, cut by the viewport edge, lit from above */}
+      <div aria-hidden className="pointer-events-none relative -mb-[0.22em] select-none overflow-hidden text-center font-head font-semibold leading-none tracking-display text-transparent [-webkit-text-stroke:1px_rgba(110,231,212,.16)] [font-size:clamp(64px,17vw,260px)]" dir="ltr">
+        QuotesDone
       </div>
     </footer>
   );
