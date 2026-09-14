@@ -46,6 +46,9 @@ verify_jwt = true
 [functions.claim_lookup]
 verify_jwt = false
 
+[functions.complaint_status]
+verify_jwt = false
+
 [functions.compliance_archive]
 verify_jwt = false
 
