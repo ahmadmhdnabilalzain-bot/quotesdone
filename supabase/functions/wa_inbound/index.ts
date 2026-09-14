@@ -464,7 +464,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       const sig = await verifyTwilioSignature(req, formParams);
       if (sig.checked && !sig.valid) {
         try {
-          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
+          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
         } catch (_e) { /* */ }
         await alertThrottled('wa_bad_signature', 'warn', 'A WhatsApp webhook FAILED X-Twilio-Signature validation and was rejected (' + sig.reason + '). Unlike the provenance path this is cryptographic proof of forgery, not an inconclusive lookup. Throttled to one alert per 30 minutes.');
         await logRun('error', { authorised: 0, path: 'form', signature_checked: 1, signature_valid: 0 }, 'wa_inbound REJECTED a webhook that failed HMAC-SHA1 signature validation: ' + sig.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages. A genuine Twilio webhook cannot fail this check, so this is a forgery or a misconfigured auth token.');
@@ -482,7 +482,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
         // Preserve the message either way - a real supplier reply must not be lost just because
         // Twilio's API was unreachable - but do NOT run the LLM and do NOT send anything.
         try {
-          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply: '', lang: 'en', escalated: false, sent: false, meta: { provenance_verified: false, provenance_reason: prov.reason, twilio_api_reachable: prov.apiReachable, message_sid: MessageSid || null, no_autoreply_reason: 'unverified webhook' } });
+          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { provenance_verified: false, provenance_reason: prov.reason, twilio_api_reachable: prov.apiReachable, message_sid: MessageSid || null, no_autoreply_reason: 'unverified webhook' } });
         } catch (_e) { /* */ }
 
         if (prov.apiReachable) {
@@ -806,7 +806,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
             try {
               await admin.from('wa_messages').insert({
                 wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-                inbound: Body.slice(0, 2000), reply: replyD, lang: 'en', escalated: false, sent: sentD,
+                inbound: Body, reply: replyD, lang: 'en', escalated: false, sent: sentD,
                 meta: { enabled: enabledD, audience: 'supplier', route: 'supplier_directive',
                         applied: applied?.ok === true, directive: applied, send_error: sendErrD || null,
                         provenance_verified: true, message_sid: MessageSid || null },
@@ -875,7 +875,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       try {
         await admin.from('wa_messages').insert({
           wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-          inbound: Body.slice(0, 2000), reply: replyR, lang: 'en',
+          inbound: Body, reply: replyR, lang: 'en',
           escalated: route.needs_a_person === true, sent: sentR,
           meta: { enabled: enabledR, audience, route: 'deterministic',
                   intent: route.deterministic_intent, cost_aed: 0, timeline_events: timelineEvents,
@@ -1000,7 +1000,7 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
 
     let rowSaved = true;
-    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
     const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
 
