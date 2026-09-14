@@ -10,9 +10,11 @@ export function LangSwitch() {
   const other = locale === 'ar' ? 'en' : 'ar';
   return (
     <button
+      type="button"
       onClick={() => router.replace(pathname, { locale: other })}
       className="whitespace-nowrap rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-2.5 py-1.5 text-[12px] font-semibold text-white transition-colors duration-200 hover:border-teal hover:bg-teal/[0.09] sm:px-4 sm:text-[13px]"
-      aria-label="Language"
+      aria-label={t('langSwitchLabel')}
+      lang={other}
     >
       {t('langSwitch')}
     </button>

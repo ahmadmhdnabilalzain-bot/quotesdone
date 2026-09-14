@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { SectionHeader } from '@/components/SectionHeader';
+import { Link } from '@/i18n/routing';
 
 type Step = { n: string; title: string; body: string };
 
@@ -9,7 +10,7 @@ export function HowItWorks() {
   const steps = t.raw('steps') as Step[];
   return (
     <section id="how" className="container-x py-beat-s md:py-beat">
-      <SectionHeader eyebrow={t('eyebrow')} index="02" title={t('title')} sub={t('sub')} />
+      <SectionHeader eyebrow={t('eyebrow')} index="03" title={t('title')} sub={t('sub')} />
 
       <div className="relative mt-14 md:mt-16">
         {/* the data beam threads the three steps on desktop */}
@@ -35,7 +36,12 @@ export function HowItWorks() {
         </Stagger>
       </div>
 
-      <Reveal className="mt-16 md:mt-20">
+      <Reveal className="mt-10 flex justify-center">
+        <Link href="/how-it-works" className="text-[14.5px] font-semibold text-teal-light underline-offset-4 hover:underline">
+          {t('more')} <span aria-hidden className="inline-block rtl:rotate-180">&rarr;</span>
+        </Link>
+      </Reveal>
+      <Reveal className="mt-14 md:mt-16">
         <div className="divider-node" aria-hidden />
       </Reveal>
     </section>
