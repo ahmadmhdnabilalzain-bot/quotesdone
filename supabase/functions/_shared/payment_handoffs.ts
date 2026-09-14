@@ -48,4 +48,6 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // the IT engineer verifies the Dropbox backup; the sales engineer refiles what it finds missing
   // (founder, 14 Sep 2026: scripts/sql/the_dropbox_backup_is_confirmed_not_assumed.sql)
   { type: 'backup.refile', from: 'it_engineer', to: 'sales_engineer' },
+  // the CEO sends instructions back on an escalated backup case (the refund rejection-loop pattern)
+  { type: 'backup.remediate', from: 'ceo', to: 'sales_engineer' },
 ] as const;
