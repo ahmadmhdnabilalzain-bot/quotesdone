@@ -23,9 +23,14 @@ import '../globals.css';
 //
 // The files are still self-hosted (see scripts/fetch_fonts.mjs) — nothing is fetched at build time,
 // which was the reason for leaving next/font/google on 12 Aug 2026.
+//
+// 14 Sep 2026, brand direction A "Sealed": Geist / Geist Mono / Readex Pro, all variable, 4 files in
+// total. Only the first-screen face is preloaded (the hero headline's): English preloads Geist
+// (29 KB), Arabic preloads the Readex Pro Arabic half (23 KB). Geist Mono and the Readex Latin half
+// (digits) load on first use under font-display:swap.
 const FONTS: Record<'en' | 'ar', string[]> = {
-  en: ['plus-jakarta-sans-latin', 'space-grotesk-latin', 'jetbrains-mono-latin'],
-  ar: ['400', '500', '700', '800'].flatMap((w) => [`tajawal-${w}-arabic`, `tajawal-${w}-latin`]),
+  en: ['geist-latin'],
+  ar: ['readex-pro-arabic'],
 };
 
 const SKIP = { en: 'Skip to content', ar: 'تخطَّ إلى المحتوى' };
@@ -44,7 +49,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: '#0C2330',
+  themeColor: '#0A1720',
 };
 
 export default async function LocaleLayout(props: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
