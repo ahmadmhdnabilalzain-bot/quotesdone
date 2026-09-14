@@ -1158,6 +1158,11 @@ function DetailFacts({ inq, lang }) {
   if (inq.boq && inq.boq.boq && inq.boq.boq.length) rows.push([lang === 'ar' ? 'عدد البنود' : 'Line items', String(inq.boq.boq.length)]);
   const sp = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
   if (sp) for (const k of Object.keys(sp)) { const v = sp[k]; if (v && typeof v === 'string' && k !== 'plausibility' && k !== 'provenance') rows.push([k.replace(/_/g, ' '), v]); }
+  // What the customer told the sales engineer they want (installation, warranty, materials, date).
+  // `display` is written by _shared/intake_requirements.ts in both languages, so this reads it rather
+  // than re-deriving the words (docs/contracts/intake_answers.md).
+  const req = sp && sp.customer_requirements && sp.customer_requirements.display;
+  if (req && Array.isArray(req[lang === 'ar' ? 'ar' : 'en'])) for (const r of req[lang === 'ar' ? 'ar' : 'en']) if (r && r.label && r.value) rows.push([r.label, r.value]);
   // How confident the reader was about the BOQ it pulled off the customer's drawing. The customer
   // is the only person who can tell us it read the drawing wrong, and they were never shown it.
   const conf = Number(inq.boq_confidence);

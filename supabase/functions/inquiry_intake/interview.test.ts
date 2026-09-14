@@ -75,6 +75,22 @@ Deno.test('a vague answer is kept in the customer\'s words, never re-asked forev
   assertEquals(s.next!.key, 'scope');
 });
 
+Deno.test('an answer to one question never answers another: no stray yes, no stray not-sure', () => {
+  // Both found replaying the founder's generators request (14 Sep 2026): "Not sure - advise" about
+  // the power rating read as Yes (the yes pattern contains "sure") AND matched the Not sure option of
+  // the automatic-switch question, so that question was answered without ever being asked.
+  const f: SpecField[] = [
+    { key: 'rating', required: true, type: 'select', options: ['Up to 100 kVA', 'Not sure - advise'], question: 'kVA?' },
+    { key: 'ats', required: true, type: 'select', options: ['Yes', 'No', 'Not sure'], question: 'Automatic switch?' },
+  ];
+  const s = interviewStep(f, { details: {}, asked_key: 'rating' }, 'not sure, advise', 'generator \n not sure, advise', 'en');
+  assertEquals(s.details.rating, 'Not sure - advise');
+  assertEquals(s.details.ats, undefined, 'ats is asked, not inferred');
+  assertEquals(s.next!.key, 'ats');
+  assertEquals(parseAnswer(f[1], 'yes please', false), null, 'a bare yes is only an answer to the question just asked');
+  assertEquals(parseAnswer(f[1], 'not sure', true), 'Not sure');
+});
+
 Deno.test('parsers: units, emirates EN/AR, dates, yes/no options, budget', () => {
   assertEquals(parseMeasures('about 120 square metres')[0].text, '120 sqm');
   assertEquals(parseMeasures('٤٥ متر مربع')[0].text, '45 sqm');
