@@ -5,6 +5,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { registrationMissing } from '../_shared/supplier_registration.ts';
 import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_AR } from '../_shared/supplier_agreement.ts';
@@ -679,7 +680,8 @@ Deno.serve(observe('supplier_api', async (req) => {
       if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true, code: 'reg_not_due' });
       const sk = await secretVal('stripe_secret_key');
       if (!sk) return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503);
-      const base = String(body.return_url || 'https://quotesdone.com').replace(/\/+$/, '');
+      // Allowlisted (was taken verbatim): back to the site origin the supplier paid from, .ae included.
+      const base = siteReturnBase(req, body.return_url);
       const form = new URLSearchParams();
       form.set('mode', 'payment');
       form.set('success_url', base + '/portal?registration_paid={CHECKOUT_SESSION_ID}');

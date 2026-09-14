@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import { CANONICAL_ORIGIN } from './domains';
 
-export const SITE = 'https://quotesdone.com';
+// One canonical site. quotesdone.ae serves the same pages to UAE visitors (src/lib/domains.ts), but
+// every canonical, hreflang and OG URL points at .com, so search engines index one copy, not two.
+export const SITE = CANONICAL_ORIGIN;
 const BRAND = 'QuotesDone';
 
 /** Trim a description to a length search engines actually render (~155 chars). */

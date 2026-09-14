@@ -20,6 +20,7 @@
 // signature-verified event, so a supplier cannot clear their own debt by calling the API.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { siteReturnBase } from '../_shared/site_origins.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -95,7 +96,8 @@ Deno.serve(observe('supplier_pay', async (req) => {
 
     const ids = selected.map((d) => Number(d.id));
     const fils = Math.round(amount * 100);
-    const base = String(body.return_url || 'https://quotesdone.com').replace(/\/+$/, '');
+    // Allowlisted (was taken verbatim): back to the site origin the supplier paid from, .ae included.
+    const base = siteReturnBase(req, body.return_url);
     const form = new URLSearchParams();
     form.set('mode', 'payment');
     form.set('success_url', base + '/portal?dues_paid={CHECKOUT_SESSION_ID}');

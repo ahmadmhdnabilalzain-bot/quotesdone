@@ -1,6 +1,25 @@
 import createMiddleware from 'next-intl/middleware';
+import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
-export default createMiddleware(routing);
+import { AE_DOMAIN_SERVES_SITE, aeRedirectTarget } from './lib/domains';
+
+const intl = createMiddleware(routing);
+
+// UAE visitors on quotesdone.com go to quotesdone.ae (TDRA, founder 14 Sep 2026). Gated by
+// AE_DOMAIN_SERVES_SITE in src/lib/domains.ts; every page lives under [locale], so the matcher
+// below already covers every page the rule is meant for.
+export default function middleware(req: NextRequest) {
+  const to = aeRedirectTarget({
+    enabled: AE_DOMAIN_SERVES_SITE,
+    host: req.headers.get('host'),
+    country: req.headers.get('x-vercel-ip-country'),
+    pathname: req.nextUrl.pathname,
+    search: req.nextUrl.search,
+    userAgent: req.headers.get('user-agent'),
+  });
+  return to ? NextResponse.redirect(to, 308) : intl(req);
+}
+
 export const config = {
   // Only the surfaces migrated to Next.js run through locale routing.
   // NOTE: individual blog posts (/blog/:slug) are now native pages, so they
