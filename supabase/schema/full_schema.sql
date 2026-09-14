@@ -164,6 +164,7 @@ CREATE SEQUENCE IF NOT EXISTS public.screening_entry_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.screening_run_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.self_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.spec_alternative_offer_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_response_watch_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_screening_hit_id_seq;
@@ -184,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (484) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (485) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -2933,7 +2934,9 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
   floor text,
   required_by date,
   delivery_window text,
-  compliance_checklist jsonb
+  compliance_checklist jsonb,
+  accepted_alternatives jsonb DEFAULT '[]'::jsonb NOT NULL,
+  spec_offer_checked_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_answer (
@@ -5926,6 +5929,33 @@ CREATE TABLE IF NOT EXISTS public.social_posts (
   preview_url text
 );
 
+CREATE TABLE IF NOT EXISTS public.spec_alternative_offer (
+  id bigint DEFAULT nextval('spec_alternative_offer_id_seq'::regclass) NOT NULL,
+  inquiry_id uuid NOT NULL,
+  customer_id uuid,
+  line_no integer NOT NULL,
+  item text,
+  attr text NOT NULL,
+  label_en text NOT NULL,
+  label_ar text NOT NULL,
+  requested text NOT NULL,
+  alternatives jsonb NOT NULL,
+  state text DEFAULT 'open'::text NOT NULL,
+  reminders_sent integer DEFAULT 0 NOT NULL,
+  last_sent_at timestamp with time zone,
+  reply_by timestamp with time zone NOT NULL,
+  accepted_option text,
+  accepted_value text,
+  answered_at timestamp with time zone,
+  answer_channel text,
+  closed_reason text,
+  notification_ids jsonb DEFAULT '[]'::jsonb NOT NULL,
+  owner_seat text DEFAULT 'sales_engineer'::text NOT NULL,
+  messenger_seat text DEFAULT 'customer_support'::text NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.spec_backlog (
   id bigint DEFAULT nextval('spec_backlog_id_seq'::regclass) NOT NULL,
   source_doc text NOT NULL,
@@ -7206,6 +7236,7 @@ ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_pkey PRIMARY KEY (id);
 ALTER TABLE public.spec_backlog ADD CONSTRAINT spec_backlog_pkey PRIMARY KEY (id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_pkey PRIMARY KEY (id);
 ALTER TABLE public.stripe_events ADD CONSTRAINT stripe_events_pkey PRIMARY KEY (event_id);
@@ -7631,6 +7662,11 @@ ALTER TABLE public.seat_handoff_window ADD CONSTRAINT seat_handoff_window_reply_
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_alternatives_shape CHECK (((jsonb_typeof(alternatives) = 'array'::text) AND (jsonb_array_length(alternatives) >= 1) AND (NOT jsonb_path_exists(alternatives, '$[*]?(@.type() != "object")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*].keyvalue()?((@."key" != "option_id" && @."key" != "value") && @."key" != "suppliers")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*]."suppliers"?(@.type() != "number")'::jsonpath))));
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_channel_check CHECK (((answer_channel IS NULL) OR (answer_channel = ANY (ARRAY['portal'::text, 'whatsapp'::text, 'email'::text]))));
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_reason_check CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['no_exact_spec_declined'::text, 'no_exact_spec_no_reply'::text]))));
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_seats_check CHECK (((owner_seat = 'sales_engineer'::text) AND (messenger_seat = 'customer_support'::text)));
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_state_check CHECK ((state = ANY (ARRAY['open'::text, 'accepted'::text, 'declined'::text, 'no_reply'::text, 'superseded'::text])));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
@@ -7891,6 +7927,8 @@ ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_inquiry_id
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_task_id_fkey FOREIGN KEY (task_id) REFERENCES org_tasks(id);
 ALTER TABLE public.sales_qualification_field ADD CONSTRAINT sales_qualification_field_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES sales_sector(sector_id) ON DELETE CASCADE;
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE CASCADE;
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
@@ -8305,6 +8343,8 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alternative_offer USING btree (inquiry_id, line_no, attr) WHERE (state = ANY (ARRAY['open'::text, 'accepted'::text]));
+CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
 CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btree (spec_ref) WHERE (spec_ref IS NOT NULL);
 CREATE INDEX spec_backlog_status_idx ON public.spec_backlog USING btree (status, priority);
 CREATE INDEX subcategory_agent_map_agent_idx ON public.subcategory_agent_map USING btree (agent_slug);
@@ -42141,6 +42181,200 @@ begin
 end; $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_answer(p_offer bigint, p_customer uuid, p_choice text, p_channel text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.spec_alternative_offer;
+  v_alt jsonb;
+  v_choice text := lower(btrim(coalesce(p_choice, '')));
+begin
+  if p_channel not in ('portal', 'whatsapp', 'email') then return jsonb_build_object('ok', false, 'error', 'bad_channel'); end if;
+  select * into r from public.spec_alternative_offer where id = p_offer for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  if r.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_offer'); end if;
+  if r.state <> 'open' then return jsonb_build_object('ok', false, 'error', 'not_open', 'state', r.state); end if;
+
+  if v_choice in ('no', 'decline', 'declined') then
+    update public.spec_alternative_offer set state = 'declined', closed_reason = 'no_exact_spec_declined', answered_at = now(),
+           answer_channel = p_channel, updated_at = now() where id = r.id;
+    perform public.fn_spec_offer_close_inquiry(r.inquiry_id, 'no_exact_spec_declined', r.id);
+    return jsonb_build_object('ok', true, 'state', 'declined', 'offer_id', r.id, 'inquiry_id', r.inquiry_id, 'customer_id', r.customer_id, 'inquiry_closed', true);
+  end if;
+
+  select a into v_alt from jsonb_array_elements(r.alternatives) a where a->>'option_id' = v_choice limit 1;
+  if v_alt is null then return jsonb_build_object('ok', false, 'error', 'unknown_option'); end if;
+  update public.spec_alternative_offer set state = 'accepted', accepted_option = v_alt->>'option_id', accepted_value = v_alt->>'value',
+         answered_at = now(), answer_channel = p_channel, updated_at = now() where id = r.id;
+  update public.inquiries
+     set accepted_alternatives = coalesce(accepted_alternatives, '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+           'offer_id', r.id, 'line_no', r.line_no, 'attr', r.attr, 'requested', r.requested,
+           'accepted', v_alt->>'value', 'option_id', v_alt->>'option_id', 'at', now(), 'channel', p_channel))
+   where id = r.inquiry_id;
+  return jsonb_build_object('ok', true, 'state', 'accepted', 'offer_id', r.id, 'inquiry_id', r.inquiry_id, 'customer_id', r.customer_id,
+    'accepted_value', v_alt->>'value', 'still_open', (select count(*) from public.spec_alternative_offer where inquiry_id = r.inquiry_id and state = 'open'));
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_candidates(p_limit integer DEFAULT 20)
+ RETURNS TABLE(inquiry_id uuid, customer_id uuid, why text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with pol as (select coalesce((select (value #>> '{}')::numeric from public.decision_policy where key = 'spec_offer_quote_window_days'), 7) as days),
+  inv as (
+    select m.inquiry_id, count(distinct m.supplier_id) as invited, min(m.sent_at) as first_sent
+      from public.inquiry_matches m group by m.inquiry_id),
+  quoted as (
+    select q.inquiry_id, count(distinct q.supplier_id) as quoted
+      from public.quotes q where coalesce(q.status, '') <> 'draft' group by q.inquiry_id)
+  select i.id, i.customer_id,
+         case when coalesce(qd.quoted, 0) >= inv.invited then 'every_invited_supplier_quoted' else 'quote_window_closed' end
+    from public.inquiries i
+    join inv on inv.inquiry_id = i.id
+    join quoted qd on qd.inquiry_id = i.id
+   where i.spec_offer_checked_at is null
+     and coalesce(i.status, '') not in ('closed', 'completed', 'cancelled')
+     and i.parent_inquiry_id is null
+     and not exists (select 1 from public.transactions t join public.quotes q2 on q2.id = t.quote_id where q2.inquiry_id = i.id)
+     and (qd.quoted >= inv.invited or now() >= inv.first_sent + make_interval(days => (select days from pol)::int))
+   order by i.created_at
+   limit greatest(1, least(p_limit, 100));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_close_inquiry(p_inquiry uuid, p_reason text, p_except bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_reason not in ('no_exact_spec_declined', 'no_exact_spec_no_reply') then raise exception 'spec offer: bad close reason %', p_reason; end if;
+  update public.spec_alternative_offer set state = 'superseded', updated_at = now()
+   where inquiry_id = p_inquiry and state = 'open' and id <> p_except;
+  -- Nothing was revealed (a candidate never has a transaction), so nothing is charged.
+  update public.inquiries set status = 'closed', lost_reason = p_reason, stage_changed_at = now() where id = p_inquiry;
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_due()
+ RETURNS TABLE(offer_id bigint, action text, reminder_no integer, final boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with pol as (select coalesce((select value from public.decision_policy where key = 'spec_offer_reminder_after_hours'), '[24,48]'::jsonb) as hrs)
+  select o.id,
+         case when now() >= o.reply_by and o.reminders_sent >= jsonb_array_length((select hrs from pol)) then 'close_no_reply' else 'remind' end,
+         o.reminders_sent + 1,
+         o.reminders_sent + 1 = jsonb_array_length((select hrs from pol))
+    from public.spec_alternative_offer o
+   where o.state = 'open' and o.last_sent_at is not null
+     and (
+       (o.reminders_sent < jsonb_array_length((select hrs from pol))
+        and now() >= o.opened_at + make_interval(secs => ((select hrs from pol) ->> o.reminders_sent)::numeric::int * 3600))
+       or (now() >= o.reply_by and o.reminders_sent >= jsonb_array_length((select hrs from pol))))
+   order by o.opened_at;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_mark(p_offer bigint, p_action text, p_notification_ids jsonb DEFAULT '[]'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.spec_alternative_offer;
+begin
+  select * into r from public.spec_alternative_offer where id = p_offer for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  if p_action = 'sent' then
+    update public.spec_alternative_offer set last_sent_at = now(), notification_ids = notification_ids || coalesce(p_notification_ids, '[]'::jsonb), updated_at = now() where id = r.id;
+  elsif p_action = 'remind' then
+    if r.state <> 'open' then return jsonb_build_object('ok', false, 'error', 'not_open', 'state', r.state); end if;
+    update public.spec_alternative_offer set reminders_sent = reminders_sent + 1, last_sent_at = now(),
+           notification_ids = notification_ids || coalesce(p_notification_ids, '[]'::jsonb), updated_at = now() where id = r.id;
+  elsif p_action = 'close_no_reply' then
+    if r.state <> 'open' then return jsonb_build_object('ok', false, 'error', 'not_open', 'state', r.state); end if;
+    update public.spec_alternative_offer set state = 'no_reply', closed_reason = 'no_exact_spec_no_reply',
+           notification_ids = notification_ids || coalesce(p_notification_ids, '[]'::jsonb), updated_at = now() where id = r.id;
+    perform public.fn_spec_offer_close_inquiry(r.inquiry_id, 'no_exact_spec_no_reply', r.id);
+  elsif p_action = 'answered' then
+    update public.spec_alternative_offer set notification_ids = notification_ids || coalesce(p_notification_ids, '[]'::jsonb), updated_at = now() where id = r.id;
+  else
+    return jsonb_build_object('ok', false, 'error', 'bad_action');
+  end if;
+  return jsonb_build_object('ok', true, 'offer_id', r.id, 'action', p_action);
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_open(p_inquiry uuid, p_offers jsonb)
+ RETURNS SETOF spec_alternative_offer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_hours numeric := coalesce((select (value #>> '{}')::numeric from public.decision_policy where key = 'spec_offer_reply_window_hours'), 72);
+  v_cust uuid;
+  o jsonb;
+begin
+  select customer_id into v_cust from public.inquiries where id = p_inquiry for update;
+  if not found then raise exception 'spec offer: no inquiry %', p_inquiry; end if;
+  update public.inquiries set spec_offer_checked_at = coalesce(spec_offer_checked_at, now()) where id = p_inquiry;
+  for o in select * from jsonb_array_elements(coalesce(p_offers, '[]'::jsonb)) loop
+    insert into public.spec_alternative_offer (inquiry_id, customer_id, line_no, item, attr, label_en, label_ar, requested, alternatives, reply_by)
+    values (p_inquiry, v_cust, (o->>'line_no')::int, o->>'item', o->>'attr', o->>'label_en', o->>'label_ar', o->>'requested', o->'alternatives',
+            now() + make_interval(secs => (v_hours * 3600)::int))
+    on conflict (inquiry_id, line_no, attr) where state in ('open', 'accepted') do nothing;
+  end loop;
+  return query select * from public.spec_alternative_offer where inquiry_id = p_inquiry and state = 'open' order by line_no, attr;
+end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_spec_offer_whatsapp_reply(p_phone text, p_text text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_digits text := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  v_cust uuid;
+  r public.spec_alternative_offer;
+  v_t text := lower(btrim(translate(coalesce(p_text, ''), '٠١٢٣٤٥٦٧٨٩', '0123456789')));
+  v_n int;
+  v_choice text;
+begin
+  if length(v_digits) < 8 then return jsonb_build_object('handled', false, 'reason', 'no_phone'); end if;
+  select c.id into v_cust from public.customers c
+   where regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = v_digits order by c.phone_verified desc nulls last, c.created_at limit 1;
+  if v_cust is null then return jsonb_build_object('handled', false, 'reason', 'not_a_customer'); end if;
+  select * into r from public.spec_alternative_offer where customer_id = v_cust and state = 'open' order by opened_at, id limit 1;
+  if not found then return jsonb_build_object('handled', false, 'reason', 'no_open_offer'); end if;
+  v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
+  if v_t ~ '^(no|no thanks|decline|لا|لأ|لا شكرا|لا شكرًا)$' then v_choice := 'no';
+  elsif v_t ~ '^(option |choice |yes |نعم |الخيار )?[0-9]{1,2}$' then
+    v_n := (regexp_replace(v_t, '\D', '', 'g'))::int;
+    if v_n < 1 or v_n > jsonb_array_length(r.alternatives) then return jsonb_build_object('handled', true, 'ok', false, 'error', 'unknown_option', 'offer_id', r.id, 'options', jsonb_array_length(r.alternatives)); end if;
+    v_choice := r.alternatives -> (v_n - 1) ->> 'option_id';
+  elsif v_t ~ '^(yes|ok|نعم|موافق)$' and jsonb_array_length(r.alternatives) = 1 then v_choice := r.alternatives -> 0 ->> 'option_id';
+  else return jsonb_build_object('handled', false, 'reason', 'not_a_reply', 'offer_id', r.id);
+  end if;
+  return jsonb_build_object('handled', true) || public.fn_spec_offer_answer(r.id, v_cust, v_choice, 'whatsapp');
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_strategy_metrics()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -53772,6 +54006,7 @@ ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spec_alternative_offer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spec_backlog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.strategy_risks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
@@ -53867,6 +54102,7 @@ CREATE POLICY rfq_clarification_service_role_only ON public.rfq_clarification AS
 CREATE POLICY os_owner_admin_read ON public.risk_register AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_window_service_role_only ON public.seat_handoff_window AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
