@@ -9,6 +9,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
+import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
+import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -445,6 +447,46 @@ async function itScheduledTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE IT ENGINEER'S DUTIES 19-24 (founder, 14 Sep 2026: "add all for accountant and IT"). Each step is its
+// own try, so one failing duty is reported and never stops the others or the watchdog. Only booleans and
+// counts come back, because this endpoint is public. The routines each own a file in scripts/sql/.
+//   renewal        fn_it_renewal_watch   licences, domains, tokens: 60 and 30 days to the accountant (20)
+//   changes        GitHub's verdict on every revision a signed apply named, then fn_it_change_watch (24)
+//   usage          when it_duty_schedule says so: provider usage against the caps in it_threshold (22)
+//   restore_table  monthly: one table page from the newest export restored into scratch (19)
+// Duty 19's file half is duty 9's sample (itScheduledTick); 21 is duty 10's sender check; 23's patch PR
+// runs in .github/workflows/it-weekly-readings.yml. Runs before the alert tick, so anything raised here
+// goes round the IT loop on this same pass.
+async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = {};
+  const rpc = async (fn: string, args?: Record<string, unknown>) => {
+    const { data, error } = await admin.rpc(fn, args);
+    if (error) throw new Error(fn + ': ' + error.message);
+    return data;
+  };
+  const step = async (name: string, run: () => Promise<unknown>) => {
+    try { out[name] = await run(); } catch (e) { out[name] = { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+  };
+  await step('renewal', async () => { await rpc('fn_it_renewal_watch'); return { ok: true }; });
+  await step('changes', async () => {
+    const revs = ((await rpc('fn_it_change_revisions_due')) ?? []) as string[];
+    await rpc('fn_it_change_revisions_record', { p: await verifyRevisions(sec, revs) });
+    return { asked: revs.length };
+  });
+  await step('usage', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('usage')) return { due: false };
+    await rpc('fn_it_usage_watch', { p_r: await takeUsageReadings(sec) });
+    return { due: true };
+  });
+  await step('restore_table', async () => {
+    if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
+    const pick = await rpc('fn_it_restore_table_pick');
+    await rpc('fn_it_restore_table_record', { p: await runRestoreTable(admin, pick) });
+    return { due: true };
+  });
+  return out;
+}
+
 async function itEngineerAlertTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_it_engineer_alert_tick');
@@ -606,6 +648,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const itdetect = await itDetectTick();
     const itduties = await itDutiesTick();
     const itscheduled = await itScheduledTick();
+    const itlater = await itLaterDutiesTick();
     const specoffer = await specOfferTick();
     const it = await itEngineerAlertTick();
     // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
@@ -623,7 +666,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -647,6 +690,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, vat, ceoWeekly, ladder, refunds, warm });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, vat, ceoWeekly, ladder, refunds, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

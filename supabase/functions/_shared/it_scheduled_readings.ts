@@ -3,8 +3,10 @@
 // public.fn_it_duties_scheduled decides (scripts/sql/the_it_engineer_takes_on_seven_more_duties.sql).
 // No model call. Nothing returned here is a secret: principals are logins or ids, never keys.
 // deno-lint-ignore-file no-explicit-any
+import { opensAs } from './it_restore_drill.ts';
+
 type Sec = (key: string) => Promise<string>;
-type Admin = { from: (t: string) => any; storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: { message: string } | null }> } } };
+type Admin ={ from: (t: string) => any; storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: { message: string } | null }> } } };
 
 const REPO = 'ahmadmhdnabilalzain-bot/quotesdone';
 const SENDING_DOMAINS = ['quotesdone.com'];
@@ -60,14 +62,21 @@ async function restore(admin: Admin, sec: Sec, n: number) {
           headers: { Authorization: `Bearer ${token}`, 'Dropbox-API-Arg': JSON.stringify({ path: d.dropbox_path }) },
           signal: AbortSignal.timeout(60000) });
         const bytes = new Uint8Array(await r.arrayBuffer());
-        dropbox = r.ok ? { ok: true, size: bytes.length, content_hash: await dropboxContentHash(bytes) }
+        // Duty 19: a restored copy must also OPEN, not only hash right.
+        dropbox = r.ok ? { ok: true, size: bytes.length, content_hash: await dropboxContentHash(bytes), opens: opensAs(d.path ?? d.dropbox_path, bytes) }
                        : { ok: false, status: r.status };
       } catch (e) { dropbox = { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
     }
     let storage: any = { ok: null, reason: 'this backup has no storage source' };
     if (d.bucket && d.path) {
       const s = await admin.storage.from(d.bucket).download(d.path);
-      storage = s.error || !s.data ? { ok: false, error: s.error?.message ?? 'no data' } : { ok: true, size: s.data.size };
+      if (s.error || !s.data) storage = { ok: false, error: s.error?.message ?? 'no data' };
+      else {
+        // Duty 19: the storage copy is hashed the way Dropbox hashes, so the two copies are compared with
+        // each other and not only with a size, and it must open.
+        const b = new Uint8Array(await s.data.arrayBuffer());
+        storage = { ok: true, size: b.length, content_hash: await dropboxContentHash(b), opens: opensAs(d.path, b) };
+      }
     }
     samples.push({ doc_backup_id: d.id, dropbox, storage });
   }
@@ -86,8 +95,28 @@ async function dnsbl(list: string, target: string) {
   const g = await get(`https://dns.google/resolve?name=${encodeURIComponent(target + '.' + list)}&type=A`);
   if (!g.ok) return { list, target, ...unavailable('DNS-over-HTTPS answered ' + (g.status || g.error)) };
   const ips = (g.json?.Answer ?? []).map((a: any) => String(a.data));
-  if (ips.some((ip: string) => ip.startsWith('127.255.255.'))) return { list, target, ...unavailable('the list refuses public resolvers') };
-  return { list, target, basis: 'measured', listed: ips.some((ip: string) => ip.startsWith('127.0.0.')), answers: ips };
+  const v = dnsblVerdict(list, ips);
+  if (v === 'refused') return { list, target, ...unavailable('the list refused the lookup or gave no listing code: ' + ips.join(',')) };
+  return { list, target, basis: 'measured', listed: v === 'listed', answers: ips };
+}
+
+// What a blocklist's A answer MEANS differs by list, and a refusal can look like a listing. Duty 21
+// (14 Sep 2026): URIBL answers 127.0.0.1 to a resolver it refuses, and the first cut of dnsbl read any
+// 127.0.0.x as listed - a refusal would have become a customer-facing "listed" finding. Not observed:
+// through dns.google on 14 Sep all three lists answered NXDOMAIN for quotesdone.com. Anything not known
+// to mean "listed" is 'refused' (not checked), never listed and never clean.
+//   dbl.spamhaus.org  127.0.1.2-127.0.1.254 listed; 127.0.1.255 and 127.255.255.x are errors/refusals
+//   multi.uribl.com   127.0.0.2-127.0.0.254 listed; 127.0.0.1 is a refusal
+//   multi.surbl.org   127.0.0.2-127.0.0.254 listed; 127.0.0.1 is a refusal
+export function dnsblVerdict(list: string, answers: string[]): 'listed' | 'refused' | 'clean' {
+  if (!answers.length) return 'clean';
+  const one = (ip: string) => {
+    const m = ip.match(/^127\.0\.(\d+)\.(\d+)$/);
+    if (!m) return false;
+    const [c, d] = [Number(m[1]), Number(m[2])];
+    return list === 'dbl.spamhaus.org' ? c === 1 && d >= 2 && d <= 254 : c === 0 && d >= 2 && d <= 254;
+  };
+  return answers.some(one) ? 'listed' : 'refused';
 }
 
 async function sender(sec: Sec) {

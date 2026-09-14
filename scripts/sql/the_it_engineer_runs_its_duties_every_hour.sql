@@ -167,7 +167,9 @@ begin
     end if;
   end loop;
   v_items := '[]'::jsonb;
-  for x in select * from public.it_expiry where expires_on is not null and expires_on < current_date + 30 loop
+  -- Certificates only: licences, domains and tokens are warned to the accountant at 60 and 30 days by
+  -- fn_it_renewal_watch (renewals_warn_the_accountant_at_sixty_and_thirty_days.sql).
+  for x in select * from public.it_expiry where kind = 'tls' and expires_on is not null and expires_on < current_date + 30 loop
     v_items := v_items || jsonb_build_object('item', x.item, 'owner_seat', x.owner_seat, 'subject', x.item,
       'title', x.item || ' expires on ' || x.expires_on || ' (' || (x.expires_on - current_date) || ' days)',
       'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,

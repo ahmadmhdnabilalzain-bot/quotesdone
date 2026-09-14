@@ -1,14 +1,15 @@
 // The readings the IT engineer's duties need and Postgres cannot take: HTTP to the sites, GitHub,
-// Vercel, Stripe and the providers. This module only MEASURES; public.fn_it_duties decides.
-// (scripts/sql/the_it_engineer_runs_its_duties_every_hour.sql). No model call anywhere.
+// Vercel, Stripe and the providers. This module only MEASURES; the routines decide
+// (scripts/sql/the_it_engineer_runs_its_duties_every_hour.sql, and for duties 20, 22 and 24 the files
+// named at each section below). No model call anywhere.
 //
 // Every reading carries a basis. A reading that could not be taken says so ('unavailable' + reason)
-// and fn_it_duties then leaves that duty's findings as they were: "could not look" never reads as
-// "all clear".
+// and the deciding routine then leaves that duty's findings as they were: "could not look" never
+// reads as "all clear".
 import { HANDLED_STRIPE_EVENTS } from './stripe_events.ts';
 
 type Sec = (key: string) => Promise<string>;
-type Got = { status: number; ok: boolean; json: unknown; error?: string };
+type Got = { status: number; ok: boolean; json: unknown; text: string; error?: string };
 
 const REPO = 'ahmadmhdnabilalzain-bot/quotesdone';
 const ORIGINS = ['https://quotesdone.com', 'https://www.quotesdone.com', 'https://quotesdone.ae', 'https://www.quotesdone.ae'];
@@ -19,10 +20,10 @@ async function get(url: string, init: RequestInit = {}): Promise<Got> {
     const r = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
     const text = await r.text();
     let json: unknown = null;
-    try { json = JSON.parse(text); } catch { /* not JSON: the status is the reading */ }
-    return { status: r.status, ok: r.ok, json };
+    try { json = JSON.parse(text); } catch { /* not JSON: the status (or the text) is the reading */ }
+    return { status: r.status, ok: r.ok, json, text };
   } catch (e) {
-    return { status: 0, ok: false, json: null, error: String((e as Error)?.message || e).slice(0, 200) };
+    return { status: 0, ok: false, json: null, text: '', error: String((e as Error)?.message || e).slice(0, 200) };
   }
 }
 // deno-lint-ignore no-explicit-any
@@ -66,8 +67,10 @@ async function sites() {
 }
 
 // Domain expiry from RDAP (rdap.org forwards to the registry's server); the certificate in service
-// from crt.sh, as the latest not_after of certificates already valid.
-async function expiries() {
+// from crt.sh, as the latest not_after of certificates already valid. Duty 20 adds the Meta marketing
+// token (renewals_warn_the_accountant_at_sixty_and_thirty_days.sql): Meta's debug_token gives its expiry
+// (0 = never) when app_secrets.meta_access_token exists. On 14 Sep 2026 it does not.
+async function expiries(sec: Sec) {
   const out: Record<string, unknown> = {};
   await Promise.all(DOMAINS.map(async (dom) => {
     const r = await get(`https://rdap.org/domain/${dom}`);
@@ -83,6 +86,17 @@ async function expiries() {
     out[`tls:${dom}`] = latest ? { basis: 'measured', expires_on: latest.slice(0, 10) }
                                : unavailable(`crt.sh answered ${c.status || c.error} with no valid certificate`);
   }));
+  const meta = await sec('meta_access_token');
+  if (!meta) {
+    out['token:meta_marketing'] = unavailable('app_secrets.meta_access_token is not set');
+  } else {
+    const g = await get(`https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(meta)}`,
+      { headers: { Authorization: `Bearer ${meta}` } });
+    const exp = Number(J(g)?.data?.expires_at);
+    out['token:meta_marketing'] = g.ok && Number.isFinite(exp)
+      ? { basis: 'measured', expires_on: exp > 0 ? new Date(exp * 1000).toISOString().slice(0, 10) : null, never_expires: exp === 0 }
+      : unavailable(`Meta debug_token answered ${g.status || g.error}`);
+  }
   return out;
 }
 
@@ -148,6 +162,82 @@ export async function takeDutyReadings(sec: Sec) {
   const gh = await github(sec);
   const [v, s, e, p, st] = await Promise.all([
     vercel(sec, (gh as { sha?: string }).sha ?? null, (gh as { committed_at?: string }).committed_at ?? null),
-    sites(), expiries(), providers(sec), stripe(sec)]);
+    sites(), expiries(sec), providers(sec), stripe(sec)]);
   return { taken_at: new Date().toISOString(), github: gh, vercel: v, sites: s, expiries: e, providers: p, stripe: st };
+}
+
+// ── DUTY 22: WHAT THE PROVIDERS BILL AGAINST, WHERE THEY PUBLISH IT ─────────────────────────────────
+// fn_it_usage_watch (the_it_engineer_watches_every_bill_before_its_cap.sql) takes this. Supabase storage
+// and the Resend send count are counted inside Postgres; Stripe has no cap to watch.
+
+// Vercel's GET /v1/billing/charges answers FOCUS v1.3 as JSON Lines: one charge per line, BilledCost in
+// BillingCurrency. Summed here; a line that does not parse is skipped and counted, never guessed.
+export function sumFocusCharges(text: string): { total: number; currency: string | null; lines: number; unreadable: number } {
+  let total = 0, lines = 0, unreadable = 0; let currency: string | null = null;
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    try {
+      const c = JSON.parse(line);
+      const v = c.BilledCost === null || c.BilledCost === undefined || c.BilledCost === '' ? NaN : Number(c.BilledCost);
+      if (Number.isFinite(v)) { total += v; lines++; currency = currency ?? (c.BillingCurrency ?? null); } else unreadable++;
+    } catch { unreadable++; }
+  }
+  return { total: Math.round(total * 100) / 100, currency, lines, unreadable };
+}
+
+export async function takeUsageReadings(sec: Sec) {
+  const [sid, kSid, kSec, vTok, vTeam] = await Promise.all([
+    sec('twilio_account_sid'), sec('twilio_api_key_sid'), sec('twilio_api_key_secret'), sec('vercel_token'), sec('vercel_team_id')]);
+  let twilio: Record<string, unknown> = unavailable('twilio_account_sid, twilio_api_key_sid or twilio_api_key_secret is empty');
+  if (sid && kSid && kSec) {
+    const g = await get(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Balance.json`,
+      { headers: { Authorization: 'Basic ' + btoa(`${kSid}:${kSec}`) } });
+    const b = Number(J(g)?.balance);
+    twilio = g.ok && Number.isFinite(b) ? { basis: 'measured', balance: b, currency: J(g)?.currency ?? null }
+                                        : unavailable(`Twilio Balance answered ${g.status || g.error}`);
+  }
+  let vercel: Record<string, unknown> = unavailable('app_secrets.vercel_token is empty');
+  if (vTok) {
+    const now = new Date();
+    const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const q = `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(now.toISOString())}`
+            + (vTeam ? `&teamId=${encodeURIComponent(vTeam)}` : '');
+    const g = await get(`https://api.vercel.com/v1/billing/charges?${q}`, { headers: { Authorization: `Bearer ${vTok}` } });
+    if (g.ok) {
+      const s = sumFocusCharges(g.text);
+      vercel = { basis: 'measured', charges_month: s.total, currency: s.currency, lines: s.lines, unreadable: s.unreadable };
+    } else {
+      vercel = unavailable(`Vercel billing/charges answered ${g.status || g.error} (the token may carry no billing scope)`);
+    }
+  }
+  return { taken_at: new Date().toISOString(), twilio, vercel };
+}
+
+// ── DUTY 24: IS A SIGNED REVISION REVIEWED? ─────────────────────────────────────────────────────────
+// fn_it_change_revisions_record (a_routine_change_nobody_signed_is_a_finding_within_minutes.sql) takes
+// this. Reviewed means an ancestor of main, or part of a pull request merged into main: the repository
+// merges by squash, so the commit a worktree applied from is rarely itself on main. An answer GitHub did
+// not give leaves verdict null, and the revision is asked again next tick.
+export async function verifyRevisions(sec: Sec, revs: string[]) {
+  if (!revs.length) return [];
+  const token = await sec('github_token');
+  if (!token) return revs.map((rev) => ({ rev, verdict: null, detail: { reason: 'app_secrets.github_token is empty' } }));
+  const h = { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } };
+  return Promise.all(revs.map(async (rev) => {
+    const c = await get(`https://api.github.com/repos/${REPO}/compare/main...${rev}`, h);
+    if (c.ok && ['behind', 'identical'].includes(J(c)?.status)) return { rev, verdict: 'on_main' };
+    const p = await get(`https://api.github.com/repos/${REPO}/commits/${rev}/pulls`, h);
+    if (p.ok && Array.isArray(J(p))) {
+      // deno-lint-ignore no-explicit-any
+      const prs = J(p) as any[];
+      const merged = prs.find((x) => x.merged_at && x.base?.ref === 'main');
+      if (merged) return { rev, verdict: 'merged_pr', pr_number: merged.number };
+      const open = prs.find((x) => x.state === 'open' && x.base?.ref === 'main');
+      if (open) return { rev, verdict: 'open_pr', pr_number: open.number };
+    }
+    // Only clean answers about the commit count as "not on main"; an outage or a 401 leaves it pending.
+    const answered = (g: Got) => g.ok || g.status === 404 || g.status === 422;
+    const detail = { compare: c.status || c.error, compare_status: J(c)?.status ?? null, pulls: p.status || p.error };
+    return answered(c) && answered(p) ? { rev, verdict: 'not_on_main', detail } : { rev, verdict: null, detail };
+  }));
 }

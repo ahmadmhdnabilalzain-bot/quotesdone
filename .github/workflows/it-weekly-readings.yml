@@ -13,12 +13,19 @@ on:
     - cron: '30 4 * * 1'   # Mondays 08:30 Dubai
   workflow_dispatch: {}
 
+# Duty 23 (14 Sep 2026): the last step may open ONE pull request, lockfile only, for an independent review.
+# It never merges; these two permissions let it push that branch and open that PR, nothing else.
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   readings:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - id: gate
         run: |
@@ -38,3 +45,9 @@ jobs:
         run: node scripts/it/report_dependency_audit.mjs
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/it/report_platform_readings.mjs
+      # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
+      - if: steps.gate.outputs.skip != '1'
+        run: |
+          git config user.name "it_engineer"
+          git config user.email "it-engineer@users.noreply.github.com"
+          node scripts/it/open_dependency_patch_pr.mjs
