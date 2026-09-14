@@ -15,7 +15,12 @@ export const REFUND_EVENTS = ['charge.refunded', 'refund.created', 'refund.updat
 // completes, so its PDF often is not there on checkout.session.completed. These two events carry
 // the finished invoice and let the handler file it without waiting for a manual resend.
 export const INVOICE_EVENTS = ['invoice.finalized', 'invoice.paid'] as const;
-export const HANDLED_STRIPE_EVENTS: readonly string[] = [...CHECKOUT_EVENTS, ...FAILED_CHECKOUT_EVENTS, ...REFUND_EVENTS, ...INVOICE_EVENTS];
+// 14 Sep 2026 (agent: accountant, duty 7): a chargeback is recorded the moment Stripe opens it and
+// answered with evidence before its due_by (scripts/sql/the_accountant_answers_every_card_dispute_before_stripe_closes_it.sql).
+// Unhandled, Stripe closes an unanswered dispute as lost.
+export const DISPUTE_EVENTS = ['charge.dispute.created', 'charge.dispute.updated', 'charge.dispute.closed',
+  'charge.dispute.funds_withdrawn', 'charge.dispute.funds_reinstated'] as const;
+export const HANDLED_STRIPE_EVENTS: readonly string[] = [...CHECKOUT_EVENTS, ...FAILED_CHECKOUT_EVENTS, ...REFUND_EVENTS, ...INVOICE_EVENTS, ...DISPUTE_EVENTS];
 
 // WHICH SIGNING SECRET MAY VERIFY AN EVENT (14 Sep 2026, agent: accountant). Stripe signs `livemode`
 // inside the payload, so the mode an event claims chooses exactly ONE secret, and stripe_webhook
