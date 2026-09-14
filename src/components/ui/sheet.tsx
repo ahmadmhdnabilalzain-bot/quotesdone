@@ -13,7 +13,7 @@ const SheetOverlay = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Ove
   <SheetPrimitive.Overlay className={cn('fixed inset-0 z-50 bg-navy-deep/80 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0', className)} {...props} ref={ref} />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
-const sheetVariants = cva('osx fixed z-50 flex flex-col gap-4 border-line2 bg-popover/95 shadow-e3 backdrop-blur-xl transition ease-expo data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500', {
+const sheetVariants = cva('osx fixed z-50 flex flex-col gap-4 border-line2 bg-popover/95 shadow-e3 transition ease-expo data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500', {
   variants: { side: {
     top: 'inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
     bottom: 'inset-x-0 bottom-0 rounded-t-frame border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
