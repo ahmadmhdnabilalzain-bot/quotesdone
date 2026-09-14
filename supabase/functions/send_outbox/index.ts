@@ -109,6 +109,17 @@ function renderBody(raw: string) {
   closeList();
   return html;
 }
+// The fixed English words of the customer/supplier frame (templates.email_customer / email_supplier and
+// the fallback below), in Arabic, and the page set right-to-left. Measured 14 Sep 2026: the two DB
+// wrappers carry exactly "Dubai, UAE" and "Dubai DET E-Trader Licence" as English text.
+function arabicFrame(html: string) {
+  return html
+    .replace(/<html(\s|>)/i, '<html dir="rtl" lang="ar"$1')
+    .split('>Unsubscribe</a> &middot; or reply to this email to be removed.').join('>إلغاء الاشتراك</a> &middot; أو ردّ على هذه الرسالة لإزالتك من القائمة.')
+    .split('Dubai DET E-Trader Licence').join('رخصة تاجر إلكتروني - دائرة الاقتصاد والسياحة في دبي')
+    .split('Dubai, UAE').join('دبي، الإمارات العربية المتحدة')
+    .split("You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.").join('تصلك هذه الرسالة لأن نشاطك التجاري مُدرج علنًا وقد يطابق عملاء يبحثون عن مورّدين على QuotesDone.');
+}
 function tmpl(opts: { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string }) {
   const { body, logo, name, title, channelEmail, unsub, wrapper, internal, subject } = opts;
   // v17 (8 Sep 2026): the logo is the horizontal OnDark lockup, not the 192px PWA app tile, so
@@ -235,7 +246,12 @@ Deno.serve(observe('send_outbox', async (req) => {
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
       const seatMail = String(n.kind || '').startsWith('sales_engineer_');
-      const htmlBody = tmpl({ body: n.body || '', logo, name: seatMail ? 'QuotesDone Sales Engineer' : sigName, title: seatMail ? 'Sales Engineer' : sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      // THE FRAME SPEAKS THE RECIPIENT'S LANGUAGE TOO (founder, 14 Sep 2026). notifications.lang is
+      // the registered language; an Arabic body inside an English signature and footer is exactly the
+      // mixed message the rule forbids.
+      const arMail = !internal && n.lang === 'ar';
+      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : sigName, title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      const htmlBody = arMail ? arabicFrame(htmlBody0) : htmlBody0;
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
       // founder would read "here is this week's report", find no report, and have no way to tell

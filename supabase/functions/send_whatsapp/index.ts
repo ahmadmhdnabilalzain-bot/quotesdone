@@ -219,7 +219,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         'WhatsApp daily cap of ' + dayCap + ' reached. Queued messages are held, not dropped, and resume automatically. Raise app_secrets.wa_daily_cap only while Twilio reports sender quality High.');
       return J({ ok:true, sent:0, failed:0, skipped:0, requeued:0, unmapped:0, capped:true, cap:dayCap, sent_last_24h:Number(sentLast24||0) });
     }
-    const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body,created_at').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
+    const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body,created_at,lang').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
     const staleH = Number(await sec('wa_stale_hours') || 24);
     let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0; let lastErr=''; const unmappedTypes = new Set<string>();
     for (const n of (rows||[])) {
@@ -247,11 +247,15 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
       if (Number(toThisNumber || 0) >= perRecip) { capped++; requeued++; continue; }
       const key = tmplKey(String(n.type||''));
-      const sid = (ready && key && tmpl[key]) ? (tmpl[key].en||null) : null;
+      // THE RECIPIENT'S REGISTERED LANGUAGE (notifications.lang, stamped from fn_registered_locale).
+      // This always took .en, although wa_template_sids holds an Arabic SID for every customer and
+      // supplier key - so an Arabic-registered customer got the English template.
+      const wlang = n.lang === 'ar' ? 'ar' : 'en';
+      const sid = (ready && key && tmpl[key]) ? (tmpl[key][wlang] || null) : null;
       let res;
       if (sid) {
         // 6 SEP 2026: the ledger decides before Twilio is asked to send anything.
-        const st = await templateStatus(auth, sid, key!, 'en');
+        const st = await templateStatus(auth, sid, key!, wlang);
         if (st.status !== 'approved') {
           if (key === 'founder_alert') {
             // The email already carried this alert. Skipped WITH the reason, so the row explains itself and

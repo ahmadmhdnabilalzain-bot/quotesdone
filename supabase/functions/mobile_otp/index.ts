@@ -20,8 +20,9 @@ function normPhone(p: string){ let s = String(p||'').trim().replace(/[^0-9+]/g,'
 async function verifyCreds(){ return { svc: await sec('twilio_verify_service_sid'), ks: await sec('twilio_api_key_sid'), kk: await sec('twilio_api_key_secret') }; }
 function basic(ks: string, kk: string){ return 'Basic ' + btoa(ks + ':' + kk); }
 
-async function verifySend(svc: string, ks: string, kk: string, to: string, channel: string){
-  const form = new URLSearchParams({ To: to, Channel: channel });
+async function verifySend(svc: string, ks: string, kk: string, to: string, channel: string, locale: string){
+  // Locale: the code arrives in the customer's registered language (founder, 14 Sep 2026).
+  const form = new URLSearchParams({ To: to, Channel: channel, Locale: locale === 'ar' ? 'ar' : 'en' });
   const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}/Verifications`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)), code: jd?.code || null };
 }
@@ -54,8 +55,8 @@ Deno.serve(observe('mobile_otp', async (req) => {
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
     const email = user.email.toLowerCase();
-    let { data: cust } = await admin.from('customers').select('id,phone,phone_verified').eq('email', email).maybeSingle();
-    if (!cust) { const ins = await admin.from('customers').insert({ email }).select('id,phone,phone_verified').maybeSingle(); cust = ins.data; }
+    let { data: cust } = await admin.from('customers').select('id,phone,phone_verified,locale').eq('email', email).maybeSingle();
+    if (!cust) { const ins = await admin.from('customers').insert({ email, locale: /^ar/i.test(String(body.lang || '')) ? 'ar' : 'en' }).select('id,phone,phone_verified,locale').maybeSingle(); cust = ins.data; }
 
     if (action === 'status') return J({ ok: true, sms_enabled: smsEnabled, phone: cust!.phone || null, phone_verified: !!cust!.phone_verified });
 
@@ -67,7 +68,7 @@ Deno.serve(observe('mobile_otp', async (req) => {
       const tenMinAgo = new Date(Date.now() - 600e3).toISOString();
       const { count } = await admin.from('customer_phone_otps').select('id', { count: 'exact', head: true }).eq('customer_id', cust!.id).gte('created_at', tenMinAgo);
       if ((count || 0) >= 5) return J({ ok: false, error: 'too_many_requests' }, 200);
-      const res = await verifySend(svc!, ks!, kk!, phone, 'sms');
+      const res = await verifySend(svc!, ks!, kk!, phone, 'sms', String((cust as any)?.locale || 'en'));
       if (!res.ok) return J({ ok:false, error:'send_failed', detail: res.error, code: res.code }, 200);
       await admin.from('customer_phone_otps').insert({ customer_id: cust!.id, phone, code_hash: 'twilio_verify', expires_at: new Date(Date.now() + 600e3).toISOString() });
       return J({ ok: true, status: res.vstatus });
