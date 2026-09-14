@@ -371,7 +371,11 @@ html[lang="ar"] .qd-kicker::before{width:14px;height:2px;border-radius:2px;box-s
   @media (prefers-reduced-motion: no-preference){
     .reveal{animation:qd-reveal 1ms linear both;animation-timeline:view();animation-range:entry 0% cover 26%}
     .qd-depth{animation:qd-depth 1ms linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
-    .qd-stagger.reveal-stagger > *{animation-timeline:view();animation-range:entry 10% cover 30%;animation-duration:1ms}
+    /* 14 Sep 2026: the range was `entry 10% cover 30%`, so a row already on screen at load but below
+       the top third sat part-transparent until the visitor scrolled — a 6-row checklist showed 4 rows and
+       the portal's quote table hid its last quotes. `entry 0% entry 100%` completes the moment a row has
+       fully entered the viewport, so anything visible at load is fully visible. */
+    .qd-stagger.reveal-stagger > *{animation-timeline:view();animation-range:entry 0% entry 100%;animation-duration:1ms}
   }
 }
 

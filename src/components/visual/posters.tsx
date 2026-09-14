@@ -57,12 +57,50 @@ export function HeroPoster() {
   );
 }
 
+// 14 Sep 2026: this poster was a faint glow and a caption, and the live map mounts only after the
+// first interaction, so a visitor who did not scroll saw an empty box on /supplier. The poster now
+// draws the map itself: a dotted outline of the UAE and the seven emirates at their real positions
+// (lon/lat projected onto the 420x280 box). The scene still replaces it once it mounts.
+const EMIRATES: { x: number; y: number; en: string; ar: string; below?: boolean }[] = [
+  { x: 242, y: 133, en: 'Abu Dhabi', ar: 'أبوظبي', below: true },
+  { x: 312, y: 84, en: 'Dubai', ar: 'دبي', below: true },
+  { x: 322, y: 71, en: 'Sharjah', ar: 'الشارقة' },
+  { x: 331, y: 64, en: 'Ajman', ar: 'عجمان' },
+  { x: 336, y: 55, en: 'Umm Al Quwain', ar: 'أم القيوين' },
+  { x: 362, y: 40, en: 'Ras Al Khaimah', ar: 'رأس الخيمة' },
+  { x: 390, y: 88, en: 'Fujairah', ar: 'الفجيرة', below: true },
+];
+
 export function MapPoster({ locale }: { locale: Locale }) {
+  const ar = locale === 'ar';
   return (
     <div className={frame} aria-hidden>
-      <div className="absolute inset-[12%] rounded-[40%] bg-[radial-gradient(closest-side,rgba(20,184,166,.14),transparent)]" />
+      <svg viewBox="0 0 420 280" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <pattern id="mp-dots" width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="1.5" cy="1.5" r="1.1" fill="rgba(110,231,212,.28)" />
+          </pattern>
+          <radialGradient id="mp-glow" cx=".72" cy=".3" r=".6">
+            <stop offset="0" stopColor="#14B8A6" stopOpacity=".16" />
+            <stop offset="1" stopColor="#14B8A6" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="420" height="280" fill="url(#mp-glow)" />
+        <path d="M18 176 L96 160 L168 150 L238 138 L286 104 L318 76 L346 48 L366 28 L382 40 L398 70 L396 118 L372 150 L330 196 L262 238 L180 252 L104 240 L44 214 Z"
+          fill="url(#mp-dots)" stroke="rgba(110,231,212,.22)" strokeWidth="1" />
+        {EMIRATES.map((e) => (
+          <g key={e.en}>
+            <circle cx={e.x} cy={e.y} r="6" fill="#14B8A6" opacity=".18" />
+            <circle cx={e.x} cy={e.y} r="2.6" fill="#6EE7D4" />
+            <text x={e.x} y={e.below ? e.y + 16 : e.y - 9} textAnchor="middle" fontSize="9"
+              fill="rgba(238,246,244,.72)" fontFamily={ar ? 'var(--font-ar), sans-serif' : 'var(--font-body), sans-serif'}>
+              {ar ? e.ar : e.en}
+            </text>
+          </g>
+        ))}
+      </svg>
       <span className="absolute bottom-3 start-4 font-mono text-label uppercase tracking-caps text-faint">
-        {locale === 'ar' ? 'الإمارات السبع' : 'Seven emirates'}
+        {ar ? 'الإمارات السبع' : 'Seven emirates'}
       </span>
     </div>
   );
