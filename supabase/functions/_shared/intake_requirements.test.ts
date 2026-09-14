@@ -132,7 +132,7 @@ Deno.test('the summary card edits are re-read and validated; the supplier line n
   assertEquals(invalid, ['warranty', 'nope']);
   assertEquals(stored.materials.find((m) => m.component === 'legs_base')!.choice, 'acrylic');
   const line = supplierLine(base);
-  assert(line.includes('Legs or base — their own specification (see the brief)'));
+  assert(line.includes('Legs or base: their own specification (see the brief)'));
   assert(!line.includes('Ahmed'));
   const card = forCard('custom-furniture', toAnswers(base), 'ar');
   assertEquals(card.find((c) => c.key === 'installation')!.answer, 'نعم، مع التركيب');

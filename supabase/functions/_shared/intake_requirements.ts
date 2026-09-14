@@ -421,5 +421,5 @@ export function forCard(category: string, answers: Answers, lang: Lang) {
 export function supplierLine(s: Partial<Stored> | null | undefined): string {
   const rows = (s && s.display && Array.isArray(s.display.en)) ? s.display.en : [];
   if (!rows.length) return '';
-  return ' The customer asks for: ' + rows.map((r) => r.label + ' — ' + (r.value.startsWith('Other: ') ? 'their own specification (see the brief)' : r.value)).join('; ') + '.';
+  return ' The customer asks for: ' + rows.map((r) => r.label + ': ' + (r.value.startsWith('Other: ') ? 'their own specification (see the brief)' : r.value)).join('; ') + '.';
 }
