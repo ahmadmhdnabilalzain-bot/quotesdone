@@ -158,6 +158,14 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
   // 5: the profile was written by makeSupplier (products, services, description, emirates).
   // 6: the Supplier Agreement, accepted and signed through the real endpoint.
   const terms = await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
+  // WhatsApp is confirmed at sign-up (#657): a supplier's WhatsApp notice goes only to a number they
+  // confirmed, and trigger a03 records every other one as 'skipped'. A real supplier answers that
+  // question in the portal; this one answers it through the same kyc action ('same' = the verified
+  // mobile above, the reserved fixture block), so its notices are addressed and then captured by
+  // zzzz_notifications_demo_capture, never handed to Twilio. Smoke run 34888342875 (14 Sep 2026)
+  // read 'skipped' because the fixture never answered, not because a notice was wrongly withheld.
+  const wa = await call('kyc', s.jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
+  if (wa.json?.ok !== true) throw new Error(`whatsapp_choose failed for ${email}: HTTP ${wa.status} ${wa.text}`);
   const row = (await read(`select l.id, l.company_name, l.phone, l.is_demo, l.approval_status, l.license_doc_path,
       l.trade_license_no, l.products, l.accepted_terms_version,
       coalesce((select value from public.app_secrets where key='supplier_terms_version'),
