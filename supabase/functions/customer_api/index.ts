@@ -2,6 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
+import { detectCat } from '../_shared/trade_classify.ts';
+import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
@@ -37,14 +39,25 @@ const KW: Record<string, string[]> = {
   flooring: ['floor', 'flooring', 'spc', 'vinyl', 'lvt', 'parquet', 'laminate', 'epoxy', 'tile', 'tiles', 'marble', 'granite', 'carpet'], glass: ['glass', 'glazing', 'mirror', 'shower enclosure', 'partition', 'facade', 'curtain wall', 'window'], aluminium: ['aluminium', 'aluminum', 'pergola', 'cladding', 'composite panel', 'window frame'], steel: ['steel', 'metal', 'fabrication', 'welding', 'staircase', 'railing', 'gate', 'structure'], acrylic: ['acrylic', 'plexiglass', 'perspex', 'display stand'], carpentry: ['carpentry', 'wood', 'joinery', 'wardrobe', 'cabinet', 'kitchen', 'furniture', 'door'], gypsum: ['gypsum', 'false ceiling', 'drywall', 'partition wall', 'ceiling'], signage: ['sign', 'signage', '3d letters', 'lightbox', 'led sign', 'billboard', 'sticker', 'branding'], wallpaper: ['wallpaper', 'wall covering'], upholstery: ['upholstery', 'sofa', 'curtain', 'blinds', 'cushion', 'reupholster'], fitout: ['fitout', 'fit-out', 'fit out', 'interior', 'renovation', 'refurbish', 'turnkey', 'decoration'], painting: ['paint', 'painting', 'varnish', 'coating'], landscaping: ['landscaping', 'garden', 'grass', 'artificial grass', 'irrigation', 'swimming pool', 'pool'], scaffolding: ['scaffolding', 'scaffold', 'formwork'], security: ['cctv', 'camera', 'access control', 'intercom', 'alarm', 'security system', 'gate barrier'], safety: ['safety', 'ppe', 'fire extinguisher', 'fire alarm', 'first aid', 'helmet'],
 };
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
+// 14 Sep 2026: the category comes from _shared/trade_classify (the intake's own reading). This map
+// scored raw substrings one point each, so "ground floor fire alarm" tied flooring, security and
+// safety and went to flooring; KW below now only supplies supplier-matching keywords.
 function detect(text: string) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
-  let best: string | null = null, bestN = 0;
-  for (const [c, kws] of Object.entries(KW)) { let n = 0; for (const k of kws) if (t.includes(k)) n++; if (n > bestN) { bestN = n; best = c; } }
+  const best = detectCat(text);
   let em: string | null = null;
   for (const e of EMIRATES) { if (t.includes(e.toLowerCase())) { em = e; break; } }
   if (!em && t.includes('abudhabi')) em = 'Abu Dhabi'; if (!em && / rak /.test(t)) em = 'Ras Al Khaimah';
   return { category: best, emirate: em, keywords: best ? KW[best].filter((k) => t.includes(k)) : [] };
+}
+// The portal's drawing OCR (ocrPlan lines with page boxes, the sheet width, the symbol counts),
+// passed through to drawing_boq, which validates every field. Bounded here only by size.
+function drawingOcr(body: any): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (Array.isArray(body?.ocr_lines)) out.ocr_lines = body.ocr_lines.slice(0, 4000);
+  if (Number.isFinite(Number(body?.ocr_width))) out.ocr_width = Number(body.ocr_width);
+  if (body?.symbol_counts && typeof body.symbol_counts === 'object') out.symbol_counts = body.symbol_counts;
+  return out;
 }
 function labelize(s: string): string { return String(s || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }
 // 29 Jul 2026 - ANONYMITY. The scrubber lived only in supplier_api's portal READ path, so every
@@ -659,7 +672,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const secret = await getSecret('cred_fn_customer_api');
       let jd: any = null;
       try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: b64, mime, filename: name, hint, ocr_text: String(body.ocr_text || '').slice(0, 200_000) }) });
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: b64, mime, filename: name, hint, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body) }) });
         jd = await r.json();
       } catch (_e) { /* answered below as document_unreadable */ }
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
@@ -741,7 +754,7 @@ Deno.serve(observe('customer_api', async (req) => {
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000) }) });
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body) }) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
@@ -771,7 +784,18 @@ Deno.serve(observe('customer_api', async (req) => {
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
-        return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta });
+        // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
+        // (review of #642: it used to run in parallel and could see the original page). drawing_boq
+        // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
+        const boqOut = jd.boq;
+        if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
+          try {
+            const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }) });
+            const cj = await cr.json();
+            if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
+          } catch (_e) { /* the coded result stands */ }
+        }
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [] }, 200); }
     }
 
@@ -880,6 +904,20 @@ Deno.serve(observe('customer_api', async (req) => {
       // file name wherever they appear, plus plot / Makani / address / permit patterns, and a residual
       // scan found nothing. A BOQ that still identifies the customer is HELD: not stored on the RFQ,
       // recorded as a 'boq_held' run so it is visible, and never sent. It does not fail open.
+      // THE DRAWING'S OPEN LINES ARE SETTLED AND RECORDED HERE (14 Sep 2026, _shared/boq_open_lines).
+      // The sales engineer asked the customer to confirm our count; whatever is true at Send is the
+      // outcome — confirmed, adjusted, not sure, or unanswered (the window closes when the customer
+      // sends). Lines nobody confirmed go out as "estimated from drawing, supplier to verify
+      // take-off", and the outcome is recorded on the inquiry, so nothing is silently assumed.
+      if (boqObj && Array.isArray(boqObj.boq)) {
+        const open = openLines(boqObj.boq);
+        if (open.length) {
+          const asked = briefObj?.boq_check && typeof briefObj.boq_check === 'object' ? briefObj.boq_check as BoqCheck : null;
+          const outcome: BoqCheck = asked && asked.status !== 'asked' ? asked : { status: 'unanswered', asked_at: asked?.asked_at, answered_at: null, lines: open };
+          boqObj = { ...boqObj, boq: settleLines(boqObj.boq, outcome) };
+          spec.boq_check = { status: outcome.status, asked_at: outcome.asked_at || null, answered_at: outcome.answered_at || null, answer: outcome.answer || null, adjustments: outcome.adjustments || {}, lines: open, recorded_at: new Date().toISOString(), recorded_by: 'sales_engineer' };
+        }
+      }
       if (boqObj) {
         let projName = '';
         { const want = String(body.project_id || briefObj?.project_id || '').trim();
@@ -1262,41 +1300,36 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'request_refund') {
       const qid = String(body.quote_id || '');
-      const { data: tx } = await admin.from('transactions').select('id,customer_id,refund_deadline,refund_status,fee_status').eq('quote_id', qid).maybeSingle();
+      const { data: tx } = await admin.from('transactions').select('id,customer_id').eq('quote_id', qid).maybeSingle();
       if (!tx || tx.customer_id !== cust.id) return J({ error: 'Transaction not found' }, 404);
-      if (tx.refund_status) return J({ ok: true, refund_status: tx.refund_status });
-      // 6 Sep 2026: the ladder is pricing_config.refund_window_working_days (5) from payment, a chase at 3,
-      // the founder's final call at 5; the sweep files the refund itself once the window has elapsed.
-      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) { const cfgR = await getCfg(); return J({ error: `The ${cfgR.refund_window_working_days} working-day window has elapsed; the case has gone to our chief executive for the final call and the refund is issued if the supplier does not respond.`, code: 'refund_window_elapsed' }, 400); }
-      const { data: q2 } = await admin.from('quotes').select('inquiry_id,supplier_id').eq('id', qid).maybeSingle();
-      if (q2) {
-        const { data: inq2 } = await admin.from('inquiries').select('status,outcome,hired_supplier_id').eq('id', q2.inquiry_id).maybeSingle();
-        if (inq2 && ['completed', 'closed'].includes(String(inq2.status)) && Number(inq2.hired_supplier_id) === Number(q2.supplier_id)) return J({ error: 'This job is already marked as completed with this supplier, so the reveal fee is no longer refundable.' }, 400);
-        const { data: rev2 } = await admin.from('reviews').select('id').eq('transaction_id', tx.id).maybeSingle();
-        if (rev2) return J({ error: 'You have already rated this supplier, so the reveal fee is no longer refundable.' }, 400);
+      // ONE DOOR, ONE TRANSACTION (14 Sep 2026). Until today this action flipped the sale to
+      // 'requested' first, then tried to open the case, threw the refusal away and told the customer
+      // "received" anyway: e2e run 7 left a sale reading "requested" with no case, no handoff to the
+      // accountant and no decision coming. Every check, the case, the sale's status and the
+      // confirmation in the customer's registered language now happen inside
+      // fn_refund_open_from_customer, or none of them do. The published terms let a customer complain
+      // "at any time"; the five working days govern when the CEO may decide, not when they may ask.
+      const { data: rf, error: rfErr } = await admin.rpc('fn_refund_open_from_customer', { p_transaction_id: tx.id, p_requested_by: 'customer' });
+      if (rfErr || !rf) {
+        // NOT A POLICY REFUSAL: the one transaction rolled back (a guard, the confirmation handoff, the
+        // database). The customer's claim is not lost -- they are told to try again -- but somebody must
+        // see it, so it is an IT finding keyed on the sale (reopened, not duplicated, on a repeat).
+        try {
+          await admin.rpc('fn_it_engineer_finding_upsert', {
+            p_issue_key: 'refund:request_failed:' + tx.id,
+            p_title: 'A customer could not open a refund case: the request rolled back',
+            p_where: 'customer_api request_refund -> public.fn_refund_open_from_customer',
+            p_blast: 'customer_facing', p_affected: 1,
+            p_evidence: { transaction_id: tx.id, customer_id: cust.id, error: String(rfErr?.message || 'no answer').slice(0, 600), at: new Date().toISOString() },
+            p_raised_by: 'customer_api',
+          });
+        } catch (_e) { /* the finding is best-effort; the customer's answer below is not */ }
+        return J({ ok: false, error: 'refund_request_failed', code: 'refund_request_failed', detail: rfErr?.message || 'no answer' }, 500);
       }
-      await admin.from('transactions').update({ refund_status: 'requested' }).eq('id', tx.id);
-      // AND OPEN THE REAL CASE. Until 9 Sep 2026 this action set a column on the SALE and stopped,
-      // while the chain that reviews, approves and pays a refund lives on public.refunds. So the
-      // customer was told "received and will be reviewed" and no case existed for anyone to review.
-      // The founder: "the customer always initiate the refund request... that is through the
-      // customer portal." This is that request actually starting the workflow.
-      let refundId: number | null = null;
-      let refundNote: string | null = null;
-      try {
-        const { data: rf } = await admin.rpc('fn_refund_open_from_customer',
-          { p_transaction_id: tx.id, p_requested_by: 'customer' });
-        if (rf?.ok) refundId = Number(rf.refund_id) || null;
-        else refundNote = String(rf?.reason || 'unknown');
-      } catch (e) {
-        refundNote = String((e as Error)?.message || e);
-      }
-      // customer_api has no logRun of its own — it is wrapped in observe(), which records the call.
-      // A refusal is carried back in the response instead, so a customer is never told their
-      // request is under review when no case was opened.
-      return J({ ok: true, refund_status: 'requested', refund_id: refundId, refund_ref: refundId ? refundRef(refundId) : null,
-        not_opened: refundNote,
-        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due, everything you paid is refunded.' });
+      const msg = rf.locale === 'ar' ? rf.message_ar : rf.message_en;
+      if (!rf.ok) return J({ ok: false, error: rf.code, code: rf.code, message: msg, can_claim_later: rf.can_claim_later ?? null }, 400);
+      return J({ ok: true, refund_status: 'requested', refund_id: rf.refund_id, refund_ref: refundRef(rf.refund_id),
+        duplicate: rf.duplicate === true, decision_after: rf.decision_after ?? null, message: msg });
     }
 
     if (action === 'rate_supplier') {

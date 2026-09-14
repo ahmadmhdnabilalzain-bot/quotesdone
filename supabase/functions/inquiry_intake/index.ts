@@ -9,6 +9,7 @@ import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
 import { detectCat, detectTrades, detectEmirate, detectUrgency } from './classify.ts';
+import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -516,7 +517,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     let reqProgress: { filled: number; total: number } | null = null;
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
-      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date());
+      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText);
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
         const lead = rs.retry
@@ -535,8 +536,44 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       }
     }
 
+    // ── THE DRAWING'S OPEN LINES (14 Sep 2026) ─────────────────────────────────────────────────────
+    // A drawing's BOQ line we did not READ (a device count, a loop size, a cable length) is shown to
+    // the customer as OUR count — numbered on the marked-up copy the portal draws — and ONE question
+    // is asked: Yes / Adjust / Not sure (_shared/boq_open_lines.ts). The customer is never asked to
+    // count (founder, relayed: "what if the customer didnt count or too lazy to count"). The question
+    // does not hold the request: it is offered beside Send, and whatever is true when the customer
+    // presses Send — confirmed, adjusted, not sure, or unanswered — is what create_inquiry records on
+    // the inquiry and applies to the lines. "We don't assume stuff": an unanswered line goes out
+    // marked "estimated from drawing, supplier to verify take-off", never as a settled quantity.
+    const nowIso = new Date().toISOString();
+    const openBoq = openLines(drawingBoq && Array.isArray(drawingBoq.boq) ? drawingBoq.boq : []);
+    let boqCheck: BoqCheck | null = (prevBrief.boq_check && typeof prevBrief.boq_check === 'object') ? prevBrief.boq_check : null;
+    let boqAsked = prevBrief.boq_asked === true;
+    if (openBoq.length) {
+      if (boqCheck && boqCheck.status === 'asked' && boqAsked && text) {
+        const r = readConfirmAnswer(boqCheck.lines, text);
+        boqCheck = { ...boqCheck, status: r.status, answered_at: nowIso, answer: text.slice(0, 300), adjustments: r.adjustments };
+      }
+      if (!boqCheck) boqCheck = { status: 'asked', asked_at: nowIso, answered_at: null, lines: openBoq };
+      if (boqCheck.status === 'asked' && status === 'ready') {
+        const q = confirmQuestion(boqCheck.lines, ar ? 'ar' : 'en');
+        nextQuestion = { key: q.key, text: q.text, options: q.options };
+        out.assistant_message = `${out.assistant_message || ''} ${q.text}`.trim();
+        boqAsked = true;
+      }
+    }
+    // A photo or scan of a drawing: the CAD or PDF it came from counts every device exactly (a CAD
+    // block count), so ask for it once — never as a condition.
+    const imageOnly = !!drawingBoq && Array.isArray(drawingBoq.kinds) && drawingBoq.kinds.every((k: unknown) => k === 'image') && openBoq.length > 0;
+    let cadAsked = prevBrief.cad_asked === true;
+    if (imageOnly && !cadAsked) {
+      out.assistant_message = `${out.assistant_message || ''} ${ar ? 'إن كان لديك ملف CAD (DWG أو DXF) أو ملف PDF الأصلي لهذا المخطط فأرفقه، وسنعدّ منه كل جهاز بدقة.' : 'If you have the CAD file (DWG or DXF) or the original PDF of this drawing, attach it and we will count every device from it exactly.'}`.trim();
+      cadAsked = true;
+    }
+
     const brief = status === 'ready' ? (out.brief || null) : null;
     if (brief) {
+      if (boqCheck) brief.boq_check = boqCheck;
       brief.category = category;
       if (!brief.emirate && emirate) { brief.emirate = emirate; if (!brief.location) brief.location = emirate; }
       brief.trades = trades;
@@ -593,14 +630,16 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     // answer to THAT question. create_inquiry only reads brief from a row whose status is 'ready'.
     // req_answers / req_asked carry the sales engineer's questions across turns exactly as details /
     // asked_key carry the category interview's.
+    const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
-      ? { ...brief, req_answers: reqAnswers }
-      : { details: interview ? interview.details : (prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked };
+      ? { ...brief, req_answers: reqAnswers, ...drawingState }
+      : { details: interview ? interview.details : (prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
     if (!readinessFields) readinessFields = { filled: status === 'ready' ? reqCount : Math.max(0, reqCount - (requiredGate ? requiredGate.missing_keys.length : (Array.isArray(out.missing) ? out.missing.length : reqCount))), required: reqCount };
-    if (status === 'ready') { nextQuestion = null; readinessFields = { filled: readinessFields.required, required: readinessFields.required }; }
+    // The drawing's confirm question is the one question allowed beside a ready request (above).
+    if (status === 'ready') { if (!nextQuestion || nextQuestion.key !== 'boq_check') nextQuestion = null; readinessFields = { filled: readinessFields.required, required: readinessFields.required }; }
     else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null : null, text: String(out.questions[0]), options: null };
     // The readiness bar counts the sales engineer's questions from the first turn, so it never reads
     // 100% while something is still going to be asked, and remaining_questions lists every open
