@@ -14,11 +14,36 @@ what type of wood, what thickness, etc."*
 
 ```
 POST /functions/v1/quote_compare  { inquiry_id, lang }
-→ { ok: true, analysis: { …existing fields…, technical: TechnicalComparison, on_hold: number } }
+→ { ok: true, analysis: { …existing fields…,
+      technical:        RendererTechnical,     // exactly PR #611's TechnicalComparison (quote_documents.ts)
+      technical_detail: TechnicalComparison,   // the full v1 dataset below
+      on_hold: number } }
 ```
 
 It is rebuilt on every call from the live rows (it is never part of the cached model output), so it
 always reflects the quotes as they are now. Code: `supabase/functions/_shared/line_specs/compare.ts`.
+
+**Only complete quotes are ever in it, or in the ranking.** Before ranking, quote_compare re-runs the
+hold gate on every live quote (`rankable()`); a quote missing any required detail is removed from the
+ranking, the shortlist, both tables and the roster, and is added to `on_hold`. This holds whatever the
+status column says (tested: "an incomplete quote can never be ranked").
+
+### `analysis.technical` — the renderer's view (aligned to PR #611)
+
+```ts
+type RenderFlag = 'match' | 'differs' | 'missing' | 'na';
+type RendererTechnical = {
+  suppliers: string[];                                   // 'Supplier A', 'Supplier A – Option 2' …
+  lines: { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null;
+           attributes: { key: string; label?: string | null; unit?: string | null; requested?: string | null;
+                         values: Record<string /* supplier label */, { value?: string | null; flag: RenderFlag; note?: string | null }> }[] }[];
+  terms?: { lead_time?: Term | null; installation?: Term | null; warranty?: Term | null } | null;
+};
+type Term = { applicable?: boolean | null; requested?: string | null; values: Record<string, { value?: string | null; flag: RenderFlag }> };
+```
+Mapping from the full dataset: `stated` (a value with no baseline) → `match`; `not_applicable` → `na`;
+`label` and `unit` are in the request's language; `values` are keyed by the English label, which
+`labelFor()` already turns into `المورّد …` on an Arabic page.
 
 ## Shape
 

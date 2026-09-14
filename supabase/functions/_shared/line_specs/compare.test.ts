@@ -2,7 +2,7 @@
 // customer asked for, plus delivery / installation / warranty side by side. Shape = the contract.
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/line_specs/compare.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { technicalComparison } from './compare.ts';
+import { rankable, rendererView, technicalComparison } from './compare.ts';
 import { labelQuotes } from '../quote_labels.ts';
 
 const now = new Date('2026-09-14T10:00:00Z');
@@ -39,6 +39,26 @@ Deno.test('a detail a quote does not state is — and a request with no baseline
   const thk = t.lines[0].attributes.find((a) => a.code === 'thickness_mm')!;
   assertEquals(thk.cells.map((c) => c.flag), ['stated', 'missing']);
   assertEquals(t.terms.find((x) => x.code === 'warranty')!.cells.map((c) => c.marker), ['', '—']);
+});
+
+Deno.test('the renderer view is exactly the shape PR #611\'s comparison report reads', () => {
+  const t = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: { installation: 'required' }, quotes: [A, B], on_hold: 0, now });
+  const r = rendererView(t, 'ar');
+  assertEquals(r.suppliers, ['Supplier A', 'Supplier B']);
+  assertEquals([r.lines[0].line_no, r.lines[0].item, r.lines[0].qty, r.lines[0].unit], [1, 'Wardrobe 18mm MDF HPL finish', 4, 'nos']);
+  const thk = r.lines[0].attributes.find((a) => a.key === 'thickness_mm')!;
+  assertEquals([thk.label, thk.unit, thk.requested, thk.values['Supplier A'], thk.values['Supplier B']], ['السماكة', 'ملم', '18', { value: '18', flag: 'match' }, { value: '16', flag: 'differs' }]);
+  assertEquals([r.terms!.installation!.applicable, r.terms!.installation!.values['Supplier B'].flag, Object.keys(r.terms!)], [true, 'differs', ['lead_time', 'installation', 'warranty']]);
+  for (const l of r.lines) for (const a of l.attributes) for (const c of Object.values(a.values)) assert(['match', 'differs', 'missing', 'na'].includes(c.flag));
+});
+
+Deno.test('an incomplete quote can never be ranked: it is removed before the ranking and only counted', () => {
+  // D states no thickness on its only line and no installation timeline — the PR #611 fit-out case.
+  const D = { ...A, quote_id: 'qd', lines: [{ line_no: 1, description: 'Wardrobes MDF, HPL finish', amount: 3000 }], terms: { ...A.terms, scope: '', notes: 'Installation included' } };
+  const r = rankable([A, B, D], 'joinery', null);
+  assertEquals([r.rankable.map((q) => q.quote_id), r.held], [['qa', 'qb'], 1]);
+  const noPrice = { ...A, quote_id: 'qe', terms: { ...A.terms, price_ex_vat: null } };
+  assertEquals(rankable([noPrice], 'joinery', null), { rankable: [], held: 1 });
 });
 
 Deno.test('two options from one supplier are two rows, labelled as that supplier\'s options', () => {

@@ -455,8 +455,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/quote_compare/index.ts": {
-    "mtime": 1789383685.9795406,
-    "ast_hash": "a16ee2ca0d6d379c61bf0ca3707f8c7a",
+    "mtime": 1789384710.3210778,
+    "ast_hash": "44928b1f31ee9fe4ebfe2750f6b8f377",
     "semantic_hash": ""
   },
   "supabase/functions/quote_extract/index.ts": {
@@ -17920,13 +17920,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/line_specs/compare.test.ts": {
-    "mtime": 1789383353.2115653,
-    "ast_hash": "f46264a7974c7b3a4d41d7e662f7a43b",
+    "mtime": 1789384704.0302382,
+    "ast_hash": "444fc8a0cf583bc2a3d5bb4ac1519414",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/line_specs/compare.ts": {
-    "mtime": 1789383230.2752917,
-    "ast_hash": "bab765fec174c91337af92712322c264",
+    "mtime": 1789384695.1249857,
+    "ast_hash": "92afb4a62b14d4fd667958d292500778",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/line_specs/model.test.ts": {
@@ -18005,8 +18005,8 @@
     "semantic_hash": ""
   },
   "docs/contracts/technical_comparison.md": {
-    "mtime": 1789382811.0437343,
-    "ast_hash": "d368c5392842d6007965c5e6d47e1983",
+    "mtime": 1789384720.6959574,
+    "ast_hash": "42e92ffcda8b4badcdac555219f3006c",
     "semantic_hash": ""
   }
 }

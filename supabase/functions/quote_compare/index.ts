@@ -23,7 +23,7 @@ const DISCLAIMER_AR = "هذه توصية محايدة من QuotesDone أعددن
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
 async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 // The technical comparison (docs/contracts/technical_comparison.md) and the option-aware labels.
-import { technicalComparison } from '../_shared/line_specs/compare.ts';
+import { rankable, rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 function parseJson(t: string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f) s=f[1].trim(); try { return JSON.parse(s); } catch {} const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch {} } return null; }
@@ -85,7 +85,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
     const live = (qsAll || []).filter((q: any) => q.status !== 'draft');
-    const qs = live.slice(0, MAX_COMPARE);
+    let qs = live.slice(0, MAX_COMPARE);
     if (!qs || qs.length < 2) { await logRun(qsErr ? 'error' : 'ok', { compared: 0, quotes_seen: qs.length, quotes_total_rows: (qsAll || []).length, need_two: 1, insufficient_genuine: qsErr ? 0 : 1, quotes_query_ok: qsErr ? 0 : 1 }, qsErr ? 'Customer asked to compare quotes and got \'need_two\' because the quotes query FAILED, not because too few suppliers quoted — real quotes may exist and are being hidden from the customer by a database error.' : ('Customer asked to compare quotes but only ' + qs.length + ' non-draft quote(s) exist for this RFQ, so no comparison was produced. This is genuine: suppliers have not returned enough quotes yet.')); return J({ ok: false, error: 'need_two', note: 'Comparison needs at least two complete quotes.' }, 200); }
 
     let itemsByQuote: Record<string, any[]> = {}; let itemsTotal = 0;
@@ -102,6 +102,25 @@ Deno.serve(observe('quote_compare', async (req) => {
         itemsTotal++;
       }
     } catch (_e) { itemsByQuote = {}; }
+
+    // ONLY COMPLETE QUOTES ARE RANKED (founder's hold rule, 14 Sep 2026). A quote missing a line spec,
+    // a delivery date, installation or warranty where they apply, or its ex-VAT price never reaches
+    // the ranking, the shortlist or either table — whatever its status column says. It is counted as
+    // on hold and nothing else (line_specs/compare.ts rankable).
+    let heldAtRanking = 0;
+    {
+      // deno-lint-ignore no-explicit-any
+      const s0: any = inq.spec;
+      const r = rankable(qs.map((q: any) => ({ q,
+        lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec })),
+        terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat } })),
+        inq.category, s0 && typeof s0.requirements === 'object' ? s0.requirements : null);
+      heldAtRanking = r.held; qs = r.rankable.map((x) => x.q);
+    }
+    if (qs.length < 2) {
+      await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
+      return J({ ok: false, error: 'need_two', on_hold: heldAtRanking, note: 'Comparison needs at least two complete quotes.' }, 200);
+    }
 
     const trackBySupplier: Record<string, any> = {};
     try {
@@ -139,12 +158,12 @@ Deno.serve(observe('quote_compare', async (req) => {
     // THE TECHNICAL COMPARISON — line by line, attribute by attribute, against what the customer
     // asked for; held quotes are counted, never shown. Rebuilt on every answer, cached or not.
     let onHold = 0;
-    try { const { count } = await admin.from('quote_spec_hold').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).in('state', ['open', 'awaiting_approval']); onHold = count || 0; } catch (_e) { /* the count is advisory */ }
+    try { const { count } = await admin.from('quote_spec_hold').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).in('state', ['open', 'awaiting_approval']); onHold = (count || 0) + heldAtRanking; } catch (_e) { onHold = heldAtRanking; }
     // deno-lint-ignore no-explicit-any
     const inqSpec: any = inq.spec;
     // deno-lint-ignore no-explicit-any
     const requestLines = ((inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq : []).map((b: any, i: number) => ({ line_no: i + 1, description: String(b?.description || ''), qty: b?.qty ?? null, unit: b?.unit ?? null }));
-    let technical: unknown = null;
+    let technical: TechnicalComparison | null = null;
     try {
       technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: inqSpec && typeof inqSpec.requirements === 'object' ? inqSpec.requirements : null, on_hold: onHold, now: new Date(),
         quotes: qs.map((q: any) => { const lab = labels.get(String(q.id))!; return { quote_id: String(q.id), label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
@@ -178,7 +197,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     // Every live quote with its place (see rosterOf). Recomputed on every answer, cached or not,
     // so it always reflects the quotes as they are now; it is never part of the model's input.
     // deno-lint-ignore no-explicit-any
-    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.technical = technical; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
+    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
     const qhash = await sha256hex(JSON.stringify(labelled));
     try { const { data: cached } = await admin.from('qd_compare_cache').select('analysis').eq('inquiry_id', inquiry_id).eq('quotes_hash', qhash).eq('lang', lang).maybeSingle(); if (cached?.analysis) { await logRun('ok', { compared: 1, quotes_seen: qs.length, cached: 1, lang }, 'Quote comparison for ' + qs.length + ' quotes served from cache; the customer got their recommendation with no model call.'); return J({ ok: true, analysis: withRoster(cached.analysis), cached: true }); } } catch (_e) { /* */ }
     const boqItems = (inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq.map((b: any) => `${b.description || ''}${b.qty ? ' ('+b.qty+' '+(b.unit||'')+')' : ''}`).slice(0, 40) : [];

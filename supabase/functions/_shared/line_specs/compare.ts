@@ -23,7 +23,7 @@ const safe = (v: string | null) => (v == null ? null : maskIdentityNumbers(v).re
 export type RequestLine = { line_no: number; description: string; qty?: number | string | null; unit?: string | null };
 export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string };
 export type AttrRow = { code: string; label_en: string; label_ar: string; unit: string | null; unit_ar: string | null; mandatory: boolean; requested: string | null; requested_source: 'boq' | 'intake' | 'no_preference' | null; cells: Cell[] };
-export type LineRow = { row: number; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[] };
+export type LineRow = { row: number; item: string; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[] };
 export type TermCell = { quote_id: string; applies: boolean; value: string | null; flag: Flag; marker: string };
 export type TermRow = { code: 'delivery' | 'installation' | 'warranty'; label_en: string; label_ar: string; requested: string | null; requested_source: 'intake' | 'no_preference' | null; cells: TermCell[] };
 export type TechnicalComparison = {
@@ -123,7 +123,7 @@ export function technicalComparison(input: { category: string | null; request_li
       });
       return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: a.mandatory, requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
     }).filter((row) => row.mandatory || row.requested || row.cells.some((c) => c.value));
-    return { row: i + 1, request_line: fromRequest ? r.rl : null, trade: lt, trade_en: lt ? TRADES[lt].en : null, trade_ar: lt ? TRADES[lt].ar : null, attributes };
+    return { row: i + 1, item: safe(text) ?? '', request_line: fromRequest ? r.rl : null, trade: lt, trade_en: lt ? TRADES[lt].en : null, trade_ar: lt ? TRADES[lt].ar : null, attributes };
   });
 
   // Quote-level terms, against the customer's intake answers.
@@ -165,6 +165,58 @@ export function technicalComparison(input: { category: string | null; request_li
     quotes: input.quotes.map(({ quote_id, label_en, label_ar, supplier_letter, option_no, terms }) => ({ quote_id, label_en, label_ar, supplier_letter, option_no, price_ex_vat: Number(terms.price_ex_vat) > 0 ? Number(terms.price_ex_vat) : null })),
     lines, terms: [deliveryRow, installationRow, warrantyRow], legend: MARKER,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// THE RENDERER'S VIEW. The comparison-report PDF (PR #611, _shared/quote_documents.ts) reads
+// `analysis.technical` as its own TechnicalComparison: supplier labels as columns, each attribute's
+// values keyed by label, flags match | differs | missing | na, and the three terms under lead_time /
+// installation / warranty. This produces exactly that from the full dataset, so the renderer needs
+// no change; the full dataset is served beside it as `analysis.technical_detail`.
+//   stated (a value, no baseline) → 'match': the value is stated and the quote passed the gate.
+//   not_applicable → 'na'.
+// ---------------------------------------------------------------------------------------------
+export type RenderFlag = 'match' | 'differs' | 'missing' | 'na';
+export type RenderCell = { value?: string | null; flag: RenderFlag; note?: string | null };
+export type RendererTechnical = {
+  suppliers: string[];
+  lines: { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null;
+    attributes: { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, RenderCell> }[] }[];
+  terms?: { lead_time?: RenderTerm | null; installation?: RenderTerm | null; warranty?: RenderTerm | null } | null;
+};
+type RenderTerm = { applicable?: boolean | null; requested?: string | null; values: Record<string, RenderCell> };
+const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f);
+
+export function rendererView(t: TechnicalComparison, lang: 'en' | 'ar'): RendererTechnical {
+  const ar = lang === 'ar';
+  const labelOf = new Map(t.quotes.map((q) => [q.quote_id, q.label_en]));
+  const values = (cells: { quote_id: string; value: string | null; flag: Flag }[]) =>
+    Object.fromEntries(cells.map((c) => [labelOf.get(c.quote_id)!, { value: c.value, flag: rflag(c.flag) }]));
+  const term = (code: TermRow['code']): RenderTerm | null => {
+    const r = t.terms.find((x) => x.code === code); if (!r) return null;
+    return { applicable: r.cells.some((c) => c.applies), requested: r.requested, values: values(r.cells) };
+  };
+  return {
+    suppliers: t.quotes.map((q) => q.label_en),
+    lines: t.lines.map((l) => ({
+      line_no: l.request_line?.line_no ?? null, item: l.item, qty: l.request_line?.qty ?? null, unit: l.request_line?.unit ?? null,
+      attributes: l.attributes.map((a) => ({ key: a.code, label: ar ? a.label_ar : a.label_en, unit: a.unit ? (ar ? a.unit_ar ?? a.unit : a.unit) : null, requested: a.requested, values: values(a.cells) })),
+    })),
+    terms: { lead_time: term('delivery'), installation: term('installation'), warranty: term('warranty') },
+  };
+}
+
+/**
+ * THE RANKING TAKES ONLY COMPLETE QUOTES (14 Sep 2026). A held quote is a draft and never reaches the
+ * comparison, but the ranking must not rest on a status column alone: the PDF redesign's fit-out
+ * sample shortlisted a supplier at #3 whose own data said "material spec not stated". Every quote
+ * offered to the ranking is assessed again here with the same gate; one that would be held is
+ * removed and only counted.
+ */
+export function rankable<Q extends { lines: Line[]; terms: Terms }>(quotes: Q[], category: string | null, requirements: Requirements): { rankable: Q[]; held: number } {
+  const out: Q[] = []; let held = 0;
+  for (const q of quotes) { if (assessQuote({ category, lines: q.lines, terms: q.terms, requirements }).held) held++; else out.push(q); }
+  return { rankable: out, held };
 }
 
 export { readDelivery };
