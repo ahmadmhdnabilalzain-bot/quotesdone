@@ -31,12 +31,14 @@
 --      no twin, as before when there was no opt-in.
 --   7. fn_originator_checks_delivery retries an undelivered email on the confirmed WhatsApp number,
 --      else by SMS on the verified mobile (send_sms drains channel='sms'), never an unverified number.
---   8. fn_wa_lead_id, fn_identify_contact, fn_conversation_party and fn_wa_context match inbound
---      numbers only through fn_whatsapp_owner.
+--   8. fn_wa_lead_id, fn_identify_contact, fn_conversation_party, fn_wa_context and (PR #652)
+--      fn_spec_offer_whatsapp_reply match inbound numbers only through fn_whatsapp_owner, now the ONE
+--      inbound-number helper. #652's fn_customer_by_whatsapp_sender (verified mobile only, no 'other'
+--      number) had one caller, fn_spec_offer_whatsapp_reply - measured 14 Sep 2026 by a search of every
+--      routine body on production and of the repository; pg_depend is empty (plpgsql calls are not
+--      recorded there) - and is dropped at the end of this file, recorded in scripts/sql/DROPPED.txt.
 --
 -- WHAT THIS DOES NOT CHANGE
---   * fn_spec_offer_whatsapp_reply (PR #652, not on main) still matches customers.phone itself; #652
---     should read `select customer_id from fn_whatsapp_owner(p_phone) where party_kind='customer'`.
 --   * fn_support_notify_new_quotation writes WhatsApp into support_notification, which is deliberately
 --     not bridged to any sender (fn_support_notification_to_outbox holds it), so nothing is sent there.
 --   * leads.whatsapp (the scraped number) is kept as data about the listing; it is no longer a route.
@@ -107,7 +109,9 @@ end $fn$;
 revoke execute on function public.fn_whatsapp_destination(text, uuid, bigint, text) from public, anon, authenticated;
 grant execute on function public.fn_whatsapp_destination(text, uuid, bigint, text) to service_role;
 
-create or replace function public.fn_whatsapp_owner(p_phone text)
+-- p_all: every confirmed owner, for a caller that must REPORT a shared number rather than act on it
+-- (#652's offer reply opens a support case). Every caller acts only on exactly one owner.
+create or replace function public.fn_whatsapp_owner(p_phone text, p_all boolean default false)
 returns table(party_kind text, customer_id uuid, lead_id bigint)
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   with t as (select right(regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'), 9) as tail),
@@ -128,10 +132,10 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
          or (l.whatsapp_opt = 'same' and coalesce(l.owner_phone_verified, false)
              and right(regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g'), 9) = t.tail)))
   -- A PHONE MAY CONFIRM, NEVER SELECT: one party or nobody.
-  select h.party_kind, h.customer_id, h.lead_id from hits h where (select count(*) from hits) = 1
+  select h.party_kind, h.customer_id, h.lead_id from hits h where p_all or (select count(*) from hits) = 1
 $fn$;
-revoke execute on function public.fn_whatsapp_owner(text) from public, anon, authenticated;
-grant execute on function public.fn_whatsapp_owner(text) to service_role;
+revoke execute on function public.fn_whatsapp_owner(text, boolean) from public, anon, authenticated;
+grant execute on function public.fn_whatsapp_owner(text, boolean) to service_role;
 
 -- ── 5. EVERY WHATSAPP NOTICE GOES TO A CONFIRMED NUMBER ─────────────────────────────────────────
 create or replace function public.fn_notifications_whatsapp_goes_to_a_confirmed_number()
@@ -536,6 +540,68 @@ begin
   return jsonb_build_object('scope','unknown');
 end $function$;
 
+
+create or replace function public.fn_spec_offer_whatsapp_reply(p_phone text, p_text text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_digits text := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+  v_cust uuid;
+  v_matches int;
+  v_ref text;
+  r public.spec_alternative_offer;
+  v_t text := lower(btrim(translate(coalesce(p_text, ''), '٠١٢٣٤٥٦٧٨٩', '0123456789')));
+  v_n int;
+  v_choice text;
+begin
+  if length(v_digits) < 8 then return jsonb_build_object('handled', false, 'reason', 'no_phone'); end if;
+  -- The text's SHAPE first: only something that looks like an answer (a no, an option number, a bare
+  -- yes) goes any further. Otherwise a number two customers share would open a support case for
+  -- every "hello" it sends.
+  v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
+  if not (v_t ~ '^(no|no thanks|decline|لا|لأ|لا شكرا|لا شكرًا)$'
+          or v_t ~ '^(option |choice |yes |نعم |الخيار )?[0-9]{1,2}$'
+          or v_t ~ '^(yes|ok|نعم|موافق)$') then
+    return jsonb_build_object('handled', false, 'reason', 'not_a_reply');
+  end if;
+  -- Who the sender is: fn_whatsapp_owner alone decides (a verified 'other' WhatsApp number or a verified
+  -- 'same' mobile). p_all, so a number several customers share is still reported below, never guessed.
+  select count(*), min(w.customer_id::text)::uuid into v_matches, v_cust
+    from public.fn_whatsapp_owner(p_phone, true) as w
+   where w.party_kind = 'customer'
+     and exists (select 1 from public.spec_alternative_offer o where o.customer_id = w.customer_id and o.state = 'open');
+  if v_matches = 0 then return jsonb_build_object('handled', false, 'reason', 'no_verified_customer_with_open_offer'); end if;
+  if v_matches > 1 then
+    v_ref := 'SE-SPECOFFER-AMBIG-' || right(v_digits, 9) || '-' || to_char(now(), 'YYYYMMDD');
+    insert into public.support_case (case_ref, party_kind, party_id, subject, owner_role_id)
+    values (v_ref, 'unknown', null,
+            'From the sales engineer: a WhatsApp answer to a no-exact-spec offer came from a number that ' || v_matches ||
+            ' verified customers with open offers share. Nothing was recorded. Confirm with the customer which request it is for, then record it from the portal.',
+            'customer_support')
+    on conflict (case_ref) do nothing;
+    return jsonb_build_object('handled', false, 'reason', 'ambiguous_sender', 'case_ref', v_ref, 'matches', v_matches);
+  end if;
+  select * into r from public.spec_alternative_offer where customer_id = v_cust and state = 'open' order by opened_at, id limit 1;
+  if not found then return jsonb_build_object('handled', false, 'reason', 'no_open_offer'); end if;
+  v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
+  if v_t ~ '^(no|no thanks|decline|لا|لأ|لا شكرا|لا شكرًا)$' then v_choice := 'no';
+  elsif v_t ~ '^(option |choice |yes |نعم |الخيار )?[0-9]{1,2}$' then
+    v_n := (regexp_replace(v_t, '\D', '', 'g'))::int;
+    if v_n < 1 or v_n > jsonb_array_length(r.alternatives) then return jsonb_build_object('handled', true, 'ok', false, 'error', 'unknown_option', 'offer_id', r.id, 'options', jsonb_array_length(r.alternatives)); end if;
+    v_choice := r.alternatives -> (v_n - 1) ->> 'option_id';
+  elsif v_t ~ '^(yes|ok|نعم|موافق)$' and jsonb_array_length(r.alternatives) = 1 then v_choice := r.alternatives -> 0 ->> 'option_id';
+  else return jsonb_build_object('handled', false, 'reason', 'not_a_reply', 'offer_id', r.id);
+  end if;
+  return jsonb_build_object('handled', true) || public.fn_spec_offer_answer(r.id, v_cust, v_choice, 'whatsapp');
+end;
+$function$;
+
+
+-- ONE INBOUND-NUMBER HELPER. Its only caller now reads fn_whatsapp_owner (above).
+drop function if exists public.fn_customer_by_whatsapp_sender(text);
 
 -- ── PROOF, NO DATA (this file defines things, so it must not raise on success) ────────────────────
 do $$

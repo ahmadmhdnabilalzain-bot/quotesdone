@@ -3,6 +3,27 @@ import { askedPatch, choosePatch, parseChoiceOpt, verifiedPatch, whatsappState, 
 
 const NOW = '2026-09-14T10:00:00.000Z';
 
+// Founder, 14 Sep 2026: "for suppliers whatsapp, if they said they are using a different number from the
+// normal calling number and they mentioned it, then an otp verification is needed. and that applies to
+// customer sign up as well." customers and leads carry the same four columns and kyc applies the same
+// patch to whichever the session is, so one proof covers both parties.
+Deno.test('a different number is stored only by a verified code, for customers and suppliers alike', () => {
+  const now = '2026-09-14T12:00:00.000Z';
+  // Choosing cannot name a different number: only same and none are choosable.
+  assertEquals(parseChoiceOpt('other'), null);
+  // Asking, and sending a code, write no number at all.
+  const asked = askedPatch(now);
+  assert(!('whatsapp_phone' in asked) && !('whatsapp_opt' in asked), 'sending a code must not store the entered number or the choice');
+  // 'same' can only store the VERIFIED mobile; without one there is no patch.
+  assertEquals(choosePatch('same', null, now), null);
+  const same = choosePatch('same', '+971500000081', now)!;
+  assertEquals(same.whatsapp_phone, '+971500000081');
+  // The only patch that stores a different number is the one written after the code was approved,
+  // and it stores the verification time with it.
+  const v = verifiedPatch('+971500000083', now);
+  assertEquals([v.whatsapp_phone, v.whatsapp_opt, v.whatsapp_verified_at], ['+971500000083', 'other', now]);
+});
+
 Deno.test('only same and none are choosable; other comes from a verified code', () => {
   assertEquals(parseChoiceOpt('same'), 'same');
   assertEquals(parseChoiceOpt('none'), 'none');

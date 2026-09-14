@@ -74,3 +74,32 @@ test('all six placements render WhatsAppChoice with the right mode', () => {
   assert.deepEqual(modes(src('SupplierPortal.tsx')), ['prompt', 'signup']);
   assert.deepEqual(modes(src('supplier/SupplierSettings.tsx')), ['settings']);
 });
+
+
+// Founder, 14 Sep 2026: "for suppliers whatsapp, if they said they are using a different number from the
+// normal calling number and they mentioned it, then an otp verification is needed. and that applies to
+// customer sign up as well." Supplier registration, supplier Settings and the customer screens all render
+// this one component, and kyc serves both parties with the same actions, so these hold for both.
+test('a different number is never stored without its WhatsApp code (suppliers and customers)', () => {
+  const ui = readFileSync(join(HERE, 'WhatsAppChoice.tsx'), 'utf8');
+  const choose = ui.slice(ui.indexOf('const choose = async'), ui.indexOf('const sendCode = async'));
+  assert.match(choose, /if \(opt === 'other'\) return;[\s\S]*action: 'whatsapp_choose'/, "'different number' must never be saved by whatsapp_choose");
+  assert.doesNotMatch(ui, /whatsapp_choose'[^}]*'other'/, 'no path saves a different number without a code');
+  assert.equal((ui.match(/action: 'whatsapp_verify'/g) || []).length, 1, 'the only way to a different number is whatsapp_verify');
+
+  const kyc = readFileSync(join(HERE, '..', '..', '..', 'supabase', 'functions', 'kyc', 'index.ts'), 'utf8');
+  const branch = (name) => { const s = kyc.indexOf("action === '" + name + "'"); const e = kyc.indexOf("if (action === '", s + 20); return kyc.slice(s, e < 0 ? undefined : e); };
+  const send = branch('whatsapp_send_code');
+  assert.ok(send.length > 0, 'kyc has a whatsapp_send_code action');
+  assert.match(send, /writeWa\(askedPatch\(/, 'sending a code records only that the question was asked');
+  assert.doesNotMatch(send, /verifiedPatch\(|whatsapp_phone/, 'sending a code must not store the entered number');
+  const verify = branch('whatsapp_verify');
+  assert.ok(verify.indexOf('verifyCheck(') > -1 && verify.indexOf('verifyCheck(') < verify.indexOf('verifiedPatch('), 'the number is stored only after Twilio approves the code');
+  assert.doesNotMatch(branch('whatsapp_choose'), /verifiedPatch\(/, 'choosing never stores a different number');
+
+  // Suppliers may skip the question itself: registration shows it (signup mode) without making it one of
+  // the mandatory six, so its missing[] list never names WhatsApp.
+  const sup = readFileSync(join(HERE, 'SupplierPortal.tsx'), 'utf8');
+  assert.match(sup, /mode="signup"/);
+  assert.doesNotMatch(sup, /missing\.push\('[^']*whatsapp/i, 'WhatsApp is not a mandatory registration item for suppliers');
+});

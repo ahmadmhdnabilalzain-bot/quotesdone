@@ -33,7 +33,7 @@ declare
   m_same text := '+97150000' || '0081'; m_other text := '+97150000' || '0082'; wa_other text := '+97150000' || '0083';
   m_none text := '+97150000' || '0084'; m_unans text := '+97150000' || '0085'; m_unver text := '+97150000' || '0086';
   scraped text := '+97150000' || '0087'; shared text := '+97150000' || '0088';
-  c_same uuid; c_other uuid; c_none uuid; c_unans uuid; c_unver uuid; c_sh1 uuid; c_sh2 uuid; l_same bigint; l_none bigint; l_scraped bigint;
+  c_same uuid; c_other uuid; c_none uuid; c_unans uuid; c_unver uuid; c_sh1 uuid; c_sh2 uuid; l_same bigint; l_none bigint; l_scraped bigint; l_pend bigint;
   e text; out jsonb := '{}'::jsonb; refused boolean := false;
   twin record;
 begin
@@ -55,6 +55,25 @@ begin
   exception when check_violation then refused := true;
   end;
   out := out || jsonb_build_object('unverified_number_refused', refused);
+  -- Founder, 14 Sep 2026: "if they said they are using a different number ... then an otp verification
+  -- is needed. and that applies to customer sign up as well." The supplier side of the same proof.
+  refused := false;
+  begin
+    insert into public.leads (company_name, email, claimed_by, phone, owner_phone_verified, whatsapp_opt, whatsapp_phone)
+    values ('ZZ DEMO WA Supplier Bad', 'zz-demo-wa-sbad' || e, 'zz-demo-wa-sbad' || e, m_unans || '9', true, 'other', '+971500000090');
+  exception when check_violation then refused := true;
+  end;
+  out := out || jsonb_build_object('supplier_unverified_number_refused', refused);
+  -- A supplier who chose 'other' and never entered the code: the row can only hold the choice, no number.
+  insert into public.leads (company_name, email, claimed_by, phone, owner_phone_verified, whatsapp_opt)
+  values ('ZZ DEMO WA Supplier Pending', 'zz-demo-wa-spend' || e, 'zz-demo-wa-spend' || e, m_unans || '8', true, 'other') returning id into l_pend;
+  insert into public.notifications (type, to_email, to_role, lead_id, channel, subject, body)
+  values ('new_inquiry', 'zz-demo-wa-spend' || e, 'supplier', l_pend, 'email', 'x', 'x');
+  out := out || jsonb_build_object('pending', jsonb_build_object(
+    'supplier_dest', public.fn_whatsapp_destination('supplier', null, l_pend),
+    'supplier_twins', (select count(*) from public.notifications n where n.to_email = 'zz-demo-wa-spend' || e and n.channel = 'whatsapp'),
+    'entered_number_owner', (select jsonb_agg(o) from public.fn_whatsapp_owner('+971500000090', true) o),
+    'customer_entered_number_owner', (select jsonb_agg(o) from public.fn_whatsapp_owner('+971500000089', true) o)));
 
   -- 1-4. email notices, and the WhatsApp twins they make
   insert into public.notifications (type, to_email, to_role, channel, subject, body) values
@@ -105,7 +124,10 @@ const ok = (c, s) => { if (!c) fails.push(s); console.log(`  ${c ? 'ok ' : 'BAD'
 const twin = (who, type = null) => out.rows.filter((x) => x.who === who && x.channel === 'whatsapp' && (!type || x.type === type));
 const email = (who) => out.rows.filter((x) => x.who === who && x.channel === 'email');
 
-ok(out.unverified_number_refused, '5. a WhatsApp number without its verification time is refused by the table');
+ok(out.unverified_number_refused, '5. customer: a different number without its code is refused by the table (never stored)');
+ok(out.supplier_unverified_number_refused, '5. supplier: a different number without its code is refused by the table (never stored)');
+ok(out.pending.supplier_dest === null && Number(out.pending.supplier_twins) === 0, "5. supplier who chose 'other' without the code: never sent to (no route, no twin)");
+ok(!out.pending.entered_number_owner && !out.pending.customer_entered_number_owner, '5. a different number entered without its code is never matched on inbound (supplier or customer)');
 ok(twin('same', 'new_quote').length === 1 && twin('same', 'new_quote')[0].to_phone === '+971500000081', "1. customer 'same': twin to the verified mobile");
 ok(twin('ssame').length === 1 && twin('ssame')[0].to_phone === '+9715000000819', "1. supplier 'same': twin to the verified mobile");
 ok(twin('other', 'new_quote').length === 1 && twin('other', 'new_quote')[0].to_phone === '+971500000083', "2. 'other': twin to the verified WhatsApp number, not the mobile");

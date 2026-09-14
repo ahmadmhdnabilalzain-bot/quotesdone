@@ -556,7 +556,6 @@ Deno.serve(observe('supplier_api', async (req) => {
         if (!['en', 'ar'].includes(loc)) return J({ error: 'locale must be en or ar' }, 400);
         upd.locale = loc;
       }
-      if (body.wa_optin !== undefined) upd.wa_optin = !!body.wa_optin;
       if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (error) return J({ error: error.message }, 500);
@@ -565,7 +564,7 @@ Deno.serve(observe('supplier_api', async (req) => {
 
     if (action === 'settings') {
       const { data: sup } = await admin.from('leads')
-        .select('id,company_name,locale,wa_optin,email_shared,claimed_by,phone,approval_status,registration_status,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,license_expiry')
+        .select('id,company_name,locale,email_shared,claimed_by,phone,approval_status,registration_status,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,license_expiry')
         .eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       return J({ ok: true, settings: sup });
