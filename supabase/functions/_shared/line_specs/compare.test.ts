@@ -51,6 +51,36 @@ Deno.test('a detail a quote does not state is —, and with no baseline the valu
   assertEquals(t.terms.find((x) => x.code === 'warranty')!.cells.map((c) => c.marker), ['', '—']);
 });
 
+// Measured 14 Sep 2026 on both live e2e comparisons: every "missing" cell was a quote with no line on
+// a row that is another supplier's own item, and the report told the customer "not stated — ask for
+// it". A quote that does not include an item is not missing a detail of it.
+Deno.test('a quote that does not include an item is not_applicable on that row, never missing', () => {
+  const W = { ...B, quote_id: 'qw', lines: [{ line_no: 1, description: 'Wardrobe 16mm particle board, melamine finish', amount: 4000 }, { line_no: 2, description: 'Kitchen worktop quartz 20mm thick', amount: 2500 }] };
+  const t = technicalComparison({ category: 'joinery', request_lines: [], requirements: null, quotes: [A, W], on_hold: 0, now });
+  const worktop = t.lines.find((l) => /worktop/i.test(l.item))!;
+  assert(worktop, 'the extra item is its own row');
+  const aCells = worktop.attributes.flatMap((at) => at.cells.filter((c) => c.quote_id === 'qa'));
+  assert(aCells.length > 0);
+  assertEquals([...new Set(aCells.map((c) => c.flag))], ['not_applicable']);
+});
+
+// Review of #644, 14 Sep 2026: an OPTIONAL detail that applies, stated by one supplier and not by
+// another, is a real difference the customer should see. It is neither n/a (hiding it) nor missing
+// (it never holds a quote and is never chased).
+Deno.test('an optional detail one supplier states and another does not is optional_not_stated, not n/a', () => {
+  const E = { ...A, quote_id: 'qe', lines: [{ line_no: 1, description: 'Wardrobes 18mm MR MDF, HPL finish, 2mm PVC edge banding', amount: 6000 }] };
+  const N = { ...B, quote_id: 'qn', lines: [{ line_no: 1, description: 'Wardrobes 18mm MR MDF, HPL finish', amount: 5500 }], terms: { ...A.terms, price_ex_vat: 5500 } };
+  const t = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: null, quotes: [E, N], on_hold: 0, now });
+  const eb = t.lines[0].attributes.find((a) => a.code === 'edge_band')!;
+  assert(eb && !eb.mandatory, 'edge band is an optional detail for joinery');
+  assertEquals(eb.cells.map((c) => [c.flag, c.marker]), [['stated', ''], ['optional_not_stated', '○']]);
+  // The mandatory details both suppliers stated are unaffected.
+  assertEquals(t.lines[0].attributes.filter((a) => a.mandatory).flatMap((a) => a.cells.map((c) => c.flag)).filter((f) => f === 'missing' || f === 'optional_not_stated'), []);
+  const r = rendererView(t, 'en');
+  const view = r.lines[0].attributes.find((a) => a.key === 'edge_band')!;
+  assertEquals([view.values['Supplier A'].flag, view.values['Supplier B'].flag], ['match', 'optional']);
+});
+
 Deno.test('the renderer view is exactly the shape PR #611\'s comparison report reads', () => {
   const t = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: REQ, quotes: [A, B], on_hold: 0, now });
   const r = rendererView(t, 'ar');
