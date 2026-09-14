@@ -387,10 +387,10 @@ end $fn$;
 revoke execute on function public.fn_table_export_finish(date, jsonb, text) from public, anon, authenticated;
 
 -- ── 7. THE DROPBOX HALF: fn_enqueue_doc_backups + TABLE EXPORTS ────────────────────────────────────
--- The body is the MANIFEST-last definition (every_conversation_is_kept_backed_up_twice_and_readable_
--- by_the_sales_engineer.sql) with ONE section added at the end. PR #659 also redefines this routine
--- (the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql, + ACCOUNTING):
--- whichever of the two lands second must carry both sections, or the other is silently dropped.
+-- RECONCILED WITH #659 (merged 14 Sep 2026): this is the ONE canonical definition. It is the body of
+-- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql (SUPPLIERS .. CORRESPONDENCE +
+-- ACCOUNTING) with TABLE EXPORTS added at the end, and this file is applied after that one, so both
+-- sections are live. A later redefinition must carry both.
 create or replace function public.fn_enqueue_doc_backups()
 returns integer
 language plpgsql
@@ -559,6 +559,61 @@ begin
       to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM-DD HH24MI') || ' ' || v.direction || ' ' || v.channel || ' - '
         || public.fn_dbx_safe(left(coalesce(nullif(btrim(v.subject),''),'(no subject)'),80)) || ' #' || v.source_id || '.pdf' as fname) x
   where not v.is_demo
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  -- ============ ACCOUNTING (14 SEP 2026, accountant duty 4 of the five further duties) ============
+  -- The founder, 14 Sep 2026: "add all for accountant and IT". The accountant's own documents are filed on
+  -- the entity -> type -> date tree under Finance: the month close the CEO signed for (PDF and CSV), the
+  -- Mashreq statements, every document the accountant issued in the founder's name, and the year-end pack.
+  -- A path stored as '<bucket>/<path>' (bank_statement_intake.doc_path, accountant_issued_document.file_path)
+  -- is split at its first slash; any other shape is not queued. Demo rows are filtered exactly as
+  -- fn_it_backup_expected filters them (a zz_demo account, an @example.invalid recipient, a ZZ DEMO path):
+  -- no demo document reaches Dropbox or the backups bucket.
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'close:' || to_char(c.month,'YYYY-MM'), v.doc_type, c.pdf_bucket, v.path,
+         regexp_replace(v.path,'^.*/',''),
+         '/QuotesDone Backup/Finance/Month Close/' || to_char(c.month,'YYYY') || '/' || to_char(c.month,'YYYY-MM')
+           || ' - ' || regexp_replace(v.path,'^.*/',''),
+         'storage', 'ACCT:close:' || to_char(c.month,'YYYY-MM') || ':' || v.path
+  from public.accountant_month_close c
+  cross join lateral (values ('Month close (PDF)', c.pdf_path), ('Month close (CSV)', c.csv_path)) v(doc_type, path)
+  where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path,'')) > 0
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'bank_statement:' || b.source_ref, 'Bank statement', split_part(b.doc_path,'/',1),
+         substr(b.doc_path, strpos(b.doc_path,'/') + 1), regexp_replace(b.doc_path,'^.*/',''),
+         '/QuotesDone Backup/Finance/Bank Statements/' || initcap(b.account) || '/'
+           || to_char(coalesce(b.statement_month, (b.received_at at time zone 'Asia/Dubai')::date),'YYYY') || '/'
+           || to_char(coalesce(b.statement_month, (b.received_at at time zone 'Asia/Dubai')::date),'YYYY-MM')
+           || ' - ' || regexp_replace(b.doc_path,'^.*/',''),
+         'storage', 'ACCT:bank:' || b.source_ref
+  from public.bank_statement_intake b
+  where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'issued:' || d.id, 'Issued document', split_part(d.file_path,'/',1),
+         substr(d.file_path, strpos(d.file_path,'/') + 1), regexp_replace(d.file_path,'^.*/',''),
+         '/QuotesDone Backup/Finance/Issued Documents/' || to_char(d.issued_at at time zone 'Asia/Dubai','YYYY') || '/'
+           || to_char(d.issued_at at time zone 'Asia/Dubai','YYYY-MM') || '/'
+           || to_char(d.issued_at at time zone 'Asia/Dubai','YYYY-MM-DD') || ' ' || d.document_kind || ' #' || d.id
+           || ' - ' || regexp_replace(d.file_path,'^.*/',''),
+         'storage', 'ACCT:issued:' || d.id
+  from public.accountant_issued_document d
+  where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'year_end:' || p.year, 'Year-end pack', f->>'bucket', f->>'path', f->>'name',
+         '/QuotesDone Backup/Finance/Year End/' || p.year || '/' || (f->>'name'),
+         'storage', 'ACCT:year_end:' || p.year || ':' || (f->>'name')
+  from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
+  where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
   on conflict (dedupe_key) do nothing;
   get diagnostics m = row_count; n := n + m;
 

@@ -31,6 +31,12 @@
 -- reads public.table_export_run in a SQL-language body, so it is applied AFTER
 -- every_business_table_is_exported_every_day_again.sql.
 --
+-- 14 SEP 2026, accountant (review of #659): fn_it_backup_expected also expects the accountant's files that
+-- fn_enqueue_doc_backups: ACCOUNTING files - the month close, the Mashreq statements, the issued documents
+-- and the year-end pack - so the backup loop verifies each one reached Dropbox. This file stays the ONE
+-- definition; it is applied AFTER the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql,
+-- because a SQL-language body is checked when it is created and reads accountant_year_end_pack.
+--
 --   node scripts/apply_sql.mjs scripts/sql/every_stored_document_source_is_registered_for_backup.sql --apply --ddl
 
 create or replace function public.fn_backup_source_registry()
@@ -56,8 +62,15 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('signed-terms',                         'bucket', 'signed-terms',  true,  'fn_enqueue_doc_backups: SUPPLIERS, CUSTOMERS', null),
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
-    ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE; dropbox_backup renders generated documents into backups/generated/', null),
+    ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
     ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list())', null),
+    -- The accountant's four (open gaps until 14 Sep 2026, closed by
+    -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
+    -- '<bucket>/<path>' names its bucket itself, so the bucket column is null for those two.
+    ('accountant_month_close.pdf_path',      'column', 'finance-reports', true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
+    ('accountant_month_close.csv_path',      'column', 'finance-reports', true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
+    ('accountant_issued_document.file_path', 'column', null,              true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
+    ('bank_statement_intake.doc_path',       'column', null,              true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
     -- ── not a document to keep ──
     ('doc_backups.dropbox_path',             'column', null, false, null, 'the Dropbox destination of a backup, not a source'),
     ('pdpl_erase_files.storage_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
@@ -104,12 +117,8 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_dues.demand_letter_path',     'column', null, false, null, 'OPEN GAP: a demand letter is not yet in the Dropbox tree'),
     ('supplier_dues.case_file_path',         'column', null, false, null, 'OPEN GAP: a supplier dues case file is not yet in the Dropbox tree'),
     ('supplier_dues.evidence_terms_path',    'column', null, false, null, 'OPEN GAP: signed-terms evidence for a due is not yet in the Dropbox tree'),
-    -- The accountant's own records (PR #645). Kept, not regenerated: a month close the CEO signed must
-    -- stay as signed. Filing them into the Dropbox tree is the accountant's year-end-pack duty.
-    ('accountant_month_close.pdf_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close is not yet in the Dropbox tree'),
-    ('accountant_month_close.csv_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close (CSV) is not yet in the Dropbox tree'),
-    ('accountant_issued_document.file_path', 'column', null, false, null, 'OPEN GAP: a document the accountant issued is not yet in the Dropbox tree'),
-    ('bank_statement_intake.doc_path',       'column', null, false, null, 'OPEN GAP: a bank statement received from Mashreq is not yet in the Dropbox tree'),
+    -- The accountant's own records (PR #645) are no longer open gaps: they are backed up above, filed by
+    -- fn_enqueue_doc_backups: ACCOUNTING (PR #659, the accountant's year-end-pack duty).
     -- The IT engineer's incident PDF (PR #641, duty 18): rendered into agent-docs from the fixed template
     -- fn_it_incident_pdf_blocks over the public.it_incident row, which is the record.
     ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
@@ -170,6 +179,29 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   select 'gen:customer_details:' || c.id, 'generated', null, null, 'customer_details', c.id::text, 'customer:' || c.id, c.created_at from rc c
   union all
   select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i
+  union all
+  -- ── ACCOUNTING (14 Sep 2026, accountant duty 4): what fn_enqueue_doc_backups files under Finance ──
+  select 'obj:' || c.pdf_bucket || ':' || v.path, 'storage', c.pdf_bucket, v.path, null, null,
+         'finance:close:' || to_char(c.month, 'YYYY-MM'), c.rendered_at
+    from public.accountant_month_close c cross join lateral (values (c.pdf_path), (c.csv_path)) v(path)
+   where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path, '')) > 0
+  union all
+  select 'obj:' || split_part(b.doc_path, '/', 1) || ':' || substr(b.doc_path, strpos(b.doc_path, '/') + 1), 'storage',
+         split_part(b.doc_path, '/', 1), substr(b.doc_path, strpos(b.doc_path, '/') + 1), null, null,
+         'finance:bank_statement:' || b.source_ref, b.received_at
+    from public.bank_statement_intake b
+   where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
+  union all
+  select 'obj:' || split_part(d.file_path, '/', 1) || ':' || substr(d.file_path, strpos(d.file_path, '/') + 1), 'storage',
+         split_part(d.file_path, '/', 1), substr(d.file_path, strpos(d.file_path, '/') + 1), null, null,
+         'finance:issued:' || d.id, d.issued_at
+    from public.accountant_issued_document d
+   where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
+  union all
+  select 'obj:' || (f->>'bucket') || ':' || (f->>'path'), 'storage', f->>'bucket', f->>'path', null, null,
+         'finance:year_end:' || p.year, p.rendered_at
+    from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
+   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
   union all
   -- ── TABLE EXPORTS (14 Sep 2026): each Asia/Dubai day from the first the revived writer ran ──
   -- due from 03:00 Dubai that day; the expected-status grace then decides when a gap is a finding
