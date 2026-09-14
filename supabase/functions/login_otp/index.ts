@@ -3,6 +3,7 @@ import { observe } from '../_shared/observe.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
+import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -193,6 +194,9 @@ Deno.serve(observe('login_otp', async (req) => {
         // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
         return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", no_account: true }, 404);
       }
+      // After the identity refusals (so a fixture number still answers 404/409 exactly as a real one
+      // does) and before anything reaches Twilio: a fixture number is never texted.
+      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
       // A prefix the IT engineer blocked for pumping gets no code (public.otp_blocked_prefix, duty 11).
@@ -296,6 +300,7 @@ Deno.serve(observe('login_otp', async (req) => {
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
+      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.' }, 503);
       try {
         const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });

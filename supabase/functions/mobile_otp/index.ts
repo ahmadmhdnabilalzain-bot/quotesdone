@@ -8,6 +8,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { prefixBlocked } from '../_shared/otp_guard.ts';
+import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -59,6 +60,12 @@ Deno.serve(observe('mobile_otp', async (req) => {
     const email = user.email.toLowerCase();
     let { data: cust } = await admin.from('customers').select('id,phone,phone_verified,locale').eq('email', email).maybeSingle();
     if (!cust) { const ins = await admin.from('customers').insert({ email, locale: asLocale(body.lang) }).select('id,phone,phone_verified,locale').maybeSingle(); cust = ins.data; }
+
+    // A fixture number never reaches Twilio, for a send or a check (_shared/demo_identity.ts).
+    if ((action === 'send' || action === 'verify') && isDemoPhone(normPhone(String(body.phone || '')))) {
+      try { await admin.from('agent_runs').insert({ agent: 'mobile_otp', status: 'skipped', counts: { action, captured: 1 }, note: FIXTURE_CAPTURE_NOTE, finished_at: new Date().toISOString() }); } catch (_e) { /* logging never blocks */ }
+      return J(FIXTURE_REFUSAL);
+    }
 
     if (action === 'status') return J({ ok: true, sms_enabled: smsEnabled, phone: cust!.phone || null, phone_verified: !!cust!.phone_verified });
 
