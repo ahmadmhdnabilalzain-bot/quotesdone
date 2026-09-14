@@ -1315,14 +1315,16 @@ Deno.serve(observe('accountant', async (req) => {
       const { data: out, error: dErr } = await admin.rpc('fn_accountant_duties', { p_r: { stripe, charge_audit: chargeAudit } });
       if (dErr) { await run('duties', 'error', {}, 'fn_accountant_duties raised: ' + dErr.message); return J({ ok: false, error: dErr.message }, 500); }
 
-      // ANSWER EVERY DISPUTE THAT IS WAITING (duty 7): the invoice PDF as evidence[receipt], the text
-      // from fn_accountant_dispute_evidence, submitted at once.
+      // DISPUTES (duty 7). SUBMITTING IS FINAL — Stripe takes one submission — so it happens in two steps
+      // (review of #645): (1) the evidence is SAVED at Stripe as a draft (submit=false) the moment it is
+      // assembled, and the CEO gets a review item; (2) it is submitted only when
+      // fn_accountant_disputes_to_submit names a trigger: the CEO's approval, or his silence at T-24h.
       const answered: Record<string, unknown>[] = [];
-      const { data: toSubmit } = await admin.rpc('fn_accountant_disputes_to_submit');
-      for (const ev of (toSubmit || []) as Record<string, any>[]) {
+      const { data: toDraft } = await admin.rpc('fn_accountant_disputes_to_draft');
+      for (const ev of (toDraft || []) as Record<string, any>[]) {
         if (ev?.ok !== true) continue;
         const key = ev.livemode ? keys.live : keys.test;
-        if (!key) { await admin.rpc('fn_accountant_dispute_submitted', { p_id: ev.dispute, p_ok: false, p_response: null, p_error: 'no Stripe key for this mode' }); continue; }
+        if (!key) { await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: false, p_response: null, p_error: 'no Stripe key for this mode' }); continue; }
         let fileId: string | undefined;
         if (ev.receipt?.path) {
           const { data: blob } = await admin.storage.from(String(ev.receipt.bucket)).download(String(ev.receipt.path));
@@ -1337,13 +1339,29 @@ Deno.serve(observe('accountant', async (req) => {
         }
         const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(ev.dispute)), {
           method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: disputeEvidenceForm(ev.fields || {}, { receipt: fileId }).toString(),
+          body: disputeEvidenceForm(ev.fields || {}, { receipt: fileId }, false).toString(),   // a DRAFT: submit=false
         });
         const j = await r.json().catch(() => ({}));
-        await admin.rpc('fn_accountant_dispute_submitted', { p_id: ev.dispute, p_ok: r.ok,
-          p_response: r.ok ? { id: j.id, status: j.status, receipt_file: fileId ?? null } : null,
+        await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: r.ok,
+          p_response: r.ok ? { id: j.id, status: j.status, receipt_file: fileId ?? null, draft: true } : null,
           p_error: r.ok ? null : 'HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 300) });
-        answered.push({ dispute: ev.dispute, submitted: r.ok, receipt_file: fileId ?? null });
+        answered.push({ dispute: ev.dispute, drafted: r.ok, receipt_file: fileId ?? null });
+      }
+      const { data: toSubmit } = await admin.rpc('fn_accountant_disputes_to_submit');
+      for (const s of (toSubmit || []) as Record<string, any>[]) {
+        const key = s.livemode ? keys.live : keys.test;
+        if (!key || !s.trigger) continue;
+        // The evidence is already saved on the dispute; this call only submits it.
+        const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(s.dispute)), {
+          method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ submit: 'true', 'metadata[submit_trigger]': String(s.trigger) }).toString(),
+        });
+        const j = await r.json().catch(() => ({}));
+        await admin.rpc('fn_accountant_dispute_submitted', { p_id: s.dispute, p_ok: r.ok,
+          p_response: r.ok ? { id: j.id, status: j.status } : null,
+          p_error: r.ok ? null : 'HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 300),
+          p_trigger: String(s.trigger) });
+        answered.push({ dispute: s.dispute, submitted: r.ok, trigger: s.trigger });
       }
 
       // RENDER EVERY CLOSED MONTH THAT HAS NO DOCUMENT YET (duty 8): PDF and CSV, English.

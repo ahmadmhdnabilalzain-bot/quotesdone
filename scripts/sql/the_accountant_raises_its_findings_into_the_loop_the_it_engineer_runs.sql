@@ -3,8 +3,9 @@
 --
 -- Assigned: accountant (the finding ledger entries and the notices it asks for). The words a supplier
 -- reads are the sales_engineer's (fn_sales_engineer_writes_money_notice); the send is customer_support's.
--- fn_seat_handoff_act is the loop core the it_engineer's file owns; this file carries its live body with
--- ONE added branch, signed for the it_engineer in the commit.
+-- fn_seat_handoff_act is the loop core and has ONE owner, the it_engineer's
+-- the_it_engineer_closes_every_loop_it_opens.sql; the notice branch that calls this file's writer lives
+-- there (review of #645: no second copy of the body), so that file is applied after this one.
 --
 -- The founder, 14 Sep 2026: "yea add them all" (the accountant's eight duties), "always make sure things
 -- are in loop. nothing literally should ever be a one way communication", and "just ignore the corporate
@@ -207,53 +208,7 @@ begin
 end $fn$;
 revoke execute on function public.fn_sales_engineer_writes_money_notice(bigint) from public, anon, authenticated;
 
--- ── 4. THE LOOP CORE, WITH THE NOTICE BRANCH ─────────────────────────────────────────────────────
--- Live body of fn_seat_handoff_act as defined by the_it_engineer_closes_every_loop_it_opens.sql (read
--- back from production 14 Sep 2026), with ONE branch added before the per-seat dispatch. Whichever file
--- is applied last must carry the delivery.result, it.finding and notice branches.
-create or replace function public.fn_seat_handoff_act(p_id bigint)
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare a public.agent_actions; v jsonb; v_originator_closes boolean;
-begin
-  select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
-  if not found then raise exception 'no handoff %', p_id; end if;
-  if a.status = 'done' then return a.evidence; end if;
-
-  if a.detail->>'type' = 'delivery.result' then
-    -- The delivery loop (customer_support's build): the originator checks what became of its send.
-    v := case when a.agent = 'sales_engineer' and a.detail->>'result' in ('proof_of_response', 'no_response_confirmation')
-              then public.fn_sales_engineer_acts_on_handoff(p_id) else '{}'::jsonb end
-         || public.fn_originator_checks_delivery(p_id);
-  elsif a.detail->>'type' = 'it.finding' then
-    v := public.fn_seat_answers_it_finding(p_id);
-  elsif a.agent = 'sales_engineer' and a.detail ? 'notice' then
-    -- The accountant's reminders, renewals and dunning (this file, section 3).
-    v := public.fn_sales_engineer_writes_money_notice(p_id);
-  else
-    v := case a.agent
-           when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)
-           when 'accountant'       then public.fn_accountant_acts_on_handoff(p_id)
-           when 'customer_support' then public.fn_customer_support_acts_on_handoff(p_id)
-           else null end;
-  end if;
-  if v is null then raise exception 'seat % has no handler for %', a.agent, a.detail->>'type'; end if;
-
-  select w.originator_closes into v_originator_closes from public.seat_handoff_window w
-   where w.type = a.detail->>'type' and w.from_seat = a.detail->>'from';
-  if v ? 'waiting' or coalesce(v_originator_closes, false) then
-    update public.agent_actions
-       set detail = detail || jsonb_build_object('awaiting', coalesce(v->>'waiting', a.detail->>'from' || ' re-verification'),
-                                                 'replied_at', now()),
-           evidence = v
-     where id = p_id;
-    perform public.fn_seat_handoff_event(p_id, 'waiting');
-    return v;
-  end if;
-  perform public.fn_seat_handoff_complete(p_id, v);
-  return v;
-end $fn$;
-
--- ── 5. PROOF: a finding raised, re-checked away, and a notice with no template refused ────────────
+-- ── 4. PROOF: a finding raised, re-checked away, and a notice with no template refused ────────────
 -- This file defines routines, so the probe cleans up after itself and ends in a notice.
 do $probe$
 declare v jsonb; v_open int; v_closed int; v_left int;

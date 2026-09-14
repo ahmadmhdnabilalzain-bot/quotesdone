@@ -14,7 +14,9 @@
 -- WHAT THIS BUILDS: public.stripe_dispute, written by stripe_webhook on every charge.dispute.* event
 -- (DISPUTE_EVENTS joins HANDLED_STRIPE_EVENTS, so stripe_setup registers them) and by the accountant
 -- runtime's daily read of GET /v1/disputes as a backstop. fn_accountant_dispute_evidence assembles the
--- evidence from those records; the runtime uploads the invoice PDF and submits at once. The CEO is told
+-- evidence from those records; the runtime uploads the invoice PDF and SAVES it at Stripe as a draft,
+-- the CEO reviews it, and it is submitted only on his approval or, if he is silent, at due_by - 24h
+-- (section 2b — submission is final, so it is never automatic before that moment). The CEO is told
 -- at T-72h and T-24h if anything is still unsubmitted, and an unsubmitted dispute inside 72 hours, a
 -- failed submission, or a dispute on a charge the books cannot find is a finding round the IT loop.
 -- A TEST-mode dispute is recorded only when it is about a ZZ DEMO customer's payment.
@@ -143,27 +145,131 @@ begin
 end $fn$;
 revoke execute on function public.fn_accountant_dispute_evidence(text) from public, anon, authenticated;
 
-create or replace function public.fn_accountant_disputes_to_submit()
+-- ── 2b. DRAFT FIRST, SUBMIT ON THE CEO'S WORD OR AT T-24h ───────────────────────────────────────
+-- Review of #645, CRITICAL: submitting evidence to Stripe is FINAL — one submission per dispute, no
+-- amendment. So the evidence is saved to Stripe as a DRAFT the moment it is assembled (submit=false),
+-- the CEO gets a tracked review item with its summary, and the submission happens only when
+--   (a) the CEO approves it (fn_ceo_approve_dispute_submission), trigger 'ceo_approval', or
+--   (b) the CEO is silent and the dispute reaches evidence_due_by - 24h, trigger 'deadline_t24_ceo_silent'
+--       — never earlier, so a deadline is never missed and a silence never submits early.
+-- Who or what triggered the submission is recorded on the dispute and on the CEO's review item.
+alter table public.stripe_dispute
+  add column if not exists draft_saved_at   timestamptz,
+  add column if not exists review_report_id bigint,
+  add column if not exists approved_by      text,
+  add column if not exists approved_at      timestamptz,
+  add column if not exists submit_trigger   text;
+
+create or replace function public.fn_accountant_disputes_to_draft()
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select coalesce(jsonb_agg(public.fn_accountant_dispute_evidence(d.id) order by d.evidence_due_by), '[]'::jsonb)
     from public.stripe_dispute d
    where d.status in ('needs_response', 'warning_needs_response') and d.evidence_submitted_at is null
+     and d.draft_saved_at is null and d.closed_at is null
      and (d.evidence_due_by is null or d.evidence_due_by > now()) and d.transaction_id is not null;
+$fn$;
+revoke execute on function public.fn_accountant_disputes_to_draft() from public, anon, authenticated;
+
+-- The runtime saved (or failed to save) the draft at Stripe. A saved draft becomes the CEO's review item.
+create or replace function public.fn_accountant_dispute_drafted(p_id text, p_ok boolean, p_response jsonb, p_error text default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare d public.stripe_dispute; v_ev jsonb; v_rep jsonb;
+begin
+  select * into d from public.stripe_dispute where id = p_id for update;
+  if not found then raise exception 'no dispute %', p_id; end if;
+  if not p_ok then
+    update public.stripe_dispute set submit_error = left('draft not saved: ' || coalesce(p_error, '?'), 600), last_seen_at = now() where id = p_id;
+    return jsonb_build_object('ok', false, 'dispute', p_id);
+  end if;
+  v_ev := public.fn_accountant_dispute_evidence(p_id);
+  v_rep := public.fn_support_report_to_ceo('dispute_review:' || p_id, 'serious',
+    'Card dispute ' || p_id || ' on AED ' || round(d.amount_fils / 100.0, 2) || ' (' || coalesce(d.reason, 'no reason given')
+      || '): evidence saved as a draft, waiting for your approval to submit',
+    jsonb_build_object('dispute', p_id, 'amount_aed', round(d.amount_fils / 100.0, 2), 'reason', d.reason,
+                       'evidence_due_by', d.evidence_due_by, 'auto_submit_at', d.evidence_due_by - interval '24 hours',
+                       'evidence', v_ev->'fields', 'receipt_attached', v_ev ? 'receipt' and v_ev->'receipt' <> 'null'::jsonb,
+                       'livemode', d.livemode),
+    '[]'::jsonb,
+    'Read the evidence and approve its submission: select public.fn_ceo_approve_dispute_submission(''' || p_id || ''', ''<your note>'');'
+      || ' Submitting is final — Stripe accepts one submission. If you do not answer, the accountant submits the saved evidence at '
+      || to_char((d.evidence_due_by - interval '24 hours') at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai, 24 hours before Stripe''s deadline.',
+    p_review_in => greatest(least(d.evidence_due_by - interval '24 hours' - now(), interval '2 days'), interval '1 hour'),
+    p_source_agent => 'accountant');
+  update public.stripe_dispute
+     set draft_saved_at = now(), submit_error = null, submission = p_response, last_seen_at = now(),
+         review_report_id = (v_rep->>'report_id')::bigint
+   where id = p_id;
+  return jsonb_build_object('ok', true, 'dispute', p_id, 'review_report', v_rep);
+end $fn$;
+revoke execute on function public.fn_accountant_dispute_drafted(text, boolean, jsonb, text) from public, anon, authenticated;
+
+-- The CEO's approval. Only a saved, unsubmitted draft can be approved, and the approval is his receipt
+-- on the review item.
+create or replace function public.fn_ceo_approve_dispute_submission(p_id text, p_note text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare d public.stripe_dispute;
+begin
+  if coalesce(btrim(p_note), '') = '' then raise exception 'an approval to submit dispute evidence carries a note of what was read'; end if;
+  select * into d from public.stripe_dispute where id = p_id for update;
+  if not found or d.draft_saved_at is null or d.evidence_submitted_at is not null or d.closed_at is not null then
+    return jsonb_build_object('ok', false, 'reason', 'dispute ' || p_id || ' has no saved, unsubmitted draft to approve');
+  end if;
+  update public.stripe_dispute set approved_by = 'ceo', approved_at = now() where id = p_id;
+  if d.review_report_id is not null then
+    perform public.fn_ceo_accept_support_report(d.review_report_id, 'ceo: approved submitting the evidence for ' || p_id || ' — ' || p_note);
+  end if;
+  return jsonb_build_object('ok', true, 'dispute', p_id, 'approved_by', 'ceo');
+end $fn$;
+revoke execute on function public.fn_ceo_approve_dispute_submission(text, text) from public, anon, authenticated;
+
+-- WHEN a dispute may be submitted, and why. Pure over the row and a moment, so it is proved at any time.
+create or replace function public.fn_accountant_dispute_submit_trigger(p_id text, p_at timestamptz default now())
+returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select case
+    when d.draft_saved_at is null or d.evidence_submitted_at is not null or d.closed_at is not null then null
+    when d.evidence_due_by is not null and p_at >= d.evidence_due_by then null           -- Stripe has closed it
+    when d.approved_at is not null then 'ceo_approval'
+    when d.evidence_due_by is not null and p_at >= d.evidence_due_by - interval '24 hours' then 'deadline_t24_ceo_silent'
+    else null end
+  from public.stripe_dispute d where d.id = p_id;
+$fn$;
+revoke execute on function public.fn_accountant_dispute_submit_trigger(text, timestamptz) from public, anon, authenticated;
+
+create or replace function public.fn_accountant_disputes_to_submit()
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(jsonb_agg(jsonb_build_object('dispute', d.id, 'livemode', d.livemode,
+                                               'trigger', public.fn_accountant_dispute_submit_trigger(d.id))
+                            order by d.evidence_due_by), '[]'::jsonb)
+    from public.stripe_dispute d
+   where public.fn_accountant_dispute_submit_trigger(d.id) is not null;
 $fn$;
 revoke execute on function public.fn_accountant_disputes_to_submit() from public, anon, authenticated;
 
-create or replace function public.fn_accountant_dispute_submitted(p_id text, p_ok boolean, p_response jsonb, p_error text default null)
+create or replace function public.fn_accountant_dispute_submitted(p_id text, p_ok boolean, p_response jsonb, p_error text default null, p_trigger text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare d public.stripe_dispute;
 begin
+  select * into d from public.stripe_dispute where id = p_id for update;
+  if not found then raise exception 'no dispute %', p_id; end if;
+  if p_ok and coalesce(p_trigger, '') not in ('ceo_approval', 'deadline_t24_ceo_silent') then
+    raise exception 'a submission to Stripe names what triggered it: ceo_approval or deadline_t24_ceo_silent (got %)', coalesce(p_trigger, 'nothing');
+  end if;
   update public.stripe_dispute
      set evidence_submitted_at = case when p_ok then now() else evidence_submitted_at end,
-         submission = p_response, submit_error = case when p_ok then null else left(p_error, 600) end,
+         submit_trigger = case when p_ok then p_trigger else submit_trigger end,
+         submission = coalesce(p_response, submission), submit_error = case when p_ok then null else left(p_error, 600) end,
          status = coalesce(case when p_ok then p_response->>'status' end, status), last_seen_at = now()
    where id = p_id;
-  if not found then raise exception 'no dispute %', p_id; end if;
-  return jsonb_build_object('ok', true, 'dispute', p_id, 'submitted', p_ok);
+  if p_ok and d.review_report_id is not null then
+    update public.support_ceo_report
+       set status = 'completed', completed_at = now(),
+           completion_note = 'accountant submitted the evidence to Stripe; trigger: ' || p_trigger
+                             || case when p_trigger = 'deadline_t24_ceo_silent' then ' (no CEO answer by T-24h)' else '' end
+     where id = d.review_report_id and status <> 'completed';
+  end if;
+  return jsonb_build_object('ok', true, 'dispute', p_id, 'submitted', p_ok, 'trigger', p_trigger);
 end $fn$;
-revoke execute on function public.fn_accountant_dispute_submitted(text, boolean, jsonb, text) from public, anon, authenticated;
+revoke execute on function public.fn_accountant_dispute_submitted(text, boolean, jsonb, text, text) from public, anon, authenticated;
 
 -- ── 3. THE DUTY: the clock, the CEO, and the loop ────────────────────────────────────────────────
 create or replace function public.fn_accountant_disputes_tick()

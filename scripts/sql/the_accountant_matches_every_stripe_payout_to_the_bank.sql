@@ -145,7 +145,7 @@ revoke execute on function public.fn_accountant_payouts_record(boolean, jsonb) f
 create or replace function public.fn_accountant_bank_statement_ingest(
   p_account text, p_source_ref text, p_statement_month date, p_lines jsonb, p_doc_path text default null, p_note text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare x jsonb; n_new int := 0; n int; v_month date;
+declare x jsonb; n_new int := 0; n int; v_month date; v_k text; v_seen jsonb := '{}'::jsonb;
 begin
   if coalesce(btrim(p_source_ref), '') = '' or coalesce(btrim(p_account), '') = '' then
     raise exception 'fn_accountant_bank_statement_ingest: an account and a source reference are required';
@@ -164,14 +164,19 @@ begin
          statement_month = coalesce(excluded.statement_month, bank_statement_intake.statement_month),
          doc_path = coalesce(excluded.doc_path, bank_statement_intake.doc_path),
          note = coalesce(excluded.note, bank_statement_intake.note);
+  -- TWO IDENTICAL LINES ARE TWO LINES (review of #645): two AED 200 charges on one day are both real.
+  -- Each line is keyed on its content AND its occurrence number inside the statement, so a re-forwarded
+  -- statement adds nothing while a genuine repeat inside one statement is kept.
   for x in select e from jsonb_array_elements(p_lines) e loop
     if (x->>'value_date') is null or (x->>'amount_aed') is null or coalesce(btrim(x->>'description'), '') = '' then
       raise exception 'fn_accountant_bank_statement_ingest: a line needs value_date, description and amount_aed (%)', left(x::text, 200);
     end if;
+    v_k := p_account || '|' || (x->>'value_date') || '|' || ((x->>'amount_aed')::numeric)::text || '|'
+           || lower(btrim(x->>'description')) || '|' || coalesce(x->>'reference', '');
+    v_seen := v_seen || jsonb_build_object(v_k, coalesce((v_seen->>v_k)::int, 0) + 1);
     insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, reference, line_hash)
     values (p_account, p_source_ref, (x->>'value_date')::date, x->>'description', (x->>'amount_aed')::numeric, x->>'reference',
-            md5(p_account || '|' || (x->>'value_date') || '|' || ((x->>'amount_aed')::numeric)::text || '|'
-                || lower(btrim(x->>'description')) || '|' || coalesce(x->>'reference', '')))
+            md5(v_k || '|#' || (v_seen->>v_k)))
     on conflict (line_hash) do nothing;
     if found then n_new := n_new + 1; end if;
   end loop;

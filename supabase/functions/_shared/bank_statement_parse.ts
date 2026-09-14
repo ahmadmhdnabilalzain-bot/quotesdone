@@ -112,7 +112,21 @@ export function parseTextStatement(text: string): StatementLine[] {
   return out;
 }
 
-/** Whatever the statement is, the lines it can be read into — or [] when it cannot be read safely. */
+/** Arabic-Indic (٠-٩) and Eastern Arabic-Indic (۰-۹) digits, the Arabic decimal and thousands marks, to ASCII. */
+export function asciiDigits(text: string): string {
+  return String(text || '')
+    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06F0))
+    .replace(/٫/g, '.').replace(/٬/g, ',');
+}
+
+/**
+ * Whatever the statement is, the lines it can be read into — or [] when it cannot be read safely.
+ * Two identical lines are two lines (two AED 200 charges on one day are both real): the parser never
+ * de-duplicates. A re-forwarded statement is made harmless by fn_accountant_bank_statement_ingest, which
+ * keys each line on its content AND its occurrence number inside the statement.
+ */
 export function parseStatement(text: string): StatementLine[] {
-  return parseCsvStatement(text) ?? parseTextStatement(text);
+  const t = asciiDigits(text);
+  return parseCsvStatement(t) ?? parseTextStatement(t);
 }

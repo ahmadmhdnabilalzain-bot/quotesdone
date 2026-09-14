@@ -67,7 +67,7 @@ end $f$;
 
 do $zz$
 declare
-  r jsonb := '{}'::jsonb; v jsonb; h bigint; h2 bigint; t uuid; t2 uuid; t3 uuid; l bigint; d bigint; v_m date; v_n bigint;
+  r jsonb := '{}'::jsonb; v jsonb; h bigint; v_refused boolean; h2 bigint; t uuid; t2 uuid; t3 uuid; l bigint; d bigint; v_m date; v_n bigint;
   v_start bigint := (select coalesce(max(id), 0) from public.notifications);
 begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
@@ -87,7 +87,16 @@ begin
   v := public.fn_accountant_bank_reconcile();
   perform pg_temp.zz_assert((select bank_line_id is not null from public.stripe_payout where id = 'po_zz_probe_1'), 'bank: the payout did not match the new line');
   perform pg_temp.zz_loop_closes('acct:bank:missing:po_zz_probe_1', h);
-  r := r || jsonb_build_object('1_bank', jsonb_build_object('finding', 'acct:bank:missing:po_zz_probe_1', 'handoff', h, 'matched', true, 'closed', true));
+  -- Two identical lines in one statement are two lines; the same statement forwarded again adds none.
+  v := jsonb_build_array(jsonb_build_object('value_date', current_date, 'description', 'ZZ DEMO DUPLICATE CHARGE', 'amount_aed', -50),
+                         jsonb_build_object('value_date', current_date, 'description', 'ZZ DEMO DUPLICATE CHARGE', 'amount_aed', -50));
+  perform public.fn_accountant_bank_statement_ingest('zz_demo', 'zz_probe_dup', null, v);
+  perform public.fn_accountant_bank_statement_ingest('zz_demo', 'zz_probe_dup', null, v);
+  perform public.fn_accountant_bank_statement_ingest('zz_demo', 'zz_probe_dup_forwarded_again', null, v);
+  perform pg_temp.zz_assert((select count(*) from public.bank_statement_line where description = 'ZZ DEMO DUPLICATE CHARGE') = 2,
+    'bank: duplicate lines were collapsed or a re-forwarded statement was booked twice');
+  r := r || jsonb_build_object('1_bank', jsonb_build_object('finding', 'acct:bank:missing:po_zz_probe_1', 'handoff', h, 'matched', true, 'closed', true,
+    'duplicates_kept_once', 2));
 
   -- ── 11. COSTS: Stripe's own fee and the bank charge, drafts only on demo and under the hold ───────
   v := public.fn_accountant_book_stripe_fees(false, jsonb_build_array(jsonb_build_object('id', 'txn_zz_probe_fee', 'type', 'stripe_fee',
@@ -98,7 +107,12 @@ begin
     'costs: the ZZ DEMO bank charge was not prepared as a draft');
   perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal where source in ('bank_charge', 'stripe_fee_bt_test') and status = 'posted'),
     'costs: a bank or test-mode entry was POSTED');
-  r := r || jsonb_build_object('11_costs', jsonb_build_object('stripe_fee_drafted', 1, 'bank_charge_drafted', true, 'posted', 0));
+  v := public.fn_accountant_book_stripe_fees(false, jsonb_build_array(jsonb_build_object('id', 'txn_zz_probe_usd', 'type', 'stripe_fee',
+    'amount', -300, 'currency', 'usd', 'created', extract(epoch from now())::bigint)));
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:stripe_fees_test:currency:txn_zz_probe_usd'), 'costs: a non-AED Stripe fee was skipped without a finding');
+  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal where source_ref = 'txn_zz_probe_usd'), 'costs: a non-AED fee was booked at a guessed rate');
+  r := r || jsonb_build_object('11_costs', jsonb_build_object('stripe_fee_drafted', 1, 'bank_charge_drafted', true, 'posted', 0,
+    'non_aed_fee', 'finding acct:stripe_fees_test:currency:txn_zz_probe_usd'));
 
   -- ── 2. COLLECTIONS: an overdue supplier charge, held until the legal timeline is confirmed ────────
   t := pg_temp.zz_case('acct1', 3433.33, 103.00, 108.82);
@@ -178,20 +192,62 @@ begin
   v := public.fn_accountant_dispute_record(jsonb_build_object('id', 'dp_zz_probe_other', 'amount', 100, 'currency', 'aed',
     'payment_intent', 'pi_not_ours', 'status', 'needs_response'), false);
   perform pg_temp.zz_assert(v ? 'ignored', 'disputes: a test-mode dispute on a non-demo payment was recorded');
+  -- (a) Five days out: the evidence is assembled and saved as a DRAFT, the CEO gets a review item, and
+  --     nothing may be submitted — not now, not at T-25h — only from T-24h on his silence.
+  perform public.fn_accountant_dispute_record(jsonb_build_object('id', 'dp_zz_probe_2', 'amount', 10882, 'currency', 'aed',
+    'payment_intent', 'pi_zz_demo_acct2', 'charge', 'ch_zz2', 'status', 'needs_response', 'reason', 'product_not_received',
+    'evidence_details', jsonb_build_object('due_by', extract(epoch from now() + interval '5 days')::bigint, 'has_evidence', false)), false);
+  v := public.fn_accountant_dispute_evidence('dp_zz_probe_2');
+  perform pg_temp.zz_assert((v->>'ok')::boolean and v#>>'{fields,customer_email_address}' = 'zz-demo-cust-acct2@example.invalid',
+    'disputes: the evidence was not assembled from the records: ' || v::text);
+  perform pg_temp.zz_assert(exists (select 1 from jsonb_array_elements(public.fn_accountant_disputes_to_draft()) e where e->>'dispute' = 'dp_zz_probe_2'),
+    'disputes: a new dispute is not offered for drafting');
+  perform pg_temp.zz_assert(public.fn_accountant_dispute_submit_trigger('dp_zz_probe_2') is null, 'disputes: an UNDRAFTED dispute is submittable');
+  perform public.fn_accountant_dispute_drafted('dp_zz_probe_2', true, '{"id": "dp_zz_probe_2", "status": "needs_response"}'::jsonb);
+  perform pg_temp.zz_assert((select status from public.support_ceo_report where idempotency_key = 'dispute_review:dp_zz_probe_2') = 'sent',
+    'disputes: the saved draft did not become a CEO review item');
+  perform public.fn_ceo_accountant_reports_sweep();
+  perform pg_temp.zz_assert((select status from public.support_ceo_report where idempotency_key = 'dispute_review:dp_zz_probe_2') = 'sent',
+    'disputes: the routine acknowledgement sweep treated a dispute review as approved');
+  perform pg_temp.zz_assert(public.fn_accountant_dispute_submit_trigger('dp_zz_probe_2') is null, 'disputes: a draft-only dispute is submittable five days out');
+  perform pg_temp.zz_assert(not exists (select 1 from jsonb_array_elements(public.fn_accountant_disputes_to_submit()) e where e->>'dispute' = 'dp_zz_probe_2'),
+    'disputes: a draft-only dispute is in the submit list');
+  perform pg_temp.zz_assert(public.fn_accountant_dispute_submit_trigger('dp_zz_probe_2', now() + interval '5 days' - interval '25 hours') is null,
+    'disputes: CEO silence submits BEFORE T-24h');
+  perform pg_temp.zz_assert(public.fn_accountant_dispute_submit_trigger('dp_zz_probe_2', now() + interval '5 days' - interval '23 hours') = 'deadline_t24_ceo_silent',
+    'disputes: CEO silence does not submit at T-24h');
+  perform pg_temp.zz_assert(public.fn_accountant_dispute_submit_trigger('dp_zz_probe_2', now() + interval '5 days' + interval '1 hour') is null,
+    'disputes: a dispute past Stripe''s deadline is still submittable');
+  -- (b) The CEO approves: submittable at once, and the trigger is recorded on the dispute and his item.
+  v := public.fn_ceo_approve_dispute_submission('dp_zz_probe_2', 'ZZ DEMO: read the reveal record and the invoice');
+  perform pg_temp.zz_assert((v->>'ok')::boolean, 'disputes: the CEO could not approve a saved draft: ' || v::text);
+  perform pg_temp.zz_assert(exists (select 1 from jsonb_array_elements(public.fn_accountant_disputes_to_submit()) e
+                                     where e->>'dispute' = 'dp_zz_probe_2' and e->>'trigger' = 'ceo_approval'), 'disputes: an approved draft is not submittable');
+  v_refused := false;
+  begin perform public.fn_accountant_dispute_submitted('dp_zz_probe_2', true, '{"status": "under_review"}'::jsonb, null, null);
+  exception when others then v_refused := true; end;
+  perform pg_temp.zz_assert(v_refused, 'disputes: a submission with no named trigger was accepted');
+  perform public.fn_accountant_dispute_submitted('dp_zz_probe_2', true, '{"status": "under_review"}'::jsonb, null, 'ceo_approval');
+  perform pg_temp.zz_assert((select submit_trigger from public.stripe_dispute where id = 'dp_zz_probe_2') = 'ceo_approval'
+    and (select status from public.support_ceo_report where idempotency_key = 'dispute_review:dp_zz_probe_2') = 'completed',
+    'disputes: the approval trigger was not recorded on the dispute and the CEO''s item');
+  -- (c) Twenty hours out and the CEO silent: T-24h alert, a finding round the loop, submitted on the
+  --     deadline trigger, and the loop closes.
   perform public.fn_accountant_dispute_record(jsonb_build_object('id', 'dp_zz_probe_1', 'amount', 10882, 'currency', 'aed',
     'payment_intent', 'pi_zz_demo_acct2', 'charge', 'ch_zz', 'status', 'needs_response', 'reason', 'fraudulent',
     'evidence_details', jsonb_build_object('due_by', extract(epoch from now() + interval '20 hours')::bigint, 'has_evidence', false)), false);
-  v := public.fn_accountant_dispute_evidence('dp_zz_probe_1');
-  perform pg_temp.zz_assert((v->>'ok')::boolean and v#>>'{fields,customer_email_address}' = 'zz-demo-cust-acct2@example.invalid',
-    'disputes: the evidence was not assembled from the records: ' || v::text);
+  perform public.fn_accountant_dispute_drafted('dp_zz_probe_1', true, '{"id": "dp_zz_probe_1", "status": "needs_response"}'::jsonb);
   perform public.fn_accountant_disputes_tick();
-  perform pg_temp.zz_assert(pg_temp.zz_open('acct:disputes:dp_zz_probe_1'), 'disputes: an unanswered dispute inside 24h raised no finding');
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:disputes:dp_zz_probe_1'), 'disputes: an unsubmitted dispute inside 24h raised no finding');
   perform pg_temp.zz_assert(exists (select 1 from public.support_ceo_report where idempotency_key = 'dispute:dp_zz_probe_1:t24'), 'disputes: no T-24h alert to the CEO');
   h := pg_temp.zz_loop_opens('acct:disputes:dp_zz_probe_1', 'accountant');
-  perform public.fn_accountant_dispute_submitted('dp_zz_probe_1', true, '{"status": "under_review"}'::jsonb);
+  perform pg_temp.zz_assert(public.fn_accountant_dispute_submit_trigger('dp_zz_probe_1') = 'deadline_t24_ceo_silent', 'disputes: the T-24h silence trigger did not fire');
+  perform public.fn_accountant_dispute_submitted('dp_zz_probe_1', true, '{"status": "under_review"}'::jsonb, null, 'deadline_t24_ceo_silent');
   perform public.fn_accountant_disputes_tick();
   perform pg_temp.zz_loop_closes('acct:disputes:dp_zz_probe_1', h);
-  r := r || jsonb_build_object('7_disputes', jsonb_build_object('dispute', 'dp_zz_probe_1', 'handoff', h, 'ceo_t24', true, 'closed_by', 'evidence submitted'));
+  r := r || jsonb_build_object('7_disputes', jsonb_build_object('draft_only', 'dp_zz_probe_2 not submittable at +5d or T-25h, submittable at T-23h',
+    'ceo_approval', 'dp_zz_probe_2 submitted with trigger ceo_approval', 'silence', 'dp_zz_probe_1 submitted with trigger deadline_t24_ceo_silent',
+    'handoff', h, 'ceo_t24', true));
 
   -- ── 9. RESERVE: a reveal inside its window is held, not earned ───────────────────────────────────
   v := public.fn_accountant_refund_reserve();

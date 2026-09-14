@@ -158,6 +158,12 @@ begin
          || public.fn_originator_checks_delivery(p_id);
   elsif a.detail->>'type' = 'it.finding' then
     v := public.fn_seat_answers_it_finding(p_id);
+  elsif a.agent = 'sales_engineer' and a.detail ? 'notice' then
+    -- The accountant's reminders, renewals and dunning (14 Sep 2026): sent on the existing conversations
+    -- with detail.notice, written by fn_sales_engineer_writes_money_notice
+    -- (the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql). Carried here so this
+    -- file stays the ONE body of fn_seat_handoff_act.
+    v := public.fn_sales_engineer_writes_money_notice(p_id);
   else
     v := case a.agent
            when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)

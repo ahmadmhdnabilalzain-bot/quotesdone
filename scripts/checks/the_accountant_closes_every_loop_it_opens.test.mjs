@@ -25,6 +25,8 @@ const SQL = join(REPO, 'scripts', 'sql');
 // In apply order: the loop core first, the hourly routine last.
 export const FILES = [
   'the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql',
+  // The ONE body of fn_seat_handoff_act, carrying the notice branch; applied after the writer it calls.
+  'the_it_engineer_closes_every_loop_it_opens.sql',
   'the_accountant_matches_every_stripe_payout_to_the_bank.sql',
   'the_accountant_bills_every_supplier_after_the_thousandth.sql',
   'the_money_a_refund_could_still_take_back_is_held_not_earned.sql',
@@ -63,7 +65,7 @@ test('every duty the hour runs is defined, and every one settles through the loo
     assert.match(fnBody(d), /fn_accountant_duty_settle\(/, `${d} does not raise its findings through fn_accountant_duty_settle`);
   }
   // Findings reach people only through the IT loop and customer_support.
-  for (const f of FILES) assert.doesNotMatch(read(join(SQL, f)), /insert\s+into\s+public\.notifications/i, `${f} writes the outbox itself`);
+  for (const f of FILES.filter((x) => !x.startsWith('the_it_engineer_'))) assert.doesNotMatch(read(join(SQL, f)), /insert\s+into\s+public\.notifications/i, `${f} writes the outbox itself`);
 });
 
 test('no supplier-charge reminder or demand wording is typed into a routine', () => {
@@ -73,8 +75,37 @@ test('no supplier-charge reminder or demand wording is typed into a routine', ()
   assert.match(fnBody('fn_accountant_collections_tick'), /supplier_charge_recovery_basis/);
 });
 
+// fn_seat_handoff_act has ONE body and every build's branch must be in it (review of #645): the
+// delivery loop, the IT loop, the accountant's notices, and the per-seat dispatch that carries refund.*,
+// backup.*, billing.* and the rest to each seat's handler.
+export const HANDOFF_ACT_BRANCHES = ["'delivery.result'", 'fn_originator_checks_delivery', "'it.finding'", 'fn_seat_answers_it_finding',
+  "? 'notice'", 'fn_sales_engineer_writes_money_notice', 'fn_sales_engineer_acts_on_handoff', 'fn_accountant_acts_on_handoff',
+  'fn_customer_support_acts_on_handoff'];
+const DISPATCHED_TYPES = { fn_sales_engineer_acts_on_handoff: ["'refund.paid'", "'refund.remediate'"], fn_accountant_acts_on_handoff: ["'refund.requested'", "'incident.fix'"] };
+
+test('the ONE body of fn_seat_handoff_act carries every branch, and only the IT engineer\'s file defines it', () => {
+  const owners = FILES.filter((f) => read(join(SQL, f)).includes('create or replace function public.fn_seat_handoff_act('));
+  assert.deepEqual(owners, ['the_it_engineer_closes_every_loop_it_opens.sql'], 'a second file carries fn_seat_handoff_act');
+  const body = fnBody('fn_seat_handoff_act');
+  const missing = HANDOFF_ACT_BRANCHES.filter((b) => !body.includes(b));
+  assert.deepEqual(missing, [], 'branches missing from fn_seat_handoff_act');
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+
+test('production: the deployed fn_seat_handoff_act carries every registered branch', { skip: SKIP }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const [act] = await sql("select prosrc from pg_proc where oid = 'public.fn_seat_handoff_act(bigint)'::regprocedure");
+  const missing = HANDOFF_ACT_BRANCHES.filter((b) => !act.prosrc.includes(b));
+  assert.deepEqual(missing, [], 'the LIVE fn_seat_handoff_act has lost a branch another build registered');
+  for (const [fn, types] of Object.entries(DISPATCHED_TYPES)) {
+    const [h] = await sql(`select prosrc from pg_proc where oid = 'public.${fn}(bigint)'::regprocedure`);
+    assert.deepEqual(types.filter((t) => !h.prosrc.includes(t)), [], `${fn} no longer handles its refund conversations`);
+  }
+  const [b] = await sql("select count(*)::int n from pg_proc where prosrc like '%backup.refile%' and proname like 'fn\\_%'");
+  assert.ok(b.n > 0, 'no live routine handles backup.refile');
+});
 
 test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');

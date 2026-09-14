@@ -62,13 +62,23 @@ revoke execute on function public.fn_accountant_draft_entry(date, text, text, te
 create or replace function public.fn_accountant_book_stripe_fees(p_livemode boolean, p_bts jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare x jsonb; v_amt numeric; v_date date; v_memo text; n_posted int := 0; n_draft int := 0; n_seen int := 0; v_lines jsonb;
+        v_items jsonb := '[]'::jsonb;
 begin
   if jsonb_typeof(p_bts) is distinct from 'array' then
     raise exception 'fn_accountant_book_stripe_fees(livemode, balance_transactions[]): an array is required';
   end if;
   for x in select e from jsonb_array_elements(p_bts) e loop
     n_seen := n_seen + 1;
-    continue when coalesce(x->>'id', '') !~ '^txn_' or x->>'type' not in ('stripe_fee', 'tax') or lower(coalesce(x->>'currency', '')) <> 'aed';
+    continue when coalesce(x->>'id', '') !~ '^txn_' or x->>'type' not in ('stripe_fee', 'tax');
+    -- A FEE IN ANOTHER CURRENCY IS A FINDING, NOT A SILENT SKIP (review of #645): the ledger is AED and
+    -- gl_settings carries no rate for it, so it cannot be booked without a guess, and must not vanish.
+    if lower(coalesce(x->>'currency', '')) <> 'aed' then
+      v_items := v_items || jsonb_build_object('item', 'currency:' || (x->>'id'), 'owner_seat', 'accountant', 'subject', 'stripe_fees',
+        'title', 'Stripe charged a ' || (x->>'type') || ' of ' || round(abs((x->>'amount')::numeric) / 100.0, 2) || ' '
+                 || upper(coalesce(x->>'currency', '?')) || ' (' || (x->>'id') || ') and the AED ledger has no rate to book it',
+        'blast', 'agent_facing', 'affected', 1, 'demo', not p_livemode, 'evidence', x);
+      continue;
+    end if;
     continue when exists (select 1 from public.gl_journal g where g.source in ('stripe_fee_bt', 'stripe_fee_bt_test') and g.source_ref = x->>'id');
     v_amt := abs((x->>'amount')::numeric) / 100.0;
     continue when v_amt = 0;
@@ -85,7 +95,8 @@ begin
       n_draft := n_draft + 1;
     end if;
   end loop;
-  return jsonb_build_object('seen', n_seen, 'posted', n_posted, 'drafted', n_draft, 'livemode', p_livemode);
+  return jsonb_build_object('seen', n_seen, 'posted', n_posted, 'drafted', n_draft, 'livemode', p_livemode,
+    'findings', public.fn_accountant_duty_settle('stripe_fees_' || case when p_livemode then 'live' else 'test' end, v_items));
 end $fn$;
 revoke execute on function public.fn_accountant_book_stripe_fees(boolean, jsonb) from public, anon, authenticated;
 

@@ -252,7 +252,10 @@ create or replace function public.fn_ceo_accountant_reports_sweep()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare r public.support_ceo_report; n int := 0;
 begin
-  for r in select * from public.support_ceo_report where source_agent = 'accountant' and status = 'sent' order by id loop
+  -- A dispute review is NOT acknowledged here: reading it is not approving it. It stays open until the
+  -- CEO approves the submission (fn_ceo_approve_dispute_submission) or the accountant submits at T-24h.
+  for r in select * from public.support_ceo_report where source_agent = 'accountant' and status = 'sent'
+              and idempotency_key not like 'dispute\_review:%' order by id loop
     perform public.fn_ceo_accept_support_report(r.id,
       'ceo: read the accountant''s ' || r.severity || ' report "' || left(r.subject, 140) || '" with its evidence ('
         || (select count(*) from jsonb_object_keys(r.verified_evidence)) || ' field(s))');

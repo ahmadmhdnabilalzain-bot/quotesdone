@@ -52,6 +52,39 @@ Deno.test('a printed statement is read only where CR or DR says the direction', 
   ]);
 });
 
+Deno.test('Arabic-Indic digits, the Arabic decimal mark and separators are read as numbers', () => {
+  const csv = 'Date,Description,Debit,Credit\n٠٢/٠٩/٢٠٢٦,STRIPE PAYOUT,,"١٬٥٠٤٫٢٠"\n۰۵/۰۹/۲۰۲۶,MONTHLY FEE,۲۰۰٫۰۰,';
+  assertEquals(parseStatement(csv), [
+    { value_date: '2026-09-02', description: 'STRIPE PAYOUT', amount_aed: 1504.2, reference: null },
+    { value_date: '2026-09-05', description: 'MONTHLY FEE', amount_aed: -200, reference: null },
+  ]);
+});
+
+Deno.test('thousands separators in the millions, and fils kept exactly with no float drift', () => {
+  const csv = 'Date,Description,Amount\n01/09/2026,STRIPE PAYOUT,"1,234,567.89"\n02/09/2026,STRIPE PAYOUT,0.1\n03/09/2026,FEE,-0.07';
+  assertEquals(parseStatement(csv).map((l) => l.amount_aed), [1234567.89, 0.1, -0.07]);
+  assertEquals(parseAmount('1,23,4.00'), null);        // a malformed grouping is refused, not guessed
+  assertEquals(parseAmount('12.345'), null);            // three decimals are not AED fils
+});
+
+Deno.test('a debit column and a credit column on the same line: the credit wins only when it is non-zero', () => {
+  const csv = 'Date,Description,Debit,Credit\n02/09/2026,REVERSAL,0.00,50.00\n03/09/2026,CHARGE,75.00,0.00';
+  assertEquals(parseStatement(csv).map((l) => l.amount_aed), [50, -75]);
+});
+
+Deno.test('two identical lines are two lines: the parser never de-duplicates', () => {
+  const csv = 'Date,Description,Amount\n30/09/2026,ACCOUNT MAINTENANCE CHARGE,-200.00\n30/09/2026,ACCOUNT MAINTENANCE CHARGE,-200.00';
+  assertEquals(parseStatement(csv).length, 2);
+});
+
+Deno.test('dates: every accepted shape, and impossible or ambiguous-looking ones refused', () => {
+  assertEquals(parseDate('3.9.2026'), '2026-09-03');
+  assertEquals(parseDate('29/02/2028'), '2028-02-29');
+  assertEquals(parseDate('29/02/2026'), null);
+  assertEquals(parseDate('13/13/2026'), null);
+  assertEquals(parseDate('03 September 2026'), '2026-09-03');
+});
+
 Deno.test('text with no direction marks reads as nothing, never as a guess', () => {
   assertEquals(parseStatement('02/09/2026 STRIPE PAYOUT 1,504.20 10,504.20'), []);
 });
