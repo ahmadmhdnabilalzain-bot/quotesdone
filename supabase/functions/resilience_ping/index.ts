@@ -279,6 +279,30 @@ async function backupTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE DAILY TABLE EXPORT HANGS HERE, FOR THE SAME REASON AS THE DROPBOX BACKUP (14 Sep 2026).
+// Its pg_cron job (109) went on 7 Sep and its worker (supabase/functions/backup) on 8 Sep; the last
+// export in the backups bucket is 2026-09-07. fn_table_export_due claims the Asia/Dubai day once
+// after 03:00, resumes a chain whose heartbeat stopped, and retries a failed day. The chain runs on
+// in its own invocations, so this tick only starts it and does not wait for it. Public endpoint:
+// counts and dates only.
+async function tableExportTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_table_export_due');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const d = data as any;
+    if (!d?.due) return { due: false, stamp: d?.stamp, status: d?.status ?? null };
+    const secret = await sec('cred_fn_resilience_ping');
+    const started = fetch(FN + '/backup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, stamp: d.stamp, state: d.resume ?? null }),
+    }).then((r) => r.body?.cancel()).catch(() => {});
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(started);
+    return { due: true, stamp: d.stamp, attempt: d.attempt, resumed: d.resume != null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE FOUNDER'S WHATSAPP QUEUE HAD NO CONSUMER AT ALL. Measured 9 Sep 2026: public.notifications
 // held a channel='whatsapp' founder alert queued since 7 Sep 18:15 with attempts = 0, and
 // public.agent_runs held ZERO rows for send_whatsapp — it has never run. Nothing in the repository
@@ -611,6 +635,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const ratings = await ratingTick();
     const backup = await backupTick();
     const backupVerify = await dropboxVerifyTick();
+    const tableExport = await tableExportTick();
     const weekly = await accountantWeeklyTick();
     const vat = await vatThresholdTick();
     const ceoWeekly = await ceoWeeklyTick();
@@ -642,7 +667,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, tableExport, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -666,6 +691,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, tableExport, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

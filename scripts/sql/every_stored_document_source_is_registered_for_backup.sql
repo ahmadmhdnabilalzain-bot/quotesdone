@@ -23,6 +23,14 @@
 --   source has no enqueue rule. fn_it_backup_expected (the IT engineer's independent expected list)
 --   now takes its buckets from the same registry.
 --
+-- 14 SEP 2026, it_engineer (the daily table export restored): the registry names the dated export
+-- files in the backups bucket as a source of their own, and fn_it_backup_expected expects every day's
+-- export from the first day the revived writer ran: that day's _manifest.json, page_0000 of every table
+-- in fn_table_export_list(), and every page actually written. A missed or failed day therefore leaves
+-- expected items that never reach Dropbox, which the IT engineer's backup watch reports. This file
+-- reads public.table_export_run in a SQL-language body, so it is applied AFTER
+-- every_business_table_is_exported_every_day_again.sql.
+--
 --   node scripts/apply_sql.mjs scripts/sql/every_stored_document_source_is_registered_for_backup.sql --apply --ddl
 
 create or replace function public.fn_backup_source_registry()
@@ -49,6 +57,7 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
     ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE; dropbox_backup renders generated documents into backups/generated/', null),
+    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list())', null),
     -- ── not a document to keep ──
     ('doc_backups.dropbox_path',             'column', null, false, null, 'the Dropbox destination of a backup, not a source'),
     ('pdpl_erase_files.storage_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
@@ -160,7 +169,18 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   union all
   select 'gen:customer_details:' || c.id, 'generated', null, null, 'customer_details', c.id::text, 'customer:' || c.id, c.created_at from rc c
   union all
-  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i;
+  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i
+  union all
+  -- ── TABLE EXPORTS (14 Sep 2026): each Asia/Dubai day from the first the revived writer ran ──
+  -- due from 03:00 Dubai that day; the expected-status grace then decides when a gap is a finding
+  select 'obj:backups:' || f.path, 'storage', 'backups', f.path, null, null,
+         'company:table_export:' || to_char(d.day, 'YYYY-MM-DD'), (d.day::date + time '03:00') at time zone 'Asia/Dubai'
+    from generate_series((select min(r.stamp) from public.table_export_run r),
+                         (now() at time zone 'Asia/Dubai')::date, interval '1 day') d(day)
+    cross join lateral (
+      select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
+      union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x
+      union select o.name from storage.objects o where o.bucket_id = 'backups' and o.name like to_char(d.day, 'YYYY-MM-DD') || '/%') f;
 $fn$;
 revoke execute on function public.fn_it_backup_expected() from public, anon, authenticated;
 

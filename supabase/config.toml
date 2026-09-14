@@ -79,6 +79,9 @@ verify_jwt = false
 [functions.drawing_boq]
 verify_jwt = false
 
+[functions.backup]
+verify_jwt = false
+
 [functions.drawing_redact]
 verify_jwt = false
 
