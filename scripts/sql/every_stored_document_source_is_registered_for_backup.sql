@@ -81,6 +81,7 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('finance_reports.pdf_path',             'column', null, false, null, 'a report generated from the database, regenerated on demand'),
     ('accountant_weekly_report.pdf_path',    'column', null, false, null, 'a report generated from the database, regenerated on demand'),
     ('accountant_spend_report.pdf_path',     'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
     ('expense_entries.doc_path',             'column', null, false, null, 'an expense receipt; the source of truth is the expenses mailbox, whose folders are the durable record'),
     ('site',                                 'bucket', null, false, null, 'public website assets; their source is the repository'),
     ('brand',                                'bucket', null, false, null, 'public brand assets; their source is the repository'),
