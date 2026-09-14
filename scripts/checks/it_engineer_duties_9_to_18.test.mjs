@@ -32,7 +32,10 @@ const keys = (duty) => `(select coalesce(jsonb_agg(issue_key order by issue_key)
                          where closed_at is null and issue_key like 'duty:${duty}:%zz%')`;
 
 test('every threshold a duty reads has a value or says it is not measured yet', { skip: SKIP }, async () => {
-  const rows = await sql(`select key from public.it_threshold where value is null and key <> 'db_disk_limit_bytes'`);
+  // A provider cap/floor (duty 22) is null until the accountant records it with fn_it_cap_set; its
+  // basis then reads 'not recorded: ...' and duty 22 raises a cap_unknown finding for the accountant.
+  const rows = await sql(`select key from public.it_threshold where value is null and key <> 'db_disk_limit_bytes'
+                            and not (key ~ '^(cap|floor)_' and basis like 'not recorded:%')`);
   assert.deepEqual(rows, []);
 });
 

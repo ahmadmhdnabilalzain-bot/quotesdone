@@ -13,6 +13,10 @@
 //   * op 'health' (it_engineer, daily): auth probe (write, read, delete in /_selftest/), space usage and
 //     plan, handed to fn_it_dropbox_health_record. op 'selftest_large': a synthetic multi-chunk file
 //     uploaded in two runs (stopped after one chunk, then resumed), hash-verified and deleted.
+//   * v9 (15 Sep 2026, it_engineer): op 'prune' deletes the Dropbox copies of export days the retention
+//     rules expired (the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql). Rows come only from
+//     fn_doc_backups_prune_next, which returns nothing in dry run. This is retention of the table
+//     exports only; op pdpl_erase stays refused.
 // SQL: scripts/sql/a_document_reaches_dropbox_when_it_lands_and_only_once_it_exists.sql and
 // scripts/sql/the_it_engineer_fixes_what_it_finds_and_emails_only_a_new_bug.sql.
 //
@@ -27,6 +31,7 @@ import { observe } from '../_shared/observe.ts';
 import { dropboxContentHash } from './content_hash.ts';
 import { DropboxClient, refreshAccessToken } from './dropbox.ts';
 import { CHUNK, uploadFile, type ReadChunk, type UploadState } from './upload.ts';
+import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -207,6 +212,32 @@ async function selftestLarge(mb: number) {
            hash_matches_source: second.hash === expect, verified_in_dropbox: true, deleted, retries: first.retries + second.retries };
 }
 
+// it_engineer (retention): delete the claimed rows' dropbox_path. A path already gone is an answer.
+async function prune() {
+  const run = `dropbox_prune:${T0}:${crypto.randomUUID().slice(0, 8)}`;
+  const { data: rows, error } = await admin.rpc('fn_doc_backups_prune_next', { p_limit: 25, p_run: run });
+  if (error) throw new Error('fn_doc_backups_prune_next: ' + error.message);
+  if (!rows?.length) return { claimed: 0 };
+  const dbx = await client();
+  const results: Record<string, unknown>[] = [];
+  // deno-lint-ignore no-explicit-any
+  for (const row of rows as any[]) {
+    if (Date.now() >= DEADLINE) { results.push({ id: row.id, ok: false, error: 'deadline' }); continue; }
+    // the allow-list again, here: only a table-export file is ever deleted from Dropbox (counted as a
+    // failure, so five refusals become an it_engineer finding)
+    if (!dropboxExportAllowed(row)) { results.push({ id: row.id, ok: false, error: 'refused by the allow-list: not a table-export file' }); continue; }
+    try {
+      const r = await dbx.call('api', 'files/delete_v2', { path: row.dropbox_path });
+      const t = await r.text();
+      if (r.ok || (r.status === 409 && t.includes('not_found'))) results.push({ id: row.id, ok: true, already_gone: !r.ok });
+      else results.push({ id: row.id, ok: false, error: `delete_v2 ${r.status} ${t.slice(0, 160)}` });
+    } catch (e) { results.push({ id: row.id, ok: false, error: errText(e).slice(0, 200) }); }
+  }
+  const { data, error: de } = await admin.rpc('fn_doc_backups_prune_done', { p_results: results });
+  if (de) throw new Error('fn_doc_backups_prune_done: ' + de.message);
+  return { claimed: rows.length, result: data };
+}
+
 Deno.serve(observe('dropbox_backup', async (req) => {
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -214,6 +245,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     if (!auth.ok) { await logThrottled('forbidden', 60, 'error', { stage: 'auth' }, 'dropbox_backup rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, no Dropbox backup is running at all and every backup is stale.'); return J({ error: 'forbidden' }, 403); }
 
     if (body.op === 'health') return J({ ok: true, op: 'health', ...(await health()) });
+    if (body.op === 'prune') return J({ ok: true, op: 'prune', ...(await prune()) });
     if (body.op === 'selftest_large') return J({ ok: true, op: 'selftest_large', ...(await selftestLarge(Number(body.mb) || 20)) });
     if (body.op === 'pdpl_erase') {
       await logRun('error', { stage: 'pdpl_erase_refused', request_id: String(body.request_id || '') },
