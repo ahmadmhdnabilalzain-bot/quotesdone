@@ -53,7 +53,7 @@ Deno.serve(observe('quote_compare', async (req) => {
       if (body.__secret !== undefined) { await logRun('error', { bad_secret: 1, compared: 0 }, 'quote_compare rejected a caller presenting a wrong inbound secret (401) for inquiry ' + String(inquiry_id).slice(0, 60) + '. No quote comparison was produced, so the customer is left with raw quotes and no recommendation.'); }
       return J({ error: 'unauthorized' }, 401);
     }
-    const { data: inq, error: inqErr } = await admin.from('inquiries').select('id,customer_id,summary,category,emirate,budget,raw_input,spec,boq').eq('id', inquiry_id).maybeSingle();
+    const { data: inq, error: inqErr } = await admin.from('inquiries').select('id,customer_id,summary,category,emirate,budget,raw_input,spec,boq,accepted_alternatives').eq('id', inquiry_id).maybeSingle();
     // A MALFORMED ID IS NOT A STALLED CUSTOMER (13 Aug 2026).
     //
     // This logged status='error' for ANY failure to load the inquiry and asserted, in every case,
@@ -167,7 +167,11 @@ Deno.serve(observe('quote_compare', async (req) => {
     const requestLines = ((inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq : []).map((b: any, i: number) => ({ line_no: i + 1, description: String(b?.description || ''), qty: b?.qty ?? null, unit: b?.unit ?? null }));
     let technical: TechnicalComparison | null = null;
     try {
-      technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: requirementsOf(inqSpec), on_hold: onHold, now: new Date(),
+      // What the customer accepted when no supplier quoted their exact spec is their request now
+      // (founder_instruction #321): a quote offering it matches instead of being shown as a deviation.
+      // deno-lint-ignore no-explicit-any
+      const accepted = (Array.isArray((inq as any).accepted_alternatives) ? (inq as any).accepted_alternatives : []).map((x: any) => ({ line_no: Number(x?.line_no), attr: String(x?.attr || ''), accepted: String(x?.accepted || '') }));
+      technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: requirementsOf(inqSpec), on_hold: onHold, now: new Date(), accepted,
         quotes: qs.map((q: any) => { const lab = labels.get(String(q.id))!; return { quote_id: String(q.id), label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
           lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec, spec_source: specOf[String(q.id)]?.[it.line] ?? null })),
           terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat ?? q.quote_amount } }; }) });

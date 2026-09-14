@@ -24,6 +24,8 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 // can reach the API line, which makes it the least-authenticated file entry in the estate.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { registeredLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -492,6 +494,65 @@ Deno.serve(observe('wa_inbound', async (req) => {
           await alertThrottled('wa_verify_unavailable', 'warn', 'WhatsApp auto-reply is paused because Twilio could not be reached to verify inbound webhooks (' + prov.reason + '). Genuine messages are still being SAVED but are not getting an automatic reply - check wa_messages and follow up by hand until this clears.');
           await logRun('error', { authorised: 0, path: 'form', provenance_verified: 0, twilio_api_reachable: 0 }, 'wa_inbound could not verify a WhatsApp webhook because Twilio was unreachable (' + prov.reason + '), so it saved the message WITHOUT auto-replying. This may well be a REAL supplier message that got no answer - it needs manual follow-up. Silence here is a verification outage, not an absence of inbound messages.');
         }
+        return TW(200);
+      }
+    }
+
+    // ---- AN ANSWER TO "NO SUPPLIER QUOTED YOUR EXACT SPEC" (14 Sep 2026, agent: customer_support) ----
+    // Founder, 14 Sep 2026 (founder_instruction #321): when no supplier could quote the customer's exact
+    // spec, customer_support asks on WhatsApp which of the numbered alternatives to proceed with. The
+    // customer answers here: "2", "٢", "option 2", "yes" (one option) or "no"/"لا".
+    // THE ROUTINE OWNS PARSING. fn_spec_offer_whatsapp_reply finds the customer by phone and their oldest
+    // open offer, reads the text and records the answer; this block only speaks the result. handled:false
+    // (or any rpc fault) means this message is not such an answer, and the normal route below runs
+    // exactly as before. Text only: a file is never an answer to a numbered question.
+    if (Body && !media.length) {
+      let so: Record<string, any> | null = null;
+      try {
+        const { data, error } = await admin.rpc('fn_spec_offer_whatsapp_reply', { p_phone: From.replace(/^whatsapp:/i, ''), p_text: Body.slice(0, 500) });
+        if (error) await logRun('error', { route: 'spec_offer_reply', rpc_error: 1 }, 'fn_spec_offer_whatsapp_reply failed, so this message took the normal route: ' + error.message);
+        else so = (data || null) as Record<string, any> | null;
+      } catch (e) {
+        await logRun('error', { route: 'spec_offer_reply', rpc_error: 1 }, 'fn_spec_offer_whatsapp_reply threw, so this message took the normal route: ' + String((e as Error)?.message || e));
+      }
+      if (so?.handled === true) {
+        let lang: 'en' | 'ar' = 'en';
+        if (so.customer_id) lang = await registeredLocale(admin, { role: 'customer', customerId: String(so.customer_id) });
+        let text = '';
+        if (so.ok === true) {
+          const { data: offer } = await admin.from('spec_alternative_offer')
+            .select('item,label_en,label_ar,requested,alternatives,accepted_value,inquiry_id').eq('id', so.offer_id).single();
+          const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', offer?.inquiry_id ?? so.inquiry_id).maybeSingle();
+          if (offer) {
+            const o = { ...offer, accepted_value: offer.accepted_value ?? so.accepted_value ?? null } as OfferForText;
+            text = (so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no })).body;
+          }
+        } else if (so.error === 'unknown_option') {
+          const n = Number(so.options || 0);
+          text = lang === 'ar'
+            ? `يرجى الرد برقم خيار من ١ إلى ${String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)])}، أو «لا».`
+            : `Please reply with an option number from 1 to ${n}, or NO.`;
+        }
+        // The answer is already recorded by the routine; a missing offer row must not make it silent.
+        if (!text) text = lang === 'ar' ? 'شكرًا لك، وصلنا ردّك.' : 'Thank you, we have received your answer.';
+        const replyS = bidiSafe(text.slice(0, 1200));
+        const enabledS = (await sec('wa_autoreply_enabled')) === 'true';
+        let sentS = false; let sendErrS: string | undefined;
+        if (enabledS) { const r = await sendWa(From, replyS); sentS = r.ok; sendErrS = r.err; }
+        if (so.ok === true && so.offer_id) {
+          try { await admin.rpc('fn_spec_offer_mark', { p_offer: so.offer_id, p_action: 'answered', p_notification_ids: [] }); }
+          catch (_e) { /* best effort: the answer itself is recorded */ }
+        }
+        try {
+          await admin.from('wa_messages').insert({
+            wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+            inbound: Body, reply: replyS, lang, escalated: false, sent: sentS,
+            meta: { enabled: enabledS, audience: 'customer', route: 'spec_offer_reply', result: so,
+                    send_error: sendErrS || null, provenance_verified: true, message_sid: MessageSid || null },
+          });
+        } catch (_e) { /* the reply already went out */ }
+        await logRun('ok', { route: 'spec_offer_reply', state: so.state || so.error || null, sent: sentS },
+          'customer answered a no-exact-spec offer by WhatsApp: ' + String(so.state || so.error || 'unknown'));
         return TW(200);
       }
     }
