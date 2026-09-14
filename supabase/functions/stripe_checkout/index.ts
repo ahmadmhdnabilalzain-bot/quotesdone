@@ -33,7 +33,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
-    const { data: cust } = await admin.from('customers').select('id').eq('email', user.email.toLowerCase()).maybeSingle();
+    const { data: cust } = await admin.from('customers').select('id,locale').eq('email', user.email.toLowerCase()).maybeSingle();
     if (!cust) { await logRun('error', {}, 'no_customer_profile for authenticated user - cannot start checkout'); return J({ error: 'No customer profile' }, 403); }
     const body = await req.json().catch(() => ({}));
     const qid = String(body.quote_id || '');
@@ -157,6 +157,11 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     form.set('cancel_url', cancel);
     form.set('client_reference_id', qid);
     form.set('customer_email', user.email);
+    // The hosted page follows the REGISTERED language, not the browser's: an English-registered
+    // customer is pinned to 'en'. The portal's own reveal path (RevealPayment, Payment Element) passes
+    // 'ar' for an Arabic-registered customer; this hosted fallback is left on Stripe's default for them
+    // rather than risk a locale value the hosted page may refuse and so fail the payment outright.
+    if (!/^ar/i.test(String(cust?.locale || ''))) form.set('locale', 'en');
     form.set('line_items[0][quantity]', '1');
     form.set('line_items[0][price_data][currency]', 'aed');
     form.set('line_items[0][price_data][unit_amount]', String(Math.round(ch.base_fee * 100)));

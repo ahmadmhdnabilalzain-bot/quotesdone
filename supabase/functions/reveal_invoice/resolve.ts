@@ -18,6 +18,9 @@ export type ResolveDeps = {
   stripeInvoicePdf: (invoiceId: string) => Promise<string | null>;
   /** Signed link to the copy of the same PDF held in finance-docs. */
   signedStoredCopy: (path: string) => Promise<string | null>;
+  /** The customer registered in Arabic. Stripe Invoicing has no Arabic (docs.stripe.com/invoicing/
+   *  customize, "Customer preferred languages"), so their document is the QuotesDone receipt in Arabic. */
+  preferReceipt?: boolean;
 };
 export type Resolved =
   | { status: 403 | 404; body: { error: string } }
@@ -30,6 +33,7 @@ export async function resolveInvoice(deps: ResolveDeps, email: string, quoteId: 
   const sale = quoteId ? await deps.saleByQuote(quoteId) : null;
   if (!sale) return { status: 404, body: { error: 'No paid reveal found for this quote' } };
   if (String(sale.customer_id || '') !== String(custId)) return { status: 403, body: { error: 'Not your transaction' } };
+  if (deps.preferReceipt) return { status: 200, fallback: true, sale };
   if (sale.stripe_invoice_id) {
     const fresh = await deps.stripeInvoicePdf(sale.stripe_invoice_id);
     if (fresh) return { status: 200, body: { ok: true, url: fresh, source: 'stripe', invoice_no: sale.stripe_invoice_number } };
