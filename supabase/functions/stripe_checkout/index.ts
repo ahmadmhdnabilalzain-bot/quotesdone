@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { siteReturnBase } from '../_shared/site_origins.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -55,17 +56,9 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     //     that does not exist — and the query parameter was named `paid`, while CustomerPortal.tsx:417
     //     reads `session_id`. The browser-side confirmation path (stripe_confirm) was therefore
     //     unreachable and settlement depended entirely on the webhook.
-    const safeBase = (raw: unknown): string => {
-      const FALLBACK = 'https://quotesdone.com';
-      try {
-        const u = new URL(String(raw || FALLBACK));
-        if (u.protocol !== 'https:') return FALLBACK;
-        const h = u.hostname.toLowerCase();
-        const ok = h === 'quotesdone.com' || h === 'www.quotesdone.com' || h.endsWith('.vercel.app');
-        return ok ? (u.origin + u.pathname).replace(/\/+$/, '') : FALLBACK;
-      } catch { return FALLBACK; }
-    };
-    const base = safeBase(body.return_url) || 'https://quotesdone.com';
+    // 14 Sep 2026: the allowlist now lives in _shared/site_origins.ts and includes quotesdone.ae, so
+    // a customer who pays from .ae returns to .ae, where their session is.
+    const base = siteReturnBase(req, body.return_url);
     const portal = /\/me$/.test(base) ? base : (base + '/me');
     const success = portal + '?session_id={CHECKOUT_SESSION_ID}&reveal=' + encodeURIComponent(qid);
     // A cancelled checkout used to land on the bare portal with nothing on screen, which reads as
