@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T12:31:09.559Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T12:33:49.492Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -10917,7 +10917,7 @@ CREATE OR REPLACE VIEW public.v_supply_gap AS  WITH pool AS (
             count(DISTINCT lc.lead_id) FILTER (WHERE (l.approval_status = 'approved'::text)) AS approved
            FROM ((catalog_supplier_categories c
              LEFT JOIN lead_category lc ON ((lc.slug = c.slug)))
-             LEFT JOIN leads l ON ((l.id = lc.lead_id)))
+             LEFT JOIN leads l ON (((l.id = lc.lead_id) AND (NOT l.is_demo))))
           GROUP BY c.slug, c.name, c.num
         )
  SELECT slug,
@@ -30757,40 +30757,60 @@ declare
   active_rfqs int; rfqs_today int; done_today int; ttfq numeric; qpr numeric;
   accept_rate numeric; conv numeric;
   rev_today numeric; rev_month numeric; pending_fees numeric; outstanding_inv int; cash_recv numeric;
-  ai_conf numeric; waiting int; onboard_q int; disputes int; escalations int; held int;
+  ai_conf numeric; waiting int; onboard_q int; disputes int; escalations int; held int; with_ceo int;
   uptime numeric; queue_size int; failed int; last_backup timestamptz; api_lat numeric;
   health jsonb;
+  v_dc uuid[]; v_dl bigint[]; v_di uuid[];
 begin
+  -- DEMO: the three id sets every business count below leaves out.
+  select coalesce(array_agg(id), '{}') into v_dc from customers where is_demo;
+  select coalesce(array_agg(id), '{}') into v_dl from leads where is_demo;
+  select coalesce(array_agg(id), '{}') into v_di from inquiries where public.fn_inquiry_is_demo(id);
+
   -- MARKETPLACE
-  select count(*) into active_rfqs from inquiries where status not in ('completed','accepted','closed','cancelled');
-  select count(*) into rfqs_today from inquiries where created_at::date=current_date;
-  select count(*) into done_today from inquiries where (completed_at::date=current_date) or (status in ('completed','accepted') and stage_changed_at::date=current_date);
+  select count(*) into active_rfqs from inquiries where status not in ('completed','accepted','closed','cancelled') and (id = any (v_di)) is not true;
+  select count(*) into rfqs_today from inquiries where created_at::date=current_date and (id = any (v_di)) is not true;
+  select count(*) into done_today from inquiries where ((completed_at::date=current_date) or (status in ('completed','accepted') and stage_changed_at::date=current_date)) and (id = any (v_di)) is not true;
   select round(avg(extract(epoch from (fq - ic))/3600.0),1) into ttfq from (
     select i.created_at ic, min(q.created_at) fq from inquiries i join quotes q on q.inquiry_id=i.id
-    where i.created_at>=now()-interval '30 days' group by i.id) z where fq is not null;
-  select round(avg(qc),1) into qpr from (select count(*) qc from quotes q join inquiries i on i.id=q.inquiry_id where i.created_at>=now()-interval '30 days' group by q.inquiry_id) z;
-  select round(avg(nullif(rv_response_rate,0)) ,1) into accept_rate from leads where coalesce(rv_reveals,0)>0;
+    where i.created_at>=now()-interval '30 days' and (i.id = any (v_di)) is not true and (q.supplier_id = any (v_dl)) is not true
+    group by i.id) z where fq is not null;
+  select round(avg(qc),1) into qpr from (select count(*) qc from quotes q join inquiries i on i.id=q.inquiry_id
+    where i.created_at>=now()-interval '30 days' and (i.id = any (v_di)) is not true and (q.supplier_id = any (v_dl)) is not true
+    group by q.inquiry_id) z;
+  select round(avg(nullif(rv_response_rate,0)) ,1) into accept_rate from leads where coalesce(rv_reveals,0)>0 and (id = any (v_dl)) is not true;
   select round(100.0*count(distinct t.inquiry_id)/nullif(count(distinct i.id),0),1) into conv
-    from inquiries i left join transactions t on t.inquiry_id=i.id where i.created_at>=now()-interval '30 days';
+    from inquiries i left join transactions t on t.inquiry_id=i.id and (t.supplier_id = any (v_dl)) is not true
+   where i.created_at>=now()-interval '30 days' and (i.id = any (v_di)) is not true;
 
   -- REVENUE
-  select coalesce(sum(reveal_fee),0) into rev_today from transactions where revealed_at::date=current_date and coalesce(refund_status,'')<>'approved';
-  select coalesce(sum(reveal_fee),0) into rev_month from transactions where date_trunc('month',revealed_at)=date_trunc('month',now()) and coalesce(refund_status,'')<>'approved';
-  begin select coalesce(sum(amount_due),0) into pending_fees from supplier_dues where coalesce(status,'')<>'paid'; exception when others then pending_fees:=0; end;
-  begin select count(*) into outstanding_inv from reveal_invoices ri left join transactions t on t.id=ri.transaction_id where coalesce(t.fee_status,'')<>'paid'; exception when others then outstanding_inv:=0; end;
-  select coalesce(sum(reveal_fee),0) into cash_recv from transactions where coalesce(fee_status,'')='paid';
+  select coalesce(sum(reveal_fee),0) into rev_today from transactions where revealed_at::date=current_date and coalesce(refund_status,'')<>'approved'
+     and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
+  select coalesce(sum(reveal_fee),0) into rev_month from transactions where date_trunc('month',revealed_at)=date_trunc('month',now()) and coalesce(refund_status,'')<>'approved'
+     and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
+  begin select coalesce(sum(amount_due),0) into pending_fees from supplier_dues where coalesce(status,'')<>'paid' and (supplier_id = any (v_dl)) is not true; exception when others then pending_fees:=0; end;
+  begin select count(*) into outstanding_inv from reveal_invoices ri left join transactions t on t.id=ri.transaction_id where coalesce(t.fee_status,'')<>'paid'
+     and (t.customer_id = any (v_dc)) is not true and (t.supplier_id = any (v_dl)) is not true and (t.inquiry_id = any (v_di)) is not true; exception when others then outstanding_inv:=0; end;
+  select coalesce(sum(reveal_fee),0) into cash_recv from transactions where coalesce(fee_status,'')='paid'
+     and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
 
   -- OPERATIONS
   begin select public.fn_health_index() into health; exception when others then health:=null; end;
   select round(100.0*count(*) filter (where nullif(quality->>'score','')::numeric>=60)/nullif(count(*) filter (where quality is not null),0),1) into ai_conf
-    from quotes where created_at>=now()-interval '7 days';
-  select count(*) into waiting from inquiries where status in ('clarify','clarifying','awaiting_customer','needs_info');
-  select count(*) into onboard_q from leads where approval_status='pending';
-  select count(*) into disputes from transactions where refund_status='requested';
-  -- Escalations TO HIM: refund approvals and severe alerts. Open agent_actions belong to their
-  -- roles and are published separately as held_with_roles.
-  select public.fn_founder_refund_approvals_open()
-        + (select count(*) from founder_alerts where public.fn_alert_severe(level) and created_at>=now()-interval '24 hours') into escalations;
+    from quotes where created_at>=now()-interval '7 days' and (inquiry_id = any (v_di)) is not true and (supplier_id = any (v_dl)) is not true;
+  select count(*) into waiting from inquiries where status in ('clarify','clarifying','awaiting_customer','needs_info') and (id = any (v_di)) is not true;
+  select count(*) into onboard_q from leads where approval_status='pending' and (id = any (v_dl)) is not true;
+  select count(*) into disputes from transactions where refund_status='requested'
+     and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
+  -- REFUNDS ARE THE CEO'S. Open = a refunds row still 'requested'. What reaches the founder is only the
+  -- CEO's summary when that refund's latest review cycle escalated, plus severe alerts.
+  select count(*), count(*) filter (where rv.outcome = 'escalated') into with_ceo, escalations
+    from refunds r
+    left join lateral (select x.outcome from refund_ceo_review x where x.refund_id = r.id order by x.cycle desc limit 1) rv on true
+   where r.status = 'requested'
+     and (r.customer_id = any (v_dc)) is not true and (r.supplier_lead_id = any (v_dl)) is not true and (r.inquiry_id = any (v_di)) is not true;
+  escalations := escalations
+        + (select count(*) from founder_alerts where public.fn_alert_severe(level) and created_at>=now()-interval '24 hours');
   select count(*) into held from agent_actions a left join agent_action_kind_policy p on p.kind=a.kind
    where a.status in ('pending','needs_review') and coalesce(p.policy,'')<>'founder';
 
@@ -30808,7 +30828,7 @@ begin
     'revenue', jsonb_build_object('today_aed',rev_today,'month_aed',rev_month,'pending_fees_aed',pending_fees,
         'outstanding_invoices',outstanding_inv,'cash_received_aed',cash_recv),
     'operations', jsonb_build_object('ai_confidence_pct',ai_conf,'rfqs_waiting_clarification',waiting,
-        'onboarding_queue',onboard_q,'disputes',disputes,'escalations',escalations,'held_with_roles',held),
+        'onboarding_queue',onboard_q,'disputes',disputes,'escalations',escalations,'refunds_with_ceo',with_ceo,'held_with_roles',held),
     'infrastructure', jsonb_build_object('uptime_pct',uptime,'queue_size',queue_size,'failed_jobs_24h',failed,
         'backup_age_hours', case when last_backup is null then null else round(extract(epoch from (now()-last_backup))/3600.0,1) end,
         'api_latency_ms',api_lat),
@@ -32954,15 +32974,13 @@ begin
     jsonb_build_object('stage','Approved', 'n', v_approved)
   );
 
-  begin
-    j_pipeline := jsonb_build_array(
-      jsonb_build_object('stage','New', 'n', (select count(*) from inquiries where not (inquiries.provenance->>'qd_run' is not null or inquiries.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = inquiries.customer_id and dc.is_demo)))),
-      jsonb_build_object('stage','Matched', 'n', (select count(distinct inquiry_id) from quotes where not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
-      jsonb_build_object('stage','Quoted', 'n', (select count(*) from quotes where not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
-      jsonb_build_object('stage','Revealed', 'n', (select count(*) from quotes where coalesce(revealed,false) is true and not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
-      jsonb_build_object('stage','Won', 'n', (select count(*) from inquiries where status = 'won' and not (inquiries.provenance->>'qd_run' is not null or inquiries.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = inquiries.customer_id and dc.is_demo))))
-    );
-  exception when others then j_pipeline := jsonb_build_array(); end;
+  j_pipeline := jsonb_build_array(
+    jsonb_build_object('stage','New', 'n', (select count(*) from inquiries where not (inquiries.provenance->>'qd_run' is not null or inquiries.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = inquiries.customer_id and dc.is_demo)))),
+    jsonb_build_object('stage','Matched', 'n', (select count(distinct inquiry_id) from quotes where not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
+    jsonb_build_object('stage','Quoted', 'n', (select count(*) from quotes where not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
+    jsonb_build_object('stage','Revealed', 'n', (select count(*) from transactions t where not exists (select 1 from public.customers dc where dc.id = t.customer_id and dc.is_demo) and not exists (select 1 from public.leads dl where dl.id = t.supplier_id and dl.is_demo) and not public.fn_inquiry_is_demo(t.inquiry_id))),
+    jsonb_build_object('stage','Won', 'n', (select count(*) from inquiries where status = 'won' and not (inquiries.provenance->>'qd_run' is not null or inquiries.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = inquiries.customer_id and dc.is_demo))))
+  );
 
   out := jsonb_build_object(
     'headline', jsonb_build_object(
@@ -44791,6 +44809,7 @@ CREATE OR REPLACE FUNCTION public.fn_wa_context(p_audience text, p_phone text)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_e164 text; v_email text; v_lead record; v_cust record;
+        v_dc uuid[]; v_dl bigint[]; v_di uuid[]; v_refunds jsonb;
 begin
   -- ONE IDENTIFIER, TWO SHAPES. wa_from arrives as 'whatsapp:+9715...'; a browser session arrives
   -- as an email address. An '@' is the discriminator: nothing that is a phone number contains one,
@@ -44803,41 +44822,67 @@ begin
 
   -- ---------------------------------------------------------------- FOUNDER: the company itself
   if p_audience = 'founder' then
+    -- DEMO: left out of every business figure below.
+    select coalesce(array_agg(id), '{}') into v_dc from customers where is_demo;
+    select coalesce(array_agg(id), '{}') into v_dl from leads where is_demo;
+    select coalesce(array_agg(id), '{}') into v_di from inquiries where public.fn_inquiry_is_demo(id);
+
+    -- REFUNDS ARE THE CEO'S, NOT HIS. The old decision-queue reader (dropped 9 Sep) listed refunds as
+    -- waiting on him; since 14 Sep the CEO decides every refund and the founder only receives the CEO's summary
+    -- when a review loop escalates. This is what the CEO holds, stated as information.
+    with open_r as (
+      select r.id, r.requested_at, r.amount_fils, r.reason_code, rv.cycle, rv.outcome
+        from refunds r
+        left join lateral (select x.cycle, x.outcome from refund_ceo_review x where x.refund_id = r.id order by x.cycle desc limit 1) rv on true
+       where r.status = 'requested'
+         and (r.customer_id = any (v_dc)) is not true and (r.supplier_lead_id = any (v_dl)) is not true and (r.inquiry_id = any (v_di)) is not true)
+    select jsonb_build_object(
+      'who_decides', 'ceo',
+      'note', 'Every refund is decided by the CEO. You receive his short summary only when a review loop escalates (three cycles or a missed deadline). Nothing here waits on you.',
+      'open', (select count(*) from open_r),
+      'escalated', (select count(*) from open_r where outcome = 'escalated'),
+      'items', coalesce((select jsonb_agg(jsonb_build_object('refund_id', z.id, 'requested_at', z.requested_at,
+                          'amount_aed', round(z.amount_fils / 100.0, 2), 'reason', z.reason_code,
+                          'review_cycle', z.cycle, 'review_outcome', z.outcome) order by z.requested_at)
+                           from (select * from open_r order by requested_at limit 12) z), '[]'::jsonb))
+      into v_refunds;
+
     return jsonb_build_object(
       'scope','company',
       'suppliers', jsonb_build_object(
-        'leads_total',      (select count(*) from leads),
-        'claimed',          (select count(*) from leads where coalesce(claimed,false)),
-        'claimed_real',     (select count(*) from leads where coalesce(claimed,false)
+        'leads_total',      (select count(*) from leads where (id = any (v_dl)) is not true),
+        'claimed',          (select count(*) from leads where coalesce(claimed,false) and (id = any (v_dl)) is not true),
+        'claimed_real',     (select count(*) from leads where coalesce(claimed,false) and (id = any (v_dl)) is not true
                               and not (coalesce(company_name,'') ilike 'ZZ DEMO%' or coalesce(email,'') ilike '%@example.invalid')),
-        'approved',         (select count(*) from leads where approval_status = 'approved'),
-        'licence_verified', (select count(*) from leads where coalesce(verified,false)),
-        'with_email',       (select count(*) from leads where coalesce(btrim(email),'') <> '')),
+        'approved',         (select count(*) from leads where approval_status = 'approved' and (id = any (v_dl)) is not true),
+        'licence_verified', (select count(*) from leads where coalesce(verified,false) and (id = any (v_dl)) is not true),
+        'with_email',       (select count(*) from leads where coalesce(btrim(email),'') <> '' and (id = any (v_dl)) is not true)),
       'invites', jsonb_build_object(
         'enabled',      (select value from app_secrets where key='invite_enabled'),
         'daily_cap',    (select value from app_secrets where key='invite_daily_cap'),
-        'sent_today',   (select count(*) from leads where invited_at >= date_trunc('day', now() at time zone 'utc')),
-        'sent_7d',      (select count(*) from leads where invited_at > now() - interval '7 days'),
-        'bounced_7d',   (select count(*) from leads where invite_status='bounced' and invited_at > now() - interval '7 days'),
-        'uncontacted',  (select count(*) from leads where invited_at is null and coalesce(btrim(email),'') <> '')),
+        'sent_today',   (select count(*) from leads where invited_at >= date_trunc('day', now() at time zone 'utc') and (id = any (v_dl)) is not true),
+        'sent_7d',      (select count(*) from leads where invited_at > now() - interval '7 days' and (id = any (v_dl)) is not true),
+        'bounced_7d',   (select count(*) from leads where invite_status='bounced' and invited_at > now() - interval '7 days' and (id = any (v_dl)) is not true),
+        'uncontacted',  (select count(*) from leads where invited_at is null and coalesce(btrim(email),'') <> '' and (id = any (v_dl)) is not true)),
       'demand', jsonb_build_object(
-        'customers',        (select count(*) from customers),
-        'inquiries_total',  (select count(*) from inquiries),
-        'inquiries_7d',     (select count(*) from inquiries where created_at > now() - interval '7 days'),
-        'quotes_total',     (select count(*) from quotes),
-        'quotes_7d',        (select count(*) from quotes where created_at > now() - interval '7 days')),
+        'customers',        (select count(*) from customers where (id = any (v_dc)) is not true),
+        'inquiries_total',  (select count(*) from inquiries where (id = any (v_di)) is not true),
+        'inquiries_7d',     (select count(*) from inquiries where created_at > now() - interval '7 days' and (id = any (v_di)) is not true),
+        'quotes_total',     (select count(*) from quotes where (inquiry_id = any (v_di)) is not true and (supplier_id = any (v_dl)) is not true),
+        'quotes_7d',        (select count(*) from quotes where created_at > now() - interval '7 days'
+                               and (inquiry_id = any (v_di)) is not true and (supplier_id = any (v_dl)) is not true)),
       'money', jsonb_build_object(
-        'transactions',      (select count(*) from transactions),
-        'revealed',          (select count(*) from transactions where revealed_at is not null),
+        'transactions',      (select count(*) from transactions where (customer_id = any (v_dc)) is not true
+                                and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true),
+        'revealed',          (select count(*) from transactions where revealed_at is not null and (customer_id = any (v_dc)) is not true
+                                and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true),
         'ai_spend_today_aed',(select round(coalesce(sum(cost_aed),0)::numeric,2) from ai_cost_log where occurred_at >= current_date),
         'ai_spend_month_aed',(select round(coalesce(sum(cost_aed),0)::numeric,2) from ai_cost_log where occurred_at >= date_trunc('month', now()))),
       'health', jsonb_build_object(
         'agent_runs_failed_24h', (select count(*) from agent_runs where status in ('error','failed') and started_at > now() - interval '24 hours'),
         'actions_pending',       (select count(*) from agent_actions where status in ('pending','needs_review')),
         'escalations_open',      (select count(*) from agent_actions where coalesce(escalated,false) and status in ('pending','needs_review'))),
-      -- THE PART THAT IS HIS. Named so the model cannot read it as more company telemetry: these
-      -- are items no agent is allowed to settle, and they are waiting for him specifically.
-      'your_decision_queue', public.fn_founder_queue(12));
+      'refunds_with_the_ceo', v_refunds);
   end if;
 
   -- ---------------------------------------------------------------- SUPPLIER: only their own row
