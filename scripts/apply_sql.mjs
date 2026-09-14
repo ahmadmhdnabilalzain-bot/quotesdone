@@ -143,8 +143,12 @@ if (literals.length) {
 // project_parity would not have caught it either: that was a SHAPE check over columns and views,
 // and a missing function is neither.
 const CALLEE = /public\.((?:fn|trg|qd|run)_[a-z0-9_]+)\s*\(/g;
+// A DROP names a routine that is meant to be gone afterwards, so it is not a call. Without this, a file
+// that retires a routine could never be re-applied once the drop had run (14 Sep 2026, the loop file's
+// drop of fn_it_engineer_handover_body refused its own idempotent re-apply).
+const DROPPED_HERE = /drop\s+(?:function|procedure)\s+(?:if\s+exists\s+)?public\.[a-z0-9_]+\s*\(/gi;
 const selfDefined = new Set(uniq);
-const wanted = [...new Set([...sql.matchAll(CALLEE)].map(m => m[1].toLowerCase()))]
+const wanted = [...new Set([...sql.replace(DROPPED_HERE, '').matchAll(CALLEE)].map(m => m[1].toLowerCase()))]
   .filter(c => !selfDefined.has(c));
 if (wanted.length) {
   const rows = await mgmtRead(PROD_REF, `select distinct lower(p.proname) n

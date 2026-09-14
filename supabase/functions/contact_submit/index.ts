@@ -3,6 +3,7 @@
 // config.toml sets verify_jwt = true for this function; the public form sends the anon key as Bearer, which passes.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -42,7 +43,7 @@ Deno.serve(observe('contact_submit', async (req) => {
     // row is stored either way, so nothing a customer wrote is lost.
     try {
       const to = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
-      await admin.from('notifications').insert({
+      await requestDelivery(admin, {
         type: 'contact_message', kind: 'contact_message', to_email: to, to_role: 'admin', channel: 'email', status: 'queued',
         requested_by: 'customer_support',
         subject: (ticket?.ticket ? ('Complaint '+ticket.ticket+' - ') : '')+'New contact message'+(name?(' from '+name):''),
