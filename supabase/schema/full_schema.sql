@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T12:33:49.492Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T12:53:50.864Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51589,7 +51589,9 @@ $CRON$);
 --   sla_quote_hours
 --   social_posts_per_week
 --   stripe_publishable_key
+--   stripe_publishable_key_test
 --   stripe_secret_key
+--   stripe_secret_key_test
 --   stripe_setup_token
 --   stripe_webhook_secret
 --   stripe_webhook_secret_test
