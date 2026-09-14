@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T18:38:06.759Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T18:54:42.824Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -187,7 +187,8 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (504) =====\nCREATE TABLE IF NOT EXISTS public.accountant_issued_document (
+-- ===== TABLES (504) =====
+CREATE TABLE IF NOT EXISTS public.accountant_issued_document (
   id bigint DEFAULT nextval('accountant_issued_document_id_seq'::regclass) NOT NULL,
   document_kind text NOT NULL,
   template_key text,
@@ -44262,7 +44263,7 @@ select
   ||'-- Order is best-effort; this is a faithful reference mirror, not a guaranteed one-click restore.'||E'\n\n'
   ||'-- ===== EXTENSIONS =====' ||E'\n'|| coalesce((select string_agg('CREATE EXTENSION IF NOT EXISTS '||quote_ident(extname)||' WITH SCHEMA '||quote_ident(nx.nspname)||';', E'\n' order by extname) from pg_extension e join pg_namespace nx on nx.oid=e.extnamespace),'')
   ||E'\n\n-- ===== SEQUENCES =====\n'|| coalesce((select string_agg('CREATE SEQUENCE IF NOT EXISTS public.'||quote_ident(sequence_name)||';', E'\n' order by sequence_name) from information_schema.sequences where sequence_schema='public'),'')
-  ||E'\n\n-- ===== TABLES ('||(select count(*) from t)||') =====\n'|| coalesce((select string_agg(tbl_ddl, E'\n\n' order by rel) from t),'')
+  ||E'\n\n-- ===== TABLES ('||(select count(*) from t)||E') =====\n'|| coalesce((select string_agg(tbl_ddl, E'\n\n' order by rel) from t),'')
   ||E'\n\n-- ===== CONSTRAINTS =====\n'|| coalesce((select string_agg('ALTER TABLE public.'||quote_ident(c.relname)||' ADD CONSTRAINT '||quote_ident(con.conname)||' '||pg_get_constraintdef(con.oid)||';', E'\n' order by case con.contype when 'p' then 1 when 'u' then 2 when 'c' then 3 else 9 end, c.relname, con.conname) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where con.contype in ('p','u','c','f')),'')
   ||E'\n\n-- ===== INDEXES =====\n'|| coalesce((select string_agg(pg_get_indexdef(i.indexrelid)||';', E'\n' order by ic.relname) from pg_index i join pg_class ic on ic.oid=i.indexrelid join pg_namespace n on n.oid=ic.relnamespace and n.nspname='public' where not exists(select 1 from pg_constraint con where con.conindid=i.indexrelid) and not exists(select 1 from pg_depend d where d.objid=ic.oid and d.deptype='e')),'')
   ||E'\n\n-- ===== VIEWS =====\n'|| coalesce((select string_agg('CREATE OR REPLACE VIEW public.'||quote_ident(viewname)||' AS '||definition, E'\n\n' order by viewname) from pg_views where schemaname='public'),'')
