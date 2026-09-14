@@ -95,7 +95,11 @@ export async function journeyCustomerRequest(ctx) {
       'Please proceed with these details.', 'Yes, that is correct.',
     ];
     let status = null, turns = 0, readiness = 0;
+    // A budget, not just a turn count: each reply may take up to 90 s, and a chat that never reaches
+    // ready must not stall the whole run (run 5 sat here for over ten minutes).
+    const deadline = Date.now() + 5 * 60 * 1000;
     for (const a of answers) {
+      if (Date.now() > deadline) break;
       await box.fill(a);
       const [res] = await Promise.all([
         s.page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake'), { timeout: 90000 }).catch(() => null),

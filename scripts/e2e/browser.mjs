@@ -85,7 +85,11 @@ export const IGNORABLE_CONSOLE = [/favicon/i, /Download the React DevTools/i, /g
 export const realErrors = (errs) => errs.filter((e) => !IGNORABLE_CONSOLE.some((re) => re.test(e)));
 
 /** Navigate and time it: ms until the portal nav is visible, and ms until its data calls settled. */
-export async function openPortal(page, url, calls, navSelector = 'nav') {
+// Desktop: the sidebar <nav>. Phone (375px): the bottom bar's More button - the <nav> there is hidden,
+// and waiting for it cost 30 s per page on the first phone run.
+export const PORTAL_READY = 'nav:visible, button[aria-controls="qd-nav-more"]:visible';
+
+export async function openPortal(page, url, calls, navSelector = PORTAL_READY) {
   const t0 = Date.now();
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.locator(navSelector).first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
