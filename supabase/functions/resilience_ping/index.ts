@@ -267,6 +267,39 @@ async function dropboxVerifyTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// DROPBOX IS CHECKED EVERY DAY (it_engineer, 15 Sep 2026): the login, a write/read/delete probe and
+// the space used, once a Dubai day and two hours after a failed reading (fn_it_dropbox_health_due).
+// Its own tick, never behind fn_it_backup_tick, so neither can stop the other. dropbox_backup records
+// the reading itself; if the call never got that far (timeout, a 5xx from our own function), this
+// records it as an internal failure so a silent probe is still a finding. Only the verdict comes back:
+// this endpoint is public.
+async function dropboxHealthTick(): Promise<unknown> {
+  try {
+    const { data: due, error } = await admin.rpc('fn_it_dropbox_health_due');
+    if (error) return { ok: false, error: error.message };
+    if (due !== true) return { due: false };
+    let status = 0; let recorded: string | null = null; let why = '';
+    try {
+      const r = await fetch(FN + '/dropbox_backup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), op: 'health' }), signal: AbortSignal.timeout(55000),
+      });
+      status = r.status;
+      // deno-lint-ignore no-explicit-any
+      const j: any = await r.json().catch(() => null);
+      recorded = j?.recorded?.status ?? null;
+      if (!recorded) why = 'dropbox_backup op health answered ' + r.status + ' ' + String(j?.error ?? '').slice(0, 200);
+    } catch (e) { why = 'dropbox_backup op health did not answer: ' + String((e as Error)?.message || e).slice(0, 200); }
+    if (!recorded) {
+      const { data: rec, error: re } = await admin.rpc('fn_it_dropbox_health_record', { p: { error: why, class: 'internal' } });
+      if (re) return { due: true, status, ok: false, error: re.message };
+      // deno-lint-ignore no-explicit-any
+      recorded = (rec as any)?.status ?? null;
+    }
+    return { due: true, status, recorded };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function backupTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_dropbox_backup_due');
@@ -706,6 +739,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const ratings = await ratingTick();
     const backup = await backupTick();
     const backupVerify = await dropboxVerifyTick();
+    const dropboxHealth = await dropboxHealthTick();
     const tableExport = await tableExportTick();
     const backupPrune = await backupPruneTick();
     const weekly = await accountantWeeklyTick();
@@ -740,7 +774,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, dropboxHealth, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -764,6 +798,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, dropboxHealth, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

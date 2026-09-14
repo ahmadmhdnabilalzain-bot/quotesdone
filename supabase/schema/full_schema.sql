@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T22:52:28.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T23:10:24.866Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6472,7 +6472,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_dues (
   payment_order_issued_on date,
   payment_order_served_on date,
   grievance_filed_on date,
-  court_reference text
+  court_reference text,
+  status_reason text
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_kpi_snapshots (
@@ -12630,6 +12631,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_applies_incident_fix(p_id bigint
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare d jsonb; v_fix text; v_tx uuid; v_old bigint; v_orig bigint; v jsonb; v_j bigint; v_amt numeric; v_res jsonb; v_du public.supplier_dues;
+        v_why text;
 begin
   select detail into d from public.agent_actions where id = p_id;
   v_fix := d->>'fix'; v_tx := (d->>'transaction_id')::uuid;
@@ -12639,6 +12641,12 @@ begin
 
   perform set_config('app.qd_incident_fix', 'on', true);
   if v_fix = 'book_over_refund_loss' then
+    -- test money never reaches the books: a fixture or orphaned transaction's loss is not the company's
+    v_why := public.fn_gl_fixture_or_orphan(v_tx, null, null);
+    if v_why is not null then
+      perform set_config('app.qd_incident_fix', '', true);
+      return jsonb_build_object('refused', 'not booked: ' || v_why);
+    end if;
     v_amt := round((d->>'amount_aed')::numeric, 2);
     select g.id into v_j from public.gl_journal g where g.source = 'refund_over_loss' and g.source_ref = v_tx || ':' || (d->>'incident_id');
     if v_j is null and v_amt > 0 then
@@ -17842,16 +17850,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17877,6 +17875,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -29994,10 +30002,12 @@ declare e record; fx numeric; acct text; amt_aed numeric(18,2); vat_aed numeric(
         net_aed numeric(18,2); jid bigint; lines jsonb;
 begin
   select id, vendor, category, amount, upper(coalesce(currency,'AED')) as cur, vat_amount,
-         coalesce(charged_on, created_at::date) as d
+         coalesce(charged_on, created_at::date) as d, note
     into e
     from public.expense_entries where id = p_entry_id;
   if not found or coalesce(e.amount,0) <= 0 then return null; end if;
+  -- a ZZ DEMO expense is a rehearsal's, never the company's (same marker as fn_gl_sync_business)
+  if (coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo' then return null; end if;
 
   -- already posted (by this routine or by fn_gl_sync_business): return it, never post twice
   select g.id into jid from public.gl_journal g
@@ -30882,6 +30892,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_gl_fixture_or_orphan(p_transaction uuid, p_supplier bigint, p_customer uuid)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_found boolean; v_sup bigint := p_supplier; v_cust uuid := p_customer; v_demo boolean;
+begin
+  if p_transaction is not null then
+    select true, coalesce(v_sup, t.supplier_id), coalesce(v_cust, t.customer_id)
+      into v_found, v_sup, v_cust
+      from public.transactions t where t.id = p_transaction;
+    if v_found is null then return 'orphan: transaction ' || p_transaction || ' no longer exists'; end if;
+  end if;
+  if v_sup is not null then
+    select coalesce(l.is_demo, false) into v_demo from public.leads l where l.id = v_sup;
+    if not found then return 'orphan: supplier ' || v_sup || ' no longer exists'; end if;
+    if v_demo then return 'fixture: supplier ' || v_sup || ' is a demo identity'; end if;
+  end if;
+  if v_cust is not null then
+    select coalesce(c.is_demo, false) into v_demo from public.customers c where c.id = v_cust;
+    if not found then return 'orphan: customer ' || v_cust || ' no longer exists'; end if;
+    if v_demo then return 'fixture: customer ' || v_cust || ' is a demo identity'; end if;
+  end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_gl_journal_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -31037,7 +31075,7 @@ CREATE OR REPLACE FUNCTION public.fn_gl_sync_business()
 AS $function$
 declare r record; n int := 0; acct text;
         fee_pct numeric; fee_fixed numeric; fee numeric(18,2); gross numeric(18,2); net numeric(18,2);
-        fx numeric; amt_aed numeric(18,2); diff numeric(18,2); extra numeric(18,2); lines jsonb;
+        fx numeric; amt_aed numeric(18,2); diff numeric(18,2); extra numeric(18,2); lines jsonb; v_orphans jsonb;
 begin
   select num_value into fee_pct   from public.gl_settings where key='stripe_fee_pct';
   select num_value into fee_fixed from public.gl_settings where key='stripe_fee_fixed';
@@ -31046,6 +31084,10 @@ begin
   fee_fixed := coalesce(fee_fixed,0);
   fx        := coalesce(fx, 3.6725);
 
+  -- TEST MONEY NEVER REACHES THE BOOKS (15 Sep 2026). Every business branch below books only a row that
+  -- fn_gl_fixture_or_orphan passes. Journal #690 was an E2E fixture due whose supplier and transaction the
+  -- teardown had deleted; it posted the first tick after the bank-booking hold was lifted.
+
   -- 1) Reveal-fee revenue with Stripe fee split (refunded transactions excluded)
   for r in
     select id, reveal_fee, total_charged, processing_fee, stripe_fee_fils, coalesce(revealed_at::date, current_date) as d
@@ -31053,6 +31095,7 @@ begin
     where fee_status='paid' and coalesce(reveal_fee,0) > 0
       and coalesce(refund_status,'') not in ('refunded','refund_approved','succeeded')
       and not exists (select 1 from public.gl_journal g where g.source='reveal_fee' and g.source_ref=transactions.id::text)
+      and public.fn_gl_fixture_or_orphan(transactions.id, null, null) is null
   loop
     gross := round(coalesce(r.total_charged, r.reveal_fee),2);
     fee   := coalesce(round(r.stripe_fee_fils / 100.0, 2), r.processing_fee, round(gross*fee_pct/100 + fee_fixed, 2));
@@ -31086,6 +31129,7 @@ begin
     where coalesce(t.refund_status,'') in ('refunded','refund_approved','succeeded')
       and coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='refund_paid' and g.source_ref=t.id::text)
+      and public.fn_gl_fixture_or_orphan(t.id, null, null) is null
   loop
     gross := round(r.amt,2);
     if r.sale_booked then
@@ -31108,6 +31152,7 @@ begin
 
   -- 2) Clawback RAISED on the supplier. Credits 6900 (recovering the refund), NOT 4100.
   --    Any admin fee / interest assessed at the same time is genuine income -> 4400.
+  --    A due with no supplier is judged as one whose supplier is gone (-1 is never a lead id).
   for r in
     select id, amount_due,
            coalesce(admin_fee,0) + coalesce(interest_amount,0) as extra_owed,
@@ -31116,6 +31161,7 @@ begin
     where coalesce(amount_due,0) > 0
       and coalesce(status,'') not in ('waived','cancelled','reversed')
       and not exists (select 1 from public.gl_journal g where g.source='commission_accrue' and g.source_ref=supplier_dues.id::text)
+      and public.fn_gl_fixture_or_orphan(supplier_dues.transaction_id, coalesce(supplier_dues.supplier_id, -1), null) is null
   loop
     extra := round(coalesce(r.extra_owed,0),2);
     lines := jsonb_build_array(
@@ -31136,6 +31182,7 @@ begin
     from public.supplier_dues
     where status in ('paid','settled') and paid_at is not null and coalesce(amount_due,0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='commission_collect' and g.source_ref=supplier_dues.id::text)
+      and public.fn_gl_fixture_or_orphan(supplier_dues.transaction_id, coalesce(supplier_dues.supplier_id, -1), null) is null
   loop
     extra := round(coalesce(r.extra_owed,0),2);
     gross := round(r.amount_due,2) + extra;
@@ -31163,6 +31210,7 @@ begin
       and coalesce(l.subscription_exempt,false) = false
       and not exists (select 1 from public.gl_journal g
                       where g.source='subscription' and g.source_ref = l.id::text || ':' || l.registration_paid_at::date)
+      and public.fn_gl_fixture_or_orphan(null, l.id, null) is null
   loop
     gross := round(coalesce(r.registration_fee_due,0),2);
     if gross <= 0 then continue; end if;
@@ -31177,13 +31225,15 @@ begin
     n := n + 1;
   end loop;
 
-  -- 3) Expense charges, converted to AED (the ledger currency)
+  -- 3) Expense charges, converted to AED (the ledger currency). A ZZ DEMO expense is a rehearsal's, never
+  --    the company's (the same marker the receipt duty uses).
   for r in
     select e.id, e.amount, upper(coalesce(e.currency,'AED')) as cur, e.category, e.vendor,
            coalesce(e.charged_on, e.created_at::date) as d
     from public.expense_entries e
     where coalesce(e.amount,0) > 0
       and not exists (select 1 from public.gl_journal g where g.source='expense' and g.source_ref=e.id::text)
+      and not ((coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo')
   loop
     if r.cur not in ('AED','USD') then
       begin
@@ -31217,6 +31267,7 @@ begin
       and coalesce(e.amount,0) > 0
       and exists (select 1 from public.gl_journal g where g.source='expense' and g.source_ref=e.id::text)
       and not exists (select 1 from public.gl_journal g where g.source='expense_fx_adj' and g.source_ref=e.id::text)
+      and not ((coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo')
   loop
     diff := round(r.amount * fx, 2) - coalesce(r.posted_aed, 0);
     if diff is null or diff = 0 then continue; end if;
@@ -31228,6 +31279,30 @@ begin
                         jsonb_build_object('account','1000','credit',diff)), 'gl_fx_fix');
     n := n + 1;
   end loop;
+
+  -- 4) AN ORPHAN IS NEVER BOOKED SILENTLY. Every open money row whose transaction, supplier or customer is
+  --    gone is an accountant finding; the same call closes it once the row is reversed, cancelled or
+  --    waived. Fixtures are expected and raise nothing.
+  select coalesce(jsonb_agg(jsonb_build_object('item', x.item, 'owner_seat', 'accountant', 'subject', x.subject,
+           'title', x.subject || ' #' || x.id || ' (' || x.amount || ' AED) was not booked: ' || x.why,
+           'blast', 'internal', 'affected', 0, 'demo', false,
+           'evidence', jsonb_build_object('row', x.id, 'amount_aed', x.amount, 'why', x.why, 'no_founder_email', true,
+             'remedy', 'find what created it; reverse any journal already posted from it (fn_gl_reverse), then set the row reversed or cancelled with status_reason'))
+           order by x.item), '[]'::jsonb)
+    into v_orphans
+    from (select 'supplier_dues:' || d.id as item, 'supplier_dues' as subject, d.id::text as id,
+                 round(coalesce(d.total_claim, d.amount_due), 2) as amount,
+                 public.fn_gl_fixture_or_orphan(d.transaction_id, coalesce(d.supplier_id, -1), null) as why
+            from public.supplier_dues d
+           where coalesce(d.amount_due, 0) > 0 and coalesce(d.status, '') not in ('waived', 'cancelled', 'reversed')
+          union all
+          select 'transactions:' || t.id, 'transactions', t.id::text,
+                 round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0), 2),
+                 public.fn_gl_fixture_or_orphan(t.id, null, null)
+            from public.transactions t
+           where t.fee_status = 'paid' or coalesce(t.refund_status, '') in ('refunded', 'refund_approved', 'succeeded')) x
+   where x.why like 'orphan:%';
+  perform public.fn_it_duty_settle('ledger_orphan', v_orphans);
 
   return n;
 end
@@ -33492,6 +33567,95 @@ return jsonb_build_object(
   'ledger_resolved', v_resolved);
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_dropbox_health_due()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select not exists (select 1 from public.agent_runs r where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_health'
+                        and r.status in ('ok', 'warn') and r.started_at > now() - interval '1 day'
+                        and (r.started_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date)
+     and not exists (select 1 from public.agent_runs r where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_health'
+                        and r.status = 'error' and r.started_at > now() - interval '2 hours');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_dropbox_health_record(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_quiet numeric := coalesce(public.fn_it_threshold('dropbox_space_quiet_pct'), 70);
+  v_loud  numeric := coalesce(public.fn_it_threshold('dropbox_space_loud_pct'), 85);
+  v_ok boolean; v_cls text; v_pct numeric; v_status text;
+  v_login jsonb := '[]'::jsonb; v_space jsonb := '[]'::jsonb; v_login_out jsonb; v_space_out jsonb;
+  v_classes constant text[] := array['auth', 'quota', 'rate_limit', 'provider_outage', 'network', 'internal'];
+begin
+  if jsonb_typeof(p) is distinct from 'object' then raise exception 'fn_it_dropbox_health_record: the reading must be a json object'; end if;
+
+  v_ok := p->>'error' is null and coalesce((p->>'write_ok')::boolean, false) and coalesce((p->>'read_ok')::boolean, false)
+          and coalesce((p->>'delete_ok')::boolean, false);
+  if not v_ok then
+    -- a class the edge did not name, or named wrongly, is ours to explain: internal
+    v_cls := case when p->>'class' = any (v_classes) then p->>'class' else 'internal' end;
+    v_login := jsonb_build_array(jsonb_build_object('item', v_cls,
+      'title', case v_cls
+        when 'auth'            then 'Dropbox refused the company''s stored login; backups are not reaching Dropbox'
+        when 'quota'           then 'Dropbox refused the daily probe write because the account is full'
+        when 'rate_limit'      then 'Dropbox rate-limited the daily probe'
+        when 'provider_outage' then 'Dropbox answered the daily probe with a server error'
+        when 'network'         then 'Dropbox could not be reached for the daily probe'
+        else                        'The daily Dropbox probe failed for an internal reason' end,
+      'blast', case when v_cls in ('rate_limit', 'provider_outage', 'network') then 'internal' else 'agent_facing' end,
+      'affected', 1, 'owner_seat', 'ceo', 'subject', 'dropbox_backup',
+      'evidence', jsonb_build_object('class', v_cls, 'error', left(p->>'error', 300), 'auth_ok', p->'auth_ok',
+                                     'write_ok', p->'write_ok', 'read_ok', p->'read_ok', 'delete_ok', p->'delete_ok',
+                                     'look_at', 'dropbox_backup op health; agent_runs job dropbox_health')));
+  end if;
+  v_login_out := public.fn_it_duty_settle('dropbox_login', v_login);
+
+  if coalesce(p->>'allocated', '') ~ '^[0-9]+(\.[0-9]+)?$' and coalesce(p->>'used', '') ~ '^[0-9]+(\.[0-9]+)?$'
+     and (p->>'allocated')::numeric > 0 then
+    v_pct := round((p->>'used')::numeric * 100 / (p->>'allocated')::numeric, 1);
+    if v_pct >= v_loud then
+      v_space := jsonb_build_array(jsonb_build_object('item', 'space_loud',
+        'title', 'Dropbox is ' || v_pct || '% full (loud at ' || v_loud || '%); at 100% new documents stop reaching Dropbox',
+        'blast', 'agent_facing', 'affected', 1, 'owner_seat', 'ceo', 'subject', 'dropbox_backup',
+        'evidence', jsonb_build_object('pct_used', v_pct, 'used', p->'used', 'allocated', p->'allocated', 'plan', p->'plan', 'threshold', v_loud)));
+    elsif v_pct >= v_quiet then
+      v_space := jsonb_build_array(jsonb_build_object('item', 'space_quiet',
+        'title', 'Dropbox is ' || v_pct || '% full (quiet at ' || v_quiet || '%, loud at ' || v_loud || '%)',
+        'blast', 'internal', 'affected', 0, 'owner_seat', 'ceo', 'subject', 'dropbox_backup',
+        'evidence', jsonb_build_object('pct_used', v_pct, 'used', p->'used', 'allocated', p->'allocated', 'plan', p->'plan', 'threshold', v_quiet)));
+    end if;
+    v_space_out := public.fn_it_duty_settle('dropbox_space', v_space);
+  elsif v_ok then
+    -- the login works and the space did not read: say so, and leave what the last reading found open
+    perform public.fn_it_engineer_finding_upsert('duty:dropbox_space:space_unread',
+      'The Dropbox login works but the space used could not be read', 'IT engineer duty: dropbox_space',
+      'internal', 0, jsonb_build_object('duty', 'dropbox_space', 'owner_seat', 'ceo', 'subject', 'dropbox_backup', 'demo', false,
+        'space_error', left(p->>'space_error', 300), 'space_class', p->>'space_class'),
+      '{}'::text[], '{}'::text[], 'it_engineer.dropbox_space');
+  else
+    -- login probe AND space read both failed: any open dropbox_space finding is deliberately left untouched this tick; the login finding is already loud, and space is re-evaluated on the next good reading
+    null;
+  end if;
+
+  v_status := case when not v_ok then 'error'
+                   when v_pct is null or v_pct >= v_quiet then 'warn' else 'ok' end;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', v_status, jsonb_build_object('job', 'dropbox_health', 'pct_used', v_pct, 'class', v_cls) || p,
+          left('Dropbox health: write ' || coalesce(p->>'write_ok', 'false') || ', read ' || coalesce(p->>'read_ok', 'false')
+               || ', delete ' || coalesce(p->>'delete_ok', 'false') || '; '
+               || coalesce(v_pct::text || '% of the ' || coalesce(p->>'plan', 'unknown') || ' plan used', 'space not read')
+               || coalesce('; ' || v_cls || ': ' || (p->>'error'), ''), 500), now(), now());
+  return jsonb_build_object('status', v_status, 'pct_used', v_pct, 'class', v_cls, 'login', v_login_out, 'space', v_space_out);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_duties(p_r jsonb)
@@ -58081,14 +58245,15 @@ CREATE OR REPLACE FUNCTION public.trg_doc_backups_admit()
 AS $function$
 begin
   new.dropbox_path := public.fn_dbx_path(new.dropbox_path);
-  -- A rehearsal's documents are never uploaded: its fixtures are torn down minutes later, and the
-  -- row would then fail as 'supplier_missing' for ever (measured: 4 such error rows and 22 parked
-  -- rows, all ZZ DEMO suppliers/customers of a harness run, on the day this was written).
+  -- A rehearsal's documents are never queued: its fixtures are torn down minutes later, and a queued
+  -- row could never drain (fn_doc_backups_next leaves zz_demo rows to the probes). Measured: 662 such
+  -- rows piled up in one day (a_rehearsal_never_queues_a_backup.sql). A row a probe inserts as
+  -- 'zz_demo' itself is not caught here and is still admitted.
   if new.entity is distinct from 'zz_demo' and (
        coalesce(new.dropbox_path, '') ~* 'zz[ _-]?demo' or coalesce(new.path, '') ~* 'zz[ _-]?demo'
        or (new.entity = 'supplier' and exists (select 1 from public.leads l where l.id::text = new.entity_id and l.is_demo))
        or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))) then
-    new.entity := 'zz_demo';
+    return null;
   end if;
   if new.source = 'storage' and new.status = 'pending'
      and not exists (select 1 from storage.objects o where o.bucket_id = new.bucket and o.name = new.path) then

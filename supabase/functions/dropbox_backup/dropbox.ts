@@ -37,7 +37,9 @@ export class DropboxClient {
     for (let attempt = 0; ; attempt++) {
       const token = this.token && attempt === 0 ? this.token : await this.fresh();
       const init: RequestInit = host === 'api'
-        ? { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: arg === null ? undefined : apiArg(arg) }
+        // an endpoint with no arguments still takes the JSON body "null": an empty body is refused
+        // (users/get_space_usage answered 500 to it, measured 15 Sep 2026)
+        ? { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: apiArg(arg) }
         : { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': apiArg(arg) }, body: (bytes ?? new Uint8Array(0)) as BodyInit };
       const r = await this.f(`https://${host}.dropboxapi.com/2/${endpoint}`, init);
       if (r.status !== 401 || attempt > 0) return r;
