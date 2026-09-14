@@ -26,7 +26,7 @@ export function Hero() {
       <span className="grid-tech" aria-hidden />
       {/* The 3D scene sits behind the text and paints after first paint; the h1 stays the LCP. */}
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-        <HeroScene locale={locale} />
+        <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
       </div>
       <section className="container-x relative z-10 grid items-start gap-12 pb-16 pt-12 md:pt-20 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20">
         <div className="flex flex-col items-start text-start">
