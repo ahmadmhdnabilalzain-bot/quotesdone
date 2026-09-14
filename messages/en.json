@@ -14,35 +14,42 @@
     "services": "Services"
   },
   "hero": {
-    "subtitle": "Describe the job once. Licence-checked suppliers for your trade and emirate quote without knowing who you are. You see the top 3, levelled line by line, and pay 3% of the quote you choose, only to reveal that one.",
     "ctaPrimary": "Get quotes",
     "ctaSupplier": "Join as a supplier",
-    "proof": [
-      {
-        "k": "3–5 working days",
-        "v": "for quotes to arrive, usually"
-      },
-      {
-        "k": "Top 3, anonymous",
-        "v": "levelled line by line"
-      },
-      {
-        "k": "3% to reveal",
-        "v": "of the quote you choose, nothing else"
-      },
-      {
-        "k": "Licence-checked",
-        "v": "before any supplier quotes"
-      }
-    ],
     "myPortal": "My portal",
     "supplierPortal": "Open the supplier portal",
     "supplierTitle": "You are signed in as a supplier",
     "supplierBody": "Invites reach you only for jobs your licence and scope cover. No commission — the customer pays the reveal fee.",
     "supplierHow": "How it works for suppliers",
-    "kicker": "Construction, fit-out & MEP quotes in the UAE",
-    "title1": "Every quote arrives sealed.",
-    "title2": "Only the one you choose is ever opened."
+    "kicker": "Construction · Fit-out · MEP · UAE",
+    "title": "Anonymous quotes from licence-checked UAE contractors.",
+    "sealed": "Every quote arrives sealed. Only the one you choose is ever opened.",
+    "how": "Describe the job once. We send it without your name to suppliers licensed for your trade and emirate, and their quotes reach you in 3–5 working days.",
+    "price": [
+      {
+        "k": "Free",
+        "v": "to post your job and compare every quote"
+      },
+      {
+        "k": "3%",
+        "v": "of the quote you choose, paid only to reveal that supplier"
+      }
+    ],
+    "stepsLabel": "How it works",
+    "steps": [
+      {
+        "t": "Describe the job",
+        "b": "In your own words, or attach a photo, drawing or BOQ. Your name is removed before any supplier sees it."
+      },
+      {
+        "t": "Compare the quotes",
+        "b": "The top 3 are levelled into one comparison report, and every other quote is listed too. Pick any of them."
+      },
+      {
+        "t": "Reveal the one you choose",
+        "b": "Pay 3% of that quote to see the supplier’s name and contact. The rest stay sealed."
+      }
+    ]
   },
   "cats": {
     "eyebrow": "Categories",
@@ -147,7 +154,7 @@
   },
   "meta": {
     "siteTitle": "QuotesDone — Anonymous construction, fit-out & MEP quotes in the UAE",
-    "siteDesc": "Post your construction, fit-out or MEP job once. Licence-checked UAE suppliers quote anonymously; compare the top 3 and pay 3% of the quote you choose, nothing else."
+    "siteDesc": "Post your construction, fit-out or MEP job once. Licence-checked UAE suppliers quote anonymously; the top 3 come levelled in a comparison report, every other quote is listed too, and you pay 3% of the one you choose, nothing else."
   },
   "blog": {
     "onlyEnglish": "This article is currently available in English only."
@@ -194,8 +201,8 @@
         "body": "Number, authority and expiry are read from the licence itself. An expired licence cannot quote."
       },
       {
-        "title": "The top 3, not thirty",
-        "body": "Quotes are scored on price, completeness and delivery. The strongest three are shown side by side."
+        "title": "A comparison report, and every quote",
+        "body": "The top 3 are levelled on price, completeness and delivery into one report. Every other quote is listed beside it, so the choice stays yours."
       },
       {
         "title": "Incomplete quotes go back",
@@ -248,7 +255,9 @@
     "pctNote": "of the quote you choose, only if you reveal",
     "refund": "Full refund",
     "day1": "Working day 1",
-    "day5": "Working day 5"
+    "day5": "Working day 5",
+    "report": "Comparison report",
+    "listed": "Every other quote, listed"
   },
   "counters": {
     "suppliers": "licence-verified suppliers",
@@ -263,11 +272,11 @@
     "title": "Built for the buyer and the supplier",
     "customers": {
       "kicker": "For customers",
-      "title": "Post once. Compare the top 3. Stay anonymous.",
+      "title": "Post once. Compare every quote. Stay anonymous.",
       "bullets": [
         "Describe the job by text, photo, drawing or BOQ — no calls",
         "Only licence-checked suppliers for your trade and emirate are invited",
-        "The top 3 quotes, levelled on price, completeness and delivery",
+        "The top 3 levelled into a comparison report on price, completeness and delivery, and every other quote listed, so you can pick any",
         "3% of the quote you choose, nothing else — quotes usually arrive in 3–5 working days",
         "Every quote states how long its price is valid, so you know when it expires",
         "Updates reach you on WhatsApp as well as by email"
@@ -280,7 +289,7 @@
       "bullets": [
         "Free to quote — the customer pays the 3% reveal fee, you pay no commission",
         "Invites only for your trade and emirate, checked against your licence",
-        "A top-3 shortlist: you compete with at most two others, never a crowd",
+        "Your quote is listed for the customer with every other one; the strongest three are also levelled into their comparison report",
         "Before a reveal you see the full scope, the emirate and drawings with identity removed — never the customer’s name"
       ],
       "cta": "Become a supplier"
@@ -381,8 +390,8 @@
         "v": "You see the scope, the quantities and the drawings with identity removed. The customer’s name reaches you only when they choose you."
       },
       {
-        "k": "Top 3, not a crowd",
-        "v": "Customers see a shortlist of three, ranked on price, completeness and delivery — never on what a supplier pays."
+        "k": "Ranked on fit, never on fees",
+        "v": "Every quote is listed for the customer; the strongest three are levelled into a comparison report on price, completeness and delivery — never on what a supplier pays."
       }
     ],
     "stepsTitle": "From registration to your first quote",
@@ -412,7 +421,7 @@
   },
   "howPage": {
     "metaTitle": "How QuotesDone works — anonymous quotes, end to end",
-    "metaDesc": "How a construction, fit-out or MEP job moves through QuotesDone: the brief, licensed matching, checked quotes, the top-3 comparison and the reveal.",
+    "metaDesc": "How a construction, fit-out or MEP job moves through QuotesDone: the brief, licensed matching, checked quotes, the comparison report and the reveal.",
     "kicker": "How it works",
     "title": "How an anonymous quote works, end to end",
     "sub": "Built for construction, fit-out and MEP — and it handles home-maintenance jobs too. Every step below is what the platform does, not what a person does for you.",
@@ -434,8 +443,8 @@
         "body": "A quote without a price, lead time, validity or warranty goes back to the supplier before you see it."
       },
       {
-        "title": "You compare the top 3",
-        "body": "Levelled on price, completeness and delivery, side by side. Export the comparison as a PDF."
+        "title": "You compare every quote",
+        "body": "The top 3 are levelled on price, completeness and delivery into a comparison report you can export as a PDF. Every other quote is listed too, and you can choose any of them."
       },
       {
         "title": "You reveal one — or none",
@@ -546,6 +555,7 @@
     "revealed": "Name, phone, licence no.",
     "rejected": "quotes without a removal line were returned to their suppliers and never shown.",
     "revealCta": "Reveal for AED 1,162.50 · 3%",
-    "note": "Sample data: a worked illustration of the steps on a fixed job, not a live request."
+    "note": "Sample data: a worked illustration of the steps on a fixed job, not a live request.",
+    "moreListed": "+ 4 more quotes listed under the report · any of them can be chosen"
   }
 }

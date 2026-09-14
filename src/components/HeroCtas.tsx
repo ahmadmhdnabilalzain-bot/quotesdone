@@ -29,7 +29,9 @@ export function Arrow() {
   );
 }
 
-export function HeroCtas({ labels, align = 'start', note = false }: { labels: HeroCtaLabels; align?: 'start' | 'center'; note?: boolean }) {
+// `quiet`: every link takes the secondary style — used in the hero, where the job box is the one
+// primary action and a second filled button would compete with it.
+export function HeroCtas({ labels, align = 'start', note = false, quiet = false }: { labels: HeroCtaLabels; align?: 'start' | 'center'; note?: boolean; quiet?: boolean }) {
   const [who, setWho] = useState<Audience>('visitor');
   useEffect(() => { setWho(readAudience()); }, []);
 
@@ -42,7 +44,7 @@ export function HeroCtas({ labels, align = 'start', note = false }: { labels: He
     <div className={align === 'center' ? 'flex flex-col items-center' : 'flex flex-col items-start'}>
       <div className={`flex flex-wrap items-center gap-3 ${align === 'center' ? 'justify-center' : ''}`}>
         {buttons.map((b) =>
-          b.main ? (
+          b.main && !quiet ? (
             <Link key={b.href} href={b.href} className={primary}>
               {b.label}
               <span className={s.arrowDot}><Arrow /></span>

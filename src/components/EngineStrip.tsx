@@ -50,15 +50,20 @@ export function EngineStrip() {
           </ul>
         </Cell>
 
-        {/* 3 top three, not thirty */}
+        {/* 3 the comparison report, and every other quote listed beside it — none is hidden */}
         <Cell className="md:col-span-2" title={c[2].title} body={c[2].body}>
           <div className="flex h-[76px] items-end gap-1.5" aria-hidden>
             {[64, 54, 46].map((h) => (
               <span key={h} className="w-7 rounded-t-[5px] bg-teal/20 shadow-[inset_0_0_0_1px_rgba(20,184,166,.55)]" style={{ height: h }} />
             ))}
-            {Array.from({ length: 9 }).map((_, i) => (
-              <span key={i} className="w-2.5 rounded-t-[2px] bg-[#1B3445]" style={{ height: 14 + ((i * 7) % 18) }} />
+            <span className="mx-1 h-full w-px bg-line2" />
+            {Array.from({ length: 7 }).map((_, i) => (
+              <span key={i} className="w-2.5 rounded-t-[2px] bg-teal/[0.08] shadow-[inset_0_0_0_1px_rgba(110,231,212,.25)]" style={{ height: 22 + ((i * 7) % 18) }} />
             ))}
+          </div>
+          <div className="mt-2.5 flex justify-between gap-3 font-mono text-[11.5px] rtl:font-sans">
+            <span className="text-teal-light">{t('report')}</span>
+            <span className="text-faint">{t('listed')}</span>
           </div>
         </Cell>
 

@@ -3,48 +3,67 @@ import { BriefBox } from '@/components/BriefBox';
 import { HeroCtas } from '@/components/HeroCtas';
 import { Counters } from '@/components/Counters';
 import { HeroScene } from '@/components/visual/slots';
-import { Link } from '@/i18n/routing';
 import s from '@/components/home/sealed.module.css';
 
-type Proof = { k: string; v: string };
-// hero.proof[3] is "Licence-checked — before any supplier quotes" in both message files; the claim
-// links to the page that shows the check.
-const VERIFIED = 3;
+type Fact = { k: string; v: string };
+type Step = { t: string; b: string };
 
-// THE HERO PAINTS AT TTFB.
+// THE FIRST SCREEN ANSWERS WHAT, HOW AND WHAT IT COSTS.
 //
-// The h1 is plain server-rendered markup with no hidden initial state, so it is the LCP element and
-// visible in the HTML itself (a hidden-until-hydrated hero measured LCP 7.6 s on Lighthouse mobile,
-// website audit §1 findings 7-8). The Sealed 3D scene is decorative and sits on the inline-end side,
-// not under the headline: on the live site the scene's gold slab collided with the h1 at 1440 px.
-// It is mounted through visual/slots, so its poster paints first and three.js loads only after the
-// visitor's first interaction on a capable device.
+// Founder, 14 Sep 2026: "if a customer enters the website and he never knew about the app, he
+// should understand what we do in less than a minute without scrolling up and down many times."
+// So the first screen carries, in reading order: a plain headline naming the service, the Sealed
+// line as its supporting promise, one sentence of how, the price in plain words, and the job box
+// as the single primary action; the three steps sit directly under it. Everything below the hero
+// is optional reading.
+//
+// The h1 and copy are server-rendered with no hidden initial state, so they paint at TTFB and the
+// LCP is text. The 3D scene is desktop-only decoration behind the job box: under lg its slot is
+// display:none, so its gate never opens and three.js is never requested on a phone.
+//
+// The top 3 are a comparison REPORT; every other quote is listed as well and any can be chosen
+// (founder, 14 Sep 2026: "never claim that we only show 3").
 export function Hero() {
   const t = useTranslations('hero');
   const locale = useLocale();
-  const proof = t.raw('proof') as Proof[];
+  const price = t.raw('price') as Fact[];
+  const steps = t.raw('steps') as Step[];
 
   return (
     <div className={`${s.heroField} relative isolate overflow-hidden`}>
       <span className="grid-tech" aria-hidden />
-      <section className="container-x relative grid gap-y-10 pb-16 pt-14 md:pt-24 lg:grid-cols-12 lg:gap-x-8 lg:pb-24 lg:pt-28">
-        <div className="relative z-10 flex flex-col items-start text-start lg:col-span-7">
+      <section className="container-x relative grid gap-10 pb-12 pt-10 md:pt-14 lg:grid-cols-12 lg:items-center lg:gap-x-12 lg:pb-14 lg:pt-16">
+        <div className="relative z-10 lg:col-span-7">
           <span className="qd-kicker">{t('kicker')}</span>
-          <h1 className={`text-display-xl mt-7 font-head font-semibold text-white`}>
-            <span className="block">
-              {t('title1')}
-              <span className={`redact redact-line ms-[0.18em] !w-[1.3em]`} aria-hidden />
-            </span>
-            <span className={`text-gold block`}>{t('title2')}</span>
+          <h1 className="mt-6 font-head text-[clamp(36px,4.9vw,64px)] font-semibold leading-[1.02] tracking-display text-white rtl:text-[clamp(30px,3.9vw,50px)] rtl:leading-[1.32]">
+            {t('title')}
           </h1>
-          <p className="mt-7 max-w-[54ch] text-pretty text-[clamp(16px,1.55vw,19px)] leading-relaxed text-muted">
-            {t('subtitle')}
+          <p className="mt-5 flex items-center gap-3 text-[clamp(16px,1.6vw,20px)] font-medium leading-snug text-gold">
+            <span className="redact redact-line !w-9 shrink-0" aria-hidden />
+            {t('sealed')}
           </p>
-          <div id="brief" className="mt-10 w-full max-w-[680px] scroll-mt-24">
+          <p className="mt-5 max-w-[58ch] text-pretty text-[clamp(15.5px,1.4vw,17.5px)] leading-relaxed text-muted">{t('how')}</p>
+          <dl className="mt-7 grid max-w-[600px] gap-3 sm:grid-cols-2">
+            {price.map((p) => (
+              <div key={p.k} className="flex items-baseline gap-3 border-s-2 border-teal/60 ps-3.5">
+                <dt className="font-head text-[22px] font-semibold tracking-snug text-white" dir="auto">{p.k}</dt>
+                <dd className="text-[14px] leading-snug text-muted">{p.v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <div className="relative lg:col-span-5">
+          {/* desktop-only scene: sits behind the job box and bleeds up and outward, never into the copy */}
+          <div className="pointer-events-none absolute -end-24 -top-24 bottom-10 start-10 hidden opacity-70 lg:block [mask-image:radial-gradient(closest-side,#000_55%,transparent)]" aria-hidden>
+            <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
+          </div>
+          <div id="brief" className="relative z-10 scroll-mt-24">
             <BriefBox />
           </div>
-          <div className="mt-8">
+          <div className="relative z-10 mt-5">
             <HeroCtas
+              quiet
               note
               labels={{
                 getQuotes: t('ctaPrimary'), joinSupplier: t('ctaSupplier'), myPortal: t('myPortal'),
@@ -54,41 +73,27 @@ export function Hero() {
             />
           </div>
         </div>
-
-        {/* The scene owns its column and never crosses the text: a block under the copy on phones;
-            on desktop it starts at its own column's edge and bleeds only outward (inline-end), with
-            its inner edge faded so the slabs never meet the headline. */}
-        <div className="relative lg:col-span-5" aria-hidden>
-          <span className={`halo left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2`} />
-          <div className="relative mx-auto aspect-[5/4] w-full max-w-[520px] lg:absolute lg:-inset-y-10 lg:start-0 lg:-end-20 lg:mx-0 lg:aspect-auto lg:w-auto lg:max-w-none lg:[mask-image:linear-gradient(to_right,transparent,#000_16%)] lg:rtl:[mask-image:linear-gradient(to_left,transparent,#000_16%)]">
-            <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
-          </div>
-        </div>
       </section>
 
-      {/* Measured counts replace these four statements only once each clears its floor. Until then
-          the statements render — server-side, with no invented number in them. */}
-      <Counters>
-        <div className="relative border-t border-[var(--line)] bg-navy-deep/60">
-          <dl className="container-x grid grid-cols-2 gap-x-6 gap-y-6 py-7 md:grid-cols-4">
-            {proof.map((p, i) => {
-              const body = (
-                <>
-                  <dt className="font-head text-[clamp(17px,1.8vw,21px)] font-semibold tracking-[-0.02em] text-white rtl:tracking-normal">{p.k}</dt>
-                  <dd className="mt-1 text-[13.5px] leading-snug text-faint">{p.v}</dd>
-                </>
-              );
-              return i === VERIFIED ? (
-                <Link key={p.k} href="/how-we-verify" className="group block border-s border-[var(--line2)] ps-4 underline-offset-4 hover:[&_dt]:underline">
-                  {body}
-                </Link>
-              ) : (
-                <div key={p.k} className="border-s border-[var(--line2)] ps-4">{body}</div>
-              );
-            })}
-          </dl>
-        </div>
-      </Counters>
+      {/* HOW IT WORKS, in one row, directly under the first screen's content */}
+      <div className="relative border-t border-line bg-navy-deep/60">
+        <ol aria-label={t('stepsLabel')} className="container-x grid gap-px md:grid-cols-3">
+          {steps.map((st, i) => (
+            <li key={st.t} className="flex gap-4 py-6 md:py-7 md:pe-8 md:[&:not(:first-child)]:border-s md:[&:not(:first-child)]:border-line md:[&:not(:first-child)]:ps-8">
+              <span className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full font-mono text-label ${i === 2 ? 'bg-gold/15 text-gold shadow-[inset_0_0_0_1px_rgba(227,192,101,.5)]' : 'text-teal-light shadow-[inset_0_0_0_1px_rgba(110,231,212,.35)]'}`}>
+                {i + 1}
+              </span>
+              <div>
+                <h2 className="font-head text-[17px] font-semibold tracking-snug text-white">{st.t}</h2>
+                <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{st.b}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Measured counts appear only once each clears its floor; until then nothing is printed. */}
+      <Counters>{null}</Counters>
     </div>
   );
 }

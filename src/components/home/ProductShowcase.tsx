@@ -136,6 +136,8 @@ export function ProductShowcase() {
                 );
               })}
             </ul>
+            {/* the top 3 are the comparison report; every other quote is listed too (founder rule) */}
+            <p className="mt-2.5 text-[12.5px] text-teal-light">{t('moreListed')}</p>
             <p className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed text-muted">
               <span className="mt-[3px] shrink-0 rounded-[4px] bg-gold/10 px-1.5 font-mono text-[11px] text-gold" dir="ltr">2</span>
               {t('rejected')}
