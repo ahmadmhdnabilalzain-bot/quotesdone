@@ -4,6 +4,7 @@
 // three suppliers' quotes (one held then released, one with two options, one complete), a comparison.
 // The screens (overview, invitation, deep link, every nav item) run across the whole matrix: English
 // and Arabic, desktop 1440 and mobile 375. Every step records PASS, FAIL or SKIP with the reason.
+import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors } from './browser.mjs';
 import { makeInquiry } from '../staging/demo_factory.mjs';
@@ -18,7 +19,11 @@ const tag = (m) => `${m.lang}-${m.viewport}`;
 // ---- the quotations each supplier sends ---------------------------------------------------------
 // COMPLETE: every detail the sales engineer's hold desk requires for a glazing line
 // (_shared/line_specs/model.ts glazing + assess.ts terms), stated exactly.
-const COMPLETE_LINE = 'Aluminium sliding windows, Schuco AWS 70 thermal break series, double glazed unit 6mm + 12mm air + 6mm, powder coated RAL 9016, BS EN 14351-1';
+// "glass" is named on the line: the fallback request carries materials [{component:'glass'}] and
+// assess.ts componentOnLine matches the component by word. "double glazed unit" alone never names
+// it, so on 14 Sep 2026 the complete quote was held for component:glass and the comparison had one
+// live quote. A complete quote that answers a named component names it.
+const COMPLETE_LINE = 'Aluminium sliding windows, Schuco AWS 70 thermal break series, double glazed glass unit 6mm + 12mm air + 6mm, powder coated RAL 9016, BS EN 14351-1';
 const completeTerms = (amount) => ({
   lead_time: '21 days from order', validity: '30 days', payment_terms: '50% advance, 50% on completion',
   warranty: '2 years covering manufacturing defects, glass seal failure and workmanship',
@@ -45,7 +50,7 @@ const twoOptionQuote = (inquiryId, a1, a2) => ({
     { description: 'Option 1: standard system' },
     { description: COMPLETE_LINE, qty: 40, unit: 'nos', unit_price: Math.round(a1 / 40) },
     { description: 'Option 2: premium system' },
-    { description: 'Aluminium sliding windows, Technal Soleal thermal break series, double glazed unit 6mm + 16mm argon + 6mm low-e, anodised finish, BS EN 14351-1', qty: 40, unit: 'nos', unit_price: Math.round(a2 / 40) },
+    { description: 'Aluminium sliding windows, Technal Soleal thermal break series, double glazed glass unit 6mm + 16mm argon + 6mm low-e, anodised finish, BS EN 14351-1', qty: 40, unit: 'nos', unit_price: Math.round(a2 / 40) },
   ],
   option_totals: { 1: a1, 2: a2 },
   ...completeTerms(a1), price_ex_vat: undefined,
@@ -248,12 +253,26 @@ export async function journeyComparison(ctx) {
   const { rep, browser, fx, dir, inquiryId } = ctx;
   const J = 'c comparison';
   if (!inquiryId) return rep.step(J, 'comparison', 'SKIP', 'no request');
-  const isPdf = async (url) => { if (!url) return false; const r = await fetch(url).catch(() => null); if (!r?.ok) return false; const b = Buffer.from(await r.arrayBuffer()); return b.subarray(0, 5).toString() === '%PDF-'; };
+  // The bytes are kept in the run directory so a person can open exactly what the customer got.
+  const pdfBytes = async (url) => { if (!url) return null; const r = await fetch(url).catch(() => null); if (!r?.ok) return null; const b = Buffer.from(await r.arrayBuffer()); return b.subarray(0, 5).toString() === '%PDF-' ? b : null; };
   for (const lang of ['en', 'ar']) {
     const r = await call('customer_api', fx.customer.jwt, { action: 'compare_pdf', inquiry_id: inquiryId, lang }, 180000);
     const url = r.json?.url || r.json?.pdf_url || r.json?.file_url;
-    const ok = await isPdf(url);
-    rep.step(J, `comparison report opens as a PDF (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} ${ok ? 'valid %PDF' : 'no PDF: ' + r.text.slice(0, 140)}`);
+    const b = await pdfBytes(url);
+    const saved = b ? `${dir}/c_comparison_${lang}.pdf` : null;
+    if (b) writeFileSync(saved, b);
+    rep.step(J, `comparison report opens as a PDF (${lang})`, b ? 'PASS' : 'FAIL', `HTTP ${r.status} ${b ? 'valid %PDF, saved ' + saved : 'no PDF: ' + r.text.slice(0, 140)}`);
+  }
+  // compare_csv goes through the same quote_compare call as compare_pdf (customer_api
+  // fetchCompareAnalysis), so it is asserted here rather than assumed to follow.
+  for (const lang of ['en', 'ar']) {
+    const r = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang }, 180000);
+    const csv = String(r.json?.csv || '');
+    const rows = csv.split(/\r?\n/).filter((x) => x.trim());
+    const arabic = lang !== 'ar' || /[؀-ۿ]/.test(rows[0] || '');
+    const ok = r.json?.ok === true && rows.length >= 2 && arabic;
+    if (csv) writeFileSync(`${dir}/c_comparison_${lang}.csv`, csv);
+    rep.step(J, `comparison exports as CSV (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} rows=${rows.length} header_arabic=${lang === 'ar' ? arabic : 'n/a'}${ok ? '' : ' ' + r.text.slice(0, 140)}`);
   }
   const live = (ctx.quoteIds || []).filter((x) => x.status !== 'draft');
   if (live[0]) {
