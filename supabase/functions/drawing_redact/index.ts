@@ -298,6 +298,14 @@ Deno.serve(observe('drawing_redact', async (req) => {
         try {
           const boxes = mb.slice(0, 60).map((g: any) => ({ x: Math.max(0, Math.min(1, Number(g?.x) || 0)), y: Math.max(0, Math.min(1, Number(g?.y) || 0)), w: Math.max(0, Math.min(1, Number(g?.w) || 0)), h: Math.max(0, Math.min(1, Number(g?.h) || 0)) })).filter((g: any) => g.w > 0 && g.h > 0);
           const tl = textBoxes(i); textHits += tl.boxes.length;
+          // FAIL CLOSED (founder, 14 Sep 2026: nothing that identifies the customer may reach a
+          // supplier). The leak audit measured this path publishing a scanned page untouched when the
+          // customer sent an empty box list. A page whose words cannot be read here (a scan, a photo,
+          // a rotated page) and on which the customer drew nothing has been checked by nobody: it is
+          // HELD, never published, and the run is recorded as partial or failed.
+          const pg = pdf[pageOffset + i];
+          const readable = !!(pg && pg.runs && pg.runs.length) && !tl.rotated;
+          if (!readable && boxes.length === 0) { skipped++; detail.push({ page: i, skipped: 'held_unverified_no_text_no_boxes' }); continue; }
           const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
           let img = await Image.decode(b64ToBytes(String(b)));
           if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);

@@ -28,7 +28,13 @@ import { t, tf, errText, emirateName } from './portalText';
 const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
 async function fileToImages(file) {
   const b64 = await fileB64(file);
-  if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
+  // Photos (incl. HEIC and multi-page TIFF) become JPEG pages in this browser; ocrClient throws
+  // HEIC_UNSUPPORTED where the browser cannot decode HEIC, which onFile tells the customer.
+  if ((file.type && file.type.startsWith('image/')) || /\.(heic|heif|tiff?)$/i.test(file.name || '')) {
+    const { toJpegPages } = await import('./ocrClient');
+    const images = await toJpegPages(file);
+    return { images, b64: (images[0] && images[0].data) || b64, mime: (images[0] && images[0].mime) || 'image/jpeg' };
+  }
   if (file.type === 'application/pdf') {
     try {
       const { rasterisePdf } = await import('./pdfRaster');
@@ -58,7 +64,10 @@ async function blobToWavB64(blob) {
 
 // ATTACH A BOQ (founder, 14 Sep 2026). A spreadsheet goes to analyze_boq (cells read with no model);
 // a PDF BOQ is read like a drawing, from its text layer. BOQ_ERR maps the server's refusal to words.
-const SHEET_RE = /\.(xlsx|xls|csv)$/i;
+// 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every
+// document drawing_boq's 'document' mode reads goes to analyze_document; PDFs, photos and DWG keep the
+// drawing path (redacted pages for suppliers).
+const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|ifc|xml|x8[1-6]|zip|dxf)$/i;
 const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type' };
 
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
@@ -114,10 +123,14 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const answerChip = (q) => { setInput(q + (ar ? ' — ' : ' — ')); setTimeout(() => { try { inputRef.current.focus(); } catch (_e) {} }, 20); };
 
-  const analyze = async (p, manual_boxes) => {
+  const analyze = async (p, manual_boxes, ocr_text) => {
     const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
-    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}) }, token);
+    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(ocr_text ? { ocr_text } : {}) }, token);
   };
+  // FREE OCR (14 Sep 2026). The vision model is held and an edge function has ~2 s of CPU, so a photo's
+  // or a scan's words are read HERE, by tesseract.js in the customer's browser (ocrClient.ts). The text
+  // is untrusted input: the server parses it, strips prices, and scrubs identity like any other text.
+  const ocr = async (images) => { try { const { ocrImages } = await import('./ocrClient'); return (await ocrImages(images)).text || ''; } catch (_e) { return ''; } };
   // source 'boq' when the customer attached a BOQ (sheet or PDF): create_inquiry tells suppliers so.
   const adopt = (res, name, source = 'drawing') => {
     const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: source };
@@ -130,7 +143,16 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
     try {
       const p = { ...(await fileToImages(file)), name: file.name, source };
       setPages(p);
-      const res = await analyze(p);
+      const isPhoto = /^image\//.test(p.mime) && p.images.length > 0;
+      let res = await analyze(p, undefined, isPhoto ? await ocr(p.images) : '');
+      // A scanned PDF has pages but no text layer: OCR its rendered pages and read that text instead.
+      if (!(res && res.boq && res.boq.boq && res.boq.boq.length) && p.mime === 'application/pdf' && p.images.length) {
+        const text = await ocr(p.images);
+        if (text.trim()) {
+          const d = await call('customer_api', { action: 'analyze_document', file_b64: p.b64, mime: p.mime, file_name: p.name, ocr_text: text }, token).catch(() => null);
+          if (d && d.ok && d.boq && d.boq.boq && d.boq.boq.length) res = { ...(res || {}), boq: d.boq };
+        }
+      }
       adopt(res, file.name, source);
       const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
       if (n >= 1) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
@@ -157,21 +179,21 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
       // drawing_redact's contract (intake engine, 14 Sep): needs_manual_boxes is the one signal that
       // automatic detection could not run, so the editor opens on exactly that and nothing else.
       if (res && res.needs_manual_boxes === true && p.images.length) setEditor(true);
-    } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_file_unreadable') }); }
+    } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
   // The parsed BOQ lands in `drawing.boq` exactly as a drawing's does, so inquiry_intake receives it as
   // drawing_boq and create_inquiry stores it on the RFQ suppliers read.
   const onBoq = async (file) => {
     if (!file) return;
-    if (!SHEET_RE.test(file.name)) return onFile(file, 'boq');
+    if (!DOC_RE.test(file.name)) return onFile(file, 'boq');
     setMsg(''); push({ role: 'user', text: '', chip: file.name });
     const reset = () => { try { if (boqRef.current) boqRef.current.value = ''; if (fileRef.current) fileRef.current.value = ''; } catch (_e) {} };
-    if (file.size > 5 * 1024 * 1024) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_too_large') }); reset(); return; }
+    if (file.size > 20 * 1024 * 1024) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_too_large') }); reset(); return; }
     setAnalyzing(true);
     try {
       const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
-      const res = await call('customer_api', { action: 'analyze_boq', file_b64: await fileB64(file), mime: file.type || '', file_name: file.name, hint }, token).catch(() => null);
+      const res = await call('customer_api', { action: 'analyze_document', file_b64: await fileB64(file), mime: file.type || '', file_name: file.name, hint }, token).catch(() => null);
       const rows = (res && res.ok && res.boq && res.boq.boq) || [];
       if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
       else if (!rows.length) push({ role: 'assistant', text: t(lang, 'nr_boq_sheet_empty') });
@@ -183,7 +205,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
     setAnalyzing(false); reset();
   };
-  const onAny = (f) => (f && SHEET_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const onAny = (f) => (f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
   const applyBoxes = async (boxes) => {
     if (!pages) return false;
     const res = await analyze(pages, boxes).catch(() => null);
@@ -346,12 +368,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
-          <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
           {/* Founder, 14 Sep 2026: "boq can be anything: a photo, pdf, png, jpg, excel". Photos and PDFs take the
               drawing path (onFile, source 'boq'). HEIC is deliberately NOT listed: storage and the redactor cannot
               decode it, and when it is absent iOS Safari converts a HEIC photo to JPEG before handing it over. */}
-          <input ref={boqRef} type="file" accept=".xlsx,.xls,.csv,.pdf,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" aria-label={t(lang, 'nr_attach_boq')} onChange={(e) => onBoq(e.target.files[0])} />
+          <input ref={boqRef} type="file" accept=".xlsx,.xls,.csv,.ods,.pdf,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp,.tif,.tiff,.doc,.docx,.odt,.rtf,.txt,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach_boq')} onChange={(e) => onBoq(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach_boq')} aria-label={t(lang, 'nr_attach_boq')} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2 text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => boqRef.current && boqRef.current.click()}><FileSpreadsheet className="h-5 w-5" aria-hidden /><span className="hidden text-[12.5px] font-semibold sm:inline">{t(lang, 'nr_attach_boq_short')}</span></button>
           <button type="button" title={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-label={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-disabled={modelHeld}
             className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-danger' : 'text-primary', modelHeld && 'cursor-not-allowed opacity-40')} onClick={rec ? stopRec : startRec}>

@@ -1,5 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET } from '../_shared/attachment.ts';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
+import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
+import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -659,6 +661,28 @@ Deno.serve(observe('customer_api', async (req) => {
       return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
     }
 
+    // EVERY DOCUMENT (14 Sep 2026; founder: "the sales agent need to be extremely capable of reading
+    // all types of document"). Word, PowerPoint, ODF, RTF, text, email (.eml/.msg), DXF, IFC, GAEB,
+    // zip and PDF are read by drawing_boq mode 'document' with no model; a photo arrives with the
+    // customer's browser OCR as ocr_text. The same 20 MB ceiling as doc_read; stored only if accepted.
+    if (action === 'analyze_document') {
+      const name = String(body.file_name || 'document').slice(0, 180);
+      const mime = String(body.mime || '');
+      const b64 = String(body.file_b64 || '');
+      if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
+      if (b64.length > 27 * 1024 * 1024) return J({ ok: false, error: 'file_too_large' });
+      const hint = String(body.hint || '').slice(0, 400);
+      const secret = await getSecret('cred_fn_customer_api');
+      let jd: any = null;
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: b64, mime, filename: name, hint, ocr_text: String(body.ocr_text || '').slice(0, 200_000) }) });
+        jd = await r.json();
+      } catch (_e) { /* answered below as document_unreadable */ }
+      if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
+      const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
+      return J({ ok: true, boq: jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
+    }
+
     if (action === 'analyze_drawing') {
       let images: any[] = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
@@ -706,17 +730,32 @@ Deno.serve(observe('customer_api', async (req) => {
         // box what must be hidden; drawing_redact applies those boxes deterministically. One entry
         // per page, normalised 0..1 {x,y,w,h}; anything malformed is dropped here, never forwarded.
         const c01 = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0; };
-        const manualBoxes: { x: number; y: number; w: number; h: number }[][] | null = Array.isArray(body.manual_boxes)
+        let manualBoxes: { x: number; y: number; w: number; h: number }[][] | null = Array.isArray(body.manual_boxes)
           ? body.manual_boxes.slice(0, 10).map((pg: unknown) => Array.isArray(pg)
             ? pg.slice(0, 40).map((bx: any) => ({ x: c01(bx?.x), y: c01(bx?.y), w: c01(bx?.w), h: c01(bx?.h) })).filter((bx) => bx.w > 0 && bx.h > 0)
             : [])
           : null;
+        // THE TITLE BLOCK, BOXED WITHOUT A MODEL (14 Sep 2026). A PDF drawing's title block, revision
+        // table and every run carrying this customer's name / email / phone / file name or a plot,
+        // Makani, address or permit pattern are boxed from the PDF's own text positions. Applied on
+        // their own ONLY at 'medium' confidence with nothing left over; at 'low' (a scan, a rotated
+        // page, a title block drawn as vectors) no automatic boxes are sent, so drawing_redact asks for
+        // the customer's boxes and the pages are not shared until they exist. Fail closed.
+        if (/pdf/i.test(mime) && body.original_b64) {
+          try {
+            const bytes = Uint8Array.from(atob(String(body.original_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
+            const tb = titleBlockBoxes(await pdfPages(bytes), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
+            const confident = tb.confidence === 'medium' && tb.residual.length === 0;
+            if (manualBoxes) manualBoxes = manualBoxes.map((pg, i) => [...pg, ...(tb.boxes[i] || [])]);
+            else if (confident) manualBoxes = images.map((_: unknown, i: number) => tb.boxes[i] || []);
+          } catch (_e) { /* unreadable PDF text: low confidence, the customer boxes it */ }
+        }
         const redactBatch = async (slice: any[], from: number) => {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime }) });
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000) }) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
@@ -785,7 +824,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const { count: recent } = await admin.from('inquiries').select('id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);
       if ((recent || 0) >= INQUIRY_LIMIT_PER_HOUR) return J({ error: 'You have created many requests in a short time. Please try again later.' }, 429);
       const drawing = body.drawing && typeof body.drawing === 'object' ? body.drawing : null;
-      const boqObj = drawing?.boq && typeof drawing.boq === 'object' ? drawing.boq : null;
+      let boqObj = drawing?.boq && typeof drawing.boq === 'object' ? drawing.boq : null;
       const briefSource = drawing ? (['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
       let intake: any = null;
       if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it; }
@@ -830,6 +869,24 @@ Deno.serve(observe('customer_api', async (req) => {
       const distinctTrades: string[] = Array.from(new Set<string>(tradeStrings)).slice(0, 6);
       const wantSplit = scope_type === 'multi' && distinctTrades.length > 1;
       const wantTurnkey = scope_type === 'turnkey';
+      // THE ANONYMITY GATE (founder, 14 Sep 2026): "any info related to the client name / project
+      // details contact info or anything that could let the supplier know who is the customer need to
+      // be removed before sharing the drawings" — "the same applies for boq's". The BOQ is stored
+      // ONLY after _shared/anonymise has removed this customer's own name, email, phone, project and
+      // file name wherever they appear, plus plot / Makani / address / permit patterns, and a residual
+      // scan found nothing. A BOQ that still identifies the customer is HELD: not stored on the RFQ,
+      // recorded as a 'boq_held' run so it is visible, and never sent. It does not fail open.
+      if (boqObj) {
+        let projName = '';
+        { const want = String(body.project_id || briefObj?.project_id || '').trim();
+          if (want) { const { data: pj } = await admin.from('projects').select('name').eq('id', want).eq('customer_id', cust.id).maybeSingle(); projName = pj?.name ? String(pj.name) : ''; } }
+        const seeds = seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', project: projName, extra: [drawingName || ''] });
+        const gate = redactBoq(boqObj, seeds);
+        if (gate.held) {
+          try { await admin.from('drawing_redaction_runs').insert({ customer_id: cust.id, owner_email: email, source_path: drawingPath, output_paths: [], pages_in: 0, pages_out: 0, skipped: 0, status: 'boq_held', pages_verified: 0, verify_failed: 1, verify_detail: { reasons: gate.reasons.slice(0, 20) } }); } catch (_e) { /* the hold stands even if its record fails */ }
+          boqObj = null;
+        } else boqObj = gate.boq;
+      }
       const drawCols = { drawing_file_path: drawingPath, drawing_file_name: drawingName, drawing_redacted_paths: drawingRedacted, boq: boqObj, boq_confidence: boqObj?.confidence || null };
 
       // ── §7: THREE THINGS THE ASSISTANT EXTRACTED AND THIS ROUTINE THREW AWAY ────────────────────

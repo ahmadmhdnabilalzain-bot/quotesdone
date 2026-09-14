@@ -37,6 +37,19 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // tags; removing it needs a per-request nonce, which forces every page dynamic and loses the static
 // HTML the marketing pages are served from. The CSP still earns its keep through frame-ancestors,
 // object-src, base-uri, form-action and a closed connect-src list.
+//
+// IN-BROWSER OCR (14 Sep 2026, src/components/me/ocrClient.ts). Paid vision is on hold and an Edge
+// function has ~2 s of CPU, so photos and scanned BOQs are read by tesseract.js on the customer's
+// machine. Its worker is a blob: URL (already allowed in worker-src) that importScripts() the pinned
+// worker and core from cdn.jsdelivr.net, and importScripts inside a worker is governed by script-src:
+//   · script-src  https://cdn.jsdelivr.net — tesseract.js@7.0.0/dist/worker.min.js and
+//                 tesseract.js-core@7.0.0/*.wasm.js. Exact versions are pinned in ocrClient.ts.
+//   · script-src  'wasm-unsafe-eval' — lets the core compile its WebAssembly. It permits wasm
+//                 compilation only, not eval() of JavaScript.
+//   · connect-src https://cdn.jsdelivr.net — already present (troika); the eng/ara traineddata
+//                 (@tesseract.js-data/<lang>/4.0.0_best_int, 2.95 MB + 1.66 MB gzipped) is fetched.
+//   · worker-src  https://cdn.jsdelivr.net — only if a browser refuses the blob: bootstrap and
+//                 loads the worker URL directly.
 const SUPA = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co').host;
 const isDev = process.env.NODE_ENV !== 'production';
 // Vercel injects its feedback toolbar on preview deployments only.
@@ -44,13 +57,13 @@ const vercelLive = process.env.VERCEL_ENV === 'preview' ? ' https://vercel.live'
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com${vercelLive}`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com https://cdn.jsdelivr.net${vercelLive}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://${SUPA}`,
   "font-src 'self' data:",
   `connect-src 'self' https://${SUPA} wss://${SUPA} https://cdn.jsdelivr.net${vercelLive}${isDev ? ' ws:' : ''}`,
   `media-src 'self' blob: data: https://${SUPA}`,
-  "worker-src 'self' blob: https://cdnjs.cloudflare.com",
+  "worker-src 'self' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
   `frame-src 'self'${vercelLive}`,
   "object-src 'none'",
   "base-uri 'self'",

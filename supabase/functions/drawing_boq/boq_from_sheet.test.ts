@@ -9,6 +9,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { boqFromSheet, MAX_SHEET_BYTES } from './boq_from_sheet.ts';
+import { SHEET_FIXTURES } from './boq_from_sheet.fixtures.ts';
 
 const SHAPE = ['drawing_type', 'category', 'summary', 'scale_detected', 'total_area_sqm', 'boq', 'keywords', 'assumptions', 'missing_info', 'confidence'];
 
@@ -57,6 +58,76 @@ Deno.test('an Arabic XLSX BOQ is read by its Arabic headers; a formula gives its
     ['أعمال البلاط', '1.3', 12, 'م2'],
   ]);
   assert(!JSON.stringify(r.boq).includes('4500'));
+});
+
+// ---- one fixture per bill convention (boq_from_sheet.fixtures.ts) ----------------------------------
+const read = (k: keyof typeof SHEET_FIXTURES) => {
+  const f = SHEET_FIXTURES[k];
+  const r = boqFromSheet(f.bytes(), f.mime, f.filename);
+  assert(r.ok, JSON.stringify(r));
+  return r.boq;
+};
+const lines = (b: ReturnType<typeof read>) => b.boq.map((x) => [x.section, x.item, x.qty, x.unit]);
+const noPrices = (b: ReturnType<typeof read>, ...p: string[]) => { const s = JSON.stringify(b.boq); for (const x of p) assert(!s.includes(x), `price or total ${x} reached the BOQ`); };
+
+Deno.test('NRM bill: element heading is the section; page total, to collection and collection are skipped', () => {
+  const b = read('nrm');
+  assertEquals(b.layout, 'nrm');
+  assertEquals(lines(b), [
+    ['Element 2.1 – Excavation', 'A', 250, 'm2'],
+    ['Element 2.1 – Excavation', 'B', 75, 'm3'],
+    ['Element 2.1 – Excavation', 'C', 1, 'item'],               // "Collection and disposal ..." is work, not a collection row
+  ]);
+  noPrices(b, '1125', '3075');
+});
+
+Deno.test('FIDIC bill: Bill No. names the section; carried forward and carried to summary are skipped', () => {
+  const b = read('fidic');
+  assertEquals(b.layout, 'fidic');
+  assertEquals(lines(b), [['Bill 2 CONCRETE WORKS', '2.1', 12.5, 'm3'], ['Bill 2 CONCRETE WORKS', '2.2', 48, 'm3']]);
+  noPrices(b, '4375', '57600', '61975');
+});
+
+Deno.test('MasterFormat: division headings in the Section column; the section code is the item', () => {
+  const b = read('masterformat');
+  assertEquals(b.layout, 'masterformat');
+  assertEquals(lines(b), [
+    ['Division 03 – Concrete', '03 30 00', 85, 'cy'],
+    ['Division 03 – Concrete', '03 20 00', 4.2, 'ton'],
+    ['Division 09 – Finishes', '09 91 23', 1200, 'sf'],
+  ]);
+  noPrices(b, '15300', '22920');
+});
+
+Deno.test('DIN 276 export: German decimals, Kostengruppe as section, EP/GP never read', () => {
+  const b = read('din276');
+  assertEquals(b.layout, 'din276');
+  assertEquals(lines(b), [['KG 330', '01.0010', 125.5, 'm2'], ['KG 350', '01.0020', 1250.5, 'm3']]);
+  noPrices(b, '5.647', '262.605', '268.252');
+});
+
+Deno.test('Arabic bill: المجموع المرحل / مرحل / الإجمالي skipped, "المرحلة الثانية" stays a heading', () => {
+  const b = read('arabic');
+  assertEquals(b.layout, 'generic');
+  assertEquals(lines(b), [
+    ['أعمال الخرسانة', '1.1', 40, 'م3'],
+    ['أعمال الخرسانة', '1.2', 10, 'م3'],
+    ['المرحلة الثانية', '2.1', 300, 'م2'],
+  ]);
+  noPrices(b, '36000', '40000', '55000');
+});
+
+Deno.test('two-row header: "Quantity" merged over "Qty | Unit" still yields the unit', () => {
+  const b = read('two_row_header');
+  assertEquals(lines(b), [['BOQ', '1', 60, 'm2'], ['BOQ', '2', 4, 'nos']]);
+  // The basis names the sheet by position, never by its name (leak audit, 14 Sep 2026).
+  assertEquals(b.boq[0].basis, 'sheet 1, row 3');
+  noPrices(b, '2700', '3300');
+});
+
+Deno.test('the original English CSV still reads as the generic layout', () => {
+  const r = boqFromSheet(new TextEncoder().encode('Item,Description,Qty,Unit\n1,Paint,5,sqm'), 'text/csv', 'b.csv');
+  assert(r.ok); assertEquals(r.boq.layout, 'generic');
 });
 
 Deno.test('an oversize file and a non-spreadsheet are refused before any parsing', () => {

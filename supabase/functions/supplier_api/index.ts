@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment.ts';
+import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
+import { seedTerms, redactBoq, redactText } from '../_shared/anonymise.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
@@ -766,12 +767,21 @@ Deno.serve(observe('supplier_api', async (req) => {
       // page's free text — coarser than customer_api's per-inquiry check, deliberately so.
       let ownerResolved = true;
       const ownerOf: Record<string, string> = {};
-      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id').in('id', ids);
+      const projectOf: Record<string, string> = {};
+      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id,project_id').in('id', ids);
         if (eOwners) ownerResolved = false;
-        else for (const o of (owners || [])) if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); }
+        else for (const o of (owners || [])) { if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); if (o?.project_id) projectOf[String(o.id)] = String(o.project_id); } }
       const custIds = Array.from(new Set(Object.values(ownerOf)));
       const custName: Record<string, string> = {};
-      if (ownerResolved && custIds.length) { const { data: cs, error: eCust } = await admin.from('customers').select('id,full_name').in('id', custIds); if (eCust) ownerResolved = false; else for (const c of (cs || [])) if (c.full_name) custName[String(c.id)] = String(c.full_name); }
+      // 14 Sep 2026 (founder: nothing that identifies the customer may reach a supplier). The buyer's
+      // email, phone and PROJECT NAME are read too: they are the seed list _shared/anonymise removes
+      // wherever it appears, because the leak audit measured project names reaching suppliers inside
+      // BOQ lines that no pattern could recognise.
+      const custRow: Record<string, any> = {};
+      if (ownerResolved && custIds.length) { const { data: cs, error: eCust } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); if (eCust) ownerResolved = false; else for (const c of (cs || [])) { custRow[String(c.id)] = c; if (c.full_name) custName[String(c.id)] = String(c.full_name); } }
+      const projName: Record<string, string> = {};
+      { const pids = Array.from(new Set(Object.values(projectOf)));
+        if (ownerResolved && pids.length) { const { data: ps, error: eP } = await admin.from('projects').select('id,name').in('id', pids); if (eP) ownerResolved = false; else for (const p of (ps || [])) if (p.name) projName[String(p.id)] = String(p.name); } }
       if (!ownerResolved) {
         // Say so. The worst property of the previous behaviour was not that it failed open — it
         // was that it failed open in silence, so the failure had no observable consequence at all.
@@ -800,15 +810,26 @@ Deno.serve(observe('supplier_api', async (req) => {
         // "this inquiry has no owner". We cannot scrub a name we could not read, so the buyer's
         // own text is withheld rather than emitted unscrubbed. Category, emirate, status, quote
         // and the redacted drawings still go out — enough to log in and quote.
-        const sSummary = revealed ? i.summary : (ownerResolved ? scrubIdentity(i.summary ?? null, buyerName, hits) : null);
+        const owner = custRow[ownerOf[String(i.id)] || ''] || {};
+        const seeds = seedTerms({ name: buyerName || '', email: owner.email || '', phone: owner.phone || '', project: projName[projectOf[String(i.id)] || ''] || '' });
+        const sSummary = revealed ? i.summary : (ownerResolved ? (redactText(String(scrubIdentity(i.summary ?? null, buyerName, hits) ?? ''), seeds).text || null) : null);
         const sSpec = revealed ? i.spec : (ownerResolved ? scrubDeep(i.spec, buyerName, hits) : null);
-        const sBoq = revealed ? i.boq : (ownerResolved ? scrubDeep(i.boq, buyerName, hits) : null);
+        // THE LAST GATE before a supplier sees a BOQ. redactBoq removes the buyer's seed terms and the
+        // generic identifiers, then residual-scans; anything still identifying HOLDS the BOQ (null,
+        // boq_withheld:true). It never fails open: a BOQ we cannot prove clean is not shown.
+        let boqWithheld = false;
+        const sBoq = revealed ? i.boq : (ownerResolved ? (() => {
+          if (!i.boq) return null;
+          const r = redactBoq(scrubDeep(i.boq, buyerName, hits) as any, seeds);
+          boqWithheld = r.held;
+          return r.held ? null : r.boq;
+        })() : null);
         // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
         // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
         const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
-        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
+        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, quote: qmap[i.id] || null });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -818,12 +839,14 @@ Deno.serve(observe('supplier_api', async (req) => {
       return J({ projects: (projs || []).map((p: any) => ({ category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, summary: p.inquiries?.summary || null, revealed_at: p.revealed_at || null, month: p.revealed_at ? new Date(p.revealed_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null, amount: p.quote_amount })) });
     }
     if (action === 'extract_quote') {
-      const { data: sup } = await admin.from('leads').select('id,approval_status,accepted_terms_at').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,accepted_terms_at').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const inquiry_id = body.inquiry_id;
       const images = Array.isArray(body.images) ? body.images : [];
-      if (!images.length) return J({ error: 'Could not read the file pages. Please attach a clear PDF or photo.', code: 'quote_no_pages' }, 400);
       const orig = body.original || {};
+      // 14 Sep 2026: a Word, Excel, email or zip quotation has no page images, but quote_extract can
+      // now read the original itself (doc_read, no model). Only a request with neither is unreadable.
+      if (!images.length && !orig.b64) return J({ error: 'Could not read the file pages. Please attach a clear PDF or photo.', code: 'quote_no_pages' }, 400);
       let original_file_path: string | null = null, original_file_name: string | null = null;
       // AUDIT 9.1 (3 Aug 2026). The supplier's original quotation document. It is stored and later
       // served back to admins and, on some paths, referenced to the customer. It had no type check
@@ -833,9 +856,9 @@ Deno.serve(observe('supplier_api', async (req) => {
         original_file_path = String(orig.path);
         original_file_name = safeFilename(orig.filename || 'quotation', 'application/pdf');
       } else if (orig.b64) {
-        const sc = await sanitizeAndScan({ input: String(orig.b64), declaredMime: orig.mime, filename: orig.filename || 'quotation', allow: SAFE_UPLOAD,
+        const sc = await sanitizeAndScan({ input: String(orig.b64), declaredMime: orig.mime, filename: orig.filename || 'quotation', allow: SAFE_DOCS,
                                            scan: { source: 'supplier_api.quotation', subject: String(sup.id), filename: orig.filename, bucket: 'quote-files' } });
-        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That quotation file cannot be accepted. Please attach a PDF or a clear photo (JPEG or PNG).' }, sc.status);
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That quotation file cannot be accepted. Please attach a PDF, photo, Word, Excel or email file.' }, sc.status);
         const s = sc.result;
         original_file_name = safeFilename(orig.filename || 'quotation', s.mime);
         original_file_path = `quotes/${sup.id}/${inquiry_id}/${Date.now()}_${original_file_name}`;
@@ -845,7 +868,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
       const secret = await secretVal('cred_fn_supplier_api');
       let jd: any = {};
-      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, images, inquiry: inq || {} }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
+      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
       if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);
