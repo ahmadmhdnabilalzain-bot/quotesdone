@@ -218,7 +218,9 @@ try { rev = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
 // application_name holds 63 bytes, so keep the parts that identify a caller: commit, the last
 // folder of the working directory (the worktree name), and the start of the file name.
 const base = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || '';
-const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/'/g, '').slice(0, 63);
+// Reduced to plain ASCII letters, digits, space, dot, dash and underscore, so the literal can never
+// close its quotes and one character is one byte under the 63-byte limit.
+const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
 await dbPost(`set application_name = '${tag}';\n` + sql);
 console.log(`applied ${file} to ${PROD_REF}`);
 
