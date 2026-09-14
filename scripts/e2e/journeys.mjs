@@ -6,7 +6,7 @@
 // and Arabic, desktop 1440 and mobile 375. Every step records PASS, FAIL or SKIP with the reason.
 import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
-import { signedInPage, openPortal, portalUrl, shot, realErrors } from './browser.mjs';
+import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
 import { makeInquiry } from '../staging/demo_factory.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
@@ -69,8 +69,15 @@ const TERM_FILL = (amount) => ({
 export async function journeyCustomerRequest(ctx) {
   const { rep, browser, fx, dir } = ctx;
   const J = 'a customer';
+  // THE ARABIC PASS IS AN ARABIC-REGISTERED CUSTOMER (14 Sep 2026). Signed in, the portal follows
+  // customers.locale (founder: "if someone registered while the language was arabic then arabic
+  // follows through the whole workflow"), so an English-registered customer on /ar correctly sees
+  // English, and the old pass, which always used the 'en' fixture, asserted rtl from someone the
+  // rule says gets ltr. The row is a demo customer at example.invalid; nothing reaches a person.
+  const setCustomerLocale = (lang) => write(`update public.customers set locale = ${q(lang)} where id = ${q(fx.customer.customerId)} and is_demo = true and email like '%@example.invalid'`, 'e2e portal language');
   // Screens across the matrix: sign-in without an OTP, and the overview's data inside 2.5 s.
   for (const m of MATRIX) {
+    await setCustomerLocale(m.lang);
     const s = await signedInPage(browser, fx.customer, m);
     try {
       const t = await openPortal(s.page, portalUrl('customer', m.lang), s.calls);
@@ -82,6 +89,24 @@ export async function journeyCustomerRequest(ctx) {
       if (m.lang === 'ar') rep.step(J, `Arabic renders right-to-left (${tag(m)})`, rtl === 'rtl' ? 'PASS' : 'FAIL', `document dir=${rtl}`);
       ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[customer ${tag(m)}] ${e}`));
     } finally { await s.ctx.close(); }
+  }
+
+  await setCustomerLocale('en');   // the request below is filed in English
+
+  // EVERY ARABIC PAGE RENDERS RIGHT-TO-LEFT. Each /ar URL the sitemap publishes is fetched and its
+  // server-rendered <html> must say lang="ar" dir="rtl"; the signed-in portals are the browser steps
+  // above. The client side (one writer of the root element) is src/lib/documentLocale.test.mjs.
+  {
+    const xml = await fetch(`${SITE}/sitemap.xml`).then((r) => r.text()).catch((e) => { ctx.consoleErrors.push('[sitemap] ' + e); return ''; });
+    const arUrls = [...xml.matchAll(/<loc>([^<]*\/ar(?:\/[^<]*)?)<\/loc>/g)].map((x) => x[1]);
+    const bad = [];
+    for (const u of arUrls) {
+      const html = await fetch(u).then((r) => r.text()).catch((e) => 'fetch failed: ' + e);
+      const root = (html.match(/<html[^>]*>/i) || [''])[0];
+      if (!/\bdir="rtl"/.test(root) || !/\blang="ar"/.test(root)) bad.push(u.replace(/^https?:\/\/[^/]+/, '') + ' → ' + (root || html.slice(0, 60)));
+    }
+    rep.step(J, 'every Arabic page in the sitemap renders right-to-left', arUrls.length && !bad.length ? 'PASS' : 'FAIL',
+      arUrls.length ? `${arUrls.length - bad.length}/${arUrls.length} Arabic pages rtl${bad.length ? ' — ' + bad.slice(0, 3).join(' | ') : ''}` : 'the sitemap listed no /ar page');
   }
 
   // The request itself, through the real chat, in English on desktop.
@@ -186,7 +211,12 @@ export async function journeySuppliers(ctx) {
     `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness`);
 
   const identity = [fx.customer.fullName, fx.customer.email, fx.customer.phone, fx.customer.phone.replace('+', '')];
+  // The supplier portal, once signed in, opens in leads.locale (PR #629), so each pass registers
+  // supplier A in that pass's language; without it the Arabic pass ran the English portal.
+  // Demo lead at example.invalid only.
+  const setSupplierLocale = (lang) => write(`update public.leads set locale = ${q(lang)} where id = ${Number(A.leadId)} and is_demo = true`, 'e2e supplier portal language');
   for (const m of MATRIX) {
+    await setSupplierLocale(m.lang);
     const s = await signedInPage(browser, A, m);
     try {
       await openPortal(s.page, portalUrl('supplier', m.lang), s.calls);
@@ -200,6 +230,7 @@ export async function journeySuppliers(ctx) {
       ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[supplier ${tag(m)}] ${e}`));
     } finally { await s.ctx.close(); }
   }
+  await setSupplierLocale('en');   // the rest of journey b quotes in English
   const inbox = await call('supplier_api', A.jwt, { action: 'inbox' });
   const blob = JSON.stringify(inbox.json || {});
   rep.step(J, 'API: the inbox carries no customer identity', inbox.status === 200 && !identity.some((x) => x && blob.includes(x)) && !blob.includes('customer_id') ? 'PASS' : 'FAIL',
