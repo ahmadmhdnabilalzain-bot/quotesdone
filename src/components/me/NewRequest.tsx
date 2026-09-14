@@ -135,7 +135,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     // next_question.options, when the intake offers them, are complete answers: one tap sends one.
     const options = (r.next_question && Array.isArray(r.next_question.options) ? r.next_question.options : []).map(qText).filter(Boolean).slice(0, 8);
     setMeta({ agent_name: r.agent_name || null, urgency: r.urgency || null, override: r.classifier_override || null, readiness: readinessPct(r.readiness ?? r.readiness_score), category: r.category || null });
-    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options, left: r.status === 'ready' ? 0 : questions.length });
+    // suggested is highlighted and labelled, never pre-selected: the customer still taps it to confirm.
+    const suggested = r.next_question && r.next_question.suggested ? String(r.next_question.suggested) : null;
+    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options, suggested, left: r.status === 'ready' ? 0 : questions.length });
     if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); setEdits({}); } else setReady(false);
   };
   const sendText = async (text) => { const v = String(text || '').trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v); };
@@ -359,7 +361,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             {m === lastAssistant && Array.isArray(m.options) && m.options.length > 0 && !thinking && (
               <div className="mt-1.5 flex flex-wrap gap-1.5 ps-1" role="group" aria-label={m.next || t(lang, 'nr_chips_hint')}>
                 {m.options.map((o) => (
-                  <button key={o} type="button" onClick={() => sendText(o)} className="rounded-full border border-primary/45 bg-primary/10 px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{o}</button>
+                  <button key={o} type="button" onClick={() => sendText(o)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', o === m.suggested ? 'border-primary bg-primary/20 ring-1 ring-primary/40' : 'border-primary/45 bg-primary/10')}>{o}{o === m.suggested ? <span className="ms-1.5 text-[10.5px] font-normal uppercase tracking-wide opacity-80">{t(lang, 'nr_suggested')}</span> : null}</button>
                 ))}
               </div>
             )}

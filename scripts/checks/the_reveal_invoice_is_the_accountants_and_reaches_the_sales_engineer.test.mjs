@@ -54,7 +54,10 @@ begin
     'documents', (select count(*) from public.documents where bucket = 'finance-docs' and path = v_path and kind = 'invoice'
                     and ref_table = 'inquiries' and ref_id = i::text),
     'handoffs', (select jsonb_agg(jsonb_build_object('agent', agent, 'status', status, 'from', detail->>'from', 'decided_by', decided_by))
-                   from public.agent_actions where kind = 'handoff' and detail->>'transaction_id' = t::text),
+                   from public.agent_actions where kind = 'handoff' and detail->>'transaction_id' = t::text
+                    -- the invoice handoff only: a paid reveal also starts the seats' own handoffs
+                    -- (reveal.paid and its deliveries, payments_are_the_accountant_and_the_seats_close_every_refund_together.sql)
+                    and detail->>'subject' = 'reveal_invoice'),
     'ready_msgs', (select count(*) from public.notifications where type = 'invoice_ready' and to_email = 'zz.demo.invoice.probe@example.invalid'),
     'ready_names_accountant', (select count(*) from public.notifications where type = 'invoice_ready'
                                  and to_email = 'zz.demo.invoice.probe@example.invalid' and (subject || body) ilike '%accountant%'),

@@ -32,18 +32,23 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   } catch (_e) { /* never let logging break a refund decision */ }
 }
 // Out-of-band escalation: does not depend on the admin UI rendering the response.
+// 14 Sep 2026: customer_support is the only seat that sends email or WhatsApp, so this money exception
+// is handed to it (accountant -> customer_support, recipient the founder) instead of written to the
+// outbox from here. founder_mail_policy kind finance_alert routes it.
 async function escalate(subject: string, detail: string) {
   try { await admin.from('founder_alerts').insert({ level: 'high', event: 'refund_action_failed', detail: String(detail).slice(0, 900), channel: 'email' }); } catch (_e) { /* */ }
   try {
-    const owner = ((await sec('admin_emails')) || 'management@quotesdone.com').split(',')[0].trim();
-    await admin.from('notifications').insert({ type: 'refund_action_failed', to_email: owner, to_role: 'admin', channel: 'email', subject, body: detail, status: 'queued' });
+    await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'customer_support', p_type: 'delivery.request',
+      p_subject_table: 'founder', p_subject_id: 'refund_action_failed:' + subject.slice(0, 120),
+      p_payload: { recipient_role: 'founder', kind: 'finance_alert', level: 'high', event: subject.slice(0, 200), detail: String(detail).slice(0, 1500),
+                   dedupe_key: 'refund_action_failed:' + subject.slice(0, 120) } });
   } catch (_e) { /* */ }
 }
 
 // Ask Stripe to return the money. Returns the refund object on success, or an error string.
 // payment_ref is whatever the settling function stored: stripe_webhook writes
 // `s.payment_intent || s.id`, so it is normally a pi_… but can be a cs_… — handle both.
-async function stripeRefund(paymentRef: string, transactionId: string): Promise<{ ok: true; refund: any } | { ok: false; error: string }> {
+async function stripeRefund(paymentRef: string, transactionId: string, amountFils: number): Promise<{ ok: true; refund: any } | { ok: false; error: string }> {
   const sk = await sec('stripe_secret_key');
   if (!sk) return { ok: false, error: 'stripe_secret_key missing from app_secrets - cannot issue a refund' };
   if (!paymentRef) return { ok: false, error: 'transaction has no payment_ref, so there is no Stripe charge to refund' };
@@ -62,8 +67,11 @@ async function stripeRefund(paymentRef: string, transactionId: string): Promise<
   form.set('payment_intent', pi);
   form.set('reason', 'requested_by_customer');
   form.set('metadata[transaction_id]', transactionId);
-  // No amount: refund the charge in full. The Checkout Session only ever charged the reveal fee,
-  // so a full refund is exactly the fee and cannot drift from our own rounding.
+  // THE AMOUNT IS STATED: total_charged, what the customer actually paid -- the 3% and the processing
+  // part together (founder, 14 Sep 2026). Stated rather than left to "refund in full" so the figure
+  // Stripe returns is the figure the books expect, and a charge that was partly refunded before cannot
+  // turn "in full" into a different number.
+  form.set('amount', String(amountFils));
   try {
     const r = await fetch('https://api.stripe.com/v1/refunds', {
       method: 'POST',
@@ -161,7 +169,7 @@ Deno.serve(observe('refunds_api', async (req) => {
     if (action === 'resolve') {
       const id = String(body.transaction_id || ''); const decision = String(body.decision || ''); const note = String(body.note || '').slice(0, 500);
       if (!id || !['approve', 'reject'].includes(decision)) return J({ error: 'transaction_id and decision(approve|reject) required' }, 400);
-      const { data: tx } = await admin.from('transactions').select('id,refund_status,supplier_id,reveal_fee,payment_ref,refund_stripe_id').eq('id', id).maybeSingle();
+      const { data: tx } = await admin.from('transactions').select('id,refund_status,supplier_id,reveal_fee,total_charged,payment_ref,refund_stripe_id').eq('id', id).maybeSingle();
       if (!tx) { await logRun('error', { transaction_id: id, decision }, 'transaction_not_found - refund decision could not be applied'); return J({ error: 'transaction_not_found' }, 404); }
       const prevStatus = String(tx.refund_status || '');
       const newStatus = decision === 'approve' ? 'refunded' : 'rejected';
@@ -174,7 +182,16 @@ Deno.serve(observe('refunds_api', async (req) => {
           await logRun('ok', { transaction_id: id, already_refunded: true, refund_stripe_id: tx.refund_stripe_id }, 'refund already issued; ignoring duplicate approval');
           return J({ ok: true, applied: false, already_refunded: true, transaction_id: id, refund_status: 'refunded', refund_stripe_id: tx.refund_stripe_id });
         }
-        const sr = await stripeRefund(String(tx.payment_ref || ''), id);
+        // THE CEO'S CIRCUIT BREAKER (14 Sep 2026). While a post-payment mismatch is open, no refund is
+        // executed by any path; the playbook resumes them when every check is green again.
+        const { data: paused } = await admin.rpc('fn_refunds_paused');
+        if (paused === true) {
+          await logRun('error', { transaction_id: id, decision }, 'refund held: the CEO has paused refunds and supplier charges while a mismatch is open');
+          return J({ ok: false, applied: false, error: 'refunds_paused', transaction_id: id, refund_status: prevStatus || null });
+        }
+        const totalFils = Math.round(Number(tx.total_charged ?? tx.reveal_fee ?? 0) * 100);
+        if (!(totalFils > 0)) return J({ ok: false, applied: false, error: 'no_amount_on_record', transaction_id: id });
+        const sr = await stripeRefund(String(tx.payment_ref || ''), id, totalFils);
         if (!sr.ok) {
           await logRun('error', { transaction_id: id, decision, supplier_id: tx.supplier_id, reveal_fee: tx.reveal_fee, payment_ref: tx.payment_ref },
             'REFUND NOT ISSUED - Stripe refund failed, nothing was changed: ' + sr.error);

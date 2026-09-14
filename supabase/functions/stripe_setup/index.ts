@@ -16,6 +16,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { HANDLED_STRIPE_EVENTS } from '../_shared/stripe_events.ts';
 import { observe } from '../_shared/observe.ts';
+import { syncDomains, syncPaymentMethods } from './payment_methods.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, content-type, apikey', 'Access-Control-Allow-Methods':'POST, OPTIONS' };
 const J=(o:unknown,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{'Content-Type':'application/json',...CORS}});
@@ -105,6 +106,21 @@ Deno.serve(observe('stripe_setup', async (req) => {
       const verified = ours(after.j?.data||[]).map((e:any)=>({ id:e.id, ...drift(e), enabled_events:e.enabled_events }));
       return J({ ok: results.every(r=>r.changed || r.note), required:REQUIRED_EVENTS, results, verified,
                  in_sync: verified.length>0 && verified.every((v:any)=>v.missing.length===0) });
+    }
+
+    // 14 Sep 2026 (accountant) — every non-BNPL payment method on, and the wallet domains registered.
+    // mode 'live' (default) or 'test'; dry_run:true reports what would change and writes nothing.
+    if(action==='payment_methods_sync'){
+      const mode = b.mode==='test' ? 'test' : 'live';
+      const key = await sec(mode==='test' ? 'stripe_secret_key_test' : 'stripe_secret_key');
+      if(!key) return J({ ok:false, error:'no '+(mode==='test'?'stripe_secret_key_test':'stripe_secret_key')+' stored' });
+      // A live key must never be used for a test run, or the reverse; say so instead of writing.
+      if(!new RegExp('^(sk|rk)_'+mode+'_').test(key)) return J({ ok:false, error:'stored key is not a '+mode+' key' });
+      const call = (path:string, form?:URLSearchParams)=>stripe(path, key, form);
+      const dry = b.dry_run===true;
+      const methods = await syncPaymentMethods(call, dry);
+      const domains = await syncDomains(call, dry);
+      return J({ ok: methods.ok && domains.ok, mode, dry_run:dry, payment_methods:methods, wallet_domains:domains });
     }
 
     // save

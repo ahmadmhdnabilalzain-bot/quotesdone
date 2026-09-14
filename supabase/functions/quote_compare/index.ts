@@ -24,6 +24,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 // The technical comparison (docs/contracts/technical_comparison.md) and the option-aware labels.
 import { rankable, rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
+import { requirementsOf } from '../_shared/line_specs/assess.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 function parseJson(t: string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f) s=f[1].trim(); try { return JSON.parse(s); } catch {} const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch {} } return null; }
@@ -114,7 +115,7 @@ Deno.serve(observe('quote_compare', async (req) => {
       const r = rankable(qs.map((q: any) => ({ q,
         lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec })),
         terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat } })),
-        inq.category, s0 && typeof s0.requirements === 'object' ? s0.requirements : null);
+        inq.category, requirementsOf(s0));
       heldAtRanking = r.held; qs = r.rankable.map((x) => x.q);
     }
     if (qs.length < 2) {
@@ -165,7 +166,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     const requestLines = ((inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq : []).map((b: any, i: number) => ({ line_no: i + 1, description: String(b?.description || ''), qty: b?.qty ?? null, unit: b?.unit ?? null }));
     let technical: TechnicalComparison | null = null;
     try {
-      technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: inqSpec && typeof inqSpec.requirements === 'object' ? inqSpec.requirements : null, on_hold: onHold, now: new Date(),
+      technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: requirementsOf(inqSpec), on_hold: onHold, now: new Date(),
         quotes: qs.map((q: any) => { const lab = labels.get(String(q.id))!; return { quote_id: String(q.id), label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
           lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec, spec_source: specOf[String(q.id)]?.[it.line] ?? null })),
           terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat ?? q.quote_amount } }; }) });

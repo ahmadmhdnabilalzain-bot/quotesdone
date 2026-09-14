@@ -4,6 +4,7 @@ import { siteReturnBase } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { payReveal, priceToken, type StripeCall } from './element_pay.ts';
+import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -42,9 +43,18 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     if (!inq || inq.customer_id !== cust.id) { await logRun('error', { quote_id: qid }, 'ownership violation: customer attempted checkout on another customer inquiry'); return J({ error: 'Not your inquiry' }, 403); }
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, ''); return J({ already_revealed: true }); }
-    const sk = await secret('stripe_secret_key');
+    // DEMO ACCOUNTS PAY ONLY IN STRIPE TEST MODE (14 Sep 2026, it_engineer's tooling for the ceo).
+    // The e2e harness signs in as demo customers on the one production project, which holds the
+    // LIVE keys. The mode is derived HERE from the signed-in account's email - a reserved RFC 2606
+    // domain nobody can receive mail at, so no real customer can ever hold one - and never from
+    // anything the browser sends. A demo account is served only stripe_secret_key_test /
+    // stripe_publishable_key_test; when those are absent the answer is "not configured", and there
+    // is deliberately no fall-through to the live key. A real account is never served the test pair.
+    const keys = stripeKeyNames(isDemoEmail(user.email));
+    const sk = await secret(keys.secret);
     // note: this returns HTTP 200 so the client does not treat it as a hard failure,
     // which is exactly why it needs to be loud in agent_runs
+    if (!sk && keys.mode === 'test') { await logRun('ok', { quote_id: qid, mode: 'test' }, 'demo account: stripe test keys are not configured, so the payment is refused - the live key is never used for a demo account'); return J({ error: 'stripe_test_not_configured', mode: 'test' }, 200); }
     if (!sk) { await logRun('error', { quote_id: qid }, 'CHECKOUT BLOCKED - stripe_secret_key missing from app_secrets; all reveals are failing'); return J({ error: 'stripe_not_configured' }, 200); }
     const { data: cfg } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle();
     const fee = revealFee(Number(q.quote_amount), cfg || {});
@@ -91,9 +101,9 @@ Deno.serve(observe('stripe_checkout', async (req) => {
       };
       const rate = Number(cfg?.standard_reveal_rate);
       if (action === 'element_init') {
-        const pk = await secret('stripe_publishable_key');
-        if (!pk) { await logRun('error', { quote_id: qid }, 'ELEMENT BLOCKED - stripe_publishable_key missing'); return J({ error: 'stripe_not_configured' }, 200); }
-        return J({ ok: true, publishable_key: pk, currency: 'aed', amount_fils: Math.round(ch.total_charged * 100),
+        const pk = await secret(keys.publishable);
+        if (!pk) { await logRun(keys.mode === 'test' ? 'ok' : 'error', { quote_id: qid, mode: keys.mode }, 'ELEMENT BLOCKED - ' + keys.publishable + ' missing'); return J({ error: keys.mode === 'test' ? 'stripe_test_not_configured' : 'stripe_not_configured', mode: keys.mode }, 200); }
+        return J({ ok: true, mode: keys.mode, publishable_key: pk, currency: 'aed', amount_fils: Math.round(ch.total_charged * 100),
           base_fee: ch.base_fee, safest_total: ch.total_charged });
       }
       if (action === 'element_quote') {

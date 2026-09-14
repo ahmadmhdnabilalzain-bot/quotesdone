@@ -229,10 +229,51 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return J(data);
     }
 
+    // ── ASK_ACCOUNTANT ─────────────────────────────────────────────────────────────────────────
+    // A customer asks about a charge, an invoice or a refund in the portal. The founder, 14 Sep 2026:
+    // "the accountant need to be in communication back and forth with the sales agent." The portal
+    // voice stays this seat's; the figures are the accountant's. The question is handed over
+    // (billing.question), the accountant reads the books and hands the facts back (billing.answer), and
+    // they are shown here and delivered by customer_support. No figure is composed in this file.
+    if (action === 'ask_accountant') {
+      const question = String(body.question || body.message || '').trim().slice(0, 1000);
+      if (!question) return J({ error: 'question_required' }, 400);
+      const customerId = caller.kind === 'customer' ? caller.customerId : String(body.customer_id || '');
+      if (!customerId) return J({ error: 'customer_id_required' }, 400);
+      const { data: hid, error: hErr } = await admin.rpc('fn_seat_handoff', {
+        p_from: 'sales_engineer', p_to: 'accountant', p_type: 'billing.question', p_subject_table: 'customers',
+        p_subject_id: customerId + ':' + crypto.randomUUID(),
+        p_payload: { party: 'customer', customer_id: customerId, transaction_id: body.transaction_id || null, question },
+      });
+      if (hErr) return J({ ok: false, error: 'handoff_failed', detail: hErr.message }, 503);
+      const { data: ans } = await admin.from('agent_actions').select('evidence,status')
+        .eq('kind', 'handoff').eq('target_id', 'billing.answer:' + String(hid)).maybeSingle();
+      await run('ask_accountant', 'ok', { handoff_id: hid, answered: ans?.status === 'done' });
+      return J({ ok: true, seat: 'sales_engineer', handoff_id: hid,
+        facts: (ans?.evidence as Record<string, unknown> | null)?.facts ?? [], delivered_by: 'customer_support, by email' });
+    }
+
     // Everything below `assist` and `report` is INTERNAL: seat readiness, the grant ledger, the
     // sector catalogue and the format matrix. A portal customer is authenticated but is not staff,
     // and an authenticated caller reaching an operator route is how privilege quietly widens.
     if (caller.kind === 'customer') return J({ error: 'forbidden', action }, 403);
+
+    // ── HANDOFFS ───────────────────────────────────────────────────────────────────────────────
+    // What other seats have handed this one and it has not closed (a remediation waiting on a
+    // customer's proof, a delivery result not yet back), and the door to close one with evidence.
+    if (action === 'handoffs') {
+      const { data } = await admin.from('agent_actions').select('id,status,title,detail,evidence,created_at')
+        .eq('kind', 'handoff').eq('agent', 'sales_engineer').neq('status', 'done').order('id').limit(100);
+      return J({ ok: true, seat: 'sales_engineer', open: data || [] });
+    }
+    if (action === 'complete_handoff') {
+      const { data: h } = await admin.from('agent_actions').select('id,agent').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
+      if (!h || h.agent !== 'sales_engineer') return J({ error: 'not_this_seats_handoff' }, 404);
+      const { data, error } = await admin.rpc('fn_seat_handoff_complete', { p_id: Number(body.id), p_evidence: body.evidence ?? {} });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('complete_handoff', 'ok', { handoff_id: Number(body.id) });
+      return J(data);
+    }
 
     // ── MATCH ──────────────────────────────────────────────────────────────────────────────────
     // "match capability is the sales engineer task." (founder, 9 September 2026)
