@@ -1118,6 +1118,31 @@ function QuotePdfLink({ q, token, lang }) {
     {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
   </span>);
 }
+// THE REVEAL INVOICE (14 Sep 2026). Stripe's own PDF, fetched fresh by reveal_invoice at click
+// time; reveal_invoice refuses any quote that is not this customer's own paid reveal.
+function InvoicePdfLink({ q, token, lang }) {
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const open = async (e) => {
+    e.stopPropagation(); setBusy(true); setMsg(''); let j = null;
+    const ok = await openDocument(lang, async () => { j = await call('reveal_invoice', { quote_id: q.id }, token); return j && j.ok && j.url ? j.url : null; });
+    setBusy(false); if (!ok) setMsg(errText(j, lang, 'q_inv_fail'));
+  };
+  return (<span className="inline-flex items-center gap-2">
+    <button type="button" className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? t(lang, 'q_pdf_busy') : '🧾 ' + t(lang, 'q_inv_pdf')}</button>
+    {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
+  </span>);
+}
+// The three lines the Stripe invoice prints, shown before the customer pays.
+function FeeBreakdown({ r, price, lang }) {
+  if (!r || r.total_charged == null) return null;
+  const row = (k, v, strong = false) => (<div className={cn('flex justify-between gap-4', strong && 'font-semibold text-foreground border-t border-border pt-1')}><span>{k}</span><span className="tabular font-mono">{v}</span></div>);
+  return (<div className="mb-3 rounded-md border border-border bg-secondary/20 p-3 text-[12.5px] text-muted-foreground">
+    {row(tf(lang, 'q_bd_fee', { price }), aed(r.reveal_fee))}
+    {row(t(lang, 'q_bd_proc'), aed(r.processing_fee))}
+    {row(t(lang, 'q_bd_total'), aed(r.total_charged), true)}
+    <div className="mt-1.5 text-[11.5px]">{t(lang, 'q_bd_refund')}</div>
+  </div>);
+}
 function Timeline({ inq, quotes, anyRevealed, lang }) {
   const steps = lang === 'ar' ? RFQ_STAGES.ar : RFQ_STAGES.en;
   const idx = rfqStageIdx(inq, quotes);
@@ -1275,7 +1300,10 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     setBusy(false);
     const fee = aed(r.reveal_fee ?? q.reveal_fee);
     // The Reveal Guarantee is shown at the moment of payment, not only as a line under the button.
-    const go = await ask(tf(lang, 'q_confirm_body', { fee, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <RevealGuarantee lang={lang} fee={fee} terms={terms} compact /> });
+    // 3% plus card processing (founder, 14 Sep 2026): the breakdown is customer_api's, computed by
+    // the same _shared/reveal_fee.ts stripe_checkout charges, so the dialog and Stripe cannot differ.
+    const total = aed(r.total_charged ?? r.reveal_fee ?? q.reveal_fee);
+    const go = await ask(tf(lang, 'q_confirm_body', { fee, total, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <><FeeBreakdown r={r} price={aed(q.price)} lang={lang} /><RevealGuarantee lang={lang} fee={total} terms={terms} compact /></> });
     if (!go) return;
     setBusy(true);
     // /ar/me for an Arabic customer, so the Stripe return lands in their language; stripe_checkout
@@ -1308,7 +1336,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_validity') + q.validity}</div>}
     {/* match_reason is omitted by the API until reveal, because it can name the company. */}
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
-    <div className="mt-1.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1"><QuotePdfLink q={q} token={token} lang={lang} />{revealed ? <InvoicePdfLink q={q} token={token} lang={lang} /> : null}</div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
     {/* Behind a disclosure: mounted on every quote card, it fired one negotiation_assistant call
         per quote on every open request, for guidance most customers never looked at. */}
