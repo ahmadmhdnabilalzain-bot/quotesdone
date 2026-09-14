@@ -44,41 +44,41 @@ Deno.test('fee basis: a foreign card is international; an unknown method falls t
   assertEquals(feeBasisFromPreview(null).basis, 'international');
 });
 
-Deno.test('the token decides the price: UAE card 309.99, UK card 313.22, on an AED 10,000 quote', async () => {
+Deno.test('the token decides the price: UAE card 312.20, UK card 315.64, on an AED 10,000 quote', async () => {
   const uae = await priceToken(fakeStripe(card('AE')).stripe, 'ctoken_zzdemo', 10000, 0.03);
   const gb = await priceToken(fakeStripe(card('GB')).stripe, 'ctoken_zzdemo', 10000, 0.03);
-  assertEquals(uae.ok && uae.priced.charge, { base_fee: 300, processing_fee: 9.99, total_charged: 309.99 });
-  assertEquals(gb.ok && gb.priced.charge, { base_fee: 300, processing_fee: 13.22, total_charged: 313.22 });
+  assertEquals(uae.ok && uae.priced.charge, { base_fee: 300, processing_fee: 12.2, total_charged: 312.20 });
+  assertEquals(gb.ok && gb.priced.charge, { base_fee: 300, processing_fee: 15.64, total_charged: 315.64 });
 });
 
 Deno.test('a UAE card pays one invoice with exactly the two lines and confirms its own PaymentIntent', async () => {
   const f = fakeStripe(card('AE', 'apple_pay'));
-  const r = await payReveal(f.stripe, args(30999));
+  const r = await payReveal(f.stripe, args(31220));
   assertEquals(r.status, 'succeeded');
   assertEquals(f.calls.filter((c) => c.path === 'invoiceitems').map((c) => [c.form!.description, c.form!.amount]),
-    [['Reveal fee (3% of AED 10000.00)', '30000'], ['Card processing (Stripe)', '999']]);
+    [['Reveal fee (3% of AED 10000.00)', '30000'], ['Card processing (Stripe)', '1220']]);
   const inv = f.calls.find((c) => c.path === 'invoices')!.form!;
-  assertEquals([inv['metadata[fee_basis]'], inv['metadata[card_country]'], inv['metadata[wallet]'], inv['metadata[total_charged]']], ['domestic', 'AE', 'apple_pay', '309.99']);
+  assertEquals([inv['metadata[fee_basis]'], inv['metadata[card_country]'], inv['metadata[wallet]'], inv['metadata[total_charged]']], ['domestic', 'AE', 'apple_pay', '312.2']);
   assertEquals(Object.keys(inv).some((k) => /tax/.test(k)), false, 'no tax parameter on the invoice');
   assertEquals(f.calls.find((c) => c.path.endsWith('/confirm'))!.path, 'payment_intents/pi_zzdemo/confirm');
 });
 
 Deno.test('a total the customer was not shown is never charged: nothing is created at Stripe', async () => {
   const f = fakeStripe(card('GB'));
-  const r = await payReveal(f.stripe, args(30999)); // shown the UAE total, card is UK
+  const r = await payReveal(f.stripe, args(31220)); // shown the UAE total, card is UK
   assertEquals(r.status, 'repriced');
   assertEquals(f.calls.map((c) => c.path), ['confirmation_tokens/ctoken_zzdemo']);
 });
 
 Deno.test('a declined card leaves no open invoice behind', async () => {
   const f = fakeStripe(card('AE'), 'declined');
-  const r = await payReveal(f.stripe, args(30999));
+  const r = await payReveal(f.stripe, args(31220));
   assertEquals(r.status, 'failed');
   assertEquals(f.calls.at(-1)!.path, 'invoices/in_zzdemo/void');
 });
 
 Deno.test('3-D Secure hands the client secret back instead of recording a sale', async () => {
-  const r = await payReveal(fakeStripe(card('AE'), 'requires_action').stripe, args(30999));
+  const r = await payReveal(fakeStripe(card('AE'), 'requires_action').stripe, args(31220));
   assertEquals(r.status === 'requires_action' && r.client_secret, 'pi_zzdemo_secret_abc');
 });
 
