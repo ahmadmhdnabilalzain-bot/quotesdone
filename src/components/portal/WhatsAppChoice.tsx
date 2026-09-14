@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { call } from './supplier/api';
-import { waText, waErrorText, waUnavailable, waCurrentKey, type WaKey, type WaLang, type WaMode, type WaOpt, type WaState } from './whatsappChoiceText';
+import { waText, waErrorText, waUnavailable, waSentBySms, waCurrentKey, type WaKey, type WaLang, type WaMode, type WaOpt, type WaState } from './whatsappChoiceText';
 
 type Props = {
   token: string | null | undefined;
@@ -39,7 +39,8 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
   const [editing, setEditing] = useState(mode !== 'settings');
   const [opt, setOpt] = useState<WaOpt | ''>('');
   const [phone, setPhone] = useState('');
-  const [sent, setSent] = useState(false);
+  // false, or the channel that carried the code ('whatsapp' | 'sms') so the screen says which.
+  const [sent, setSent] = useState<false | string>(false);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<'' | 'choose' | 'send' | 'verify' | 'later'>('');
   const [err, setErr] = useState('');
@@ -78,7 +79,7 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
     const j = await kyc({ action: 'whatsapp_send_code', phone: phone.trim() });
     setBusy('');
     if (waUnavailable(j)) { setUnavailable(true); return; }
-    if (j && j.ok) setSent(true); else setErr(waErrorText(lang, j));
+    if (j && j.ok) setSent(waSentBySms(j) ? 'sms' : 'whatsapp'); else setErr(waErrorText(lang, j));
   };
   const verify = async () => {
     if (!code.trim()) { setErr(tx('err_wrong_code')); codeRef.current?.focus(); return; }
@@ -112,12 +113,12 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
         <label htmlFor={id + '-phone'} className="mb-1 block text-[12px] font-semibold text-muted-foreground">{tx('other_label')}</label>
         <div className="flex flex-wrap gap-2.5">
           <Input ref={phoneRef} id={id + '-phone'} type="tel" dir="ltr" inputMode="tel" autoComplete="tel" className="min-w-[200px] flex-1"
-            placeholder={tx('other_ph')} value={phone} disabled={sent}
+            placeholder={tx('other_ph')} value={phone} disabled={!!sent}
             onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !sent && sendCode()} />
           {!sent && <Button type="button" size="sm" className="min-h-10" disabled={busy === 'send'} onClick={sendCode}>{busy === 'send' ? tx('sending') : tx('send_code')}</Button>}
         </div>
         {sent && <>
-          <p role="status" className="my-2 text-xs leading-relaxed text-muted-foreground">{tx('code_sent')}</p>
+          <p role="status" className="my-2 text-xs leading-relaxed text-muted-foreground">{tx(sent === 'sms' ? 'code_sent_sms' : 'code_sent')}</p>
           <label htmlFor={id + '-code'} className="mb-1 block text-[12px] font-semibold text-muted-foreground">{tx('code_label')}</label>
           <div className="flex flex-wrap gap-2.5">
             <Input ref={codeRef} id={id + '-code'} dir="ltr" inputMode="numeric" autoComplete="one-time-code" className="min-w-[140px] flex-1 font-mono tracking-[0.2em]"
@@ -137,9 +138,9 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
 
       <div className="mt-3 flex flex-wrap items-center gap-2.5">
         {opt !== 'other' && <Button type="button" size="sm" disabled={busy === 'choose' || !opt} onClick={choose}>{busy === 'choose' ? tx('saving') : tx('continue')}</Button>}
-        {/* The unavailable path: signup goes on without a WhatsApp number (the question is recorded as
-            asked, so the dashboard does not ask again); in Settings nothing changes. */}
-        {unavailable && mode !== 'settings' && <Button type="button" size="sm" disabled={busy === 'later'} onClick={later}>{tx('continue')}</Button>}
+        {/* Unavailable (no Twilio credentials at all) ends only the dashboard card. Sign-up has no skip
+            (founder, 15 Sep 2026): the person answers Yes or "I do not use WhatsApp" instead. */}
+        {unavailable && mode === 'prompt' && <Button type="button" size="sm" disabled={busy === 'later'} onClick={later}>{tx('continue')}</Button>}
         {mode === 'prompt' && <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" disabled={busy === 'later'} onClick={later}>{tx('later')}</Button>}
         {mode === 'settings' && <Button type="button" variant="ghost" size="sm" onClick={() => { reset(); setEditing(false); requestAnimationFrame(() => changeRef.current?.focus()); }}>{tx('cancel')}</Button>}
       </div>
@@ -164,9 +165,10 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
   return (
     <section dir={lang === 'ar' ? 'rtl' : 'ltr'} aria-labelledby={id + '-q'}
       className={cn('rounded-lg border p-4', mode === 'prompt' ? 'border-primary/35 bg-card' : 'border-border bg-secondary/20')}>
-      <h2 id={id + '-q'} className="text-[15px] font-bold text-foreground">{tx('q_title')}</h2>
+      <h2 id={id + '-q'} className="text-[15px] font-bold text-foreground">
+        {mobile ? <>{tx('q_mobile_pre')}<bdi dir="ltr">{mobile}</bdi>{tx('q_mobile_post')}</> : tx('q_title')}
+      </h2>
       <p className="mt-1 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">{tx('q_sub')}</p>
-      {mobile ? <p className="mt-1 text-[12.5px] text-muted-foreground">{tx('mobile_label')} <bdi dir="ltr" className="font-semibold text-foreground">{mobile}</bdi></p> : null}
       {chooser}
     </section>
   );

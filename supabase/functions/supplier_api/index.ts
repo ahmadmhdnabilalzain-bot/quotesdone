@@ -634,6 +634,11 @@ Deno.serve(observe('supplier_api', async (req) => {
       // account sits in that branch today.)
       if (String(sup.approval_status || '') !== 'approved') {
         const missing = registrationMissing({ ...sup, ...upd } as Record<string, unknown>);
+        // The WhatsApp question is answered in sign-up (founder, 15 Sep 2026). Checked beside the six,
+        // not added to them: the six are his registration list and also drive the Documents checklist.
+        // Read on its own so a read error cannot null `sup` above (kyc's rule for these columns).
+        const { data: wa } = await admin.from('leads').select('whatsapp_opt').eq('id', sup.id).maybeSingle();
+        if (!wa?.whatsapp_opt) missing.push('reg_whatsapp');
         if (missing.length) return J({ error: 'missing_required', code: 'missing_required', params: { missing }, message: 'Still needed to register: ' + missing.join(', ') + '.' }, 400);
       }
       // APPROVAL FIX 27 Jul 2026. `else if (!sup.verified)` demoted an ALREADY-APPROVED supplier

@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { WA_TEXT, WA_ERROR_CODES, waErrorKey, waErrorText, waUnavailable, waSignupSettled, waNeedsPrompt, waCurrentKey } from './whatsappChoiceText.ts';
+import { WA_TEXT, WA_ERROR_CODES, waErrorKey, waErrorText, waUnavailable, waSignupSettled, waNeedsPrompt, waSentBySms, waCurrentKey } from './whatsappChoiceText.ts';
 
 const HERE = import.meta.dirname;
 
@@ -44,19 +44,36 @@ test('whatsapp_unavailable is recognised in error or code, and nothing else is',
   assert.equal(waUnavailable(null), false);
 });
 
-test('the terms step waits for an answer or the unavailable path, never for a server that does not ask', () => {
+// Founder, 15 Sep 2026: "whenever there's a new sign up this should be in the sign up form ... we do it in
+// advance. It's in the sign up." Sign-up has no skip: only a stored answer ends the step.
+test('sign-up is settled only by a stored answer — no skip, no unavailable path, no missing field', () => {
   const unanswered = { opt: null, phone: null, verified: false, asked: false };
-  assert.equal(waSignupSettled(unanswered, false), false);
-  assert.equal(waSignupSettled(unanswered, true), true);
-  for (const opt of ['same', 'other', 'none']) assert.equal(waSignupSettled({ ...unanswered, opt }, false), true);
-  assert.equal(waSignupSettled(undefined, false), true);
-  assert.equal(waSignupSettled(null, false), false);
+  assert.equal(waSignupSettled(unanswered), false);
+  assert.equal(waSignupSettled({ ...unanswered, asked: true }), false, 'a code sent is not an answer');
+  for (const opt of ['same', 'other', 'none']) assert.equal(waSignupSettled({ ...unanswered, opt }), true);
+  assert.equal(waSignupSettled(undefined), false);
+  assert.equal(waSignupSettled(null), false);
 });
 
-test('the dashboard asks once: only when the server says the account was never asked', () => {
-  assert.equal(waNeedsPrompt({ opt: null, phone: null, verified: false, asked: false }), true);
-  assert.equal(waNeedsPrompt({ opt: null, phone: null, verified: false, asked: true }), false);
+test('the dashboard card is only for accounts that finished sign-up before the question was in it', () => {
+  const never = { opt: null, phone: null, verified: false, asked: false };
+  assert.equal(waNeedsPrompt({ terms_signed: true, whatsapp: never }), true, 'an old account that never answered');
+  assert.equal(waNeedsPrompt({ terms_signed: false, whatsapp: never }), false, 'still in sign-up: the sign-up step asks, not the card');
+  assert.equal(waNeedsPrompt({ terms_signed: true, whatsapp: { ...never, asked: true } }), false);
+  assert.equal(waNeedsPrompt({ terms_signed: true, whatsapp: { ...never, opt: 'same', asked: true } }), false, 'a new sign-up answered in the form');
   assert.equal(waNeedsPrompt(undefined), false);
+});
+
+test('the code screen says SMS whenever WhatsApp did not carry it', () => {
+  assert.equal(waSentBySms({ ok: true, channel: 'sms' }), true);
+  assert.equal(waSentBySms({ ok: true, channel: 'whatsapp' }), false);
+  assert.equal(waSentBySms({ ok: true }), false);
+  for (const lang of ['en', 'ar']) assert.notEqual(WA_TEXT[lang].code_sent_sms, WA_TEXT[lang].code_sent);
+});
+
+test('the question names the verified number in both languages', () => {
+  assert.match(WA_TEXT.en.q_mobile_pre + '+971500000001' + WA_TEXT.en.q_mobile_post, /^Is \+971500000001 also your WhatsApp number\?$/);
+  assert.ok(WA_TEXT.ar.q_mobile_post.includes('WhatsApp'));
 });
 
 test('Settings never presents an unverified number as the WhatsApp number', () => {
@@ -97,9 +114,16 @@ test('a different number is never stored without its WhatsApp code (suppliers an
   assert.ok(verify.indexOf('verifyCheck(') > -1 && verify.indexOf('verifyCheck(') < verify.indexOf('verifiedPatch('), 'the number is stored only after Twilio approves the code');
   assert.doesNotMatch(branch('whatsapp_choose'), /verifiedPatch\(/, 'choosing never stores a different number');
 
-  // Suppliers may skip the question itself: registration shows it (signup mode) without making it one of
-  // the mandatory six, so its missing[] list never names WhatsApp.
+  // 15 Sep 2026: registration cannot complete without the answer, for suppliers AND customers — on screen
+  // and on the server (supplier_api save_profile reg_whatsapp; kyc accept_terms whatsapp_unanswered).
   const sup = readFileSync(join(HERE, 'SupplierPortal.tsx'), 'utf8');
   assert.match(sup, /mode="signup"/);
-  assert.doesNotMatch(sup, /missing\.push\('[^']*whatsapp/i, 'WhatsApp is not a mandatory registration item for suppliers');
+  assert.match(sup, /missing\.push\('reg_whatsapp'\)/, 'the supplier form lists the WhatsApp answer as missing');
+  const api = readFileSync(join(HERE, '..', '..', '..', 'supabase', 'functions', 'supplier_api', 'index.ts'), 'utf8');
+  assert.match(api, /missing\.push\('reg_whatsapp'\)/, 'save_profile refuses a registration without the answer');
+  assert.match(branch('accept_terms'), /whatsapp_unanswered/, 'a customer\'s first acceptance waits for the answer');
+  // The code goes WhatsApp first, falls back only through the shared rule, and records the channel.
+  assert.match(send, /sendWhatsAppFirst\(/);
+  assert.match(send, /'twilio:'/);
+  assert.doesNotMatch(ui, /mode !== 'settings' && <Button[^>]*onClick=\{later\}/, 'sign-up has no skip button');
 });

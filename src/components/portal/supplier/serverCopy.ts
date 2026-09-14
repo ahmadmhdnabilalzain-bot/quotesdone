@@ -139,6 +139,8 @@ const COPY: Record<string, Entry> = {
   reg_licence: s('Trade licence', 'الرخصة التجارية'),
   reg_profile: s('Company profile', 'الملف التعريفي للشركة'),
   reg_terms: s('Signed supplier terms', 'الموافقة على شروط المورّد'),
+  // Not one of the six: the WhatsApp answer asked in sign-up after the mobile is verified (15 Sep 2026).
+  reg_whatsapp: s('Your answer on your WhatsApp number', 'إجابتك عن رقم WhatsApp'),
 
   // ── Licence gate reasons (leads.licence_gate_reason) ────────────────────────────────────────────
   no_licence: s('no trade licence on file', 'لا توجد رخصة تجارية محفوظة'),

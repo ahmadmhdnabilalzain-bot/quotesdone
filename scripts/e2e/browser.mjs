@@ -58,6 +58,24 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
       localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
     } catch { /* storage blocked: the page will show sign-in, and the journey reports it */ }
   }, [k, s, lang]);
+  // A VERCEL PREVIEW HAS NO SUPABASE TARGET (src/lib/supaEnv.ts, 3 Sep 2026): with
+  // NEXT_PUBLIC_SUPABASE_URL unset, a preview build calls `/functions/v1/...` on its OWN origin, which
+  // 404s, so no signed-in portal can load there — deliberately, so a preview never writes production by
+  // accident. This harness targets the one project on purpose and only with demo fixtures, so it forwards
+  // exactly those same-origin calls to the project's functions. A production or main build calls Supabase
+  // directly and never makes such a request, so on quotesdone.com this rule never fires.
+  // (Measured 15 Sep 2026: journey g on preview 7dv2getlj crashed on "Couldn't load your account" —
+  // kyc state -> 404 text/html from the preview itself.)
+  await ctx.route(`${new URL(SITE).origin}/functions/v1/**`, async (route) => {
+    const req = route.request();
+    const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
+    const { BASE } = await import('../staging/demo_factory.mjs');
+    const target = BASE + '/functions/v1/' + req.url().split('/functions/v1/')[1];
+    const h = req.headers();
+    const res = await fetch(target, { method: req.method(), headers: { authorization: h['authorization'] || '', 'content-type': h['content-type'] || 'application/json' }, body: req.method() === 'GET' ? undefined : req.postData() });
+    return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
+  });
   const page = await ctx.newPage();
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 300)); });
