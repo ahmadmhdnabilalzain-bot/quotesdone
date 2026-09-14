@@ -31,6 +31,11 @@
 -- reads public.table_export_run in a SQL-language body, so it is applied AFTER
 -- every_business_table_is_exported_every_day_again.sql.
 --
+-- 15 SEP 2026, it_engineer (backup retention): an export day whose files the retention pass removed
+-- (table_export_run.pruned_at, the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql) is no
+-- longer expected, so pruning never reads as a missing backup. That file adds the column, so it is
+-- applied BEFORE this one.
+--
 -- 14 SEP 2026, accountant (review of #659): fn_it_backup_expected also expects the accountant's files that
 -- fn_enqueue_doc_backups: ACCOUNTING files - the month close, the Mashreq statements, the issued documents
 -- and the year-end pack - so the backup loop verifies each one reached Dropbox. This file stays the ONE
@@ -63,7 +68,7 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
     ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
-    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list())', null),
+    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list()); kept 90 days, Friday full copies 12 months (fn_backup_prune_tick)', null),
     -- The accountant's four (open gaps until 14 Sep 2026, closed by
     -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
     -- '<bucket>/<path>' names its bucket itself, so the bucket column is null for those two.
@@ -209,6 +214,9 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
          'company:table_export:' || to_char(d.day, 'YYYY-MM-DD'), (d.day::date + time '03:00') at time zone 'Asia/Dubai'
     from generate_series((select min(r.stamp) from public.table_export_run r),
                          (now() at time zone 'Asia/Dubai')::date, interval '1 day') d(day)
+    -- a day removed under the retention rules is no longer expected (15 Sep 2026)
+    join lateral (select not exists (select 1 from public.table_export_run pr
+                                      where pr.stamp = d.day::date and pr.pruned_at is not null) as kept) k on k.kept
     cross join lateral (
       select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
       union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x

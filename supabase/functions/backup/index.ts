@@ -36,6 +36,7 @@
 // The layout in the bucket is unchanged, so the monthly restore drill (PR #661) reads these files.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/backup';
@@ -114,11 +115,56 @@ async function finish(stamp: string, manifest: unknown, error: string | null) {
   return data;
 }
 
+// RETENTION (15 Sep 2026): op 'prune' removes the export days fn_backup_prune_tick logged for deletion
+// (90 days; Friday full copies 12 months; see the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql).
+// fn_backup_prune_storage_next re-decides each day before handing over a single name and refuses in dry
+// run, so this loop cannot delete anything the rules keep. It never lists by prefix itself.
+async function prune() {
+  const deadline = Date.now() + SLICE_MS;
+  const days: Record<string, number> = {}; let errors = 0;
+  while (Date.now() < deadline) {
+    const { data: next, error } = await admin.rpc('fn_backup_prune_storage_next');
+    if (error) throw new Error('fn_backup_prune_storage_next: ' + error.message);
+    // deno-lint-ignore no-explicit-any
+    const n = next as any;
+    if (!n?.log_id) return { days, errors, idle: n?.reason ?? n?.cancelled ?? null };
+    // The allow-list again, here: a path the database offered that is not a table-export file stops the
+    // day, nothing of it is removed, and the refusal is reported (fn_backup_prune_storage_done -> finding).
+    const offered: string[] = Array.isArray(n.names) ? n.names : [];
+    const names = offered.filter((p) => exportPathAllowed('backups', p));
+    const refused = offered.length - names.length;
+    let removed = 0;
+    let err: string | null = refused
+      ? `the allow-list refused ${refused} of ${offered.length} path(s) offered for ${n.day}; nothing was removed`
+      : null;
+    if (names.length && !err) {
+      try {
+        await retry('remove ' + n.day, async () => {
+          const { data: gone, error: re } = await admin.storage.from('backups').remove(names);
+          if (re) throw new Error(re.message);
+          removed = (gone || []).length;
+        });
+      } catch (e) { err = errText(e); }
+    }
+    const { data: done, error: de } = await admin.rpc('fn_backup_prune_storage_done', { p_log_id: n.log_id, p_removed: removed, p_error: err });
+    if (de) throw new Error('fn_backup_prune_storage_done: ' + de.message);
+    days[n.day] = (days[n.day] || 0) + removed;
+    if (err) { errors++; break; }                                      // counted; the tick raises the finding
+    // deno-lint-ignore no-explicit-any
+    if (!names.length && Number((done as any)?.left) > 0) break;        // storage disagrees with itself; do not spin
+  }
+  return { days, errors };
+}
+
 Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   let b: any = {}; try { b = await req.json(); } catch (_) { /* empty body is refused below */ }
   const auth = await requireInternal(admin, b?.__secret, 'backup');
   if (!auth.ok) return J({ error: 'forbidden' }, 403);
+  if (b?.op === 'prune') {
+    try { return J({ ok: true, op: 'prune', ...(await prune()) }); }
+    catch (e) { return J({ ok: false, op: 'prune', error: errText(e) }, 500); }
+  }
   const stamp = String(b?.stamp || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(stamp)) return J({ ok: false, error: 'stamp (the Asia/Dubai day from fn_table_export_due) is required' }, 400);
   const kind = b?.kind === 'incremental' ? 'incremental' : 'full';
