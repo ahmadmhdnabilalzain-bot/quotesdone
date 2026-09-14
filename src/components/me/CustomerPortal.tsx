@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Seal, Kicker } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
 // Spec §22 modules that were written and never mounted. Each renders ONLY fields the endpoint it
 // names already returns; see the header comment in each file for the field-by-field provenance.
@@ -211,8 +212,8 @@ export function CustomerPortal() {
   // THE STRIP IS FOR THE DOORWAY, NOT THE HOUSE. Signing in and completing a profile are two
   // single-card screens with no navigation to render; the marketing-style bar is right there and
   // wrong the moment the customer is actually inside, which is where PortalShell takes over.
-  const strip = (<header className="sticky top-0 z-10 flex items-center justify-between px-5 py-3.5 bg-card/70 backdrop-blur border-b border-border">
-    <a className="text-base font-extrabold text-foreground no-underline" href="/">QuotesDone <span className="text-primary font-bold">{t(lang, 'brand_sub')}</span></a>
+  const strip = (<header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-5 bg-background/95 border-b border-border shadow-e1">
+    <a className="flex min-w-0 items-center gap-2 font-head text-base font-semibold tracking-snug text-foreground no-underline" href="/"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-panel border border-primary/30 bg-primary/10 text-[14px] font-bold text-primary">Q</span><span className="truncate">QuotesDone <span className="hidden font-mono text-label uppercase tracking-caps text-primary sm:inline">{t(lang, 'brand_sub')}</span></span></a>
     <div className="flex gap-2 items-center">
       <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
       <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
@@ -243,19 +244,22 @@ function AuthShell({ lang, children }) {
   const rtl = lang === 'ar';
   const points = ['auth_p1', 'auth_p2', 'auth_p3'];
   return (
-    <div className="mx-auto grid w-full max-w-[1080px] items-center gap-10 px-5 py-10 md:min-h-[76vh] md:grid-cols-[1.05fr_minmax(380px,420px)] md:py-16">
+    <div className="mx-auto grid w-full max-w-[1080px] items-center gap-10 px-4 py-10 sm:px-5 md:min-h-[76vh] md:grid-cols-[1.05fr_minmax(380px,420px)] md:py-16">
       <div className="hidden md:block">
-        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 font-head text-[20px] font-extrabold text-primary">Q</span>
-        <h2 className="mt-5 font-head text-[30px] font-extrabold leading-[1.15] tracking-tight text-foreground">{t(lang, 'auth_h')}</h2>
-        <p className="mt-3 max-w-[46ch] text-[14px] leading-relaxed text-muted-foreground">{t(lang, 'auth_sub')}</p>
-        <ul className="mt-7 flex flex-col gap-3.5">
-          {points.map((k) => (
-            <li key={k} className="flex items-start gap-3">
-              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary"><Check className="h-3.5 w-3.5" aria-hidden /></span>
-              <span className="text-[13.5px] leading-relaxed text-foreground/90">{t(lang, k)}</span>
+        <Kicker>{t(lang, 'auth_kicker')}</Kicker>
+        <h2 className="mt-5 font-head text-h2 text-foreground">{t(lang, 'auth_h')}</h2>
+        <p className="mt-4 max-w-[46ch] text-lead text-muted-foreground">{t(lang, 'auth_sub')}</p>
+        {/* The promise, under the brand's own redaction bar: it seals and unseals on a loop. */}
+        <p className="mt-6 font-head text-[17px] font-semibold tracking-snug text-foreground"><Seal loop className="max-w-full">{t(lang, 'auth_seal')}</Seal></p>
+        <ol className="qd-stagger reveal-stagger mt-8 flex flex-col divide-y divide-border border-y border-border">
+          {points.map((k, i) => (
+            <li key={k} className="flex items-start gap-4 py-3.5">
+              <span className="tabular mt-0.5 w-6 shrink-0 font-mono text-label text-primary">{String(i + 1).padStart(2, '0')}</span>
+              <span className="text-copy leading-relaxed text-foreground/90">{t(lang, k)}</span>
+              <Check className="ms-auto mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             </li>
           ))}
-        </ul>
+        </ol>
       </div>
       <div className="w-full justify-self-center md:justify-self-end">{children}</div>
     </div>
@@ -270,15 +274,17 @@ function Login({ onAuth, lang }) {
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
-  return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
-    <div className={cn(S.tabsWrap, 'mb-4 w-full')} role="tablist">
-      <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
-      <button role="tab" aria-selected={isSignup} className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button>
+  return (<AuthShell lang={lang}><Card className="relative w-full overflow-hidden p-6 shadow-e3 sm:p-8">
+    <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
+    <div className="mb-5 md:hidden"><Kicker>{t(lang, 'auth_kicker')}</Kicker></div>
+    <div className={cn(S.tabsWrap, 'mb-5 w-full rounded-btn border border-border bg-secondary/40')} role="tablist">
+      <button role="tab" aria-selected={!isSignup} className={cn(S.tab, 'flex-1 transition-colors', !isSignup && cn(S.tabOn, 'shadow-e1'))} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button>
+      <button role="tab" aria-selected={isSignup} className={cn(S.tab, 'flex-1 transition-colors', isSignup && cn(S.tabOn, 'shadow-e1'))} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button>
     </div>
-    <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</h1>
+    <h1 className="font-head text-[22px] font-semibold tracking-snug text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</h1>
     <div className={cn(S.sub, 'mt-1.5')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
-    {step === 'id' ? (<><Input className="mt-3" aria-label={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} autoComplete={isSignup ? 'email' : 'username'} placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
-      : (<><Input className="mt-3" aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
+    {step === 'id' ? (<><Input className="mt-5 h-12 text-copy" aria-label={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} autoComplete={isSignup ? 'email' : 'username'} placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button size="lg" className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
+      : (<><Input className="mt-5 h-12 text-center font-mono text-[18px] tracking-[0.3em]" aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button size="lg" className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
     {msg && <div className={S.err}>{msg}</div>}
   </Card></AuthShell>);
 }
@@ -868,17 +874,17 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
-  return (<Card className="p-5">{dialog}
+  return (<Card className={cn('p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
         children and <div> inside <button> is an invalid content model. */}
-    <div className="flex justify-between items-center gap-2.5 cursor-pointer" onClick={() => setOpen(!open)}
+    <div className="flex justify-between items-center gap-2.5 cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setOpen(!open)}
       role="button" tabIndex={0} aria-expanded={open}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill state={stateOf(inq, quotes)} t={(k) => t(lang, k)} />
-          <b className="capitalize">{inq.category || t(lang, 'rc_request')}</b>
-          {inq.rfq_no ? <span className="rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{inq.rfq_no}</span> : null}
+          <b className="font-head text-[15px] font-semibold capitalize tracking-snug">{inq.category || t(lang, 'rc_request')}</b>
+          {inq.rfq_no ? <span className="tabular rounded-chip border border-border bg-secondary/40 px-1.5 py-0.5 font-mono text-label text-muted-foreground">{inq.rfq_no}</span> : null}
         </div>
         {/* Emirate and the quote count stay separate spans: the Row #4 blueprint asserts each. */}
         <div className={cn(S.sub, 'mt-1 flex flex-wrap items-center gap-x-1.5')}>
@@ -926,10 +932,62 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
       {/* reached===0 is its own outcome here, never encouragement: matched_suppliers says which. */}
       <DiscoveryReachPanel inquiry={inq} lang={lang === 'ar' ? 'ar' : 'en'} />
       {quotes.length > 0
-        ? <div className="flex flex-col gap-2.5"><div className={cn(S.sub, 'font-semibold text-foreground')}>{tf(lang, 'rc_quotes_received', { n: quotes.length })}</div>{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} />)}</div>
+        // THE LEVELLED FRAME. Every quote the request received — not a shortlist — side by side on the
+        // same columns, then each one in full with its own reveal. Identities stay sealed until paid.
+        ? <section className="overflow-hidden rounded-card border border-border bg-card shadow-e1" aria-label={tf(lang, 'rc_quotes_received', { n: quotes.length })}>
+            <div className="flex h-10 items-center gap-2.5 border-b border-border bg-secondary/40 px-3.5">
+              <span className="hidden gap-1.5 sm:flex" aria-hidden><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /></span>
+              <div className="min-w-0 truncate font-mono text-label text-foreground">{tf(lang, 'rc_quotes_received', { n: quotes.length })}</div>
+              <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && '!text-accent')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
+            </div>
+            <LevelledRows quotes={quotes} vmap={vmap} bestId={bestId} lang={lang} />
+            <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} />)}</div>
+          </section>
         : null}
     </div>}
   </Card>);
+}
+
+// The comparison rows: one qd-row per quote over the same five columns, the best-value row lit teal,
+// a term the supplier did not state flagged in warn. Real fields only — nothing here is sample data.
+function LevelledRows({ quotes, vmap, bestId, lang }) {
+  const cols = 'minmax(128px,1.3fr) minmax(96px,1fr) repeat(2,minmax(88px,1fr)) minmax(64px,.6fr)';
+  const miss = <span className="text-warn-fg">⚠ {t(lang, 'lv_missing')}</span>;
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[540px]" role="table" aria-label={tf(lang, 'rc_quotes_received', { n: quotes.length })}>
+        <div className="qd-row bg-secondary/25 font-mono text-label uppercase tracking-caps text-muted-foreground" style={{ gridTemplateColumns: cols }} role="row">
+          <span role="columnheader">{t(lang, 'lv_supplier')}</span><span role="columnheader" className="text-end">{t(lang, 'lv_price')}</span>
+          <span role="columnheader">{t(lang, 'q_lead')}</span><span role="columnheader">{t(lang, 'q_warranty')}</span><span role="columnheader" className="text-end">{t(lang, 'q_value')}</span>
+        </div>
+        <div className="qd-stagger reveal-stagger">
+          {quotes.map((q) => {
+            const best = q.id === bestId;
+            return (
+              <div key={q.id} className={cn('qd-row', best && 'qd-row-best')} style={{ gridTemplateColumns: cols }} role="row">
+                <span role="cell" className="flex min-w-0 flex-col gap-1">
+                  <span className="truncate font-medium text-foreground">{supLabel(q.label, lang)}</span>
+                  {q.revealed
+                    ? (q.supplier_name ? <Seal open className="qd-revealed !text-accent max-w-full truncate text-label">{q.supplier_name}</Seal> : null)
+                    : <span aria-hidden className="leading-none"><Seal className="text-label">{'••••••••••'}</Seal></span>}
+                </span>
+                <span role="cell" className={cn('tabular text-end font-mono', best ? 'font-semibold text-primary' : 'text-foreground')}>{Number(q.price) > 0 ? aed(q.price) : miss}</span>
+                <span role="cell" className="min-w-0 truncate text-muted-foreground">{q.lead_time || miss}</span>
+                <span role="cell" className="min-w-0 truncate text-muted-foreground">{q.warranty || miss}</span>
+                <span role="cell" className={cn('tabular text-end font-mono', best ? 'text-primary' : 'text-muted-foreground')}>{vmap[q.id] != null ? vmap[q.id] : '—'}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+// The revealed name arrives sealed and the bar slides off in gold — once, on the reveal itself.
+function OpenSeal({ play, children }) {
+  const [open, setOpen] = useState(!play);
+  useEffect(() => { if (open) return; const id = setTimeout(() => setOpen(true), 80); return () => clearTimeout(id); }, []);
+  return <Seal open={open} className="qd-revealed !text-accent max-w-full">{children}</Seal>;
 }
 
 function QuotePdfLink({ q, token, lang }) {
@@ -1083,7 +1141,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     setBusy(false);
     const fee = aed(r.reveal_fee ?? q.reveal_fee);
     // The Reveal Guarantee is shown at the moment of payment, not only as a line under the button.
-    const go = await ask(tf(lang, 'q_confirm_body', { fee, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), children: <RevealGuarantee lang={lang} fee={fee} terms={terms} compact /> });
+    const go = await ask(tf(lang, 'q_confirm_body', { fee, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <RevealGuarantee lang={lang} fee={fee} terms={terms} compact /> });
     if (!go) return;
     setBusy(true);
     // /ar/me for an Arabic customer, so the Stripe return lands in their language; stripe_checkout
@@ -1097,10 +1155,10 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null); if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
   useEffect(() => { if (state === 'revealed' && !contact) showContactData(); }, [state]);
   const revealed = state === 'revealed';
-  return (<div className={cn('rounded-xl border p-3 transition-colors duration-500', revealed ? 'border-primary/35 bg-primary/[0.04]' : 'border-border bg-white/[0.02]')}>{dialog}
+  return (<div className={cn('rounded-card border p-3.5 transition-colors duration-500 sm:p-4', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
     <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0"><b>{supLabel(q.label, lang)}</b>{!revealed ? <span className="redact redact-bar ms-2" style={{ width: 72, height: 11 }} aria-hidden /> : null}{best ? <span className="ms-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 align-middle text-[10px] font-bold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
-      <div className="shrink-0 text-end"><div className="text-[17px] font-extrabold tabular-nums text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="text-[10px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
+      <div className="min-w-0"><b className="font-head font-semibold tracking-snug">{supLabel(q.label, lang)}</b>{!revealed ? <span aria-hidden className="ms-2 inline-block align-middle leading-none"><Seal className="text-[11px]">{'••••••••••'}</Seal></span> : null}{best ? <span className="ms-1.5 rounded-chip border border-primary/30 bg-primary/12 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
+      <div className="shrink-0 text-end"><div className="tabular font-mono text-[18px] font-semibold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="tabular font-mono text-[10.5px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
     </div>
     <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + q.warranty : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
     {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
@@ -1120,11 +1178,12 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
     <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
     {revealed ? (contact
-        ? <RevealMoment play={justRevealed && !reduce}><Contact c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
+        ? <RevealMoment play={justRevealed && !reduce}><Contact play={justRevealed && !reduce} c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
-      : (<div className="mt-2.5 flex flex-wrap items-center justify-between gap-2.5">
-          <div className={S.sub}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
-          <Button size="sm" disabled={busy || concluded} onClick={reveal}>{busy ? t(lang, 'q_wait') : t(lang, 'q_reveal')}</Button>
+      : (<div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 border-t border-border pt-3">
+          <div className={cn(S.sub, 'min-w-0 flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
+          {/* Gold: the one action in the product that unseals an identity. */}
+          <Button variant="reveal" disabled={busy || concluded} onClick={reveal}><Lock aria-hidden />{busy ? t(lang, 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
     {msg && <div className={S.err} role="alert">{msg}</div>}
   </div>);
@@ -1133,13 +1192,13 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
 function RevealMoment({ play, children }) {
   if (!play) return children;
   return (<div className="relative">
-    <motion.div initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</motion.div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</motion.div>
     <motion.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
       initial={{ scaleX: 1, opacity: 1 }} animate={{ scaleX: 0, opacity: 0 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.7, 0, 0.3, 1] }} />
   </div>);
 }
 
-function Contact({ c, q, token, onChange, lang, won, terms }) {
+function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   const s = c.supplier || {};
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
   const [dialog, ask] = useConfirm(lang);
@@ -1151,8 +1210,8 @@ function Contact({ c, q, token, onChange, lang, won, terms }) {
   const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); };
   const date = (d) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   return (<div className="mt-2.5 flex flex-col gap-2.5">{dialog}
-    <div className="rounded-lg border border-primary/30 bg-primary/10 p-3">
-      <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">{t(lang, 'q_unlocked')}</span><div className="font-bold">{s.company_name || t(lang, 'c_supplier')}</div></div>
+    <div className="rounded-card border border-accent/35 bg-accent/[0.06] p-3.5">
+      <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="!text-accent font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
       {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_revealed_on', { d: date(q.revealed_at) })}</div> : null}
       {won ? <div className="mt-0.5 text-[12px] font-bold text-primary">🏆 {t(lang, 'c_hired_badge')}</div> : null}
       <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.reveal_fee) })}</div>
@@ -1388,17 +1447,20 @@ function Journey({ idx, lang, matched }) {
     : t(lang, k);
   return (
     <div className="mt-3">
-      <div className="flex items-center gap-1">
+      {/* The kit Stepper laid flat: a node per stage (done filled, current lit, next hollow) joined
+          by a rail, so a request reads as a position on a track rather than a bar of pills. */}
+      <div className="flex items-center" aria-hidden>
         {JOURNEY.map((k, i) => (
-          <div key={k} className="flex min-w-0 flex-1 items-center gap-1">
-            <span className={cn('h-1.5 flex-1 rounded-full transition-colors duration-500',
-              i < step ? 'bg-primary' : i === step ? 'bg-primary/55 motion-safe:animate-pulse' : 'bg-secondary/70')} />
+          <div key={k} className={cn('flex min-w-0 items-center', i < JOURNEY.length - 1 && 'flex-1')}>
+            <span className={cn('grid h-2.5 w-2.5 shrink-0 place-items-center rounded-full border transition-colors duration-500',
+              i < step ? 'border-primary bg-primary' : i === step ? 'border-primary bg-primary/25 shadow-glow-teal motion-safe:animate-pulse' : 'border-border bg-card')} />
+            {i < JOURNEY.length - 1 ? <span className={cn('h-px flex-1 transition-colors duration-500', i < step ? 'bg-primary' : 'bg-border')} /> : null}
           </div>
         ))}
       </div>
       <div className="mt-1.5 hidden items-center justify-between gap-2 sm:flex">
         {JOURNEY.map((k, i) => (
-          <span key={k} className={cn('min-w-0 flex-1 truncate text-[10.5px]',
+          <span key={k} className={cn('min-w-0 flex-1 truncate font-mono text-[10.5px]',
             i < step ? 'text-muted-foreground' : i === step ? 'font-semibold text-primary' : 'text-muted-foreground/50',
             i === 0 ? 'text-start' : i === JOURNEY.length - 1 ? 'text-end' : 'text-center')}>{label(k, i)}</span>
         ))}
