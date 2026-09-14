@@ -133,5 +133,7 @@ const result = {
 };
 writeFileSync(join(DIR, 'result.json'), JSON.stringify(result, null, 1));
 if (argv.includes('--json')) console.log(JSON.stringify({ ...result, steps: undefined, result: join(DIR, 'result.json') }));
+// Read by scripts/e2e/report_to_it_engineer.mjs, which hands this run to the IT engineer.
+writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null }));
 console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
 process.exitCode = count('FAIL') === 0 && !fatal ? 0 : 1;

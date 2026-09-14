@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T13:48:44.113Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T14:57:22.357Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -184,7 +184,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (477) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (482) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -2103,7 +2103,11 @@ CREATE TABLE IF NOT EXISTS public.doc_backups (
   dropbox_content_hash text,
   dropbox_size bigint,
   verified_at timestamp with time zone,
-  requeued_at timestamp with time zone
+  requeued_at timestamp with time zone,
+  upload_state jsonb,
+  last_attempt_at timestamp with time zone,
+  claimed_at timestamp with time zone,
+  claimed_by text
 );
 
 CREATE TABLE IF NOT EXISTS public.doc_reviews (
@@ -3325,11 +3329,35 @@ CREATE TABLE IF NOT EXISTS public.it_engineer_scanner (
   registered_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.it_expiry (
+  item text NOT NULL,
+  kind text NOT NULL,
+  expires_on date,
+  owner_seat text NOT NULL,
+  route text NOT NULL,
+  source text NOT NULL,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_hold_signature (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  subject text NOT NULL,
+  counts_match jsonb DEFAULT '{}'::jsonb NOT NULL,
+  note_like text,
+  rule text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.it_refusal_policy (
   subject text NOT NULL,
   reason_key text NOT NULL,
   justification text NOT NULL,
   added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_security_baseline (
+  object text NOT NULL,
+  kind text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_watch_finding (
@@ -4174,6 +4202,16 @@ CREATE TABLE IF NOT EXISTS public.model_registry (
   supports_tools boolean DEFAULT false NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.notification_copy (
+  type text NOT NULL,
+  subject_en text NOT NULL,
+  body_en text NOT NULL,
+  subject_ar text NOT NULL,
+  body_ar text NOT NULL,
+  note text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.notifications (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   type text NOT NULL,
@@ -4197,7 +4235,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   attachments jsonb,
   provider_message_id text,
   requested_by text,
-  sender text DEFAULT 'customer_support'::text NOT NULL
+  sender text DEFAULT 'customer_support'::text NOT NULL,
+  lang text
 );
 
 CREATE TABLE IF NOT EXISTS public.openrouter_day (
@@ -5747,6 +5786,14 @@ CREATE TABLE IF NOT EXISTS public.screening_run (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.seat_handoff_window (
+  type text NOT NULL,
+  from_seat text NOT NULL,
+  reply_within interval NOT NULL,
+  originator_closes boolean NOT NULL,
+  note text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.security_advisor_baseline (
   cache_key text NOT NULL,
   name text NOT NULL,
@@ -6946,7 +6993,10 @@ ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY K
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey PRIMARY KEY (issue_key);
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_pkey PRIMARY KEY (scanner);
+ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_pkey PRIMARY KEY (item);
+ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
+ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_pkey PRIMARY KEY (object, kind);
 ALTER TABLE public.it_watch_finding ADD CONSTRAINT it_watch_finding_pkey PRIMARY KEY (detector_key);
 ALTER TABLE public.it_watch_queue ADD CONSTRAINT it_watch_queue_pkey PRIMARY KEY (queue_key);
 ALTER TABLE public.it_watch_subject ADD CONSTRAINT it_watch_subject_pkey PRIMARY KEY (subject);
@@ -7006,6 +7056,7 @@ ALTER TABLE public.model_policy ADD CONSTRAINT model_policy_pkey PRIMARY KEY (ta
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_pkey PRIMARY KEY (identity_key, scope);
 ALTER TABLE public.model_rate ADD CONSTRAINT model_rate_pkey PRIMARY KEY (model);
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_pkey PRIMARY KEY (model_id);
+ALTER TABLE public.notification_copy ADD CONSTRAINT notification_copy_pkey PRIMARY KEY (type);
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
 ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_pkey PRIMARY KEY (day);
 ALTER TABLE public.openrouter_meter ADD CONSTRAINT openrouter_meter_pkey PRIMARY KEY (id);
@@ -7118,6 +7169,7 @@ ALTER TABLE public.scope_disposition_kind ADD CONSTRAINT scope_disposition_kind_
 ALTER TABLE public.scrape_runs ADD CONSTRAINT scrape_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_pkey PRIMARY KEY (id);
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_handoff_window ADD CONSTRAINT seat_handoff_window_pkey PRIMARY KEY (type, from_seat);
 ALTER TABLE public.security_advisor_baseline ADD CONSTRAINT security_advisor_baseline_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.security_audit_log ADD CONSTRAINT security_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_events ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
@@ -7226,6 +7278,7 @@ ALTER TABLE public.inquiry_workstream ADD CONSTRAINT inquiry_workstream_group_id
 ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_group_inquiry_id_key UNIQUE (inquiry_id);
 ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstream_requirement_workstream_id_field_id_key UNIQUE (workstream_id, field_id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_sku_key UNIQUE (sku);
+ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_subject_counts_match_note_like_key UNIQUE NULLS NOT DISTINCT (subject, counts_match, note_like);
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_route_key_key UNIQUE (route_key);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_entry_kind_entry_ref_version_key UNIQUE (entry_kind, entry_ref, version);
 ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
@@ -7411,6 +7464,8 @@ ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_blast_
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_engineering'::text, 'diagnostic_lens'::text, 'estate_architecture_measured'::text, 'failure_signature'::text, 'security_posture_no_version_claim'::text, 'resolve_from_live_system'::text, 'company_governance_ruling'::text, 'company_record_generated'::text])));
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck CHECK (((max_gap_minutes >= 5) AND (max_gap_minutes <= 1440)));
+ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text])));
+ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_kind_check CHECK ((kind = ANY (ARRAY['anon_executable_definer'::text, 'rls_off'::text, 'rls_no_policy'::text])));
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_tier_check CHECK (((tier >= 1) AND (tier <= 4)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
@@ -7439,6 +7494,7 @@ ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_che
 ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind_check CHECK ((kind = ANY (ARRAY['model'::text, 'deterministic'::text])));
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_lang_is_en_or_ar CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_sender_is_customer_support CHECK (((sender = 'customer_support'::text) OR ((sender = 'platform_otp'::text) AND (type = ANY (ARRAY['login_otp'::text, 'mobile_otp'::text, 'voice_otp'::text, 'email_confirmation_code'::text])))));
 ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_basis_check CHECK ((authoritative_basis = ANY (ARRAY['measured'::text, 'true zero'::text, 'unknown'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
@@ -7543,6 +7599,7 @@ ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck C
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unparseable'::text])));
+ALTER TABLE public.seat_handoff_window ADD CONSTRAINT seat_handoff_window_reply_within_check CHECK ((reply_within > '00:00:00'::interval));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
@@ -7858,6 +7915,7 @@ CREATE INDEX acl_dept_idx ON public.ai_cost_log USING btree (dept_key, occurred_
 CREATE INDEX ad_decision_campaign_idx ON public.ad_decision USING btree (campaign_id);
 CREATE INDEX ad_decision_unexecuted_idx ON public.ad_decision USING btree (id) WHERE (executed_at IS NULL);
 CREATE UNIQUE INDEX agent_actions_dedupe ON public.agent_actions USING btree (agent, kind, target_id) WHERE (status = 'pending'::text);
+CREATE INDEX agent_actions_kind_type_from_idx ON public.agent_actions USING btree (kind, ((detail ->> 'type'::text)), ((detail ->> 'from'::text)));
 CREATE INDEX agent_actions_status_idx ON public.agent_actions USING btree (status, created_at DESC);
 CREATE INDEX agent_chats_agent_idx ON public.agent_chats USING btree (agent_key, id);
 CREATE INDEX agent_context_retrieval_agent ON public.agent_context_retrieval USING btree (agent_key, created_at DESC);
@@ -7910,6 +7968,7 @@ CREATE UNIQUE INDEX customer_kpi_snap_day ON public.customer_kpi_snapshots USING
 CREATE UNIQUE INDEX customers_email_lower_uidx ON public.customers USING btree (lower(btrim(email))) WHERE ((email IS NOT NULL) AND (btrim(email) <> ''::text));
 CREATE INDEX dead_letter_open_idx ON public.dead_letter USING btree (source, created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX department_objective_goal_idx ON public.department_objective USING btree (goal_key);
+CREATE INDEX doc_backups_gen_kind_ref_idx ON public.doc_backups USING btree (gen_kind, gen_ref);
 CREATE INDEX doc_reviews_status_idx ON public.doc_reviews USING btree (status, created_at DESC);
 CREATE UNIQUE INDEX document_kpi_snap_day ON public.document_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX dr_restore_run_kind_idx ON public.dr_restore USING btree (run_id, kind);
@@ -17660,17 +17719,14 @@ declare
   v_conv jsonb; v_conv_fn text := 'public.fn_conversation_retention' || '_breaches(interval)';
   v_refile int; v_fail text[] := '{}';
 begin
-  -- (a) queued and still not done 48h after it was queued. Documented abandonments are excepted.
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]'::jsonb) into v_not_done, v_ids
     from (select d.id, row_number() over (order by d.id) rn from public.doc_backups d
-           where d.status <> 'done'
+           where d.status <> 'done' and d.entity <> 'zz_demo'
              and not (d.status = 'abandoned' and coalesce(d.error, '') like 'abandoned:%')
              and coalesce(d.requeued_at, d.created_at) < now() - interval '48 hours') x;
   select count(*) into v_abandoned from public.doc_backups where status = 'abandoned' and coalesce(error, '') like 'abandoned:%';
   if v_not_done > 0 then v_fail := array_append(v_fail, 'not_done_after_48h'); end if;
 
-  -- (b) sources the enqueue would pick up that have no row. Measured by running the enqueue itself
-  -- and rolling it back, so this can never disagree with what fn_enqueue_doc_backups does.
   begin
     v_unqueued := public.fn_enqueue_doc_backups();
     raise exception using errcode = 'QDRBK', message = 'roll back the coverage measurement';
@@ -17685,7 +17741,6 @@ begin
     v_fail := array_append(v_fail, 'sources_without_a_row');
   end if;
 
-  -- (c) the conversation archive, once its retention function exists.
   if to_regprocedure(v_conv_fn) is not null then
     begin
       execute 'select ' || replace(v_conv_fn, '(interval)', '($1)') into v_conv using interval '48 hours';
@@ -17694,9 +17749,8 @@ begin
     if coalesce((v_conv->>'total')::int, 0) > 0 or v_conv ? 'error' then v_fail := array_append(v_fail, 'conversation_retention'); end if;
   end if;
 
-  -- (d) refiles the sales engineer has not got verified within 48h, or that failed outright.
   select count(*) into v_refile from public.agent_actions
-   where kind = 'handoff' and agent = 'sales_engineer' and detail->>'type' = 'backup.refile'
+   where kind = 'handoff' and agent = 'sales_engineer' and detail->>'type' in ('backup.refile', 'backup.remediate')
      and (status = 'failed' or (status = 'pending' and created_at < now() - interval '48 hours'));
   if v_refile > 0 then v_fail := array_append(v_fail, 'refile_not_verified_in_48h'); end if;
 
@@ -17709,6 +17763,121 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_backup_kick(p_reason text, p_mode text DEFAULT 'process_only'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ref text; v_secret text; v_req bigint;
+begin
+  if p_mode not in ('process_only', 'enqueue') then
+    raise exception 'fn_backup_kick: mode must be process_only or enqueue, got %', p_mode;
+  end if;
+  -- the lock makes check-then-act atomic: two kicks in the same instant cannot both pass
+  if not pg_try_advisory_xact_lock(hashtext('fn_backup_kick'))
+     or exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
+                and started_at > now() - interval '60 seconds') then
+    return jsonb_build_object('kicked', false, 'reason', 'debounced: a kick in the last 60 seconds is still draining');
+  end if;
+  select value into v_ref from public.app_secrets where key = 'project_ref';
+  select value into v_secret from public.app_secrets where key = 'cred_fn_backup_kick';
+  if coalesce(v_ref, '') = '' or coalesce(v_secret, '') = '' then
+    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+    values ('backup_kick', 'error', jsonb_build_object('reason', p_reason, 'mode', p_mode),
+            'Could not kick dropbox_backup: app_secrets project_ref or cred_fn_backup_kick is missing. The daily pass still runs.', now(), now());
+    return jsonb_build_object('kicked', false, 'reason', 'missing project_ref or cred_fn_backup_kick');
+  end if;
+  select net.http_post(
+           url := 'https://' || v_ref || '.supabase.co/functions/v1/dropbox_backup',
+           headers := '{"Content-Type":"application/json"}'::jsonb,
+           body := jsonb_build_object('__secret', v_secret, 'mode', p_mode, 'reason', left(coalesce(p_reason, ''), 120), 'chain', 0),
+           timeout_milliseconds := 150000) into v_req;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('backup_kick', 'ok', jsonb_build_object('reason', p_reason, 'mode', p_mode, 'request_id', v_req),
+          left('dropbox_backup kicked (' || p_mode || '): ' || coalesce(p_reason, ''), 500), now(), now());
+  return jsonb_build_object('kicked', true, 'request_id', v_req, 'mode', p_mode);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
+ RETURNS TABLE(source text, kind text, bucket text, backed_up boolean, enqueue_rule text, reason text)
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  values
+    -- ── backed up: each names the fn_enqueue_doc_backups section that files it ──
+    ('leads.license_doc_path',               'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.iban_doc_path',                  'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.egr_doc_path',                   'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.insurance_doc_path',             'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.vat_doc_path',                   'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.iso_doc_path',                   'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.manufacturer_auth_doc_path',     'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.company_profile_doc_path',       'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('leads.catalog_doc_paths',              'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS (catalogue)', null),
+    ('leads.signed_terms_path',              'column', 'signed-terms',  true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('customers.signed_terms_path',          'column', 'signed-terms',  true,  'fn_enqueue_doc_backups: CUSTOMERS', null),
+    ('inquiries.drawing_file_path',          'column', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
+    ('transactions.doc_path',                'column', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
+    ('conversation_archive.pdf_path',        'column', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE', null),
+    ('supplier-docs',                        'bucket', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
+    ('signed-terms',                         'bucket', 'signed-terms',  true,  'fn_enqueue_doc_backups: SUPPLIERS, CUSTOMERS', null),
+    ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
+    ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
+    ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE; dropbox_backup renders generated documents into backups/generated/', null),
+    -- ── not a document to keep ──
+    ('doc_backups.dropbox_path',             'column', null, false, null, 'the Dropbox destination of a backup, not a source'),
+    ('pdpl_erase_files.storage_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
+    ('pdpl_erase_files.dropbox_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
+    ('inquiries.drawing_redacted_paths',     'column', null, false, null, 'anonymised copies made from the customer''s drawing; the original (inquiries.drawing_file_path) is backed up'),
+    ('drawing_redaction_runs.source_path',   'column', null, false, null, 'the customer''s drawing, backed up through inquiries.drawing_file_path'),
+    ('drawing_redaction_runs.output_paths',  'column', null, false, null, 'anonymised copies made from the customer''s drawing; the original is backed up'),
+    ('supplier_catalog.source_document_path','column', null, false, null, 'the supplier''s catalogue upload, backed up through leads.catalog_doc_paths'),
+    ('doc_reviews.file_path',                'column', null, false, null, 'a review of a supplier document that is backed up through leads.*_doc_path'),
+    ('support_knowledge.source_path',        'column', null, false, null, 'a repository path of a knowledge source, not a storage object; the repository is its backup'),
+    ('ops_knowledge.source_path',            'column', null, false, null, 'a repository path of a knowledge source, not a storage object; the repository is its backup'),
+    ('ceo_knowledge.source_path',            'column', null, false, null, 'a repository path of a knowledge source, not a storage object; the repository is its backup'),
+    ('board_reports.pdf_path',               'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('exec_reports.pdf_path',                'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('finance_reports.html_path',            'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('finance_reports.xlsx_path',            'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('finance_reports.pdf_path',             'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('accountant_weekly_report.pdf_path',    'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('accountant_spend_report.pdf_path',     'column', null, false, null, 'a report generated from the database, regenerated on demand'),
+    ('expense_entries.doc_path',             'column', null, false, null, 'an expense receipt; the source of truth is the expenses mailbox, whose folders are the durable record'),
+    ('site',                                 'bucket', null, false, null, 'public website assets; their source is the repository'),
+    ('brand',                                'bucket', null, false, null, 'public brand assets; their source is the repository'),
+    ('social-media',                         'bucket', null, false, null, 'published social posts; their source is the repository and the platforms'),
+    ('demo-assets',                          'bucket', null, false, null, 'rehearsal fixtures, never kept'),
+    ('agent-docs',                           'bucket', null, false, null, 'documents generated from the database, regenerated on demand'),
+    ('reports',                              'bucket', null, false, null, 'documents generated from the database, regenerated on demand'),
+    ('finance-reports',                      'bucket', null, false, null, 'documents generated from the database, regenerated on demand'),
+    ('kb-import-assets',                     'bucket', null, false, null, 'knowledge import assets; the source packs are in the repository'),
+    ('receipt-files',                        'bucket', null, false, null, 'expense receipts; the source of truth is the expenses mailbox'),
+    -- ── OPEN GAPS: documents that are kept in Supabase storage only (14 Sep 2026) ──
+    ('quotes.original_file_path',            'column', null, false, null, 'OPEN GAP: a supplier''s quotation file is not yet in the Dropbox tree'),
+    ('quote_reviews.original_file_path',     'column', null, false, null, 'OPEN GAP: a supplier''s quotation file is not yet in the Dropbox tree'),
+    ('quote_committed_items.sub_quote_path', 'column', null, false, null, 'OPEN GAP: a committed sub-quote file is not yet in the Dropbox tree'),
+    ('quote_items.datasheet_path',           'column', null, false, null, 'OPEN GAP: a quoted item''s datasheet is not yet in the Dropbox tree'),
+    ('quote_spec_hold.pdf_path',             'column', null, false, null, 'OPEN GAP: a spec-hold PDF is not yet in the Dropbox tree'),
+    ('rfq_archives.archive_path',            'column', null, false, null, 'OPEN GAP: an RFQ archive is not yet in the Dropbox tree'),
+    ('compliance_sources.doc_path',          'column', null, false, null, 'OPEN GAP: a compliance source document is not yet in the Dropbox tree'),
+    ('support_artifact.storage_path',        'column', null, false, null, 'OPEN GAP: a support artefact is not yet in the Dropbox tree'),
+    ('support_document_intake.storage_path', 'column', null, false, null, 'OPEN GAP: a document sent to support is not yet in the Dropbox tree'),
+    ('wa_document_intake.storage_path',      'column', null, false, null, 'OPEN GAP: a document sent on WhatsApp is not yet in the Dropbox tree'),
+    ('messages.attachment_path',             'column', null, false, null, 'OPEN GAP: a portal message attachment is not yet in the Dropbox tree (the message itself is, as correspondence)'),
+    ('customer_calls.recording_path',        'column', null, false, null, 'OPEN GAP: a call recording is not yet in the Dropbox tree'),
+    ('refunds.doc_path',                     'column', null, false, null, 'OPEN GAP: a refund document is not yet in the Dropbox tree'),
+    ('supplier_dues.demand_letter_path',     'column', null, false, null, 'OPEN GAP: a demand letter is not yet in the Dropbox tree'),
+    ('supplier_dues.case_file_path',         'column', null, false, null, 'OPEN GAP: a supplier dues case file is not yet in the Dropbox tree'),
+    ('supplier_dues.evidence_terms_path',    'column', null, false, null, 'OPEN GAP: signed-terms evidence for a due is not yet in the Dropbox tree'),
+    ('quote-files',                          'bucket', null, false, null, 'OPEN GAP: quotation files are not yet in the Dropbox tree'),
+    ('compliance-docs',                      'bucket', null, false, null, 'OPEN GAP: compliance documents are not yet in the Dropbox tree')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_backup_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -17718,11 +17887,11 @@ AS $function$
 declare
   v_last timestamptz; v_status text; v_stale boolean; v_open int; v_subject_rows int;
   v_cov jsonb; v_cov_ok boolean; v_cov_open int := 0; v_date text := to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
-  -- The subject is the backup that this database can actually SEE. Managed physical backups are
-  -- not in here and this function makes no claim about them.
+  v_hb timestamptz; v_hb_silent boolean;
+  -- when this watcher started expecting a daily check (the apply of this file)
+  c_hb_since constant timestamptz := '2026-09-14 15:00:00+00';
   c_agents constant text[] := array['dropbox_backup','fn:dropbox_backup'];
 begin
-  -- POSITIVE CONTROL FIRST. A name that matches no rows is a fact about the query. Refuse to conclude.
   select count(*) into v_subject_rows from agent_runs where agent = any(c_agents);
   if v_subject_rows = 0 then
     return jsonb_build_object(
@@ -17737,9 +17906,21 @@ begin
   select started_at, status into v_last, v_status
     from agent_runs where agent = any(c_agents) order by started_at desc limit 1;
 
-  -- COVERAGE (14 Sep 2026). A run that succeeded says nothing about whether every document is in
-  -- Dropbox. A coverage failure is by construction 48 hours old, so it is both the it_engineer's
-  -- finding and a report to the CEO; deduped to one of each per 20 hours / per Dubai day.
+  -- HEARTBEAT: silence of the check is an alarm, never a clean bill.
+  select max(started_at) into v_hb from agent_runs
+   where agent = 'it_engineer' and counts->>'job' = 'dropbox_daily_check' and status in ('ok','warn');
+  v_hb_silent := coalesce(v_hb, c_hb_since) < now() - interval '26 hours';
+  if v_hb_silent then
+    perform public.fn_support_report_to_ceo(
+      'it_backup_heartbeat:' || v_date, 'serious',
+      'The IT engineer''s daily Dropbox check has not run for '
+        || round(extract(epoch from (now() - coalesce(v_hb, c_hb_since))) / 3600)::text || ' hours',
+      jsonb_build_object('last_daily_check', v_hb, 'expected_since', c_hb_since, 'watched', 'agent_runs it_engineer job dropbox_daily_check'),
+      '[]'::jsonb,
+      'Find out why the daily check is not running (resilience_ping -> fn_it_backup_tick -> dropbox_backup mode reconcile). Until it runs, nothing confirms that the backup is complete.',
+      p_review_in => interval '1 day', p_source_agent => 'it_engineer');
+  end if;
+
   v_cov := public.fn_backup_coverage();
   v_cov_ok := coalesce((v_cov->>'ok')::boolean, false);
   if not v_cov_ok then
@@ -17759,8 +17940,8 @@ begin
         'dropbox_backup_escalation:' || v_date, 'serious',
         'Dropbox backup coverage has been failing for over 48 hours (' || (v_cov->>'failing') || ')',
         v_cov,
-        coalesce((select jsonb_agg(jsonb_build_object('handoff_id', id, 'status', status, 'doc_backup_id', detail->>'doc_backup_id'))
-                    from agent_actions where kind = 'handoff' and detail->>'type' = 'backup.refile' and status <> 'done'), '[]'::jsonb),
+        coalesce((select jsonb_agg(jsonb_build_object('handoff_id', id, 'status', status, 'type', detail->>'type'))
+                    from agent_actions where kind = 'handoff' and detail->>'type' in ('backup.refile','backup.remediate') and status <> 'done'), '[]'::jsonb),
         'Decide whether the missing documents need the founder''s Dropbox checked by hand or the filing corrected. The IT engineer has raised it and handed each missing file to the sales engineer to refile; this is past 48 hours, which is why it reaches you.',
         p_review_in => interval '1 day', p_source_agent => 'it_engineer');
     end if;
@@ -17768,12 +17949,11 @@ begin
 
   v_stale := (v_last < now() - interval '26 hours') or (coalesce(v_status,'') = 'error');
   if not v_stale then
-    return jsonb_build_object('ok', v_cov_ok, 'last', v_last, 'status', v_status, 'watched', c_agents,
-                              'coverage', v_cov, 'coverage_alerted', not v_cov_ok and v_cov_open = 0);
+    return jsonb_build_object('ok', v_cov_ok and not v_hb_silent, 'last', v_last, 'status', v_status, 'watched', c_agents,
+                              'coverage', v_cov, 'coverage_alerted', not v_cov_ok and v_cov_open = 0,
+                              'heartbeat', jsonb_build_object('last_daily_check', v_hb, 'silent', v_hb_silent));
   end if;
 
-  -- Twenty hours is strictly shorter than the daily cadence, so a daily check always re-alerts on a
-  -- continuing outage while a ten-minute caller still cannot spam (13 Aug 2026).
   select count(*) into v_open from agent_actions
    where kind = 'backup_alert' and coalesce(status,'') in ('pending','needs_review')
      and created_at > now() - interval '20 hours';
@@ -17792,8 +17972,6 @@ begin
     values('backup_overdue','high','backup','dropbox document mirror',
       jsonb_build_object('last_backup', v_last, 'last_status', v_status, 'watched', c_agents));
 
-    -- An outage that lasts must get louder, not repeat itself: past 48 hours this also pages the
-    -- founder (the one founder-mail kind this watcher is allowed) and states the age in hours.
     if v_last < now() - interval '48 hours' then
       perform public.fn_notify_founder(
         'Document backup failing after retry: no successful Dropbox mirror for '
@@ -17809,7 +17987,8 @@ begin
   end if;
 
   return jsonb_build_object('alerted', true, 'last', v_last, 'status', v_status,
-                            'existing_open', v_open, 'watched', c_agents, 'coverage', v_cov);
+                            'existing_open', v_open, 'watched', c_agents, 'coverage', v_cov,
+                            'heartbeat', jsonb_build_object('last_daily_check', v_hb, 'silent', v_hb_silent));
 end
 $function$
 
@@ -18376,6 +18555,74 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_backup_escalation_decide(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.support_ceo_report; v_files jsonb; v_demo boolean; v_errs text; v_cause text; v_h bigint; v_out jsonb;
+begin
+  select * into r from public.support_ceo_report where id = p_report_id for update;
+  if not found or r.status <> 'sent' then return jsonb_build_object('ok', false, 'reason', 'no open report ' || p_report_id); end if;
+  v_files := coalesce(r.verified_evidence->'files', '[]'::jsonb);
+  v_demo := jsonb_array_length(v_files) > 0
+            and not exists (select 1 from jsonb_array_elements(v_files) e where not coalesce((e->>'demo')::boolean, false));
+  v_errs := coalesce((select string_agg(coalesce(e->>'error', ''), ' | ') from jsonb_array_elements(v_files) e), '');
+  if not v_demo then
+    v_errs := v_errs || ' | ' || coalesce((select string_agg(note, ' | ') from public.agent_runs
+                                              where agent in ('dropbox_backup', 'fn:dropbox_backup') and status = 'error'
+                                                and started_at > now() - interval '48 hours'), '');
+  end if;
+  v_cause := case
+    when v_errs ~* '(no_dropbox_auth|invalid_access_token|expired_access_token|invalid_grant|access token|dbx_upload 401|get_metadata 401)' then 'Dropbox refused our credentials (the connection needs to be re-authorised)'
+    when v_errs ~* '(insufficient_space|over_quota|storage (is )?full|quota)' then 'the Dropbox account is out of space'
+    when v_errs ~* '(payment|billing|plan (expired|limit)|account_suspended|disabled)' then 'the Dropbox plan or billing is blocking uploads'
+    else null end;
+
+  if v_cause is not null and not v_demo then
+    v_out := public.fn_notify_founder(
+      'Dropbox backup is blocked by something outside the company',
+      'Our document backup to your Dropbox has stopped because ' || v_cause || '. ' || jsonb_array_length(v_files)
+        || ' document(s) are waiting and will be sent as soon as it is fixed. Nothing inside the company can fix this part; it needs you.',
+      'high', p_kind => 'backup_failed_after_retry', p_dedupe_key => 'backup_external:' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'));
+  else
+    v_h := public.fn_seat_handoff('ceo', 'sales_engineer', 'backup.remediate', 'support_ceo_report', r.id::text,
+      jsonb_build_object('report_id', r.id, 'refile_handoff_id', r.verified_evidence->'handoff_id',
+        'files', (select coalesce(jsonb_agg(e - 'state' - 'status' - 'attempts'), '[]'::jsonb) from jsonb_array_elements(v_files) e where e->>'state' <> 'ok'),
+        'refile_attempts', 0,
+        'instructions', 'Re-file each file below from its source. Where the source no longer exists, mark its row abandoned with the reason (error ''abandoned: ...'') so it stops counting as lost. Do not close this: the IT engineer re-checks and closes.'));
+  end if;
+  update public.support_ceo_report
+     set status = 'accepted', accepted_at = now(),
+         acceptance_receipt = 'ceo: ' || case when v_h is not null then 'instructions sent back as handoff ' || v_h
+                                              else 'external cause (' || v_cause || '), founder notified' end
+   where id = r.id;
+  return jsonb_build_object('ok', true, 'report_id', r.id, 'cause', coalesce(v_cause, 'internal'), 'demo', v_demo,
+                            'remediate_handoff', v_h, 'founder', v_out);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_backup_escalation_sweep()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  update public.support_ceo_report r
+     set status = 'completed', completed_at = now(),
+         completion_note = 'CEO re-checked: the IT engineer verified every file of the remediation (handoff ' || a.id || ') and closed it.'
+    from public.agent_actions a
+   where r.idempotency_key like 'backup_escalation:%' and r.status = 'accepted'
+     and a.kind = 'handoff' and a.detail->>'type' = 'backup.remediate' and a.detail->>'report_id' = r.id::text and a.status = 'done';
+  get diagnostics n = row_count;
+  return jsonb_build_object('completed', n);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_binding_constraint(p_figures jsonb)
@@ -18975,6 +19222,70 @@ begin
      set fixes = fixes || v_fixes, kinds = (select array_agg(distinct k) from unnest(kinds || v_kinds) k)
    where id = p_incident_id;
   return v_new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_it_escalation_decide(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.support_ceo_report; h public.agent_actions; v_demo boolean; v_detail text; v_d bigint; v_acc jsonb;
+begin
+  select * into r from public.support_ceo_report where id = p_report_id and source_agent = 'it_engineer' for update;
+  if not found or r.status <> 'sent' then
+    return jsonb_build_object('ok', false, 'reason', 'no open IT report ' || p_report_id);
+  end if;
+  select * into h from public.agent_actions where id = (r.verified_evidence->>'handoff_id')::bigint;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'report ' || p_report_id || ' names no handoff');
+  end if;
+  v_demo := coalesce((h.detail->>'demo')::boolean, false);
+  v_detail := 'What is wrong: ' || coalesce(h.detail->>'title', h.detail->>'issue_key') || E'.\n'
+    || 'Where: ' || coalesce(h.detail->>'where_it_is', h.detail->>'subject', 'not recorded') || E'.\n'
+    || 'Since: ' || to_char((h.detail->>'occurrence_started_at')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || E' (Dubai).\n'
+    || 'What was tried: the ' || h.agent || ' was asked at '
+    || to_char(h.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' and '
+    || case when h.detail ? 'replied_at' then 'replied: ' || coalesce(h.evidence->>'reply', 'no words recorded')
+            else 'did not reply' end || E'\n\n'
+    || 'Nothing inside the company fixed it, so it needs a code or configuration change. It stays tracked '
+    || 'until the IT engineer confirms it is gone. Reference: ' || (h.detail->>'issue_key') || '.';
+
+  if not v_demo then
+    v_d := public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'support_ceo_report', r.id::text,
+      jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
+                         'event', 'New problem the IT engineer could not fix: ' || left(coalesce(h.detail->>'title', h.detail->>'issue_key'), 120),
+                         'detail', v_detail, 'dedupe_key', 'it_new_bug:' || (h.detail->>'issue_key')));
+  end if;
+  v_acc := public.fn_ceo_accept_support_report(r.id,
+    'ceo: new bug, no seat could fix it — ' || case when v_demo then 'ZZ DEMO case, the founder is not emailed'
+                                                   else 'founder told through customer_support handoff ' || v_d end);
+  return jsonb_build_object('ok', true, 'report_id', r.id, 'handoff_id', h.id, 'demo', v_demo,
+                            'founder_delivery_handoff', v_d, 'accepted', v_acc);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_it_reports_sweep()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.support_ceo_report; n_ack int := 0; n_dec int := 0;
+begin
+  for r in select * from public.support_ceo_report
+            where source_agent = 'it_engineer' and status = 'sent' order by id loop
+    if r.severity = 'routine' then
+      perform public.fn_ceo_accept_support_report(r.id,
+        'ceo: read the IT line — ' || coalesce(r.verified_evidence->>'open_loops', '0') || ' open loop(s), each with a named owner');
+      n_ack := n_ack + 1;
+    elsif r.idempotency_key like 'it_loop:%' then
+      perform public.fn_ceo_it_escalation_decide(r.id);
+      n_dec := n_dec + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('acknowledged', n_ack, 'decided', n_dec);
 end $function$
 
 
@@ -21765,6 +22076,7 @@ begin
   values (p_source_table, p_source_id, p_path, p_bytes)
   on conflict (source_table, source_id) do update set pdf_path = excluded.pdf_path, bytes = excluded.bytes, archived_at = now();
   v_queued := public.fn_enqueue_doc_backups();
+  if v_queued > 0 then perform public.fn_backup_kick('conversation_archived', 'process_only'); end if;
   return jsonb_build_object('ok', true, 'queued_for_dropbox', v_queued);
 end $function$
 
@@ -22874,10 +23186,30 @@ CREATE OR REPLACE FUNCTION public.fn_customer_support_acts_on_handoff(p_id bigin
 AS $function$
 declare
   a public.agent_actions; d jsonb; v_ar boolean; v_subject text; v_body text; v_nid bigint; v_fan jsonb; v_cc text[]; v_res jsonb;
+  p public.notifications; v_before bigint; v_from text;
 begin
   select * into a from public.agent_actions where id = p_id;
-  d := a.detail;
+  d := a.detail; v_from := d->>'from';
   if d->>'type' <> 'delivery.request' then raise exception 'customer_support has no handler for %', d->>'type'; end if;
+
+  if d ? 'prepared' then
+    p := jsonb_populate_record(null::public.notifications, d->'prepared');
+    if p.to_role in ('customer', 'supplier') and v_from not in ('sales_engineer', 'customer_support') then
+      raise exception 'only the sales engineer and support address customers and suppliers; % may address the founder only', v_from;
+    end if;
+    -- The caller chooses the words and the address. It never chooses the status, the sender or the
+    -- requester: those are support's record of what it was asked and what it did.
+    insert into public.notifications (type, kind, to_email, cc_emails, to_role, to_phone, lead_id, inquiry_id, quote_id,
+                                      channel, subject, body, html, attachments, lang, status, requested_by)
+    values (p.type, p.kind, p.to_email, coalesce(p.cc_emails, '{}'), p.to_role, p.to_phone, p.lead_id, p.inquiry_id, p.quote_id,
+            coalesce(p.channel, 'email'), p.subject, p.body, p.html, p.attachments, p.lang, 'queued', v_from)
+    returning id into v_nid;
+    select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
+     where n.channel = 'whatsapp' and n.id > v_nid and n.created_at = now() and n.type = p.type
+       and n.to_email is not distinct from p.to_email;
+    return jsonb_build_object('delivered', true, 'queued_at', now(), 'notification_id', v_nid, 'whatsapp_ids', v_fan,
+                              'channel', coalesce(p.channel, 'email'), 'prepared', true);
+  end if;
 
   if d->>'recipient_role' = 'founder' then
     -- A TEST NEVER REACHES HIM. The fixture ladder sets app.qd_stub_founder_notify; the probe also
@@ -22885,13 +23217,17 @@ begin
     if coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on' then
       return jsonb_build_object('channel', 'founder', 'stubbed', true, 'event', d->>'event');
     end if;
+    select coalesce(max(id), 0) into v_before from public.notifications;
     v_res := public.fn_notify_founder(p_event => d->>'event', p_detail => d->>'detail', p_level => coalesce(d->>'level', 'high'),
                                       p_kind => d->>'kind', p_dedupe_key => d->>'dedupe_key', p_owner_agent => 'customer_support');
-    return jsonb_build_object('channel', 'founder', 'notify', v_res);
+    select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
+     where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
+    return jsonb_build_object('channel', 'founder', 'notify', v_res, 'notification_ids', v_fan,
+                              'notification_id', v_fan->0);
   end if;
 
-  if a.detail->>'from' <> 'sales_engineer' then
-    raise exception 'only the sales engineer addresses customers and suppliers; % may address the founder only', a.detail->>'from';
+  if v_from <> 'sales_engineer' then
+    raise exception 'only the sales engineer addresses customers and suppliers; % may address the founder only', v_from;
   end if;
   if coalesce(d->>'to_email', '') !~ '@' then
     return jsonb_build_object('delivered', false, 'reason', 'no email address on file for the ' || coalesce(d->>'recipient_role', 'recipient'));
@@ -22907,7 +23243,7 @@ begin
   insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
   values (d->>'msg_type', d->>'msg_type', d->>'to_email', v_cc, d->>'recipient_role',
           (d->>'supplier_id')::bigint, (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid, 'email', v_subject, v_body, 'queued',
-          a.detail->>'from')
+          v_from)
   returning id into v_nid;
   select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
    where n.channel = 'whatsapp' and n.type = d->>'msg_type' and n.id > v_nid
@@ -22928,91 +23264,185 @@ AS $function$
 declare
   q record; n public.notifications; tx public.transactions; sup record; v_since timestamptz;
   v_reply jsonb; v_result text; v_evidence jsonb; v_retries int; v_nid bigint; v_done int := 0; v_waiting int := 0; v_retried int := 0;
+  v_overdue int := 0; v_rep jsonb; v_failed int := 0;
 begin
   for q in
     select a.* from public.agent_actions a
-     where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'done'
-       and a.detail->>'type' = 'delivery.request' and (a.detail->>'watch_until') is not null
+     where a.kind = 'handoff' and a.agent = 'customer_support' and a.status in ('done', 'failed')
+       and a.detail->>'type' = 'delivery.request'
        and (a.detail->>'result_handoff_id') is null
        and (p_request_id is null or a.id = p_request_id)
      order by a.id
   loop
     v_nid := coalesce((q.detail->>'retry_notification_id')::bigint, (q.evidence->>'notification_id')::bigint);
+    n := null;
     select * into n from public.notifications where id = v_nid;
-    select * into tx from public.transactions where id = (q.detail->>'transaction_id')::uuid;
-    select l.id, lower(coalesce(l.claimed_by, l.email)) as email,
-           regexp_replace(coalesce(nullif(btrim(l.whatsapp), ''), l.phone_e164, l.phone, ''), '[^0-9]', '', 'g') as phone
-      into sup from public.leads l where l.id = (q.detail->>'supplier_id')::bigint;
-    v_since := coalesce(tx.revealed_at, q.created_at);
-    v_retries := coalesce((q.detail->>'retries')::int, 0);
 
-    -- ANY CHANNEL, EVERY TIME. The first thing that came back wins.
-    select jsonb_build_object('channel', ch, 'at', at, 'ref', ref) into v_reply from (
-      select 'portal' ch, m.created_at at, 'messages#' || m.id ref from public.messages m
-       where tx.id is not null and m.inquiry_id = tx.inquiry_id and m.supplier_id = tx.supplier_id
-         and m.sender = 'supplier' and coalesce(m.blocked, false) = false and m.created_at > v_since
-      union all
-      select 'supplier_ack', tx.supplier_ack_at, 'transactions.supplier_ack_at' where tx.supplier_ack_at > v_since
-      union all
-      select coalesce(w.response_channel, 'recorded'), w.first_response_at, coalesce(w.response_ref, 'supplier_response_watch#' || w.id)
-        from public.supplier_response_watch w where tx.id is not null and w.transaction_id = tx.id and w.first_response_at > v_since
-      union all
-      select 'email', im.created_at, 'inbound_messages#' || im.id from public.inbound_messages im
-       where sup.email is not null and lower(im.from_email) = sup.email and im.created_at > v_since
-      union all
-      select 'whatsapp', wm.created_at, 'wa_messages#' || wm.id from public.wa_messages wm
-       where length(coalesce(sup.phone, '')) >= 8 and regexp_replace(coalesce(wm.wa_from, ''), '[^0-9]', '', 'g') = sup.phone
-         and wm.created_at > v_since
-      order by 2 limit 1) z;
-
-    if v_reply is not null and q.detail->>'recipient_role' = 'supplier' then
-      v_result := 'proof_of_response';
-      v_evidence := jsonb_build_object('reply', v_reply);
-    elsif n.id is null or n.status in ('failed', 'bounced', 'error') then
-      if v_retries < 1 and n.id is not null then
-        insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
-        values (n.type, n.kind, n.to_email, n.cc_emails, n.to_role, n.lead_id, n.inquiry_id, n.quote_id, 'email', n.subject, n.body, 'queued', n.requested_by)
-        returning id into v_nid;
-        update public.agent_actions
-           set detail = detail || jsonb_build_object('retries', v_retries + 1, 'retry_notification_id', v_nid,
-                                                     'first_failure', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error))
-         where id = q.id;
-        perform public.fn_seat_handoff_event(q.id, 'retried');
-        v_retried := v_retried + 1;
-        continue;
-      end if;
-      v_result := 'no_response_confirmation';
-      v_evidence := jsonb_build_object('delivered', false, 'retries', v_retries,
-        'delivery', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error),
-        'first_failure', q.detail->'first_failure');
-    elsif now() >= (q.detail->>'watch_until')::timestamptz then
-      v_result := 'no_response_confirmation';
-      v_evidence := jsonb_build_object('delivered', n.status = 'sent' or n.sent_at is not null,
-        'delivery', jsonb_build_object('notification_id', n.id, 'status', n.status, 'sent_at', n.sent_at,
-                                       'provider_message_id', n.provider_message_id, 'attempts', n.attempts),
-        'whatsapp', (select coalesce(jsonb_agg(jsonb_build_object('notification_id', w.id, 'status', w.status, 'sent_at', w.sent_at,
-                                                                  'provider_message_id', w.provider_message_id)), '[]'::jsonb)
-                       from public.notifications w
-                      where w.id in (select (x)::bigint from jsonb_array_elements_text(coalesce(q.evidence->'whatsapp_ids', '[]'::jsonb)) x)),
-        'window_closed_at', q.detail->'watch_until',
-        'channels_checked', jsonb_build_array('portal', 'supplier_ack', 'recorded_reply', 'email', 'whatsapp'));
-    else
-      v_waiting := v_waiting + 1;
-      continue;
+    -- NOT TERMINAL IN TIME IS A FINDING, whatever else is true of the request.
+    if n.id is not null and n.status in ('pending', 'queued') and n.created_at < now() - interval '24 hours'
+       and (q.detail->>'overdue_report_id') is null then
+      v_rep := public.fn_support_report_to_ceo(
+        'delivery_overdue:' || q.id, 'elevated',
+        'A ' || coalesce(q.detail->>'msg_type', 'notice') || ' for the ' || coalesce(n.to_role, 'recipient') || ' has not left the outbox in 24 hours',
+        jsonb_build_object('request_id', q.id, 'asked_by', q.detail->>'from', 'notification_id', n.id, 'status', n.status,
+                           'queued_at', n.created_at, 'attempts', n.attempts, 'last_error', n.last_error),
+        jsonb_build_array('queued by customer_support', 'watched every heartbeat since'),
+        'Find why the outbox is not draining this row (dispatcher down, sending disabled, cap) and get it out, or tell the asking seat it will not go.',
+        'agent_actions#' || q.id);
+      update public.agent_actions set detail = detail || jsonb_build_object('overdue_report_id', v_rep->'report_id') where id = q.id;
+      v_overdue := v_overdue + 1;
     end if;
 
-    update public.agent_actions set detail = detail || jsonb_build_object('result', v_result) where id = q.id;
-    update public.agent_actions
-       set detail = detail || jsonb_build_object('result_handoff_id',
-             public.fn_seat_handoff('customer_support', 'sales_engineer', 'delivery.result', 'agent_actions', q.id::text,
-               jsonb_build_object('request_id', q.id, 'result', v_result, 'evidence', v_evidence,
-                                  'step', q.detail->>'step', 'refund_id', q.detail->>'refund_id',
-                                  'transaction_id', q.detail->>'transaction_id', 'supplier_id', q.detail->>'supplier_id',
-                                  'remediation_id', q.detail->>'remediation_id')))
-     where id = q.id;
-    v_done := v_done + 1;
+    if q.status = 'done' and (q.detail->>'watch_until') is not null then
+      -- ── the watched path, carried over unchanged ──
+      select * into tx from public.transactions where id = (q.detail->>'transaction_id')::uuid;
+      select l.id, lower(coalesce(l.claimed_by, l.email)) as email,
+             regexp_replace(coalesce(nullif(btrim(l.whatsapp), ''), l.phone_e164, l.phone, ''), '[^0-9]', '', 'g') as phone
+        into sup from public.leads l where l.id = (q.detail->>'supplier_id')::bigint;
+      v_since := coalesce(tx.revealed_at, q.created_at);
+      v_retries := coalesce((q.detail->>'retries')::int, 0);
+
+      -- ANY CHANNEL, EVERY TIME. The first thing that came back wins.
+      select jsonb_build_object('channel', ch, 'at', at, 'ref', ref) into v_reply from (
+        select 'portal' ch, m.created_at at, 'messages#' || m.id ref from public.messages m
+         where tx.id is not null and m.inquiry_id = tx.inquiry_id and m.supplier_id = tx.supplier_id
+           and m.sender = 'supplier' and coalesce(m.blocked, false) = false and m.created_at > v_since
+        union all
+        select 'supplier_ack', tx.supplier_ack_at, 'transactions.supplier_ack_at' where tx.supplier_ack_at > v_since
+        union all
+        select coalesce(w.response_channel, 'recorded'), w.first_response_at, coalesce(w.response_ref, 'supplier_response_watch#' || w.id)
+          from public.supplier_response_watch w where tx.id is not null and w.transaction_id = tx.id and w.first_response_at > v_since
+        union all
+        select 'email', im.created_at, 'inbound_messages#' || im.id from public.inbound_messages im
+         where sup.email is not null and lower(im.from_email) = sup.email and im.created_at > v_since
+        union all
+        select 'whatsapp', wm.created_at, 'wa_messages#' || wm.id from public.wa_messages wm
+         where length(coalesce(sup.phone, '')) >= 8 and regexp_replace(coalesce(wm.wa_from, ''), '[^0-9]', '', 'g') = sup.phone
+           and wm.created_at > v_since
+        order by 2 limit 1) z;
+
+      if v_reply is not null and q.detail->>'recipient_role' = 'supplier' then
+        v_result := 'proof_of_response';
+        v_evidence := jsonb_build_object('reply', v_reply);
+      elsif n.id is null or n.status in ('failed', 'bounced', 'error') then
+        if v_retries < 1 and n.id is not null then
+          insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
+          values (n.type, n.kind, n.to_email, n.cc_emails, n.to_role, n.lead_id, n.inquiry_id, n.quote_id, 'email', n.subject, n.body, 'queued', n.requested_by)
+          returning id into v_nid;
+          update public.agent_actions
+             set detail = detail || jsonb_build_object('retries', v_retries + 1, 'retry_notification_id', v_nid,
+                                                       'first_failure', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error))
+           where id = q.id;
+          perform public.fn_seat_handoff_event(q.id, 'retried');
+          v_retried := v_retried + 1;
+          continue;
+        end if;
+        v_result := 'no_response_confirmation';
+        v_evidence := jsonb_build_object('delivered', false, 'retries', v_retries,
+          'delivery', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error),
+          'first_failure', q.detail->'first_failure');
+      elsif now() >= (q.detail->>'watch_until')::timestamptz then
+        v_result := 'no_response_confirmation';
+        v_evidence := jsonb_build_object('delivered', n.status = 'sent' or n.sent_at is not null,
+          'delivery', jsonb_build_object('notification_id', n.id, 'status', n.status, 'sent_at', n.sent_at,
+                                         'provider_message_id', n.provider_message_id, 'attempts', n.attempts),
+          'whatsapp', (select coalesce(jsonb_agg(jsonb_build_object('notification_id', w.id, 'status', w.status, 'sent_at', w.sent_at,
+                                                                    'provider_message_id', w.provider_message_id)), '[]'::jsonb)
+                         from public.notifications w
+                        where w.id in (select (x)::bigint from jsonb_array_elements_text(coalesce(q.evidence->'whatsapp_ids', '[]'::jsonb)) x)),
+          'window_closed_at', q.detail->'watch_until',
+          'channels_checked', jsonb_build_array('portal', 'supplier_ack', 'recorded_reply', 'email', 'whatsapp'));
+      else
+        v_waiting := v_waiting + 1;
+        continue;
+      end if;
+    else
+      -- ── every other request: one result when the send is terminal ──
+      v_evidence := jsonb_build_object('notification', case when n.id is null then null else jsonb_build_object(
+                      'id', n.id, 'status', n.status, 'channel', n.channel, 'to_role', n.to_role, 'sent_at', n.sent_at,
+                      'provider_message_id', n.provider_message_id, 'attempts', n.attempts, 'last_error', n.last_error) end,
+                    'whatsapp', (select coalesce(jsonb_agg(jsonb_build_object('notification_id', w.id, 'status', w.status,
+                                                   'provider_message_id', w.provider_message_id)), '[]'::jsonb)
+                                   from public.notifications w
+                                  where w.id in (select (x)::bigint from jsonb_array_elements_text(coalesce(q.evidence->'whatsapp_ids', '[]'::jsonb)) x)));
+      if q.status = 'failed' then
+        v_result := 'not_queued';
+        v_evidence := v_evidence || jsonb_build_object('error', q.detail->>'error');
+      elsif coalesce((q.evidence->>'stubbed')::boolean, false) then
+        v_result := 'stubbed';
+      elsif n.id is null and q.evidence ? 'notify' then
+        v_result := 'routed';
+        v_evidence := v_evidence || jsonb_build_object('notify', q.evidence->'notify');
+      elsif n.id is null then
+        v_result := 'not_sent';
+        v_evidence := v_evidence || jsonb_build_object('reason', coalesce(q.evidence->>'reason', 'nothing was queued'));
+      elsif n.status = 'sent' then
+        v_result := case when coalesce(btrim(n.provider_message_id), '') <> '' then 'delivered' else 'sent_unconfirmed' end;
+      elsif n.status in ('failed', 'bounced', 'error') then v_result := 'failed';
+      elsif n.status in ('held', 'suppressed', 'skipped', 'cancelled') then v_result := n.status;
+      elsif n.status = 'digest' then v_result := 'digested';
+      else
+        v_waiting := v_waiting + 1;
+        continue;
+      end if;
+    end if;
+
+    -- ONE RESULT, TO WHOEVER ASKED. A result the handoff register refuses must not stop the rest of the
+    -- queue: it is recorded on the request and in the stream, and counted.
+    -- The result is acted on at once, and the asking seat's close writes THIS request row (its loop,
+    -- closed_by, the retry). So the handoff is sent first and its id written after, in a statement of
+    -- its own: calling fn_seat_handoff inside the UPDATE of the same row failed with "tuple to be updated
+    -- was already modified by an operation triggered by the current command" (measured 14 Sep 2026).
+    begin
+      update public.agent_actions set detail = detail || jsonb_build_object('result', v_result) where id = q.id;
+      v_nid := public.fn_seat_handoff('customer_support', q.detail->>'from', 'delivery.result', 'agent_actions', q.id::text,
+                 jsonb_build_object('request_id', q.id, 'result', v_result, 'evidence', v_evidence,
+                                    'msg_type', q.detail->>'msg_type', 'recipient_role', q.detail->>'recipient_role',
+                                    'retry_of', q.detail->'retry_of',
+                                    'step', q.detail->>'step', 'refund_id', q.detail->>'refund_id',
+                                    'transaction_id', q.detail->>'transaction_id', 'supplier_id', q.detail->>'supplier_id',
+                                    'remediation_id', q.detail->>'remediation_id'));
+      update public.agent_actions set detail = detail || jsonb_build_object('result_handoff_id', v_nid) where id = q.id;
+      v_done := v_done + 1;
+    exception when others then
+      update public.agent_actions set detail = detail || jsonb_build_object('result_error', left(sqlerrm, 500)) where id = q.id;
+      perform public.fn_seat_handoff_event(q.id, 'result_failed');
+      v_failed := v_failed + 1;
+    end;
   end loop;
-  return jsonb_build_object('results_returned', v_done, 'still_watching', v_waiting, 'retried', v_retried);
+  return jsonb_build_object('results_returned', v_done, 'still_watching', v_waiting, 'retried', v_retried,
+                            'overdue_raised', v_overdue, 'results_failed', v_failed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_takes_delivery(p_rows jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r jsonb; v_seat text; v_id bigint; h public.agent_actions; v_out jsonb := '[]'::jsonb;
+begin
+  if jsonb_typeof(p_rows) is distinct from 'array' then
+    raise exception 'fn_customer_support_takes_delivery takes an array of notification rows';
+  end if;
+  for r in select x from jsonb_array_elements(p_rows) x loop
+    if coalesce(btrim(r->>'type'), '') = '' then raise exception 'a delivery request must name its type'; end if;
+    v_seat := coalesce(nullif(btrim(r->>'requested_by'), ''), public.fn_channel_requester(r->>'type', r->>'kind'));
+    if v_seat = 'platform' then
+      raise exception 'a sign-in code (%) is sent by the platform OTP service, never queued through support', r->>'type';
+    end if;
+    v_id := public.fn_seat_handoff(v_seat, 'customer_support', 'delivery.request', 'notifications',
+      coalesce(nullif(btrim(r->>'dedupe_key'), ''),
+               (r->>'type') || ':' || coalesce(r->>'to_email', r->>'to_phone', r->>'to_role', 'nobody') || ':' || gen_random_uuid()::text),
+      jsonb_build_object('prepared', r - 'dedupe_key' - 'requested_by' - 'status' - 'sender',
+                         'msg_type', r->>'type', 'recipient_role', r->>'to_role', 'to_email', r->>'to_email',
+                         'supplier_id', r->'lead_id', 'inquiry_id', r->'inquiry_id', 'quote_id', r->'quote_id'));
+    select * into h from public.agent_actions where id = v_id;
+    v_out := v_out || jsonb_build_array(jsonb_build_object('handoff_id', v_id, 'seat', v_seat, 'status', h.status,
+      'notification_id', h.evidence->'notification_id', 'error', h.detail->>'error'));
+  end loop;
+  return v_out;
 end $function$
 
 
@@ -23166,13 +23596,44 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_dbx_component(p text, p_max integer DEFAULT 200)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare s text := public.fn_dbx_safe(p); tail text;
+begin
+  if char_length(s) <= p_max then return s; end if;
+  -- the id suffix and the extension survive; the middle is cut
+  tail := coalesce(substring(s from '((?: \([0-9A-Za-z_-]{1,40}\)| #[0-9A-Za-z_-]{1,40})?(?:\.[A-Za-z0-9]{1,8})?)$'), '');
+  return public.fn_dbx_safe(left(s, greatest(p_max - char_length(tail) - 1, 1)) || '…' || tail);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_path(p text, p_strict boolean DEFAULT false)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  select '/' || string_agg(public.fn_dbx_component(u.c, case when p_strict then 80 else 200 end), '/' order by u.n)
+    from unnest(string_to_array(p, '/')) with ordinality u(c, n)
+   where btrim(u.c) <> ''
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dbx_safe(x text)
  RETURNS text
  LANGUAGE sql
  IMMUTABLE
  SET search_path TO 'public', 'pg_catalog'
 AS $function$
-  select btrim(regexp_replace(regexp_replace(coalesce(x,''),'[\\/:*?"<>|\r\n\t]+',' ','g'),'\s+',' ','g'))
+  select coalesce(nullif(
+           regexp_replace(
+             btrim(regexp_replace(regexp_replace(coalesce(x, ''), '[\\/:*?"<>|[:cntrl:]]+', ' ', 'g'), '\s+', ' ', 'g')),
+             '[. ]+$', ''),
+           ''), '_')
 $function$
 
 
@@ -23836,6 +24297,36 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_doc_backups_next(p_limit integer DEFAULT 8, p_run text DEFAULT NULL::text, p_demo boolean DEFAULT false)
+ RETURNS SETOF doc_backups
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(btrim(p_run), '') = '' then raise exception 'fn_doc_backups_next: p_run (the claiming run id) is required'; end if;
+  update public.doc_backups d set status = 'pending', claimed_at = null, claimed_by = null,
+         error = left('claim by ' || coalesce(d.claimed_by, '?') || ' expired after 10 minutes; requeued', 300)
+   where d.status = 'processing' and d.claimed_at < now() - interval '10 minutes';
+  update public.doc_backups d set status = 'pending', error = null
+   where d.status = 'waiting_source'
+     and exists (select 1 from storage.objects o where o.bucket_id = d.bucket and o.name = d.path);
+  return query
+    with c as (
+      select d.id from public.doc_backups d
+       where d.status in ('pending', 'error') and d.attempts < 5
+         and (d.entity = 'zz_demo') = coalesce(p_demo, false)
+         and (d.status = 'pending' or d.last_attempt_at is null
+              or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.attempts, 8)))
+       order by (d.upload_state is not null) desc, d.id
+       limit greatest(1, least(coalesce(p_limit, 8), 25))
+       for update skip locked)
+    update public.doc_backups d set status = 'processing', claimed_at = now(), claimed_by = p_run
+      from c where d.id = c.id
+    returning d.*;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_doc_final_notice(p_days integer DEFAULT 7)
  RETURNS json
  LANGUAGE plpgsql
@@ -23953,10 +24444,10 @@ begin
   s := public.fn_dropbox_backup_summary();
   return public.fn_support_report_to_ceo(
     'dropbox_backup_daily:' || to_char(v_local, 'YYYY-MM-DD'),
-    case when (s->>'failing_now')::int > 0 or (s->>'failed_24h')::int > 0 then 'elevated' else 'routine' end,
+    case when (s->>'failed')::int > 0 or (s->>'never_queued')::int > 0 or (s->>'open_handoffs')::int > 0 then 'elevated' else 'routine' end,
     'Dropbox backup ' || to_char(v_local, 'DD Mon') || ': ' || (s->>'line'),
     s, '[]'::jsonb,
-    'Note the day''s backup position. NOTHING IS REQUESTED: this is the IT engineer''s daily line on the Dropbox backup. A failure past 48 hours reaches you separately, as a serious report.',
+    'Note the day''s backup position. NOTHING IS REQUESTED: this is the IT engineer''s daily confirmation. A case still failing after two refiles or 48 hours reaches you separately, as a serious report.',
     p_review_in => interval '1 day', p_source_agent => 'it_engineer') || jsonb_build_object('filed', true);
 end $function$
 
@@ -23993,27 +24484,35 @@ CREATE OR REPLACE FUNCTION public.fn_dropbox_backup_summary()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  with f as (
+  with e as (select * from public.fn_it_backup_expected_status()),
+  ex as (
+    select count(*) as expected,
+           count(*) filter (where status = 'done') as backed_up,
+           count(*) filter (where status = 'done' and verified_at is not null) as verified,
+           count(*) filter (where doc_backup_id is null) as never_queued
+      from e),
+  f as (
     select
-      count(*) filter (where created_at > now() - interval '24 hours')                         as queued_24h,
-      count(*) filter (where backed_up_at > now() - interval '24 hours')                       as uploaded_24h,
-      count(*) filter (where verified_at > now() - interval '24 hours')                        as verified_24h,
-      count(*) filter (where status in ('pending','error') and coalesce(attempts,0) < 5)        as waiting,
-      count(*) filter (where status = 'done')                                                  as uploaded_total,
-      count(*) filter (where status = 'done' and verified_at is not null)                      as verified_total,
-      count(*) filter (where status in ('error','skipped_large'))                              as failing_now,
-      count(*) filter (where status = 'abandoned')                                             as abandoned,
-      count(*)                                                                                 as total
-    from public.doc_backups),
-  r as (select coalesce(sum((counts->>'failed')::int), 0) as failed_24h from public.agent_runs
-         where agent = 'dropbox_backup' and started_at > now() - interval '24 hours' and counts ? 'failed')
-  select to_jsonb(f) || to_jsonb(r) || jsonb_build_object('line',
-    'Dropbox backup, last 24h: ' || f.queued_24h || ' queued, ' || f.uploaded_24h || ' uploaded, '
-    || f.verified_24h || ' verified, ' || r.failed_24h || ' failed. Totals: ' || f.uploaded_total || ' uploaded ('
-    || f.verified_total || ' verified in Dropbox), ' || f.waiting || ' waiting, ' || f.failing_now || ' failing, '
+      count(*) filter (where created_at > now() - interval '24 hours')                  as queued_24h,
+      count(*) filter (where backed_up_at > now() - interval '24 hours')                as uploaded_24h,
+      count(*) filter (where verified_at > now() - interval '24 hours')                 as verified_24h,
+      count(*) filter (where status in ('pending','error') and coalesce(attempts,0) < 5) as pending,
+      count(*) filter (where status = 'done')                                           as uploaded_total,
+      count(*) filter (where status = 'done' and verified_at is not null)               as verified_total,
+      count(*) filter (where (status = 'error' and attempts >= 5) or status = 'skipped_large') as failed,
+      count(*) filter (where status = 'abandoned')                                      as abandoned,
+      count(*)                                                                          as total
+    from public.doc_backups where entity <> 'zz_demo'),
+  h as (select count(*) as open_handoffs from public.agent_actions
+         where kind = 'handoff' and status = 'pending' and detail->>'type' in ('backup.refile','backup.remediate'))
+  select to_jsonb(ex) || to_jsonb(f) || to_jsonb(h) || jsonb_build_object('line',
+    'Dropbox backup: ' || ex.expected || ' expected, ' || ex.backed_up || ' backed up, ' || ex.verified || ' verified in Dropbox, '
+    || ex.never_queued || ' never queued; queue ' || f.pending || ' pending, ' || f.failed || ' failed, '
+    || h.open_handoffs || ' open refile handoff(s). Last 24h: ' || f.queued_24h || ' queued, ' || f.uploaded_24h || ' uploaded, '
+    || f.verified_24h || ' verified. All rows: ' || f.uploaded_total || ' uploaded (' || f.verified_total || ' verified), '
     || f.abandoned || ' abandoned with a recorded reason, of ' || f.total || '.',
     'measured_at', now())
-  from f, r;
+  from ex, f, h;
 $function$
 
 
@@ -24039,56 +24538,12 @@ $function$
 
 CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_apply(p_results jsonb, p_error text DEFAULT NULL::text)
  RETURNS jsonb
- LANGUAGE plpgsql
+ LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  r jsonb; v_id bigint; v_out text; v_week text := to_char(now() at time zone 'Asia/Dubai', 'IYYY-"W"IW');
-  c jsonb := jsonb_build_object('job', 'dropbox_reconcile', 'week', v_week);
-  n_ok int := 0; n_missing int := 0; n_changed int := 0; n_unver int := 0; n_err int := 0;
-  v_handoffs jsonb := '[]'::jsonb; v_h bigint; v_status text; v_note text;
-begin
-  if p_error is not null then
-    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-    values ('it_engineer', 'error', c || jsonb_build_object('stage', 'fatal'),
-            left('The weekly Dropbox reconciliation did not run: ' || p_error || '. No file was re-checked this attempt; it is retried after 6 hours.', 500), now(), now());
-    return jsonb_build_object('ok', false, 'error', p_error);
-  end if;
-
-  for r in select * from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) loop
-    v_id := (r->>'id')::bigint; v_out := r->>'outcome';
-    if v_out = 'ok' then
-      update public.doc_backups set dropbox_content_hash = r->>'hash', dropbox_size = (r->>'size')::bigint, verified_at = now()
-       where id = v_id and status = 'done';
-      n_ok := n_ok + 1;
-    elsif v_out in ('missing', 'changed') then
-      if v_out = 'missing' then n_missing := n_missing + 1; else n_changed := n_changed + 1; end if;
-      -- The finding, on the row: no longer confirmed. The status stays the filer's to change.
-      update public.doc_backups
-         set verified_at = null,
-             error = case when v_out = 'missing' then 'reconcile: missing in Dropbox'
-                          else 'reconcile: content in Dropbox differs from what was confirmed' end
-       where id = v_id;
-      v_h := public.fn_seat_handoff('it_engineer', 'sales_engineer', 'backup.refile', 'doc_backups', v_id::text || '@' || v_week,
-               jsonb_build_object('doc_backup_id', v_id, 'reason', 'reconcile ' || v_out, 'dropbox_hash_seen', r->>'hash', 'basis', r->>'basis'));
-      v_handoffs := v_handoffs || to_jsonb(v_h);
-    elsif v_out = 'unverifiable' then n_unver := n_unver + 1;
-    else n_err := n_err + 1;
-    end if;
-  end loop;
-
-  c := c || jsonb_build_object('checked', jsonb_array_length(coalesce(p_results, '[]'::jsonb)), 'ok', n_ok,
-         'missing', n_missing, 'changed', n_changed, 'unverifiable', n_unver, 'errors', n_err, 'handoffs', v_handoffs);
-  v_status := case when n_missing + n_changed + n_err > 0 then 'warn' else 'ok' end;
-  v_note := 'Weekly Dropbox reconciliation ' || v_week || ': ' || (c->>'checked') || ' checked, ' || n_ok || ' confirmed, '
-         || n_missing || ' missing, ' || n_changed || ' changed, ' || n_unver || ' unverifiable (no recorded hash and no source), '
-         || n_err || ' could not be read.'
-         || case when n_missing + n_changed > 0 then ' Each missing or changed file was handed to the sales engineer to refile.' else '' end;
-  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
-  values ('it_engineer', v_status, c, left(v_note, 500), now(), now());
-  return c || jsonb_build_object('status', v_status, 'note', v_note);
-end $function$
+  select public.fn_it_backup_check(p_results, 'dropbox_daily_check', p_error);
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_due()
@@ -24097,30 +24552,46 @@ CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_due()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  with w as (select to_char(now() at time zone 'Asia/Dubai', 'IYYY-"W"IW') as week)
   select jsonb_build_object(
-    'due', not exists (select 1 from public.agent_runs r, w
-                        where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_reconcile'
-                          and r.status in ('ok', 'warn')
-                          and to_char(r.started_at at time zone 'Asia/Dubai', 'IYYY-"W"IW') = w.week)
+    'due', not exists (select 1 from public.agent_runs r
+                        where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_daily_check' and r.status in ('ok', 'warn')
+                          and (r.started_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date)
        and not exists (select 1 from public.agent_runs r
-                        where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_reconcile'
+                        where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_daily_check'
                           and r.status = 'error' and r.started_at > now() - interval '6 hours'),
-    'week', (select week from w));
+    'day', (now() at time zone 'Asia/Dubai')::date,
+    'weekly_due', public.fn_dropbox_weekly_due());
 $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_sample(p_n integer DEFAULT 20)
- RETURNS TABLE(id bigint, dropbox_path text, bucket text, path text, bytes bigint, dropbox_content_hash text)
+ RETURNS TABLE(id bigint, dropbox_path text, bucket text, path text, bytes bigint, dropbox_content_hash text, why text)
  LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select d.id, d.dropbox_path, d.bucket, d.path, d.bytes, d.dropbox_content_hash
-    from public.doc_backups d
-   where d.status = 'done' and d.dropbox_path is not null
-   order by random()
-   limit greatest(1, least(coalesce(p_n, 20), 200));
+  (select d.id, d.dropbox_path, d.bucket, d.path, d.bytes, d.dropbox_content_hash, 'new'
+     from public.doc_backups d
+    where d.status = 'done' and d.verified_at is null and d.dropbox_path is not null and d.entity <> 'zz_demo'
+    order by d.backed_up_at desc nulls last limit 40)
+  union all
+  (select d.id, d.dropbox_path, d.bucket, d.path, d.bytes, d.dropbox_content_hash, 'weekly'
+     from public.doc_backups d
+    where public.fn_dropbox_weekly_due()
+      and d.status = 'done' and d.verified_at is not null and d.dropbox_path is not null and d.entity <> 'zz_demo'
+    order by random() limit greatest(1, least(coalesce(p_n, 20), 200)));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dropbox_weekly_due()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select not exists (select 1 from public.agent_runs r
+                      where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_daily_check' and r.counts->>'weekly' = 'true'
+                        and to_char(r.started_at at time zone 'Asia/Dubai', 'IYYY-IW') = to_char(now() at time zone 'Asia/Dubai', 'IYYY-IW'));
 $function$
 
 
@@ -27799,27 +28270,253 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_it_backup_refile_close()
+CREATE OR REPLACE FUNCTION public.fn_it_backup_check(p_results jsonb, p_job text DEFAULT 'dropbox_daily_check'::text, p_error text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare h record; n int := 0;
+declare
+  r jsonb; v_id bigint; v_out text; f jsonb := '[]'::jsonb; x record; d public.doc_backups;
+  n_ok int := 0; n_unver int := 0; n_err int := 0; v_h bigint; v_status text; c jsonb;
+  v_weekly boolean := exists (select 1 from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) e where e->>'why' = 'weekly');
 begin
-  for h in
-    select a.id, d.id as doc_id, d.verified_at, d.dropbox_content_hash
-      from public.agent_actions a
-      join public.doc_backups d on d.id = (a.detail->>'doc_backup_id')::bigint
-     where a.kind = 'handoff' and a.agent = 'sales_engineer' and a.detail->>'type' = 'backup.refile'
-       and a.status = 'pending' and d.status = 'done' and d.verified_at > a.created_at
-  loop
-    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'it_engineer',
-      'doc_backup_id', h.doc_id, 'verified_at', h.verified_at, 'dropbox_content_hash', h.dropbox_content_hash));
-    update public.agent_actions set decided_by = 'it_engineer' where id = h.id;
-    n := n + 1;
+  if p_error is not null then
+    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'error', jsonb_build_object('job', p_job, 'stage', 'fatal'),
+            left('The IT engineer''s Dropbox check did not run: ' || p_error || '. Retried after 6 hours.', 500), now(), now());
+    return jsonb_build_object('ok', false, 'error', p_error);
+  end if;
+
+  -- (2) doc_backups vs Dropbox
+  for r in select * from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) loop
+    v_id := (r->>'id')::bigint; v_out := r->>'outcome';
+    if v_out = 'ok' then
+      update public.doc_backups set dropbox_content_hash = r->>'hash', dropbox_size = (r->>'size')::bigint, verified_at = now()
+       where id = v_id and status = 'done';
+      n_ok := n_ok + 1;
+    elsif v_out in ('missing', 'changed') then
+      update public.doc_backups set verified_at = null,
+             error = case when v_out = 'missing' then 'it_engineer: missing in Dropbox' else 'it_engineer: size/content_hash in Dropbox differs' end
+       where id = v_id returning * into d;
+      if found then
+        f := f || jsonb_build_object('key', 'db:' || d.id, 'reason', case when v_out = 'missing' then 'missing_in_dropbox' else 'mismatch' end,
+               'doc_backup_id', d.id, 'dropbox_path', d.dropbox_path, 'bucket', d.bucket, 'path', d.path, 'demo', d.entity = 'zz_demo');
+      end if;
+    elsif v_out = 'unverifiable' then n_unver := n_unver + 1;
+    else n_err := n_err + 1;
+    end if;
   end loop;
-  return jsonb_build_object('closed', n);
+
+  if p_job = 'dropbox_daily_check' then
+    -- (1) expected vs doc_backups: never queued, past a 24-hour grace
+    for x in select * from public.fn_it_backup_expected_status() s
+              where s.doc_backup_id is null and s.since < now() - interval '24 hours' loop
+      f := f || jsonb_build_object('key', 'exp:' || x.item_key, 'reason', 'never_queued', 'item_key', x.item_key, 'kind', x.kind,
+             'bucket', x.bucket, 'path', x.path, 'gen_kind', x.gen_kind, 'gen_ref', x.gen_ref, 'owner', x.owner, 'demo', false);
+    end loop;
+    -- (3) the uploader gave up
+    for d in select * from public.doc_backups b
+              where b.entity <> 'zz_demo' and ((b.status = 'error' and b.attempts >= 5) or b.status = 'skipped_large') loop
+      f := f || jsonb_build_object('key', 'db:' || d.id, 'reason', 'upload_failed', 'doc_backup_id', d.id, 'dropbox_path', d.dropbox_path,
+             'bucket', d.bucket, 'path', d.path, 'error', d.error, 'demo', false);
+    end loop;
+  end if;
+
+  -- a file already in an open refile or remediation is not handed over twice
+  select coalesce(jsonb_agg(e), '[]'::jsonb) into f
+    from jsonb_array_elements(f) e
+   where not exists (select 1 from public.agent_actions a
+                      where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' in ('backup.refile', 'backup.remediate')
+                        and exists (select 1 from jsonb_array_elements(a.detail->'files') g where g->>'key' = e->>'key'));
+
+  if jsonb_array_length(f) > 0 then
+    v_h := public.fn_seat_handoff('it_engineer', 'sales_engineer', 'backup.refile', 'doc_backups',
+             'check:' || p_job || ':' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSUS'),
+             jsonb_build_object('files', f, 'job', p_job, 'refile_attempts', 0));
+  end if;
+
+  c := jsonb_build_object('job', p_job, 'weekly', v_weekly, 'checked', jsonb_array_length(coalesce(p_results, '[]'::jsonb)),
+         'confirmed', n_ok, 'unverifiable', n_unver, 'read_errors', n_err, 'findings', jsonb_array_length(f),
+         'by_reason', (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) from (select e->>'reason' k, count(*) n from jsonb_array_elements(f) e group by 1) z),
+         'handoff', v_h);
+  v_status := case when jsonb_array_length(f) + n_err > 0 then 'warn' else 'ok' end;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', v_status, c,
+          left('IT engineer Dropbox check (' || p_job || '): ' || (c->>'checked') || ' read in Dropbox, ' || n_ok || ' confirmed, '
+               || jsonb_array_length(f) || ' finding(s) ' || (c->>'by_reason')
+               || case when v_h is not null then ', handed to the sales engineer as handoff ' || v_h else '' end || '.', 500),
+          now(), now());
+  return c || jsonb_build_object('status', v_status);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_expected()
+ RETURNS TABLE(item_key text, kind text, bucket text, path text, gen_kind text, gen_ref text, owner text, since timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with rl as (select * from public.leads where not coalesce(is_demo, false)),
+       rc as (select * from public.customers where not coalesce(is_demo, false)),
+       ri as (select i.* from public.inquiries i join rc on rc.id = i.customer_id)
+  select 'obj:' || o.bucket_id || ':' || o.name, 'storage', o.bucket_id, o.name, null::text, null::text, x.owner, o.created_at
+    from storage.objects o
+    cross join lateral (select case
+      when o.bucket_id = 'supplier-docs' then (select 'supplier:' || l.id from rl l
+             where l.id::text = split_part(o.name, '/', 2)
+                or o.name in (l.license_doc_path, l.iban_doc_path, l.egr_doc_path, l.insurance_doc_path, l.vat_doc_path,
+                              l.iso_doc_path, l.manufacturer_auth_doc_path, l.company_profile_doc_path)
+                or o.name = any(coalesce(l.catalog_doc_paths, '{}')) limit 1)
+      when o.bucket_id = 'signed-terms' then coalesce(
+             (select 'customer:' || c.id from rc c where c.signed_terms_path = o.name limit 1),
+             (select 'supplier:' || l.id from rl l where l.signed_terms_path = o.name limit 1))
+      when o.bucket_id = 'drawing-files' then (select 'inquiry:' || i.id from ri i
+             where i.id::text = split_part(o.name, '/', 2) or i.drawing_file_path = o.name limit 1)
+      when o.bucket_id = 'finance-docs' then (select 'transaction:' || t.id from public.transactions t where t.doc_path = o.name limit 1)
+    end as owner) x
+   where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r where r.kind = 'bucket' and r.backed_up)
+     and x.owner is not null and o.name !~* 'zz[_ -]?demo'
+  union all
+  -- a Stripe invoice the transaction names but storage no longer holds is still expected
+  select 'obj:finance-docs:' || t.doc_path, 'invoice', 'finance-docs', t.doc_path, null, null, 'transaction:' || t.id, t.revealed_at
+    from public.transactions t
+    -- transactions carries no is_demo of its own: a sale is demo when either party is (review of
+    -- #628). Without this, a purged demo invoice would read never_queued forever and escalate.
+    left join public.customers tc on tc.id = t.customer_id
+    left join public.leads tl on tl.id = t.supplier_id
+   where t.doc_path is not null
+     and not coalesce(tc.is_demo, false) and not coalesce(tl.is_demo, false)
+     and coalesce(tc.email, '') !~* 'example\.invalid' and coalesce(tl.email, '') !~* 'example\.invalid'
+     and not exists (select 1 from storage.objects o where o.bucket_id = 'finance-docs' and o.name = t.doc_path)
+  union all
+  select 'msg:' || m.source_table || ':' || m.source_id, 'conversation', c.pdf_bucket, c.pdf_path, null, null,
+         coalesce(m.party_kind || ':' || m.party_id, 'company'), m.occurred_at
+    from public.v_conversation_message m
+    left join public.conversation_archive c on c.source_table = m.source_table and c.source_id = m.source_id
+   where not m.is_demo
+  union all
+  select 'gen:supplier_details:' || l.id, 'generated', null, null, 'supplier_details', l.id::text, 'supplier:' || l.id, l.created_at
+    from rl l
+   where l.approved_at is not null or l.registration_submitted_at is not null or l.signed_terms_path is not null
+      or l.company_profile_doc_path is not null or l.license_doc_path is not null or coalesce(l.claimed, false)
+  union all
+  select 'gen:customer_details:' || c.id, 'generated', null, null, 'customer_details', c.id::text, 'customer:' || c.id, c.created_at from rc c
+  union all
+  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_expected_status()
+ RETURNS TABLE(item_key text, kind text, bucket text, path text, gen_kind text, gen_ref text, owner text, since timestamp with time zone, doc_backup_id bigint, status text, attempts integer, verified_at timestamp with time zone, error text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select e.*, d.id, d.status, d.attempts, d.verified_at, d.error
+    from public.fn_it_backup_expected() e
+    left join lateral (
+      select * from public.doc_backups d
+       where (e.kind <> 'generated' and e.bucket is not null and d.bucket = e.bucket and d.path = e.path)
+          or (e.kind = 'generated' and d.gen_kind = e.gen_kind and d.gen_ref = e.gen_ref)
+       order by (d.status = 'done') desc, d.id desc limit 1) d on true;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_recheck()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  h public.agent_actions; s record; d public.doc_backups; v_since timestamptz; v_files jsonb; v_state text;
+  n_ok int; n_fail int; n_wait int; v_att int; v_rep jsonb; n_closed int := 0; n_retry int := 0; n_esc int := 0;
+begin
+  for h in select * from public.agent_actions
+            where kind = 'handoff' and agent = 'sales_engineer' and status = 'pending'
+              and detail->>'type' in ('backup.refile', 'backup.remediate') order by id loop
+    v_since := coalesce((h.detail->>'refiled_at')::timestamptz, h.created_at);
+    v_files := '[]'::jsonb; n_ok := 0; n_fail := 0; n_wait := 0;
+    for s in select e from jsonb_array_elements(coalesce(h.detail->'files', '[]'::jsonb)) e loop
+      d := null;
+      select * into d from public.doc_backups where id = (s.e->>'doc_backup_id')::bigint;
+      v_state := case
+        when d.id is null then case when h.detail ? 'sales_done_at' then 'failing' else 'waiting' end
+        when d.status = 'done' and d.verified_at > v_since then 'ok'
+        when d.status in ('skipped_large', 'abandoned') or (d.status = 'error' and d.attempts >= 5) then 'failing'
+        else 'waiting' end;
+      if v_state = 'ok' then n_ok := n_ok + 1; elsif v_state = 'failing' then n_fail := n_fail + 1; else n_wait := n_wait + 1; end if;
+      v_files := v_files || (s.e || jsonb_build_object('state', v_state, 'status', d.status, 'attempts', d.attempts, 'error', d.error));
+    end loop;
+    v_att := coalesce((h.detail->>'refile_attempts')::int, 0);
+
+    if n_fail = 0 and n_wait = 0 then
+      perform set_config('qd.backup_closer', 'it_engineer', true);
+      perform set_config('qd.backup_closer_routine', 'fn_it_backup_recheck', true);
+      perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'it_engineer', 'files', v_files, 'verified_at', now()));
+      perform set_config('qd.backup_closer', '', true);
+      perform set_config('qd.backup_closer_routine', '', true);
+      update public.agent_actions set decided_by = 'it_engineer' where id = h.id;
+      n_closed := n_closed + 1;
+    elsif h.detail->>'type' = 'backup.refile' and not (h.detail ? 'escalated_report_id') then
+      if n_fail > 0 and v_att < 2 then
+        perform public.fn_seat_handoff_act(h.id);          -- the second refile
+        n_retry := n_retry + 1;
+      elsif n_fail > 0 or h.created_at < now() - interval '48 hours' then
+        v_rep := public.fn_support_report_to_ceo(
+          'backup_escalation:' || h.id, 'serious',
+          'Dropbox backup: ' || (n_fail + n_wait) || ' file(s) still not backed up after ' || v_att || ' refile(s)'
+            || case when h.created_at < now() - interval '48 hours' then ' and 48 hours' else '' end,
+          jsonb_build_object('handoff_id', h.id, 'files', v_files, 'refile_attempts', v_att, 'opened_at', h.created_at),
+          jsonb_build_array(jsonb_build_object('action', 'handed to sales_engineer to refile', 'handoff_id', h.id, 'attempts', v_att,
+                                               'last_refile_at', h.detail->>'refiled_at')),
+          'Send the sales engineer instructions for these files, or record that they cannot be backed up and why. The IT engineer re-checks each file and closes only when it is verified in Dropbox.',
+          p_review_in => interval '1 day', p_source_agent => 'it_engineer');
+        update public.agent_actions set detail = detail || jsonb_build_object('escalated_report_id', v_rep->'report_id', 'escalated_at', now())
+         where id = h.id;
+        perform public.fn_ceo_backup_escalation_decide((v_rep->>'report_id')::bigint);
+        n_esc := n_esc + 1;
+      end if;
+    end if;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'second_refiles', n_retry, 'escalated', n_esc);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_refile_close()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_it_backup_recheck();
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_stage_failed(p_stage text, p_error text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  insert into public.agent_runs(agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'error', now(), now(), jsonb_build_object('job', 'backup_tick', 'stage', p_stage),
+          'backup tick stage ' || p_stage || ' failed: ' || left(coalesce(p_error, ''), 300));
+  if not exists (select 1 from public.agent_actions
+                  where agent = 'it_engineer' and kind = 'backup_tick_stage_failed' and detail->>'stage' = p_stage
+                    and coalesce(status, '') in ('pending', 'needs_review') and created_at > now() - interval '20 hours') then
+    insert into public.agent_actions(agent, kind, status, risk, title, recommendation, target_table, detail)
+    values ('it_engineer', 'backup_tick_stage_failed', 'pending', 'medium',
+            'Backup check stage "' || p_stage || '" is failing',
+            'The it_engineer''s ' || p_stage || ' stage threw: ' || left(coalesce(p_error, ''), 300)
+              || '. Until it runs cleanly this part of the backup is not being checked.',
+            'doc_backups', jsonb_build_object('stage', p_stage, 'error', left(coalesce(p_error, ''), 500)))
+    returning id into v_id;
+  end if;
+  return jsonb_build_object('error', left(coalesce(p_error, ''), 200), 'finding_id', v_id);
 end $function$
 
 
@@ -27831,13 +28528,100 @@ CREATE OR REPLACE FUNCTION public.fn_it_backup_tick()
 AS $function$
 declare o jsonb := '{}'::jsonb;
 begin
-  begin o := o || jsonb_build_object('refiles', public.fn_it_backup_refile_close());
-  exception when others then o := o || jsonb_build_object('refiles', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  begin o := o || jsonb_build_object('recheck', public.fn_it_backup_recheck());
+  exception when others then o := o || jsonb_build_object('recheck', public.fn_it_backup_stage_failed('recheck', sqlerrm)); end;
+  begin o := o || jsonb_build_object('ceo', public.fn_ceo_backup_escalation_sweep());
+  exception when others then o := o || jsonb_build_object('ceo', public.fn_it_backup_stage_failed('ceo', sqlerrm)); end;
   begin o := o || jsonb_build_object('watch', public.fn_backup_watch());
-  exception when others then o := o || jsonb_build_object('watch', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  exception when others then o := o || jsonb_build_object('watch', public.fn_it_backup_stage_failed('watch', sqlerrm)); end;
   begin o := o || jsonb_build_object('daily', public.fn_dropbox_backup_daily_report());
-  exception when others then o := o || jsonb_build_object('daily', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  exception when others then o := o || jsonb_build_object('daily', public.fn_it_backup_stage_failed('daily', sqlerrm)); end;
   return o || jsonb_build_object('reconcile', public.fn_dropbox_reconcile_due());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_ceo_silence_watch()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.support_ceo_report; n_told int := 0;
+begin
+  for r in select * from public.support_ceo_report
+            where source_agent = 'it_engineer' and status = 'sent' and next_review_at < now()
+              and not exists (select 1 from public.agent_actions a
+                               where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
+            order by id loop
+    perform public.fn_seat_handoff('it_engineer', 'customer_support', 'delivery.request', 'support_ceo_report', r.id::text,
+      jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
+        'event', 'The CEO has not answered an IT report: ' || left(r.subject, 120),
+        'detail', 'The IT engineer reported this to the CEO at '
+                  || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai) and it was due an answer by '
+                  || to_char(r.next_review_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
+                  || 'Report: ' || r.subject || E'\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
+        'dedupe_key', 'it_ceo_silent:' || r.id));
+    n_told := n_told + 1;
+  end loop;
+  return jsonb_build_object('founder_told', n_told);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_daily_line()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_local timestamp := now() at time zone 'Asia/Dubai';
+  v_day   text := to_char(v_local, 'YYYY-MM-DD');
+  v_since timestamptz := (date_trunc('day', v_local) at time zone 'Asia/Dubai');
+  v_ev jsonb; v_rep jsonb; n_done int;
+begin
+  update public.support_ceo_report
+     set status = 'completed', completed_at = now(),
+         completion_note = 'IT engineer saw the CEO''s receipt: ' || acceptance_receipt
+   where source_agent = 'it_engineer' and idempotency_key like 'it_daily:%' and status = 'accepted';
+  get diagnostics n_done = row_count;
+
+  if v_local::time < time '19:00'
+     or exists (select 1 from public.support_ceo_report where idempotency_key = 'it_daily:' || v_day) then
+    return jsonb_build_object('filed', false, 'completed_after_receipt', n_done);
+  end if;
+
+  select jsonb_build_object(
+    'day', v_day,
+    'open_findings', (select count(*) from public.it_engineer_finding where closed_at is null),
+    'open_findings_actionable', (select count(*) from public.it_engineer_finding
+                                  where closed_at is null and public.fn_it_engineer_severity(blast, affected, started_at) <> 'warn'),
+    'open_loops', (select count(*) from public.agent_actions
+                    where kind = 'handoff' and detail->>'from' = 'it_engineer' and status in ('pending', 'failed')),
+    'open_loops_by_seat', coalesce((select jsonb_object_agg(agent, n) from (
+                      select agent, count(*) n from public.agent_actions
+                       where kind = 'handoff' and detail->>'from' = 'it_engineer' and status in ('pending', 'failed')
+                       group by agent) x), '{}'::jsonb),
+    'loops_closed_today', (select count(*) from public.agent_actions
+                            where kind = 'handoff' and detail->>'from' = 'it_engineer' and status = 'done' and decided_at >= v_since),
+    'escalated_today', (select count(*) from public.support_ceo_report
+                         where source_agent = 'it_engineer' and idempotency_key like 'it_loop:%' and created_at >= v_since),
+    'founder_emails_today', (select count(*) from public.founder_alerts
+                              where dedupe_key like 'it\_%' and channel = 'email' and created_at >= v_since),
+    'repeats_folded_today', (select count(*) from public.founder_alerts
+                              where dedupe_key like 'it\_%' and channel = 'deduped' and created_at >= v_since))
+  into v_ev;
+
+  v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
+    'IT engineer daily line ' || v_day || ': ' || (v_ev->>'open_loops') || ' open loop(s), '
+      || (v_ev->>'loops_closed_today') || ' closed today, ' || (v_ev->>'founder_emails_today') || ' founder email(s), '
+      || (v_ev->>'repeats_folded_today') || ' repeat(s) folded',
+    v_ev, '[]'::jsonb,
+    'Acknowledge the day''s IT position. Nothing else is requested; anything that needs a decision reaches you as its own report.',
+    p_review_in => interval '3 hours', p_source_agent => 'it_engineer');
+  if not coalesce((v_rep->>'ok')::boolean, false) then
+    raise exception 'fn_it_daily_line: the CEO report was refused: %', v_rep->>'reason';
+  end if;
+  return jsonb_build_object('filed', true, 'report', v_rep, 'completed_after_receipt', n_done);
 end $function$
 
 
@@ -27908,21 +28692,26 @@ for r in
     select regexp_replace(agent, '^fn:', '')                       subject,
            agent, started_at,
            coalesce(status,'error') <> all (c_ok)                  bad,
-           public.fn_it_run_is_refusal(agent, started_at, counts)  refused
+           -- A run the founder's hold refused is neither the caller turned away nor the subject's
+           -- fault: it leaves both sides of the rate and is reported apart as window_held.
+           public.fn_it_run_is_refusal(agent, started_at, counts)
+             or public.fn_it_run_is_held(agent, started_at, counts, note)  refused,
+           public.fn_it_run_is_held(agent, started_at, counts, note)       held
     from public.agent_runs
     where started_at > v_now - c_base),
   w as (
     select subject,
            count(*) filter (where not refused)::int              n,
            count(*) filter (where bad and not refused)::int      f,
-           count(*) filter (where refused)::int                  refused
+           count(*) filter (where refused and not held)::int     refused,
+           count(*) filter (where held)::int                     held
     from runs where started_at > v_now - c_win group by subject),
   b as (
     select subject,
            count(*) filter (where not refused)::int              n,
            count(*) filter (where bad and not refused)::int      f
     from runs where started_at <= v_now - c_win group by subject)
-  select w.subject agent, w.n, w.f, w.refused, coalesce(b.n,0) bn, coalesce(b.f,0) bf,
+  select w.subject agent, w.n, w.f, w.refused, w.held, coalesce(b.n,0) bn, coalesce(b.f,0) bf,
          coalesce(s.public_surface,false) pub, (s.subject is not null) known
   from w
   left join b on b.subject = w.subject
@@ -27951,6 +28740,7 @@ loop
       -- Counted, reported, and excluded from the rate above. A caller turned away is not a fault
       -- of this subject; a SURGE of them is a signal the security build owns, not this one.
       'window_refused', r.refused,
+      'window_held', r.held,
       'baseline_runs', r.bn, 'baseline_failed', r.bf,
       'baseline_rate', case when v_brate is null then null else round(v_brate,4) end,
       'baseline_basis', case when r.bn >= 10 then 'measured' else 'insufficient_history' end,
@@ -28665,6 +29455,299 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_duties(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_out jsonb := '{}'::jsonb; v_items jsonb; x record; s jsonb; v_mode text; v_hook jsonb; v_missing text[];
+  v_p95 numeric; v_hour int;
+begin
+  if jsonb_typeof(p_r) is distinct from 'object' then
+    raise exception 'fn_it_duties takes the readings object from _shared/it_duty_readings.ts';
+  end if;
+
+  -- ── 2. LIVE == CODE ──
+  -- Reads: the latest main commit's GitHub check runs ('checks', 'deploy functions') and the Vercel
+  -- production deployment for that commit. The canonical routine manifest itself runs inside the
+  -- 'checks' workflow, so its conclusion is the drift verdict. Cannot see: drift introduced after the
+  -- last merge by a live apply with no commit (the manifest check in the next CI run catches that).
+  if (p_r->'github'->>'basis') = 'measured' then
+    v_items := '[]'::jsonb;
+    for x in select key, value from jsonb_each(coalesce(p_r->'github'->'conclusions', '{}'::jsonb)) loop
+      if x.value #>> '{}' not in ('success', 'skipped', 'neutral', 'in_progress', 'queued') then
+        v_items := v_items || jsonb_build_object('item', 'ci:' || x.key, 'owner_seat', 'ceo', 'subject', 'github',
+          'title', 'On main ' || left(p_r->'github'->>'sha', 7) || ', "' || x.key || '" ended ' || (x.value #>> '{}')
+                   || ' — what is live may not be what is merged',
+          'blast', 'agent_facing', 'affected', 1, 'evidence', p_r->'github');
+      end if;
+    end loop;
+    if (p_r->'vercel'->>'basis') = 'measured' and coalesce(p_r->'vercel'->>'state', '') not in ('READY', 'BUILDING', 'QUEUED', 'INITIALIZING') then
+      v_items := v_items || jsonb_build_object('item', 'vercel', 'owner_seat', 'ceo', 'subject', 'website',
+        'title', 'The website deployment for main ' || left(p_r->'github'->>'sha', 7) || ' is ' || coalesce(p_r->'vercel'->>'state', 'missing'),
+        'blast', 'customer_facing', 'affected', 0, 'evidence', p_r->'vercel');
+    end if;
+    v_out := v_out || jsonb_build_object('live_code', public.fn_it_duty_settle('live_code', v_items));
+  else
+    v_out := v_out || jsonb_build_object('live_code', jsonb_build_object('basis', coalesce(p_r->'github'->>'basis', 'not_read'), 'reason', p_r->'github'->>'reason'));
+  end if;
+
+  -- ── 3. EXPIRIES ──
+  -- Reads: it_expiry (licences from the founder, domains from RDAP, TLS from crt.sh), internal_credential
+  -- expires_at, and each provider credential answering a harmless authenticated GET. Cannot see: a
+  -- provider key's own expiry date — Stripe, Resend, Twilio and Dropbox do not publish one, so the
+  -- test is whether the key still works today. Credentials used to rotate on a pg_cron job that went
+  -- with the 7 Sep removal and no routine rotates them now, so an expiry inside 30 days is handed on.
+  for x in select key, value from jsonb_each(coalesce(p_r->'expiries', '{}'::jsonb)) loop
+    if (x.value->>'expires_on') is not null then
+      update public.it_expiry set expires_on = (x.value->>'expires_on')::date, checked_at = now() where item = x.key;
+    end if;
+  end loop;
+  v_items := '[]'::jsonb;
+  for x in select * from public.it_expiry where expires_on is not null and expires_on < current_date + 30 loop
+    v_items := v_items || jsonb_build_object('item', x.item, 'owner_seat', x.owner_seat, 'subject', x.item,
+      'title', x.item || ' expires on ' || x.expires_on || ' (' || (x.expires_on - current_date) || ' days)',
+      'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,
+      'evidence', jsonb_build_object('route', x.route, 'source', x.source, 'checked_at', x.checked_at));
+  end loop;
+  for x in select context, expires_at from public.internal_credential
+            where active and expires_at is not null and expires_at < now() + interval '30 days' loop
+    v_items := v_items || jsonb_build_object('item', 'credential:' || x.context, 'owner_seat', 'ceo', 'subject', x.context,
+      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and nothing rotates it',
+      'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('expires_at', x.expires_at));
+  end loop;
+  v_out := v_out || jsonb_build_object('expiry', public.fn_it_duty_settle('expiry', v_items));
+
+  -- Provider credentials are their own duty so a tick without the providers reading leaves them as
+  -- they were instead of closing them.
+  if jsonb_typeof(p_r->'providers') = 'object' then
+    v_items := '[]'::jsonb;
+    for x in select key, value from jsonb_each(p_r->'providers') loop
+      if (x.value->>'basis') = 'measured' and (x.value->>'status')::int in (401, 403) then
+        v_items := v_items || jsonb_build_object('item', x.key,
+          'owner_seat', coalesce(x.value->>'owner_seat', 'ceo'), 'subject', x.key,
+          'title', 'The ' || x.key || ' credential was refused (HTTP ' || (x.value->>'status') || ')',
+          'blast', 'customer_facing', 'affected', 1, 'evidence', x.value);
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('credential', public.fn_it_duty_settle('credential', v_items));
+  end if;
+
+  -- ── 4. DELIVERY CONFIRMATION ──
+  -- Reads: the delivery loop (customer_support's build) — every delivery.request gets a delivery.result
+  -- back to its originator, which records detail.loop. What IT watches is that the loop CLOSED: a request
+  -- older than two hours with no loop verdict, and an email marked sent with no provider id.
+  v_items := '[]'::jsonb;
+  for x in select a.id, a.detail->>'from' frm, a.created_at from public.agent_actions a
+            where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
+              and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
+              and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%' loop
+    v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+      'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
+               || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',
+      'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('handoff_id', x.id));
+  end loop;
+  for x in select n.id, n.to_role, n.sent_at from public.notifications n
+            where n.status = 'sent' and n.channel = 'email' and coalesce(btrim(n.provider_message_id), '') = ''
+              and n.sent_at > now() - interval '48 hours' loop
+    v_items := v_items || jsonb_build_object('item', 'notification:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+      'title', 'Email ' || x.id || ' to the ' || coalesce(x.to_role, 'recipient') || ' is marked sent but the provider never gave it an id',
+      'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('notification_id', x.id, 'sent_at', x.sent_at));
+  end loop;
+  v_out := v_out || jsonb_build_object('delivery', public.fn_it_duty_settle('delivery', v_items));
+
+  -- ── 5. PAYMENT RECONCILIATION ──
+  -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
+  -- webhook endpoints' enabled events against HANDLED_STRIPE_EVENTS (passed in from
+  -- _shared/stripe_events.ts, the list the webhook itself branches on). IT checks the wiring; the
+  -- accountant owns the money and answers every mismatch. A mode whose key is absent is reported, not
+  -- treated as matched.
+  v_items := '[]'::jsonb;
+  for v_mode in select unnest(array['live', 'test']) loop
+    s := p_r->'stripe'->v_mode;
+    continue when coalesce(s->>'basis', '') <> 'measured';
+    for x in select e from jsonb_array_elements(coalesce(s->'paid_sessions', '[]'::jsonb)) e loop
+      if not exists (select 1 from public.transactions t
+                      where t.payment_ref in (x.e->>'id', x.e->>'payment_intent')) then
+        v_items := v_items || jsonb_build_object('item', v_mode || ':session:' || (x.e->>'id'), 'owner_seat', 'accountant',
+          'subject', 'stripe_webhook',
+          'title', 'Stripe ' || v_mode || ' took AED ' || round(coalesce((x.e->>'amount_total')::numeric, 0) / 100, 2)
+                   || ' in session ' || (x.e->>'id') || ' and no transaction records it',
+          'blast', 'customer_facing', 'affected', 1, 'demo', v_mode = 'test', 'evidence', x.e);
+      end if;
+    end loop;
+    for x in select e from jsonb_array_elements(coalesce(s->'refunds', '[]'::jsonb)) e loop
+      if not exists (select 1 from public.refunds r where r.stripe_refund_id = x.e->>'id')
+         and not exists (select 1 from public.transactions t where t.refund_stripe_id = x.e->>'id') then
+        v_items := v_items || jsonb_build_object('item', v_mode || ':refund:' || (x.e->>'id'), 'owner_seat', 'accountant',
+          'subject', 'stripe_webhook',
+          'title', 'Stripe ' || v_mode || ' refunded ' || (x.e->>'id') || ' and our books do not record it',
+          'blast', 'customer_facing', 'affected', 1, 'demo', v_mode = 'test', 'evidence', x.e);
+      end if;
+    end loop;
+    v_hook := (select e from jsonb_array_elements(coalesce(s->'webhooks', '[]'::jsonb)) e
+                where e->>'url' like '%/functions/v1/stripe_webhook%' and e->>'status' = 'enabled' limit 1);
+    select array_agg(h) into v_missing from jsonb_array_elements_text(coalesce(p_r->'stripe'->'handled', '[]'::jsonb)) h
+     where v_hook is null or not (v_hook->'enabled_events' ? h or v_hook->'enabled_events' ? '*');
+    if v_missing is not null then
+      v_items := v_items || jsonb_build_object('item', v_mode || ':webhook', 'owner_seat', 'accountant', 'subject', 'stripe_webhook',
+        'title', case when v_hook is null then 'No enabled Stripe ' || v_mode || ' webhook points at stripe_webhook'
+                      else 'The Stripe ' || v_mode || ' webhook does not send ' || array_to_string(v_missing, ', ') end,
+        'blast', 'customer_facing', 'affected', 0, 'demo', v_mode = 'test',
+        'evidence', jsonb_build_object('missing', to_jsonb(v_missing), 'endpoint', v_hook));
+    end if;
+  end loop;
+  if coalesce(p_r->'stripe'->'live'->>'basis', '') = 'measured' or coalesce(p_r->'stripe'->'test'->>'basis', '') = 'measured' then
+    v_out := v_out || jsonb_build_object('payment', public.fn_it_duty_settle('payment', v_items));
+  else
+    v_out := v_out || jsonb_build_object('payment', jsonb_build_object('basis', 'not_read', 'reading', p_r->'stripe'));
+  end if;
+
+  -- ── 6. SECURITY SWEEP ──
+  -- Reads: the catalogue (routines anon/authenticated may execute with the definer's rights, tables with
+  -- RLS off or on with no policy) against it_security_baseline, and sign-in codes sent in the last hour
+  -- against this estate's own hourly p95 over seven days. Cannot see: the Supabase security advisors
+  -- (management API, run in CI by security_advisors_match_the_baseline.mjs). A known fix — a revoke or
+  -- a pinned search_path — is shipped only as a file with a MANIFEST line in a PR, never live.
+  v_items := '[]'::jsonb;
+  for x in select e.object, e.kind from public.fn_it_security_exposures() e
+            where not exists (select 1 from public.it_security_baseline b where b.object = e.object and b.kind = e.kind) loop
+    v_items := v_items || jsonb_build_object('item', x.kind || ':' || x.object, 'owner_seat', 'ceo', 'subject', x.object,
+      'title', case x.kind when 'anon_executable_definer' then 'A browser can run ' || x.object || ' with the definer''s rights'
+                           when 'rls_off' then 'Table ' || x.object || ' has row security switched off'
+                           else 'Table ' || x.object || ' has row security on and no policy, and a browser role can read it' end,
+      'blast', 'security', 'affected', 1,
+      'evidence', jsonb_build_object('kind', x.kind, 'baseline_size', (select count(*) from public.it_security_baseline),
+                                     'fix', 'a file with a MANIFEST line in a PR: revoke execute / enable RLS and add a policy'));
+  end loop;
+  select coalesce(percentile_cont(0.95) within group (order by n), 0) into v_p95
+    from (select date_trunc('hour', created_at) h, count(*) n from public.customer_phone_otps
+           where created_at > now() - interval '7 days' and created_at <= now() - interval '1 hour' group by 1) z;
+  select count(*) into v_hour from public.customer_phone_otps where created_at > now() - interval '1 hour';
+  if v_hour > greatest(10, 3 * v_p95) then
+    v_items := v_items || jsonb_build_object('item', 'otp_spike', 'owner_seat', 'ceo', 'subject', 'login_otp',
+      'title', v_hour || ' sign-in codes were sent in the last hour against an hourly p95 of ' || round(v_p95),
+      'blast', 'security', 'affected', 1, 'evidence', jsonb_build_object('last_hour', v_hour, 'p95_hourly_7d', v_p95));
+  end if;
+  v_out := v_out || jsonb_build_object('security', public.fn_it_duty_settle('security', v_items));
+
+  -- ── 7. UPTIME ──
+  -- Reads: each public origin answered this hour. fn_it_detect already judges the edge functions'
+  -- failure rates (D1, with the founder's hold now counted as held) and public_site_url's latency; this
+  -- adds the other origins. Cannot see: that a UAE visitor is really sent to .ae — the redirect keys on
+  -- Vercel's x-vercel-ip-country, which an outside request cannot set. What is checked is its other
+  -- half: that quotesdone.ae itself serves the site.
+  if jsonb_typeof(p_r->'sites') = 'array' then
+    v_items := '[]'::jsonb;
+    for x in select e from jsonb_array_elements(p_r->'sites') e loop
+      if coalesce((x.e->>'status')::int, 0) not between 200 and 399 then
+        v_items := v_items || jsonb_build_object('item', x.e->>'url', 'owner_seat', 'ceo', 'subject', 'website',
+          'title', x.e->>'url' || ' ' || coalesce('answered HTTP ' || (x.e->>'status'), 'did not answer: ' || coalesce(x.e->>'error', 'no status')),
+          'blast', 'customer_facing', 'affected', 1, 'evidence', x.e);
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('uptime', public.fn_it_duty_settle('uptime', v_items));
+  end if;
+
+  -- ── 8. DEMO HYGIENE ──
+  -- Reads: demo customers and suppliers (is_demo, or the harness's qd-<tag>- address) created more
+  -- than six hours ago outside an open rehearsal window. A leftover is a demo row that can reach a
+  -- count; the harness purges its own tag, so one that survives is a teardown fault. Cannot see: a
+  -- dashboard that counts demo rows while none exist — with zero leftovers there is nothing to leak.
+  v_items := '[]'::jsonb;
+  for x in select 'customers' t, count(*) n from public.customers c
+            where (c.is_demo or c.email like 'qd-%@example.invalid') and c.created_at < now() - interval '6 hours'
+           union all
+           select 'leads', count(*) from public.leads l
+            where (l.is_demo or l.email like 'qd-%@example.invalid') and l.created_at < now() - interval '6 hours' loop
+    -- Only a run still in progress excuses leftovers. Measured on the proof: four e2e windows and one
+    -- from 5 Sep were never closed, and "any open window" silenced this check for good.
+    if x.n > 0 and not exists (select 1 from public.rehearsal_window w
+                                where w.ended_at is null and w.started_at > now() - interval '6 hours') then
+      v_items := v_items || jsonb_build_object('item', x.t, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+        'title', x.n || ' demo ' || x.t || ' row(s) outlived their run by more than six hours',
+        'blast', 'internal', 'affected', 1, 'demo', true,
+        'evidence', jsonb_build_object('table', x.t, 'rows', x.n, 'purge', 'node scripts/e2e/run.mjs --purge-tag <tag>'));
+    end if;
+  end loop;
+  -- A rehearsal window left open is a run that never tore down.
+  for x in select w.id, w.run_tag, w.opened_by, w.started_at from public.rehearsal_window w
+            where w.ended_at is null and w.started_at < now() - interval '6 hours' loop
+    v_items := v_items || jsonb_build_object('item', 'window:' || x.id, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+      'title', 'Rehearsal window ' || x.run_tag || ' (' || x.opened_by || ') has been open since '
+               || to_char(x.started_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+      -- agent_facing, so it is handed on at once: an open window already silences the failed-run pager.
+      'blast', 'agent_facing', 'affected', 1, 'demo', true,
+      'evidence', jsonb_build_object('rehearsal_window_id', x.id, 'close', 'update public.rehearsal_window set ended_at = now() where id = ' || x.id));
+  end loop;
+  v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
+
+  -- ── 1. THE NIGHTLY JOURNEY'S HEARTBEAT ──
+  -- The run itself reports through fn_it_journey_ingest. Silence for 26 hours is its own finding: the
+  -- workflow needs the SUPABASE_ACCESS_TOKEN repository secret, which only the founder can add.
+  v_items := '[]'::jsonb;
+  if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey'
+                  and started_at > now() - interval '26 hours') then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'no_run', 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+      'title', 'The nightly full-journey test has not reported for 26 hours',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('workflow', '.github/workflows/nightly-journey.yml',
+        'needs', 'repository secret SUPABASE_ACCESS_TOKEN (GitHub > Settings > Secrets > Actions); only the founder can add it')));
+  end if;
+  v_out := v_out || jsonb_build_object('journey_heartbeat', public.fn_it_duty_settle('journey_heartbeat', v_items));
+
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', v_out), null);
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
+                      and started_at > now() - interval '55 minutes')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duty_settle(p_duty text, p_items jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
+begin
+  if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
+    raise exception 'fn_it_duty_settle(duty, items[]): a duty name and an array of failing items are required';
+  end if;
+  for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce(btrim(x->>'item'), '') = '' or coalesce(btrim(x->>'title'), '') = '' then
+      raise exception 'fn_it_duty_settle: every item needs an item key and a title (%)', x;
+    end if;
+    v_key := 'duty:' || p_duty || ':' || (x->>'item');
+    v_keys := v_keys || v_key;
+    perform public.fn_it_engineer_finding_upsert(v_key, x->>'title', 'IT engineer duty: ' || p_duty,
+      coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
+      coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+        'duty', p_duty, 'owner_seat', x->>'owner_seat', 'subject', x->>'subject',
+        'demo', coalesce((x->>'demo')::boolean, false)),
+      '{}'::text[], '{}'::text[], 'it_engineer.' || p_duty);
+  end loop;
+  for v_open in select issue_key from public.it_engineer_finding
+                 where closed_at is null and issue_key like 'duty:' || p_duty || ':%' and not (issue_key = any (v_keys)) loop
+    perform public.fn_it_engineer_finding_close(v_open, 'the ' || p_duty || ' duty no longer finds it');
+    n_closed := n_closed + 1;
+  end loop;
+  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_alert_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -28672,20 +29755,9 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_alert_tick()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_admin text; v_gap_min numeric; v_last_beat timestamptz;
-  r record; v_sev text; v_reason text; v_body text; v_subject text; v_id bigint;
-  v_sent int := 0; v_silent int := 0; v_resolved int := 0; v_refused int := 0;
-  v_monitor int := 0; v_errors jsonb := '[]'::jsonb; v_ingest jsonb := '{}'::jsonb;
+  v_gap_min numeric; v_last_beat timestamptz; r record;
+  v_monitor int := 0; v_errors jsonb := '[]'::jsonb; v_ingest jsonb := '{}'::jsonb; v_loop jsonb := '{}'::jsonb;
 begin
-  select lower(nullif(split_part(coalesce(value,''), ',', 1), '')) into v_admin
-    from public.app_secrets where key = 'admin_emails';
-  if v_admin is null then
-    insert into public.founder_alerts (level, event, detail, channel)
-    values ('high','it_engineer:no_admin_address',
-            'fn_it_engineer_alert_tick cannot address the founder: app_secrets.admin_emails is empty.','os');
-    return jsonb_build_object('ok', false, 'reason', 'no admin address');
-  end if;
-
   ---------------------------------------------------------------------------------------------
   -- 0. PULL FROM THE DETECTORS FIRST. The detection engine writes to it_watch_finding; this ledger
   --    holds only what the founder has been told. Without this call the tick reports
@@ -28774,80 +29846,19 @@ begin
   end;
 
   ---------------------------------------------------------------------------------------------
-  -- C. OPEN FINDINGS -> the dedupe/escalation rule of section 3.
+  -- C. EVERY ACTIONABLE FINDING GOES ROUND THE LOOP. Until 14 Sep 2026 this section emailed each
+  --    high/critical finding straight to the founder and emailed him again when it cleared, with no
+  --    seat asked to act and no reply awaited. The owning seat now answers, the IT engineer
+  --    re-verifies and closes, and the founder hears only of a new bug nobody could fix
+  --    (the_it_engineer_closes_every_loop_it_opens.sql). fn_it_loop_tick reports its own failures.
   ---------------------------------------------------------------------------------------------
   begin
-    for r in select * from public.it_engineer_finding where closed_at is null order by started_at loop
-      v_sev := public.fn_it_engineer_severity(r.blast, r.affected, r.started_at);
-      v_reason := null;
-      if v_sev = 'warn' then
-        null;                                                        -- never emails. Recorded only.
-      elsif r.alerted_at is null then
-        v_reason := case when r.alert_count > 0 then 'recurred' else 'first' end;
-      elsif array_position(array['warn','high','critical'], v_sev)
-          > array_position(array['warn','high','critical'], coalesce(r.alerted_severity,'warn')) then
-        v_reason := 'severity_rose';                                  -- no floor: this is new information
-      elsif r.affected > coalesce(r.alerted_affected, 0)
-        and r.affected >= 2 * greatest(coalesce(r.alerted_affected,0), 1)
-        and now() - r.alerted_at >= interval '30 minutes' then
-        v_reason := 'blast_grew';
-      end if;
-
-      if v_reason is null then v_silent := v_silent + 1; continue; end if;
-
-      v_body    := public.fn_it_engineer_handover_body(r.issue_key, v_reason);
-      v_subject := '[' || upper(v_sev) || '] QuotesDone IT: ' || r.title
-                   || case when v_reason = 'severity_rose' then ' (escalated)'
-                           when v_reason = 'blast_grew'    then ' (now ' || r.affected || ' affected)'
-                           when v_reason = 'recurred'      then ' (recurred)' else '' end;
-
-      v_id := null;
-      insert into public.notifications (type, kind, to_email, to_role, channel, subject, body)
-      values ('it_engineer_handover', 'it_engineer_handover', v_admin, 'admin', 'email',
-              left(v_subject, 200), v_body)
-      returning id into v_id;
-
-      if v_id is null then
-        -- the a10 gate refused the row. It does NOT raise, so without this the alert would vanish.
-        v_refused := v_refused + 1;
-        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-        values ('critical', 'it_engineer:handover_refused_by_gate',
-                'a10_notifications_founder_mail_policy dropped an it_engineer_handover for issue '
-                || r.issue_key || ' (severity ' || v_sev || '). Check founder_mail_policy.it_engineer_handover.',
-                'os', 'it_handover_refused');
-      else
-        update public.it_engineer_finding
-           set alerted_at = now(), alerted_severity = v_sev, alerted_affected = r.affected,
-               alert_count = alert_count + 1, notification_id = v_id
-         where issue_key = r.issue_key;
-        v_sent := v_sent + 1;
-      end if;
-    end loop;
+    v_loop := public.fn_it_loop_tick();
+    if not coalesce((v_loop->>'ok')::boolean, false) then
+      v_errors := v_errors || jsonb_build_object('section','loop','errors', v_loop->'errors');
+    end if;
   exception when others then
-    v_errors := v_errors || jsonb_build_object('section','open_findings','error', sqlerrm);
-  end;
-
-  ---------------------------------------------------------------------------------------------
-  -- D. CLOSED FINDINGS HE WAS TOLD ABOUT -> one RESOLVED note, so silence is not ambiguous.
-  ---------------------------------------------------------------------------------------------
-  begin
-    for r in select * from public.it_engineer_finding
-              where closed_at is not null and alert_count > 0 and close_notified_at is null loop
-      v_body := public.fn_it_engineer_handover_body(r.issue_key, 'resolved');
-      v_id := null;
-      insert into public.notifications (type, kind, to_email, to_role, channel, subject, body)
-      values ('it_engineer_handover', 'it_engineer_handover', v_admin, 'admin', 'email',
-              left('[RESOLVED] QuotesDone IT: ' || r.title, 200), v_body)
-      returning id into v_id;
-      if v_id is null then
-        v_refused := v_refused + 1;
-      else
-        update public.it_engineer_finding set close_notified_at = now() where issue_key = r.issue_key;
-        v_resolved := v_resolved + 1;
-      end if;
-    end loop;
-  exception when others then
-    v_errors := v_errors || jsonb_build_object('section','resolved','error', sqlerrm);
+    v_errors := v_errors || jsonb_build_object('section','loop','error', sqlerrm);
   end;
 
   -- A tick that half-failed must SAY so rather than returning a clean-looking zero.
@@ -28857,8 +29868,8 @@ begin
   end if;
 
   return jsonb_build_object('ok', jsonb_array_length(v_errors) = 0,
-                            'sent', v_sent, 'resolved', v_resolved, 'silent', v_silent,
-                            'monitor_findings', v_monitor, 'ingested_from_detectors', v_ingest, 'refused_by_gate', v_refused,
+                            'loop', v_loop,
+                            'monitor_findings', v_monitor, 'ingested_from_detectors', v_ingest,
                             'errors', v_errors);
 end $function$
 
@@ -29107,67 +30118,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_it_engineer_handover_body(p_issue_key text, p_reason text DEFAULT 'first'::text)
- RETURNS text
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare f public.it_engineer_finding; v_sev text; v_age interval; b text; e text; x text;
-begin
-  select * into f from public.it_engineer_finding where issue_key = p_issue_key;
-  if f.issue_key is null then return null; end if;
-  v_sev := public.fn_it_engineer_severity(f.blast, f.affected, f.started_at);
-  v_age := coalesce(f.closed_at, now()) - f.started_at;
-
-  select coalesce(string_agg('  ' || k || ': ' || left(val, 500), E'\n' order by k), '  (none recorded)')
-    into e from jsonb_each_text(coalesce(f.evidence,'{}'::jsonb)) as t(k, val);
-
-  b := case p_reason
-         when 'resolved'      then 'RESOLVED. Nothing to do -- this is the close-out of an issue you were emailed about.'
-         when 'severity_rose' then 'ESCALATION. You were told about this at ' || coalesce(f.alerted_severity,'?') || '; it is now ' || v_sev || '.'
-         when 'blast_grew'    then 'THIS GOT BIGGER. You were told ' || coalesce(f.alerted_affected::text,'?') || ' affected; it is now ' || f.affected || '.'
-         when 'recurred'      then 'THIS CAME BACK. The same issue was closed and has re-opened.'
-         else                      'NEW. This is the first time you are hearing about this issue.'
-       end;
-
-  x := b || E'\n\n'
-    || 'WHAT BROKE' || E'\n  ' || f.title || E'\n\n'
-    || 'WHERE' || E'\n  ' || f.where_it_is || E'\n\n'
-    || 'WHEN IT STARTED' || E'\n'
-    || '  first seen  ' || to_char(f.started_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC ('
-       || to_char(f.started_at at time zone 'Asia/Dubai','HH24:MI') || ' Dubai), '
-       || trim(to_char(extract(epoch from v_age)/3600, '9990.9')) || ' hours ago' || E'\n'
-    || '  last seen   ' || to_char(f.last_seen_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC'
-       || ', observed on ' || f.seen_count || ' scan(s)' || E'\n'
-    || case when f.closed_at is not null
-            then '  closed      ' || to_char(f.closed_at at time zone 'UTC','YYYY-MM-DD HH24:MI') || ' UTC' || E'\n' else '' end
-    || E'\n'
-    || 'HOW BAD, AND WHY THAT SEVERITY' || E'\n'
-    || '  ' || upper(v_sev) || ' -- derived, not typed: a ' || f.blast || ' path, ' || f.affected
-       || ' subject(s) measured as affected, open ' || trim(to_char(extract(epoch from v_age)/3600, '9990.9')) || ' hours.' || E'\n'
-    || '  (fn_it_engineer_severity is the rule; nothing hand-sets this.)' || E'\n\n'
-    || 'EVIDENCE' || E'\n' || e || E'\n\n'
-    || 'ALREADY CHECKED AND RULED OUT -- do not repeat this work' || E'\n'
-    || coalesce(nullif((select string_agg('  - ' || r, E'\n') from unnest(f.ruled_out) r), ''),
-                '  (nothing was ruled out -- treat every cause as open)') || E'\n\n'
-    || 'COULD NOT DETERMINE -- start here' || E'\n'
-    || coalesce(nullif((select string_agg('  - ' || u, E'\n') from unnest(f.undetermined) u), ''),
-                '  (nothing recorded as undetermined)') || E'\n\n'
-    || 'RAISED BY' || E'\n  ' || f.raised_by || '   issue key: ' || f.issue_key || E'\n\n'
-    || 'TO PICK THIS UP' || E'\n'
-    || '  Open a session on the quotesdone repository and paste this email. The full row, including' || E'\n'
-    || '  anything added since this was sent:' || E'\n'
-    || '    select * from public.it_engineer_finding where issue_key = ' || quote_literal(f.issue_key) || ';' || E'\n\n'
-    || 'YOU WILL NOT GET THIS TWICE' || E'\n'
-    || '  One email per issue. Another arrives only if the severity rises, the number affected at' || E'\n'
-    || '  least doubles, the issue closes, or it comes back after being closed. Silence from here' || E'\n'
-    || '  means the detectors are running and clean -- a detector that stops reporting raises its' || E'\n'
-    || '  own finding rather than passing for a quiet night.';
-  return x;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_ingest_watch_findings()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -29319,6 +30269,197 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_journey_ingest(p_report jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; x jsonb; v_owner text; v_letter text; v_res jsonb;
+begin
+  if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'tag'), '') = '' then
+    raise exception 'fn_it_journey_ingest takes {tag, steps:[...]} from scripts/e2e/report_to_it_engineer.mjs';
+  end if;
+  for x in select e from jsonb_array_elements(p_report->'steps') e where e->>'status' = 'FAIL' loop
+    v_letter := left(coalesce(x->>'journey', ''), 1);
+    -- a/b/c/f drive the portals, the intake, the quotes and the comparison — the sales engineer's
+    -- (function_owner: customer_portal, supplier_portal, inquiry_intake, quote_compare). d/e are the
+    -- payment and the invoice — the accountant's (stripe_checkout, reveal_invoice). Fixtures, safety
+    -- and cleanup are the harness itself, which the ceo owns.
+    v_owner := case when v_letter in ('a', 'b', 'c', 'f') then 'sales_engineer'
+                    when v_letter in ('d', 'e') then 'accountant' else 'ceo' end;
+    v_items := v_items || jsonb_build_object(
+      'item', coalesce(x->>'journey', '?') || ':' || left(regexp_replace(coalesce(x->>'name', '?'), '[^a-zA-Z0-9]+', '_', 'g'), 80),
+      'owner_seat', v_owner, 'subject', 'journey ' || coalesce(x->>'journey', '?'),
+      'title', 'Nightly journey failed: [' || coalesce(x->>'journey', '?') || '] ' || coalesce(x->>'name', '?'),
+      'blast', 'customer_facing', 'affected', 0,
+      'demo', coalesce((p_report->>'demo')::boolean, false),
+      'evidence', jsonb_build_object('tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
+  end loop;
+  v_res := public.fn_it_duty_settle('journey', v_items);
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', case when jsonb_array_length(v_items) = 0 then 'ok' else 'warn' end, now(), now(),
+          jsonb_build_object('job', 'journey', 'tag', p_report->>'tag', 'failed', jsonb_array_length(v_items),
+                             'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers'), null);
+  return v_res;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_loop_open(p_issue_key text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding; v_owner text; v_duty text; v_subject text;
+begin
+  select * into f from public.it_engineer_finding where issue_key = p_issue_key and closed_at is null;
+  if not found then raise exception 'fn_it_loop_open: no open finding %', p_issue_key; end if;
+
+  -- A detector finding ('watch:<detector_key>') names its subject on the detector's own row.
+  v_subject := coalesce(nullif(f.evidence->>'subject', ''),
+                        (select w.subject from public.it_watch_finding w where 'watch:' || w.detector_key = f.issue_key));
+  v_owner := coalesce(nullif(f.evidence->>'owner_seat', ''),
+                      (select o.owner from public.function_owner o where o.function_slug = v_subject));
+  -- 'website' and any retired role are not seats; a finding nobody else owns is the CEO's.
+  if not exists (select 1 from public.fn_seat_handoff_types() t
+                  where t.type = 'it.finding' and t.from_seat = 'it_engineer' and t.to_seat = v_owner) then
+    v_owner := 'ceo';
+  end if;
+  v_duty := coalesce(nullif(f.evidence->>'duty', ''), 'fault');
+
+  return public.fn_seat_handoff('it_engineer', v_owner, 'it.finding', 'it_engineer_finding',
+    f.issue_key || '@' || floor(extract(epoch from f.started_at))::bigint,
+    jsonb_build_object(
+      'issue_key', f.issue_key, 'occurrence_started_at', f.started_at, 'duty', v_duty,
+      'subject', v_subject, 'title', f.title, 'where_it_is', f.where_it_is,
+      'severity', public.fn_it_engineer_severity(f.blast, f.affected, f.started_at),
+      'finding_evidence', f.evidence,
+      'demo', f.title ilike '%ZZ DEMO%' or coalesce((f.evidence->>'demo')::boolean, false)));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_loop_reverify()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
+  n_closed int := 0; n_esc int := 0; n_wait int := 0;
+begin
+  select reply_within into v_window from public.seat_handoff_window where type = 'it.finding' and from_seat = 'it_engineer';
+  for h in select * from public.agent_actions
+            where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
+              and status in ('pending', 'failed') order by id loop
+    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+    -- The occurrence this loop tracked is over when the finding is closed, or when it has since
+    -- closed and reopened (a later started_at is a different occurrence with its own loop).
+    v_cleared := f.issue_key is null or f.closed_at is not null
+                 or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
+    if v_cleared then
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(),
+        'verdict', coalesce(f.close_note, 'the finding is no longer open'),
+        'reply_before_close', h.detail ? 'replied_at'));
+      perform set_config('qd.handoff_closer', '', true);
+      update public.support_ceo_report
+         set status = 'completed', completed_at = now(),
+             completion_note = 'IT engineer re-verified: ' || coalesce(f.close_note, 'the finding is no longer open') || ' (handoff ' || h.id || ').'
+       where idempotency_key = 'it_loop:' || h.id and status = 'accepted';
+      n_closed := n_closed + 1;
+    elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window then
+      v_rep := public.fn_support_report_to_ceo(
+        'it_loop:' || h.id,
+        case when h.detail->>'severity' = 'critical' then 'critical' else 'serious' end,
+        'Still broken after ' || h.agent || '''s reply window: ' || left(coalesce(h.detail->>'title', h.detail->>'issue_key'), 160),
+        jsonb_build_object('handoff_id', h.id, 'issue_key', h.detail->>'issue_key', 'seat', h.agent,
+                           'reply', h.evidence, 'finding', to_jsonb(f)),
+        jsonb_build_array(jsonb_build_object('action', 'handed to ' || h.agent, 'handoff_id', h.id,
+                                             'at', h.created_at, 'replied_at', h.detail->>'replied_at')),
+        'Decide the remedy, or record that this is a new bug for the founder. The IT engineer keeps re-checking and closes the loop only when the finding is gone.',
+        p_review_in => interval '2 hours', p_source_agent => 'it_engineer');
+      if not coalesce((v_rep->>'ok')::boolean, false) then
+        raise exception 'fn_it_loop_reverify: the CEO report for handoff % was refused: %', h.id, v_rep->>'reason';
+      end if;
+      update public.agent_actions
+         set detail = detail || jsonb_build_object('escalated_report_id', (v_rep->>'report_id')::bigint, 'escalated_at', now())
+       where id = h.id;
+      perform public.fn_ceo_it_escalation_decide((v_rep->>'report_id')::bigint);
+      n_esc := n_esc + 1;
+    else
+      n_wait := n_wait + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_loop_stage(p_step text, p_error text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(btrim(p_step), '') = '' then raise exception 'fn_it_loop_stage: a stage name is required'; end if;
+  if p_error is null then
+    perform public.fn_it_engineer_finding_close('monitor:it_loop:' || p_step, 'the ' || p_step || ' stage of the IT loop ran cleanly');
+    return;
+  end if;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'error', now(), now(), jsonb_build_object('job', 'it_loop', 'stage', p_step), left(p_error, 600));
+  perform public.fn_it_engineer_finding_upsert('monitor:it_loop:' || p_step,
+    'The ' || p_step || ' stage of the IT engineer''s loop is failing', 'public.fn_it_loop_tick', 'monitor', 1,
+    jsonb_build_object('stage', p_step, 'error', left(p_error, 600), 'owner_seat', 'ceo'),
+    '{}'::text[], array['why the stage raises: ' || left(p_error, 300)], 'fn_it_loop_tick');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_loop_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
+begin
+  for f in select x.issue_key, x.started_at from public.it_engineer_finding x
+            where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
+              and not exists (select 1 from public.agent_actions a
+                               where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
+                                 and a.detail->>'issue_key' = x.issue_key
+                                 and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
+            order by x.started_at loop
+    begin
+      perform public.fn_it_loop_open(f.issue_key);
+      n_open := n_open + 1;
+    exception when others then
+      v_err := v_err || jsonb_build_object('step', 'open', 'issue_key', f.issue_key, 'error', sqlerrm);
+    end;
+  end loop;
+  o := o || jsonb_build_object('opened', n_open);
+
+  begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('ceo', public.fn_ceo_it_reports_sweep());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
+
+  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily'] loop
+    perform public.fn_it_loop_stage(v_step,
+      (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
+         from jsonb_array_elements(v_err) e where e->>'step' = v_step));
+  end loop;
+  return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_refusal_is_policy(p_subject text, p_counts jsonb)
  RETURNS boolean
  LANGUAGE sql
@@ -29329,6 +30470,23 @@ AS $function$
     select 1 from public.it_refusal_policy p
      where p.subject = regexp_replace(coalesce(p_subject,''), '^fn:', '')
        and coalesce(p_counts, '{}'::jsonb) ? p.reason_key)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_run_is_held(p_agent text, p_started timestamp with time zone, p_counts jsonb, p_note text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+       exists (select 1 from public.it_hold_signature h
+                where h.subject = regexp_replace(coalesce(p_agent, ''), '^fn:', '')
+                  and coalesce(p_counts, '{}'::jsonb) @> h.counts_match
+                  and (h.note_like is null or coalesce(p_note, '') like h.note_like))
+   and exists (select 1 from public.llm_route_health r
+                where r.opened_reason like 'HELD BY THE FOUNDER%' and r.open_until > p_started)
+  , false)
 $function$
 
 
@@ -29362,6 +30520,27 @@ AS $function$
            and t.started_at between p_started - interval '5 seconds' and p_started + interval '5 seconds'
            and (t.counts ->> 'http') ~ '^4[0-9][0-9]$')
   , false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_security_exposures()
+ RETURNS TABLE(object text, kind text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p.oid::regprocedure::text, 'anon_executable_definer'
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+  union all
+  select c.oid::regclass::text, case when not c.relrowsecurity then 'rls_off' else 'rls_no_policy' end
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r'
+     and (not c.relrowsecurity or not exists (select 1 from pg_policy pl where pl.polrelid = c.oid))
+     -- Only what a browser role can actually read: an RLS-less table nobody is granted is not exposed.
+     and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('authenticated', c.oid, 'select'))
 $function$
 
 
@@ -30200,6 +31379,34 @@ begin
   end loop;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_language_mismatch(p_lang text, p_text text, p_allow text[] DEFAULT '{}'::text[])
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t text := coalesce(p_text, ''); a text; w text;
+begin
+  foreach a in array coalesce(p_allow, '{}') loop
+    if coalesce(btrim(a), '') <> '' then t := replace(t, a, ' '); end if;
+  end loop;
+  t := regexp_replace(t, 'https?://\S+', ' ', 'gi');
+  t := regexp_replace(t, '\S+@\S+', ' ', 'g');
+  t := regexp_replace(t, 'QD-[A-Za-z0-9-]+', ' ', 'g');
+  t := regexp_replace(t, '\m(QuotesDone|AED|PDF|Stripe|WhatsApp|quotesdone\.com)\M', ' ', 'gi');
+  -- An all-capitals code (SPC, BTU, CCTV, IP65, BS EN) is a standard or a product code, not English prose.
+  t := regexp_replace(t, '\m[A-Z][A-Z0-9]{1,5}\M', ' ', 'g');
+  if p_lang = 'ar' then
+    if t !~ '[؀-ۿ]' then return 'no Arabic at all'; end if;
+    w := substring(t from '[A-Za-z]{2,}(?:\s+[A-Za-z]{2,})*');
+    if w is not null then return 'English inside Arabic: ' || left(w, 60); end if;
+  else
+    if t ~ '[؀-ۿ]' then return 'Arabic inside English: ' || left(substring(t from '[؀-ۿ][؀-ۿ\s]*'), 60); end if;
+  end if;
+  return null;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_leads_collaboration_hold_guard()
@@ -31257,6 +32464,40 @@ begin
       using errcode = 'check_violation';
   end if;
   return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notifications_speak_the_recipients_language()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_all text; v_ar boolean; v_latin boolean; c public.notification_copy; v_ref text;
+begin
+  if coalesce(new.to_role, '') not in ('customer', 'supplier') then return new; end if;
+  if new.lang is null or new.lang not in ('en', 'ar') then
+    new.lang := coalesce(public.fn_registered_locale(new.to_role, null, new.lead_id, new.to_email), 'en');
+  end if;
+  v_all := coalesce(new.subject, '') || ' ' || coalesce(new.body, '');
+  v_ar := v_all ~ '[؀-ۿ]';
+  -- coalesce: fn_language_mismatch answers null for pure Arabic, and a null here would make the
+  -- pure-Arabic-to-an-English-recipient case below evaluate to null and never be corrected.
+  v_latin := coalesce(public.fn_language_mismatch('ar', v_all) like 'English inside Arabic%', false)
+             or (not v_ar and v_all ~ '[A-Za-z]{2,}');
+  if (new.lang = 'ar' and not v_ar) or (new.lang = 'en' and v_ar and not v_latin) then
+    select * into c from public.notification_copy where type = new.type;
+    if not found then select * into c from public.notification_copy where type = '*'; end if;
+    if found then
+      v_ref := case when new.inquiry_id is not null
+                    then 'QD-' || upper(left(replace(new.inquiry_id::text, '-', ''), 8)) end;
+      new.subject := case when new.lang = 'ar' then c.subject_ar else c.subject_en end;
+      new.body := replace(case when new.lang = 'ar' then c.body_ar else c.body_en end,
+                          ' {ref}', coalesce(' ' || v_ref, ''));
+      new.html := null;   -- a pre-rendered html copy would still carry the old language
+    end if;
+  end if;
+  return new;
 end $function$
 
 
@@ -33272,6 +34513,93 @@ AS $function$
       || ' ' || coalesce(p_action_class, '')
       || ' ' || coalesce(p_dept_key, '');
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_originator_checks_delivery(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions; req public.agent_actions; n public.notifications; v_seat text; v_result text; v_seen jsonb;
+  v_verdict text; v_phone text; v_email text; v_channel text; v_retry bigint; v_rep jsonb; v_origin bigint;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  v_seat := a.agent; v_result := a.detail->>'result';
+  select * into req from public.agent_actions where id = (a.detail->>'request_id')::bigint;
+  if req.id is null then return jsonb_build_object('closed', false, 'reason', 'the request this result answers is gone'); end if;
+
+  select * into n from public.notifications
+   where id = coalesce((req.detail->>'retry_notification_id')::bigint, (req.evidence->>'notification_id')::bigint);
+  v_seen := jsonb_build_object('notification_id', n.id, 'status', n.status, 'channel', n.channel,
+                               'provider_message_id', n.provider_message_id, 'sent_at', n.sent_at, 'checked_at', now());
+
+  if v_result in ('proof_of_response', 'no_response_confirmation') then
+    v_verdict := 'handled_by_the_ladder';
+  elsif v_result = 'delivered' and n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> '' then
+    v_verdict := 'confirmed';
+  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled') then
+    v_verdict := v_result;
+  end if;
+
+  if v_verdict is null and v_result not in ('not_queued', 'sent_unconfirmed') and req.detail->'retry_of' is null
+     and coalesce(req.detail->>'recipient_role', n.to_role) in ('customer', 'supplier') then
+    -- THE OTHER CHANNEL, ONCE. Email that did not arrive goes to the number on file; WhatsApp that did
+    -- not arrive goes to the address. A refused request (not_queued) is a defect, not a channel
+    -- problem, and a send that may have left (sent_unconfirmed) is never sent twice: both escalate.
+    v_email := coalesce(n.to_email, req.detail->>'to_email');
+    if coalesce(n.channel, req.detail->'prepared'->>'channel', 'email') = 'whatsapp' then
+      if coalesce(v_email, '') ~ '@' then v_channel := 'email'; end if;
+    else
+      select coalesce(nullif(btrim(l.whatsapp), ''), l.phone_e164, l.phone) into v_phone
+        from public.leads l where l.id = coalesce((req.detail->>'supplier_id')::bigint, n.lead_id);
+      if v_phone is null and coalesce(req.detail->>'recipient_role', n.to_role) = 'customer' and v_email is not null then
+        select c.phone into v_phone from public.customers c where lower(c.email) = lower(v_email) limit 1;
+      end if;
+      if length(regexp_replace(coalesce(v_phone, ''), '[^0-9]', '', 'g')) >= 8 then v_channel := 'whatsapp'; end if;
+    end if;
+    if v_channel is not null and n.id is not null then
+      v_retry := public.fn_seat_handoff(v_seat, 'customer_support', 'delivery.request', 'notifications', 'retry:' || req.id,
+        jsonb_build_object('retry_of', req.id, 'msg_type', n.type, 'recipient_role', coalesce(n.to_role, req.detail->>'recipient_role'),
+                           'to_email', v_email, 'supplier_id', coalesce(req.detail->'supplier_id', to_jsonb(n.lead_id)),
+                           'inquiry_id', n.inquiry_id, 'quote_id', n.quote_id,
+                           'prepared', jsonb_build_object('type', n.type, 'kind', n.kind, 'to_role', n.to_role, 'lead_id', n.lead_id,
+                                                          'inquiry_id', n.inquiry_id, 'quote_id', n.quote_id, 'subject', n.subject,
+                                                          'body', n.body, 'lang', n.lang, 'channel', v_channel,
+                                                          'to_email', case when v_channel = 'email' then v_email else n.to_email end,
+                                                          'to_phone', case when v_channel = 'whatsapp' then v_phone end)));
+      v_verdict := 'retried_on_' || v_channel;
+    end if;
+  end if;
+
+  if v_verdict is null then
+    v_rep := public.fn_support_report_to_ceo(
+      'delivery_undelivered:' || req.id, 'elevated',
+      'A ' || coalesce(req.detail->>'msg_type', 'notice') || ' for the ' || coalesce(req.detail->>'recipient_role', n.to_role, 'recipient')
+        || ' did not arrive (' || v_result || ')',
+      jsonb_build_object('request_id', req.id, 'result', v_result, 'support_evidence', a.detail->'evidence', 'rechecked', v_seen,
+                         'retry_of', req.detail->'retry_of'),
+      jsonb_build_array(v_seat || ' asked customer_support to send it',
+                        case when req.detail->'retry_of' is not null then 'it was already a retry on the other channel'
+                             else 'no other channel was on file' end),
+      'Decide how this reaches them: correct the address or number, reach them another way, or record that it need not go.',
+      'agent_actions#' || req.id, p_source_agent => v_seat);
+    v_verdict := case when coalesce((v_rep->>'ok')::boolean, false) then 'escalated' else 'escalation_refused' end;
+  end if;
+
+  update public.agent_actions
+     set detail = detail || jsonb_build_object('loop', v_verdict, 'closed_by', v_seat, 'closed_at', now(), 'close_check', v_seen,
+                                               'retry_request_id', v_retry, 'escalation', v_rep)
+   where id = req.id;
+  -- A retry's outcome is the original's outcome too: whoever reads the first request sees how it ended.
+  v_origin := (req.detail->>'retry_of')::bigint;
+  if v_origin is not null then
+    update public.agent_actions set detail = detail || jsonb_build_object('loop', 'retry_' || v_verdict) where id = v_origin;
+  end if;
+  return jsonb_build_object('checked_by', v_seat, 'result', v_result, 'verdict', v_verdict, 'rechecked', v_seen,
+                            'retry_request_id', v_retry, 'escalation', v_rep);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_ai_quality()
@@ -37429,6 +38757,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_registered_locale(p_role text, p_customer uuid DEFAULT NULL::uuid, p_lead bigint DEFAULT NULL::bigint, p_email text DEFAULT NULL::text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- null ONLY when nobody is registered under these keys (a sign-up in progress): the caller then uses
+  -- the language of the page the person is registering on. A registered row always answers en or ar.
+  select case when x is null then null when lower(x) like 'ar%' then 'ar' else 'en' end
+    from (select case
+      when p_role = 'customer' then coalesce(
+        (select c.locale from public.customers c where c.id = p_customer),
+        (select c.locale from public.customers c
+          where p_email is not null and lower(c.email) = lower(btrim(p_email)) limit 1))
+      when p_role = 'supplier' then coalesce(
+        (select l.locale from public.leads l where l.id = p_lead),
+        (select l.locale from public.leads l
+          where p_email is not null
+            and (lower(l.claimed_by) = lower(btrim(p_email)) or lower(l.email) = lower(btrim(p_email)))
+          order by (lower(l.claimed_by) = lower(btrim(p_email))) desc nulls last, l.id limit 1))
+    end as x) s
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_rehearsal_window_covers(p_at timestamp with time zone)
  RETURNS boolean
  LANGUAGE sql
@@ -39125,7 +40477,7 @@ begin
   elsif t = 'delivery.result' then
     return public.fn_sales_engineer_attaches_delivery_result(p_id);
 
-  elsif t = 'backup.refile' then
+  elsif t in ('backup.refile', 'backup.remediate') then
     return public.fn_sales_engineer_refiles_backup(p_id);
   end if;
   raise exception 'sales_engineer has no handler for %', t;
@@ -39253,17 +40605,49 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_refiles_backup(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions; v_row bigint; n int;
+declare
+  a public.agent_actions; fin jsonb; fout jsonb := '[]'::jsonb; v_att int; v_row bigint; n int; v_out text;
+  v_enq boolean := false; s record;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
-  v_row := (a.detail->>'doc_backup_id')::bigint;
-  update public.doc_backups
-     set status = 'pending', attempts = 0, verified_at = null, requeued_at = now(),
-         error = left('refile: ' || coalesce(a.detail->>'reason', 'requested') || ' (it_engineer handoff ' || p_id || ')', 300)
-   where id = v_row and status <> 'abandoned';
-  get diagnostics n = row_count;
-  if n = 0 then raise exception 'backup.refile: doc_backups row % does not exist or is abandoned', v_row; end if;
-  return jsonb_build_object('waiting', 'it_engineer re-verification', 'doc_backup_id', v_row, 'requeued_at', now());
+  v_att := coalesce((a.detail->>'refile_attempts')::int, 0) + 1;
+  fin := coalesce(a.detail->'files',
+           jsonb_build_array(jsonb_build_object('key', 'db:' || (a.detail->>'doc_backup_id'), 'reason', a.detail->>'reason',
+                                                'doc_backup_id', (a.detail->>'doc_backup_id')::bigint)));
+  for s in select e from jsonb_array_elements(fin) e loop
+    v_row := (s.e->>'doc_backup_id')::bigint; v_out := null;
+    if v_row is null then
+      -- never queued: the enqueue first, then a row of our own for what it does not cover
+      if not v_enq then perform public.fn_enqueue_doc_backups(); v_enq := true; end if;
+      select x.doc_backup_id into v_row from public.fn_it_backup_expected_status() x where x.item_key = s.e->>'item_key';
+      if v_row is null and s.e->>'bucket' is not null and s.e->>'kind' <> 'conversation' then
+        insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key)
+        values (split_part(s.e->>'owner', ':', 1), split_part(s.e->>'owner', ':', 2), 'Refiled', s.e->>'bucket', s.e->>'path',
+                regexp_replace(s.e->>'path', '^.*/', ''), '/QuotesDone Backup/Refiled/' || (s.e->>'bucket') || '/' || (s.e->>'path'),
+                'storage', 'REFILE:' || (s.e->>'bucket') || ':' || (s.e->>'path'))
+        on conflict do nothing returning id into v_row;
+      elsif v_row is null and s.e->>'kind' = 'generated' then
+        insert into public.doc_backups (entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key)
+        values (split_part(s.e->>'owner', ':', 1), split_part(s.e->>'owner', ':', 2), 'Refiled', 'generated', s.e->>'gen_kind', s.e->>'gen_ref',
+                '/QuotesDone Backup/Refiled/' || (s.e->>'gen_kind') || '/' || (s.e->>'gen_ref') || '.pdf', 'REFILE:' || (s.e->>'item_key'))
+        on conflict do nothing returning id into v_row;
+      end if;
+      v_out := case when v_row is null then 'cannot_refile: no source to file from' else 'queued' end;
+    end if;
+    if v_row is not null and v_out is null then
+      update public.doc_backups
+         set status = 'pending', attempts = 0, verified_at = null, requeued_at = now(),
+             error = left('refile ' || v_att || ': ' || coalesce(s.e->>'reason', 'requested') || ' (handoff ' || p_id || ')', 300)
+       where id = v_row and status <> 'abandoned';
+      get diagnostics n = row_count;
+      v_out := case when n = 1 then 'requeued' else 'cannot_refile: row missing or abandoned' end;
+    end if;
+    fout := fout || (s.e || jsonb_build_object('doc_backup_id', v_row, 'refile', v_out));
+  end loop;
+  update public.agent_actions
+     set detail = detail || jsonb_build_object('files', fout, 'refile_attempts', v_att, 'refiled_at', now(), 'sales_done_at', now())
+   where id = p_id;
+  return jsonb_build_object('waiting', 'it_engineer re-verification', 'refile_attempt', v_att, 'files', fout);
 end $function$
 
 
@@ -39299,17 +40683,18 @@ declare
   v_ar boolean;
 begin
   if new.kind <> 'handoff' or coalesce(new.detail->>'subject', '') <> 'reveal_invoice' then return new; end if;
-  select id, email, locale into c from public.customers where id = (new.detail->>'customer_id')::uuid;
+  select id, email into c from public.customers where id = (new.detail->>'customer_id')::uuid;
   if c.email is not null and c.email ~ '@' then
-    v_ar := coalesce(c.locale, 'en') like 'ar%';
-    insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body)
+    v_ar := public.fn_registered_locale('customer', c.id) = 'ar';
+    insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
     values ('invoice_ready', c.email, 'customer',
             (new.detail->>'inquiry_id')::uuid, (new.detail->>'quote_id')::uuid,
             case when v_ar then 'فاتورتك جاهزة' else 'Your invoice is ready' end,
             case when v_ar
-              then 'فاتورة رسوم الكشف التي دفعتها أصبحت في حسابك على QuotesDone. افتحها في أي وقت من زر «الفاتورة (PDF)» على العرض الذي كشفته، أو من «المستندات» ضمن «الفواتير».'
+              then 'فاتورة رسوم الكشف التي دفعتها أصبحت في حسابك على QuotesDone. افتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفته، أو من «المستندات» ضمن «الفواتير».'
               else 'The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents.'
-            end);
+            end,
+            case when v_ar then 'ar' else 'en' end);
   end if;
   update public.agent_actions
      set status = 'done', decided_at = now(), decided_by = 'sales_engineer'
@@ -39327,17 +40712,13 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_writes(p_msg_type text, p_ro
 AS $function$
 declare v_locale text;
 begin
-  if p_role = 'customer' and p_customer is not null then
-    select locale into v_locale from public.customers where id = p_customer;
-  elsif p_role = 'supplier' and p_lead is not null then
-    select locale into v_locale from public.leads where id = p_lead;
-  end if;
+  v_locale := coalesce(public.fn_registered_locale(p_role, p_customer, p_lead, p_email), 'en');
   return public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
     coalesce(p_subject_id, p_msg_type || ':' || coalesce(p_quote::text, p_inquiry::text, p_lead::text, p_customer::text, 'x')),
     coalesce(p_extra, '{}'::jsonb) || jsonb_build_object(
       'msg_type', p_msg_type, 'recipient_role', p_role, 'to_email', p_email, 'cc', to_jsonb(coalesce(p_cc, '{}'::text[])),
       'supplier_id', p_lead, 'customer_id', p_customer, 'inquiry_id', p_inquiry, 'quote_id', p_quote,
-      'locale', coalesce(v_locale, 'en'),
+      'locale', v_locale,
       'subject_en', p_subject_en, 'body_en', p_body_en || E'\n\nQuotesDone sales engineer',
       'subject_ar', p_subject_ar,
       'body_ar', case when p_body_ar is null then null else p_body_ar || E'\n\nمهندس المبيعات في QuotesDone' end,
@@ -39695,6 +41076,40 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_answers_it_finding(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; d jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' <> 'it.finding' then
+    raise exception 'fn_seat_answers_it_finding: % is not an it.finding handoff', p_id;
+  end if;
+  d := a.detail;
+  -- THE CEO OWNS THE HARNESS, AND CAN CLOSE A REHEARSAL WINDOW A RUN LEFT OPEN. An open window keeps
+  -- the failed-run watcher from paging for anything it covers, so closing it is the remedy, not a risk.
+  if d->>'duty' = 'demo' and (d->'finding_evidence'->>'rehearsal_window_id') is not null then
+    update public.rehearsal_window set ended_at = now()
+     where id = (d->'finding_evidence'->>'rehearsal_window_id')::bigint and ended_at is null;
+    return jsonb_build_object('waiting', 'it_engineer re-verification', 'seat', a.agent, 'duty', 'demo',
+      'remedy', 'closed rehearsal_window ' || (d->'finding_evidence'->>'rehearsal_window_id'),
+      'reply', a.agent || ' closed rehearsal window ' || (d->'finding_evidence'->>'rehearsal_window_id')
+               || ', which its run had left open.');
+  end if;
+  return jsonb_build_object(
+    'waiting', 'it_engineer re-verification',
+    'seat', a.agent,
+    'duty', d->>'duty',
+    'remedy', null,
+    'reply', a.agent || ' acknowledged "' || coalesce(d->>'title', d->>'issue_key') || '". Its playbook has no '
+             || 'deterministic remedy for a ' || coalesce(d->>'duty', 'fault') || ' finding on '
+             || coalesce(d->>'subject', 'this subject') || ': it needs a code or configuration change.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_for_surface(p_signed_in boolean, p_surface text)
  RETURNS text
  LANGUAGE plpgsql
@@ -39777,22 +41192,35 @@ CREATE OR REPLACE FUNCTION public.fn_seat_handoff_act(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions; v jsonb;
+declare a public.agent_actions; v jsonb; v_originator_closes boolean;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
   if not found then raise exception 'no handoff %', p_id; end if;
   if a.status = 'done' then return a.evidence; end if;
 
-  v := case a.agent
-         when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)
-         when 'accountant'       then public.fn_accountant_acts_on_handoff(p_id)
-         when 'customer_support' then public.fn_customer_support_acts_on_handoff(p_id)
-         else null end;
+  if a.detail->>'type' = 'delivery.result' then
+    -- The delivery loop (customer_support's build): the originator checks what became of its send.
+    v := case when a.agent = 'sales_engineer' and a.detail->>'result' in ('proof_of_response', 'no_response_confirmation')
+              then public.fn_sales_engineer_acts_on_handoff(p_id) else '{}'::jsonb end
+         || public.fn_originator_checks_delivery(p_id);
+  elsif a.detail->>'type' = 'it.finding' then
+    v := public.fn_seat_answers_it_finding(p_id);
+  else
+    v := case a.agent
+           when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)
+           when 'accountant'       then public.fn_accountant_acts_on_handoff(p_id)
+           when 'customer_support' then public.fn_customer_support_acts_on_handoff(p_id)
+           else null end;
+  end if;
   if v is null then raise exception 'seat % has no handler for %', a.agent, a.detail->>'type'; end if;
 
-  if v ? 'waiting' then
+  select w.originator_closes into v_originator_closes from public.seat_handoff_window w
+   where w.type = a.detail->>'type' and w.from_seat = a.detail->>'from';
+  if v ? 'waiting' or coalesce(v_originator_closes, false) then
     update public.agent_actions
-       set detail = detail || jsonb_build_object('awaiting', v->>'waiting'), evidence = v
+       set detail = detail || jsonb_build_object('awaiting', coalesce(v->>'waiting', a.detail->>'from' || ' re-verification'),
+                                                 'replied_at', now()),
+           evidence = v
      where id = p_id;
     perform public.fn_seat_handoff_event(p_id, 'waiting');
     return v;
@@ -39876,8 +41304,19 @@ AS $function$
     ('delivery.request',         'sales_engineer',   'customer_support', 'Deliver these words to a customer or supplier through the outbox, and watch for the reply when asked.'),
     ('delivery.request',         'ceo',              'customer_support', 'Deliver this summary to the founder on his command channel.'),
     ('delivery.request',         'accountant',       'customer_support', 'Deliver this money exception to the founder on his command channel.'),
-    ('delivery.result',          'customer_support', 'sales_engineer',   'What came back: proof the supplier responded, or confirmation that nothing did.'),
-    ('backup.refile',            'it_engineer',      'sales_engineer',   'The IT engineer found a backed-up document missing, changed or unconfirmed in Dropbox: file it again. The IT engineer closes it once the new copy is verified.')
+    ('delivery.request',         'it_engineer',      'customer_support', 'Deliver this platform notice to the founder.'),
+    ('delivery.request',         'customer_support', 'customer_support', 'Support''s own notice (a receipt, a contact-form alert): queued, and checked like any other.'),
+    ('delivery.result',          'customer_support', 'sales_engineer',   'What came back: proof the supplier responded, confirmation that nothing did, or what became of the send.'),
+    ('delivery.result',          'customer_support', 'accountant',       'What became of the send the accountant asked for: delivered with the provider''s id, or why not.'),
+    ('delivery.result',          'customer_support', 'ceo',              'What became of the send the CEO asked for: delivered with the provider''s id, or why not.'),
+    ('delivery.result',          'customer_support', 'it_engineer',      'What became of the send the IT engineer asked for: delivered with the provider''s id, or why not.'),
+    ('delivery.result',          'customer_support', 'customer_support', 'What became of support''s own notice: delivered with the provider''s id, or why not.'),
+    ('backup.refile',            'it_engineer',      'sales_engineer',   'The IT engineer found backed-up documents missing, changed, failed or never queued: file each again. Only the IT engineer closes it, once each new copy is verified.'),
+    ('backup.remediate',         'ceo',              'sales_engineer',   'The CEO read the IT engineer''s escalation and sends instructions back: re-file these documents or record why they cannot be. The IT engineer re-checks and closes.'),
+    ('it.finding',               'it_engineer',      'sales_engineer',   'The IT engineer found a fault in something the sales engineer owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
+    ('it.finding',               'it_engineer',      'accountant',       'The IT engineer found a fault in something the accountant owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
+    ('it.finding',               'it_engineer',      'customer_support', 'The IT engineer found a fault in something customer support owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
+    ('it.finding',               'it_engineer',      'ceo',              'The IT engineer found a fault in something only the CEO owns: decide the remedy or say there is none. The IT engineer re-verifies and closes.')
 $function$
 
 
@@ -41730,25 +43169,27 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_notice(p_lead bigint, p_type text,
 AS $function$
 declare l record; v_ar boolean; v_subject text; v_body text; n int := 0;
 begin
-  select id, company_name, locale,
+  select id, company_name,
          coalesce(nullif(btrim(claimed_by), ''), nullif(btrim(email), '')) as mail,
          coalesce(nullif(btrim(whatsapp), ''), nullif(btrim(phone), ''))  as tel
     into l from public.leads where id = p_lead;
   if not found then return 0; end if;
-  v_ar := lower(coalesce(l.locale, '')) like 'ar%';
+  v_ar := public.fn_registered_locale('supplier', null, p_lead) = 'ar';
   v_subject := case when v_ar then p_subject_ar else p_subject_en end;
   v_body := replace(case when v_ar then p_body_ar else p_body_en end, '{company}',
                     coalesce(nullif(btrim(l.company_name), ''), case when v_ar then 'شريكنا' else 'partner' end));
   if l.mail is not null then
-    insert into public.notifications (type, kind, to_email, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by, sender)
-    values (p_type, 'sales_engineer_' || p_type, l.mail, 'supplier', p_lead, p_inquiry, p_quote, 'email', v_subject, v_body, 'queued', 'sales_engineer', 'customer_support');
+    insert into public.notifications (type, kind, to_email, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by, sender, lang)
+    values (p_type, 'sales_engineer_' || p_type, l.mail, 'supplier', p_lead, p_inquiry, p_quote, 'email', v_subject, v_body, 'queued', 'sales_engineer', 'customer_support',
+            case when v_ar then 'ar' else 'en' end);
     n := n + 1;
   end if;
   -- trg_wa_fanout has already made a WhatsApp twin for a supplier who opted in; otherwise queue one.
   if l.tel is not null and not exists (select 1 from public.notifications
                                         where channel = 'whatsapp' and lead_id = p_lead and type = p_type and created_at = now()) then
-    insert into public.notifications (type, kind, to_email, to_phone, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by, sender)
-    values (p_type, 'sales_engineer_' || p_type, l.mail, l.tel, 'supplier', p_lead, p_inquiry, p_quote, 'whatsapp', v_subject, v_body, 'queued', 'sales_engineer', 'customer_support');
+    insert into public.notifications (type, kind, to_email, to_phone, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by, sender, lang)
+    values (p_type, 'sales_engineer_' || p_type, l.mail, l.tel, 'supplier', p_lead, p_inquiry, p_quote, 'whatsapp', v_subject, v_body, 'queued', 'sales_engineer', 'customer_support',
+            case when v_ar then 'ar' else 'en' end);
     n := n + 1;
   end if;
   return n;
@@ -50519,6 +51960,30 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_backup_refile_only_it_engineer_closes()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.kind = 'handoff' and new.detail->>'type' in ('backup.refile', 'backup.remediate')
+     and new.status = 'done' and old.status is distinct from 'done'
+     and coalesce(current_setting('qd.backup_closer', true), '') <> 'it_engineer' then
+    raise exception 'only the it_engineer closes a backup handoff (% %), after verifying every file itself', new.detail->>'type', new.id;
+  end if;
+  -- An allowed close is recorded: which routine closed it and as which session user (review of #628).
+  if new.kind = 'handoff' and new.detail->>'type' in ('backup.refile', 'backup.remediate')
+     and new.status = 'done' and old.status is distinct from 'done' then
+    new.detail := coalesce(new.detail, '{}'::jsonb) || jsonb_build_object('closed_by', jsonb_build_object(
+      'seat', current_setting('qd.backup_closer', true),
+      'routine', nullif(current_setting('qd.backup_closer_routine', true), ''),
+      'session_user', session_user::text, 'at', now()));
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_block_banned_inquiry()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -50579,6 +52044,50 @@ AS $function$
 begin raise exception 'decision_log is append-only'; end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_doc_backups_admit()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.dropbox_path := public.fn_dbx_path(new.dropbox_path);
+  -- A rehearsal's documents are never uploaded: its fixtures are torn down minutes later, and the
+  -- row would then fail as 'supplier_missing' for ever (measured: 4 such error rows and 22 parked
+  -- rows, all ZZ DEMO suppliers/customers of a harness run, on the day this was written).
+  if new.entity is distinct from 'zz_demo' and (
+       coalesce(new.dropbox_path, '') ~* 'zz[ _-]?demo' or coalesce(new.path, '') ~* 'zz[ _-]?demo'
+       or (new.entity = 'supplier' and exists (select 1 from public.leads l where l.id::text = new.entity_id and l.is_demo))
+       or (new.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = new.entity_id and c.is_demo))) then
+    new.entity := 'zz_demo';
+  end if;
+  if new.source = 'storage' and new.status = 'pending'
+     and not exists (select 1 from storage.objects o where o.bucket_id = new.bucket and o.name = new.path) then
+    new.status := 'waiting_source';
+    new.error := left('waiting: storage holds no object at ' || coalesce(new.bucket, '?') || '/' || coalesce(new.path, '?'), 300);
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_document_landed_kicks_backup()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  begin
+    perform public.fn_backup_kick('document_landed:' || tg_table_name, 'enqueue');
+  exception when others then
+    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+    values ('backup_kick', 'error', jsonb_build_object('table', tg_table_name, 'stage', 'trigger'),
+            left('The document-landed kick failed on ' || tg_table_name || ': ' || sqlerrm, 500), now(), now());
+  end;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_goal_cascade()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -50630,6 +52139,28 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_handoff_only_originator_closes()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_closer text;
+begin
+  if new.kind = 'handoff' and new.status = 'done' and old.status is distinct from 'done'
+     and exists (select 1 from public.seat_handoff_window w
+                  where w.type = new.detail->>'type' and w.from_seat = new.detail->>'from' and w.originator_closes) then
+    v_closer := coalesce(nullif(current_setting('qd.handoff_closer', true), ''),
+                         nullif(current_setting('qd.backup_closer', true), ''));
+    if v_closer is distinct from new.detail->>'from' then
+      raise exception 'handoff % (%) is closed only by its originator %, after it re-verifies; % tried to close it',
+        new.id, new.detail->>'type', new.detail->>'from', coalesce(v_closer, 'an unnamed caller');
+    end if;
+  end if;
+  return new;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_health_check_agent_threshold()
@@ -51426,53 +52957,57 @@ end $function$
 CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
+CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
+CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
+CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
-CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
-CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
+CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
+CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
+CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
 CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
-CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
-CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
+CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
+CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER a05_ceo_refund_approval_checks_the_process BEFORE INSERT ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
+CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command FOR EACH ROW EXECUTE FUNCTION fn_ceo_command_state_guard();
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
-CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
+CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
 CREATE TRIGGER trg_undo_department_objective BEFORE DELETE OR UPDATE ON public.department_objective FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER a10_doc_backups_admit BEFORE INSERT ON public.doc_backups FOR EACH ROW EXECUTE FUNCTION trg_doc_backups_admit();
 CREATE TRIGGER version_document AFTER INSERT OR UPDATE OF extracted ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_version_document();
 CREATE TRIGGER trg_undo_employee_authority BEFORE DELETE OR UPDATE ON public.employee_authority FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('agent_key');
 CREATE TRIGGER trg_undo_employee_kpi BEFORE DELETE OR UPDATE ON public.employee_kpi FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
@@ -51490,14 +53025,15 @@ CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.hand
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
 CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -51510,74 +53046,76 @@ CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
-CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
-CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
+CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
-CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
-CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
+CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
+CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
-CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
 CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
 CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
+CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
+CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
 CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
-CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
+CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER z10_hold_answered_resets_the_run AFTER UPDATE OF state ON public.quote_spec_hold FOR EACH ROW EXECUTE FUNCTION trg_hold_answered_resets_the_run();
-CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
 CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
 CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
 CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
 CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
-CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
-CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
-CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
-CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
 CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
 CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
+CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
+CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
+CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
+CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
@@ -51592,13 +53130,14 @@ CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories F
 CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_collaboration_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_collaboration_event_append_only();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
-CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
-CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
-CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
 CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
 CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
+CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
+CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
@@ -51844,7 +53383,10 @@ ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_scanner ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_expiry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_security_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_subject ENABLE ROW LEVEL SECURITY;
@@ -51904,6 +53446,7 @@ ALTER TABLE public.model_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_policy_by_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_rate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_registry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_copy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.openrouter_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.openrouter_meter ENABLE ROW LEVEL SECURITY;
@@ -52016,6 +53559,7 @@ ALTER TABLE public.scope_disposition_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scrape_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.screening_entry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.screening_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_handoff_window ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_advisor_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
@@ -52098,12 +53642,16 @@ CREATE POLICY os_owner_admin_read ON public.expenses AS PERMISSIVE FOR SELECT TO
 CREATE POLICY founder_instruction_service_role_only ON public.founder_instruction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.gl_journal AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_security_baseline_service_role_only ON public.it_security_baseline AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantine AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -52114,6 +53662,7 @@ CREATE POLICY refund_incident_service_role_only ON public.refund_incident AS PER
 CREATE POLICY refund_ladder_evidence_service_role_only ON public.refund_ladder_evidence AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY rfq_clarification_service_role_only ON public.rfq_clarification AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY os_owner_admin_read ON public.risk_register AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY seat_handoff_window_service_role_only ON public.seat_handoff_window AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -52183,6 +53732,7 @@ $CRON$);
 --   cred_fn_analytics_recommend
 --   cred_fn_archive_rfq
 --   cred_fn_attach_photos
+--   cred_fn_backup_kick
 --   cred_fn_blog_weekly
 --   cred_fn_boost_recommend
 --   cred_fn_canon_eval

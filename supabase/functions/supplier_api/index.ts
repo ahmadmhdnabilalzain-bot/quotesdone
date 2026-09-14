@@ -1,11 +1,13 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, redactText } from '../_shared/anonymise.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { registrationMissing } from '../_shared/supplier_registration.ts';
@@ -17,6 +19,7 @@ import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const agreementSha256 = async () => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -156,7 +159,7 @@ async function aiSummarize(leadId: number) {
 async function aiReview(lead: Record<string, unknown>) {
   try { const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null; const profile: Record<string, unknown> = {}; for (const k of ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number','bank_name','bank_account_name','bank_iban']) profile[k] = lead[k]; const r = await fetch(`${SUPA_URL}/functions/v1/supplier_review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, profile }) }); if (!r.ok) return null; return await r.json(); } catch (_e) { return null; }
 }
-async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
+async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 
 // THE COMMERCIAL ACCEPT RULE, read from the stored quote (14 Sep 2026). It lived inline in
 // submit_quote; approving a regenerated quotation must clear the same bar, so both call this.
@@ -335,7 +338,7 @@ Deno.serve(observe('supplier_api', async (req) => {
     // answered with the value we already hold.
     if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at,wa_optin').eq('claimed_by', email).maybeSingle(); return J({ supplier: data || null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select('id,company_name,emirate,business_role,claimed,claimed_by').ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); return J({ results: (data || []).map((r) => ({ ...r, claimable: !r.claimed || r.claimed_by === email })) }); }
-    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) return J({ error: error.message }, 500); const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
+    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) return J({ error: error.message }, 500); const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
@@ -406,7 +409,12 @@ Deno.serve(observe('supplier_api', async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const out: Record<string, unknown> = {};
       const lic = body.license || {};
-      if (lic.path) { upd.license_doc_path = String(lic.path); }
+      // 14 Sep 2026 (sales_engineer): a path is recorded only when it is this supplier's own and
+      // storage holds the object - otherwise the supplier sees success for a file that is not there
+      // and the backup queues a document it can never copy.
+      const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
+      const notStored = (what: string) => J({ error: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
+      if (lic.path) { if (!(await own(lic.path, 'licenses'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
       //     defaulting to application/octet-stream, so an HTML document or an executable stored
@@ -423,7 +431,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         const s = sc.result;
         const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your trade licence. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
         upd.license_doc_path = p;
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
@@ -448,7 +456,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       // supplier's own typed text once the row has been written (see the 29 Jul 2026 header).
       let xServices: string[] = [];
       const prof = body.company_profile || {};
-      if (prof.path) { upd.company_profile_doc_path = String(prof.path); }
+      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
         const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD,
@@ -457,7 +465,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your company profile. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
@@ -465,7 +473,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
       // because silently dropping one is how a supplier ends up believing a document is on file.
       for (const c of cats) {
-        if (c?.path) { catPaths.push(String(c.path)); }
+        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); }
         else if (c?.original_b64) {
           const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
@@ -473,7 +481,7 @@ Deno.serve(observe('supplier_api', async (req) => {
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-          if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store one of your catalogue files. Please try again.' }, 502);
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
           catPaths.push(p);
         }
         if (Array.isArray(c?.images)) profImgs.push(...c.images);

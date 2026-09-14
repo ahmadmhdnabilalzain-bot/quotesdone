@@ -35,6 +35,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -475,7 +476,7 @@ Deno.serve(observe('resend_inbound', async (req) => {
             bookedSub = true;
           }
           await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[expense ${recurring?'subscription':'one-off'}] ${vendor} ${amount} ${currency} on ${charged}${docPath?' +'+ext:''}` + '\n\n' + fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: docPath?1:0, matched_existing: false, needs_review: false });
-          try{ await admin.from('notifications').insert({ type:'expense_logged', to_email: owner, to_role:'admin', channel:'email', subject:`Expense logged: ${vendor} ${amount} ${currency}`, body:`Logged from your forwarded email.\n\nVendor: ${vendor}\nAmount: ${amount} ${currency}\nDate: ${charged}\nType: ${recurring?(cad+' subscription'):'one-off'}` }); }catch(_e){}
+          try{ await requestDelivery(admin, { type:'expense_logged', to_email: owner, to_role:'admin', channel:'email', subject:`Expense logged: ${vendor} ${amount} ${currency}`, body:`Logged from your forwarded email.\n\nVendor: ${vendor}\nAmount: ${amount} ${currency}\nDate: ${charged}\nType: ${recurring?(cad+' subscription'):'one-off'}` }); }catch(_e){}
           // v15: keyed on docPath, not upErr. upErr now holds the LAST error of up to three
           // attempts, so a retry that eventually succeeded would otherwise be reported as failed -
           // and fn_watch_failed_runs pages on any error row.
@@ -605,9 +606,9 @@ Deno.serve(observe('resend_inbound', async (req) => {
     // one org_task for the bookkeeper, and the rows carry that owner so neither OS surface shows them to the founder.
     if (receiptish && !lead) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
     if (lead && appliedSummary.length) {
-      try{ await admin.from('notifications').insert({ type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
+      try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
-    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await admin.from('notifications').insert({ type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
+    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
     const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));

@@ -7,6 +7,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { deterministicCompare, rosterOf } from './deterministic.ts';
 import { observe } from '../_shared/observe.ts';
+import { registeredLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -194,7 +195,9 @@ Deno.serve(observe('quote_compare', async (req) => {
         completeness: ql ? { score: ql.score ?? null, passed: ql.pass ?? null, missing_mandatory: missMandatory } : undefined,
         track_record: tr || undefined };
     });
-    const lang = (langReq === 'ar' || langReq === 'en') ? langReq : (/[؀-ۿ]/.test(String(inq.summary||'') + ' ' + String(inq.raw_input||'')) ? 'ar' : 'en');
+    // No language asked for: the customer's REGISTERED language decides, never the script of the text
+    // they typed (founder, 14 Sep 2026 - the registered language follows the whole workflow).
+    const lang = (langReq === 'ar' || langReq === 'en') ? langReq : await registeredLocale(admin, { role: 'customer', customerId: inq.customer_id });
     // Every live quote with its place (see rosterOf). Recomputed on every answer, cached or not,
     // so it always reflects the quotes as they are now; it is never part of the model's input.
     // deno-lint-ignore no-explicit-any
