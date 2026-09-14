@@ -43,5 +43,3 @@
 -- the code. Delete, not archive." The job it created was deleted from the database in the same
 -- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
 -- by each build adding one and nothing ever removing one.
-  $cron$
-);

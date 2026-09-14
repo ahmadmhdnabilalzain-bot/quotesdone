@@ -35,7 +35,7 @@ export const PROVIDER_SENDERS = {
   send_sms: 'platform OTP service (SMS code)',
 };
 export const CHANNEL_SLUGS = ['send_outbox', 'send_whatsapp', 'email_cron', 'wa_inbound', 'resend_inbound', 'inbound_email',
-  'email_triage', 'site_assistant', 'wa_template_setup', 'wa_templates_watch', 'wa_optin_set', 'resend_webhook', 'unsubscribe'];
+  'email_triage', 'site_assistant', 'wa_template_setup', 'wa_templates_watch', 'resend_webhook', 'unsubscribe'];
 
 const walk = (d) => readdirSync(d).flatMap((f) => {
   const p = join(d, f);
