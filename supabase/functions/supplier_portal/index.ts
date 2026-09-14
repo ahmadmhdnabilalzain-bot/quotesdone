@@ -6,6 +6,11 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 // the scanner refused it.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { REQUIRED_DOC_KEYS, registrationChecklist } from '../_shared/supplier_registration.ts';
+// SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
+// (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
+// the portal renders the EN/AR wording from src/components/portal/supplier/serverCopy.ts and falls
+// back to the English here, which is kept verbatim for emails and older clients.
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -26,7 +31,7 @@ async function sign(bucket:string, path:string|null){ if(!path) return null; try
 // `folder` keeps storage tidy and mirrors what save_profile already writes.
 const DOC_KINDS: Record<string, { pathCol: string; nameCol?: string; expCol: string | null; label: string; folder: string; hint: string }> = {
   license:      { pathCol:'license_doc_path',           nameCol:'license_doc_name', expCol:'license_expiry',            label:'Trade licence',              folder:'licence',   hint:'Required. Your current DED / free-zone trade licence.' },
-  profile:      { pathCol:'company_profile_doc_path',                               expCol:null,                        label:'Company profile',            folder:'profile',   hint:'Your company introduction deck or PDF. Shown to customers after a reveal.' },
+  profile:      { pathCol:'company_profile_doc_path',                               expCol:null,                        label:'Company profile',            folder:'profile',   hint:'Required. Your company introduction deck or PDF. Shown to customers after a reveal.' },
   vat:          { pathCol:'vat_doc_path',                                           expCol:null,                        label:'VAT certificate',            folder:'certs',     hint:'Your TRN certificate. Needed before you can invoice with VAT.' },
   insurance:    { pathCol:'insurance_doc_path',                                     expCol:'insurance_expiry',          label:'Insurance',                  folder:'certs',     hint:'Public liability or contractor all-risk cover.' },
   iso:          { pathCol:'iso_doc_path',                                           expCol:'iso_expiry',                label:'ISO certification',          folder:'certs',     hint:'Any ISO certificate you hold. Strengthens your capability score.' },
@@ -59,7 +64,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const { data: exp } = await admin.rpc('fn_supplier_expiries', { p_supplier_id: supId });
       for (const e of (exp || [])) {
         if (e.status === 'expired' || e.status === 'expiring') {
-          out.push({ kind:'doc_expiry', severity: e.status==='expired'?'high':'medium',
+          out.push({ kind:'doc_expiry', code:'doc_expiry', params:{ doc: e.doc, expiry: e.expiry, days_left: e.days_left, expired: e.status==='expired' }, severity: e.status==='expired'?'high':'medium',
             title: e.doc + (e.status==='expired'?' has expired':' expires soon'),
             detail: 'Expiry ' + e.expiry + ' — ' + (e.days_left<0?('overdue by '+Math.abs(e.days_left)+' days'):(e.days_left+' days left')) + '. Upload a renewed copy to stay eligible.',
             action:'documents' });
@@ -72,10 +77,10 @@ Deno.serve(observe('supplier_portal', async (req) => {
         const quoted = new Set((myq || []).map((x:any)=>x.inquiry_id));
         const { data: openInq } = await admin.from('inquiries').select('id').in('id', mids).in('status', ['sent','open','active','collecting','live','quoted']);
         const openIds = (openInq || []).map((x:any)=>x.id).filter((id:any)=>!quoted.has(id));
-        if (openIds.length) out.push({ kind:'new_rfq', severity:'medium', count: openIds.length, title: openIds.length+' new RFQ'+(openIds.length>1?'s':'')+' waiting for your quote', detail:'Open requests matched to your capabilities that you have not quoted yet.', action:'inbox' });
+        if (openIds.length) out.push({ kind:'new_rfq', code:'new_rfq', params:{ count: openIds.length }, severity:'medium', count: openIds.length, title: openIds.length+' new RFQ'+(openIds.length>1?'s':'')+' waiting for your quote', detail:'Open requests matched to your capabilities that you have not quoted yet.', action:'inbox' });
       }
       const { count: drafts } = await admin.from('quotes').select('id',{count:'exact',head:true}).eq('supplier_id', supId).eq('status','draft');
-      if (drafts) out.push({ kind:'draft_quote', severity:'low', count: drafts, title: drafts+' draft quote'+(drafts>1?'s':'')+' to complete', detail:'Add the missing details so we can send them to customers.', action:'inbox' });
+      if (drafts) out.push({ kind:'draft_quote', code:'draft_quote', params:{ count: drafts }, severity:'low', count: drafts, title: drafts+' draft quote'+(drafts>1?'s':'')+' to complete', detail:'Add the missing details so we can send them to customers.', action:'inbox' });
       return out;
     }
 
@@ -316,6 +321,54 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       return J({ ok: true, ...prods });
     }
 
+    // WHICH INTELLIGENCE PANELS HAVE ANYTHING TO SAY (14 Sep 2026).
+    //
+    // The dashboard showed 24 equal tabs; twelve were panels over populations their own routines
+    // report as empty (0 quotes and 0 inquiries estate-wide — see the ROW #5 notes above), and on a
+    // 375px phone the strip alone was 366px tall. The portal now shows a journey and ONE "Insights"
+    // section that lists only the panels answered here as available.
+    //
+    // Only two of these routines return a top-level `available` at all (grep of
+    // scripts/sql/the_portals_come_back.sql, 14 Sep), so the rule is stated rather than assumed: a
+    // panel is available when its routine answered without error, did not say `available:false`, and
+    // its answer holds at least one non-empty list or positive number within two levels. The
+    // routines express an empty population as zeros and empty arrays, never as a failure, so this is
+    // the same fact they already report, read the same way for every panel.
+    if (action === 'insights') {
+      const hasSignal = (v: unknown, depth: number): boolean => {
+        if (v == null || typeof v === 'string' || typeof v === 'boolean') return false;
+        if (typeof v === 'number') return v > 0;
+        if (Array.isArray(v)) return v.length > 0;
+        if (depth <= 0) return false;
+        return Object.values(v as Record<string, unknown>).some((x) => hasSignal(x, depth - 1));
+      };
+      const panels: [string, string, Record<string, unknown>][] = [
+        ['twin', 'fn_supplier_twin', { p_lead_id: supId }],
+        ['market', 'fn_supplier_market', { p_lead_id: supId }],
+        ['network', 'fn_supplier_network_map', {}],
+        ['workspaces', 'fn_supplier_workspaces', { p_lead_id: supId }],
+        ['recommended', 'fn_supplier_opportunities', { p_lead_id: supId }],
+        ['ranking', 'fn_supplier_tier', { p_lead_id: supId }],
+        ['certifications', 'fn_supplier_certifications', { p_lead_id: supId }],
+        ['products', 'fn_supplier_products', { p_lead_id: supId, p_query: null }],
+        ['assistant', 'fn_supplier_advisor', { p_lead_id: supId }],
+      ];
+      const out = await Promise.all(panels.map(async ([key, fn, args]) => {
+        try {
+          const { data, error } = await admin.rpc(fn, args);
+          if (error) return { key, available: false, basis: 'routine_error' };
+          const d = data as Record<string, unknown> | null;
+          if (d && typeof d === 'object' && d.available === false) return { key, available: false, basis: String(d.basis || 'routine_reports_unavailable') };
+          const ok = hasSignal(d, 2);
+          return { key, available: ok, basis: ok ? 'data' : 'empty_population' };
+        } catch (_e) { return { key, available: false, basis: 'routine_error' }; }
+      }));
+      // Negotiation reads one of this supplier's quotes; with none there is nothing to negotiate.
+      const { count: myQuotes } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', supId);
+      out.push({ key: 'negotiation', available: (myQuotes || 0) > 0, basis: (myQuotes || 0) > 0 ? 'data' : 'no_quotes' });
+      return J({ ok: true, panels: out });
+    }
+
     if (action === 'documents') {
       // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
       const cols = new Set<string>(['catalog_doc_paths']);
@@ -333,7 +386,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       const docs: Record<string, unknown>[] = [];
       for (const key of DOC_ORDER) {
         if (key === 'catalogs') {
-          docs.push({ key:'catalogs', label:'Catalogues', hint:'Product or project catalogues. Upload as many as you like - new files are added, never replaced.',
+          docs.push({ key:'catalogs', label:'Catalogues', hint_code:'doc_hint_catalogs', hint:'Product or project catalogues. Upload as many as you like - new files are added, never replaced.',
             path: cats.length ? 'catalogs' : null, expiry:null, url:null, name:null, required:false,
             count: cats.length, urls: catalogues.map((c) => c.url).filter(Boolean), items: catalogues,
             status: cats.length ? 'on_file' : 'missing' });
@@ -353,7 +406,9 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           }
         }
         docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol,
-          required: key === 'license', status, url: await sign('supplier-docs', path) });
+          // The mandatory six (_shared/supplier_registration.ts): licence AND company profile. This
+          // said `key === 'license'` while the same tab's heading listed three required documents.
+          required: REQUIRED_DOC_KEYS.includes(key), hint_code: 'doc_hint_' + key, status, url: await sign('supplier-docs', path) });
       }
 
       const required = docs.filter((d) => d.required);
@@ -489,7 +544,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
     // matching - one indirection away - which is why it is reported as blocking below.
     if (action === 'eligibility') {
       const { data: l } = await admin.from('leads')
-        .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,license_doc_path,phone,email')
+        .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,license_doc_path,phone,email,owner_phone_verified,owner_email_verified,trade_license_no,company_profile_doc_path,accepted_terms_at')
         .eq('id', sup.id).maybeSingle();
       const r = (l || {}) as Record<string, any>;
       const has = (v: unknown) => !!(v != null && String(v).trim() !== '');
@@ -504,11 +559,11 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
         // fix themselves in two minutes - and would be false.
         const reason = String(r.matching_block_reason || '');
         if (reason === 'licence_expired') {
-          blocking.push({ code:'licence_expired', title:'Your account is paused - trade licence expired',
+          blocking.push({ code:'licence_expired', params:{ date: r.license_expiry || null }, title:'Your account is paused - trade licence expired',
             detail:'Your trade licence expired on ' + (r.license_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically, usually within a day. There is no fee.',
             fix:'documents' });
         } else if (reason === 'insurance_expired') {
-          blocking.push({ code:'insurance_expired', title:'Your account is paused - insurance expired',
+          blocking.push({ code:'insurance_expired', params:{ date: r.insurance_expiry || null }, title:'Your account is paused - insurance expired',
             detail:'Your insurance certificate expired on ' + (r.insurance_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically. There is no fee.',
             fix:'documents' });
         } else {
@@ -578,7 +633,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       for (const [col, label] of [['license_expiry','trade licence'], ['insurance_expiry','insurance certificate']] as [string,string][]) {
         const v = r[col]; if (!v) continue;
         const days = Math.round((new Date(v).getTime() - Date.now()) / 864e5);
-        if (days >= 0 && days <= 30) improving.push({ code: 'expiring_' + col, title: 'Your ' + label + ' expires in ' + days + ' day' + (days === 1 ? '' : 's'),
+        if (days >= 0 && days <= 30) improving.push({ code: 'expiring_' + col, params: { doc: col === 'insurance_expiry' ? 'insurance' : 'licence', days }, title: 'Your ' + label + ' expires in ' + days + ' day' + (days === 1 ? '' : 's'),
           detail: 'Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', fix:'documents' });
       }
       if (!has(r.phone)) improving.push({ code:'no_phone', title:'Add a contact number', detail:'Customers cannot reach you after a reveal without one.', fix:'profile' });
@@ -593,6 +648,10 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
         eligible: blocking.length === 0,
         blocking, improving,
         reach: { matched_requests: matched || 0, quotes_sent: quoted || 0, shortlist_size: 8 },
+        // The mandatory six, from the one definition save_profile also enforces. The portal's
+        // "Get matched" journey renders this list first, then the blocking items above.
+        required_to_register: registrationChecklist(r),
+        note_code: 'elig_note',
         note: 'Each request goes to a shortlist of up to 8 suppliers, ranked first by whether you serve the customer’s emirate, then by how well your listing matches what they asked for.' });
     }
 
