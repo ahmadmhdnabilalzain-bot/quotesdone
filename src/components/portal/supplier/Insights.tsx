@@ -41,7 +41,7 @@ const PANELS: Record<string, { en: string; ar: string; parts: string[] }> = {
   certifications: { en: 'Certifications',      ar: 'الشهادات',          parts: ['SupplierCertifications'] },
   products:       { en: 'Products',            ar: 'المنتجات',          parts: ['ProductIntelligence', 'SupplierInventory'] },
   workspaces:     { en: 'Workspaces',          ar: 'مساحات العمل',      parts: ['CollaborationWorkspace'] },
-  assistant:      { en: 'Advisor',             ar: 'المستشار',          parts: ['SupplierAdvisor'] },
+  assistant:      { en: 'Sales engineer',      ar: 'مهندس المبيعات',         parts: ['SupplierAdvisor'] },
   negotiation:    { en: 'Negotiation',         ar: 'التفاوض',           parts: ['SupplierNegotiation'] },
 };
 export const INSIGHT_PANELS = Object.keys(PANELS);

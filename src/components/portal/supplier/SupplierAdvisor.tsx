@@ -47,7 +47,7 @@ async function call(path: string, body: unknown, token?: string | null) {
 
 const T = {
   en: {
-    title: 'AI Assistant', ask: 'Why am I losing RFQs?',
+    title: 'QuotesDone sales engineer', ask: 'Why am I losing RFQs?',
     lossTitle: 'Lost opportunities', recTitle: 'What to do next',
     noHistory: 'You have not quoted on anything yet, so there is nothing to analyse. '
       + 'Your breakdown appears here after your first quotes.',
@@ -57,7 +57,7 @@ const T = {
     high: 'blocking', medium: 'limiting', low: 'minor',
   },
   ar: {
-    title: 'المساعد الذكي', ask: 'لماذا أخسر الطلبات؟',
+    title: 'مهندس مبيعات QuotesDone', ask: 'لماذا أخسر الطلبات؟',
     lossTitle: 'الفرص الخاسرة', recTitle: 'الخطوة التالية',
     noHistory: 'لم تقدّم أي عرض سعر بعد، لذا لا يوجد ما يمكن تحليله. '
       + 'يظهر تحليلك هنا بعد أول عروضك.',

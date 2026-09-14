@@ -217,7 +217,7 @@ async function recordServicesCrossCheck(supplierId: number, companyName: unknown
   const conflict = cc.verdict === 'conflict';
   try {
     await admin.from('agent_actions').insert({
-      agent: 'onboarding',
+      agent: 'sales_engineer',
       kind: 'supplier_services_crosscheck',
       status: conflict ? 'needs_review' : 'auto_done',
       risk: conflict ? 'medium' : 'low',
@@ -238,7 +238,7 @@ async function recordLicenceGate(supplierId: number, companyName: unknown, reaso
   const missing = reason === 'no_licence';
   try {
     await admin.from('agent_actions').insert({
-      agent: 'onboarding',
+      agent: 'sales_engineer',
       kind: 'supplier_licence_gate',
       // TELEMETRY, NOT A TASK (2 Aug 2026, founder decision: no manual approval path). This row
       // used to be written as 'needs_review', which is precisely the human queue the founder asked
