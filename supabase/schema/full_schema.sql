@@ -28694,11 +28694,10 @@ for r in
            coalesce(status,'error') <> all (c_ok)                  bad,
            -- A run the founder's hold refused is neither the caller turned away nor the subject's
            -- fault: it leaves both sides of the rate and is reported apart as window_held.
-           public.fn_it_run_is_refusal(agent, started_at, counts)
-             or public.fn_it_run_is_held(agent, started_at, counts, note)  refused,
-           public.fn_it_run_is_held(agent, started_at, counts, note)       held
-    from public.agent_runs
-    where started_at > v_now - c_base),
+           public.fn_it_run_is_refusal(agent, started_at, counts) or held  refused,
+           held
+    from (select *, public.fn_it_run_is_held(agent, started_at, counts, note) held
+            from public.agent_runs where started_at > v_now - c_base) ar0),
   w as (
     select subject,
            count(*) filter (where not refused)::int              n,
@@ -29303,6 +29302,11 @@ for r in
     select regexp_replace(a.agent, '^fn:', '') subject, a.agent, a.started_at, a.status, a.counts
     from public.agent_runs a
     where a.started_at > v_now - c_base
+      -- 14 Sep 2026: a request made inside a rehearsal window is the test harness, not a customer.
+      -- Measured: all 264 non-policy login_otp refusals of the day fell inside e2e rehearsal windows and
+      -- none outside, and the finding they raised was hours from emailing the founder. The demo
+      -- hygiene duty closes any window left open past six hours, which bounds what this can hide.
+      and not public.fn_rehearsal_window_covers(a.started_at)
       -- drop the semantic half of a double-logged request; see THE DOUBLE LOG above
       and not (a.agent not like 'fn:%' and exists (
         select 1 from public.agent_runs t
@@ -29512,10 +29516,13 @@ begin
       'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,
       'evidence', jsonb_build_object('route', x.route, 'source', x.source, 'checked_at', x.checked_at));
   end loop;
-  for x in select context, expires_at from public.internal_credential
-            where active and expires_at is not null and expires_at < now() + interval '30 days' loop
+  -- Only what cannot rotate itself: a legacy credential, or one whose secret has no app_secrets key
+  -- (duty 15, the_it_engineer_takes_on_seven_more_duties.sql, rotates the rest 30 days ahead).
+  for x in select ic.context, ic.expires_at from public.internal_credential ic
+            where ic.active and ic.expires_at is not null and ic.expires_at < now() + interval '30 days'
+              and (ic.is_legacy or not exists (select 1 from public.app_secrets s where s.key = 'cred_' || replace(ic.context, '.', '_'))) loop
     v_items := v_items || jsonb_build_object('item', 'credential:' || x.context, 'owner_seat', 'ceo', 'subject', x.context,
-      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and nothing rotates it',
+      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and cannot be rotated automatically',
       'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('expires_at', x.expires_at));
   end loop;
   v_out := v_out || jsonb_build_object('expiry', public.fn_it_duty_settle('expiry', v_items));
@@ -29685,16 +29692,20 @@ begin
   v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
 
   -- ── 1. THE NIGHTLY JOURNEY'S HEARTBEAT ──
-  -- The run itself reports through fn_it_journey_ingest. Silence for 26 hours is its own finding: the
-  -- workflow needs the SUPABASE_ACCESS_TOKEN repository secret, which only the founder can add.
+  -- The run itself reports through fn_it_journey_ingest. Silence for 26 hours is its own finding —
+  -- but only once this tick has itself been running for 26 hours. Measured 14 Sep 2026: the first cut
+  -- raised "no run" the hour it was deployed, before nightly-journey.yml's first 22:00 UTC schedule
+  -- had come round (the repository secret it uses has existed since 7 Sep).
   v_items := '[]'::jsonb;
-  if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey'
+  if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
+              and started_at < now() - interval '26 hours')
+     and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey'
                   and started_at > now() - interval '26 hours') then
     v_items := jsonb_build_array(jsonb_build_object('item', 'no_run', 'owner_seat', 'ceo', 'subject', 'e2e_harness',
       'title', 'The nightly full-journey test has not reported for 26 hours',
       'blast', 'agent_facing', 'affected', 1,
       'evidence', jsonb_build_object('workflow', '.github/workflows/nightly-journey.yml',
-        'needs', 'repository secret SUPABASE_ACCESS_TOKEN (GitHub > Settings > Secrets > Actions); only the founder can add it')));
+        'look_at', 'the workflow''s runs in GitHub Actions: not triggered, failed, or failed to report')));
   end if;
   v_out := v_out || jsonb_build_object('journey_heartbeat', public.fn_it_duty_settle('journey_heartbeat', v_items));
 
@@ -30496,29 +30507,16 @@ CREATE OR REPLACE FUNCTION public.fn_it_run_is_refusal(p_agent text, p_started t
  STABLE
  SET search_path TO 'public'
 AS $function$
-  -- THE coalesce IS THE WHOLE FUNCTION'S CORRECTNESS, and it is not decoration.
-  -- Caught by the positive control on 9 Sep 2026 before this shipped. Without it, a run whose
-  -- counts carry no `signal` key returns `false OR NULL OR NULL OR false OR false` = NULL, and in
-  -- D1 the filter `where bad and not refused` evaluates `not NULL` = NULL and DROPS THE ROW. The
-  -- effect was total and silent: an injected run of three genuine HTTP 500s on login_otp produced
-  -- no finding at all, because most functions' counts have no `signal` key. A detector that goes
-  -- quiet on the majority of real faults, while still looking like it works on the minority that
-  -- happen to log a signal, is worse than no detector. Three-valued logic has to be closed here,
-  -- once, rather than at each of the three call sites.
   select coalesce(
-       -- the row's own telemetry says the caller was turned away
        (p_counts ->> 'http') ~ '^4[0-9][0-9]$'
-       -- or the function's own log says so, in the four shapes this estate actually writes
     or (p_counts ->> 'signal') in ('forbidden','bad_secret')
     or (p_counts ->> 'authorised') = '0'
     or coalesce(nullif(p_counts ->> 'forbidden','')::int, 0) > 0
-       -- or the paired fn:<name> telemetry row, written within milliseconds, carries a 4xx.
-       -- stripe_webhook and refunds_api are only caught by this arm: their own counts say nothing.
-    or exists (
+    or (p_agent not like 'fn:%' and exists (
          select 1 from public.agent_runs t
-         where t.agent = 'fn:' || regexp_replace(p_agent, '^fn:', '')
+         where t.agent = 'fn:' || p_agent
            and t.started_at between p_started - interval '5 seconds' and p_started + interval '5 seconds'
-           and (t.counts ->> 'http') ~ '^4[0-9][0-9]$')
+           and (t.counts ->> 'http') ~ '^4[0-9][0-9]$'))
   , false)
 $function$
 
