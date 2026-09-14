@@ -102,6 +102,31 @@ begin
     'silence_inquiry', (select jsonb_build_object('status', status, 'lost_reason', lost_reason) from public.inquiries where id = v_c),
     'due_after', (select count(*) from public.fn_spec_offer_due() where offer_id = v_o4));
 
+  -- WHO MAY ANSWER (review of #652). An UNVERIFIED number with an open offer is not a reply; a
+  -- number two verified customers with open offers share records nothing and opens a support_case.
+  declare v_c2 uuid; v_c3 uuid; v_d uuid; v_e uuid; v_o5 bigint; v_o6 bigint; v_amb jsonb; v_unv jsonb;
+  begin
+    insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale)
+    values ('ZZ DEMO spec offer probe unverified', 'zz-demo-specoffer-probe-unv@example.invalid', '+971500000095', false, true, 'en') returning id into v_c3;
+    insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_c3, 'glass', 'ZZ DEMO spec offer probe D', 'sent', v_rfq + 3) returning id into v_d;
+    select (to_jsonb(x) ->> 'id')::bigint into v_o5 from public.fn_spec_offer_open(v_d, jsonb_build_array(jsonb_build_object('line_no', 1, 'item', 'Glass', 'attr', 'glass_type',
+      'label_en', 'Glass type', 'label_ar', 'نوع الزجاج', 'requested', '10 mm tempered', 'alternatives', v_alts))) x limit 1;
+    v_unv := public.fn_spec_offer_whatsapp_reply('+971500000095', '1');
+    -- A second VERIFIED customer on the first customer's number, with an open offer: ambiguous.
+    insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale)
+    values ('ZZ DEMO spec offer probe twin', 'zz-demo-specoffer-probe-twin@example.invalid', v_phone, true, true, 'en') returning id into v_c2;
+    insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_c2, 'glass', 'ZZ DEMO spec offer probe E', 'sent', v_rfq + 4) returning id into v_e;
+    select (to_jsonb(x) ->> 'id')::bigint into v_o6 from public.fn_spec_offer_open(v_e, jsonb_build_array(jsonb_build_object('line_no', 1, 'item', 'Glass', 'attr', 'glass_type',
+      'label_en', 'Glass type', 'label_ar', 'نوع الزجاج', 'requested', '10 mm tempered', 'alternatives', v_alts))) x limit 1;
+    -- v_cust still has v_o3? No: B was closed by the decline. Give v_cust a fresh open offer on A's line 2.
+    perform public.fn_spec_offer_open(v_a, jsonb_build_array(jsonb_build_object('line_no', 2, 'item', 'Door', 'attr', 'finish', 'label_en', 'Finish', 'label_ar', 'التشطيب',
+      'requested', 'RAL 9016', 'alternatives', '[{"option_id":"o1","value":"RAL 9010","suppliers":1}]'::jsonb)));
+    v_amb := public.fn_spec_offer_whatsapp_reply(v_phone, '1');
+    r := r || jsonb_build_object('unverified', v_unv, 'unverified_state', (select state from public.spec_alternative_offer where id = v_o5),
+      'ambiguous', v_amb, 'ambiguous_states', (select jsonb_agg(state order by id) from public.spec_alternative_offer where customer_id in (v_cust, v_c2) and state = 'open'),
+      'ambiguous_case', (select count(*) from public.support_case where case_ref = v_amb ->> 'case_ref' and owner_role_id = 'customer_support'));
+  end;
+
   -- NO FEE: nothing was revealed on any of the three.
   r := r || jsonb_build_object('fee_rows', (select count(*) from public.transactions t join public.quotes q on q.id = t.quote_id where q.inquiry_id in (v_a, v_b, v_c)),
                                'before', v_before);
@@ -144,6 +169,15 @@ test('production: yes, no and silence on demo data, and nothing survives', { ski
   assert.deepEqual(out.silence_row, { state: 'no_reply', closed_reason: 'no_exact_spec_no_reply', reminders: 2 });
   assert.deepEqual(out.silence_inquiry, { status: 'closed', lost_reason: 'no_exact_spec_no_reply' });
   assert.equal(out.due_after, 0);
+
+  // WHO MAY ANSWER (review of #652)
+  assert.equal(out.unverified.handled, false, 'an unverified number cannot answer an offer');
+  assert.equal(out.unverified.reason, 'no_verified_customer_with_open_offer');
+  assert.equal(out.unverified_state, 'open', 'the unverified reply recorded nothing');
+  assert.equal(out.ambiguous.handled, false, 'a number two verified customers share answers nobody');
+  assert.equal(out.ambiguous.reason, 'ambiguous_sender'); assert.equal(out.ambiguous.matches, 2);
+  assert.deepEqual(out.ambiguous_states, ['open', 'open'], 'neither customer\'s offer was touched');
+  assert.equal(out.ambiguous_case, 1, 'customer_support gets a tracked case instead');
 
   assert.equal(out.fee_rows, 0, 'nothing was revealed, so nothing is charged');
 

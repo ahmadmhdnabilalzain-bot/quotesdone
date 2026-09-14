@@ -29,6 +29,10 @@
 -- no pg_cron job is added (cron.job holds only wa_flush). Reminders fire on the first tick after
 -- opened_at + each spec_offer_reminder_after_hours; the offer lapses on the first tick past reply_by.
 --
+-- WHO MAY ANSWER ON WHATSAPP: only a customer with a VERIFIED phone and an open offer; a number two
+-- such customers share records nothing and opens a support_case for customer_support instead.
+-- WHEN AN INQUIRY IS CHECKED: not before it has at least one non-draft quote (stated in the query).
+--
 -- WHAT THIS DOES NOT DO: it does not message anyone (the edge sweep does, through customer_support),
 -- it does not trigger when any eligible quote matches the requested value (then a differing quote is
 -- only shown as "This is what the supplier quoted in writing"), and it never stores which supplier
@@ -128,12 +132,17 @@ as $fn$
          case when coalesce(qd.quoted, 0) >= inv.invited then 'every_invited_supplier_quoted' else 'quote_window_closed' end
     from public.inquiries i
     join inv on inv.inquiry_id = i.id
-    join quoted qd on qd.inquiry_id = i.id
+    left join quoted qd on qd.inquiry_id = i.id
    where i.spec_offer_checked_at is null
      and coalesce(i.status, '') not in ('closed', 'completed', 'cancelled')
      and i.parent_inquiry_id is null
+     -- THE TIMING GUARD, stated rather than implied by a join (review of #652): at least one live
+     -- (non-draft) quote. An inquiry whose window closed with no quote at all is not a case of "no
+     -- supplier quoted your exact spec": there is nothing to offer, and checking it would mark it
+     -- checked before any quote could arrive.
+     and exists (select 1 from public.quotes q1 where q1.inquiry_id = i.id and coalesce(q1.status, '') <> 'draft')
      and not exists (select 1 from public.transactions t join public.quotes q2 on q2.id = t.quote_id where q2.inquiry_id = i.id)
-     and (qd.quoted >= inv.invited or now() >= inv.first_sent + make_interval(days => (select days from pol)::int))
+     and (coalesce(qd.quoted, 0) >= inv.invited or now() >= inv.first_sent + make_interval(days => (select days from pol)::int))
    order by i.created_at
    limit greatest(1, least(p_limit, 100));
 $fn$;
@@ -220,8 +229,13 @@ $fn$;
 revoke execute on function public.fn_spec_offer_answer(bigint, uuid, text, text) from public, anon, authenticated;
 
 -- ── A WHATSAPP REPLY: "2", "٢", "option 2", "yes" (one option), "no", "لا" ─────────────────────
--- The oldest open offer of the customer whose verified phone sent it. Anything else is not a reply
--- to the offer and is left to the normal WhatsApp route (handled=false).
+-- WHO MAY ANSWER (review of #652, 14 Sep 2026): only a customer whose phone is VERIFIED
+-- (customers.phone_verified) and who HAS an open offer. A number is not an identity (a phone may
+-- confirm, never select), so: none such -> not a reply, the normal WhatsApp route continues; exactly
+-- one -> their oldest open offer; two or more -> NOTHING is recorded, and a support_case is opened for
+-- customer_support to resolve by hand (one per number per day), because answering for the wrong
+-- customer would accept or close their request. Anything that is not an answer is left to the
+-- normal route (handled=false).
 create or replace function public.fn_spec_offer_whatsapp_reply(p_phone text, p_text text)
 returns jsonb
 language plpgsql security definer
@@ -230,15 +244,38 @@ as $fn$
 declare
   v_digits text := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
   v_cust uuid;
+  v_matches int;
+  v_ref text;
   r public.spec_alternative_offer;
   v_t text := lower(btrim(translate(coalesce(p_text, ''), '٠١٢٣٤٥٦٧٨٩', '0123456789')));
   v_n int;
   v_choice text;
 begin
   if length(v_digits) < 8 then return jsonb_build_object('handled', false, 'reason', 'no_phone'); end if;
-  select c.id into v_cust from public.customers c
-   where regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = v_digits order by c.phone_verified desc nulls last, c.created_at limit 1;
-  if v_cust is null then return jsonb_build_object('handled', false, 'reason', 'not_a_customer'); end if;
+  -- The text's SHAPE first: only something that looks like an answer (a no, an option number, a bare
+  -- yes) goes any further. Otherwise a number two customers share would open a support case for
+  -- every "hello" it sends.
+  v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
+  if not (v_t ~ '^(no|no thanks|decline|لا|لأ|لا شكرا|لا شكرًا)$'
+          or v_t ~ '^(option |choice |yes |نعم |الخيار )?[0-9]{1,2}$'
+          or v_t ~ '^(yes|ok|نعم|موافق)$') then
+    return jsonb_build_object('handled', false, 'reason', 'not_a_reply');
+  end if;
+  select count(*), min(c.id::text)::uuid into v_matches, v_cust from public.customers c
+   where c.phone_verified is true
+     and regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = v_digits
+     and exists (select 1 from public.spec_alternative_offer o where o.customer_id = c.id and o.state = 'open');
+  if v_matches = 0 then return jsonb_build_object('handled', false, 'reason', 'no_verified_customer_with_open_offer'); end if;
+  if v_matches > 1 then
+    v_ref := 'SE-SPECOFFER-AMBIG-' || right(v_digits, 9) || '-' || to_char(now(), 'YYYYMMDD');
+    insert into public.support_case (case_ref, party_kind, party_id, subject, owner_role_id)
+    values (v_ref, 'unknown', null,
+            'From the sales engineer: a WhatsApp answer to a no-exact-spec offer came from a number that ' || v_matches ||
+            ' verified customers with open offers share. Nothing was recorded. Confirm with the customer which request it is for, then record it from the portal.',
+            'customer_support')
+    on conflict (case_ref) do nothing;
+    return jsonb_build_object('handled', false, 'reason', 'ambiguous_sender', 'case_ref', v_ref, 'matches', v_matches);
+  end if;
   select * into r from public.spec_alternative_offer where customer_id = v_cust and state = 'open' order by opened_at, id limit 1;
   if not found then return jsonb_build_object('handled', false, 'reason', 'no_open_offer'); end if;
   v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
