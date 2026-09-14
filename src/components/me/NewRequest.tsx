@@ -11,8 +11,10 @@
 //     urgency tag, classifier_override as "I read this as X, not Y", and the BOQ as a table with
 //     confidence, assumptions and missing information BEFORE Send.
 //   * English only -> every string comes from portalText (EN + AR); the panel carries its own dir.
-//   * Voice fails AFTER recording while the model routes are held (transcribe is a model call)
-//     -> llmAvailable (customer_portal overview, llm_route_health) hides the mic entirely. Drawings
+//   * Voice failed AFTER recording while the model routes were held (transcribe is a model call), so
+//     PR #596 hid the mic behind llmAvailable. The founder then noticed the customer had no voice at
+//     all -> speech.ts: the browser's own speech recognition types into the box (text only, no audio
+//     leaves through us); the transcribe path stays behind the same hold flag, off. Drawings
 //     and BOQs are NOT gated: since PR #591 they are read and anonymised server-side without a model,
 //     so the old "drawing reading is paused" line was false and is gone (founder walk, 14 Sep 2026).
 //   * A drawing could not reach suppliers under the hold, because drawing_redact verified nothing
@@ -27,6 +29,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { t, tf, errText, emirateName } from './portalText';
+import { recognitionLangs, getRecognition, speechErrorKey } from './speech';
+
+const DICT_NAME = { en: { en: 'English', ar: 'Arabic' }, ar: { en: 'الإنجليزية', ar: 'العربية' } };
 
 const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
 async function fileToImages(file) {
@@ -103,6 +108,17 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
   const fileRef = useRef(null); const boqRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
   const modelHeld = llmAvailable === false;
+  // 'speech' = browser recognition; 'model' = the held transcribe path (only when the hold is lifted);
+  // 'none' = the mic is shown with the phone-keyboard note. Decided after mount: SSR has no window.
+  const [voice, setVoice] = useState(null);
+  const [dict, setDict] = useState(ar ? 'ar' : 'en');
+  useEffect(() => {
+    const v = getRecognition() ? 'speech' : !modelHeld ? 'model' : 'none';
+    setVoice(v);
+    // The greeting mentions voice only where the mic actually works in this browser.
+    if (v !== 'none') setMessages((a) => a.map((m, i) => (i === 0 && m.text === t(lang, 'nr_greeting') ? { ...m, text: m.text + t(lang, 'nr_greeting_voice') } : m)));
+    return () => { try { recRef.current && recRef.current.sr && recRef.current.sr.abort(); } catch (_e) {} };
+  }, [modelHeld]);
   const push = (m) => setMessages((a) => [...a, m]);
   useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
 
@@ -230,6 +246,36 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     return ok;
   };
 
+  // BROWSER DICTATION. Live text lands in the box after what was already typed; the customer edits it
+  // and presses Send, and it goes through inquiry_intake's identity scrubbing exactly as typed text does.
+  // Nothing is sent automatically and no audio is kept: the engine hands back words, not a recording.
+  const startSpeech = (langs = recognitionLangs(dict)) => {
+    const SR = getRecognition(); if (!SR) return;
+    const sr = new SR(); sr.lang = langs[0]; sr.interimResults = true; sr.continuous = true; sr.maxAlternatives = 1;
+    const base = input ? input.replace(/\s*$/, ' ') : '';
+    recRef.current = { sr, retried: false };
+    sr.onresult = (e) => {
+      let said = '';
+      for (let i = 0; i < e.results.length; i++) said += e.results[i][0].transcript;
+      setInput(base + said.replace(/^\s+/, ''));
+    };
+    sr.onerror = (e) => {
+      const k = speechErrorKey(e && e.error);
+      if (k === null && langs.length > 1) { recRef.current.retried = true; return; }
+      if (k !== '') setMsg(t(lang, k || 'nr_voice_failed'));
+    };
+    sr.onend = () => {
+      if (recRef.current && recRef.current.sr === sr && recRef.current.retried) { startSpeech(langs.slice(1)); return; }
+      setRec(false); try { inputRef.current && inputRef.current.focus(); } catch (_e) {}
+    };
+    try { sr.start(); setRec(true); setMsg(''); } catch (_e) { setMsg(t(lang, 'nr_voice_failed')); }
+  };
+  const onMic = () => {
+    if (rec) return stopRec();
+    if (voice === 'speech') return startSpeech();
+    if (voice === 'model') return startRec(); // the held transcribe path; unreachable while the hold lasts
+    setMsg(t(lang, 'nr_voice_unsupported'));
+  };
   const startRec = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const mr = new MediaRecorder(stream); recRef.current = { mr, chunks: [], stream };
@@ -246,7 +292,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       mr.start(); setRec(true);
     } catch (_e) { setMsg(t(lang, 'nr_mic_denied')); }
   };
-  const stopRec = () => { try { recRef.current && recRef.current.mr.stop(); } catch (_e) {} setRec(false); };
+  const stopRec = () => { const r = recRef.current; try { if (r && r.sr) r.sr.stop(); else if (r && r.mr) r.mr.stop(); } catch (_e) {} setRec(false); };
 
   const submit = async () => {
     setBusy(true); setMsg('');
@@ -384,6 +430,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       <div className="shrink-0 border-t border-border bg-secondary/20 px-3 py-3 sm:px-4">
         {!drawing ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_attach_privacy')}</div> : null}
         {msg && <div className="mb-1.5 text-[12.5px] text-danger-fg" role="alert">{msg}</div>}
+        {rec && voice === 'speech' && (
+          <div className="mb-1.5 flex items-center gap-2 text-[12.5px] font-semibold text-danger" role="status">
+            <span className="h-2 w-2 rounded-full bg-danger motion-safe:animate-pulse" aria-hidden />
+            {tf(lang, 'nr_voice_on', { l: DICT_NAME[lang === 'ar' ? 'ar' : 'en'][dict] })}
+          </div>
+        )}
         {/* The drawing surface: the same file picker as the paperclip, and it takes a dropped file
             through the same onFile. Hidden once a drawing is attached, so it never crowds the input. */}
         {!drawing && (
@@ -404,11 +456,20 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               decode it, and when it is absent iOS Safari converts a HEIC photo to JPEG before handing it over. */}
           <input ref={boqRef} type="file" accept=".xlsx,.xls,.csv,.ods,.pdf,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp,.tif,.tiff,.doc,.docx,.odt,.rtf,.txt,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach_boq')} onChange={(e) => onBoq(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach_boq')} aria-label={t(lang, 'nr_attach_boq')} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2 text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => boqRef.current && boqRef.current.click()}><FileSpreadsheet className="h-5 w-5" aria-hidden /><span className="hidden text-[12.5px] font-semibold sm:inline">{t(lang, 'nr_attach_boq_short')}</span></button>
-          {/* No mic while transcription is held: a button that cannot work is a claim, not a feature. */}
-          {!modelHeld && (
-            <button type="button" title={t(lang, 'nr_mic')} aria-label={t(lang, 'nr_mic')}
-              className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-danger' : 'text-primary')} onClick={rec ? stopRec : startRec}>
+          {/* The mic is always shown once the browser is known: where it cannot dictate, pressing it says
+              why and points at the phone keyboard's own dictation instead of failing after the fact. */}
+          {voice && (
+            <button type="button" title={t(lang, rec ? 'nr_mic_stop' : 'nr_mic')} aria-label={t(lang, rec ? 'nr_mic_stop' : 'nr_mic')} aria-pressed={rec}
+              className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40', rec ? 'bg-danger/10 text-danger' : 'text-primary')}
+              disabled={voxBusy} onClick={onMic}>
               {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
+            </button>
+          )}
+          {voice === 'speech' && (
+            <button type="button" disabled={rec} onClick={() => setDict((d) => (d === 'ar' ? 'en' : 'ar'))}
+              title={tf(lang, 'nr_voice_dict', { l: DICT_NAME[lang === 'ar' ? 'ar' : 'en'][dict] })} aria-label={tf(lang, 'nr_voice_dict', { l: DICT_NAME[lang === 'ar' ? 'ar' : 'en'][dict] })}
+              className="grid h-10 w-9 shrink-0 place-items-center rounded-xl font-mono text-[12px] font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40">
+              <span lang={dict}>{dict === 'ar' ? 'ع' : 'EN'}</span>
             </button>
           )}
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
