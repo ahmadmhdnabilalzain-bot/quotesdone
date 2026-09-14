@@ -8,6 +8,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { pdfPages } from '../_shared/pdf_text_positions.ts';
+import { boqFromPages } from './boq_from_text.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -35,9 +37,28 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_boq');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
-    const key = await sec('cred_fn_ai');
-    if (!key) return J({ error: 'no ai key' }, 500);
     const hint = body.hint ? String(body.hint).slice(0,400) : '';
+    // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
+    // returned ai_error on every drawing and the customer's file never informed the brief (website
+    // audit 14 Sep, finding 3). A PDF drawing usually carries its schedules and area tags as real
+    // text, and boq_from_text reads those with no model. It runs when there is no AI key, when the
+    // gateway refuses, or when the caller asks for it (deterministic:true). It needs the ORIGINAL
+    // PDF (original_b64, or file_b64 with a PDF mime): page images carry no text layer.
+    const pdfB64 = String(body.original_b64 || (/pdf/i.test(String(body.mime || '')) ? body.file_b64 || '' : '') || '');
+    const deterministic = async (why: string) => {
+      if (!pdfB64) return null;
+      try {
+        const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
+        const out = boqFromPages(await pdfPages(bytes), hint);
+        return J({ ok: true, boq: { ...out, fallback_reason: why } });
+      } catch (_e) { return null; }
+    };
+    const key = await sec('cred_fn_ai');
+    if (!key || body.deterministic === true) {
+      const d = await deterministic(key ? 'requested' : 'no_ai_key');
+      if (d) return d;
+      if (!key) return J({ error: 'no ai key', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied' }, 500);
+    }
 
     const content: any[] = [{ type: 'text', text: `Customer note (context only): ${hint||'(none)'}. Read the attached drawing pages and return the DRAFT BOQ JSON. Remember: never include any names, company, contact or address from the drawing.` }];
     const imgs: any[] = Array.isArray(body.images) ? body.images : [];
@@ -56,11 +77,11 @@ Deno.serve(observe('drawing_boq', async (req) => {
       const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] };
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const jd = await r.json();
-      if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', meta: JSON.stringify(jd).slice(0,600) }, 502);
+      if (!r.ok || jd?.ok === false) { const d = await deterministic('ai_gateway_refused'); if (d) return d; return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied', meta: JSON.stringify(jd).slice(0,600) }, 502); }
       rawContent = jd?.content || '';
       if (body.__debug) return J({ ok: true, _len: String(rawContent).length, finish: jd?.finish_reason });
       ai = parseJson(rawContent || '{}');
-    } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
+    } catch (e) { const d = await deterministic('ai_exception'); if (d) return d; return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
     if (!Array.isArray(ai.boq)) ai.boq = [];
     ai.boq = ai.boq.slice(0, 120).map((li: any) => ({ section: scrub(li?.section||'General'), description: scrub(li?.description||''), qty: (li?.qty===null||li?.qty==='')?null:(Number(li?.qty)||null), unit: scrub(li?.unit||''), basis: scrub(li?.basis||''), confidence: ['low','medium','high'].includes(li?.confidence)?li.confidence:'low' }));
