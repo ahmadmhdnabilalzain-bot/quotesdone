@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T11:08:16.581Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T11:19:21.278Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -14049,16 +14049,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -14084,6 +14074,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -19156,6 +19156,58 @@ begin
                 || 'policy that is not in this block.');
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_company_facts_sync()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c record; pct text; capnote text; txt text; regline text;
+begin
+  select * into c from pricing_config where id=1; if c is null then return; end if;
+
+  pct := trim(to_char(coalesce(c.standard_reveal_rate,0)*100,'FM990.##'))||'%';
+  capnote := 'NO cap, NO discount, NO promotional rate, NO coupon and NO free reveal - the founder''s decision of 6 Sep 2026, enforced by a pricing_config constraint';
+
+  -- The registration sentence is DERIVED. 6 Sep 2026 (founder): "dont use a deadline with dates" -
+  -- a NULL start date is the rule itself, never a gap to ask him about.
+  if c.supplier_charging_starts is null then
+    regline := 'Supplier registration is FREE for the first ' || c.supplier_free_count || ' verified registrations, and those '
+            || c.supplier_free_count || ' suppliers are exempt PERMANENTLY. Every registration after them pays a '
+            || coalesce(c.supplier_reg_period,'yearly') || ' subscription of ' || coalesce(c.supplier_reg_currency,'AED') || ' '
+            || trim(to_char(c.supplier_reg_fee,'FM999,999,990.##')) || '. There is NO calendar start date and there will not be one: '
+            || 'charging begins with registration number ' || (c.supplier_free_count + 1) || ', whenever that happens. '
+            || 'Never state a date, never ask the founder for one. ';
+  else
+    regline := 'Supplier registration is FREE for EVERY supplier until '
+            || to_char(c.supplier_charging_starts - 1, 'FMDD FMMonth YYYY') || '. '
+            || 'From ' || to_char(c.supplier_charging_starts, 'FMDD FMMonth YYYY') || ' a '
+            || coalesce(c.supplier_reg_period,'yearly') || ' subscription of '
+            || coalesce(c.supplier_reg_currency,'AED') || ' '
+            || trim(to_char(c.supplier_reg_fee,'FM999,999,990.##')) || ' applies, and it is NOT charged '
+            || 'before that date. The first ' || c.supplier_free_count || ' businesses to register are '
+            || 'exempt PERMANENTLY and never pay it - that exemption does not expire. ';
+  end if;
+
+  txt := 'PRICING & FEES - LIVE, AUTO-SYNCED FROM pricing_config (authoritative; OVERRIDES any pricing figure stated elsewhere). '
+    ||'Customer REVEAL FEE: '||pct||' of the accepted quotation value ('||capnote||'), paid by the customer to unlock their chosen supplier. '
+    ||'On top of it the customer pays the CARD PROCESSING FEE (the Stripe fee, grossed up so QuotesDone receives the full '||pct||'); both are shown in full before payment. '
+    ||'QuotesDone is NOT VAT registered: NO VAT is charged on the reveal fee - never say the fee is VAT-inclusive or that VAT is added. '
+    ||'Suppliers pay NO commission on won jobs. '
+    ||regline
+    ||'CATEGORY OPENING: a category is OPEN once it has '||coalesce(c.category_open_min_suppliers,10)||' verified registered suppliers (public.v_category_open); matching an RFQ still needs at least one confirmed supplier. '
+    ||'Non-response window: '||c.refund_window_working_days||' working days from the customer''s payment - if a revealed supplier stays silent through the chase and the CEO''s final call, EVERYTHING the customer paid (reveal fee + card processing fee) is refunded and QuotesDone bears the Stripe fee; the supplier is charged the exact amount refunded + an AED 250 administrative fee + simple interest at 9% a year (or the maximum lawful rate) from the due date, and is blocked from matching until paid. '
+    ||'There is NO 2% fee and NO supplier commission - never quote those. (Auto-updated '||to_char(now(),'YYYY-MM-DD HH24:MI')||' UTC.)';
+
+  update agent_knowledge set content=txt, priority=100, updated_at=now()
+    where agent_key='_global' and topic='Pricing & fees (LIVE — auto-synced)';
+  if not found then
+    insert into agent_knowledge(agent_key,topic,content,priority,updated_at)
+      values ('_global','Pricing & fees (LIVE — auto-synced)',txt,100,now());
+  end if;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_company_hard_rules()
@@ -32589,6 +32641,16 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32759,16 +32821,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
