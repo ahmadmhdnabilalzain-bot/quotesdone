@@ -25,6 +25,10 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
+import { registeredLocale } from '../_shared/registered_locale.ts';
+import { portalLink } from '../_shared/site_origins.ts';
+import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -63,7 +67,85 @@ const SEAT_BY_CREDENTIAL: Record<string, 'sales_engineer'> = {
 // recorded as what it is. SERVICE_ACTIONS is the whole of what a service caller may reach, so a
 // widened credential scope cannot quietly hand customer_api the grant ledger or the sector
 // catalogue as well.
-const SERVICE_ACTIONS = new Set(['match']);
+// spec_offer_sweep: resilience_ping's daily pass (founder_instruction #321). The work is sales_engineer's
+// (detect, decide); every message goes out through customer_support's door (_shared/deliver.ts).
+const SERVICE_ACTIONS = new Set(['match', 'spec_offer_sweep']);
+
+// ── NO SUPPLIER QUOTED THE EXACT SPEC (founder_instruction #321) ─────────────────────────────────
+// One pass: (1) inquiries whose quote window closed, or whose invited suppliers all quoted, are
+// checked once against quote_compare's technical comparison (eligible quotes only) and an offer opens
+// for every mandatory requested value no eligible quote matches while at least one offers another;
+// (2) due reminders go out and lapsed offers close with an apology. State and timing: Postgres.
+async function customerContact(customerId: string | null) {
+  if (!customerId) return null;
+  const { data } = await admin.from('customers').select('id,email,phone,wa_optin,locale,is_demo').eq('id', customerId).maybeSingle();
+  return data || null;
+}
+// deno-lint-ignore no-explicit-any
+async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_reply', msg: { subject: string; body: string }, lang: 'en' | 'ar', cust: any): Promise<number[]> {
+  const base = { type: 'spec_offer_' + kind, kind: 'sales_engineer_spec_offer_' + kind, to_role: 'customer', inquiry_id: o.inquiry_id,
+    subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'sales_engineer', sender: 'customer_support' };
+  const rows: Record<string, unknown>[] = [];
+  if (cust?.email) rows.push({ ...base, channel: 'email', to_email: cust.email, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:email` });
+  if (cust?.phone && cust?.wa_optin !== false) rows.push({ ...base, channel: 'whatsapp', to_phone: cust.phone, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:whatsapp` });
+  if (!rows.length) return [];
+  const { data } = await requestDelivery(admin, rows);
+  return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
+}
+async function specOfferSweep(limit: number) {
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[] };
+  const secret = await sec('cred_fn_sales_engineer');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
+  if (cErr) out.errors.push('candidates: ' + cErr.message);
+  for (const c of (cands || []) as Array<{ inquiry_id: string; customer_id: string | null }>) {
+    try {
+      // The same comparison the customer sees, eligible quotes only. quote_compare runs with verify_jwt,
+      // so the service key passes the gateway and __secret decides the caller (the #630 lesson).
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/quote_compare', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+        body: JSON.stringify({ __secret: secret, inquiry_id: c.inquiry_id, lang: 'en' }), signal: AbortSignal.timeout(45000) });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j) { out.errors.push(`${c.inquiry_id}: quote_compare HTTP ${r.status}`); continue; }
+      const offers = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
+      const { data: opened, error: oErr } = await admin.rpc('fn_spec_offer_open', { p_inquiry: c.inquiry_id, p_offers: offers });
+      if (oErr) { out.errors.push(`${c.inquiry_id}: open ${oErr.message}`); continue; }
+      out.checked++; out.offers_opened += (opened || []).length;
+      if (!(opened || []).length) continue;
+      const cust = await customerContact(c.customer_id);
+      const lang = await registeredLocale(admin, { role: 'customer', customerId: c.customer_id });
+      const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', c.inquiry_id).maybeSingle();
+      // deno-lint-ignore no-explicit-any
+      for (const o of opened as any[]) {
+        if (o.last_sent_at) continue;
+        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id) }), lang, cust);
+        await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
+        out.offers_sent++;
+      }
+    } catch (e) { out.errors.push(`${c.inquiry_id}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+  }
+  const { data: due, error: dErr } = await admin.rpc('fn_spec_offer_due');
+  if (dErr) out.errors.push('due: ' + dErr.message);
+  for (const d of (due || []) as Array<{ offer_id: number; action: string; reminder_no: number; final: boolean }>) {
+    try {
+      const { data: o } = await admin.from('spec_alternative_offer').select('*').eq('id', d.offer_id).maybeSingle();
+      if (!o || o.state !== 'open') continue;
+      const cust = await customerContact(o.customer_id);
+      const lang = await registeredLocale(admin, { role: 'customer', customerId: o.customer_id });
+      const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', o.inquiry_id).maybeSingle();
+      if (d.action === 'remind') {
+        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final }), lang, cust);
+        await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'remind', p_notification_ids: ids });
+        out.reminders++;
+      } else if (d.action === 'close_no_reply') {
+        const ids = await tellCustomer(o, 'apology_no_reply', apologyMessage(o as OfferForText, lang, 'no_reply', { rfqNo: inq?.rfq_no }), lang, cust);
+        await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'close_no_reply', p_notification_ids: ids });
+        out.lapsed++;
+      }
+    } catch (e) { out.errors.push(`offer ${d.offer_id}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+  }
+  return out;
+}
 type Caller =
   | { kind: 'sales_engineer' | 'founder' }
   | { kind: 'service'; context: string }
@@ -156,6 +238,14 @@ Deno.serve(observe('sales_engineer', async (req) => {
     // opens an org_tasks row owned by sales_engineer, and the asker is given the task number and
     // the owner. Which records were retrieved, how close each was and which were cited are written
     // to sales_decision_log from INSIDE the retrieval routine, so this handler cannot forget to.
+    if (action === 'spec_offer_sweep') {
+      if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await specOfferSweep(Math.max(1, Math.min(50, Number(body.limit) || 20)));
+      await run('spec_offer_sweep', res.errors.length ? 'error' : 'ok', { checked: res.checked, offers_opened: res.offers_opened, offers_sent: res.offers_sent, reminders: res.reminders, lapsed: res.lapsed, errors: res.errors.length },
+        res.errors.length ? res.errors.slice(0, 5).join(' | ') : undefined);
+      return J({ ok: true, ...res });
+    }
+
     if (action === 'assist') {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
@@ -360,6 +450,19 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // "signage" and not "design". Reused, not re-written.
       let trades = arr(body.trades);
       if (!trades.length) trades = arr(inq?.trades);
+      // STORED TRADES ARE INTAKE SLUGS, THE MATCHER SPEAKS TAXONOMY CODES (14 Sep 2026). 39 of the 56
+      // intake slugs are not taxonomy codes ('glass' is 'glazing', 'fitout' is 'interior_fitout' ...),
+      // and passing them through made fn_match_capability answer zero for every request in those
+      // categories — measured: ['glass'] matched nobody while ['aluminium'] matched both demo
+      // suppliers. public.fn_taxonomy_trades_for is the one resolver
+      // (scripts/sql/every_intake_trade_resolves_to_the_capability_vocabulary.sql). It is EXACT ONLY
+      // (founder, 14 Sep 2026: "either exact match or no match"): a slug resolves to itself and to the
+      // same trade's taxonomy code, never to a neighbour. A category nobody is registered for matches
+      // nobody, and the no-match path below says so honestly.
+      if (trades.length) {
+        const { data: codes, error: resErr } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: trades });
+        if (!resErr && Array.isArray(codes)) trades = arr(codes);
+      }
       const brief = [inq?.summary, inq?.raw_input, inq?.category, arr(inq?.keywords).join(' '), body.text]
         .map((x) => String(x ?? '')).filter(Boolean).join(' ').slice(0, 4000);
       if (!trades.length && brief) {
