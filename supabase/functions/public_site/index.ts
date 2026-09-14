@@ -182,6 +182,36 @@ Deno.serve(async (req) => {
       { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' });
   }
 
+  // PAGE-LOAD READS, SERVED BEFORE THE VISITOR LIMITER (14 Sep 2026). Measured on the live site after
+  // the Sealed release: every Lighthouse run logged "Failed to load resource: 429" and lost
+  // best-practices to it — the homepage asks for `counters` on load, how-it-works for `worked_case`,
+  // the refund page for `guarantee_terms`, and a visitor who reloads a few pages exhausts the
+  // 60/hour IP budget meant for the brief box. These three are aggregate or published, non-identifying
+  // reads with CDN cache headers, so they sit beside trade_needs; route_brief and price_guidance —
+  // the ones a script could hammer with free text — stay behind the limiter.
+  if (action === 'counters') {
+    const { data, error } = await admin.rpc('fn_public_site_counters');
+    if (error) return J({ ok: false, error: 'counters_unavailable' });
+    return J({ ok: true, ...(data as any) }, 200, { 'Cache-Control': 'public, max-age=300, s-maxage=300' });
+  }
+  if (action === 'worked_case') {
+    const { data, error } = await admin.rpc('fn_public_worked_case');
+    if (error) return J({ ok: false, error: 'unavailable' });
+    return J({ ok: true, case: data ?? null }, 200, { 'Cache-Control': 'public, max-age=600, s-maxage=600' });
+  }
+  // The Reveal Guarantee ladder for the refund policy page (website audit W4, 14 Sep 2026), from the
+  // same pricing_config row the refund sweep and the customer portal read. Days only; no money.
+  if (action === 'guarantee_terms') {
+    const { data, error } = await admin.from('pricing_config')
+      .select('refund_window_working_days,chase_after_working_days,bank_settlement_working_days_min,bank_settlement_working_days_max')
+      .eq('id', 1).maybeSingle();
+    if (error || !data) return J({ ok: false, error: 'unavailable' });
+    const d = data as Record<string, number | null>;
+    return J({ ok: true, terms: { window_days: d.refund_window_working_days ?? null, chase_after_days: d.chase_after_working_days ?? null,
+      bank_min_days: d.bank_settlement_working_days_min ?? null, bank_max_days: d.bank_settlement_working_days_max ?? null } },
+      200, { 'Cache-Control': 'public, max-age=600, s-maxage=600' });
+  }
+
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
   const [ipLimit, dayLimit] = await Promise.all([
     secNum('public_site_ip_hour', 60), secNum('public_site_global_day', 5000),
@@ -191,28 +221,6 @@ Deno.serve(async (req) => {
   if (!ipOk || !dayOk) return J({ ok: false, rate_limited: true }, 429);
 
   try {
-    if (action === 'counters') {
-      const { data, error } = await admin.rpc('fn_public_site_counters');
-      if (error) return J({ ok: false, error: 'counters_unavailable' });
-      return J({ ok: true, ...(data as any) }, 200, { 'Cache-Control': 'public, max-age=300' });
-    }
-    if (action === 'worked_case') {
-      const { data, error } = await admin.rpc('fn_public_worked_case');
-      if (error) return J({ ok: false, error: 'unavailable' });
-      return J({ ok: true, case: data ?? null }, 200, { 'Cache-Control': 'public, max-age=600' });
-    }
-    // The Reveal Guarantee ladder for the refund policy page (website audit W4, 14 Sep 2026), from the
-    // same pricing_config row the refund sweep and the customer portal read. Days only; no money.
-    if (action === 'guarantee_terms') {
-      const { data, error } = await admin.from('pricing_config')
-        .select('refund_window_working_days,chase_after_working_days,bank_settlement_working_days_min,bank_settlement_working_days_max')
-        .eq('id', 1).maybeSingle();
-      if (error || !data) return J({ ok: false, error: 'unavailable' });
-      const d = data as Record<string, number | null>;
-      return J({ ok: true, terms: { window_days: d.refund_window_working_days ?? null, chase_after_days: d.chase_after_working_days ?? null,
-        bank_min_days: d.bank_settlement_working_days_min ?? null, bank_max_days: d.bank_settlement_working_days_max ?? null } },
-        200, { 'Cache-Control': 'public, max-age=600' });
-    }
     if (action === 'route_brief') {
       const text = String(b.text || '').trim();
       if (text.length < 3) return J({ ok: false, error: 'empty' }, 400);
