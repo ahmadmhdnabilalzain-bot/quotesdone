@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T20:05:43.898Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T20:10:28.494Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -187,7 +187,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (509) =====
+-- ===== TABLES (510) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -885,6 +885,13 @@ CREATE TABLE IF NOT EXISTS public.autonomy_policy (
   founder_escalation_allowed boolean NOT NULL,
   constitution_note text NOT NULL,
   effective_from timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.bank_line_owner_ruling (
+  line_id bigint NOT NULL,
+  ruling text NOT NULL,
+  founder_instruction_id bigint,
+  noted_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.bank_statement_intake (
@@ -7150,6 +7157,7 @@ ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_pkey PRIMARY K
 ALTER TABLE public.assistant_logs ADD CONSTRAINT assistant_logs_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_control_audit ADD CONSTRAINT autonomy_control_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_pkey PRIMARY KEY (id);
+ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_pkey PRIMARY KEY (line_id);
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_pkey PRIMARY KEY (source_ref);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_pkey PRIMARY KEY (id);
 ALTER TABLE public.blog_posts ADD CONSTRAINT blog_posts_pkey PRIMARY KEY (id);
@@ -7750,6 +7758,7 @@ ALTER TABLE public.artifact_review ADD CONSTRAINT artifact_review_verdict_check 
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_approval CHECK ((founder_approval_required = false));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_no_founder_escalation CHECK ((founder_escalation_allowed = false));
 ALTER TABLE public.autonomy_policy ADD CONSTRAINT autonomy_policy_single CHECK ((id = 1));
+ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_ruling_check CHECK ((ruling = ANY (ARRAY['capital'::text, 'loan'::text])));
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_state_check CHECK ((state = ANY (ARRAY['parsed'::text, 'unreadable'::text])));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
@@ -7816,7 +7825,7 @@ ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHEC
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'website'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
-ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text])));
+ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text, 'other_income'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_credit_check CHECK ((credit >= (0)::numeric));
 ALTER TABLE public.gl_journal_lines ADD CONSTRAINT gl_journal_lines_debit_check CHECK ((debit >= (0)::numeric));
@@ -8094,6 +8103,7 @@ ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_gl_journal_id_fkey FOREIGN K
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_pay_journal_id_fkey FOREIGN KEY (pay_journal_id) REFERENCES gl_journal(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_po_id_fkey FOREIGN KEY (po_id) REFERENCES po_orders(id);
 ALTER TABLE public.ap_bills ADD CONSTRAINT ap_bills_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES po_vendors(id);
+ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_line_id_fkey FOREIGN KEY (line_id) REFERENCES bank_statement_line(id);
 ALTER TABLE public.bank_statement_line ADD CONSTRAINT bank_statement_line_source_ref_fkey FOREIGN KEY (source_ref) REFERENCES bank_statement_intake(source_ref);
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_advisor_key_fkey FOREIGN KEY (advisor_key) REFERENCES board_advisor(advisor_key);
 ALTER TABLE public.boq_fixture ADD CONSTRAINT boq_fixture_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE;
@@ -8434,6 +8444,7 @@ CREATE UNIQUE INDEX finance_kpi_snap_day ON public.finance_kpi_snapshots USING b
 CREATE INDEX founder_alerts_dedupe_idx ON public.founder_alerts USING btree (dedupe_key, created_at DESC) WHERE (dedupe_key IS NOT NULL);
 CREATE INDEX founder_directive_received_idx ON public.founder_directive USING btree (received_at DESC);
 CREATE INDEX founder_instruction_open_idx ON public.founder_instruction USING btree (said_at) WHERE (status = 'open'::text);
+CREATE UNIQUE INDEX gl_journal_one_live_entry_per_bank_or_fee_line ON public.gl_journal USING btree (source, source_ref) WHERE ((source = ANY (ARRAY['owner_capital'::text, 'bank_interest'::text, 'bank_charge'::text, 'stripe_fee_bt'::text, 'stripe_fee_bt_test'::text])) AND (source_ref IS NOT NULL) AND (status = ANY (ARRAY['draft'::text, 'posted'::text])));
 CREATE INDEX graph_edges_dst ON public.graph_edges USING btree (dst_kind, dst_ref, rel);
 CREATE INDEX graph_edges_rel ON public.graph_edges USING btree (rel);
 CREATE UNIQUE INDEX handoff_contract_live_idem_idx ON public.handoff_contract USING btree (idempotency_key) WHERE (status = ANY (ARRAY['open'::text, 'accepted'::text, 'returned'::text]));
@@ -13023,6 +13034,90 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_book_bank_credits()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_hold boolean := coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0;
+  v_after int := coalesce((select num_value::int from public.gl_settings where key = 'bank_match_days_after'), 5);
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_pat jsonb := '{}'::jsonb; k text; v text;
+  l record; v_lines jsonb; v_memo text; v_src text; v_booked boolean;
+  n_posted int := 0; n_draft int := 0; n_raced int := 0; v_items jsonb := '[]'::jsonb;
+begin
+  -- Each pattern validated once, in its own block: a bad one is a finding and its rule books nothing.
+  foreach k in array array['owner_transfer_pattern', 'bank_interest_pattern', 'bank_interest_reference_pattern'] loop
+    v := (select txt_value from public.gl_settings where key = k);
+    begin
+      if coalesce(btrim(v), '') = '' then raise exception 'the setting is missing or empty'; end if;
+      perform ('' ~ v);
+      v_pat := v_pat || jsonb_build_object(k, v);
+    exception when others then
+      v_items := v_items || jsonb_build_object('item', 'setting:' || k, 'owner_seat', 'accountant', 'subject', 'gl_settings',
+        'title', 'gl_settings.' || k || ' is not a usable pattern (' || sqlerrm || '), so the rule it drives books nothing until it is corrected',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('key', k, 'value', v));
+    end;
+  end loop;
+
+  for l in select b.*, r.ruling, r.founder_instruction_id
+             from public.bank_statement_line b left join public.bank_line_owner_ruling r on r.line_id = b.id
+            where b.amount_aed > 0
+              and not exists (select 1 from public.stripe_payout p where p.bank_line_id = b.id)
+            order by b.value_date, b.id loop
+    v_booked := exists (select 1 from public.gl_journal g where g.source in ('owner_capital', 'bank_interest')
+                          and g.source_ref = l.id::text and g.status in ('draft', 'posted'));
+    if l.ruling = 'loan' then
+      v_items := v_items || jsonb_build_object('item', 'loan:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+        'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' was ruled a loan from the founder, and the chart has no owner-loan account'
+                 || case when v_booked then '; the entry already made for it must be reversed' else '' end,
+        'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
+        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'founder_instruction_id', l.founder_instruction_id));
+      continue;
+    end if;
+    continue when v_booked;
+    v_src := null;
+    if l.ruling = 'capital' or (v_pat ? 'owner_transfer_pattern'
+                                and public.fn_bank_line_is_owner_transfer(l.description, v_pat->>'owner_transfer_pattern')) then
+      v_src := 'owner_capital';
+      v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
+                                   jsonb_build_object('account', '3000', 'credit', l.amount_aed));
+      v_memo := 'Owner capital contribution (' || l.account || ', ' || l.value_date
+                || '), a transfer from the licence holder''s own account: capital unless he says loan (founder_instruction 357): ' || left(l.description, 120);
+    elsif v_pat ? 'bank_interest_pattern' and v_pat ? 'bank_interest_reference_pattern'
+          and l.description ~* (v_pat->>'bank_interest_pattern') and l.description ~ (v_pat->>'bank_interest_reference_pattern') then
+      v_src := 'bank_interest';
+      v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
+                                   jsonb_build_object('account', '7000', 'credit', l.amount_aed));
+      v_memo := 'Bank interest credited (' || l.account || ', ' || l.value_date || '): ' || left(l.description, 120);
+    elsif l.value_date + v_after < v_today then
+      v_items := v_items || jsonb_build_object('item', 'unrecognised:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+        'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' is neither a Stripe payout, a transfer from the licence holder''s own account nor the bank''s interest, so it is not booked',
+        'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
+        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'description', left(l.description, 200),
+                                       'remedy', 'the founder names what it is; an owner transfer is recorded in bank_line_owner_ruling'));
+    end if;
+    continue when v_src is null;
+    if l.account = 'zz_demo' then v_memo := 'ZZ DEMO ' || v_memo; end if;
+    begin
+      if v_hold or l.account = 'zz_demo' then
+        perform public.fn_accountant_draft_entry(l.value_date, v_memo, v_src, l.id::text, v_lines);
+        n_draft := n_draft + 1;
+      else
+        perform public.fn_gl_entry(l.value_date, v_memo, v_src, l.id::text, v_lines, 'accountant');
+        n_posted := n_posted + 1;
+      end if;
+    exception when unique_violation then
+      n_raced := n_raced + 1;        -- a concurrent run booked this line first: gl_journal_one_live_entry_per_bank_or_fee_line
+    end;
+  end loop;
+  return jsonb_build_object('posted', n_posted, 'drafted', n_draft, 'booked_by_a_concurrent_run', n_raced, 'hold', v_hold,
+    'findings', public.fn_accountant_duty_settle('bank_credits', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_book_stripe_fees(p_livemode boolean, p_bts jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -13385,11 +13480,23 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_cost_booking_tick()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_sync int; v_bank jsonb;
+declare v_sync int; v_bank jsonb; v_cap jsonb;
 begin
   v_sync := public.fn_gl_sync_business();
   v_bank := public.fn_accountant_book_bank_charges();
-  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank);
+  -- The bank-credit rule runs in its own block (review of b06d251): whatever fails in it can never undo the
+  -- business sync or the bank charges above; the failure is an accountant finding instead.
+  begin
+    v_cap := public.fn_accountant_book_bank_credits();
+    perform public.fn_accountant_duty_settle('bank_credits_run', '[]'::jsonb);
+  exception when others then
+    v_cap := jsonb_build_object('error', sqlerrm);
+    perform public.fn_accountant_duty_settle('bank_credits_run', jsonb_build_array(jsonb_build_object(
+      'item', 'run', 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+      'title', 'Booking the bank''s credits failed, so nothing was booked from them this run: ' || sqlerrm,
+      'blast', 'agent_facing', 'affected', 1)));
+  end;
+  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank, 'bank_credits', v_cap);
 end $function$
 
 
@@ -13673,8 +13780,14 @@ begin
   end if;
   select id into jid from public.gl_journal where source = p_source and source_ref = p_ref and status in ('draft', 'posted') limit 1;
   if jid is not null then return jid; end if;
-  insert into public.gl_journal (entry_date, memo, source, source_ref, created_by, status)
-  values (p_date, p_memo, p_source, p_ref, 'accountant', 'draft') returning id into jid;
+  begin
+    insert into public.gl_journal (entry_date, memo, source, source_ref, created_by, status)
+    values (p_date, p_memo, p_source, p_ref, 'accountant', 'draft') returning id into jid;
+  exception when unique_violation then
+    -- a concurrent run wrote it between the check and the insert (gl_journal_one_live_entry_per_bank_or_fee_line)
+    select id into jid from public.gl_journal where source = p_source and source_ref = p_ref and status in ('draft', 'posted') limit 1;
+    return jid;
+  end;
   for ln in select e from jsonb_array_elements(p_lines) e loop
     i := i + 1;
     insert into public.gl_journal_lines (journal_id, line_no, account_code, debit, credit, memo)
@@ -20859,6 +20972,22 @@ begin
   return v_n;
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_bank_line_is_owner_transfer(p_description text, p_pattern text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_owner text;
+begin
+  if p_pattern is null or coalesce(p_description, '') !~* p_pattern then return false; end if;
+  select public.fn_name_norm(owner_name) into v_owner from public.company_registration order by recorded_at desc limit 1;
+  if v_owner is null or position(' ' in v_owner) = 0 then return false; end if;      -- two words at least
+  return exists (select 1 from regexp_split_to_table(p_description, '(^|[[:space:]])-([[:space:]]|$)') seg
+                  where public.fn_name_norm(seg) = v_owner);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_board_review(p_subject text, p_subject_ref text DEFAULT NULL::text)
@@ -35961,6 +36090,21 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_name_norm(p text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v text := coalesce(p, '');
+begin
+  if to_regprocedure('public.unaccent(text)') is not null then execute 'select public.unaccent($1)' into v using v;
+  elsif to_regprocedure('extensions.unaccent(text)') is not null then execute 'select extensions.unaccent($1)' into v using v;
+  end if;
+  return btrim(regexp_replace(upper(v), '[^A-Z0-9]+', ' ', 'g'));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_negotiation_guidance(p_customer uuid, p_quote uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -40170,6 +40314,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -40340,16 +40494,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -58052,6 +58196,7 @@ ALTER TABLE public.artifact_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assistant_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_control_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.autonomy_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bank_line_owner_ruling ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_intake ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bank_statement_line ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
@@ -58517,6 +58662,7 @@ CREATE POLICY accountant_month_close_service_role_only ON public.accountant_mont
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_year_end_pack AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.ai_cost_log AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY bank_line_owner_ruling_service_role_only ON public.bank_line_owner_ruling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_intake_service_role_only ON public.bank_statement_intake AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_line AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY blog_posts_public_read ON public.blog_posts AS PERMISSIVE FOR SELECT TO anon USING ((published = true));

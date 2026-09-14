@@ -198,6 +198,31 @@ export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
   return (await pdfPageContents(bytes)).map((p) => p.page);
 }
 
+/**
+ * The page's text as LINES: runs sharing a baseline joined left to right, lines top to bottom, pages in
+ * order. Written 14 Sep 2026 for the Mashreq e-statement: pdf_text.ts returns '' for it (its Arabic
+ * captions are a font this estate cannot map, and that glyph noise correctly fails looksLikeText), and its
+ * table is only a table when the runs are put back into rows. Nothing is judged here — the statement parser
+ * proves every row it reads against the printed running balance.
+ */
+export function linesFromRuns(pages: PdfPage[], tolerance = 0.003): string {
+  return pages.map((p) => {
+    const runs = [...p.runs].sort((a, b) => a.y - b.y || a.x - b.x);
+    const rows: TextRun[][] = [];
+    for (const r of runs) {
+      const last = rows[rows.length - 1];
+      if (last && Math.abs(last[0].y - r.y) <= tolerance) last.push(r); else rows.push([r]);
+    }
+    return rows.map((row) => row.sort((a, b) => a.x - b.x).map((r) => r.text).join(' ').replace(/\s+/g, ' ').trim())
+      .filter(Boolean).join('\n');
+  }).join('\n');
+}
+
+/** linesFromRuns over a PDF's bytes; '' when the file cannot be read. */
+export async function pdfTextByRows(bytes: Uint8Array): Promise<string> {
+  return linesFromRuns(await pdfPages(bytes));
+}
+
 // Shared with pdf_measure, which walks the same content streams for path operators.
 export { tokens, mul, ID };
 export type { M };
