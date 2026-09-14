@@ -11,7 +11,8 @@
  * a Vercel domain setting 308-redirects both to https://quotesdone.com/ before the app runs. Turning
  * this on while that redirect exists sends UAE visitors round a loop: .com -> .ae -> .com.
  */
-export const AE_DOMAIN_SERVES_SITE = false;
+// 14 Sep 2026: the Vercel redirect is gone; `curl -I https://quotesdone.ae/` measured 200 OK.
+export const AE_DOMAIN_SERVES_SITE = true;
 
 /** The one canonical site. Search engines are pointed here (see SITE in seo.ts). */
 export const CANONICAL_ORIGIN = 'https://quotesdone.com';
