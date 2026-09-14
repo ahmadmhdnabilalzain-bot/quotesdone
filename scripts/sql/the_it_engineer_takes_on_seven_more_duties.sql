@@ -522,9 +522,11 @@ begin
         'blast', 'internal', 'affected', 1, 'evidence', jsonb_build_object('queryid', x.queryid, 'query', x.q, 'calls', x.calls, 'mean_ms', x.mean_ms));
     end loop;
     insert into public.it_table_size_daily (day, relid, bytes)
-    select current_date, c.oid::regclass::text, pg_total_relation_size(c.oid)
-      from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'public' and c.relkind = 'r'
+    -- The alias is pc, not c: c is this function's rotation-loop record, and plpgsql would read c.oid
+    -- as that (unassigned) record instead of the table.
+    select current_date, pc.oid::regclass::text, pg_total_relation_size(pc.oid)
+      from pg_class pc join pg_namespace n on n.oid = pc.relnamespace
+     where n.nspname = 'public' and pc.relkind = 'r'
     on conflict (day, relid) do update set bytes = excluded.bytes;
     for x in select t.relid, t.bytes, o.bytes old_bytes from public.it_table_size_daily t
                join public.it_table_size_daily o on o.relid = t.relid and o.day = current_date - 7
