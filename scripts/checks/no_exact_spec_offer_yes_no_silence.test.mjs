@@ -36,8 +36,10 @@ begin
                             'transactions', (select count(*) from public.transactions)) into v_before;
 
   -- customers.is_demo is GENERATED from the ZZ DEMO name / @example.invalid address; asserted below.
-  insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale)
-  values ('ZZ DEMO spec offer probe', 'zz-demo-specoffer-probe@example.invalid', v_phone, true, true, 'ar') returning id into v_cust;
+  -- #657 (founder, 14 Sep 2026): an inbound WhatsApp answer matches only a confirmed number, so this customer
+  -- answered "Is this number on WhatsApp?" with Yes (same as the verified mobile).
+  insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale, whatsapp_opt)
+  values ('ZZ DEMO spec offer probe', 'zz-demo-specoffer-probe@example.invalid', v_phone, true, true, 'ar', 'same') returning id into v_cust;
   if not (select is_demo from public.customers where id = v_cust) then raise exception 'PROBE<<{"skipped":"the fixture customer is not recognised as demo; refusing to continue"}>>'; end if;
   select coalesce(max(rfq_no), 0) + 900000 into v_rfq from public.inquiries;
   insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_cust, 'glass', 'ZZ DEMO spec offer probe A', 'sent', v_rfq) returning id into v_a;
@@ -64,8 +66,8 @@ begin
   r := r || jsonb_build_object('checked_marked', (select spec_offer_checked_at is not null from public.inquiries where id = v_a),
                                'not_a_reply', public.fn_spec_offer_whatsapp_reply(v_phone, 'hello, when is delivery?') -> 'handled');
   v_res := public.fn_spec_offer_whatsapp_reply(v_phone, '٢');
-  r := r || jsonb_build_object('yes', v_res, 'yes_row', (select jsonb_build_object('state', state, 'accepted_option', accepted_option, 'accepted_value', accepted_value, 'channel', answer_channel) from public.spec_alternative_offer where id = v_o1),
-    'yes_recorded', (select accepted_alternatives from public.inquiries where id = v_a),
+  r := r || jsonb_build_object('yes', v_res - 'inquiry_id' - 'customer_id' - 'offer_id' - 'still_open', 'yes_row', (select jsonb_build_object('state', state, 'accepted_option', accepted_option, 'accepted_value', accepted_value, 'channel', answer_channel) from public.spec_alternative_offer where id = v_o1),
+    'yes_recorded', (select jsonb_agg(e - 'offer_id' - 'line_no' - 'requested') from public.inquiries, jsonb_array_elements(accepted_alternatives) e where id = v_a),
     'yes_inquiry', (select jsonb_build_object('status', status, 'lost_reason', lost_reason) from public.inquiries where id = v_a),
     'answer_twice', public.fn_spec_offer_answer(v_o1, v_cust, 'o1', 'portal'),
     'someone_else', public.fn_spec_offer_answer(v_o1, gen_random_uuid(), 'o1', 'portal'));
@@ -76,7 +78,7 @@ begin
     jsonb_build_object('line_no', 2, 'item', 'Door', 'attr', 'finish', 'label_en', 'Finish', 'label_ar', 'التشطيب', 'requested', 'RAL 9016', 'alternatives', '[{"option_id":"o1","value":"RAL 9010","suppliers":1}]'::jsonb))) x;
   v_o2 := (o -> 0 ->> 'id')::bigint; v_o3 := (o -> 1 ->> 'id')::bigint;
   v_res := public.fn_spec_offer_answer(v_o2, v_cust, 'no', 'portal');
-  r := r || jsonb_build_object('no', v_res,
+  r := r || jsonb_build_object('no', v_res - 'inquiry_id' - 'customer_id' - 'offer_id',
     'no_inquiry', (select jsonb_build_object('status', status, 'lost_reason', lost_reason) from public.inquiries where id = v_b),
     'no_sibling', (select state from public.spec_alternative_offer where id = v_o3));
 
@@ -89,14 +91,14 @@ begin
   r := r || jsonb_build_object('due_at_start', (select count(*) from public.fn_spec_offer_due() where offer_id = v_o4));
   update public.spec_alternative_offer set opened_at = now() - interval '25 hours', reply_by = now() - interval '1 minute' where id = v_o4;
   select to_jsonb(d) into v_due from public.fn_spec_offer_due() d where d.offer_id = v_o4;
-  r := r || jsonb_build_object('due_1', v_due);
+  r := r || jsonb_build_object('due_1', v_due - 'offer_id');
   perform public.fn_spec_offer_mark(v_o4, 'remind', '[]');
   update public.spec_alternative_offer set opened_at = now() - interval '49 hours' where id = v_o4;
   select to_jsonb(d) into v_due from public.fn_spec_offer_due() d where d.offer_id = v_o4;
-  r := r || jsonb_build_object('due_2', v_due);
+  r := r || jsonb_build_object('due_2', v_due - 'offer_id');
   perform public.fn_spec_offer_mark(v_o4, 'remind', '[]');
   select to_jsonb(d) into v_due from public.fn_spec_offer_due() d where d.offer_id = v_o4;
-  r := r || jsonb_build_object('due_3', v_due);
+  r := r || jsonb_build_object('due_3', v_due - 'offer_id');
   perform public.fn_spec_offer_mark(v_o4, 'close_no_reply', '[]');
   r := r || jsonb_build_object('silence_row', (select jsonb_build_object('state', state, 'closed_reason', closed_reason, 'reminders', reminders_sent) from public.spec_alternative_offer where id = v_o4),
     'silence_inquiry', (select jsonb_build_object('status', status, 'lost_reason', lost_reason) from public.inquiries where id = v_c),
@@ -105,16 +107,27 @@ begin
   -- WHO MAY ANSWER (review of #652). An UNVERIFIED number with an open offer is not a reply; a
   -- number two verified customers with open offers share records nothing and opens a support_case.
   declare v_c2 uuid; v_c3 uuid; v_d uuid; v_e uuid; v_o5 bigint; v_o6 bigint; v_amb jsonb; v_unv jsonb;
+          v_c5 uuid; v_f uuid; v_o7 bigint; v_una jsonb;
   begin
-    insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale)
-    values ('ZZ DEMO spec offer probe unverified', 'zz-demo-specoffer-probe-unv@example.invalid', '+971500000095', false, true, 'en') returning id into v_c3;
+    -- Said "same number", but the mobile was never verified: still not a confirmed WhatsApp number.
+    insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale, whatsapp_opt)
+    values ('ZZ DEMO spec offer probe unverified', 'zz-demo-specoffer-probe-unv@example.invalid', '+971500000095', false, true, 'en', 'same') returning id into v_c3;
     insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_c3, 'glass', 'ZZ DEMO spec offer probe D', 'sent', v_rfq + 3) returning id into v_d;
     select (to_jsonb(x) ->> 'id')::bigint into v_o5 from public.fn_spec_offer_open(v_d, jsonb_build_array(jsonb_build_object('line_no', 1, 'item', 'Glass', 'attr', 'glass_type',
       'label_en', 'Glass type', 'label_ar', 'نوع الزجاج', 'requested', '10 mm tempered', 'alternatives', v_alts))) x limit 1;
     v_unv := public.fn_spec_offer_whatsapp_reply('+971500000095', '1');
-    -- A second VERIFIED customer on the first customer's number, with an open offer: ambiguous.
+    -- #657: a VERIFIED mobile whose owner never answered the WhatsApp question is not a confirmed WhatsApp
+    -- number either, so a WhatsApp answer from it matches nobody (the portal still takes their answer).
     insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale)
-    values ('ZZ DEMO spec offer probe twin', 'zz-demo-specoffer-probe-twin@example.invalid', v_phone, true, true, 'en') returning id into v_c2;
+    values ('ZZ DEMO spec offer probe unanswered', 'zz-demo-specoffer-probe-una@example.invalid', '+971500000096', true, true, 'en') returning id into v_c5;
+    insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_c5, 'glass', 'ZZ DEMO spec offer probe F', 'sent', v_rfq + 5) returning id into v_f;
+    select (to_jsonb(x) ->> 'id')::bigint into v_o7 from public.fn_spec_offer_open(v_f, jsonb_build_array(jsonb_build_object('line_no', 1, 'item', 'Glass', 'attr', 'glass_type',
+      'label_en', 'Glass type', 'label_ar', 'نوع الزجاج', 'requested', '10 mm tempered', 'alternatives', v_alts))) x limit 1;
+    v_una := public.fn_spec_offer_whatsapp_reply('+971500000096', '1');
+    r := r || jsonb_build_object('unanswered', v_una, 'unanswered_state', (select state from public.spec_alternative_offer where id = v_o7));
+    -- A second VERIFIED customer on the first customer's number, with an open offer: ambiguous.
+    insert into public.customers (full_name, email, phone, phone_verified, email_verified, locale, whatsapp_opt)
+    values ('ZZ DEMO spec offer probe twin', 'zz-demo-specoffer-probe-twin@example.invalid', v_phone, true, true, 'en', 'same') returning id into v_c2;
     insert into public.inquiries (customer_id, category, summary, status, rfq_no) values (v_c2, 'glass', 'ZZ DEMO spec offer probe E', 'sent', v_rfq + 4) returning id into v_e;
     select (to_jsonb(x) ->> 'id')::bigint into v_o6 from public.fn_spec_offer_open(v_e, jsonb_build_array(jsonb_build_object('line_no', 1, 'item', 'Glass', 'attr', 'glass_type',
       'label_en', 'Glass type', 'label_ar', 'نوع الزجاج', 'requested', '10 mm tempered', 'alternatives', v_alts))) x limit 1;
@@ -123,7 +136,7 @@ begin
       'requested', 'RAL 9016', 'alternatives', '[{"option_id":"o1","value":"RAL 9010","suppliers":1}]'::jsonb)));
     v_amb := public.fn_spec_offer_whatsapp_reply(v_phone, '1');
     r := r || jsonb_build_object('unverified', v_unv, 'unverified_state', (select state from public.spec_alternative_offer where id = v_o5),
-      'ambiguous', v_amb, 'ambiguous_states', (select jsonb_agg(state order by id) from public.spec_alternative_offer where customer_id in (v_cust, v_c2) and state = 'open'),
+      'ambiguous', v_amb - 'case_ref', 'ambiguous_states', (select jsonb_agg(state order by id) from public.spec_alternative_offer where customer_id in (v_cust, v_c2) and state = 'open'),
       'ambiguous_case', (select count(*) from public.support_case where case_ref = v_amb ->> 'case_ref' and owner_role_id = 'customer_support'));
   end;
 
@@ -174,6 +187,10 @@ test('production: yes, no and silence on demo data, and nothing survives', { ski
   assert.equal(out.unverified.handled, false, 'an unverified number cannot answer an offer');
   assert.equal(out.unverified.reason, 'no_verified_customer_with_open_offer');
   assert.equal(out.unverified_state, 'open', 'the unverified reply recorded nothing');
+  // #657: a verified mobile with the WhatsApp question unanswered is not a confirmed WhatsApp number.
+  assert.equal(out.unanswered.handled, false, 'an unanswered WhatsApp question means no WhatsApp match');
+  assert.equal(out.unanswered.reason, 'no_verified_customer_with_open_offer');
+  assert.equal(out.unanswered_state, 'open', 'the unanswered customer\'s offer was not touched');
   assert.equal(out.ambiguous.handled, false, 'a number two verified customers share answers nobody');
   assert.equal(out.ambiguous.reason, 'ambiguous_sender'); assert.equal(out.ambiguous.matches, 2);
   assert.deepEqual(out.ambiguous_states, ['open', 'open'], 'neither customer\'s offer was touched');
