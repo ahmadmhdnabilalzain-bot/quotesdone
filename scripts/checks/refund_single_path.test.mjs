@@ -41,9 +41,9 @@ test('no edge function sets a terminal refund state on transactions by hand', ()
     if (!d.isDirectory() || d.name === '_shared') continue;
     let src;
     try { src = read(d.name); } catch { continue; }
-    // refunds_api and stripe_webhook are the two legitimate writers: one gates on Control Mode and
-    // calls Stripe, the other records what Stripe already did.
-    if (d.name === 'refunds_api' || d.name === 'stripe_webhook') continue;
+    // stripe_webhook is the one legitimate writer: it records what Stripe already did. refunds_api
+    // lost its exemption on 14 Sep 2026 when its 'resolve' rail was retired (see the last test).
+    if (d.name === 'stripe_webhook') continue;
     if (/refund_status:\s*'(refunded|succeeded)'/.test(src)) offenders.push(d.name);
   }
   assert.deepEqual(offenders, [],
@@ -51,9 +51,22 @@ test('no edge function sets a terminal refund state on transactions by hand', ()
     'the Control Mode gate: ' + offenders.join(', '));
 });
 
-test('refunds_api still gates the Stripe execution on Control Mode', () => {
-  const src = read('refunds_api');
-  assert.match(src, /control_mode/i,
-    'refunds_api no longer references Control Mode. `resolve` issues a REAL Stripe refund; without that gate the ' +
-    'only thing standing between an internal credential and money leaving the account is the credential itself.');
+// 14 SEP 2026 — ONE REFUND RAIL. This test asserted that refunds_api gated its Stripe call on Control
+// Mode. PR #640's review found that call was a SECOND rail (straight off transactions, its own
+// idempotency key), so one reveal could be refunded twice; the call was removed rather than gated. The
+// stronger property is asserted now: only the accountant's execute path reaches Stripe's refund API,
+// through the one shared door, keyed once per transaction. A second rail fails here, gated or not.
+test('only the accountant reaches Stripe refunds, through the one door, keyed once per transaction', () => {
+  const callers = [];
+  for (const d of readdirSync(FNDIR, { withFileTypes: true })) {
+    if (!d.isDirectory() || d.name === '_shared') continue;
+    let src;
+    try { src = read(d.name); } catch { continue; }
+    if (/\bstripeRefund\s*\(/.test(src) || /api\.stripe\.com\/v1\/refunds['"`]\s*,\s*\{\s*method:\s*'POST'/.test(src)) callers.push(d.name);
+  }
+  assert.deepEqual(callers, ['accountant'], 'Stripe refunds must have exactly one caller, the accountant; found: ' + callers.join(', '));
+  const acc = read('accountant');
+  assert.match(acc, /idem:\s*refundIdempotencyKey\(String\(r\.transaction_id\)\)/,
+    'execute_refunds must key a case refund on its transaction (refundIdempotencyKey), never on the refunds row id');
+  assert.doesNotMatch(read('refunds_api'), /from '\.\.\/_shared\/stripe_refund\.ts'/, 'refunds_api must not import the Stripe refund door');
 });

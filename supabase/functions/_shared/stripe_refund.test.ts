@@ -1,8 +1,27 @@
 // A test payment can never be refunded with the live key, and a live payment never with the test key.
 // Stripe is stubbed: every request is recorded with the key it carried, so each case asserts both the
 // answer and which key (if any) ever left this process.
-import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { keyMode, stripeRefund } from './stripe_refund.ts';
+import { assert, assertEquals, assertThrows } from 'jsr:@std/assert@1';
+import { keyMode, refundIdempotencyKey, stripeRefund } from './stripe_refund.ts';
+
+Deno.test('a second refund of the same payment reaches Stripe as the same request: one key per transaction', async () => {
+  const tx = '8a1f0000-0000-4000-8000-000000000001';
+  assertEquals(refundIdempotencyKey(tx), refundIdempotencyKey(tx));
+  assertEquals(refundIdempotencyKey(tx), 'qd_refund_' + tx);
+  assertThrows(() => refundIdempotencyKey(''));
+  // Two different refund rows for one payment send the SAME Idempotency-Key.
+  const keys: string[] = [];
+  const f = (async (url: string | URL, init?: RequestInit) => {
+    const u = String(url);
+    if (u.includes('/payment_intents/')) return new Response(JSON.stringify({ id: 'pi_test_1', livemode: false }));
+    keys.push(String((init?.headers as Record<string, string>)['Idempotency-Key']));
+    return new Response(JSON.stringify({ id: 're_same', status: 'succeeded', amount: 100 }));
+  }) as typeof fetch;
+  const deps = { secret: async (k: string) => (k === 'stripe_secret_key_test' ? 'sk_test_x' : undefined), fetch: f };
+  for (const _rowId of [101, 102]) await stripeRefund(deps, { demoPayer: true, ref: 'pi_test_1', amountFils: 100, idem: refundIdempotencyKey(tx) });
+  assertEquals(keys.length, 2);
+  assertEquals(keys[0], keys[1]);
+});
 
 const LIVE = 'sk_live_ZZDEMOlive', TEST = 'sk_test_ZZDEMOtest';
 

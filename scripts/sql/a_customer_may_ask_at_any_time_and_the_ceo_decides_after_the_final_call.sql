@@ -37,6 +37,10 @@
 --   3. fn_ceo_refund_checklist item 1 becomes customer_complaint_on_record: informational, never a
 --      refusal, carrying the same evidence.
 --   4. fn_sales_engineer_ladder_step 'customer_proof' asks for proof as optional help, not a condition.
+--   5. ONE REFUND RAIL (PR #640 review): unique index refunds_one_live_platform_refund_per_payment
+--      refuses a second live platform refund on one payment for every writer. The second rail it
+--      closes, refunds_api 'resolve', is retired in the same PR, and execute_refunds keys Stripe once
+--      per transaction (_shared/stripe_refund.ts refundIdempotencyKey).
 --
 -- WHAT IT DOES NOT CHANGE: the ladder sweep, the CEO's review, the day-3 and day-5 checks, the Stripe
 -- reference and amount guards, and who approves (the CEO). The Stripe key a refund uses is fixed in
@@ -527,6 +531,23 @@ begin
 end $fn$;
 revoke execute on function public.fn_ceo_refund_checklist(uuid, text, boolean) from public, anon, authenticated;
 
+-- ── ONE LIVE PLATFORM REFUND PER PAYMENT, FOR EVERY WRITER ───────────────────────────────────────
+-- PR #640 review: the retired refunds_api 'resolve' paid straight off transactions under one Stripe
+-- idempotency key while execute_refunds paid the refunds row under another, so one reveal could be
+-- refunded twice. 'resolve' is gone; this makes the table itself refuse a second LIVE platform refund
+-- on the same payment, whichever routine writes it (fn_refund_open_from_customer, fn_refund_request,
+-- or anything added later). A failed, rejected or cancelled case does not count, so a new case can
+-- follow one that ended. Refunds Stripe reported (stripe_webhook / stripe_dashboard / stripe) are
+-- facts, not requests, and a top-up the mismatch playbook issues is recorded that way, so they are
+-- outside it. Measured before adding it: 0 rows in public.refunds, 0 transactions that would violate.
+create unique index if not exists refunds_one_live_platform_refund_per_payment
+  on public.refunds (transaction_id)
+  where transaction_id is not null
+    and status not in ('failed', 'rejected', 'cancelled')
+    and lower(coalesce(requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe');
+comment on index public.refunds_one_live_platform_refund_per_payment is
+  'At most one live platform refund per payment, enforced for every writer (PR #640, 14 Sep 2026). With refundIdempotencyKey (one Stripe key per transaction) a second refund of one reveal is refused here and, if a row ever got past, returned by Stripe as the first.';
+
 -- ── THE PROBE ────────────────────────────────────────────────────────────────────────────────────
 -- Every write happens inside an inner BEGIN ... EXCEPTION block that ALWAYS ends in a raise, so the
 -- subtransaction rolls back every row, handoff and queued message it made -- the probe is incapable
@@ -567,6 +588,27 @@ begin
       if (r2->>'refund_id')::bigint is distinct from v_rid or not coalesce((r2->>'duplicate')::boolean, false)
          or (select count(*) from public.refunds where transaction_id = v_tx) <> 1 then
         raise exception 'PROBE FAILED: a second press opened another case: %', r2; end if;
+
+      -- 2b. A SECOND REFUND OF THE SAME PAYMENT IS REFUSED ON EVERY OTHER PATH TOO (PR #640 review).
+      -- The ladder/CEO path (fn_refund_request, what the day-5 sweep files) and a raw insert both hit
+      -- refunds_one_live_platform_refund_per_payment.
+      begin
+        perform public.fn_refund_request(3150, 'supplier_unresponsive', 'refund_ladder_sweep', null, v_cust, v_lead, null, 'pi_ZZDEMO_ask_1', null, 'ZZ DEMO second refund', v_tx);
+        v_err := 'no error';
+      exception when others then v_err := sqlerrm;
+      end;
+      if v_err not like '%refunds_one_live_platform_refund_per_payment%' then
+        raise exception 'PROBE FAILED: the ladder path opened a second refund on one payment: %', v_err; end if;
+      begin
+        insert into public.refunds (transaction_id, customer_id, supplier_lead_id, stripe_payment_intent, amount_fils, currency, reason_code, status, requested_by, amount_source)
+        values (v_tx, v_cust, v_lead, 'pi_ZZDEMO_ask_1', 3150, 'AED', 'supplier_unresponsive', 'requested', 'accountant', 'manual');
+        v_err := 'no error';
+      exception when others then v_err := sqlerrm;
+      end;
+      if v_err not like '%refunds_one_live_platform_refund_per_payment%' then
+        raise exception 'PROBE FAILED: a raw insert opened a second refund on one payment: %', v_err; end if;
+      if (select count(*) from public.refunds where transaction_id = v_tx) <> 1 then
+        raise exception 'PROBE FAILED: more than one refund row on one payment'; end if;
 
       -- 3. THE DECISION WAITS: approving before refund_deadline is refused at the table.
       begin
@@ -614,7 +656,7 @@ begin
          and a.detail->>'msg_type' = 'refund_request_received' and a.detail->>'to_email' not like '%@example.invalid';
       if v_n > 0 then raise exception 'PROBE FAILED: a confirmation addressed someone outside @example.invalid'; end if;
 
-      raise exception 'PROBE_OK request inside the window opened case % at requested for 3150 fils, sale requested, accountant handoff + support confirmation (en); second press returned the same case; early approval refused (refund_window_not_yet_open); no_payment and supplier_rated refused, recorded, nothing changed; Arabic customer answered and written to in Arabic; checklist item 1 passes with no complaint', v_rid;
+      raise exception 'PROBE_OK request inside the window opened case % at requested for 3150 fils, sale requested, accountant handoff + support confirmation (en); second press returned the same case; a second refund on the same payment refused on the ladder path (fn_refund_request) and by a raw insert (refunds_one_live_platform_refund_per_payment); early approval refused (refund_window_not_yet_open); no_payment and supplier_rated refused, recorded, nothing changed; Arabic customer answered and written to in Arabic; checklist item 1 passes with no complaint', v_rid;
     end;
   exception when others then v_out := sqlerrm;
   end;

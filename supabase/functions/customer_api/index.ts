@@ -1250,7 +1250,22 @@ Deno.serve(observe('customer_api', async (req) => {
       // fn_refund_open_from_customer, or none of them do. The published terms let a customer complain
       // "at any time"; the five working days govern when the CEO may decide, not when they may ask.
       const { data: rf, error: rfErr } = await admin.rpc('fn_refund_open_from_customer', { p_transaction_id: tx.id, p_requested_by: 'customer' });
-      if (rfErr || !rf) return J({ ok: false, error: 'refund_request_failed', code: 'refund_request_failed', detail: rfErr?.message || 'no answer' }, 500);
+      if (rfErr || !rf) {
+        // NOT A POLICY REFUSAL: the one transaction rolled back (a guard, the confirmation handoff, the
+        // database). The customer's claim is not lost -- they are told to try again -- but somebody must
+        // see it, so it is an IT finding keyed on the sale (reopened, not duplicated, on a repeat).
+        try {
+          await admin.rpc('fn_it_engineer_finding_upsert', {
+            p_issue_key: 'refund:request_failed:' + tx.id,
+            p_title: 'A customer could not open a refund case: the request rolled back',
+            p_where: 'customer_api request_refund -> public.fn_refund_open_from_customer',
+            p_blast: 'customer_facing', p_affected: 1,
+            p_evidence: { transaction_id: tx.id, customer_id: cust.id, error: String(rfErr?.message || 'no answer').slice(0, 600), at: new Date().toISOString() },
+            p_raised_by: 'customer_api',
+          });
+        } catch (_e) { /* the finding is best-effort; the customer's answer below is not */ }
+        return J({ ok: false, error: 'refund_request_failed', code: 'refund_request_failed', detail: rfErr?.message || 'no answer' }, 500);
+      }
       const msg = rf.locale === 'ar' ? rf.message_ar : rf.message_en;
       if (!rf.ok) return J({ ok: false, error: rf.code, code: rf.code, message: msg, can_claim_later: rf.can_claim_later ?? null }, 400);
       return J({ ok: true, refund_status: 'requested', refund_id: rf.refund_id, refund_ref: refundRef(rf.refund_id),

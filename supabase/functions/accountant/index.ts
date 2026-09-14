@@ -62,7 +62,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
-import { refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
+import { refundIdempotencyKey, refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
 import { isDemoEmail } from '../_shared/demo_identity.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -640,7 +640,7 @@ Deno.serve(observe('accountant', async (req) => {
           }
           const demo = await payerIsDemo(r.customer_id, r.stripe_payment_intent);
           if (demo === null) { results.push({ refund_id: r.id, error: 'payer_unknown: the Stripe mode of this payment cannot be known, nothing sent' }); continue; }
-          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: 'qd_refund_' + r.id,
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: refundIdempotencyKey(String(r.transaction_id)),
             metadata: { refund_id: String(r.id), transaction_id: String(r.transaction_id || ''), approved_by: 'ceo' } });
           if (!res.ok) { results.push({ refund_id: r.id, error: res.error }); continue; }
           await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id) }).eq('id', r.id).is('stripe_refund_id', null);

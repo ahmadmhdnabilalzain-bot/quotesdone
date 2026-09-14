@@ -26,6 +26,19 @@ export type RefundDeps = {
 export type RefundOk = { ok: true; refund: any; pi: string; mode: StripeMode };
 export type RefundRefused = { ok: false; error: string; mode?: StripeMode };
 
+/**
+ * THE ONE IDEMPOTENCY KEY FOR A PAYMENT'S REFUND. Keyed on the transaction, never on a refunds row id:
+ * two case rows for one payment (a retry after a failure, or a row written by another path) must reach
+ * Stripe as the SAME request, so Stripe itself returns the first refund instead of issuing a second.
+ * (PR #640 review: the retired refunds_api 'resolve' used qd_refund_<transaction> and execute_refunds
+ * used qd_refund_<refund row>, so one reveal could be refunded twice.)
+ */
+export function refundIdempotencyKey(transactionId: string | number): string {
+  const id = String(transactionId ?? '').trim();
+  if (!id) throw new Error('a refund idempotency key needs the transaction id');
+  return 'qd_refund_' + id;
+}
+
 /** The mode a stored Stripe key belongs to, read off its prefix; null when it is not a Stripe secret. */
 export function keyMode(sk: unknown): StripeMode | null {
   const m = /^(?:sk|rk)_(live|test)_/.exec(String(sk ?? ''));
