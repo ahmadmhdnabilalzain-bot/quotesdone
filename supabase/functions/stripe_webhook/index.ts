@@ -227,7 +227,10 @@ Deno.serve(observe('stripe_webhook', async (req) => {
   const whsecForMode = signingSecretFor(stripeEventMode(event), { live: whsecLive, test: whsecTest });
   let sigMode = '';
   if (whsecForMode && await verifySig(sig, raw, whsecForMode)) sigMode = claimedMode;
-  if (!sigMode) { await logRun('error', { claimed_mode: claimedMode || 'none', secret_for_mode: !!whsecForMode }, 'bad_signature (rejected before any write)'); return new Response('bad signature', { status: 400 }); }
+  // Only facts about the attempt reach the log (which mode it claimed, whether that mode has a secret
+  // configured), computed before the log call so no secret-bearing name is ever handed to it.
+  const modeConfigured = whsecForMode.length > 0;
+  if (!sigMode) { await logRun('error', { claimed_mode: claimedMode || 'none', mode_configured: modeConfigured }, 'bad_signature (rejected before any write)'); return new Response('bad signature', { status: 400 }); }
   // A TEST-MODE EVENT MAY ONLY EVER TOUCH DEMO DATA. The test account exists so the e2e harness can pay
   // as a demo customer; a verified test event about a real customer, a real supplier or a real payment
   // is logged and ignored, never allowed to write a real ledger row.
