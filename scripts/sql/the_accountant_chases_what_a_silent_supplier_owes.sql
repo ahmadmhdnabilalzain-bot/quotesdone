@@ -197,7 +197,7 @@ begin
                    || ' (WhatsApp/SMS notice, Arabic governing text)',
           'blast', 'agent_facing', 'affected', 1, 'demo', d.demo,
           'evidence', v_payload || jsonb_build_object('accepted_version', d.agreement_version, 'required_version', 'v' || v_min_ver,
-            'remedy', 'the supplier accepts v' || v_min_ver || ' on the next portal sign-in; the demand goes on the next run after that')));
+            'remedy', 'the supplier accepts v' || v_min_ver || ' on the next portal sign-in; the demand goes on the next run after that'));
       -- The formal final demand.
       elsif v_days >= v_fd and d.legal_stage is null then
         perform public.fn_seat_handoff('accountant', 'sales_engineer', 'nonresponse.final_demand', 'supplier_dues',
@@ -228,7 +228,7 @@ begin
       v_items := v_items || jsonb_build_object('item', 'limitation:' || d.id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
         'title', 'Charge #' || d.id || ' (' || coalesce(d.company_name, 'supplier') || ') is time-barred on ' || v_limit_on
                  || ' (CTL Art 92, five years from the due date) and has not been filed',
-        'blast', 'agent_facing', 'affected', 1, 'demo', d.demo, 'evidence', v_payload || jsonb_build_object('limitation_on', v_limit_on)));
+        'blast', 'agent_facing', 'affected', 1, 'demo', d.demo, 'evidence', v_payload || jsonb_build_object('limitation_on', v_limit_on));
     end if;
     if v_days >= v_esc then
       v_items := v_items || jsonb_build_object('item', 'overdue:' || d.id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
