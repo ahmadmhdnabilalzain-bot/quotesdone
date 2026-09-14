@@ -54,7 +54,7 @@ export function BriefBox() {
 
   return (
     <div className={`${s.shell} text-start`}>
-      <div className={`${s.core} overflow-hidden`}>
+      <div className={`qd-panel rounded-[22px] overflow-hidden`}>
         {/* method="post": handled in JS (preventDefault); the attribute keeps a no-JS submit from
             putting the job description in a GET query string. */}
         <form method="post" onSubmit={(e) => { e.preventDefault(); check(); }}>

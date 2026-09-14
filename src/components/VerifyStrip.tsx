@@ -22,7 +22,7 @@ export function VerifyStrip() {
           </Link>
         }
       />
-      <dl className={`${s.rise} mt-12 grid border-t border-[var(--line2)] md:grid-cols-2 lg:grid-cols-4`}>
+      <dl className={`reveal mt-12 grid border-t border-[var(--line2)] md:grid-cols-2 lg:grid-cols-4`}>
         {items.map((it, i) => (
           <div key={it.k} className="border-b border-[var(--line)] py-7 md:pe-8 lg:border-b-0 lg:[&:not(:first-child)]:border-s lg:[&:not(:first-child)]:ps-8">
             <span className="font-mono text-[12px] tabular text-teal-light">{String(i + 1).padStart(2, '0')}</span>

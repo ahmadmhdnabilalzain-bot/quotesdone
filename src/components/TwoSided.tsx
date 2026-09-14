@@ -10,9 +10,9 @@ type Side = { kicker: string; title: string; bullets: string[]; cta: string };
 
 function Block({ s: side, href, primary }: { s: Side; href: string; primary: boolean }) {
   return (
-    <div className={`${s.shell} ${s.rise} h-full`}>
-      <div className={`${s.core} flex h-full flex-col p-7 md:p-10`}>
-        <span className={`${s.eyebrow} ${primary ? 'text-teal-light' : 'text-paper/80'}`}>{side.kicker}</span>
+    <div className={`${s.shell} reveal h-full`}>
+      <div className={`qd-panel rounded-[22px] flex h-full flex-col p-7 md:p-10`}>
+        <span className={`qd-kicker ${primary ? 'text-teal-light' : 'text-paper/80'}`}>{side.kicker}</span>
         <h3 className="mt-5 text-balance font-head text-[clamp(24px,2.6vw,34px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white rtl:leading-[1.35] rtl:tracking-normal">
           {side.title}
         </h3>

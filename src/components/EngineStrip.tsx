@@ -31,7 +31,7 @@ export function EngineStrip() {
               {(t.raw('brief') as string[][]).map(([k, v, sealed]) => (
                 <div key={k} className="contents">
                   <span className="font-mono text-[11.5px] uppercase tracking-[0.12em] text-faint rtl:font-sans rtl:tracking-normal">{k}</span>
-                  {sealed ? <span className={`${s.seal} w-[min(180px,60%)] text-[18px]`} aria-hidden /> : <span className="text-paper">{v}</span>}
+                  {sealed ? <span className={`redact redact-line !w-[min(180px,60%)] text-[18px]`} aria-hidden /> : <span className="text-paper">{v}</span>}
                 </div>
               ))}
             </div>
@@ -110,7 +110,7 @@ function Cell({ className = '', title, body, children, foot, row = false }: {
   className?: string; title: string; body: string; children: React.ReactNode; foot?: React.ReactNode; row?: boolean;
 }) {
   return (
-    <article className={`${s.cell} ${s.rise} flex flex-col gap-7 p-6 md:p-8 ${row ? 'lg:flex-row lg:items-center lg:gap-14' : ''} ${className}`}>
+    <article className={`qd-panel qd-panel-hover reveal flex flex-col gap-7 p-6 md:p-8 ${row ? 'lg:flex-row lg:items-center lg:gap-14' : ''} ${className}`}>
       <div className={row ? 'order-2 lg:order-1 lg:w-1/2' : ''}>{children}</div>
       <div className={`mt-auto ${row ? 'order-1 lg:order-2 lg:mt-0 lg:w-1/2' : ''}`}>
         <h3 className="text-balance font-head text-[21px] font-semibold leading-snug tracking-[-0.025em] text-white rtl:tracking-normal">{title}</h3>

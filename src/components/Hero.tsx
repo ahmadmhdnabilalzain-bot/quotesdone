@@ -26,19 +26,16 @@ export function Hero() {
 
   return (
     <div className={`${s.heroField} relative isolate overflow-hidden`}>
-      <span className={s.hairGrid} aria-hidden />
+      <span className="grid-tech" aria-hidden />
       <section className="container-x relative grid gap-y-10 pb-16 pt-14 md:pt-24 lg:grid-cols-12 lg:gap-x-8 lg:pb-24 lg:pt-28">
         <div className="relative z-10 flex flex-col items-start text-start lg:col-span-7">
-          <span className={`${s.eyebrow} inline-flex items-center gap-3 text-teal-light`}>
-            <span className="qd-pulse h-1.5 w-1.5 shrink-0 rounded-full bg-teal" aria-hidden />
-            {t('kicker')}
-          </span>
-          <h1 className={`${s.display} mt-7 font-head font-semibold text-white`}>
+          <span className="qd-kicker">{t('kicker')}</span>
+          <h1 className={`text-display-xl mt-7 font-head font-semibold text-white`}>
             <span className="block">
               {t('title1')}
-              <span className={`${s.seal} ms-[0.18em] w-[1.3em]`} aria-hidden />
+              <span className={`redact redact-line ms-[0.18em] !w-[1.3em]`} aria-hidden />
             </span>
-            <span className={`${s.opened} block`}>{t('title2')}</span>
+            <span className={`text-gold block`}>{t('title2')}</span>
           </h1>
           <p className="mt-7 max-w-[54ch] text-pretty text-[clamp(16px,1.55vw,19px)] leading-relaxed text-muted">
             {t('subtitle')}
@@ -58,10 +55,12 @@ export function Hero() {
           </div>
         </div>
 
-        {/* The scene: a block under the copy on phones, a bleed on the inline-end side on desktop. */}
+        {/* The scene owns its column and never crosses the text: a block under the copy on phones;
+            on desktop it starts at its own column's edge and bleeds only outward (inline-end), with
+            its inner edge faded so the slabs never meet the headline. */}
         <div className="relative lg:col-span-5" aria-hidden>
-          <span className={`${s.keyLight} left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2`} />
-          <div className="relative mx-auto aspect-[5/4] w-full max-w-[520px] lg:absolute lg:-inset-y-10 lg:-end-24 lg:mx-0 lg:aspect-auto lg:w-[130%] lg:max-w-none">
+          <span className={`halo left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2`} />
+          <div className="relative mx-auto aspect-[5/4] w-full max-w-[520px] lg:absolute lg:-inset-y-10 lg:start-0 lg:-end-20 lg:mx-0 lg:aspect-auto lg:w-auto lg:max-w-none lg:[mask-image:linear-gradient(to_right,transparent,#000_16%)] lg:rtl:[mask-image:linear-gradient(to_left,transparent,#000_16%)]">
             <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
           </div>
         </div>

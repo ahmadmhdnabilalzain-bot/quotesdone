@@ -29,7 +29,7 @@ export function Categories() {
           </Link>
         }
       />
-      <ul className={`${s.rise} mt-12 grid border-t border-[var(--line2)] md:grid-cols-2 md:gap-x-10`}>
+      <ul className={`reveal mt-12 grid border-t border-[var(--line2)] md:grid-cols-2 md:gap-x-10`}>
         {items.map((it, i) => (
           <li key={it.slug} className="group flex items-center gap-5 border-b border-[var(--line)] py-5">
             <span className="w-6 shrink-0 font-mono text-[12px] tabular text-faint transition-colors duration-300 group-hover:text-teal-light">

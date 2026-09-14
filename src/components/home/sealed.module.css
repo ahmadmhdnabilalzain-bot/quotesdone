@@ -1,17 +1,15 @@
-/* THE SEALED HOMEPAGE — surfaces and motion local to the home sections.
+/* THE SEALED HOMEPAGE — the three pieces the Sealed foundation (globals.css, ui/sealed.tsx) does not
+ * provide yet. Everything else on the homepage uses the foundation's classes (qd-panel, qd-kicker,
+ * redact, qd-seal, qd-scan, qd-meter, halo, grid-tech, reveal, text-h2, text-display-xl).
+ * Each class here is a candidate to promote into the foundation; the list is in the homepage PR.
  *
- * These live here because the Sealed foundation (globals.css, tailwind.config.ts) is being built on
- * its own branch and the homepage may not edit it. Every class below is a candidate to promote into
- * the foundation; the list is in the homepage PR.
- *
- * PERFORMANCE RULES (measured on the live site 14 Sep 2026: Lighthouse mobile ~0.80, the remaining
- * cost was paint from 32 backdrop-filter and 35 filter:blur layers):
- *   - no filter:blur and no backdrop-filter in this file — glows are radial gradients;
- *   - motion is transform/opacity only, and every loop holds its first frame until the visitor's
- *     first interaction (html.qd-awake, set by lib/firstInteraction.ts) and stops under reduced motion.
+ * PERFORMANCE RULES (live site 14 Sep 2026: Lighthouse mobile ~0.80, the remaining cost was paint
+ * from 32 backdrop-filter and 35 filter:blur layers): no filter:blur and no backdrop-filter here;
+ * the only motion is a transform on hover, off under reduced motion.
  */
 
-/* ── grounds ─────────────────────────────────────────────────────── */
+/* The hero ground: the navy field with the teal key light on the scene's side (inline-end) and a
+ * faint gold floor under it, where the chosen quote opens. */
 .heroField {
   background:
     radial-gradient(56% 60% at 80% 34%, rgba(20, 184, 166, 0.17), transparent 70%),
@@ -27,202 +25,15 @@
     linear-gradient(180deg, #0a1720 0%, #050c12 100%);
 }
 
-/* A drafting grid that fades out: the page reads as a drawing sheet, never as a pattern. */
-.hairGrid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(110, 231, 212, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(110, 231, 212, 0.055) 1px, transparent 1px);
-  background-size: 72px 72px;
-  -webkit-mask-image: radial-gradient(ellipse 72% 64% at 50% 28%, #000 20%, transparent 100%);
-  mask-image: radial-gradient(ellipse 72% 64% at 50% 28%, #000 20%, transparent 100%);
-}
-
-/* One teal key light, drawn as a gradient (no blur layer). */
-.keyLight {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 9999px;
-  background: radial-gradient(closest-side, rgba(20, 184, 166, 0.22), transparent 72%);
-}
-
-/* ── the double-bezel surface: a plate sitting in a machined tray ─────── */
+/* The double bezel: a machined tray around a qd-panel (inner radius 22px = 28px − 6px padding). */
 .shell {
   padding: 6px;
   border-radius: 28px;
   background: rgba(110, 231, 212, 0.025);
   box-shadow: inset 0 0 0 1px rgba(110, 231, 212, 0.1);
 }
-.core {
-  position: relative;
-  border-radius: 22px;
-  background: linear-gradient(170deg, #11293a 0%, #0b1a25 62%, #08131b 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(110, 231, 212, 0.1),
-    inset 0 0 0 1px rgba(110, 231, 212, 0.08),
-    0 40px 100px -55px rgba(0, 8, 14, 0.95);
-}
-/* A flat cell for dense grids (bento, verification): same material, no tray. */
-.cell {
-  position: relative;
-  border-radius: 20px;
-  background: linear-gradient(170deg, #0f2432 0%, #0a1720 100%);
-  box-shadow: inset 0 1px 0 rgba(110, 231, 212, 0.08), inset 0 0 0 1px rgba(110, 231, 212, 0.09);
-  transition: box-shadow 0.5s var(--e), transform 0.5s var(--e);
-}
-.cell:hover {
-  box-shadow: inset 0 1px 0 rgba(110, 231, 212, 0.14), inset 0 0 0 1px rgba(110, 231, 212, 0.22);
-}
 
-/* ── type ─────────────────────────────────────────────────────────── */
-.display {
-  font-size: clamp(42px, 7.4vw, 104px);
-  line-height: 0.94;
-  letter-spacing: -0.052em;
-}
-:global([dir='rtl']) .display {
-  font-size: clamp(36px, 6.2vw, 80px);
-  line-height: 1.24;
-  letter-spacing: 0;
-}
-.h2 {
-  font-size: clamp(32px, 4.6vw, 60px);
-  line-height: 1.02;
-  letter-spacing: -0.045em;
-}
-:global([dir='rtl']) .h2 {
-  font-size: clamp(28px, 3.8vw, 48px);
-  line-height: 1.3;
-  letter-spacing: 0;
-}
-/* The reveal clause is set in gold, solid: gold means "opened" everywhere on the site. */
-.opened {
-  color: #e3c065;
-}
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-:global([dir='rtl']) .eyebrow {
-  font-family: var(--font-body);
-  font-size: 13px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-/* ── THE SEAL: the brand motif ──────────────────────────────────────
- * A redaction bar at 0.62em, 2px radius, hatched. On the chosen quote a gold hairline sweeps across
- * it and it slides off toward inline-end (directions.html, Signature motif). */
-.seal {
-  position: relative;
-  display: inline-block;
-  height: 0.62em;
-  border-radius: 2px;
-  background: #1b3445;
-  background-image: repeating-linear-gradient(115deg, rgba(110, 231, 212, 0.1) 0 2px, transparent 2px 6px);
-  box-shadow: inset 0 0 0 1px rgba(110, 231, 212, 0.13);
-  vertical-align: 0.06em;
-}
-.sealSlot {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  border-radius: 3px;
-}
-.unseal {
-  position: absolute;
-  inset: 0;
-  border-radius: 2px;
-  background: #1b3445;
-  background-image: repeating-linear-gradient(115deg, rgba(110, 231, 212, 0.1) 0 2px, transparent 2px 6px);
-  animation: unseal 6s var(--e) infinite;
-}
-.unseal::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: 2px;
-  background: #f6dd8c;
-  box-shadow: 0 0 10px rgba(227, 192, 101, 0.9);
-}
-@keyframes unseal {
-  0%, 22% { transform: translateX(0); }
-  46%, 86% { transform: translateX(104%); }
-  100% { transform: translateX(0); }
-}
-@keyframes unsealRtl {
-  0%, 22% { transform: translateX(0); }
-  46%, 86% { transform: translateX(-104%); }
-  100% { transform: translateX(0); }
-}
-:global([dir='rtl']) .unseal { animation-name: unsealRtl; }
-
-/* ── the drawing read: a scan line over the sheet ───────────────────── */
-.scan {
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 56px;
-  background: linear-gradient(180deg, transparent, rgba(110, 231, 212, 0.14));
-  border-bottom: 1px solid rgba(110, 231, 212, 0.7);
-  animation: scan 5.2s var(--e) infinite;
-}
-@keyframes scan {
-  0% { transform: translateY(-56px); opacity: 0; }
-  12% { opacity: 1; }
-  78% { opacity: 1; }
-  100% { transform: translateY(210px); opacity: 0; }
-}
-
-/* ── confidence meters grow in as the section enters ─────────────────── */
-.meter {
-  transform-origin: left center;
-}
-:global([dir='rtl']) .meter { transform-origin: right center; }
-
-/* ── entrance: scroll-driven, no JS, no blur ─────────────────────────
- * Browsers without view timelines (Safari/Firefox today) just show the content. */
-@keyframes rise {
-  from { opacity: 0; transform: translateY(26px); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes grow {
-  from { transform: scaleX(0); }
-  to { transform: none; }
-}
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .rise {
-      animation: rise 1ms linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 24%;
-    }
-    .meter {
-      animation: grow 1ms linear both;
-      animation-timeline: view();
-      animation-range: entry 10% cover 40%;
-    }
-  }
-}
-
-/* Loops wait for the first interaction and never run under reduced motion. */
-:global(html:not(.qd-awake)) .unseal,
-:global(html:not(.qd-awake)) .scan {
-  animation-play-state: paused;
-}
-@media (prefers-reduced-motion: reduce) {
-  .unseal { animation: none; transform: translateX(104%); }
-  :global([dir='rtl']) .unseal { transform: translateX(-104%); }
-  .scan { animation: none; opacity: 0; }
-  .cell { transition: none; }
-}
-
-/* ── buttons: the island pill with a nested arrow ───────────────────── */
+/* The island button's nested arrow disc; hover moves the disc toward inline-end, not the pill. */
 .arrowDot {
   display: inline-flex;
   height: 30px;

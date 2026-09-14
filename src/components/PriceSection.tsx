@@ -11,7 +11,7 @@ export function PriceSection() {
         <div className="lg:col-span-5">
           <SectionHeader eyebrow={t('eyebrow')} index="05" title={t('title')} sub={t('sub')} />
         </div>
-        <div className={`${s.rise} lg:col-span-7`}>
+        <div className={`reveal lg:col-span-7`}>
           <PriceGuide />
         </div>
       </div>
