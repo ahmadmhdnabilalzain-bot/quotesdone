@@ -196,7 +196,7 @@ Deno.serve(observe('supplier_onboard', async (req) => {
       // this surface can replace the form was never recorded. A swallowed write looks exactly like
       // a feature nobody used.
       await admin.from('agent_actions').insert({
-        agent: 'supplier_onboard', kind: 'supplier_onboard_extract', status: 'logged', risk: 'low',
+        agent: 'sales_engineer', kind: 'supplier_onboard_extract', status: 'logged', risk: 'low',
         title: 'Onboarding extraction',
         detail: { filled: filled.length, missing, chars: text.length, by: email },
       });

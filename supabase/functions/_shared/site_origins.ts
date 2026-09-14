@@ -19,6 +19,18 @@ export const SITE_ORIGINS: readonly string[] = [
   'https://www.quotesdone.ae',
 ];
 
+/**
+ * The portal deep link a document prints: /me?request=<id>&quote=<id> (/ar/me for Arabic), on the
+ * canonical origin. Ids only — never a supplier name. Same format as src/lib/portalLink.ts.
+ */
+export function portalLink(lang: string, requestId?: string, quoteId?: string): string {
+  const base = CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/me' : '/me');
+  if (!requestId) return base;
+  const qs = new URLSearchParams({ request: String(requestId) });
+  if (quoteId) qs.set('quote', String(quoteId));
+  return base + '?' + qs.toString();
+}
+
 const SITE_HOSTS = new Set(SITE_ORIGINS.map((o) => new URL(o).hostname));
 
 /** An https URL on one of the site hosts, or on a Vercel preview. Anything else is refused. */

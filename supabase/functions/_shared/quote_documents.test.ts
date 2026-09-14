@@ -11,11 +11,12 @@
 // document CONTENT (what the page is told to say); the glyph assertion runs whenever the fonts are
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
+import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
 import { quoteDocument, compareDocument, arDuration, arPayment, arUnit, maskContacts, supplierLabel } from './quote_documents.ts';
 import { footerLines, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
+import { portalLink } from './site_origins.ts';
 import { INQUIRY, liveQuotes, labelled, identities } from './quote_documents.fixture.ts';
 
 const BRAND = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/';
@@ -31,10 +32,10 @@ function analysisFor(lang: 'en' | 'ar') {
 }
 function quoteBody(letterIdx: number, lang: 'en' | 'ar') {
   const q = liveQuotes()[letterIdx];
-  return quoteDocument({ quote: q, inquiry: INQUIRY, items: q.items, letter: supplierLabel(letterIdx), lang, maskNames: [q.supplier.company_name, q.supplier.email, q.supplier.phone, q.supplier.website], ...(lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' }) }).body;
+  return quoteDocument({ quote: q, inquiry: INQUIRY, items: q.items, letter: supplierLabel(letterIdx), lang, maskNames: [q.supplier.company_name, q.supplier.email, q.supplier.phone, q.supplier.website], requestUrl: portalLink(lang, INQUIRY.id, q.id), ...(lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' }) }).body;
 }
 function compareBody(lang: 'en' | 'ar') {
-  return compareDocument({ analysis: analysisFor(lang), inquiry: INQUIRY, lang, maskNames: identities(), portalUrl: 'https://quotesdone.com/me', ...(lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' }) }).body;
+  return compareDocument({ analysis: analysisFor(lang), inquiry: INQUIRY, lang, maskNames: identities(), portalUrl: portalLink(lang, INQUIRY.id), linkFor: (qid: string) => portalLink(lang, INQUIRY.id, qid),...(lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' }) }).body;
 }
 function assertNoIdentity(body: unknown) {
   const s = JSON.stringify(body);
@@ -53,8 +54,26 @@ async function assertRenders(body: Record<string, unknown>, lang: 'en' | 'ar') {
   assert(out.meta.pages >= 1);
   if (lang === 'en') assertEquals(out.meta.glyphs_dropped, 0, 'an English document lost characters: ' + JSON.stringify(out.meta.glyphs_dropped_sample));
   if (lang === 'ar' && out.meta.fonts.arabic) assertEquals(out.meta.glyphs_dropped, 0, 'the Arabic font is embedded yet characters were dropped');
-  return out.meta;
+  return out;
 }
+// Every URI link annotation in a rendered PDF, read back out of the file itself.
+async function linksIn(bytes: Uint8Array): Promise<string[]> {
+  const doc = await PDFDocument.load(bytes);
+  const out: string[] = [];
+  for (const p of doc.getPages()) {
+    const annots = p.node.Annots();
+    if (!annots) continue;
+    for (let i = 0; i < annots.size(); i++) {
+      const act = annots.lookup(i, PDFDict).lookupMaybe(PDFName.of('A'), PDFDict);
+      // deno-lint-ignore no-explicit-any
+      const uri: any = act?.get(PDFName.of('URI'));
+      if (uri) out.push(uri.decodeText());
+    }
+  }
+  return out;
+}
+// The deep link format as a literal: src/lib/portalLink.test.mjs expects the same one.
+const deep = (lang: 'en' | 'ar', qid: string) => `https://quotesdone.com${lang === 'ar' ? '/ar' : ''}/me?request=${INQUIRY.id}&quote=${qid}`;
 
 Deno.test('the legal footer names the company, the DET licence and the TDRA permit', () => {
   const [l1, l2] = footerLines(FALLBACK);
@@ -178,3 +197,53 @@ for (const lang of ['en', 'ar'] as const) {
     await assertRenders(body, lang);
   });
 }
+
+for (const lang of ['en', 'ar'] as const) {
+  Deno.test(`comparison report (${lang.toUpperCase()}): every quote row and every recommendation links to its own quote`, async () => {
+    const body = compareBody(lang);
+    const lab = labelled();
+    const want = lab.map((l) => deep(lang, l.quote_id));
+    assertEquals(portalLink(lang, INQUIRY.id, lab[0].quote_id), want[0]);
+    const s = JSON.stringify(body);
+    for (const u of want) assertStringIncludes(s, JSON.stringify(u));
+    assertNoIdentity(body);
+    const out = await assertRenders(body, lang);
+    if (!out || !out.ok) return;
+    const links = await linksIn(out.bytes);
+    for (const u of want) assert(links.includes(u), 'no link on the page to ' + u + ' - found ' + JSON.stringify(links));
+    // A recommended quote links from both tables: "Recommended" and "All quotes received".
+    const a = analysisFor(lang);
+    // deno-lint-ignore no-explicit-any
+    for (const t of a.top3) { const r = a.all_quotes.find((x: any) => x.label === t.label); assertEquals(links.filter((u) => u === deep(lang, r.quote_id)).length, 2, 'recommended ' + t.label); }
+    assert(links.includes(portalLink(lang, INQUIRY.id)), 'the portal note should open this request');
+    // Ids only: the query holds `request` (this inquiry) and, on a quote link, `quote` (a live quote id).
+    const ids = new Set(lab.map((l) => l.quote_id));
+    for (const u of links) {
+      const p = new URL(u).searchParams;
+      assertEquals([...p.keys()].filter((k) => k !== 'request' && k !== 'quote'), [], 'a link carries more than ids: ' + u);
+      assertEquals(p.get('request'), INQUIRY.id);
+      if (p.has('quote')) assert(ids.has(String(p.get('quote'))), 'a link names a quote that is not on this request: ' + u);
+    }
+  });
+}
+
+Deno.test('quotation (EN): links back to its quote on its request', async () => {
+  const q = liveQuotes()[0];
+  const body = quoteBody(0, 'en');
+  // deno-lint-ignore no-explicit-any
+  assertEquals((body as any).quote.link, deep('en', q.id));
+  const out = await assertRenders(body, 'en');
+  if (!out || !out.ok) return;
+  assert((await linksIn(out.bytes)).includes(deep('en', q.id)));
+});
+
+Deno.test('quotation (AR): links back to /ar/me', async () => {
+  const q = liveQuotes()[0];
+  const body = quoteBody(0, 'ar');
+  // deno-lint-ignore no-explicit-any
+  assertEquals((body as any).quote.link, deep('ar', q.id));
+  const out = await assertRenders(body, 'ar');
+  // The link text is Arabic. Without the Arabic font (no --allow-net) it cannot be drawn, so the
+  // annotation is asserted only when the font is embedded.
+  if (out && out.ok && out.meta.fonts.arabic) assert((await linksIn(out.bytes)).includes(deep('ar', q.id)));
+});

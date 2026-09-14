@@ -170,7 +170,8 @@ export type Item = { desc: string; qty: string; unit: string };
 export function quoteRef(inquiryId: string, letter: string) { return 'QD-' + String(inquiryId || '').slice(0, 8).toUpperCase() + '-' + letter; }
 
 /** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
-export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; maskNames?: string[]; date?: string; date_ar?: string }) {
+// requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
   const { quote: q, inquiry: inq, items, letter, lang } = args;
   const ar = lang === 'ar';
   const names = args.maskNames || [];
@@ -186,6 +187,8 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
     payment_terms: tr(q.payment_terms, arPayment), conditions: keep(q.conditions), exclusions: keep(q.exclusions), notes: keep(q.notes),
     total: q.quote_amount,
     source_note: '' as string,
+    // maskDeep leaves a key named `link` alone; every other string has web addresses blanked.
+    link: args.requestUrl || '',
   };
   if (ar && verbatim) quote.source_note = 'النصوص التي كتبها المورّد (الوصف والنطاق والشروط) معروضة كما وردت منه دون ترجمة، حفاظاً على دقة المواصفات. النسخة الإنجليزية متاحة أيضاً.';
   const body: Record<string, unknown> = {
@@ -240,12 +243,19 @@ export function toCsv(head: string[], rows: string[][]): string {
 
 /** The pdf_native body for the comparison report in ONE language. `a` is quote_compare's analysis. */
 // deno-lint-ignore no-explicit-any
-export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; date?: string; date_ar?: string }) {
+// linkFor: a quote id → the portal deep link that opens that quote (site_origins portalLink). With
+// it, every supplier cell in "Recommended" and "All quotes received" links to its own quote rather
+// than to the portal in general. The link carries ids only; the label beside it is the anonymous one.
+export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; linkFor?: (quoteId: string) => string; date?: string; date_ar?: string }) {
   const { analysis: a, inquiry: inq, lang } = args;
   const ar = lang === 'ar';
   const T = (en: string, arx: string) => (ar ? arx : en);
   const qs = arrOf(a.quotes);
   const roster = arrOf(a.all_quotes);
+  // top3 names quotes by label only; the roster carries each label's quote_id.
+  // deno-lint-ignore no-explicit-any
+  const idOf = new Map<string, string>(roster.filter((r: any) => r && r.label && r.quote_id).map((r: any) => [String(r.label), String(r.quote_id)]));
+  const linked = (text: string, quoteId: unknown) => (args.linkFor && quoteId ? { text, link: args.linkFor(String(quoteId)) } : text);
   const received = roster.length || Number(a.total_quotes) || Number(a.considered) || qs.length;
   // deno-lint-ignore no-explicit-any
   const blocks: any[] = [];
@@ -263,7 +273,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     blocks.push({ t: 'h2', text: T('Recommended', 'التوصية') });
     blocks.push({ t: 'table', head: ['#', T('Supplier', 'المورّد'), T('Why', 'السبب'), T('Catch', 'الاعتبار')],
       // deno-lint-ignore no-explicit-any
-      rows: arrOf(a.top3).map((r: any, i: number) => [String(r.rank ?? i + 1), clipCell(labelFor(r.label, lang), 24), clipCell(r.why, 220), clipCell(r.tradeoff, 160) || '—']),
+      rows: arrOf(a.top3).map((r: any, i: number) => [String(r.rank ?? i + 1), linked(clipCell(labelFor(r.label, lang), 24), idOf.get(String(r.label))), clipCell(r.why, 220), clipCell(r.tradeoff, 160) || '—']),
       widths: [0.06, 0.16, 0.46, 0.32] });
   }
   const side = compareTable(a, ar);
@@ -286,7 +296,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     const dur = (v: unknown) => { const c = clipCell(v, 40); return (ar && c ? (arDuration(c) ?? c) : c) || '—'; };
     blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Price', 'السعر'), T('Lead time', 'مدة التنفيذ'), T('Status', 'الحالة')],
       // deno-lint-ignore no-explicit-any
-      rows: roster.map((r: any) => [labelFor(r.label, lang) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), money(r.price), dur(r.lead_time), status(r)]),
+      rows: roster.map((r: any) => [linked(labelFor(r.label, lang) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), r.quote_id), money(r.price), dur(r.lead_time), status(r)]),
       widths: [0.24, 0.22, 0.22, 0.32] });
     // deno-lint-ignore no-explicit-any
     for (const r of roster.filter((x: any) => x.status === 'held')) {
