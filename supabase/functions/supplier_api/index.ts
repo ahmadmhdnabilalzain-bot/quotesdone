@@ -663,55 +663,29 @@ Deno.serve(observe('supplier_api', async (req) => {
     // only CREATES a Checkout Session, it never marks anything paid". Registration was the one
     // money path that never got it. registration_status is now written solely by stripe_webhook
     // on a signature-verified checkout.session.completed event.
+    // PAYMENTS ARE THE ACCOUNTANT'S (founder, 14 Sep 2026). The registration checkout that lived here
+    // moved to supplier_pay, which the accountant owns; this action is a pass-through with the
+    // supplier's own session token so an older portal build keeps working. It creates nothing itself.
     if (action === 'pay_registration') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,email').eq('claimed_by', email).maybeSingle();
+      const pr = await fetch(`${SUPA_URL}/functions/v1/supplier_pay`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' },
+        body: JSON.stringify({ action: 'registration', return_url: body.return_url }) });
+      return new Response(await pr.text(), { status: pr.status, headers: cors });
+    }
+    // A SUPPLIER DISPUTES A CHARGE. The portal is the sales engineer's voice, the figures are the
+    // accountant's: the dispute is handed over (charge.disputed), the accountant recomputes the charge
+    // from the refund record, and the answer comes back to the supplier in the sales engineer's words.
+    if (action === 'dispute_charge') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      // AUDIT 4.2. Read the single source of truth rather than the stored label, which is only
-      // recomputed on write and can be a day stale across the charging start date.
-      const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
-      if (regErr || !(regSt as any)?.ok) return J({ error: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found' }, 503);
-      const reg = regSt as any;
-      if (reg.status === 'paid') return J({ ok: true, already_paid: true, paid_until: reg.paid_until, code: 'reg_paid', params: { until: reg.paid_until || null } });
-      if (reg.status === 'exempt') return J({ ok: true, exempt: true, founding_rank: reg.founding_rank, code: 'reg_exempt', params: { rank: reg.founding_rank }, message: 'Your registration is permanently free - you are supplier number ' + reg.founding_rank + ', inside the founding cohort. There is no fee to pay, now or in future.' });
-      // 6 Sep 2026 (founder): there is no calendar start date - charging_starts is NULL and stays NULL; the
-      // yearly fee begins with the registration after the free count. The sentence comes from the single
-      // source of truth (fn_supplier_registration_state.reason), which states the cohort rule, never a date.
-      if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, code: reg.charging_starts ? null : 'reg_not_due', message: 'There is nothing to pay yet. ' + (reg.charging_starts ? 'The yearly registration fee starts on ' + reg.charging_starts + '.' : (reg.reason ? reg.reason.charAt(0).toUpperCase() + reg.reason.slice(1) + '.' : 'The yearly registration fee applies from the registration after the free count; there is no calendar start date.')) });
-      const fee = Number(reg.fee_due || 0);
-      if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true, code: 'reg_not_due' });
-      const sk = await secretVal('stripe_secret_key');
-      if (!sk) return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503);
-      // Allowlisted (was taken verbatim): back to the site origin the supplier paid from, .ae included.
-      const base = siteReturnBase(req, body.return_url);
-      const form = new URLSearchParams();
-      form.set('mode', 'payment');
-      form.set('success_url', base + '/portal?registration_paid={CHECKOUT_SESSION_ID}');
-      form.set('cancel_url', base + '/portal');
-      form.set('client_reference_id', 'registration:' + sup.id);
-      if (sup.email && /@/.test(String(sup.email))) form.set('customer_email', String(sup.email));
-      form.set('line_items[0][quantity]', '1');
-      form.set('line_items[0][price_data][currency]', 'aed');
-      form.set('line_items[0][price_data][unit_amount]', String(Math.round(fee * 100)));
-      form.set('line_items[0][price_data][product_data][name]', 'QuotesDone supplier registration');
-      form.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
-      // STRIPE ISSUES THE INVOICE (9 Sep 2026). Registration revenue books to 4200 and, like the
-      // reveal fee and the penalty settlement, must produce a document the accountant files and
-      // mirrors to Dropbox. Enabled on all three money-in paths so no revenue stream is the one
-      // without paperwork.
-      form.set('invoice_creation[enabled]', 'true');
-      form.set('invoice_creation[invoice_data][description]',
-        'QuotesDone supplier registration — annual listing fee');
-      form.set('invoice_creation[invoice_data][footer]',
-        'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
-
-      form.set('metadata[kind]', 'supplier_registration');
-      form.set('metadata[supplier_id]', String(sup.id));
-      form.set('payment_intent_data[metadata][kind]', 'supplier_registration');
-      form.set('payment_intent_data[metadata][supplier_id]', String(sup.id));
-      const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
-      const sj = await r.json();
-      if (!r.ok) return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502);
-      return J({ ok: true, url: sj.url, amount: fee, currency: 'AED' });
+      const { data: due } = await admin.from('supplier_dues').select('id,supplier_id').eq('id', Number(body.due_id)).maybeSingle();
+      if (!due || Number(due.supplier_id) !== Number(sup.id)) return J({ error: 'not_found' }, 404);
+      const { data: hid, error: hErr } = await admin.rpc('fn_seat_handoff', {
+        p_from: 'sales_engineer', p_to: 'accountant', p_type: 'charge.disputed', p_subject_table: 'supplier_dues',
+        p_subject_id: String(due.id) + ':' + Date.now(),
+        p_payload: { supplier_id: sup.id, due_id: due.id, reason: String(body.reason || '').slice(0, 1000) } });
+      if (hErr) return J({ error: 'dispute_not_recorded', detail: hErr.message }, 503);
+      return J({ ok: true, handoff_id: hid, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
     }
     if (action === 'inbox') {
       const { data: sup } = await admin.from('leads').select('id,approval_status').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);

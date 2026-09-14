@@ -157,6 +157,37 @@ async function ceoWeeklyTick(): Promise<unknown> {
 // It runs from .github/workflows/kb-embed-backfill.yml instead, which can hold a connection for
 // half an hour. Measured there: 401.6 rows/min, 0 failures.
 
+// THE REFUND LADDER HAD NO SCHEDULER. Measured 14 Sep 2026: nothing called fn_refund_ladder_sweep --
+// pg_cron went on 7 Sep and no edge function picked it up -- so no day-3 chase and no day-5 final call
+// had run since. One RPC: the sales engineer's ladder steps, customer_support's watch for replies, and
+// the CEO's review loop (overdue tasks, held charges). The findings stay in the database; this
+// endpoint is public, so only counts come back.
+async function refundLadderTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_refund_ladder_sweep');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const d = data as any;
+    return { seen: d?.seen, chased: d?.chased, final_calls: d?.final_calls, support_watch: d?.support_watch, ceo_loop: d?.ceo_loop };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE ACCOUNTANT PAYS WHAT THE CEO APPROVED. The seat acts under its own credential
+// (cred_fn_accountant -> fn.accountant), so the run is the accountant's, not this watchdog's.
+async function accountantRefundTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_accountant');
+    if (!secret) return { ok: false, error: 'cred_fn_accountant is not in app_secrets' };
+    const r = await fetch(FN + '/accountant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, action: 'execute_refunds' }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    const j = await r.json().catch(() => null) as any;
+    return { status: r.status, paused: j?.paused ?? null, executed: Array.isArray(j?.results) ? j.results.length : null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function vatThresholdTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_accountant_vat_threshold_check', { p_notify: true });
@@ -447,6 +478,9 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const vat = await vatThresholdTick();
     const ceoWeekly = await ceoWeeklyTick();
     const openrouter = await openrouterMeterTick();
+    // The ladder before the outbox and WhatsApp drains, so a chase written now leaves on this pass.
+    const ladder = await refundLadderTick();
+    const refunds = await accountantRefundTick();
     const whatsapp = await whatsappTick();
     // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
     // first would deliver the previous tick's picture of the estate.
@@ -462,7 +496,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly, ladder, refunds });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -486,6 +520,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly, ladder, refunds });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

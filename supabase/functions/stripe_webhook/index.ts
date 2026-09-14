@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { CHECKOUT_EVENTS, REFUND_EVENTS } from '../_shared/stripe_events.ts';
+import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS } from '../_shared/stripe_events.ts';
 import { observe } from '../_shared/observe.ts';
+import { splitPaid } from '../_shared/payment_handoffs.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -179,11 +180,14 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           else {
             // Push the collection straight into the ledger rather than waiting for the next cron.
             let posted = 0; try { const { data: gp } = await admin.rpc('fn_gl_sync_business'); posted = Number(gp || 0); } catch (_e) { /* cron will catch up */ }
+            // The supplier is thanked by the sales engineer, through customer_support: the accountant
+            // hands the settled payment over rather than writing to the outbox itself (14 Sep 2026).
             try {
               const supId = (settled || [])[0]?.supplier_id;
-              const { data: sup } = await admin.from('leads').select('email,company_name').eq('id', supId).maybeSingle();
-              if (sup?.email && /@/.test(sup.email)) await admin.from('notifications').insert([{ type: 'dues_paid', to_email: sup.email, to_role: 'supplier', lead_id: supId, subject: 'Payment received - thank you', body: 'We have received your payment of AED ' + paidAmount.toFixed(2) + ' settling ' + n + ' commission item(s). Your account is now up to date.' }]);
-            } catch (_e) { /* */ }
+              await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.received',
+                p_subject_table: 'supplier_dues', p_subject_id: payRef,
+                p_payload: { supplier_id: supId, kind: 'supplier_dues', msg_type: 'dues_paid', amount_aed: paidAmount.toFixed(2), items: n } });
+            } catch (_e) { /* the payment is recorded; a failed handoff is visible in agent_actions */ }
             await logRun('ok', { kind: 'supplier_dues', settled: n, amount: paidAmount, gl_entries_posted: posted }, 'Supplier settled ' + n + ' commission due(s) totalling AED ' + paidAmount.toFixed(2) + ' via Stripe (ref ' + payRef + ').');
           }
           return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -222,7 +226,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           const n = (settled || []).length;
           if (n === 0) { await logRun('ok', { kind: 'supplier_registration', duplicate: true, supplier_id: supId }, 'Duplicate Stripe delivery for supplier registration ignored - that supplier was already marked paid.'); }
           else {
-            try { const sup = (settled || [])[0]; if (sup?.email && /@/.test(sup.email)) await admin.from('notifications').insert([{ type: 'registration_paid', to_email: sup.email, to_role: 'supplier', lead_id: supId, subject: 'Registration confirmed - thank you', body: 'We have received your registration payment of AED ' + paidAmount.toFixed(2) + '. Your QuotesDone supplier account is registered for the next 12 months.' }]); } catch (_e) { /* */ }
+            try {
+              await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.received',
+                p_subject_table: 'leads', p_subject_id: payRef,
+                p_payload: { supplier_id: supId, kind: 'supplier_registration', msg_type: 'registration_paid', amount_aed: paidAmount.toFixed(2) } });
+            } catch (_e) { /* the payment is recorded; a failed handoff is visible in agent_actions */ }
             await logRun('ok', { kind: 'supplier_registration', supplier_id: supId, amount: paidAmount }, 'Supplier ' + supId + ' paid the registration fee of AED ' + paidAmount.toFixed(2) + ' via Stripe (ref ' + payRef + ').');
           }
           return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -238,12 +246,16 @@ Deno.serve(observe('stripe_webhook', async (req) => {
               const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
               const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
               const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
-              const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
+              // WHAT STRIPE TOOK, split into the 3% and the processing part (founder, 14 Sep 2026: the
+              // customer pays 3% plus Stripe's fee grossed up, and a refund returns all of it). The 3%
+              // is computed by the checkout and travels as metadata.reveal_fee; nothing is computed here.
+              const paid = splitPaid(s.amount_total, md.reveal_fee);
+              const fee = paid.reveal_fee;
               const amount = Number(md.quote_amount || q.quote_amount);
               const payRef = String(s.payment_intent || s.id);
               await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
               await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-              const { data: tx, error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl }).select('id').single();
+              const { data: tx, error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, total_charged: paid.total_charged, stripe_fee_aed: paid.processing, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl }).select('id').single();
               if (e2) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - transaction insert failed: ' + e2.message + ' | payment_ref: ' + payRef); return new Response('insert failed: ' + e2.message, { status: 500 }); }
               // THE INVOICE (9 Sep 2026). invoice_creation is on for reveal-fee sessions, so a paid
               // session names its Invoice. Awaited rather than fired-and-forgotten, because an edge
@@ -290,6 +302,25 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           // Paid session with no quote_id and no supplier_dues marker - previously silent.
           await logRun('error', { amount_total: s.amount_total, session: String(s.id || '') }, 'PAID BUT NOT RECORDED - checkout session has neither metadata.quote_id nor metadata.kind=supplier_dues');
         }
+      }
+    }
+    // ---- A REVEAL PAYMENT THAT DID NOT COMPLETE (14 Sep 2026) ------------------------------
+    // An expired session or a delayed payment that failed took no money. The accountant hands it to
+    // the sales engineer (payment.failed), who tells the customer nothing was charged and how to try
+    // again; customer_support delivers it. Only reveal sessions (metadata.quote_id) are handed off: a
+    // supplier's own unfinished payment leaves their balance where it was and they see it in Billing.
+    if ((FAILED_CHECKOUT_EVENTS as readonly string[]).includes(String(event.type))) {
+      const s = event.data?.object || {};
+      const md = s.metadata || {};
+      if (md.quote_id && s.payment_status !== 'paid') {
+        const { error: hErr } = await admin.rpc('fn_seat_handoff', {
+          p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.failed',
+          p_subject_table: 'checkout_session', p_subject_id: String(s.id || md.quote_id),
+          p_payload: { quote_id: md.quote_id, inquiry_id: md.inquiry_id || null, customer_id: md.customer_id || null,
+                       reason: String(event.type), session: String(s.id || '') },
+        });
+        await logRun(hErr ? 'error' : 'ok', { type: event.type, quote_id: md.quote_id },
+          hErr ? 'payment.failed handoff refused: ' + hErr.message : 'reveal checkout did not complete; handed to the sales engineer');
       }
     }
     // ---- REFUNDS (2 Aug 2026, Phase 1.7) ---------------------------------------------------

@@ -7,11 +7,13 @@
 // src/components/me and src/components/portal, plus every slug those functions call through
 // /functions/v1/<slug>, one hop further. A new portal call site joins the set by existing.
 //
-// A reachable slug passes only if it is owned by sales_engineer, OR it is a documented PLATFORM
-// SERVICE below. Those are held for other seats by the founder's 9 Sep rulings (payments to the
-// accountant, OTP to a future seat) or are Support's pipe (the standing guard in
-// scripts/sql/the_sales_engineer_owns_both_portals_end_to_end.sql refuses channel slugs on
-// sales_engineer). The portal calls them; no agent speaks through them.
+// A reachable slug passes only if it is owned by sales_engineer, OR it is a PAYMENT function owned by
+// the accountant, OR it is a documented PLATFORM SERVICE below. Payments are the accountant's (founder,
+// 14 Sep 2026: "anything related to payment is under the accountant agent"): the portal calls them,
+// they speak to nobody, and anything they need said goes to the sales engineer as a handoff. Sign-in /
+// OTP / role_guard stay platform services held for a future seat, and Support's pipe stays Support's
+// (the standing guard in scripts/sql/the_sales_engineer_owns_both_portals_end_to_end.sql refuses
+// channel slugs on sales_engineer).
 //
 // Also refused, statically (runs in CI without a token):
 //   * an agent_actions row, a `seat:` or a `p_actor:` literal in a reachable sales-owned function
@@ -32,9 +34,11 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
 const SEAT = 'sales_engineer';
 
+// Payment functions the portal may reach. Each must be owned by the accountant -- never the sales
+// engineer, customer_support, the ceo or anyone else.
+export const ACCOUNTANT_SERVICES = ['stripe_checkout', 'stripe_confirm', 'supplier_pay', 'reveal_invoice', 'quote_pdf', 'refunds_api', 'refund_flow'];
+
 export const PLATFORM_SERVICES = {
-  stripe_checkout: 'payment (accountant)', stripe_confirm: 'payment (accountant)', supplier_pay: 'payment (accountant)',
-  reveal_invoice: 'payment (accountant)', quote_pdf: 'payment (accountant)', refunds_api: 'payment (accountant)', refund_flow: 'payment (accountant)',
   login_otp: 'sign-in / OTP', send_sms: 'sign-in / OTP', mobile_otp: 'sign-in / OTP', voice_otp: 'sign-in / OTP',
   voice_otp_capture: 'sign-in / OTP', sup_dob: 'sign-in / OTP', auth_api: 'sign-in / OTP', role_guard: 'auth',
   transcribe: 'channel (Support pipe)', wa_optin_set: 'channel consent (Support pipe)', ai_gateway: 'model gateway (Support pipe)',
@@ -59,7 +63,15 @@ export function portalReachable() {
 }
 
 const reach = portalReachable();
-const salesOwned = reach.filter((s) => !PLATFORM_SERVICES[s]);
+const salesOwned = reach.filter((s) => !PLATFORM_SERVICES[s] && !ACCOUNTANT_SERVICES.includes(s));
+
+test('the portal reaches payments only through accountant-owned functions', () => {
+  // A reachable function that calls Stripe and is not on the accountant's list is a payment path the
+  // sales engineer would own -- the shape supplier_api.pay_registration had until 14 Sep 2026.
+  const bad = salesOwned.filter((s) => /api\.stripe\.com/.test(fnSource(s)));
+  assert.deepEqual(bad, []);
+  assert.ok(reach.includes('supplier_pay'), 'supplier_pay (the accountant\'s) is no longer reachable from the supplier portal');
+});
 
 test('the portal reach set is found at all', () => {
   // A walk that finds nothing would pass every assertion below. The assistant and both portals' write paths must be in it.
@@ -108,5 +120,9 @@ test('production: every reachable slug is owned by the sales engineer or is a pl
     if (binds.has(s) && binds.get(s) !== SEAT) bad.push(`${s}: llm_seat_binding=${binds.get(s)}`);
   }
   for (const s of reach.filter((x) => PLATFORM_SERVICES[x])) if (owners.get(s) === SEAT) bad.push(`${s}: a ${PLATFORM_SERVICES[s]} slug landed on sales_engineer — the guard refuses it`);
+  for (const s of reach.filter((x) => ACCOUNTANT_SERVICES.includes(x))) {
+    if (owners.get(s) !== 'accountant') bad.push(`${s}: a payment function owned by ${owners.get(s) ?? '(none)'}, not the accountant`);
+    if (binds.has(s) && binds.get(s) !== 'accountant') bad.push(`${s}: llm_seat_binding=${binds.get(s)}`);
+  }
   assert.deepEqual(bad, []);
 });

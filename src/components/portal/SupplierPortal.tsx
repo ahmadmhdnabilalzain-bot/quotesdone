@@ -87,7 +87,8 @@ function RegistrationFeeCard({ token, lang, base }) {
   const [busy, setBusy] = useState(false); const [res, setRes] = useState(null);
   const check = async () => {
     setBusy(true); setRes(null);
-    const j = await call('supplier_api', { action: 'pay_registration', return_url: base() }, token);
+    // Payments are the accountant's (founder, 14 Sep 2026): the registration checkout lives in supplier_pay.
+    const j = await call('supplier_pay', { action: 'registration', return_url: base() }, token);
     if (j && j.ok && j.url) { window.location.href = j.url; return; }
     setBusy(false);
     setRes({ ok: !!(j && j.ok), text: srvMsg(lang, j, t(lang, 'err_generic')) });
@@ -115,6 +116,16 @@ function BillingPanel({ token, lang, receipt }) {
     else setSt({ loading: false, dues: [], total: 0, err: (j && j.error) || 'load_err' });
   };
   useEffect(() => { load(); }, [token]);
+  // A disputed charge goes to the sales engineer, who has the accountant check it against the payment
+  // record; the answer arrives by email from customer_support.
+  const dispute = async (dueId) => {
+    const reason = window.prompt(lang === 'ar' ? 'ما سبب اعتراضك على هذه الرسوم؟' : 'What is wrong with this charge?');
+    if (!reason) return;
+    const j = await call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason }, token);
+    window.alert(j && j.ok
+      ? (lang === 'ar' ? 'استلمنا اعتراضك. نراجع الرسوم مقابل سجل الدفع وسنراسلك.' : 'We have your query. We are checking the charge against the payment record and will write back to you.')
+      : t(lang, 'err_generic'));
+  };
   const pay = async () => {
     setBusy(true);
     const j = await call('supplier_pay', { action: 'checkout', return_url: base() }, token);
@@ -136,7 +147,12 @@ function BillingPanel({ token, lang, receipt }) {
               <div className="font-semibold tabular-nums"><Ltr>{aed(d.amount)}</Ltr></div>
               <div className={S.sub}>{t(lang, 'bill_commission')} <Ltr>{aed(d.commission)}</Ltr>{d.fine ? <> · {t(lang, 'bill_fine')} <Ltr>{aed(d.fine)}</Ltr></> : null}</div>
             </div>
-            <div className={S.sub}>{d.due_date ? <>{t(lang, 'bill_due')} <Ltr>{fmtDate(d.due_date, lang)}</Ltr></> : ''}</div>
+            <div className="text-right">
+              <div className={S.sub}>{d.due_date ? <>{t(lang, 'bill_due')} <Ltr>{fmtDate(d.due_date, lang)}</Ltr></> : ''}</div>
+              <button type="button" className="text-[12px] underline text-muted-foreground" onClick={() => dispute(d.id)}>
+                {lang === 'ar' ? 'الاعتراض على هذه الرسوم' : 'Dispute this charge'}
+              </button>
+            </div>
           </div>
         ))}
       </div>

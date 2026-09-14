@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { splitPaid } from '../_shared/payment_handoffs.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -49,14 +50,20 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }
     const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
     const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
-    const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
+    // What Stripe took, split into the 3% and the processing part (_shared/payment_handoffs.ts). The
+    // refund returns total_charged, so it is recorded on the one row a refund reads.
+    const paid = splitPaid(s.amount_total, md.reveal_fee);
+    const fee = paid.reveal_fee;
     const amount = Number(md.quote_amount || q.quote_amount);
     const payRef = String(s.payment_intent || s.id);
     await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
     await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-    const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: amount, reveal_fee: fee, app_fee: fee, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
+    const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: amount, reveal_fee: fee, app_fee: fee, total_charged: paid.total_charged, stripe_fee_aed: paid.processing, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
     if (e2) { const { data: again } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle(); if (!again) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - insert failed and no row present: ' + e2.message + ' | payment_ref: ' + payRef); return J({ error: 'record_failed', detail: e2.message }, 500); } await logRun('ok', { quote_id: qid, raced: true }, 'insert conflicted but row exists - stripe_webhook won the race'); }
-    try { const sup = await supSel(); if (sup?.email && /@/.test(sup.email)) await admin.from('notifications').insert([{ type: 'quote_accepted', to_email: sup.email, to_role: 'supplier', lead_id: q.supplier_id, inquiry_id: q.inquiry_id, quote_id: qid, subject: 'A customer revealed your quote on QuotesDone', body: 'A customer paid to reveal your contact for: ' + ((inq?.summary) || '') + '. Please respond promptly — under the Supplier Agreement you must respond within ' + (cfg?.refund_window_working_days ?? 5) + ' working days of the reveal; we chase you after 3 with the customer copied, our chief executive makes the final call on day ' + (cfg?.refund_window_working_days ?? 5) + ', and if you are still silent the customer is refunded and the reveal fee plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.' }]); } catch (_e) { /* */ }
+    // 14 Sep 2026: the supplier's "a customer revealed you" message is no longer queued here. The
+    // insert above goes through z20_reveal_receipt, which hands the paid reveal from the accountant to
+    // the sales engineer, whose words customer_support delivers -- the same door the webhook uses, so a
+    // supplier is told once whichever path recorded the payment.
     if (!e2) await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount }, 'recorded by stripe_confirm (browser path)');
     return J({ ok: true, supplier: await supSel(), original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
