@@ -18,6 +18,8 @@ import { SpecHoldPanel } from './supplier/SpecHold';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
 import { call } from './supplier/api';
+import { WhatsAppChoice } from './WhatsAppChoice';
+import { waSignupSettled, waNeedsPrompt } from './whatsappChoiceText';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1415,7 +1417,12 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]);
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState(false); const [smsCode, setSmsCode] = useState(''); const [vbusy, setVbusy] = useState(false);
   const [emailVerified, setEmailVerified] = useState(!!me.owner_email_verified); const [mailSent, setMailSent] = useState(false); const [mailCode, setMailCode] = useState('');
-  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); }); }, []);
+  // wa: kyc's `whatsapp` answer (undefined when not served). waDone: the question ended this session
+  // without a stored answer because WhatsApp verification is unavailable. Registration is not held on
+  // it — save_profile's mandatory six do not include WhatsApp, and email + SMS reach the supplier.
+  const [wa, setWa] = useState(undefined); const [waDone, setWaDone] = useState(false);
+  const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); });
+  useEffect(() => { loadKyc(); }, []);
   const sendSms = async () => { if (!f.phone) { setMsg(t(lang, 'verify_first')); return; } setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: f.phone }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
   const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
@@ -1533,6 +1540,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'contact_name')}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl></div>
       <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</h3>
       <Lbl text={t(lang, 'products_ph')}><Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} /></Lbl>
+    {!isEdit && phoneVerified && !waSignupSettled(wa, waDone) && <div className="mt-3"><WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => { setWaDone(true); loadKyc(); }} /></div>}
       <Lbl text={t(lang, 'services_ph')}><Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} /></Lbl>
       <Lbl text={t(lang, 'desc_ph')}><textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} /></Lbl>
     </>}
