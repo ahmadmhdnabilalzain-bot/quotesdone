@@ -197,12 +197,13 @@ async function selftestLarge(mb: number) {
   const first = await uploadFile(dbx, dest, size, read, { maxChunks: 1 });
   if (first.done) throw new Error('selftest_large: the first run was meant to stop after one chunk');
   const state: UploadState = JSON.parse(JSON.stringify(first.state));   // as it would be stored
+  const stoppedAt = state.offset;
   const second = await uploadFile(dbx, dest, size, read, { state });
   if (!second.done) throw new Error('selftest_large: the resumed run did not finish');
   const expect = await dropboxContentHash(src);
   await verifyUploaded(dbx, dest, second.hash, size);
   const deleted = await dbxDelete(dbx, dest);
-  return { bytes: size, chunks: first.chunks + second.chunks, stopped_at: state.offset, resumed: true,
+  return { bytes: size, chunks: first.chunks + second.chunks, stopped_at: stoppedAt, resumed: true,
            hash_matches_source: second.hash === expect, verified_in_dropbox: true, deleted, retries: first.retries + second.retries };
 }
 
