@@ -196,6 +196,16 @@ begin
     raise exception 'fn_seat_answers_it_finding: % is not an it.finding handoff', p_id;
   end if;
   d := a.detail;
+  -- THE CEO OWNS THE HARNESS, AND CAN CLOSE A REHEARSAL WINDOW A RUN LEFT OPEN. An open window keeps
+  -- the failed-run watcher from paging for anything it covers, so closing it is the remedy, not a risk.
+  if d->>'duty' = 'demo' and (d->'finding_evidence'->>'rehearsal_window_id') is not null then
+    update public.rehearsal_window set ended_at = now()
+     where id = (d->'finding_evidence'->>'rehearsal_window_id')::bigint and ended_at is null;
+    return jsonb_build_object('waiting', 'it_engineer re-verification', 'seat', a.agent, 'duty', 'demo',
+      'remedy', 'closed rehearsal_window ' || (d->'finding_evidence'->>'rehearsal_window_id'),
+      'reply', a.agent || ' closed rehearsal window ' || (d->'finding_evidence'->>'rehearsal_window_id')
+               || ', which its run had left open.');
+  end if;
   return jsonb_build_object(
     'waiting', 'it_engineer re-verification',
     'seat', a.agent,
