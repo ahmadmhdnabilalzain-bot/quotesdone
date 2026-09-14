@@ -67,6 +67,7 @@ const tokenAlive = (t) => {
 async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
 import { t, tf, errText, emirateName } from './portalText';
+import { BrandMark } from '@/components/BrandMark';
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 // The hour is the CUSTOMER'S, not the server's: the portal renders client-side only (the shell
 // returns null until mounted), so a customer opening it at 07:00 in Dubai is not greeted with the
@@ -213,7 +214,7 @@ export function CustomerPortal() {
   // single-card screens with no navigation to render; the marketing-style bar is right there and
   // wrong the moment the customer is actually inside, which is where PortalShell takes over.
   const strip = (<header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-5 bg-background/95 border-b border-border shadow-e1">
-    <a className="flex min-w-0 items-center gap-2 font-head text-base font-semibold tracking-snug text-foreground no-underline" href="/"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-panel border border-primary/30 bg-primary/10 text-[14px] font-bold text-primary">Q</span><span className="truncate">QuotesDone <span className="hidden font-mono text-label uppercase tracking-caps text-primary sm:inline">{t(lang, 'brand_sub')}</span></span></a>
+    <a className="flex min-w-0 items-center gap-2 font-head text-base font-semibold tracking-snug text-foreground no-underline" href="/"><BrandMark className="h-8 w-8 shrink-0" /><span className="truncate">QuotesDone <span className="hidden font-mono text-label uppercase tracking-caps text-primary sm:inline">{t(lang, 'brand_sub')}</span></span></a>
     <div className="flex gap-2 items-center">
       <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
       <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
