@@ -228,7 +228,9 @@ export async function journeySuppliers(ctx) {
     const lines = {};
     for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (lines[l.line_no] ||= {})[f.attr] = FILL[f.attr] ?? (f.type === 'number' ? '10' : (f.options?.[0] ?? `ZZ DEMO ${f.attr} 10 mm`));
     const terms = {};
-    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr];
+    // A customer-named component (component:<name>) is a quote-level term with no fixed code, so
+    // TERM_FILL cannot list it; sent as undefined it stayed missing and the hold never released.
+    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr] ?? (String(t.attr).startsWith('component:') ? `ZZ DEMO ${String(t.attr).slice(10)}: double glazed glass unit 6mm + 12mm air + 6mm` : undefined);
     const f1 = await call('supplier_api', A.jwt, { action: 'spec_fill', quote_id: aQid, values: { lines, terms } });
     rep.step(J, 'filling in the details regenerates the quotation', f1.json?.complete === true ? 'PASS' : 'FAIL',
       `HTTP ${f1.status} complete=${f1.json?.complete} pdf=${f1.json?.pdf_url ? 'yes' : 'no'} still missing=${(f1.json?.missing || []).map((x) => x.attr).join(',') || 'none'} errors=${JSON.stringify(f1.json?.errors || []).slice(0, 120)}`);
@@ -273,6 +275,28 @@ export async function journeyComparison(ctx) {
     const ok = r.json?.ok === true && rows.length >= 2 && arabic;
     if (csv) writeFileSync(`${dir}/c_comparison_${lang}.csv`, csv);
     rep.step(J, `comparison exports as CSV (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} rows=${rows.length} header_arabic=${lang === 'ar' ? arabic : 'n/a'}${ok ? '' : ' ' + r.text.slice(0, 140)}`);
+  }
+  // THE TWO PATHS MUST SEE ONE ANALYSIS. 14 Sep 2026: quote_compare answered the customer's JWT with
+  // a deterministic analysis while compare_pdf/compare_csv (server-to-server, __secret) got
+  // comparison_unavailable. The CSV's quote columns are compareTable(analysis) from the
+  // server-to-server call; they must be exactly quote_compare's non-held quotes, in order, at the
+  // same prices. compare_pdf shares that call (customer_api fetchCompareAnalysis).
+  {
+    const direct = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' }, 180000);
+    const csvR = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang: 'en' }, 180000);
+    const a = direct.json?.analysis;
+    const held = new Set((a?.all_quotes || []).filter((x) => x?.status === 'held').map((x) => String(x.label)));
+    const want = (a?.quotes || []).filter((x) => !held.has(String(x.label)));
+    const parseRow = (line) => { const out = []; let cur = '', qd = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (qd) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') qd = false; else cur += c; } else if (c === '"') qd = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
+    const lines = String(csvR.json?.csv || '').replace(/^﻿/, '').split(/\r\n/).filter(Boolean);
+    const head = lines[0] ? parseRow(lines[0]).slice(1) : [];
+    const priceRow = lines.map(parseRow).find((r) => r[0] === 'Price')?.slice(1) || [];
+    const digits = (s) => Number(String(s).replace(/[^\d.]/g, '')) || 0;
+    const wantPrice = want.map((x) => Math.round(Number(x.price_ex_vat) > 0 ? Number(x.price_ex_vat) : Number(x.price)));
+    const sameCols = want.length >= 2 && head.length === want.length && want.every((x, i) => head[i].includes(String(x.label)));
+    const samePrice = priceRow.length === want.length && priceRow.every((p, i) => Math.round(digits(p)) === wantPrice[i]);
+    rep.step(J, 'compare_pdf/compare_csv see the same analysis as quote_compare with the customer JWT', direct.json?.ok && sameCols && samePrice ? 'PASS' : 'FAIL',
+      `direct HTTP ${direct.status} ok=${direct.json?.ok} degraded=${direct.json?.degraded ?? false} live=${want.length} held=${held.size} | csv cols=[${head.join(' | ')}] want=[${want.map((x) => x.label).join(' | ')}] prices csv=[${priceRow.map(digits).join(',')}] want=[${wantPrice.join(',')}]`);
   }
   const live = (ctx.quoteIds || []).filter((x) => x.status !== 'draft');
   if (live[0]) {

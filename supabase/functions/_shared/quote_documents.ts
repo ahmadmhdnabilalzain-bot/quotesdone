@@ -473,8 +473,11 @@ export function compareTable(a: any, ar: boolean): { head: string[]; rows: strin
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)) };
 }
 /** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */
+// The trigger set is = + - @ AND a leading tab or carriage return (OWASP CSV injection): cells carry
+// supplier-written text (flags, inclusions, exclusions), and a spreadsheet trims a leading tab/CR
+// and then evaluates what follows. Until 14 Sep 2026 only the first four were escaped.
 export function toCsv(head: string[], rows: string[][]): string {
-  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   // The BOM is what makes Excel read the file as UTF-8; without it Arabic opens as mojibake.
   return '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
 }
