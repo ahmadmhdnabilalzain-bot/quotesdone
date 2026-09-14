@@ -169,7 +169,8 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         ))}
       </nav>
       <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
-        <LangSwitch />
+        {/* below sm the switch lives in the mobile sheet: the bar measured 398px in a 375px viewport */}
+        <span className="hidden sm:contents"><LangSwitch /></span>
         {/* A signed-in person does not need a "Sign in" link; the CTA already goes to their portal. */}
         {audience === 'visitor' ? (
           <Link href="/me" className="hidden h-9 items-center px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>

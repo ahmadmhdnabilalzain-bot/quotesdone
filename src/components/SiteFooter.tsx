@@ -32,7 +32,9 @@ export function SiteFooter() {
         <Reveal className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-10">
           <div>
             <Link href="/" aria-label="QuotesDone" className="group inline-flex items-center gap-3 font-head text-[21px] font-semibold tracking-tight text-white">
-              <BrandMark className="h-9 w-9 shrink-0 transition-transform duration-slow ease-expo group-hover:rotate-[8deg]" />
+              <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-panel border border-line2 bg-surf shadow-e1">
+                <BrandMark className="h-11 w-11 origin-[56%_52%] scale-[2.05]" />
+              </span>
               <span>Quotes<span className="text-teal-light">Done</span></span>
             </Link>
             <p className="mt-5 max-w-[36ch] text-copy text-muted">{t('footer.tagline')}</p>

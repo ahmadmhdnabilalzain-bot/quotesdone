@@ -33,8 +33,8 @@
   --glow-gold:0 0 0 1px rgba(246,221,140,.28),0 18px 50px -18px rgba(227,192,101,.7);
   --ring:0 0 0 2px var(--navy),0 0 0 4px var(--teal-light);
 
-  /* grain — one tiny procedural tile, drawn once, reused by every textured surface */
-  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* grain — a 64px noise PNG tile (no SVG filter, no blend mode: a plain-opacity film) */
+  --noise:url("data:image/png;base64,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");
 
   /* type scale (EN). Arabic redefines every one of these below; Tailwind reads the variables. */
   --fs-display-xl:clamp(48px,8.4vw,120px); --lh-display-xl:.92;
@@ -111,7 +111,7 @@ body{background:transparent;color:var(--paper);min-height:100dvh;-webkit-font-sm
   -moz-osx-font-smoothing:grayscale;font-feature-settings:"ss01","cv11";line-height:var(--lh-body)}
 /* the grain: a fixed, static film over the ground (never over text — it sits at z -1) */
 body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background-image:var(--noise);background-size:160px;opacity:.05;mix-blend-mode:overlay}
+  background-image:var(--noise);background-size:64px;opacity:.035}
 [id]{scroll-margin-top:92px}
 #qd-field{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.5}
 @media(max-width:1040px){#qd-field{opacity:.3}}
@@ -146,16 +146,15 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
 .qd-panel{position:relative;isolation:isolate;border-radius:16px;
   background:
     linear-gradient(180deg,rgba(110,231,212,.045),transparent 38%),
-    linear-gradient(170deg,rgba(21,48,63,.78),rgba(10,23,32,.72));
-  border:1px solid var(--line);box-shadow:var(--e2);
-  -webkit-backdrop-filter:blur(10px) saturate(130%);backdrop-filter:blur(10px) saturate(130%)}
+    linear-gradient(170deg,rgba(21,48,63,.78),rgba(10,23,32,.86));
+  border:1px solid var(--line);box-shadow:var(--e2)}
 .qd-panel::before{content:'';position:absolute;inset-inline:16px;top:-1px;height:1px;pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(110,231,212,.45),transparent)}
 .qd-panel-hover{transition:border-color var(--dur-base) var(--e),transform var(--dur-base) var(--e),box-shadow var(--dur-base) var(--e)}
 @media (hover:hover){.qd-panel-hover:hover{border-color:var(--line2);transform:translateY(-2px);box-shadow:var(--e3)}}
 /* grain on a surface (opt-in: large panels, hero frames) */
 .qd-grain::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
-  background-image:var(--noise);background-size:160px;opacity:.07;mix-blend-mode:overlay}
+  background-image:var(--noise);background-size:64px;opacity:.05}
 /* a panel that is lit from within by the pointer (see ui/pointer-light) */
 .qd-lit{--mx:50%;--my:0%}
 .qd-lit::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
@@ -167,8 +166,7 @@ button,a{touch-action:manipulation;-webkit-tap-highlight-color:rgba(20,184,166,.
 .surface{background:linear-gradient(170deg,rgba(21,48,63,.66),rgba(10,23,32,.62));border:1px solid var(--line);box-shadow:var(--key)}
 .surface-hover{transition:border-color var(--dur-base) var(--e),transform var(--dur-base) var(--e)}
 .surface-hover:hover{border-color:var(--line2);transform:translateY(-3px)}
-.glass{background:linear-gradient(168deg,rgba(21,48,63,.58),rgba(10,23,32,.44));border:1px solid var(--line2);
-  -webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);box-shadow:var(--e2)}
+.glass{background:linear-gradient(168deg,rgba(21,48,63,.86),rgba(10,23,32,.8));border:1px solid var(--line2);box-shadow:var(--e2)}
 .depth{box-shadow:var(--e3)}
 .neon-edge{position:relative;isolation:isolate}
 .neon-edge::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
@@ -238,9 +236,8 @@ html:not(.qd-awake) :is(.node-dot,.beam)::after{animation-play-state:paused}
     radial-gradient(36% 42% at 18% 20%,rgba(20,184,166,.20),transparent 60%),
     radial-gradient(30% 36% at 86% 12%,rgba(11,130,118,.18),transparent 62%),
     radial-gradient(44% 50% at 64% 86%,rgba(20,184,166,.10),transparent 64%);
-  filter:blur(40px);animation:qd-aurora 26s var(--e) infinite alternate;will-change:transform,opacity}
-@keyframes qd-aurora{0%{transform:translate3d(-3%,-2%,0) scale(1.05);opacity:.7}50%{transform:translate3d(4%,3%,0) scale(1.14);opacity:1}100%{transform:translate3d(-2%,4%,0) scale(1.08);opacity:.8}}
-@media(max-width:1040px){.aurora{opacity:.6;filter:blur(28px)}}
+  opacity:.9}
+@media(max-width:1040px){.aurora{opacity:.55}}
 
 /* the key light: a volumetric teal cone falling from above a section */
 .qd-keylight{position:relative;isolation:isolate}
@@ -248,7 +245,7 @@ html:not(.qd-awake) :is(.node-dot,.beam)::after{animation-play-state:paused}
   background:
     radial-gradient(38% 55% at 50% 0%,rgba(110,231,212,.22),transparent 70%),
     conic-gradient(from 180deg at 50% -10%,transparent 160deg,rgba(20,184,166,.10) 175deg,rgba(110,231,212,.16) 180deg,rgba(20,184,166,.10) 185deg,transparent 200deg);
-  -webkit-mask-image:linear-gradient(180deg,#000 30%,transparent 90%);mask-image:linear-gradient(180deg,#000 30%,transparent 90%);filter:blur(6px)}
+  -webkit-mask-image:linear-gradient(180deg,#000 30%,transparent 90%);mask-image:linear-gradient(180deg,#000 30%,transparent 90%)}
 /* gradient mesh on the navy ground */
 .qd-mesh{background:
   radial-gradient(40% 60% at 12% 10%,rgba(20,184,166,.18),transparent 70%),
@@ -256,10 +253,9 @@ html:not(.qd-awake) :is(.node-dot,.beam)::after{animation-play-state:paused}
   radial-gradient(50% 60% at 50% 110%,rgba(19,42,58,.9),transparent 70%)}
 .bloom{position:relative;isolation:isolate}
 .bloom::before{content:'';position:absolute;z-index:-1;left:50%;top:0;translate:-50% -38%;width:min(1040px,130%);height:600px;
-  pointer-events:none;background:radial-gradient(closest-side,rgba(20,184,166,.22),transparent 72%);filter:blur(10px)}
+  pointer-events:none;background:radial-gradient(closest-side,rgba(20,184,166,.20),rgba(20,184,166,.07) 45%,transparent 72%)}
 .halo{position:absolute;border-radius:99px;pointer-events:none;z-index:-1;
-  background:conic-gradient(from 0deg,transparent 0deg,rgba(20,184,166,.24) 60deg,transparent 140deg,rgba(110,231,212,.12) 220deg,transparent 300deg);
-  filter:blur(30px);animation:qd-rotate 24s linear infinite;will-change:transform}
+  background:radial-gradient(closest-side,rgba(20,184,166,.20),rgba(20,184,166,.07) 50%,transparent 72%)}
 @keyframes qd-rotate{to{transform:rotate(360deg)}}
 
 /* technical grid + measurement ticks */
@@ -366,7 +362,7 @@ html[lang="ar"] .qd-kicker::before{width:14px;height:2px;border-radius:2px;box-s
 .qd-stagger > :nth-child(8){--i:7}.qd-stagger > :nth-child(9){--i:8}.qd-stagger > :nth-child(n+10){--i:9}
 /* scroll-driven reveal + scroll-linked depth. CSS only, no observer: browsers without
    animation-timeline simply render the content, which is the correct fallback. */
-@keyframes qd-reveal{from{opacity:0;transform:translateY(22px) scale(.99);filter:blur(5px)}to{opacity:1;transform:none;filter:none}}
+@keyframes qd-reveal{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 @keyframes qd-depth{from{transform:translateY(40px) scale(.97)}to{transform:translateY(-24px) scale(1)}}
 @supports (animation-timeline: view()){
   @media (prefers-reduced-motion: no-preference){
@@ -683,7 +679,7 @@ html[lang="ar"] .font-mono.uppercase:not(.rounded-full):not([class*="rounded"]):
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
     transition-duration:.01ms !important;scroll-behavior:auto !important}
-  .aurora,.qd-float,.qd-pulse,.qd-scan,.halo,.marquee,.text-brand-grad,.node-dot::after,.beam::after{animation:none !important}
+  .qd-float,.qd-pulse,.qd-scan,.marquee,.text-brand-grad,.node-dot::after,.beam::after{animation:none !important}
   .qd-magnet{transform:none}
   .qd-seal-loop::before{animation:none !important;transform:translateX(calc(var(--dir) * 104%))}
   .qd-seal-loop > *{animation:none !important;opacity:1}

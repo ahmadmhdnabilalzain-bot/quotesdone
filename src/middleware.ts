@@ -15,6 +15,8 @@ export const config = {
     '/terms', '/(ar|en)/terms', '/privacy', '/(ar|en)/privacy', '/cookie-policy', '/(ar|en)/cookie-policy', '/refund-policy', '/(ar|en)/refund-policy', '/supplier-agreement', '/(ar|en)/supplier-agreement', '/acceptable-use', '/(ar|en)/acceptable-use', '/disclaimer', '/(ar|en)/disclaimer', '/complaints', '/(ar|en)/complaints', '/complaints/status', '/(ar|en)/complaints/status', '/how-we-verify', '/(ar|en)/how-we-verify',
     '/about', '/(ar|en)/about', '/contact', '/(ar|en)/contact', '/faq', '/(ar|en)/faq', '/services', '/(ar|en)/services', '/blog', '/(ar|en)/blog',
     '/how-it-works', '/(ar|en)/how-it-works',
+    // the Sealed brand book (noindex), 14 Sep 2026
+    '/brand', '/(ar|en)/brand',
     '/services/:path*', '/(ar|en)/services/:path*',
     '/blog/:path*', '/(ar|en)/blog/:path*'
   ]

@@ -14,7 +14,7 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-primary text-primary-foreground shadow-e1 hover:bg-[#1ED0BC] hover:shadow-glow-teal',
         reveal: 'bg-gradient-to-b from-gold-light to-gold text-[#2A1F05] font-semibold shadow-e1 hover:shadow-glow-gold',
-        secondary: 'border border-line2 bg-surf/80 text-foreground shadow-e1 backdrop-blur hover:border-line3 hover:bg-surf-hi',
+        secondary: 'border border-line2 bg-surf text-foreground shadow-e1 hover:border-line3 hover:bg-surf-hi',
         outline: 'border border-line2 bg-transparent text-foreground shadow-key hover:border-teal hover:text-teal-light',
         ghost: 'text-muted hover:bg-teal-light/[0.06] hover:text-foreground',
         destructive: 'bg-danger text-navy shadow-e1 hover:bg-danger/90',

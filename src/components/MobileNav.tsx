@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from '@/i18n/routing';
+import { LangSwitch } from './LangSwitch';
 
 type Item = { href: string; label: string };
 
@@ -94,6 +95,7 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
               </div>
             ) : null}
             <div className="mt-auto flex flex-col gap-3 pt-10">
+              <div className="flex justify-center"><LangSwitch /></div>
               {cta && (
                 <Link href={cta.href} onClick={close} className="flex min-h-[52px] items-center justify-center rounded-btn bg-teal text-[16px] font-semibold text-on-teal shadow-e1">
                   {cta.label}
