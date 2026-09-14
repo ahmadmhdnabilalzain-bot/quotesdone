@@ -23,6 +23,14 @@
 --   source has no enqueue rule. fn_it_backup_expected (the IT engineer's independent expected list)
 --   now takes its buckets from the same registry.
 --
+-- 14 SEP 2026, it_engineer (the daily table export restored): the registry names the dated export
+-- files in the backups bucket as a source of their own, and fn_it_backup_expected expects every day's
+-- export from the first day the revived writer ran: that day's _manifest.json, page_0000 of every table
+-- in fn_table_export_list(), and every page actually written. A missed or failed day therefore leaves
+-- expected items that never reach Dropbox, which the IT engineer's backup watch reports. This file
+-- reads public.table_export_run in a SQL-language body, so it is applied AFTER
+-- every_business_table_is_exported_every_day_again.sql.
+--
 -- 14 SEP 2026, accountant (review of #659): fn_it_backup_expected also expects the accountant's files that
 -- fn_enqueue_doc_backups: ACCOUNTING files - the month close, the Mashreq statements, the issued documents
 -- and the year-end pack - so the backup loop verifies each one reached Dropbox. This file stays the ONE
@@ -55,6 +63,7 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
     ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
+    ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list())', null),
     -- The accountant's four (open gaps until 14 Sep 2026, closed by
     -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
     -- '<bucket>/<path>' names its bucket itself, so the bucket column is null for those two.
@@ -192,7 +201,18 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   select 'obj:' || (f->>'bucket') || ':' || (f->>'path'), 'storage', f->>'bucket', f->>'path', null, null,
          'finance:year_end:' || p.year, p.rendered_at
     from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
-   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo';
+   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
+  union all
+  -- ── TABLE EXPORTS (14 Sep 2026): each Asia/Dubai day from the first the revived writer ran ──
+  -- due from 03:00 Dubai that day; the expected-status grace then decides when a gap is a finding
+  select 'obj:backups:' || f.path, 'storage', 'backups', f.path, null, null,
+         'company:table_export:' || to_char(d.day, 'YYYY-MM-DD'), (d.day::date + time '03:00') at time zone 'Asia/Dubai'
+    from generate_series((select min(r.stamp) from public.table_export_run r),
+                         (now() at time zone 'Asia/Dubai')::date, interval '1 day') d(day)
+    cross join lateral (
+      select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
+      union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x
+      union select o.name from storage.objects o where o.bucket_id = 'backups' and o.name like to_char(d.day, 'YYYY-MM-DD') || '/%') f;
 $fn$;
 revoke execute on function public.fn_it_backup_expected() from public, anon, authenticated;
 
