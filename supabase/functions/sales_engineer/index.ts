@@ -450,6 +450,19 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // "signage" and not "design". Reused, not re-written.
       let trades = arr(body.trades);
       if (!trades.length) trades = arr(inq?.trades);
+      // STORED TRADES ARE INTAKE SLUGS, THE MATCHER SPEAKS TAXONOMY CODES (14 Sep 2026). 39 of the 56
+      // intake slugs are not taxonomy codes ('glass' is 'glazing', 'fitout' is 'interior_fitout' ...),
+      // and passing them through made fn_match_capability answer zero for every request in those
+      // categories — measured: ['glass'] matched nobody while ['aluminium'] matched both demo
+      // suppliers. public.fn_taxonomy_trades_for is the one resolver
+      // (scripts/sql/every_intake_trade_resolves_to_the_capability_vocabulary.sql). It is EXACT ONLY
+      // (founder, 14 Sep 2026: "either exact match or no match"): a slug resolves to itself and to the
+      // same trade's taxonomy code, never to a neighbour. A category nobody is registered for matches
+      // nobody, and the no-match path below says so honestly.
+      if (trades.length) {
+        const { data: codes, error: resErr } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: trades });
+        if (!resErr && Array.isArray(codes)) trades = arr(codes);
+      }
       const brief = [inq?.summary, inq?.raw_input, inq?.category, arr(inq?.keywords).join(' '), body.text]
         .map((x) => String(x ?? '')).filter(Boolean).join(' ').slice(0, 4000);
       if (!trades.length && brief) {
