@@ -84,17 +84,25 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
   }
 
   const [specRes, qRes] = await Promise.all([
-    admin.from('category_specs').select('label, compliance_checklist').eq('category', category).maybeSingle(),
+    admin.from('category_specs').select('label, compliance_checklist, fields').eq('category', category).maybeSingle(),
     admin.rpc('fn_category_questions', { p_category: category, p_lang: lang, p_limit: 14 }),
   ]);
   const spec: any = specRes.data || {};
-  // The questions the interview asks first, mandatory ones only, skipping the emirate question when
-  // the visitor already named one — asking what they just said is the dumb-form behaviour.
-  const questions = ((qRes.data as any[]) || [])
-    .filter((q) => q && q.question && q.mandatory)
-    .filter((q) => !(emirate && q.field_key === 'project-emirate'))
-    .slice(0, 3)
+  // Measured live 14 Sep, "gypsum false ceiling, 120 sqm, Dubai": fn_category_questions answered with
+  // the generic procurement frame ("What site, client, facility, user group or operating context
+  // applies?") — true of every trade, useless to a visitor. category_specs.fields carries the trade's
+  // own required questions in plain words, EN and AR (396/396 since
+  // the_intake_asks_every_question_in_plain_words.sql), so those come first; the generic frame is the
+  // fallback for a category with no plain questions. The location question is skipped when the visitor
+  // already named an emirate — asking what they just said is the dumb-form behaviour.
+  const isLocation = (k: string) => emirate !== null && /^(location|project-emirate|emirate)$/.test(k);
+  const plain = (Array.isArray(spec.fields) ? spec.fields : [])
+    .filter((f: any) => f && f.required && f[`question_plain_${lang}`] && !isLocation(String(f.key || '')))
+    .map((f: any) => ({ key: String(f.key || ''), question: String(f[`question_plain_${lang}`]) }));
+  const generic = ((qRes.data as any[]) || [])
+    .filter((q) => q && q.question && q.mandatory && !isLocation(String(q.field_key || '')))
     .map((q) => ({ key: String(q.field_key || ''), question: String(q.question) }));
+  const questions = (plain.length ? plain : generic).slice(0, 3);
 
   const cl = spec.compliance_checklist;
   const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
