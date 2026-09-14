@@ -323,8 +323,14 @@ export async function journeyPayment(ctx) {
     await p.goto(sess.json.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await p.locator('#cardNumber').fill('4242 4242 4242 4242'); await p.locator('#cardExpiry').fill('12 / 34');
     await p.locator('#cardCvc').fill('123'); await p.locator('#billingName').fill('ZZ DEMO Customer').catch(() => {});
+    await shot(p, ctx.dir, 'd_stripe_checkout_filled');
     await p.locator('button[type=submit]').click();
     await p.waitForURL(/quotesdone\.(com|ae)/, { timeout: 90000 }).catch(() => {});
+    await shot(p, ctx.dir, 'd_after_pay');
+    rep.step(J, 'Stripe test checkout completed and returned to the portal', /quotesdone\.(com|ae)/.test(p.url()) ? 'PASS' : 'FAIL', `landed on ${p.url().split('?')[0].slice(0, 80)}`);
+  } catch (e) {
+    await shot(p, ctx.dir, 'd_checkout_error');
+    rep.step(J, 'Stripe test checkout completed and returned to the portal', 'FAIL', String(e.message).split('\n')[0].slice(0, 200));
   } finally { await b.close(); }
   const tx = await waitFor(async () => (await read(`select id, fee_status, payment_ref, reveal_fee, processing_fee, total_charged, quote_amount,
       stripe_invoice_id is not null has_invoice, doc_path from public.transactions where quote_id = ${q(live.id)}`))[0], { timeoutMs: 90000 });
@@ -332,11 +338,14 @@ export async function journeyPayment(ctx) {
   rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL',
     JSON.stringify({ fee_status: tx?.fee_status, payment_ref: String(tx?.payment_ref || '').slice(0, 5) + '…' }));
   if (!tx) return;
-  // #616's formula (_shared/reveal_fee.ts revealCharge): base = round(rate x quote) to the fils;
-  // total = ceil((base + AED 1) / (1 - 3.9%)) - the Checkout Session charges the safest (international) rate.
+  // #616's formula (_shared/reveal_fee.ts revealCharge on main): base = round(rate x quote) to the fils;
+  // total = ceil((base + fixed) / (1 - pct)), where the Checkout Session charges the safest
+  // (international) basis: pct = (3.9% card + 0.5% invoicing) x 1.05 VAT on Stripe's fees = 4.62%,
+  // fixed = AED 1.00 x 1.05 = AED 1.05. Measured 14 Sep 2026: 118,500 x 3% = 3,555 -> 3,728.30.
   const rate = Number((await read('select standard_reveal_rate r from public.pricing_config where id = 1'))[0].r);
+  const PCT = (0.039 + 0.005) * 1.05, FIXED_F = 105;
   const baseF = Math.round(Number(tx.quote_amount) * rate * 100);
-  const totalF = Math.ceil((baseF + 100) / (1 - 0.039) - 1e-9);
+  const totalF = Math.ceil((baseF + FIXED_F) / (1 - PCT) - 1e-9);
   const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.total_charged) * 100) === totalF
     && Math.round((Number(tx.reveal_fee) + Number(tx.processing_fee)) * 100) === totalF;
   rep.step(J, "the fee matches #616's formula (3% + card processing, no VAT)", ok ? 'PASS' : 'FAIL',
@@ -348,7 +357,7 @@ export async function journeyInvoiceRefund(ctx) {
   const { rep } = ctx;
   const J = 'e invoice+refund';
   if (!ctx.paid) {
-    rep.step(J, 'invoice appears in the portal', 'SKIP', 'needs a paid reveal (journey d), which needs the Stripe test keys');
+    rep.step(J, 'invoice appears in the portal', 'SKIP', 'needs a paid reveal, and journey d did not record one (see its steps)');
     rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'needs a paid reveal. Built and merged: customer_api request_refund, fn_refund_open_from_customer, the 5-working-day ladder, ceo_agent decide. NOT merged on main: a CEO refund checklist in code (refund_ceo_check / refund_ceo_review exist as tables only).');
     return;
   }
