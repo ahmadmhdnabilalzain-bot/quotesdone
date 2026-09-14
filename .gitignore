@@ -60,3 +60,7 @@ $WT/
 # so every CI checkout printed "fatal: No url found for submodule path" and every job — including
 # the green ones — ended with "git failed with exit code 128". Scratch, never source of truth.
 .claude/worktrees/
+
+# End-to-end harness reports (scripts/e2e/run.mjs): markdown + screenshots of one run against the
+# live site. Evidence for a PR, never source — they are written outside the repository by default.
+e2e-reports/

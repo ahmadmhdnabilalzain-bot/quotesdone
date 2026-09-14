@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -31,7 +32,11 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     const body = await req.json().catch(() => ({}));
     const sid = String(body.session_id || '');
     if (!sid) return J({ error: 'missing session_id' }, 400);
-    const sk = await secret('stripe_secret_key');
+    // A demo account's session lives in the Stripe TEST account, so it is read with the test key
+    // and never the live one (see stripe_checkout; the mode is derived from the account, 14 Sep 2026).
+    const keys = stripeKeyNames(isDemoEmail(user.email));
+    const sk = await secret(keys.secret);
+    if (!sk && keys.mode === 'test') { await logRun('ok', { session_id: sid, mode: 'test' }, 'demo account: stripe test keys are not configured - confirmation refused, live key never used'); return J({ error: 'stripe_test_not_configured', mode: 'test' }, 200); }
     if (!sk) { await logRun('error', { session_id: sid }, 'CONFIRM BLOCKED - stripe_secret_key missing from app_secrets'); return J({ error: 'stripe_not_configured' }, 200); }
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sid), { headers: { 'Authorization': 'Bearer ' + sk } });
     const s = await r.json();
