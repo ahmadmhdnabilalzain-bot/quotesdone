@@ -43,5 +43,10 @@
 "licensed_heading":{"en":"Licensed in Dubai",
 "ar":"مرخّصة في دبي"},
 "valid_until":{"en":"Valid until",
-"ar":"سارية حتى"}
+"ar":"سارية حتى"},
+"tdra_nol_no":"NOL-26-100000665",
+"tdra_nol_issued":"2026-09-14",
+"tdra_nol_expiry":"2027-09-14",
+"tdra_nol":{"en":"TDRA e-activity approval",
+"ar":"موافقة هيئة تنظيم الاتصالات والحكومة الرقمية على النشاط الإلكتروني"}
 }
