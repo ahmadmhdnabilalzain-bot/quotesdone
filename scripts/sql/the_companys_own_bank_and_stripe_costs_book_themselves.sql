@@ -22,9 +22,10 @@
 -- (6300 General & Administrative against 1000 Cash & Bank). fn_accountant_cost_booking_tick runs both
 -- and fn_gl_sync_business, so the P&L is complete without anyone running anything. TEST-mode Stripe
 -- fees and ZZ DEMO statements are only ever drafts.
--- 14 Sep 2026 (section 3b): fn_accountant_book_owner_capital books a transfer from the licence holder's own
--- account as Dr 1000 / Cr 3000 Owner Capital (founder_instruction 357), under the same hold, and makes every
--- other unmatched credit an accountant finding. Probe: scripts/checks/owner_capital_fixtures.sql.
+-- 14 Sep 2026 (section 3b): fn_accountant_book_bank_credits books a transfer from the licence holder's own
+-- account as Dr 1000 / Cr 3000 Owner Capital (founder_instruction 357) and the bank's month-end interest as
+-- Dr 1000 / Cr 7000 Bank Interest Income, under the same hold, and makes every other unmatched credit an
+-- accountant finding. Probe: scripts/checks/owner_capital_fixtures.sql.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_companys_own_bank_and_stripe_costs_book_themselves.sql --apply --ddl
 
@@ -156,8 +157,19 @@ revoke execute on function public.fn_accountant_book_bank_charges() from public,
 --   * any other credit still unmatched once the payout window has passed is an accountant finding. Nothing
 --     is guessed.
 insert into public.gl_settings (key, num_value, txt_value) values
-  ('owner_transfer_pattern', null, 'transfer|p_?2_?p')
+  ('owner_transfer_pattern', null, 'transfer|p_?2_?p'),
+  ('bank_interest_pattern', null, '(^|[^a-z])interest([^a-z]|$)'),
+  ('bank_interest_reference_pattern', null, 'CID[A-Z]*AED [0-9]{5}')
 on conflict (key) do nothing;
+
+-- BANK INTEREST (14 Sep 2026). Mashreq credits interest at month end as its own row: the description reads
+-- "Interest" and the reference is the bank's interest type (CID...AED nnnnn), where a transfer carries a
+-- transfer reference. Both markers are settings above. It is income but NOT a taxable supply, so it is booked
+-- outside the 4xxx range the VAT watch counts. The chart's only interest account is 4400 Late Payment Fines &
+-- Interest (4xxx, and a different thing), so 7000 is added: the first account of an "other income" range.
+insert into public.gl_accounts (code, name, type, subtype, normal_balance) values
+  ('7000', 'Bank Interest Income', 'revenue', 'other', 'C')
+on conflict (code) do nothing;
 
 create table if not exists public.bank_line_owner_ruling (
   line_id                bigint primary key references public.bank_statement_line(id),
@@ -184,7 +196,7 @@ returns boolean language sql stable security definer set search_path to 'public'
 $fn$;
 revoke execute on function public.fn_bank_line_is_owner_transfer(text) from public, anon, authenticated;
 
-create or replace function public.fn_accountant_book_owner_capital()
+create or replace function public.fn_accountant_book_bank_credits()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_hold boolean := coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0;
@@ -197,7 +209,7 @@ begin
             where b.amount_aed > 0
               and not exists (select 1 from public.stripe_payout p where p.bank_line_id = b.id)
             order by b.value_date, b.id loop
-    v_booked := exists (select 1 from public.gl_journal g where g.source = 'owner_capital' and g.source_ref = l.id::text and g.status in ('draft', 'posted'));
+    v_booked := exists (select 1 from public.gl_journal g where g.source in ('owner_capital', 'bank_interest') and g.source_ref = l.id::text and g.status in ('draft', 'posted'));
     if l.ruling = 'loan' then
       v_items := v_items || jsonb_build_object('item', 'loan:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
         'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' was ruled a loan from the founder, and the chart has no owner-loan account'
@@ -219,6 +231,18 @@ begin
         perform public.fn_gl_entry(l.value_date, v_memo, 'owner_capital', l.id::text, v_lines, 'accountant');
         n_posted := n_posted + 1;
       end if;
+    elsif l.description ~* coalesce((select txt_value from public.gl_settings where key = 'bank_interest_pattern'), '(^|[^a-z])interest([^a-z]|$)')
+      and l.description ~ coalesce((select txt_value from public.gl_settings where key = 'bank_interest_reference_pattern'), 'CID[A-Z]*AED [0-9]{5}') then
+      v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
+                                   jsonb_build_object('account', '7000', 'credit', l.amount_aed));
+      v_memo := case when l.account = 'zz_demo' then 'ZZ DEMO ' else '' end || 'Bank interest credited (' || l.account || ', ' || l.value_date || '): ' || left(l.description, 120);
+      if v_hold or l.account = 'zz_demo' then
+        perform public.fn_accountant_draft_entry(l.value_date, v_memo, 'bank_interest', l.id::text, v_lines);
+        n_draft := n_draft + 1;
+      else
+        perform public.fn_gl_entry(l.value_date, v_memo, 'bank_interest', l.id::text, v_lines, 'accountant');
+        n_posted := n_posted + 1;
+      end if;
     elsif l.value_date + v_after < v_today then
       v_items := v_items || jsonb_build_object('item', 'unrecognised:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
         'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' is neither a Stripe payout nor a transfer from the licence holder''s own account, so it is not booked',
@@ -230,7 +254,7 @@ begin
   return jsonb_build_object('posted', n_posted, 'drafted', n_draft, 'hold', v_hold,
     'findings', public.fn_accountant_duty_settle('bank_credits', v_items));
 end $fn$;
-revoke execute on function public.fn_accountant_book_owner_capital() from public, anon, authenticated;
+revoke execute on function public.fn_accountant_book_bank_credits() from public, anon, authenticated;
 
 -- ── 4. THE DUTY ──────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_accountant_cost_booking_tick()
@@ -239,7 +263,7 @@ declare v_sync int; v_bank jsonb; v_cap jsonb;
 begin
   v_sync := public.fn_gl_sync_business();
   v_bank := public.fn_accountant_book_bank_charges();
-  v_cap := public.fn_accountant_book_owner_capital();
-  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank, 'owner_capital', v_cap);
+  v_cap := public.fn_accountant_book_bank_credits();
+  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank, 'bank_credits', v_cap);
 end $fn$;
 revoke execute on function public.fn_accountant_cost_booking_tick() from public, anon, authenticated;
