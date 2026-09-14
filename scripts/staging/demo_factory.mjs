@@ -1053,6 +1053,8 @@ export async function teardown(run) {
     ...['refund_case', 'refund_ceo_check', 'refund_ceo_review', 'refund_incident', 'refund_ladder_evidence'].map((t) => [t,
       `delete from public.${t} where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})
           or refund_id in (select id from public.refunds where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST})`]),
+    // trg_emit_refund_requested puts the case on the bus keyed on the refund id (entity_type 'refund').
+    ['company_event (refund)', `delete from public.company_event where entity_type='refund' and entity_id in (select id::text from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}) or quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST})`],
     ['refunds', `delete from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}) or quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST}`],
     // The accountant's reveal-invoice handoff to the sales engineer targets the transaction (14 Sep 2026).
     ['agent_actions (transaction)', `delete from public.agent_actions where target_table='transactions' and target_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
