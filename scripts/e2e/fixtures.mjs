@@ -114,7 +114,8 @@ async function passwordSession(email, password) {
  * A customer with everything the account rule (_shared/account_rule.ts) requires: a name, an 18+ date
  * of birth, a verified email AND mobile, and the CURRENT customer terms accepted and signed.
  */
-export async function makeDemoCustomer(run, { locale = 'en', label = 'Customer' } = {}) {
+export async function makeDemoCustomer(run, opts = {}) {
+  const { locale = 'en', label = 'Customer' } = opts;
   const email = demoEmail(run, 'cust');
   const phone = demoMobile();
   const fullName = `ZZ DEMO ${label} ${run.tag}`;
@@ -123,6 +124,18 @@ export async function makeDemoCustomer(run, { locale = 'en', label = 'Customer' 
   steps.save = await call('kyc', u.jwt, { action: 'save_customer', user_kind: 'customer', email, full_name: fullName, phone, dob: '1990-01-15' });
   steps.email_otp = await verifyEmailByOtp(email, 'customer');
   await write(`update public.customers set phone_verified = true, locale = ${q(locale)} where email = ${q(email)}`, 'demo mobile verified');
+  if (opts.stopBeforeWhatsApp) {
+    // Stopped at the sign-up step the WhatsApp question belongs to: profile saved, email and mobile
+    // verified, NOT answered, terms NOT accepted. Tracked for teardown like every other fixture.
+    const id = (await read(`select id from public.customers where email = ${q(email)}`))[0]?.id;
+    if (!id) throw new Error(`customer row not created for ${email}: save HTTP ${steps.save.status} ${steps.save.text}`);
+    run.ids.customers.add(id);
+    const session = await passwordSession(email, u.password);
+    return { kind: 'customer', email, phone, fullName, locale, customerId: id, steps, session, jwt: session.access_token };
+  }
+  // Sign-up asks "Is <mobile> also your WhatsApp number?" and kyc accept_terms refuses without the
+  // answer (15 Sep 2026). 'same' = the verified fixture mobile above; notices to it are captured.
+  steps.whatsapp = await call('kyc', u.jwt, { action: 'whatsapp_choose', user_kind: 'customer', email, opt: 'same' });
   steps.terms = await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'customer', email });
   const row = (await read(`select c.id, c.full_name, c.date_of_birth, c.email_verified, c.phone_verified, c.is_demo,
       c.tos_version, (select value from public.app_secrets where key='customer_terms_version') as current_terms,

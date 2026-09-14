@@ -730,7 +730,7 @@ function Dashboard({ token, lang, onExpired }) {
   // The one-time WhatsApp question for suppliers registered before it existed (founder, 14 Sep 2026).
   // Holds the kyc state while the card is due, null otherwise. It never blocks a tab.
   const [waPrompt, setWaPrompt] = useState(null);
-  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (waNeedsPrompt(k && k.whatsapp)) setWaPrompt(k); }).catch(() => {}); }, [token]);
+  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (waNeedsPrompt(k)) setWaPrompt(k); }).catch(() => {}); }, [token]);
   // Which agreement version this supplier accepted, against the live one (supplier_api me).
   const [me, setMe] = useState(null);
   useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => setMe((j && j.supplier) || null)).catch(() => {}); }, [token]);
@@ -1516,10 +1516,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]);
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState(false); const [smsCode, setSmsCode] = useState(''); const [vbusy, setVbusy] = useState(false);
   const [emailVerified, setEmailVerified] = useState(!!me.owner_email_verified); const [mailSent, setMailSent] = useState(false); const [mailCode, setMailCode] = useState('');
-  // wa: kyc's `whatsapp` answer (undefined when not served). waDone: the question ended this session
-  // without a stored answer because WhatsApp verification is unavailable. Registration is not held on
-  // it — save_profile's mandatory six do not include WhatsApp, and email + SMS reach the supplier.
-  const [wa, setWa] = useState(undefined); const [waDone, setWaDone] = useState(false);
+  // wa: kyc's `whatsapp` answer. Registration waits for it (founder, 15 Sep 2026: "It's in the sign
+  // up"): save() lists it as missing and supplier_api save_profile refuses without it (reg_whatsapp).
+  const [wa, setWa] = useState(undefined);
   const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); });
   useEffect(() => { loadKyc(); }, []);
   const sendSms = async () => { if (!f.phone) { setMsg(t(lang, 'verify_first')); return; } setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: f.phone }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
@@ -1566,6 +1565,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       const missing = [];
       if (!phoneVerified) missing.push('reg_mobile');
       if (!emailVerified) missing.push('reg_email');
+      if (!waSignupSettled(wa)) missing.push('reg_whatsapp');
       if (!licOnFile && !String(f.trade_license_no || '').trim()) missing.push('reg_licence');
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
       if (!terms) missing.push('reg_terms');
@@ -1633,7 +1633,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       : <div className={S.frow}><Lbl text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'email_code')} value={mailCode} onChange={(e) => setMailCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
     <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Lbl></div>
     {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Lbl text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
-    {!isEdit && phoneVerified && !waSignupSettled(wa, waDone) && <div className="mt-3"><WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => { setWaDone(true); loadKyc(); }} /></div>}
+    {!isEdit && phoneVerified && !waSignupSettled(wa) && <div className="mt-3"><WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => loadKyc()} /></div>}
 
     {isEdit && <>
       <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'contact_name')}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl></div>

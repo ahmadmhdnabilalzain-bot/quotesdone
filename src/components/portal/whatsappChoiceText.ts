@@ -19,19 +19,25 @@ export type WaState = { opt: WaOpt | null; phone: string | null; verified: boole
 
 const EN = {
   q_title: 'Is this number on WhatsApp?',
+  // Sign-up and the dashboard card name the number (founder, 15 Sep 2026): "Is <mobile> also your
+  // WhatsApp number?". Two halves around the number, so the Arabic needs no Latin placeholder.
+  q_mobile_pre: 'Is ',
+  q_mobile_post: ' also your WhatsApp number?',
   q_sub: 'We can send your updates on WhatsApp as well as by email. Your email stays how you sign in.',
   mobile_label: 'Your verified mobile:',
-  opt_same: 'Yes, this number',
-  opt_other: 'No, it is a different number',
+  opt_same: 'Yes',
+  opt_other: 'No, my WhatsApp is a different number',
   opt_none: 'I do not use WhatsApp',
   continue: 'Continue',
   saving: 'Saving…',
   other_label: 'Your WhatsApp number',
   other_ph: '+971 50 123 4567',
-  send_code: 'Send code over WhatsApp',
+  send_code: 'Send code',
   sending: 'Sending…',
-  code_sent: 'We sent a code to this number on WhatsApp.',
-  code_label: 'Code from WhatsApp',
+  code_sent: 'We sent a 6-digit code to this number on WhatsApp.',
+  // Said whenever the code did not travel on WhatsApp — Verify refused it, or delivered by SMS itself.
+  code_sent_sms: 'WhatsApp cannot deliver our codes yet, so we sent the 6-digit code by SMS to this number.',
+  code_label: 'Verification code',
   verify: 'Verify',
   verifying: 'Verifying…',
   change_number: 'Use a different number',
@@ -62,19 +68,22 @@ export type WaKey = keyof typeof EN;
 
 const AR: Record<WaKey, string> = {
   q_title: 'هل هذا الرقم على WhatsApp؟',
+  q_mobile_pre: 'هل الرقم ',
+  q_mobile_post: ' هو أيضًا رقم WhatsApp الخاص بك؟',
   q_sub: 'يمكننا إرسال تحديثاتك على WhatsApp إلى جانب البريد الإلكتروني. يبقى بريدك هو وسيلة الدخول.',
   mobile_label: 'رقم جوالك الموثّق:',
-  opt_same: 'نعم، هذا الرقم',
-  opt_other: 'لا، رقم آخر',
+  opt_same: 'نعم',
+  opt_other: 'لا، رقم WhatsApp الخاص بي مختلف',
   opt_none: 'لا أستخدم WhatsApp',
   continue: 'متابعة',
   saving: 'جارٍ الحفظ…',
   other_label: 'رقم WhatsApp الخاص بك',
   other_ph: '+971 50 123 4567',
-  send_code: 'أرسل الرمز عبر WhatsApp',
+  send_code: 'أرسل الرمز',
   sending: 'جارٍ الإرسال…',
-  code_sent: 'أرسلنا رمزًا إلى هذا الرقم على WhatsApp.',
-  code_label: 'الرمز الوارد على WhatsApp',
+  code_sent: 'أرسلنا رمزًا من ٦ أرقام إلى هذا الرقم على WhatsApp.',
+  code_sent_sms: 'لا يستطيع WhatsApp إيصال رموزنا بعد، لذلك أرسلنا الرمز المكوّن من ٦ أرقام برسالة نصية إلى هذا الرقم.',
+  code_label: 'رمز التحقق',
   verify: 'تحقّق',
   verifying: 'جارٍ التحقق…',
   change_number: 'استخدم رقمًا آخر',
@@ -123,17 +132,20 @@ export const waErrorText = (lang: WaLang, j: any): string => waText(lang, waErro
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const waUnavailable = (j: any): boolean => !!j && (j.error === 'whatsapp_unavailable' || j.code === 'whatsapp_unavailable');
 
-// The signup step is finished when the server holds an answer, OR the person took the unavailable
-// path in this session (the server then holds no answer, honestly), OR the server does not serve the
-// field at all — a kyc that does not know the question cannot record the answer, and blocking signup
-// on it would strand every new account.
-export function waSignupSettled(wa: WaState | null | undefined, tookUnavailablePath: boolean): boolean {
-  if (wa === undefined) return true;
-  return tookUnavailablePath || !!(wa && wa.opt);
-}
+// The sign-up step is finished only when the server holds an answer (founder, 15 Sep 2026: "Sign-up
+// cannot complete until this is answered"). There is no skip: a different number whose WhatsApp code
+// cannot be delivered gets it by SMS instead (kyc whatsapp_send_code), so every path can finish.
+export const waSignupSettled = (wa: WaState | null | undefined): boolean => !!(wa && wa.opt);
 
-// The one-time dashboard prompt: only for an account the server says was never asked.
-export const waNeedsPrompt = (wa: WaState | null | undefined): boolean => !!wa && wa.asked === false;
+// The one-time dashboard card: only for an account that FINISHED sign-up (terms signed) and was never
+// asked — i.e. accounts made before the question was part of sign-up. A new account cannot finish
+// without answering, so it never sees the card; one still mid-registration sees the sign-up step instead.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const waNeedsPrompt = (k: any): boolean => !!k && k.terms_signed === true && !!k.whatsapp && k.whatsapp.asked === false;
+
+// The code went by SMS whenever kyc says a channel other than WhatsApp carried it.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const waSentBySms = (j: any): boolean => !!j && !!j.channel && j.channel !== 'whatsapp';
 
 // What Settings says the state is. A different number that is not verified is NOT shown as the
 // WhatsApp number, because it is never used.

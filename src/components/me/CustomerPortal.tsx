@@ -422,9 +422,6 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  // waDone: the WhatsApp question ended in this session without a stored answer (verification over
-  // WhatsApp unavailable). The terms step waits for an answer OR that — see waSignupSettled.
-  const [waDone, setWaDone] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
@@ -460,12 +457,13 @@ function ProfileGate({ token, lang, theme, onDone }) {
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_mobile')} {st.phone_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.phone_verified && (!sentSms ? <Button size="sm" className="mt-3" disabled={busy === 'sms'} onClick={sendSms}>{busy === 'sms' ? t(lang, 'sending') : t(lang, 'send_sms')}</Button>
         : <><div className={S.hint}>{t(lang, sentSms === 'call' ? 'call_note' : 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={busy === 'vsms'} onClick={verifySms}>{t(lang, 'verify')}</Button></div><Button variant="link" className="mt-1 px-0 h-auto" onClick={() => { setSentSms(false); setSmsCode(''); }}>{t(lang, 'use_diff_number')}</Button></>)}
-      {/* Asked the moment the mobile is verified (founder, 14 Sep 2026), and before the terms step. */}
-      {st.phone_verified && !waSignupSettled(st.whatsapp, waDone) && <div className="mt-4"><WhatsAppChoice token={token} lang={lang} mode="signup" current={st.whatsapp} mobile={st.phone} onDone={() => { setWaDone(true); load(); }} /></div>}
+      {/* Asked the moment the mobile is verified, inside sign-up (founder, 14-15 Sep 2026); the terms
+          step does not appear until it is answered, and kyc accept_terms refuses without the answer. */}
+      {st.phone_verified && !waSignupSettled(st.whatsapp) && <div className="mt-4"><WhatsAppChoice token={token} lang={lang} mode="signup" current={st.whatsapp} mobile={st.phone} onDone={() => load()} /></div>}
       <div className={cn(S.h2, 'mt-4')}>{t(lang, 'verify_email_h')} {st.email_verified ? <span className="text-primary text-[12px] font-bold ml-1.5">{t(lang, 'verified')}</span> : null}</div>
       {!st.email_verified && (!sentEmail ? <Button size="sm" className="mt-3" disabled={busy === 'em'} onClick={sendEmailCode}>{busy === 'em' ? t(lang, 'sending') : t(lang, 'send_email_code')}</Button>
         : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input aria-label={t(lang, 'code_label')} inputMode="numeric" placeholder={t(lang, 'code_placeholder')} value={emCode} onChange={(e) => setEmCode(e.target.value)} /><Button size="sm" disabled={busy === 'vem'} onClick={verifyEmail}>{t(lang, 'verify')}</Button></div></>)}
-      {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp, waDone) && <>
+      {st.phone_verified && st.email_verified && waSignupSettled(st.whatsapp) && <>
         <label className="flex gap-2 items-center mt-4 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/terms" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
         <Button className="w-full mt-3" disabled={busy === 'terms'} onClick={acceptTerms}>{busy === 'terms' ? t(lang, 'finishing') : t(lang, 'finish_continue')}</Button>
       </>}
@@ -474,9 +472,9 @@ function ProfileGate({ token, lang, theme, onDone }) {
   </Card></AuthShell>);
 }
 function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale, kyc }) {
-  // Accounts created before the WhatsApp question existed are asked once, here, without blocking
-  // anything; answering or "Ask me later" closes it for good (kyc records asked=true either way).
-  const [waAsk, setWaAsk] = useState(() => waNeedsPrompt(kyc && kyc.whatsapp));
+  // Only accounts that finished sign-up before the WhatsApp question was part of it are asked here,
+  // once, without blocking anything; answering or "Ask me later" closes it for good.
+  const [waAsk, setWaAsk] = useState(() => waNeedsPrompt(kyc));
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false);
   // WHY THIS IS NO LONGER A `view`. Messages and Projects were whole-surface early returns: opening
   // either REPLACED the dashboard, which is the full-page navigation §21 asks the portal not to
