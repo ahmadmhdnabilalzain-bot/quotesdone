@@ -8,6 +8,7 @@
 // English first, Arabic below it in its own dir="rtl" lang="ar" block. Behaviour is unchanged.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const NAVY = '#0c2330';
 type Msg = { title: string; msg: string };
@@ -51,7 +52,7 @@ Deno.serve(observe('supplier_ack', async (req) => {
     if (!t || String(t.ack_token) !== token) return new Response(page('nomatch'), { status: 404, headers: H });
     if (!t.supplier_ack_at) {
       await admin.from('transactions').update({ supplier_ack_at: new Date().toISOString() }).eq('id', tx);
-      try { await admin.from('notifications').insert({ type:'supplier_ack', to_role:'admin', inquiry_id: t.inquiry_id, subject:'Supplier confirmed they contacted the customer', body:'A supplier clicked the confirmation link for a revealed inquiry, confirming they have contacted the paying customer. No further nudges will be sent for this reveal.' }); } catch(_e) {}
+      try { await requestDelivery(admin, { type:'supplier_ack', to_role:'admin', inquiry_id: t.inquiry_id, subject:'Supplier confirmed they contacted the customer', body:'A supplier clicked the confirmation link for a revealed inquiry, confirming they have contacted the paying customer. No further nudges will be sent for this reveal.' }); } catch(_e) {}
     }
     return new Response(page('done'), { headers: H });
   } catch (_e) {

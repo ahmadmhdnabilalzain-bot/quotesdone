@@ -34,6 +34,7 @@ import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT
 import { TRADES } from './model.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
+import { requestDelivery } from '../deliver.ts';
 
 export type QuoteRow = Terms & {
   id: string; inquiry_id: string; supplier_id: number; status: string; option_no: number; submission_id: string | null;
@@ -297,11 +298,14 @@ export function supabaseRepo(admin: any, opts: { dispatch?: () => Promise<void> 
       // Email first. trg_wa_fanout adds a WhatsApp twin for a supplier who opted in, in the same
       // statement; the explicit WhatsApp row is queued only when no twin was made, so a supplier is
       // never messaged twice.
-      for (const r of rows.filter((x) => x.channel === 'email')) { const { data } = must(await admin.from('notifications').insert(r).select('id,created_at').single()); ids.push(data.id); }
+      // Through customer_support's door (_shared/deliver.ts): every notice here comes back to the sales
+      // engineer with what became of it. A row the door did not queue is an error, as the insert was.
+      const queued = async (r: Record<string, unknown>) => { const { data, error } = await requestDelivery(admin, r); if (error || data[0]?.notification_id == null) throw new Error(error?.message || 'not queued'); return Number(data[0].notification_id); };
+      for (const r of rows.filter((x) => x.channel === 'email')) ids.push(await queued(r));
       for (const r of rows.filter((x) => x.channel === 'whatsapp')) {
         const { data: twin } = must(await admin.from('notifications').select('id').eq('channel', 'whatsapp').eq('lead_id', r.lead_id).eq('type', r.type).eq('quote_id', r.quote_id).gte('created_at', new Date(Date.now() - 60e3).toISOString()).limit(1));
         if (twin?.length) { ids.push(twin[0].id); continue; }
-        const { data } = must(await admin.from('notifications').insert(r).select('id').single()); ids.push(data.id);
+        ids.push(await queued(r));
       }
       return ids;
     },

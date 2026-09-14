@@ -2,6 +2,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
+import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
+import { codeEmail } from '../_shared/code_email.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -43,7 +45,6 @@ async function isSuppressed(email: string): Promise<boolean> {
   try { const { data } = await admin.from('email_suppressions').select('email').eq('email', email).maybeSingle(); return !!data; }
   catch (_e) { return false; }
 }
-function wrapCode(code: string) { const logo = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/icon_192.png'; return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937"><div style="text-align:center;padding:18px 0"><img src="${logo}" width="44" height="44" alt="QuotesDone"></div><div style="background:#fff;border:1px solid #eef0f2;border-radius:14px;padding:26px;text-align:center"><h1 style="font-size:19px;color:#111827;margin:0 0 8px">Confirm your email</h1><p style="font-size:14px;color:#6b7280;margin:0 0 16px">Enter this code to confirm your email on QuotesDone. It expires in 10 minutes.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#0d9488;background:#f0fdfa;border-radius:12px;padding:14px 0">${code}</div></div></div>`; }
 
 // Observability: identity state changes and delivery failures land in agent_runs.
 // The read-only 'state' action is not logged (high volume, no failure mode worth tracking).
@@ -125,7 +126,9 @@ Deno.serve(observe('kyc', async (req) => {
       const digits = (v: unknown) => String(v || '').replace(/\D/g, '');
       const phoneChanged = !!cust && digits((cust as any).phone) !== digits(phone);
       if (phoneChanged) row.phone_verified = false;
-      if (cust) await admin.from('customers').update(row).eq('id', cust.id); else await admin.from('customers').insert(row);
+      // A first save IS the registration: it records the page language. An update never touches
+      // locale - that changes only through Account settings (customer_api set_locale).
+      if (cust) await admin.from('customers').update(row).eq('id', cust.id); else await admin.from('customers').insert({ ...row, locale: asLocale(b.lang) });
       if (phoneChanged) await logRun('ok', { action, kind, phone_reverify: 1 }, 'A customer changed their mobile number, so phone_verified was cleared and they must verify the new number before create_inquiry will accept a request. This is the intended behaviour, not a regression.');
       else await logRun('ok', { action, kind, created: !cust }, '');
       return J({ ok: true, phone_reverify_required: phoneChanged });
@@ -143,7 +146,9 @@ Deno.serve(observe('kyc', async (req) => {
       // their 10 minutes. Expiry was and stays 10 minutes and is enforced on the verify side.
       await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'kyc', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       // previously the send result was discarded: a failed send left the user waiting with no trace
-      const sent = await sendEmail(email, 'Confirm your QuotesDone email', wrapCode(c));
+      const codeAr = (await registeredLocale(admin, { role: kind, email }, b.lang)) === 'ar';
+      const mail = codeEmail('confirm', c, codeAr);
+      const sent = await sendEmail(email, mail.subject, mail.html);
       if (!sent) await logRun('error', { action, kind }, 'verification email failed to send (Resend rejected or key missing) - user cannot verify');
       else await logRun('ok', { action, kind }, '');
       return J({ ok: true });
@@ -181,7 +186,7 @@ Deno.serve(observe('kyc', async (req) => {
       // user would loop on the verify step forever. Insert it, falling back to update on a race.
       if (kind === 'supplier') await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
       else if (cust) await admin.from('customers').update({ email_verified: true }).eq('email', email);
-      else { const ins = await admin.from('customers').insert({ email, email_verified: true }); if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email); }
+      else { const ins = await admin.from('customers').insert({ email, email_verified: true, locale: asLocale(b.lang) }); if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email); }
       await logRun('ok', { action, kind }, '');
       return J({ ok: true });
     }
@@ -200,7 +205,9 @@ Deno.serve(observe('kyc', async (req) => {
       // answers - proven by execution against that number (HTTP 201, status pending). Fall back
       // automatically and tell the caller which channel actually carried it, so the screen can say
       // "we are calling you" instead of asking him to watch for an SMS that cannot arrive.
-      const sendCode = (channel: string) => fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel }) });
+      // Locale: the SMS or voice call speaks the registered language (founder, 14 Sep 2026).
+      const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
+      const sendCode = (channel: string) => fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: vLocale }) });
       let channel = String(b.channel || 'sms'); if (channel !== 'sms' && channel !== 'call') channel = 'sms';
       let r = await sendCode(channel);
       let jd = await r.json().catch(() => ({}));

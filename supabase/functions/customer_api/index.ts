@@ -4,17 +4,20 @@ import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { detectCat } from '../_shared/trade_classify.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { storedAt } from '../_shared/stored_at.ts';
 import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -91,7 +94,7 @@ function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): s
   }
   return out;
 }
-async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
+async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 // AUDIT 1.5 (4 Aug 2026) -----------------------------------------------------------------------
 // Both supplier-facing emails in this file passed ownName = null to scrubIdentity. companyRe(null)
 // returns null, so the buyer's name pattern was never added to the loop and only ID_PATTERNS ran -
@@ -362,6 +365,8 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
     // both layers returned the same null: the caller could not tell "we would not accept this" from
     // "the bucket would not accept this" from "the network failed".
     if (up.error) { console.warn(`[9.1] drawing accepted by the sanitizer as ${s.mime} but REJECTED by storage: ${up.error.message}`); return null; }
+    // 14 Sep 2026: the path is returned (and later backed up) only once storage confirms the object.
+    if (!(await storedAt(admin, 'drawing-files', path))) { console.warn(`[9.1] drawing upload returned no error but storage does not hold ${path}`); return null; }
     // 5 Aug 2026. THE ORPHAN WINDOW. At this point the object exists and the ONLY record of it is
     // the path about to be returned to the client. If the customer never submits, swaps the
     // attachment, or create_inquiry refuses, no row anywhere names it — and both pdpl_erase and
@@ -1152,8 +1157,10 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'compare_pdf') {
       const iid = String(body.inquiry_id || '');
-      const wantAr = /^ar/i.test(String(body.lang || ''));
-      const lang = wantAr ? 'ar' : 'en';
+      // THE REGISTERED LANGUAGE, NOT THE REQUEST'S (founder, 14 Sep 2026: "if someone registered
+      // while the language was arabic then arabic follows through the whole workflow"). body.lang is
+      // ignored for every document here; customers.locale decides.
+      const lang = asLocale(cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1179,7 +1186,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // quote_compare analysis as compare_pdf, rendered through the same compareTable().
     if (action === 'compare_csv') {
       const iid = String(body.inquiry_id || '');
-      const lang = /^ar/i.test(String(body.lang || '')) ? 'ar' : 'en';
+      const lang = asLocale(cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1200,8 +1207,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'brief_pdf') {
       const iid = String(body.inquiry_id || '');
-      const wantAr = /^ar/i.test(String(body.lang || ''));
-      const lang = wantAr ? 'ar' : 'en';
+      const lang = asLocale(cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1220,7 +1226,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // ONE LANGUAGE PER DOCUMENT, BOTH ALWAYS ON OFFER (founder, 14 Sep 2026). The old 'bi' file —
       // English page, then an "Arabic" page whose content was English whenever ai_gateway failed —
       // is no longer produced; its cache rows are simply never read again.
-      const lang: 'en' | 'ar' = /^ar/i.test(String(body.lang || body.customer_lang || '')) ? 'ar' : 'en';
+      const lang: 'en' | 'ar' = asLocale(cust.locale);
       const { data: q } = await admin.from('quotes').select('*').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
