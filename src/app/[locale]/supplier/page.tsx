@@ -5,7 +5,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { EmiratesMap } from '@/components/visual/slots';
 import { PageHero, CtaPanel } from '@/components/DocFrame';
-import { Bento, BentoTile, BoqShowcase, Kicker, ProductFrame, Seal, SectionHead, Stepper } from '@/components/ui/sealed';
+import { BoqShowcase, Kicker, LedgerList, ProductFrame, Seal, SealedCard, SectionHead, Stamp, Stepper } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -43,15 +43,6 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   return buildMeta({ locale, path: '/supplier', title: t('metaTitle'), description: t('metaDesc') });
 }
 
-/** Bento spans for n tiles on the 6-column grid: a wide lead tile, then rows that fill. */
-function spans(n: number): (2 | 3 | 4 | 6)[] {
-  if (n <= 1) return [6];
-  const out: (2 | 3 | 4 | 6)[] = [4, 2];
-  let left = n - 2;
-  while (left > 0) { const row = left >= 3 ? 3 : left; out.push(...Array(row).fill(row === 3 ? 2 : row === 2 ? 3 : 6)); left -= row; }
-  return out;
-}
-
 export default async function SupplierLanding(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
   setRequestLocale(locale);
@@ -60,7 +51,6 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
   const t = await getTranslations({ locale, namespace: 'supplierLanding' });
   const econ = t.raw('econ') as KV[];
   const steps = t.raw('steps') as Step[];
-  const span = spans(econ.length);
   return (
     <>
       <SiteHeader />
@@ -93,14 +83,17 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
 
         <section className="container-x py-beat-s md:py-beat">
           <SectionHead kicker={x.econKicker} title={t('econTitle')} />
-          <Bento className="mt-12 auto-rows-[minmax(180px,auto)]">
-            {econ.map((e, i) => (
-              <BentoTile key={e.k} span={span[i]} kicker={String(i + 1).padStart(2, '0')} title={e.k}
-                className={i === 0 ? 'qd-keylight justify-end' : 'justify-end'}>
-                {e.v}
-              </BentoTile>
-            ))}
-          </Bento>
+          {/* a lead document and the ledger beside it, not a bento of equal tiles */}
+          <div className="mt-12 grid gap-10 lg:grid-cols-[5fr_7fr] lg:gap-14">
+            {econ[0] ? (
+              <SealedCard size="lg" className="flex flex-col gap-3 self-start p-7 pt-14 md:p-9 md:pt-16">
+                <Stamp n={1} />
+                <h3 className="mt-3 text-balance font-head text-h3 text-white">{econ[0].k}</h3>
+                <p className="text-copy text-muted">{econ[0].v}</p>
+              </SealedCard>
+            ) : null}
+            <LedgerList start={2} items={econ.slice(1).map((e) => ({ title: e.k, body: e.v }))} />
+          </div>
         </section>
 
         <section className="border-y border-line bg-navy-deep/40">
@@ -118,7 +111,7 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
         </section>
 
         <section className="container-x py-beat-s md:py-beat">
-          <div className="qd-panel grid gap-8 p-7 md:grid-cols-[220px_1fr] md:p-10">
+          <div className="qd-env qd-env-lg grid gap-8 p-7 pt-12 md:grid-cols-[220px_1fr] md:p-10 md:pt-14">
             <div>
               <Kicker>{x.ruleKicker}</Kicker>
               <h2 className="mt-4 font-head text-h3 text-white">{t('ruleTitle')}</h2>

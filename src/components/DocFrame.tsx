@@ -141,7 +141,7 @@ export function ContentsRail({ title, list, footer }: { title: string; list: Hea
 export function CtaPanel({ kicker, title, body, children }: { kicker?: ReactNode; title: ReactNode; body?: ReactNode; children?: ReactNode }) {
   return (
     <section className="container-x py-beat-s md:py-beat">
-      <div className="qd-panel qd-grain qd-keylight relative overflow-hidden px-6 py-14 text-center md:px-12 md:py-20">
+      <div className="qd-env qd-env-lg qd-grain relative overflow-hidden px-6 py-14 text-center md:px-12 md:py-20">
         <span className="grid-tech grid-tech-sm opacity-60" aria-hidden />
         <div className="relative mx-auto max-w-[680px]">
           {kicker ? <Kicker>{kicker}</Kicker> : null}

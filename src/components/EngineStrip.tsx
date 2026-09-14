@@ -1,9 +1,10 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { SectionHeader } from '@/components/SectionHeader';
-import s from '@/components/home/sealed.module.css';
+import { SealedCard, Stamp } from '@/components/ui/sealed';
 
-// THE SIX RULES, AS A BENTO.
+// THE SIX RULES, AS A BENTO OF SEALED DOCUMENTS — the one grid the shape system keeps (14 Sep 2026:
+// every other card site became a ledger, an offset pair or a single composed document).
 //
 // The mechanisms used to live in two sections (four "engine" cards and four "why anonymous" cards)
 // and in FAQ answers (website audit §1 finding 28). They are now one grid, each cell carrying a small
@@ -25,7 +26,7 @@ export function EngineStrip() {
 
       <div className="mt-14 grid gap-4 md:mt-16 md:grid-cols-6">
         {/* 1 identity stripped — wide */}
-        <Cell className="md:col-span-4" title={c[0].title} body={c[0].body}>
+        <Cell n={1} className="md:col-span-4" title={c[0].title} body={c[0].body}>
           <div className="rounded-[12px] bg-[#07121a] p-4 shadow-[inset_0_0_0_1px_rgba(110,231,212,.1)]">
             <div className="grid gap-2.5 text-[13px] sm:grid-cols-[auto_1fr] sm:gap-x-6">
               {(t.raw('brief') as string[][]).map(([k, v, sealed]) => (
@@ -39,7 +40,7 @@ export function EngineStrip() {
         </Cell>
 
         {/* 2 licence verified */}
-        <Cell className="md:col-span-2" title={c[1].title} body={c[1].body}
+        <Cell n={2} className="md:col-span-2" title={c[1].title} body={c[1].body}
           foot={<Link href="/how-we-verify" className="text-[13.5px] font-semibold text-teal-light underline-offset-4 hover:underline">{tv('link')} <span aria-hidden className="inline-block rtl:rotate-180">&rarr;</span></Link>}>
           <ul className="space-y-2">
             {licence.map((l) => (
@@ -51,7 +52,7 @@ export function EngineStrip() {
         </Cell>
 
         {/* 3 the comparison report, and every other quote listed beside it — none is hidden */}
-        <Cell className="md:col-span-2" title={c[2].title} body={c[2].body}>
+        <Cell n={3} className="md:col-span-2" title={c[2].title} body={c[2].body}>
           <div className="flex h-[76px] items-end gap-1.5" aria-hidden>
             {[64, 54, 46].map((h) => (
               <span key={h} className="w-7 rounded-t-[5px] bg-teal/20 shadow-[inset_0_0_0_1px_rgba(20,184,166,.55)]" style={{ height: h }} />
@@ -68,7 +69,7 @@ export function EngineStrip() {
         </Cell>
 
         {/* 4 incomplete quotes returned */}
-        <Cell className="md:col-span-2" title={c[3].title} body={c[3].body}>
+        <Cell n={4} className="md:col-span-2" title={c[3].title} body={c[3].body}>
           <ul className="space-y-1.5 text-[13px]">
             {checks.map((k, i) => {
               const missing = i === checks.length - 1;
@@ -83,7 +84,7 @@ export function EngineStrip() {
         </Cell>
 
         {/* 5 three percent to reveal — the one gold number on the page */}
-        <Cell className="md:col-span-2" title={c[4].title} body={c[4].body}>
+        <Cell n={5} className="md:col-span-2" title={c[4].title} body={c[4].body}>
           <div className="flex items-baseline gap-3">
             <span className="font-head text-[76px] font-semibold leading-none tracking-[-0.06em] text-gold tabular" dir="ltr">3%</span>
             <span className="max-w-[16ch] text-[13px] leading-snug text-muted">{t('pctNote')}</span>
@@ -91,7 +92,7 @@ export function EngineStrip() {
         </Cell>
 
         {/* 6 refund if the supplier stays silent — full width */}
-        <Cell className="md:col-span-6" title={c[5].title} body={c[5].body} row>
+        <Cell n={6} className="md:col-span-6" title={c[5].title} body={c[5].body} row>
           <div className="w-full">
             <div className="flex items-center gap-1.5" aria-hidden>
               {[1, 2, 3, 4, 5].map((d) => (
@@ -111,18 +112,22 @@ export function EngineStrip() {
   );
 }
 
-function Cell({ className = '', title, body, children, foot, row = false }: {
-  className?: string; title: string; body: string; children: React.ReactNode; foot?: React.ReactNode; row?: boolean;
+// Each rule is a sealed document (ui/sealed SealedCard) carrying its serial on a seal mark.
+function Cell({ n, className = '', title, body, children, foot, row = false }: {
+  n: number; className?: string; title: string; body: string; children: React.ReactNode; foot?: React.ReactNode; row?: boolean;
 }) {
   return (
-    <article className={`qd-panel qd-panel-hover reveal flex flex-col gap-7 p-6 md:p-8 ${row ? 'lg:flex-row lg:items-center lg:gap-14' : ''} ${className}`}>
+    <SealedCard hover className={`reveal flex flex-col gap-7 p-6 pt-9 md:p-8 md:pt-10 ${row ? 'lg:flex-row lg:items-center lg:gap-14' : ''} ${className}`}>
       <div className={row ? 'order-2 lg:order-1 lg:w-1/2' : ''}>{children}</div>
       <div className={`mt-auto ${row ? 'order-1 lg:order-2 lg:mt-0 lg:w-1/2' : ''}`}>
-        <h3 className="text-balance font-head text-[21px] font-semibold leading-snug tracking-[-0.025em] text-white rtl:tracking-normal">{title}</h3>
+        <div className="flex items-start justify-between gap-4">
+          <h3 className="text-balance font-head text-[21px] font-semibold leading-snug tracking-[-0.025em] text-white rtl:tracking-normal">{title}</h3>
+          <Stamp n={n} open={n === 5} className="-mt-1" />
+        </div>
         <p className="mt-2.5 max-w-[48ch] text-pretty text-[14.5px] leading-relaxed text-muted">{body}</p>
         {foot ? <div className="mt-4">{foot}</div> : null}
       </div>
-    </article>
+    </SealedCard>
   );
 }
 
