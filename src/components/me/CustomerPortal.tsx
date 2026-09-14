@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
-import { createClient } from '@supabase/supabase-js';
+import { supaClient } from '@/lib/supaClient';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -106,8 +106,8 @@ import { motion, useReducedMotion } from 'motion/react';
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
-import { SUPA_URL as URL, SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
-const SB = createClient(URL, ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-cust-auth' } });
+import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
 // mount while the Supabase client refreshes asynchronously, so for the first moment after a page
 // has been left open past the 60-minute expiry the portal holds a JWT that every endpoint will
@@ -227,7 +227,7 @@ export function CustomerPortal() {
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     try { const l = initLang(); if (l !== 'en') setLangState(l); } catch (_e) {}
     try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
-    SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {});
+    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}
     // THE PORTAL SIGNED PEOPLE OUT EVERY HOUR WHILE HOLDING A VALID REFRESH TOKEN (13 Aug 2026).
     //
     // A Supabase access token lives 60 minutes. This client is created with autoRefreshToken:true
@@ -241,7 +241,7 @@ export function CustomerPortal() {
     // NOT be mistaken for a refresh failure, so the phase is only ever moved forward here.
     let sub;
     try {
-      sub = SB.auth.onAuthStateChange((_evt, ss) => {
+      sub = SB().auth.onAuthStateChange((_evt, ss) => {
         const at = ss && ss.access_token;
         if (!at) return;
         setToken(at);
@@ -282,8 +282,8 @@ export function CustomerPortal() {
   };
   // login_otp returns the account's registered language with the session, so the first dashboard
   // paint is already in it; the dashboard's own fetch then confirms it (onServedLocale).
-  const onAuth = (access, refresh, locale) => { onServedLocale(locale); try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
-  const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
+  const onAuth = (access, refresh, locale) => { onServedLocale(locale); try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
+  const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   const rtl = lang === 'ar';
   if (!mounted) return null;
   // THE STRIP IS FOR THE DOORWAY, NOT THE HOUSE. Signing in and completing a profile are two
@@ -379,7 +379,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
         if (retried) { setErr('unauth'); return; }
         try {
           const rt = localStorage.getItem('qd-cust-refresh') || '';
-          const { data } = await SB.auth.refreshSession(rt ? { refresh_token: rt } : undefined);
+          const { data } = await SB().auth.refreshSession(rt ? { refresh_token: rt } : undefined);
           if (data && data.session && data.session.access_token) return; // the listener re-renders with the new token
         } catch (_e) {}
         setErr('unauth');
@@ -390,7 +390,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   };
   // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
   // render, when `token` is still '' because it is read from localStorage and from
-  // SB.auth.getSession() inside an effect that has not resolved yet. Measured on a signed-in
+  // SB().auth.getSession() inside an effect that has not resolved yet. Measured on a signed-in
   // customer: two 401s against /kyc in the console on every load, before the real call succeeded.
   // Wrong in three ways - it spends a round trip per mount, it puts a red error in the console of
   // a working page so a real one is easy to miss, and it burns the one refresh attempt the
@@ -1631,7 +1631,7 @@ function AccountSettings({ token, lang, onChanged }) {
     .catch(() => setErr(t(lang, 'acct_failed')));
   // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
   // render, when `token` is still '' because it is read from localStorage and from
-  // SB.auth.getSession() inside an effect that has not resolved yet. Measured on a signed-in
+  // SB().auth.getSession() inside an effect that has not resolved yet. Measured on a signed-in
   // customer: two 401s against /kyc in the console on every load, before the real call succeeded.
   // Wrong in three ways - it spends a round trip per mount, it puts a red error in the console of
   // a working page so a real one is easy to miss, and it burns the one refresh attempt the

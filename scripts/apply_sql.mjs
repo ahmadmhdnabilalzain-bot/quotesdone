@@ -40,6 +40,12 @@ if (!file) {
 }
 
 const sql = readFileSync(file, 'utf8');
+// Refused before anything is read from or written to the database (review of #661, scripts/lib/sql_text.mjs).
+{
+  const { refuseUnsignable } = await import('./lib/sql_text.mjs');
+  const why = refuseUnsignable(sql, file);
+  if (why) { console.error('REFUSED: ' + why); process.exit(2); }
+}
 const one = (rows) => (rows && rows[0]) ? Object.values(rows[0])[0] : null;
 
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -224,7 +230,8 @@ const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/[^A-
 // Same line as the file's first line, so reported line numbers still match the file. A file that
 // must run outside a transaction (CREATE INDEX CONCURRENTLY) is sent alone: a second statement in
 // the same query would wrap it in an implicit transaction and Postgres would refuse it.
-const mustRunAlone = /\bconcurrently\b/i.test(sql);
+// Statements only: a comment that mentions the word used to send a routine file unsigned.
+const mustRunAlone = (await import('./lib/sql_text.mjs')).runsOutsideTransaction(sql);
 await dbPost(mustRunAlone ? sql : `set application_name = '${tag}'; ` + sql);
 console.log(`applied ${file} to ${PROD_REF}`);
 
