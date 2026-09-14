@@ -1,6 +1,7 @@
-// kyc — passwordless account completion: mobile (SMS) + email verification, optional DOB profile, terms->signed PDF.
+// kyc — passwordless account completion: mobile (SMS) + email verification, REQUIRED DOB (18+) profile, terms->signed PDF.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { dobProblem } from '../_shared/account_rule.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -8,7 +9,6 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
-function ageFrom(dob: string): number | null { const d = new Date(dob); if (isNaN(d.getTime())) return null; const t = new Date(); let a = t.getFullYear() - d.getFullYear(); const m = t.getMonth() - d.getMonth(); if (m < 0 || (m === 0 && t.getDate() < d.getDate())) a--; return a; }
 function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
 // SECURITY FIX (27 Jul 2026): email codes here were stored in PLAINTEXT (email_verifications.token)
 // and checked with .eq('token', code) — a WHERE clause on the secret. A wrong guess simply matched no
@@ -96,8 +96,18 @@ Deno.serve(observe('kyc', async (req) => {
       const full_name = String(b.full_name || '').trim().slice(0, 120); const phone = String(b.phone || '').trim().slice(0, 40); const dob = String(b.dob || '').trim();
       if (full_name.length < 2) return J({ error: 'Please enter your name.' }, 400);
       if (phone.replace(/\D/g, '').length < 7) return J({ error: 'Please enter a valid mobile number.' }, 400);
-      const row: any = { email, full_name, phone };
-      if (dob) { const a = ageFrom(dob); if (a !== null && a >= 18 && a <= 120) row.date_of_birth = dob; }
+      // DATE OF BIRTH IS REQUIRED AND UNDER-18 IS REFUSED (founder's account rule, 14 Sep 2026 — see
+      // _shared/account_rule.ts). This used to keep an 18-120 date and silently DROP anything else, so
+      // an under-18 user was never told no and a profile could complete with no DOB at all. Now a
+      // missing, unparseable or under-18 date answers a code and saves nothing. An empty field falls
+      // back to the stored DOB so the Account tab (which edits name/phone only) keeps working.
+      const dobUse = dob || String((cust as any)?.date_of_birth || '');
+      const dp = dobProblem(dobUse);
+      if (dp) {
+        const message = dp === 'under_18' ? 'You must be 18 or over to use QuotesDone.' : dp === 'dob_required' ? 'Please enter your date of birth.' : 'Please enter a valid date of birth.';
+        return J({ error: dp, code: dp, message }, 400);
+      }
+      const row: any = { email, full_name, phone, date_of_birth: dobUse.slice(0, 10) };
       // CHANGING A VERIFIED NUMBER MUST UN-VERIFY IT (13 Aug 2026).
       //
       // This wrote `phone` and left `phone_verified` alone, so any caller holding a customer
@@ -213,6 +223,8 @@ Deno.serve(observe('kyc', async (req) => {
     }
 
     if (action === 'accept_terms') {
+      // A customer cannot finish the account without an 18+ date of birth on file (account rule).
+      if (kind === 'customer') { const dp = dobProblem((cust as any)?.date_of_birth); if (dp) return J({ error: dp, code: dp }, 400); }
       const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
       const nowIso = new Date().toISOString();
       // ONE SOURCE OF TRUTH FOR THE VERSION (2 Aug 2026, external code review). 'v4' and 'v3' were
