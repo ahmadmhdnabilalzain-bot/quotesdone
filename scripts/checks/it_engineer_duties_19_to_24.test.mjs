@@ -79,6 +79,15 @@ test('fn_it_duties warns only certificates; the renewal watch owns licences, dom
   assert.match(read(FILES[1]), /for e in select \* from public\.it_expiry where kind <> 'tls'/);
 });
 
+test('the table drill\'s due-check waits at most 250 ms for a lock and then says not due', () => {
+  const src = read(FILES[0]);
+  const fn = src.slice(src.indexOf('create or replace function public.fn_it_restore_table_due()'),
+                       src.indexOf('revoke execute on function public.fn_it_restore_table_due()'));
+  assert.match(fn, /set lock_timeout to '250ms'/, 'a lock held elsewhere made the check outlive the 8 s statement timeout (14 Sep 2026)');
+  assert.match(fn, /exception when lock_not_available then\s+return false;/);
+  assert.doesNotMatch(fn, /count\(\*\)|storage\.objects/, 'the due path must not count rows or scan storage');
+});
+
 test('the tag apply_sql.mjs writes is the tag the guard reads as signed', () => {
   assert.match(read('scripts/apply_sql.mjs'), /const tag = `qd-apply \$\{rev\} \$\{base\(process\.cwd\(\)\)\} \$\{base\(file\)\}`/);
   const guard = /^qd-apply ([0-9a-f]{7,40}) /;   // the pattern in trg_it_judge_routine_change
