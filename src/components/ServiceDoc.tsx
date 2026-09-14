@@ -29,11 +29,8 @@ function sub(txt: string, loc: Loc, locale: string): string {
   const bare = locale === 'ar' ? loc.ar : loc.en;
   return txt.replace(/\{\{LOC_THE\}\}/g, the).replace(/\{\{LOC\}\}/g, bare);
 }
-// For Arabic, keep internal cross-links inside the /ar locale.
-// Skip already-/ar links, Next asset paths, external/anchor links, and /blog (AR blog posts not migrated).
-function arLinks(html: string): string {
-  return html.replace(/href="\/(?!ar[\/"]|_next|blog)/g, 'href="/ar/');
-}
+// For Arabic, keep internal cross-links inside the /ar locale — one shared rule in src/lib/arabicDoc.ts.
+import { arLinks } from '@/lib/arabicDoc';
 export function svcParams(): string[] {
   const out: string[] = [];
   for (const s of Object.keys(S)) { out.push(s); for (const e of Object.keys(EM)) out.push(s + '-in-' + e); }

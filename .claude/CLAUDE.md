@@ -2,6 +2,12 @@
 - **graphify** (`.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
 
+# quotesdone-skills-and-plugins-first — ALWAYS APPLY, BEFORE EVERY TASK
+- **quotesdone-skills-and-plugins-first** (`.claude/skills/quotesdone-skills-and-plugins-first/SKILL.md`)
+  — the founder's ruling of 14 Sep 2026: before proceeding with any task, check the installed skills,
+  plugins and MCP servers for anything that makes the result more advanced, load it, pass it to every
+  subagent, and say which were used. Runs in every session.
+
 # quotesdone-session — ALWAYS APPLY
 - **quotesdone-session** (`.claude/skills/quotesdone-session/SKILL.md`) — the founder's standing
   working rules for this repository: run continuously without check-ins, report only the single

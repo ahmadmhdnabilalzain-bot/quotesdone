@@ -2,29 +2,19 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
-// Row #5 §3/§4/§6/§13 — kept in its own file deliberately; see the TABS comment below.
-import SupplierTwin from './supplier/SupplierTwin';
-import ProductIntelligence from './supplier/ProductIntelligence';
-import SupplierAdvisor from './supplier/SupplierAdvisor';
-import MarketIntelligence from './supplier/MarketIntelligence';
-import CollaborationWorkspace from './supplier/CollaborationWorkspace';
-import SupplierOnboarding from './supplier/SupplierOnboarding';
-import SupplierQuoteBuilder from './supplier/SupplierQuoteBuilder';
+// 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
+// the ones whose routine has something to show, each on demand. The AI onboarding chat
+// (SupplierOnboarding) is not reachable while the OpenRouter hold stands — it has no model to call,
+// and the registration it duplicated is the deterministic ProfileForm below.
 import SupplierSettings from './supplier/SupplierSettings';
-import SupplierInventory from './supplier/SupplierInventory';
 import SupplierDocumentImpact from './supplier/SupplierDocumentImpact';
-import SupplierKnowledgeGraph from './supplier/SupplierKnowledgeGraph';
-import SupplierInsightBoard from './supplier/SupplierInsightBoard';
-import SupplierOpportunities from './supplier/SupplierOpportunities';
-import SupplierTier from './supplier/SupplierTier';
-import SupplierNegotiation from './supplier/SupplierNegotiation';
-import SupplierCertifications from './supplier/SupplierCertifications';
 import SupplierEntryHero from './supplier/SupplierEntryHero';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
-import dynamic from 'next/dynamic';
-// 3D is client-only and heavy; loaded on demand so the portal's first paint does not carry WebGL.
-const SupplierEnvironment = dynamic(() => import('./supplier/SupplierEnvironment'), { ssr: false });
-const SupplierNetworkMap = dynamic(() => import('./supplier/SupplierNetworkMap'), { ssr: false });
+import GetMatched from './supplier/GetMatched';
+import Insights, { INSIGHT_PANELS } from './supplier/Insights';
+import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer } from './supplier/RfqParts';
+import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
+import { call } from './supplier/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,16 +27,67 @@ import { BrandMark } from '@/components/BrandMark';
 import { SUPA_URL as URL, SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
 const SB = createClient(URL, ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-portal-auth' } });
 
-async function call(path, body, token) {
-  const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) });
-  return r.json();
+// call() lives in ./supplier/api.ts, shared with the journey, RFQ and insights components.
+// Every field carries a <label> (audit 2026-09-14: three unlabeled fields, the Emirate <select> with
+// no accessible name at all). Visually hidden where a placeholder already shows the same words.
+function Lbl({ text, children, className = '', visible = false }) {
+  return <label className={cn('block min-w-0', className)}><span className={visible ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}</span>{children}</label>;
 }
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
-function BillingPanel({ token, lang }) {
+// STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
+// return the supplier to /portal?dues_paid=… or ?registration_paid=…, and nothing read either query
+// string — the only confirmation was an email. Dashboard now reads them once, strips them from the URL,
+// opens Billing and shows this receipt. It says what is true at that moment: Stripe has the payment;
+// the balance changes only when stripe_webhook confirms it, which is the one writer of "paid".
+function ReceiptBanner({ receipt, lang }) {
+  const ar = lang === 'ar';
+  const reg = receipt.kind === 'registration';
+  return (
+    <div role="status" className="qd-panel flex items-start gap-3 border-primary/40 p-4">
+      <span aria-hidden className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground text-sm font-bold">✓</span>
+      <div>
+        <div className="text-[14px] font-bold text-foreground">{ar ? (reg ? 'تم استلام رسوم التسجيل' : 'تم استلام الدفعة') : (reg ? 'Registration payment received' : 'Payment received')}</div>
+        <div className={S.sub}>{ar
+          ? 'استلمت Stripe دفعتك وسترسل إليك الفاتورة بالبريد الإلكتروني. يتحدّث رصيدك هنا فور تأكيد Stripe لنا، عادةً خلال دقيقة.'
+          : 'Stripe has your payment and will email you the invoice. Your balance here updates as soon as Stripe confirms it to us, usually within a minute.'}</div>
+        <div className="mt-1 text-[11px] text-muted-foreground" dir="ltr">{(ar ? 'مرجع ' : 'Ref ') + '…' + String(receipt.ref || '').slice(-8)}</div>
+      </div>
+    </div>
+  );
+}
+// The onboarding copy promises "free for the first 1,000 suppliers, then AED 1,000 per year" (the
+// founder's 6 Sep ruling: the fee starts with the registration after the free count, no calendar
+// date). pay_registration already answers from fn_supplier_registration_state and creates a Stripe
+// Checkout only when a fee is actually due — and had NO caller in src/, so the promise had no button.
+// This is that button. For an exempt or not-yet-due supplier it only reads, and says why.
+function RegistrationFeeCard({ token, lang, base }) {
+  const ar = lang === 'ar';
+  const [busy, setBusy] = useState(false); const [res, setRes] = useState(null);
+  const check = async () => {
+    setBusy(true); setRes(null);
+    const j = await call('supplier_api', { action: 'pay_registration', return_url: base() }, token);
+    if (j && j.ok && j.url) { window.location.href = j.url; return; }
+    setBusy(false);
+    setRes({ ok: !!(j && j.ok), text: srvMsg(lang, j, t(lang, 'err_generic')) });
+  };
+  return (
+    <Card className="qd-panel p-5">
+      <div className={S.h2}>{ar ? 'رسوم التسجيل السنوية' : 'Yearly registration fee'}</div>
+      <div className={cn(S.sub, 'mt-1')}>{ar
+        ? 'التسجيل مجاني بشكل دائم لأول 1,000 مورّد؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم سنويًا. إن كانت رسوم مستحقة عليك تنتقل مباشرة إلى صفحة الدفع الآمنة في Stripe، وإلا نخبرك بالسبب.'
+        : 'Registration is permanently free for the first 1,000 suppliers; from the 1,001st registration it is AED 1,000 per year. If a fee is due you go straight to Stripe’s secure checkout; if not, we tell you why.'}</div>
+      <Button className="mt-3" variant="outline" disabled={busy} onClick={check}>{busy ? (ar ? 'جارٍ التحقق…' : 'Checking…') : (ar ? 'تحقّق من رسوم تسجيلي' : 'Check my registration fee')}</Button>
+      {res && <div role="status" className={cn('mt-2 text-[13px]', res.ok ? 'text-primary' : 'text-red-300')}>{res.text}</div>}
+    </Card>
+  );
+}
+function BillingPanel({ token, lang, receipt }) {
   const [st, setSt] = useState({ loading: true, dues: [], total: 0, err: '' });
   const [busy, setBusy] = useState(false);
+  // Stripe returns to base + '/portal', so an Arabic supplier comes back to /ar/portal.
+  const base = () => window.location.origin + (lang === 'ar' ? '/ar' : '');
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
     const j = await call('supplier_pay', { action: 'list' }, token);
@@ -56,22 +97,23 @@ function BillingPanel({ token, lang }) {
   useEffect(() => { load(); }, [token]);
   const pay = async () => {
     setBusy(true);
-    const j = await call('supplier_pay', { action: 'checkout', return_url: window.location.origin }, token);
+    const j = await call('supplier_pay', { action: 'checkout', return_url: base() }, token);
     if (j && j.ok && j.url) { window.location.href = j.url; return; }
     setBusy(false);
-    setSt((s) => ({ ...s, err: (j && (j.detail || j.error)) || 'checkout_err' }));
+    setSt((s) => ({ ...s, err: 'checkout_err' }));
   };
-  if (st.loading) return <Card className="qd-panel p-5">{t(lang, 'loading_dash')}</Card>;
-  if (st.err) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'bill_err')}</div><Button className="mt-3" onClick={load}>{t(lang, 'bill_retry')}</Button></Card>;
-  if (!st.dues.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'bill_title')}</div><div className={S.sub}>{t(lang, 'bill_none')}</div></Card>;
-  return (
+  let dues;
+  if (st.loading) dues = <Card className="qd-panel p-5">{t(lang, 'loading_dash')}</Card>;
+  else if (st.err) dues = <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'bill_err')}</div><Button className="mt-3" onClick={load}>{t(lang, 'bill_retry')}</Button></Card>;
+  else if (!st.dues.length) dues = <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'bill_title')}</div><div className={S.sub}>{t(lang, 'bill_none')}</div></Card>;
+  else dues = (
     <Card className="qd-panel p-5">
       <div className={S.h2}>{t(lang, 'bill_title')}</div>
       <div className="flex flex-col gap-2 my-3">
         {st.dues.map((d) => (
           <div key={d.id} className="flex justify-between items-center border-b border-border pb-2 text-[13.5px]">
             <div>
-              <div className="font-semibold">{aed(d.amount)}</div>
+              <div className="font-semibold tabular-nums">{aed(d.amount)}</div>
               <div className={S.sub}>{t(lang, 'bill_commission') + ' ' + aed(d.commission) + (d.fine ? ' · ' + t(lang, 'bill_fine') + ' ' + aed(d.fine) : '')}</div>
             </div>
             <div className={S.sub}>{d.due_date ? t(lang, 'bill_due') + ' ' + d.due_date : ''}</div>
@@ -81,13 +123,14 @@ function BillingPanel({ token, lang }) {
       <div className="flex justify-between items-center mt-3 flex-wrap gap-3">
         <div>
           <div className={S.sub}>{t(lang, 'bill_total')}</div>
-          <div className="text-[20px] font-extrabold text-foreground">{aed(st.total)}</div>
+          <div className="text-[20px] font-extrabold text-foreground tabular-nums">{aed(st.total)}</div>
         </div>
         <Button onClick={pay} disabled={busy}>{busy ? t(lang, 'bill_paying') : t(lang, 'bill_pay')}</Button>
       </div>
       <div className={cn(S.sub, 'mt-3')}>{t(lang, 'bill_secure')}</div>
     </Card>
   );
+  return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
 }
 
 function ensurePdfjs() { return new Promise((res, rej) => { if (window.pdfjsLib) return res(window.pdfjsLib); const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (_e) {} res(window.pdfjsLib); }; sc.onerror = rej; document.head.appendChild(sc); }); }
@@ -128,7 +171,11 @@ const T = {
     email_verified:'✓ E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.',
     wa_alerts:'Send me WhatsApp alerts when a matching RFQ comes in.', verify_first:'Please verify your mobile number first.',
-    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation (PDF/photo) — we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).' },
+    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation (PDF/photo) — we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
+    lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
+    verify_my_email:'Verify my e-mail →', email_code:'6-digit e-mail code', email_sent:'We emailed you a 6-digit code.', could_not_email:'Could not send the e-mail code.',
+    cat_label:'Your trade or category', cat_ph:'e.g. Electrical, AC, Cleaning — type your own if not listed', cat_help:'Every trade is welcome — if yours isn’t listed, just type it in.', emirate_ph:'Choose your main emirate',
+    t_quotes:'Quotes', t_insights:'Insights', t_profile:'Profile', t_scope:'My scope', t_settings:'Settings', main_nav:'Supplier portal sections', account:'Account' },
   ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
     signup_sub:'أدخل بريدك الإلكتروني للعمل وسننشئ حسابك — ثم تسجّل شركتك وتتحقق من رقم جوالك.',
@@ -149,10 +196,18 @@ const T = {
     email_verified:'✓ تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.',
     wa_alerts:'أرسل لي تنبيهات واتساب عند وصول طلب تسعير مطابق.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
-    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر (PDF/صورة) — سنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).' }
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر (PDF/صورة) — سنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
+    lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فاكتبه أدناه — القراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
+    verify_my_email:'تحقّق من بريدي ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليك رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
+    cat_label:'تخصصك أو فئتك', cat_ph:'مثال: كهرباء، تكييف، تنظيف — اكتب تخصصك إن لم يكن مدرجًا', cat_help:'كل التخصصات مرحّب بها — إن لم يكن تخصصك مدرجًا فاكتبه.', emirate_ph:'اختر إمارتك الرئيسية',
+    t_quotes:'العروض', t_insights:'الرؤى', t_profile:'الملف', t_scope:'نطاق عملي', t_settings:'الإعدادات', main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
+// The URL decides the language (14 Sep 2026). /ar/portal must render Arabic and /portal English, the
+// same as every other page and the same as the page's own <title>; a remembered localStorage choice
+// used to override the URL, so a shared /ar/portal link could open in English.
+function initLang(){ try{ if(typeof window==='undefined') return 'en'; return /^\/ar(\/|$)/.test(window.location.pathname) ? 'ar' : 'en'; }catch(_e){} return 'en'; }
+function switchLang(to){ try{ localStorage.setItem('qd-lang', to); document.cookie = 'NEXT_LOCALE=' + to + ';path=/;max-age=31536000;samesite=lax'; }catch(_e){} const p = window.location.pathname.replace(/^\/ar(?=\/|$)/, '') || '/'; window.location.href = (to === 'ar' ? '/ar' : '') + (p === '/' && to === 'ar' ? '' : p) + window.location.search; }
 // Typography and chrome carry the platform's voice: display weights are optically
 // tightened, body copy keeps a readable measure, and the tab bar is an inset well
 // with a RAISED active pill rather than a tinted one — so the current tab reads as
@@ -225,7 +280,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       setPinned({ trades: (cap && cap.trades) || [], roles: (cap && cap.roles) || [] });
       setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] } });
     } else {
-      setSt((s) => ({ ...s, loading: false, err: (j && (j.error || j.detail)) || 'load_err' }));
+      setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, ar ? 'تعذّر تحميل نطاق عملك.' : 'Could not load your scope.') }));
     }
   };
   useEffect(() => { load(); }, [token]);
@@ -246,7 +301,7 @@ function CapabilityConfirmPanel({ token, lang }) {
     }, token);
     setBusy(false);
     if (j && j.ok) { setSaved(true); load(); }
-    else setSt((s) => ({ ...s, err: (j && (j.message || j.error)) || 'confirm_err' }));
+    else setSt((s) => ({ ...s, err: srvMsg(lang, j, ar ? 'تعذّر حفظ نطاق عملك.' : 'Could not save your scope.') }));
   };
 
   if (st.loading) return <Card className="qd-panel p-5">{ar ? 'جارٍ التحميل…' : 'Loading…'}</Card>;
@@ -277,7 +332,8 @@ function CapabilityConfirmPanel({ token, lang }) {
         <div className="flex flex-wrap gap-2">
           {order(st.vocab.trades, pinned.trades).map((tr) => (
             <button key={tr.code} type="button" className={chip(trades.includes(tr.code))}
-                    onClick={() => toggle(trades, setTrades, tr.code)}>{tr.label || tr.code}</button>
+                    aria-pressed={trades.includes(tr.code)}
+                    onClick={() => toggle(trades, setTrades, tr.code)}>{vocabLabel(lang, 'trade', tr.code, tr.label)}</button>
           ))}
         </div>
       </div>
@@ -287,7 +343,8 @@ function CapabilityConfirmPanel({ token, lang }) {
         <div className="flex flex-wrap gap-2">
           {order(st.vocab.roles, pinned.roles).map((r) => (
             <button key={r.code} type="button" className={chip(roles.includes(r.code))}
-                    onClick={() => toggle(roles, setRoles, r.code)}>{r.label || r.code}</button>
+                    aria-pressed={roles.includes(r.code)}
+                    onClick={() => toggle(roles, setRoles, r.code)}>{vocabLabel(lang, 'role', r.code, r.label)}</button>
           ))}
         </div>
       </div>
@@ -391,18 +448,25 @@ export function SupplierPortal() {
   const rtl = lang === 'ar';
   if (!mounted) return null;
   return (
-    <div dir={rtl ? 'rtl' : 'ltr'} className="osx min-h-screen bg-background text-foreground" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
-        <a className="group flex items-center gap-2.5 text-[15px] font-extrabold text-foreground no-underline" href="/">
-          <BrandMark className="h-7 w-7 transition-transform duration-500 group-hover:rotate-[8deg]" />
-          <span>QuotesDone <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
+    // No inline font (14 Sep 2026). The root set fontFamily 'Inter, system-ui, sans-serif'; Inter is
+    // not loaded anywhere (public/fonts holds 11 woff2, none Inter; document.fonts showed 0 faces on
+    // /supplier), so the portal rendered in the OS fallback and the Arabic portal lost Tajawal. It now
+    // inherits the layout's var(--font-body) / var(--font-head), the same faces as the homepage.
+    <div dir={rtl ? 'rtl' : 'ltr'} lang={lang} className="osx min-h-screen bg-background text-foreground">
+      <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between gap-2 px-4 sm:px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
+        {/* whitespace-nowrap + the sub-label hidden below sm: at 375px "QuotesDone / SUPPLIER / PORTAL"
+            wrapped to three lines beside the buttons (audit mobile screenshot). */}
+        <a className="group flex min-w-0 items-center gap-2.5 whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-[family-name:var(--font-head)]" href={rtl ? '/ar' : '/'}>
+          <BrandMark className="h-7 w-7 shrink-0 transition-transform duration-500 group-hover:rotate-[8deg]" />
+          <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
-        <div className="flex gap-2 items-center">
-          <Button variant="outline" size="sm" onClick={() => { try { localStorage.setItem('qd-lang', lang === 'ar' ? 'en' : 'ar'); } catch (_e) {} if (typeof location !== 'undefined') location.reload(); }}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
-          <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
+        <div className="flex gap-2 items-center shrink-0">
+          <Button variant="outline" size="sm" lang={lang === 'ar' ? 'en' : 'ar'} onClick={() => switchLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
+          <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
         </div>
       </header>
+      <main id="qd-portal-main">
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
         {/* An invited supplier is told whose listing this is, before anything else on the page. */}
         {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
@@ -411,6 +475,7 @@ export function SupplierPortal() {
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && <Dashboard token={token} lang={lang} />}
       </>)}
+      </main>
     </div>
   );
 }
@@ -463,15 +528,15 @@ function Login({ onAuth, lang, startMode }) {
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
       <div className="mb-5 flex flex-col items-center text-center">
         <span className="qd-brandbadge mb-4 grid h-12 w-12 place-items-center rounded-2xl"><BrandMark className="h-6 w-6" /></span>
-        <div className={cn(S.h1, 'qd-grad-text')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</div>
+        <h1 className={cn(S.h1, 'qd-grad-text font-[family-name:var(--font-head)]')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
         <div className={cn(S.sub, 'mx-auto mt-2')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       {step === 'id' ? (<>
-        <Input className="mt-3" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} />
+        <Lbl text={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')}><Input className="mt-3" autoComplete={isSignup ? 'email' : 'username'} dir="ltr" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl>
         <Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
       </>) : (<>
-        <Input className="mt-3" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} />
+        <Lbl text={t(lang, 'code_placeholder')}><Input className="mt-3" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
         <div className={S.hint}>{t(lang, 'junk_note')}</div>
         <Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
         <Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
@@ -480,85 +545,93 @@ function Login({ onAuth, lang, startMode }) {
     </Card></div>
   );
 }
+// THE DASHBOARD IS A JOURNEY, NOT 24 TABS (14 Sep 2026).
+//
+// It had 24 equal tabs; on a 375x812 phone the strip alone was 366px tall and the one action that
+// unlocks every RFQ sat 2,547px down (measurements recorded in CapabilityConfirmPanel). Now: the
+// overview is "Get matched" (the eligibility payload as a progress ring and checklist), then the core
+// work — RFQs, Quotes, Projects, Messages, Documents, Billing — and ONE Insights section that lists only
+// the intelligence panels whose routine has something to show. Profile, scope and settings are account
+// links; the checklist sends the supplier to whichever one is next. The strip scrolls sideways rather
+// than wrapping, so on a phone it is one row.
+const MAIN_TABS = ['overview', 'rfqs', 'quotes', 'projects', 'messages', 'documents', 'billing', 'insights'];
+const ACCOUNT_TABS = ['profile', 'scope', 'settings'];
 function Dashboard({ token, lang }) {
+  const ar = lang === 'ar';
   const [ov, setOv] = useState(null); const [tab, setTab] = useState('overview'); const [err, setErr] = useState('');
-  const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else setErr((j && (j.error || j.hint)) || 'load_err'); };
+  const [panel, setPanel] = useState(null); const [receipt, setReceipt] = useState(null);
+  const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else setErr((j && j.error) || 'load_err'); };
   useEffect(() => { load(); }, [token]);
+  useEffect(() => {
+    // Stripe's return (see ReceiptBanner). Read once, then removed so a reload does not re-announce it.
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const d = q.get('dues_paid'); const r = q.get('registration_paid');
+      if (d || r) {
+        setReceipt({ kind: d ? 'dues' : 'registration', ref: String(d || r) }); setTab('billing');
+        q.delete('dues_paid'); q.delete('registration_paid');
+        const s = q.toString(); window.history.replaceState(null, '', window.location.pathname + (s ? '?' + s : ''));
+      }
+    } catch (_e) {}
+  }, []);
+  // Every panel's goTo(...) lands here. Old tab keys still resolve: 'inbox' is the RFQs list, and the
+  // intelligence keys open their panel inside Insights.
+  const go = (k) => {
+    if (MAIN_TABS.includes(k) || ACCOUNT_TABS.includes(k)) { setTab(k); return; }
+    if (k === 'inbox') { setTab('rfqs'); return; }
+    if (INSIGHT_PANELS.includes(k)) { setPanel(k); setTab('insights'); return; }
+    setTab('overview');
+  };
   if (err === 'no_company') return <Onboarding token={token} lang={lang} onDone={() => { setErr(''); load(); }} />;
-  if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{err === 'load_err' ? t(lang, 'err_generic') : err}</div></Card></div>;
-  if (!ov) return <div className={S.center}>{t(lang, 'loading_dash')}</div>;
+  if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
+  if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
-  const TAB = { overview: t(lang, 't_overview'), rfqs: t(lang, 't_rfqs'), documents: t(lang, 't_documents'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), billing: t(lang, 't_billing'), profile: lang === 'ar' ? 'الملف' : 'Profile', twin: lang === 'ar' ? 'التوأم الرقمي' : 'Digital Twin', products: lang === 'ar' ? 'المنتجات' : 'Products', assistant: lang === 'ar' ? 'المساعد' : 'AI Assistant', environment: lang === 'ar' ? 'البيئة ثلاثية الأبعاد' : '3D Environment', network: lang === 'ar' ? 'خريطة الشبكة' : 'Network Map', market: lang === 'ar' ? 'ذكاء السوق' : 'Market', workspaces: lang === 'ar' ? 'مساحات العمل' : 'Workspaces', onboarding: lang === 'ar' ? 'إعداد الملف' : 'Set up my profile', board: lang === 'ar' ? 'لوحة الرؤى' : 'Insight Board', recommended: lang === 'ar' ? 'موصى به لك' : 'Recommended', ranking: lang === 'ar' ? 'التصنيف' : 'Supplier Score', negotiation: lang === 'ar' ? 'مساعد التفاوض' : 'Negotiation AI', certifications: lang === 'ar' ? 'الشهادات' : 'Certifications', quote: lang === 'ar' ? 'منشئ عروض الأسعار' : 'Quote Builder', inventory: lang === 'ar' ? 'المخزون' : 'Inventory', settings: lang === 'ar' ? 'الإعدادات' : 'Settings', scope: lang === 'ar' ? 'نطاق عملي' : 'My scope' };
-  // 'profile' is new. ProfileForm previously rendered only from Onboarding, which shows solely
-  // while supplier_portal returns no_company — so the moment a supplier registered, every field
-  // in it became permanently unreachable: contact name, phone, products, services, description,
-  // TRN, EGR, licence number and authority. They could not correct a typo in their own company
-  // details, and since matching scores on products/services/categories, they could not improve
-  // their own discoverability either.
-  // 'twin' is row #5 §3/§4/§6/§13 — the digital twin, health panel and company intelligence. It
-  // lives in its own component file (portal/supplier/SupplierTwin.tsx) rather than here: this file
-  // is already 81,811 stripped characters holding six unrelated features, and that size is what
-  // made three separate scorer refutation rounds necessary.
-  const TABS = ['overview', 'scope', 'board', 'recommended', 'quote', 'ranking', 'negotiation', 'certifications', 'onboarding', 'twin', 'environment', 'network', 'market', 'workspaces', 'assistant', 'products', 'inventory', 'rfqs', 'documents', 'profile', 'projects', 'messages', 'settings', 'billing'];
+  const TAB = { overview: ar ? 'احصل على المطابقة' : 'Get matched', rfqs: t(lang, 't_rfqs'), quotes: t(lang, 't_quotes'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), documents: t(lang, 't_documents'), billing: t(lang, 't_billing'), insights: t(lang, 't_insights'), profile: t(lang, 't_profile'), scope: t(lang, 't_scope'), settings: t(lang, 't_settings') };
+  const stBadge = (() => {
+    // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
+    const st = ov.supplier.approval_status;
+    if (st === 'action_required') {
+      const due = ov.supplier.exception_due_at ? new Date(ov.supplier.exception_due_at) : null;
+      const days = due ? Math.ceil((due.getTime() - Date.now()) / 864e5) : null;
+      const when = days === null ? '' : (days <= 0 ? ' · ' + t(lang, 'ar_overdue') : ' · ' + days + ' ' + t(lang, 'ar_days_left'));
+      return <Badge variant="destructive">{t(lang, 'action_required') + when}</Badge>;
+    }
+    return <Badge variant={st === 'approved' ? 'ok' : 'warn'}>{st === 'approved' ? t(lang, 'approved') : t(lang, 'pending')}</Badge>;
+  })();
   return (
     <div className={S.wrap}>
-      <div className="flex justify-between items-center flex-wrap gap-3 mb-4">
-        <div><div className="text-[22px] font-extrabold text-foreground">{ov.supplier.company_name}</div><div className="flex items-center gap-2 mt-1.5 flex-wrap">{(() => {
-            // AUDIT 6.5(d): action_required is NOT pending. Pending means someone will look at it;
-            // action_required means a clock is running that ends in rejection unless the supplier
-            // acts. Showing both as "Pending" is why a supplier could be auto-rejected on day 14
-            // having been told, on this screen, that everything was fine.
-            const st = ov.supplier.approval_status;
-            if (st === 'action_required') {
-              const due = ov.supplier.exception_due_at ? new Date(ov.supplier.exception_due_at) : null;
-              const days = due ? Math.ceil((due.getTime() - Date.now()) / 864e5) : null;
-              const when = days === null ? '' : (days <= 0 ? ' \u00b7 ' + t(lang, 'ar_overdue') : ' \u00b7 ' + days + ' ' + t(lang, 'ar_days_left'));
-              return <Badge variant="destructive">{t(lang, 'action_required') + when}</Badge>;
-            }
-            return <Badge variant={st === 'approved' ? 'ok' : 'warn'} className="capitalize">{st === 'approved' ? t(lang, 'approved') : t(lang, 'pending')}</Badge>;
-          })()}{ov.supplier.approval_status === 'action_required' && ov.supplier.licence_gate_reason
-            ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + ov.supplier.licence_gate_reason}</span>
-            : null}{ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · ' + ov.supplier.license_expiry}</Badge>; })() : null}</div></div>
-        <div className={S.tabsWrap}>{TABS.map((k) => <button key={k} className={cn(S.tab, tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}</div>
+      <div className="mb-5 flex flex-col gap-3">
+        <div>
+          <h1 dir="auto" className="font-[family-name:var(--font-head)] text-[22px] sm:text-[26px] font-extrabold tracking-[-.03em] text-foreground">{ov.supplier.company_name}</h1>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            {stBadge}
+            {ov.supplier.approval_status === 'action_required' && ov.supplier.licence_gate_reason
+              ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
+            {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · ' + ov.supplier.license_expiry}</Badge>; })() : null}
+          </div>
+        </div>
+        <nav aria-label={t(lang, 'main_nav')} className="-mx-1 overflow-x-auto px-1 pb-1">
+          <div className={cn(S.tabsWrap, 'flex-nowrap')}>
+            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'whitespace-nowrap', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}
+          </div>
+        </nav>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+          <span className="text-muted-foreground">{t(lang, 'account')}:</span>
+          {ACCOUNT_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn('font-semibold underline-offset-2 hover:underline', tab === k ? 'text-primary' : 'text-muted-foreground')} onClick={() => setTab(k)}>{TAB[k]}</button>)}
+        </div>
       </div>
-      {tab === 'twin' && <SupplierTwin token={token} lang={lang} />}
-      {tab === 'products' && <ProductIntelligence token={token} lang={lang} />}
-      {tab === 'environment' && <SupplierEnvironment token={token} lang={lang} />}
-      {/* §19's supplier density map and §23's knowledge graph are the same subject — the shape of
-          the market around this company — so they share a destination rather than splitting the
-          navigation. The map answers "where", the graph answers "next to what". */}
-      {tab === 'network' && <div className="space-y-4"><SupplierNetworkMap token={token} lang={lang} /><SupplierKnowledgeGraph token={token} lang={lang} /></div>}
-      {tab === 'market' && <MarketIntelligence token={token} lang={lang} />}
-      <SupplierCommandPalette tabs={TABS} labels={TAB} onGo={setTab} lang={lang} />
-      {tab === 'board' && <SupplierInsightBoard token={token} lang={lang} />}
-      {tab === 'recommended' && <SupplierOpportunities token={token} lang={lang} />}
-      {tab === 'ranking' && <SupplierTier token={token} lang={lang} />}
-      {tab === 'negotiation' && <SupplierNegotiation token={token} lang={lang} />}
-      {tab === 'certifications' && <SupplierCertifications token={token} lang={lang} goTo={setTab} />}
-      {tab === 'onboarding' && <SupplierOnboarding token={token} lang={lang} goTo={setTab} />}
-      {tab === 'quote' && <SupplierQuoteBuilder token={token} lang={lang} />}
-      {tab === 'inventory' && <SupplierInventory token={token} lang={lang} goTo={setTab} />}
-      {tab === 'settings' && <SupplierSettings token={token} lang={lang} />}
-      {tab === 'workspaces' && <CollaborationWorkspace token={token} lang={lang} goTo={setTab} />}
-      {tab === 'assistant' && <SupplierAdvisor token={token} lang={lang} goTo={setTab} />}
-      {tab === 'scope' && <CapabilityConfirmPanel token={token} lang={lang} />}
-      {tab === 'billing' && <BillingPanel token={token} lang={lang} />}
-      {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
+      <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
       {tab === 'overview' && <>
-        {/* Severity reads as a leading indicator dot rather than a thick side-stripe, and these are
-            real buttons — they were clickable divs, so keyboard users could not reach them at all. */}
-        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{a.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{a.detail}</span></span></button>)}</div>}
-        <EligibilityPanel token={token} lang={lang} goProfile={() => setTab('profile')} goDocs={() => setTab('documents')} goScope={() => setTab('scope')} />
-        {/* §4's assistant has to name a concrete gap AND quantify what closing it is worth. The
-            counts come from fn_supplier_document_impact, so "6 more opportunities" is a count of
-            open enquiries in this supplier's trade rather than the spec's illustrative figure. */}
-        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={setTab} /></div>
+        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
+        <GetMatched token={token} lang={lang} go={go} />
+        {/* Counts come from fn_supplier_document_impact: open enquiries in this trade, not an estimate. */}
+        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} /></div>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
           <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
           <Kpi label={t(lang, 'k_reveals')} v={s.reveals ?? 0} />
           <Kpi label={t(lang, 'k_hired')} v={s.hired ?? 0} />
           <Kpi label={t(lang, 'k_win')} v={s.win_ratio != null ? s.win_ratio + '%' : '—'} />
-          <Kpi label={t(lang, 'k_rating')} v={s.rating != null ? s.rating : '—'} sub={s.rating_percentile != null ? (lang === 'ar' ? ('ضمن أفضل ' + Math.max(1, 100 - s.rating_percentile) + '% بالقطاع') : ('Top ' + Math.max(1, 100 - s.rating_percentile) + '% in sector')) : ''} />
+          <Kpi label={t(lang, 'k_rating')} v={s.rating != null ? s.rating : '—'} sub={s.rating_percentile != null ? (ar ? ('ضمن أفضل ' + Math.max(1, 100 - s.rating_percentile) + '% بالقطاع') : ('Top ' + Math.max(1, 100 - s.rating_percentile) + '% in sector')) : ''} />
           <Kpi label={t(lang, 'k_deal_value')} v={aed(s.deal_value_awarded)} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
@@ -569,19 +642,17 @@ function Dashboard({ token, lang }) {
           <Card className="qd-panel p-5">
             <div className={S.h2}>{t(lang, 'price_pos')} <span className={S.anon}>{t(lang, 'anon_note')}</span></div>
             <div className="mt-2.5"><Badge variant={/below/.test(pp.band || '') ? 'ok' : /above/.test(pp.band || '') ? 'warn' : 'secondary'} className="capitalize text-sm px-3.5 py-1.5">{pp.band || t(lang, 'not_enough')}</Badge></div>
-            {/* The promise "we never show competitor prices" is stated everywhere and shown nowhere.
-                The redaction bar is the brand's own primitive for a withheld value, so here it makes
-                the guarantee visible: those prices exist, we hold them, and you cannot see them. */}
+            {/* The redaction bar makes "we never show competitor prices" visible: they exist, we hold them. */}
             {pp.competitive_rfqs ? (
               <div className="mt-3.5 flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-muted-foreground/80">{lang === 'ar' ? 'أسعار المنافسين' : 'Competitor quotes'}</span>
+                <span className="text-[11px] font-semibold text-muted-foreground/80">{ar ? 'أسعار المنافسين' : 'Competitor quotes'}</span>
                 <span aria-hidden className="redact redact-bar" style={{ width: 52 }} />
                 <span aria-hidden className="redact redact-bar" style={{ width: 36 }} />
                 <span aria-hidden className="redact redact-bar" style={{ width: 44 }} />
-                <span className="sr-only">{lang === 'ar' ? 'أسعار المنافسين محجوبة دائمًا' : 'Competitor prices are always withheld'}</span>
+                <span className="sr-only">{ar ? 'أسعار المنافسين محجوبة دائمًا' : 'Competitor prices are always withheld'}</span>
               </div>
             ) : null}
-            <div className={cn(S.sub, 'mt-2.5')}>{pp.competitive_rfqs ? ((lang === 'ar' ? ('كنت الأقل سعرًا في ' + (pp.times_lowest || 0) + ' من ' + pp.competitive_rfqs + ' طلب تنافسي (' + (pp.lowest_rate || 0) + '%). في المتوسط عرضك ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% مقابل متوسط السوق و' + (pp.avg_pct_above_lowest ?? 0) + '% فوق أدنى عرض.') : ('You were the lowest bid on ' + (pp.times_lowest || 0) + ' of ' + pp.competitive_rfqs + ' competitive RFQs (' + (pp.lowest_rate || 0) + '%). On average your quote is ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% vs the market average and ' + (pp.avg_pct_above_lowest ?? 0) + '% above the lowest quote.'))) : t(lang, 'pp_fallback')}</div>
+            <div className={cn(S.sub, 'mt-2.5')}>{pp.competitive_rfqs ? ((ar ? ('كنت الأقل سعرًا في ' + (pp.times_lowest || 0) + ' من ' + pp.competitive_rfqs + ' طلب تنافسي (' + (pp.lowest_rate || 0) + '%). في المتوسط عرضك ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% مقابل متوسط السوق و' + (pp.avg_pct_above_lowest ?? 0) + '% فوق أدنى عرض.') : ('You were the lowest bid on ' + (pp.times_lowest || 0) + ' of ' + pp.competitive_rfqs + ' competitive RFQs (' + (pp.lowest_rate || 0) + '%). On average your quote is ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% vs the market average and ' + (pp.avg_pct_above_lowest ?? 0) + '% above the lowest quote.'))) : t(lang, 'pp_fallback')}</div>
           </Card>
           <Card className="qd-panel p-5">
             <div className={S.h2}>{t(lang, 'last12')} <span className={S.anon}>{t(lang, 'quotes_reveals')}</span></div>
@@ -590,72 +661,36 @@ function Dashboard({ token, lang }) {
         </div>
       </>}
       {tab === 'rfqs' && <Rfqs token={token} lang={lang} />}
-      {tab === 'documents' && <Documents token={token} lang={lang} />}
+      {tab === 'quotes' && <MyQuotes token={token} lang={lang} goRfqs={() => setTab('rfqs')} />}
       {tab === 'projects' && <Projects token={token} lang={lang} />}
       {tab === 'messages' && <Messages token={token} lang={lang} />}
+      {tab === 'documents' && <Documents token={token} lang={lang} />}
+      {tab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
+      {tab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
+      {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
+      {tab === 'scope' && <CapabilityConfirmPanel token={token} lang={lang} />}
+      {tab === 'settings' && <SupplierSettings token={token} lang={lang} />}
     </div>
   );
 }
-// "Why am I not getting matched?"
-//
-// Across 20,465 supplier records exactly one is currently eligible, and inquiry_matches has never
-// had a row — so the single most useful thing this dashboard can tell a supplier is what is
-// actually standing between them and a request. Every item comes from the server, which evaluates
-// the real clauses in match_suppliers_kw rather than a guess at them, and separates what BLOCKS
-// matching from what only IMPROVES ranking. Conflating those would be worse than silence: a
-// supplier who fixes five cosmetic things and still gets nothing stops trusting the product.
-function EligibilityPanel({ token, lang, goProfile, goDocs, goScope }) {
-  const [e, setE] = useState(null);
+// Quotes: what this supplier has sent, and which are still drafts that no customer can see. The inbox
+// already carries each RFQ's quote; this is that list read the other way round.
+function MyQuotes({ token, lang, goRfqs }) {
   const ar = lang === 'ar';
-  useEffect(() => { call('supplier_portal', { action: 'eligibility' }, token).then((j) => { if (j && j.ok) setE(j); }); }, [token]);
-  if (!e) return null;
-  const blocking = e.blocking || []; const improving = e.improving || [];
-  const go = (fix) => { if (fix === 'documents') goDocs(); else if (fix === 'profile') goProfile(); else if (fix === 'scope') goScope(); };
-  const Row = ({ it, tone }) => (
-    <li className="flex items-start gap-2.5">
-      <span className={cn('mt-[7px] h-1.5 w-1.5 rounded-full shrink-0', tone === 'block' ? 'bg-red-500' : 'bg-primary')} />
-      <div className="flex-1">
-        <div className="text-[13.5px] font-semibold text-foreground">{it.title}</div>
-        <div className={S.sub}>{it.detail}</div>
-        {(it.fix === 'profile' || it.fix === 'documents' || it.fix === 'scope') && (
-          <button className="mt-1 text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>
-            {it.fix === 'documents' ? (ar ? 'إلى المستندات ←' : 'Go to Documents →')
-              : it.fix === 'scope' ? (ar ? 'تأكيد نطاق عملي ←' : 'Confirm my scope →')
-              : (ar ? 'إلى الملف ←' : 'Go to Profile →')}
-          </button>
-        )}
+  const [data, setData] = useState(null);
+  useEffect(() => { call('supplier_api', { action: 'inbox' }, token).then(setData); }, [token]);
+  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
+  const list = (data.inquiries || []).filter((i) => i.quote);
+  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{ar ? 'لم تقدّم أي عرض بعد' : 'No quotes yet'}</div><div className={S.sub}>{ar ? 'تظهر هنا عروضك بعد أن تسعّر طلبًا من تبويب طلبات التسعير.' : 'Your quotes appear here once you price a request from the RFQs tab.'}</div><Button className="mt-3" variant="outline" onClick={goRfqs}>{t(lang, 't_rfqs')}</Button></Card>;
+  const ST = { draft: { v: 'warn', en: 'Draft — not sent', ar: 'مسودة — لم تُرسل' }, submitted: { v: 'ok', en: 'Sent to the customer', ar: 'أُرسل إلى العميل' } };
+  return <ul className={S.list}>{list.map((i) => { const q = i.quote; const st = ST[q.status] || { v: 'secondary', en: q.status, ar: q.status }; return (
+    <li key={i.id}><Card className="qd-panel qd-panel-hover p-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div className="font-semibold text-foreground">{i.category || t(lang, 'request_w')} · {emirateLabel(lang, i.emirate || '')}</div>
+        <div className="mt-1 flex flex-wrap gap-2 items-center"><Badge variant={st.v}>{ar ? st.ar : st.en}</Badge>{i.you_won ? <Badge variant="ok">{t(lang, 'you_won').replace(' · ', '')}</Badge> : i.concluded ? <Badge variant="secondary">{t(lang, 'concluded').replace(' · ', '')}</Badge> : null}{q.lead_time ? <span className={S.sub}>{(ar ? 'مدة التنفيذ: ' : 'Lead time: ') + q.lead_time}</span> : null}</div>
       </div>
-    </li>
-  );
-  return (
-    <Card className="qd-panel p-5 mb-4">
-      <div className="flex justify-between items-start gap-3 flex-wrap">
-        <div>
-          <div className={S.h2}>{ar ? 'وصولك إلى الطلبات' : 'Your reach'}</div>
-          <div className={cn(S.sub, 'mt-1 max-w-[62ch]')}>{e.note}</div>
-        </div>
-        <Badge variant={e.eligible ? 'ok' : 'destructive'} className="shrink-0">
-          {e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل حاليًا' : 'Not currently eligible')}
-        </Badge>
-      </div>
-      <div className="flex gap-5 mt-3 flex-wrap">
-        <div><div className="text-[19px] font-extrabold text-foreground leading-none">{e.reach?.matched_requests ?? 0}</div><div className={S.sub}>{ar ? 'طلبات مطابقة' : 'requests matched'}</div></div>
-        <div><div className="text-[19px] font-extrabold text-foreground leading-none">{e.reach?.quotes_sent ?? 0}</div><div className={S.sub}>{ar ? 'عروض مُرسلة' : 'quotes sent'}</div></div>
-        <div><div className="text-[19px] font-extrabold text-foreground leading-none">{e.reach?.shortlist_size ?? 8}</div><div className={S.sub}>{ar ? 'حجم القائمة المختصرة' : 'shortlist size'}</div></div>
-      </div>
-      {!!blocking.length && <div className="mt-4">
-        <div className="text-[12.5px] font-bold text-red-400">{ar ? 'يمنع وصول الطلبات إليك' : 'Stopping requests reaching you'}</div>
-        <ul className="mt-2 flex flex-col gap-2.5">{blocking.map((it, i) => <Row key={i} it={it} tone="block" />)}</ul>
-      </div>}
-      {!!improving.length && <div className="mt-4">
-        <div className="text-[12.5px] font-bold text-muted-foreground">{ar ? 'يرفع ترتيبك' : 'Improves your ranking'}</div>
-        <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 6).map((it, i) => <Row key={i} it={it} tone="improve" />)}</ul>
-      </div>}
-      {!blocking.length && !improving.length && <div className={cn(S.sub, 'mt-3')}>
-        {ar ? 'ملفك مكتمل. ستصلك الطلبات المطابقة فور ورودها.' : 'Your profile is complete. Matching requests will reach you as they come in.'}
-      </div>}
-    </Card>
-  );
+      <div className="text-end"><div className="font-[family-name:var(--font-head)] text-[18px] font-extrabold tabular-nums text-foreground">{aed(q.quote_amount)}</div>{q.status === 'draft' && !i.concluded ? <Button size="sm" variant="outline" className="mt-1" onClick={goRfqs}>{ar ? 'أكمل العرض' : 'Complete it'}</Button> : null}</div>
+    </Card></li>); })}</ul>;
 }
 // Label above figure, not below: the eye lands on the number, and the label is
 // already read by then. Figures are tabular so a row of KPIs aligns on the digit.
@@ -738,27 +773,48 @@ function Earnings({ s, lang }) {
   );
 }
 function Spark({ hist, lang }) { if (!hist || !hist.length) return <div className={S.sub}>{t(lang, 'no_history')}</div>; const max = Math.max(1, ...hist.map((h) => Math.max(h.quotes || 0, h.reveals || 0))); return <div className="flex gap-1.5 items-end mt-3.5 h-[70px]">{hist.map((h, i) => <div key={i} className="flex-1 flex flex-col items-center" title={h.month + ': ' + h.quotes + ' quotes / ' + h.reveals + ' reveals'}><div className="flex gap-0.5 items-end h-[50px]"><div className="w-[7px] rounded-t-sm bg-primary" style={{ height: Math.max(2, Math.round((h.quotes / max) * 46)) }} /><div className="w-[7px] rounded-t-sm bg-primary/40" style={{ height: Math.max(2, Math.round((h.reveals / max) * 46)) }} /></div><div className="text-[9px] text-muted-foreground mt-1">{String(h.month).split(' ')[0]}</div></div>)}</div>; }
+// An RFQ card shows what is actually being priced: the redacted drawing pages, the BOQ as a table
+// (with "quote against this BOQ" pre-filling the quote's line items), the customer's identity as a
+// redaction bar, and the anonymous pre-reveal Q&A. See ./supplier/RfqParts.tsx for why.
 function Rfqs({ token, lang }) {
-  const [data, setData] = useState(null); const [open, setOpen] = useState(null);
+  const ar = lang === 'ar';
+  const [data, setData] = useState(null); const [open, setOpen] = useState(null); const [prefill, setPrefill] = useState({});
   const reload = () => call('supplier_api', { action: 'inbox' }, token).then((j) => setData(j));
   useEffect(() => { reload(); }, [token]);
-  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_rfqs')}</Card>;
-  if (data.error) return <Card className="qd-panel p-5">{data.error}</Card>;
+  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading_rfqs')}</Card>;
+  if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.inquiries || [];
   if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_rfqs_h')}</div><div className={S.sub}>{t(lang, 'no_rfqs_sub')}</div></Card>;
-  return <div className={S.list}>{list.map((i) => <Card key={i.id} className="p-5">
-    <div className="flex justify-between items-center gap-2.5"><div><b>{i.category || t(lang, 'request_w')}</b> · {i.emirate || ''}{i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</div>{i.quote ? <span className="text-primary font-bold text-[13px]">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span> : <Button size="sm" onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : t(lang, 'quote')}</Button>}</div>
-    {i.summary && <div className={cn(S.sub, 'mt-1.5')}>{i.summary}</div>}
-    {i.boq && i.boq.boq && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'boq_prefix')}{i.boq.boq.length} {t(lang, 'boq_items')}{i.boq_confidence ? ' · ' + i.boq_confidence + t(lang, 'confidence') : ''}</div>}
-    {(i.drawing_pages || []).length ? <div className={cn(S.sub, 'mt-1.5')}>{i.drawing_pages.map((u, k) => <a key={k} href={u} target="_blank" rel="noopener" className="text-primary font-semibold mr-2.5">{t(lang, 'drawing_p')}{k + 1}</a>)}</div> : null}
-    {!i.concluded && !i.quote && <div className="mt-1.5"><button className="text-[12px] text-muted-foreground underline underline-offset-2 hover:text-primary" onClick={async () => { const note = window.prompt('What is unclear about this request? (optional) — we will ask the customer to add detail.'); if (note === null) return; const j = await call('rfq_flag', { inquiry_id: i.id, note: note || '' }, token); window.alert(j && j.ok ? 'Thanks — we have asked the customer to add more detail.' : ((j && j.error) || 'Could not send. Please try again.')); }}>Scope unclear? Ask the customer to clarify</button></div>}
-    {open === i.id && !i.concluded && <QuoteForm inquiry={i} token={token} lang={lang} onDone={() => { setOpen(null); reload(); }} />}
-  </Card>)}</div>;
+  const quoteBoq = (id, rows) => {
+    setPrefill((p) => ({ ...p, [id]: rows.slice(0, 80).map((r) => ({ description: String(r.description || '').slice(0, 300), qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: '' })) }));
+    setOpen(id);
+    requestAnimationFrame(() => { try { document.getElementById('qd-qf-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {} });
+  };
+  const date = (d) => (d ? new Date(d).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }) : '');
+  return <ul className={S.list}>{list.map((i) => {
+    const canQuote = !i.concluded && !i.quote;
+    return <li key={i.id}><Card className="qd-panel p-5">
+      <div className="flex justify-between items-start gap-2.5 flex-wrap">
+        <div className="min-w-0">
+          <h2 className="text-[15.5px] font-bold text-foreground">{i.category || t(lang, 'request_w')} <span className="font-semibold text-muted-foreground">· {emirateLabel(lang, i.emirate || '')}</span>
+            {i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</h2>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">{!i.you_won && <WithheldCustomer lang={lang} />}<span className="text-[11.5px] text-muted-foreground">{date(i.created_at)}</span>{i.budget ? <span className="text-[11.5px] text-muted-foreground">{(ar ? 'الميزانية: ' : 'Budget: ') + i.budget}</span> : null}</div>
+        </div>
+        {i.quote ? <span className="text-primary font-bold text-[13px] tabular-nums">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span>
+          : canQuote ? <Button size="sm" aria-expanded={open === i.id} onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : t(lang, 'quote')}</Button> : null}
+      </div>
+      {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
+      <DrawingGallery pages={i.drawing_pages || []} lang={lang} />
+      <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote ? (rows) => quoteBoq(i.id, rows) : undefined} />
+      <ClarifyThread inquiryId={i.id} token={token} lang={lang} canAsk={canQuote} />
+      {open === i.id && canQuote && <div id={'qd-qf-' + i.id}><QuoteForm key={i.id + ':' + ((prefill[i.id] || []).length)} inquiry={i} token={token} lang={lang} initialItems={prefill[i.id]} onDone={() => { setOpen(null); reload(); }} /></div>}
+    </Card></li>;
+  })}</ul>;
 }
-function QuoteForm({ inquiry, token, onDone, lang }) {
-  const [amount, setAmount] = useState(''); const [lead, setLead] = useState(''); const [notes, setNotes] = useState(''); const [scope, setScope] = useState(''); const [validity, setValidity] = useState(''); const [payment, setPayment] = useState(''); const [warranty, setWarranty] = useState(''); const [items, setItems] = useState([{ description: '', qty: '', unit: '', unit_price: '' }]); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
+  const [amount, setAmount] = useState(''); const [lead, setLead] = useState(''); const [notes, setNotes] = useState(''); const [scope, setScope] = useState(''); const [validity, setValidity] = useState(''); const [payment, setPayment] = useState(''); const [warranty, setWarranty] = useState(''); const [items, setItems] = useState(initialItems && initialItems.length ? initialItems : [{ description: '', qty: '', unit: '', unit_price: '' }]); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
-  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64 } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg((j && j.error) || t(lang, 'could_not_read')); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64 } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
   const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form' };
   // Preflight. submit_quote accepts dry_run: it runs the REAL scorer and the REAL accept rule,
@@ -775,7 +831,7 @@ function QuoteForm({ inquiry, token, onDone, lang }) {
     setChecking(true); setMsg(''); setChk(null);
     const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token);
     setChecking(false);
-    if (j && j.ok) setChk(j); else setMsg((j && j.error) || t(lang, 'could_not_submit'));
+    if (j && j.ok) setChk(j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
   const submit = async () => {
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
@@ -783,26 +839,26 @@ function QuoteForm({ inquiry, token, onDone, lang }) {
     const j = await call('supplier_api', buildPayload(), token);
     setBusy(false);
     if (j && j.ok && j.accepted) onDone();
-    else if (j && j.ok) setMsg(j.message || t(lang, 'draft_saved'));
-    else setMsg((j && j.error) || t(lang, 'could_not_submit'));
+    else if (j && j.ok) setMsg(srvMsg(lang, j, t(lang, 'draft_saved')));
+    else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
   return <div className="mt-3 border-t border-border pt-3 flex flex-col gap-2.5">
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
-    <div className="flex gap-2.5"><Input placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></div>
-    <div className="flex gap-2.5"><Input placeholder={lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'} value={validity} onChange={(e) => setValidity(e.target.value)} /><Input placeholder={lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'} value={payment} onChange={(e) => setPayment(e.target.value)} /><Input placeholder={lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)'} value={warranty} onChange={(e) => setWarranty(e.target.value)} /></div>
+    <div className="flex gap-2.5 flex-wrap"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
+    <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
     <div className="mt-1">
       <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? 'بنود العرض (الوصف، الكمية، السعر) — يجعل عرضك جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
       {items.map((it, ix) => (<div key={ix} className="flex gap-1.5 mb-1.5 items-center">
-        <Input placeholder={lang === 'ar' ? 'الوصف' : 'Description'} value={it.description} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, description: e.target.value } : r))} />
-        <Input style={{ maxWidth: 64 }} placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} />
-        <Input style={{ maxWidth: 72 }} placeholder={lang === 'ar' ? 'وحدة' : 'Unit'} value={it.unit} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit: e.target.value } : r))} />
-        <Input style={{ maxWidth: 96 }} placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} />
-        <Button size="sm" variant="outline" onClick={() => setItems(items.length > 1 ? items.filter((_, i) => i !== ix) : [{ description: '', qty: '', unit: '', unit_price: '' }])}>×</Button>
+        <Lbl className="flex-1" text={(lang === 'ar' ? 'الوصف، البند ' : 'Description, line ') + (ix + 1)}><Input placeholder={lang === 'ar' ? 'الوصف' : 'Description'} value={it.description} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, description: e.target.value } : r))} /></Lbl>
+        <Lbl text={(lang === 'ar' ? 'الكمية، البند ' : 'Quantity, line ') + (ix + 1)}><Input style={{ maxWidth: 72 }} inputMode="decimal" placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} /></Lbl>
+        <Lbl text={(lang === 'ar' ? 'الوحدة، البند ' : 'Unit, line ') + (ix + 1)}><Input style={{ maxWidth: 72 }} placeholder={lang === 'ar' ? 'وحدة' : 'Unit'} value={it.unit} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit: e.target.value } : r))} /></Lbl>
+        <Lbl text={(lang === 'ar' ? 'سعر الوحدة، البند ' : 'Unit price, line ') + (ix + 1)}><Input style={{ maxWidth: 104 }} inputMode="decimal" placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} /></Lbl>
+        <Button size="sm" variant="outline" aria-label={(lang === 'ar' ? 'احذف البند ' : 'Remove line ') + (ix + 1)} onClick={() => setItems(items.length > 1 ? items.filter((_, i) => i !== ix) : [{ description: '', qty: '', unit: '', unit_price: '' }])}>×</Button>
       </div>))}
       <Button size="sm" variant="outline" onClick={() => setItems([...items, { description: '', qty: '', unit: '', unit_price: '' }])}>{lang === 'ar' ? '+ إضافة بند' : '+ Add item'}</Button>
     </div>
-    <textarea className={S.area} placeholder={t(lang, 'scope_work')} value={scope} onChange={(e) => setScope(e.target.value)} rows={2} />
-    <textarea className={S.area} placeholder={t(lang, 'notes_customer')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+    <Lbl text={t(lang, 'scope_work')}><textarea className={S.area} placeholder={t(lang, 'scope_work')} value={scope} onChange={(e) => setScope(e.target.value)} rows={2} /></Lbl>
+    <Lbl text={t(lang, 'notes_customer')}><textarea className={S.area} placeholder={t(lang, 'notes_customer')} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></Lbl>
     {chk && <QuoteCheck chk={chk} lang={lang} />}
     <div className="flex gap-2 items-center flex-wrap">
       <Button size="sm" variant="secondary" disabled={checking || busy || reading} onClick={check}>
@@ -912,8 +968,8 @@ function Documents({ token, lang }) {
         <div>
           <div className={S.h2}>{t(lang, 'docs_h')}</div>
           <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
-            ? 'رخصتك التجارية وحدها هي المطلوبة، ويجب أن تبقى سارية لاستمرار استقبال الطلبات. كل ما عدا ذلك اختياري.'
-            : 'Only your trade licence is required, and it must stay valid to keep receiving requests. Everything else is optional.'}</div>
+            ? 'رخصتك التجارية وملفك التعريفي مطلوبان للتسجيل، ويجب أن تبقى الرخصة سارية لاستمرار استقبال الطلبات. كل ما عدا ذلك اختياري.'
+            : 'Your trade licence and company profile are required to register, and the licence must stay valid to keep receiving requests. Everything else is optional.'}</div>
         </div>
         <div className="text-right shrink-0">
           <div className="text-[22px] font-extrabold text-foreground leading-none">{sum.on_file ?? 0}<span className="text-muted-foreground text-[15px]">/{sum.total ?? docs.length}</span></div>
@@ -957,12 +1013,15 @@ function Documents({ token, lang }) {
 // Their TRN is already read off the trade licence automatically, so the VAT certificate was asking for
 // something we had. The backend still supports both types; this removes the ask, not the capability.
 const DOC_GROUPS = [
-  { id: 'required', keys: ['license', 'profile', 'catalogs'],
+  // Required = the documents in the mandatory six (supabase/functions/_shared/supplier_registration.ts
+  // REQUIRED_DOC_KEYS). Catalogues were in this group while the server marked only the licence
+  // required; they are optional, and now sit with the other optional documents.
+  { id: 'required', keys: ['license', 'profile'],
     title: (l) => (l === 'ar' ? 'مطلوب للتحقق' : 'Required to get verified'),
     note: (l) => (l === 'ar'
       ? 'رخصتك التجارية وملفك التعريفي. نقرأ منهما ما تقوم به لنعرف أي الطلبات نرسلها إليك.'
       : 'Your trade licence and company profile. We read these to work out what work to send you.') },
-  { id: 'optional', keys: ['insurance', 'iso', 'manufacturer', 'egr'],
+  { id: 'optional', keys: ['catalogs', 'insurance', 'iso', 'manufacturer', 'egr'],
     title: (l) => (l === 'ar' ? 'اختياري — للحصول على مطابقات أكثر' : 'Optional — get matched to more work'),
     note: (l) => (l === 'ar'
       ? 'لا شيء من هذه مطلوب للتحقق. كل مستند تضيفه يفتح لك طلبات إضافية — بعض العملاء يشترطون التأمين، وخطاب الوكالة يتيح لنا مطابقتك عندما يطلب العميل علامة تجارية بعينها.'
@@ -1002,7 +1061,7 @@ function DocRow({ d, busy, onUpload, lang }) {
           {d.required && <Badge variant="secondary">{ar ? 'مطلوب' : 'Required'}</Badge>}
           {st && <Badge variant={st.v}>{st.t}</Badge>}
         </div>
-        <div className={cn(S.sub, 'mt-1')}>{d.hint}</div>
+        <div className={cn(S.sub, 'mt-1')}>{srvText(lang, d.hint_code, {}, d.hint)}</div>
         {/* What is actually on file, by name, so they can tell whether the right file went up. */}
         {!isCat && d.path && <div className={cn(S.sub, 'mt-1.5')}>
           <span className="text-foreground/80">{cleanName(d.name) || (ar ? 'ملف' : 'File')}</span>
@@ -1062,24 +1121,35 @@ function Onboarding({ token, onDone, lang }) {
   useEffect(() => { load(); }, []);
   if (me === undefined) return <div className={S.center}>{t(lang, 'loading')}</div>;
   return (<div className={S.wrap} style={{ maxWidth: 640 }}>
-    <div className={cn(S.h1, 'mb-1')}>{t(lang, 'setup_title')}</div>
+    <h1 className={cn(S.h1, 'mb-1 font-[family-name:var(--font-head)]')}>{t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {!me ? <NewCompany token={token} onReady={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
   </div>);
 }
+// Visible labels on all three fields (the audit found none, and the Emirate <select> had no accessible
+// name). The emirate VALUE stays English — it is what leads.emirate and matching hold — while the
+// option text is Arabic on /ar. The category is free text; the datalist offers Arabic labels over the
+// same English values.
+const CATEGORIES = ['Electrical','AC / HVAC','AC Duct Cleaning','Plumbing','Cleaning','Painting','Fit-out / Interior Design','Joinery & Kitchens','Flooring','Tiling & Marble','False Ceiling','Aluminium & Glass','Facilities Management','CCTV & Security','Smart Home','Solar','Signage','Movers','Pest Control','Handyman','Landscaping & Gardening','Curtains & Blinds','Waterproofing','Swimming Pools','Fire & Safety','MEP','Steel & Fabrication','Carpentry','Other'];
 function NewCompany({ token, onReady, lang }) {
+  const ar = lang === 'ar';
   const [cname, setCname] = useState(''); const [em, setEm] = useState(''); const [cat, setCat] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), emirate: em || null, category: cat.trim() || null, role: 'supplier' }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg((j && j.error) || t(lang, 'err_generic')); };
+  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), emirate: em || null, category: cat.trim() || null, role: 'supplier' }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
   return (<Card className="qd-panel p-5">
-    <div className={S.h2}>{t(lang, 'onboard_title')}</div>
+    <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
-    <Input className="mt-3" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
-    <select className={S.field} style={{ colorScheme: 'dark', backgroundColor: 'hsl(205 46% 12%)', color: 'hsl(180 25% 94%)' }} value={em} onChange={(e) => setEm(e.target.value)}><option value="" style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{t(lang, 'emirate')}</option>{EMIRATES.map((x) => <option key={x} value={x} style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{x}</option>)}</select>
-    <Input className="mt-3" list="qd-sup-cats" placeholder="Your trade / category — e.g. Electrical, AC, Cleaning (type your own if not listed)" value={cat} onChange={(e) => setCat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} />
-    <datalist id="qd-sup-cats">{['Electrical','AC / HVAC','AC Duct Cleaning','Plumbing','Cleaning','Painting','Fit-out / Interior Design','Joinery & Kitchens','Flooring','Tiling & Marble','False Ceiling','Aluminium & Glass','Facilities Management','CCTV & Security','Smart Home','Solar','Signage','Movers','Pest Control','Handyman','Landscaping & Gardening','Curtains & Blinds','Waterproofing','Swimming Pools','Fire & Safety','MEP','Steel & Fabrication','Carpentry','Other'].map((x) => <option key={x} value={x} />)}</datalist>
-    <div className={cn(S.sub, 'mt-0.5 mb-2')} style={{ fontSize: 12 }}>Every trade is welcome — if yours isn’t listed, just type it in.</div>
+    <Lbl visible className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
+    <Lbl visible className="mt-3" text={t(lang, 'emirate')}>
+      <select className={cn(S.field, 'mt-0')} style={{ colorScheme: 'dark', backgroundColor: 'hsl(205 46% 12%)', color: 'hsl(180 25% 94%)' }} value={em} onChange={(e) => setEm(e.target.value)}>
+        <option value="" style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{t(lang, 'emirate_ph')}</option>
+        {EMIRATES.map((x) => <option key={x} value={x} style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{emirateLabel(lang, x)}</option>)}
+      </select>
+    </Lbl>
+    <Lbl visible className="mt-3" text={t(lang, 'cat_label')}><Input list="qd-sup-cats" dir="auto" placeholder={t(lang, 'cat_ph')} value={cat} onChange={(e) => setCat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} aria-describedby="qd-cat-help" /></Lbl>
+    <datalist id="qd-sup-cats">{CATEGORIES.map((x) => <option key={x} value={x} label={ar ? CATEGORY_AR[x] || x : undefined} />)}</datalist>
+    <div id="qd-cat-help" className={cn(S.sub, 'mt-1 mb-2 text-[12px]')}>{t(lang, 'cat_help')}</div>
     <Button className="w-full mt-3" disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'create_company')}</Button>
-    {msg && <div className={S.err}>{msg}</div>}
+    {msg && <div role="alert" className={S.err}>{msg}</div>}
   </Card>);
 }
 function FilePick({ lang, accept, multiple, onPick, label }) {
@@ -1092,6 +1162,7 @@ function FilePick({ lang, accept, multiple, onPick, label }) {
 // file is never asked for in two places.
 function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const isEdit = mode === 'edit';
+  const ar = lang === 'ar';
   const [f, setF] = useState({
     contact_name: me.contact_name || '', signatory_name: me.signatory_name || '', owner_dob: me.owner_dob || '', phone: me.phone || '',
     products: me.products || '', services: me.services || '', description: me.description || '',
@@ -1102,127 +1173,143 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [emirates, setEmirates] = useState(me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at); const [wa, setWa] = useState(!!me.wa_optin);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]);
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState(false); const [smsCode, setSmsCode] = useState(''); const [vbusy, setVbusy] = useState(false);
-  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); }); }, []);
-  const sendSms = async () => { if (!f.phone) { setMsg(t(lang, 'verify_first')); return; } setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: f.phone }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg((j && j.error) || t(lang, 'could_not_sms')); };
-  const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg((j && j.error) || t(lang, 'wrong_code')); };
+  const [emailVerified, setEmailVerified] = useState(!!me.owner_email_verified); const [mailSent, setMailSent] = useState(false); const [mailCode, setMailCode] = useState('');
+  useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); }); }, []);
+  const sendSms = async () => { if (!f.phone) { setMsg(t(lang, 'verify_first')); return; } setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: f.phone }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
+  const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
+  // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
+  // verified" with nothing to press, and save_profile now requires it. kyc send_email / verify_email
+  // already existed; this is their caller. (supplier_api also records it from the sign-up OTP, so most
+  // suppliers will never see this.)
+  const sendMail = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setVbusy(false); if (j && j.ok) { setMailSent(true); setMsg(t(lang, 'email_sent')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_email'))); };
+  const verifyMail = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: mailCode }, token); setVbusy(false); if (j && j.ok) { setEmailVerified(true); setMsg(''); } else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
   const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? t(lang, 'lic_on_file') : '');
+  const [licOnFile, setLicOnFile] = useState(!!me.license_doc_path);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
-  const upLicense = async (file) => { if (!file) return; setUploading(true); setLicNote(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token); const ex = (j && j.extracted && j.extracted.license) || null; if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); setLicNote(t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); } else setLicNote(t(lang, 'lic_uploaded')); } catch (_e) { setLicNote(t(lang, 'lic_uploaded_noread')); } setUploading(false); };
+  // THE LICENCE DEAD-END (audit 2026-09-14, BLOCKS CONVERSION). After any upload licNote became
+  // non-empty ("Licence uploaded." when extraction returned nothing), which HID the typed licence-number
+  // field, while save() still refused without a number. Under the OpenRouter hold license_extract never
+  // returns, so every new supplier could neither type the number nor submit. Now: the upload itself
+  // counts as the licence (the server's gate is path OR number, and the mandatory six say the same),
+  // the number field is always shown, and extraction only fills it in when it happens to answer.
+  // A failed STORE is reported as a failure instead of being announced as "uploaded".
+  const upLicense = async (file) => {
+    if (!file) return; setUploading(true); setLicNote(''); setMsg('');
+    try {
+      const { images, b64, mime } = await fileToImages(file);
+      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token);
+      if (!(j && j.ok)) { setMsg(srvMsg(lang, j, t(lang, 'lic_upload_failed'))); }
+      else {
+        setLicOnFile(true);
+        const ex = (j.extracted && j.extracted.license) || null;
+        if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); setLicNote(t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
+        else setLicNote(t(lang, 'lic_uploaded_type'));
+      }
+    } catch (_e) { setMsg(t(lang, 'lic_upload_failed')); }
+    setUploading(false);
+  };
   const toggleEm = (e) => setEmirates((a) => a.includes(e) ? a.filter((x) => x !== e) : [...a, e]);
   const save = async () => {
-    if (!f.contact_name || !f.phone) { setMsg(t(lang, 'add_contact_phone')); return; }
-    if (!f.trade_license_no) { setMsg(t(lang, 'add_license')); return; }
-    if (!profileFile && !me.company_profile_doc_path) { setMsg(t(lang, 'add_profile')); return; }
-    if (!phoneVerified) { setMsg(t(lang, 'verify_first')); return; }
-    if (!terms) { setMsg(t(lang, 'must_accept')); return; }
+    // The mandatory six, checked here in the same order and with the same codes save_profile enforces
+    // (supabase/functions/_shared/supplier_registration.ts), so the refusal a supplier sees on screen
+    // and the one the server would give cannot disagree. An approved company editing its profile is
+    // not re-gated — the server does not re-gate it either.
+    if (me.approval_status !== 'approved') {
+      const missing = [];
+      if (!phoneVerified) missing.push('reg_mobile');
+      if (!emailVerified) missing.push('reg_email');
+      if (!licOnFile && !String(f.trade_license_no || '').trim()) missing.push('reg_licence');
+      if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
+      if (!terms) missing.push('reg_terms');
+      if (missing.length) { setMsg(srvText(lang, 'missing_required', { missing })); return; }
+    } else if (!terms) { setMsg(t(lang, 'must_accept')); return; }
     setBusy(true); setMsg('');
     try {
       if (profileFile || catalogFiles.length) {
         const prof = profileFile ? { original_b64: await fileToB64(profileFile), filename: profileFile.name, mime: profileFile.type } : undefined;
         const cats = []; for (const cf of catalogFiles.slice(0, 5)) cats.push({ original_b64: await fileToB64(cf), filename: cf.name, mime: cf.type });
-        await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, token);
+        const pj = await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, token);
+        if (!(pj && pj.ok)) { setBusy(false); setMsg(srvMsg(lang, pj, t(lang, 'save_error'))); return; }
       }
       const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: true, terms_version: 'v2' };
       const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trade_license_no', 'license_authority', 'license_expiry', 'trn', 'egr_number', 'company_type', 'company_size', 'bank_name', 'bank_account_name'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
       const j = await call('supplier_api', payload, token);
-      if (!(j && j.ok)) { setBusy(false); setMsg((j && j.error) || t(lang, 'could_not_save')); return; }
+      if (!(j && j.ok)) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'could_not_save'))); return; }
       try { await call('kyc', { action: 'accept_terms' }, token); } catch (_e) {}
       try { const sess = await SB.auth.getSession(); const em = sess.data.session && sess.data.session.user && sess.data.session.user.email; if (em) await call('wa_optin_set', { email: em, user_kind: 'supplier', wa_optin: wa }, token); } catch (_e) {}
       setBusy(false); onSaved();
     } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
   };
-  const DateField = ({ label, k }) => (<div style={{ flex: 1, minWidth: 150 }}><div className={S.sub} style={{ fontSize: 11 }}>{label}</div><Input type="date" style={{ colorScheme: 'dark' }} value={f[k] || ''} onChange={(e) => set(k, e.target.value)} /></div>);
+  const ok = (on) => (on ? <span aria-hidden className="text-primary">✓</span> : null);
   return (<Card className="qd-panel p-5">
-    <div className={S.h2}>{t(lang, 'pf_company')}</div>
-    {/* THE SCREEN HAS TO KNOW WHICH OF ITS TWO JOBS IT IS DOING (13 Aug 2026). This copy and the
-        button below were unconditional, so an APPROVED company opened Profile and read "Registering
-        MERIDIAN MEP CONTRACTING LLC… Registration is free until [the old dated deadline]" above a button
-        marked "Submit for approval" — two inches under a green Approved badge in its own header.
-        The form is genuinely both things: it registers a new supplier and it is the only place an
-        existing one can correct a typo that decides which requests reach them. It just never said
-        which. */}
+    <h2 className={S.h2}>{t(lang, 'pf_company')}</h2>
+    {/* The form registers a new supplier AND is where an existing one corrects a detail; it says which. */}
     <div className={cn(S.sub, 'mb-2')}>
       {isEdit
-        ? (lang === 'ar' ? <>تحرير ملف <b>{me.company_name}</b>. ما تكتبه هنا يحدّد الطلبات التي تصلك — احفظ التغييرات في الأسفل.</>
-                         : <>Editing the profile for <b>{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
-        : <>{t(lang, 'registering_pre')}<b>{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
+        ? (ar ? <>تحرير ملف <b dir="auto">{me.company_name}</b>. ما تكتبه هنا يحدّد الطلبات التي تصلك — احفظ التغييرات في الأسفل.</>
+              : <>Editing the profile for <b dir="auto">{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
+        : <>{t(lang, 'registering_pre')}<b dir="auto">{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
     </div>
-    <div className={cn(S.sub, 'font-semibold mt-1.5')}>{t(lang, 'pf_emirates')}</div>
-    <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{e}</button>)}</div>
+    <fieldset className="mt-1.5">
+      <legend className={cn(S.sub, 'font-semibold')}>{t(lang, 'pf_emirates')}</legend>
+      <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} type="button" aria-pressed={emirates.includes(e)} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{emirateLabel(lang, e)}</button>)}</div>
+    </fieldset>
 
-    {/* ── REGISTRATION ASKS FOR FIVE THINGS ───────────────────────────────────────────────────────
-        Founder decision, 8 Aug 2026, verbatim: "20 fields form? why? it should be much simpler.
-        once someone attach the trade license, we automatically extract most of the information,
-        then we need company profile and catalogue, mobile number, email and thats it. anything
-        else is optional. of course both email and mobile need to be verified."
-
-        So the registration path is: the licence (which fills the licence number and authority by
-        extraction, not by typing), the company profile, the catalogue, a verified mobile and a
-        verified e-mail. Everything else this form can capture is REAL and still saved — it has
-        simply moved to the Profile tab, where a supplier edits their own details after they are in.
-        Nothing was deleted; the questions were moved off the front door.
-
-        The typed licence number and authority stay visible during registration ONLY as a fallback
-        for a licence the extractor could not read, which is why they sit behind `!licNote` — once
-        extraction has succeeded there is nothing left to type and asking anyway would be the
-        twenty-field wall arriving through a different door. */}
-    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}</div>
+    {/* ── REGISTRATION = THE MANDATORY SIX ───────────────────────────────────────────────────────
+        Founder decision: name, mobile, e-mail (both verified), trade licence, company profile, signed
+        terms; everything else optional (memory: supplier-verification-mandatory-six). The 8 Aug
+        "five things" note (licence, profile, catalogue, mobile, e-mail) is superseded: the catalogue is
+        optional. Contact name, products and services stay on the Profile tab, asked once inside. */}
+    <h3 className={cn(S.h2, 'mt-4')}>{ok(licOnFile || !!String(f.trade_license_no || '').trim())} {t(lang, 'h_trade')}</h3>
     {!isEdit && <>
       <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub}>{t(lang, 'reading_lic')}</span>}</div>
-      {licNote && <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{licNote}</div>}
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub} role="status">{t(lang, 'reading_lic')}</span>}</div>
+      {licNote && <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>}
     </>}
-    {(isEdit || !licNote) && <div className={S.frow}><Input placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></div>}
+    <div className={S.frow}>
+      <Lbl className="flex-1 min-w-[180px]" text={t(lang, 'lic_no')}><Input dir="ltr" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" text={t(lang, 'authority')}><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></Lbl>
+    </div>
 
-    {/* The establishment card lived here AND in the Documents tab — the same attachment asked for
-        twice. It is optional and never gates verification, so it has no place in the registration
-        form. Documents is now the single home for it. The egr_number field and its upload handler
-        remain in this component and still submit if populated; only the duplicated prompt is gone. */}
-
-    <div className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}</div>
-    {/* E-mail is not asked for. The supplier signed in with it, so the platform already holds it and
-        already knows whether it is confirmed — asking again would be a field whose only possible
-        answer is the one we have. It is SHOWN with its verification state instead. */}
+    <h3 className={cn(S.h2, 'mt-4')}>{ok(phoneVerified && emailVerified)} {t(lang, 'pf_contact')}</h3>
+    {/* E-mail is shown with its state, never asked for again: the supplier signed in with it. */}
     <div className={cn(S.sub, 'mb-1.5')}>
-      {me.claimed_by || ''}
-      {me.owner_email_verified
-        ? <b style={{ color: 'hsl(var(--primary))' }}> · {t(lang, 'email_verified')}</b>
+      <span dir="ltr">{me.claimed_by || ''}</span>
+      {emailVerified
+        ? <b className="text-primary"> · {t(lang, 'email_verified')}</b>
         : <b className="text-amber-300"> · {t(lang, 'email_unverified')}</b>}
     </div>
-    <div className={S.frow}><Input placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></div>
-    {phoneVerified ? <div className={cn(S.sub, 'font-semibold')} style={{ color: 'hsl(var(--primary))' }}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Input placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
+    {!emailVerified && (!mailSent
+      ? <Button variant="link" className="px-0 h-auto" disabled={vbusy} onClick={sendMail}>{t(lang, 'verify_my_email')}</Button>
+      : <div className={S.frow}><Lbl text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'email_code')} value={mailCode} onChange={(e) => setMailCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
+    <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Lbl></div>
+    {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Lbl text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
 
-    {/* ── OPTIONAL, AND ONLY ON THE PROFILE TAB ───────────────────────────────────────────────────
-        Contact name, signatory, products, services and the description are all optional by the
-        founder's decision. They still save through exactly the same payload; they are asked once
-        the supplier is inside rather than standing between them and the door. */}
     {isEdit && <>
-      <div className={S.frow}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></div>
-      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
-      <Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} />
-      <Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} />
-      <textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} />
+      <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'contact_name')}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl></div>
+      <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</h3>
+      <Lbl text={t(lang, 'products_ph')}><Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} /></Lbl>
+      <Lbl text={t(lang, 'services_ph')}><Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} /></Lbl>
+      <Lbl text={t(lang, 'desc_ph')}><textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} /></Lbl>
     </>}
     <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={wa} onChange={(e) => setWa(e.target.checked)} /> {t(lang, 'wa_alerts')}</label>
     {!isEdit && <>
-      <div className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</div>
-      <div className={cn(S.sub, 'mb-1')}>{t(lang, 'reg_rest_optional')}</div>
+      <h3 className={cn(S.h2, 'mt-4')}>{ok(!!profileFile || !!me.company_profile_doc_path)} {t(lang, 'doc_profile')}</h3>
+      <div className={cn(S.sub, 'mb-1')}>{ar ? 'الملف التعريفي مطلوب؛ الكتالوجات اختيارية ويمكن إضافتها لاحقًا من تبويب المستندات.' : 'The company profile is required; catalogues are optional and can be added later from Documents.'}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={setProfileFile} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => setCatalogFiles((a || []).slice(0, 5))} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
     </>}
-    {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{lang === 'ar' ? 'رخصتك التجارية وملفك التعريفي وكتالوجاتك تُدار من تبويب المستندات — حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
+    {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'رخصتك التجارية وملفك التعريفي وكتالوجاتك تُدار من تبويب المستندات — حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
-
-    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href="/supplier-agreement" target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
-    {/* "Submit for approval" on the edit screen asks an already-approved company to apply again. */}
+    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href={(ar ? '/ar' : '') + '/supplier-agreement'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
     <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>
-      {busy ? (isEdit ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
-            : isEdit ? (lang === 'ar' ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
+      {busy ? (isEdit ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
+            : isEdit ? (ar ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
     </Button>
-    {msg && <div className={S.err}>{msg}</div>}
+    {msg && <div role="alert" className={S.err}>{msg}</div>}
   </Card>);
 }
 
@@ -1249,10 +1336,10 @@ function Thread({ token, th, onBack, lang }) {
     {data.warning && <div className="rounded-md border border-amber-400/30 bg-amber-400/10 text-amber-300 px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
     {data.chat_status === 'open' ? (<>
       <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto">{(data.messages || []).map((m) => <div key={m.id} className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground rounded-br-sm' : 'self-start bg-white/8 text-foreground rounded-bl-sm')}>{m.body}</div>)}</div>
-      <div className={S.frow}><Input placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button size="sm" disabled={busy} onClick={send}>{t(lang, 'send')}</Button></div>
+      <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'type_message')}><Input placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl><Button size="sm" disabled={busy} onClick={send}>{t(lang, 'send')}</Button></div>
     </>) : (<>
       <div className={cn(S.sub, 'mb-2')}>{data.note || t(lang, 'no_chat_open')}</div>
-      <textarea className={S.area} rows={2} placeholder={t(lang, 'ask_placeholder')} value={q} onChange={(e) => setQ(e.target.value)} />
+      <Lbl text={t(lang, 'ask_placeholder')}><textarea className={S.area} rows={2} placeholder={t(lang, 'ask_placeholder')} value={q} onChange={(e) => setQ(e.target.value)} /></Lbl>
       <div className="mt-2.5"><Button size="sm" disabled={busy} onClick={requestChat}>{t(lang, 'ask_request')}</Button></div>
     </>)}
     {msg && <div className={cn(S.sub, 'mt-2')} style={{ whiteSpace: 'pre-wrap' }}>{msg}</div>}

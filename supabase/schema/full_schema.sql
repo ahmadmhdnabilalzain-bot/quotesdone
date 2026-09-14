@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-09T22:51:30.914Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T04:34:42.263Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -180,7 +180,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (471) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (472) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -1577,6 +1577,24 @@ CREATE TABLE IF NOT EXISTS public.competitor (
   threat_level text,
   verified_at date DEFAULT CURRENT_DATE,
   source_url text
+);
+
+CREATE TABLE IF NOT EXISTS public.complaint_tickets (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  ticket_no text NOT NULL,
+  email text NOT NULL,
+  name text,
+  message text NOT NULL,
+  contact_message_id bigint,
+  status text DEFAULT 'acknowledged'::text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  acknowledge_due timestamp with time zone NOT NULL,
+  respond_due timestamp with time zone NOT NULL,
+  acknowledged_at timestamp with time zone,
+  in_review_at timestamp with time zone,
+  final_response_at timestamp with time zone,
+  final_response text,
+  handled_by text DEFAULT 'customer_support'::text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.compliance_sources (
@@ -6666,6 +6684,7 @@ ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_pkey PRIMARY KEY
 ALTER TABLE public.comparison_run_v2 ADD CONSTRAINT comparison_run_v2_pkey PRIMARY KEY (id);
 ALTER TABLE public.competitive_position ADD CONSTRAINT competitive_position_pkey PRIMARY KEY (id);
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_pkey PRIMARY KEY (id);
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_pkey PRIMARY KEY (id);
 ALTER TABLE public.compliance_sources ADD CONSTRAINT compliance_sources_pkey PRIMARY KEY (id);
 ALTER TABLE public.contact_messages ADD CONSTRAINT contact_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.content_drafts ADD CONSTRAINT content_drafts_pkey PRIMARY KEY (id);
@@ -7047,6 +7066,7 @@ ALTER TABLE public.company_reflection ADD CONSTRAINT company_reflection_reflecte
 ALTER TABLE public.comparison_run_v2 ADD CONSTRAINT comparison_run_v2_inquiry_id_quote_signature_algorithm_vers_key UNIQUE (inquiry_id, quote_signature, algorithm_version);
 ALTER TABLE public.competitive_position ADD CONSTRAINT competitive_position_dimension_key UNIQUE (dimension);
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_name_key UNIQUE (name);
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_ticket_no_key UNIQUE (ticket_no);
 ALTER TABLE public.delegation_rule ADD CONSTRAINT delegation_rule_dept_key_when_agent_delegate_to_key UNIQUE (dept_key, when_agent, delegate_to);
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_dept_key_objective_key UNIQUE (dept_key, objective);
 ALTER TABLE public.doc_backups ADD CONSTRAINT doc_backups_bucket_path_key UNIQUE (bucket, path);
@@ -7185,6 +7205,11 @@ ALTER TABLE public.company_financial_stance ADD CONSTRAINT company_financial_sta
 ALTER TABLE public.company_vision ADD CONSTRAINT company_vision_singleton CHECK ((id = 1));
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_kind_check CHECK ((kind = ANY (ARRAY['marketplace'::text, 'directory'::text, 'tender_portal'::text, 'global_platform'::text, 'incumbent_behaviour'::text, 'adjacent'::text])));
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_threat_level_check CHECK ((threat_level = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_check CHECK (((status <> 'final_response'::text) OR ((final_response_at IS NOT NULL) AND (COALESCE(btrim(final_response), ''::text) <> ''::text))));
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_email_check CHECK (((email = lower(email)) AND (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'::text)));
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_handled_by_check CHECK ((handled_by = ANY (ARRAY['customer_support'::text, 'ceo'::text])));
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_status_check CHECK ((status = ANY (ARRAY['acknowledged'::text, 'in_review'::text, 'final_response'::text])));
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_ticket_no_check CHECK ((ticket_no ~ '^QD-C-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$'::text));
 ALTER TABLE public.control_mode_action ADD CONSTRAINT control_mode_action_classification_chk CHECK ((classification = ANY (ARRAY['read_only'::text, 'mutating'::text, 'mode_control'::text, 'founder_gated'::text])));
 ALTER TABLE public.control_mode_action ADD CONSTRAINT control_mode_action_founder_gated_pinned CHECK (((classification <> 'founder_gated'::text) OR (action = ANY (ARRAY['founder_command'::text, 'founder_command_control'::text, 'founder_command_clarify'::text]))));
 ALTER TABLE public.control_mode_action ADD CONSTRAINT control_mode_action_mode_control_pinned CHECK (((classification <> 'mode_control'::text) OR (action = ANY (ARRAY['control_mode_status'::text, 'control_mode_open'::text, 'control_mode_close'::text, 'control_mode_challenge'::text]))));
@@ -7461,6 +7486,7 @@ ALTER TABLE public.chat_threads ADD CONSTRAINT chat_threads_project_id_fkey FORE
 ALTER TABLE public.company_charter ADD CONSTRAINT company_charter_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES company_charter(id);
 ALTER TABLE public.company_goals ADD CONSTRAINT company_goals_owner_dept_fkey FOREIGN KEY (owner_dept) REFERENCES org_departments(dept_key);
 ALTER TABLE public.comparison_run_v2 ADD CONSTRAINT comparison_run_v2_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
+ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_contact_message_id_fkey FOREIGN KEY (contact_message_id) REFERENCES contact_messages(id) ON DELETE SET NULL;
 ALTER TABLE public.continuity_plan ADD CONSTRAINT continuity_plan_service_fkey FOREIGN KEY (service) REFERENCES integration_matrix(service);
 ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_admin_email_fkey FOREIGN KEY (admin_email) REFERENCES control_mode_identity(admin_email) ON DELETE CASCADE;
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_mfa_ref_fk FOREIGN KEY (mfa_ref) REFERENCES control_mode_challenge(id) ON DELETE RESTRICT;
@@ -7716,6 +7742,7 @@ CREATE INDEX ceo_task_open_idx ON public.ceo_task USING btree (state, created_at
 CREATE INDEX channel_directive_actor_idx ON public.channel_directive USING btree (actor_type, actor_id, created_at DESC);
 CREATE UNIQUE INDEX company_charter_one_active ON public.company_charter USING btree (active) WHERE active;
 CREATE INDEX company_faq_emb_idx ON public.company_faq USING ivfflat (embedding_gte vector_cosine_ops) WITH (lists='20');
+CREATE INDEX complaint_tickets_open_idx ON public.complaint_tickets USING btree (respond_due) WHERE (status <> 'final_response'::text);
 CREATE INDEX content_drafts_status_idx ON public.content_drafts USING btree (status, id DESC);
 CREATE INDEX control_mode_active_idx ON public.control_mode_session USING btree (actor_email, expires_at DESC) WHERE (closed_at IS NULL);
 CREATE INDEX control_mode_audit_idx ON public.control_mode_audit USING btree (at DESC, actor_email);
@@ -20014,6 +20041,109 @@ AS $function$
         'tools_wired', tool_count) order by dept_key) from depts)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_complaint_lookup(p_ticket_no text, p_email text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_row public.complaint_tickets;
+begin
+  select * into v_row from public.complaint_tickets
+   where ticket_no = upper(btrim(coalesce(p_ticket_no,'')))
+     and email = lower(btrim(coalesce(p_email,'')));
+  if not found then return null; end if;
+  return jsonb_build_object(
+    'ticket', v_row.ticket_no,
+    'status', v_row.status,
+    'created_at', v_row.created_at,
+    'acknowledge_due', v_row.acknowledge_due,
+    'respond_due', v_row.respond_due,
+    'acknowledged_at', v_row.acknowledged_at,
+    'in_review_at', v_row.in_review_at,
+    'final_response_at', v_row.final_response_at,
+    'final_response', v_row.final_response,
+    -- working days still left before each promise falls due (0 once today is the due day or later)
+    'acknowledge_days_left', public.fn_working_days_between(now(), v_row.acknowledge_due),
+    'respond_days_left', public.fn_working_days_between(now(), v_row.respond_due));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_complaint_open(p_email text, p_name text, p_message text, p_contact_message_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  alphabet constant text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';   -- 32 symbols, no 0/O/1/I
+  v_email text := lower(btrim(coalesce(p_email,'')));
+  v_no    text;
+  v_bytes bytea;
+  v_row   public.complaint_tickets;
+  i int;
+  attempt int := 0;
+begin
+  if v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'fn_complaint_open: invalid email'; end if;
+  if coalesce(btrim(p_message),'') = '' then raise exception 'fn_complaint_open: empty message'; end if;
+  loop
+    attempt := attempt + 1;
+    v_bytes := decode(replace(gen_random_uuid()::text,'-',''),'hex');
+    v_no := 'QD-C-';
+    for i in 0..5 loop v_no := v_no || substr(alphabet, (get_byte(v_bytes, i) % 32) + 1, 1); end loop;
+    begin
+      insert into public.complaint_tickets
+        (ticket_no, email, name, message, contact_message_id, status,
+         acknowledge_due, respond_due, acknowledged_at)
+      values
+        (v_no, v_email, nullif(btrim(coalesce(p_name,'')),''), left(p_message, 4000), p_contact_message_id,
+         'acknowledged', public.fn_add_working_days(now(), 2), public.fn_add_working_days(now(), 10), now())
+      returning * into v_row;
+      exit;
+    exception when unique_violation then
+      if attempt >= 5 then raise; end if;
+    end;
+  end loop;
+  return jsonb_build_object(
+    'ticket', v_row.ticket_no, 'status', v_row.status, 'created_at', v_row.created_at,
+    'acknowledge_due', v_row.acknowledge_due, 'respond_due', v_row.respond_due);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_complaint_set_status(p_ticket_no text, p_status text, p_final_response text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_row public.complaint_tickets;
+  rank_old int; rank_new int;
+begin
+  select * into v_row from public.complaint_tickets
+   where ticket_no = upper(btrim(coalesce(p_ticket_no,''))) for update;
+  if not found then raise exception 'fn_complaint_set_status: no ticket %', p_ticket_no; end if;
+  rank_old := array_position(array['acknowledged','in_review','final_response'], v_row.status);
+  rank_new := array_position(array['acknowledged','in_review','final_response'], p_status);
+  if rank_new is null then raise exception 'fn_complaint_set_status: unknown status %', p_status; end if;
+  if rank_new <= rank_old then
+    raise exception 'fn_complaint_set_status: % is already %; status only moves forward', v_row.ticket_no, v_row.status;
+  end if;
+  if p_status = 'final_response' and coalesce(btrim(p_final_response),'') = '' then
+    raise exception 'fn_complaint_set_status: a final response needs its text';
+  end if;
+  update public.complaint_tickets set
+    status            = p_status,
+    in_review_at      = case when p_status = 'in_review' then now() else in_review_at end,
+    final_response_at = case when p_status = 'final_response' then now() else final_response_at end,
+    final_response    = case when p_status = 'final_response' then btrim(p_final_response) else final_response end
+  where id = v_row.id
+  returning * into v_row;
+  return jsonb_build_object('ticket', v_row.ticket_no, 'status', v_row.status,
+    'in_review_at', v_row.in_review_at, 'final_response_at', v_row.final_response_at);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_control_mode_require(p_actor_email text, p_action text)
@@ -48571,6 +48701,7 @@ ALTER TABLE public.company_vision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comparison_run_v2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.competitive_position ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.competitor ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.complaint_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.content_drafts ENABLE ROW LEVEL SECURITY;
@@ -48940,6 +49071,7 @@ CREATE POLICY blog_posts_public_read ON public.blog_posts AS PERMISSIVE FOR SELE
 CREATE POLICY brand_assets_public_read ON public.brand_assets AS PERMISSIVE FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "specs readable" ON public.category_specs AS PERMISSIVE FOR SELECT TO anon USING (true);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM fn_customer_document_refs() r(ref_table, ref_id, source, supplier_id, supplier_name, revealed)

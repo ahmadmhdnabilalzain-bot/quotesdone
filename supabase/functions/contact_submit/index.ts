@@ -1,4 +1,6 @@
-// contact_submit - public contact form handler. Stores the message, emails the founder (best-effort). Honeypot spam guard. verify_jwt=false.
+// contact_submit - public contact form handler. Stores the message and emails the notify inbox (app_secrets.admin_emails, best-effort). Honeypot spam guard.
+// kind='complaint' also opens a complaint ticket (fn_complaint_open) and returns its number and due dates for /complaints/status.
+// config.toml sets verify_jwt = true for this function; the public form sends the anon key as Bearer, which passes.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -19,8 +21,18 @@ Deno.serve(observe('contact_submit', async (req) => {
     if (message.length < 4) return J({ error: 'Please write a short message.' }, 400);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return J({ error: 'Please enter a valid email so we can reply.' }, 400);
     const ua = String(req.headers.get('user-agent')||'').slice(0,300);
-    const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua }).select('id').maybeSingle();
+    const isComplaint = String(b.kind || '') === 'complaint';
+    const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua, ...(isComplaint ? { source: 'complaint' } : {}) }).select('id').maybeSingle();
     if (error) return J({ error: 'Could not send. Please try again.' }, 500);
+    // A complaint gets a ticket number and the two policy clocks (2 and 10 working days).
+    type Ticket = { ticket?: string; acknowledge_due?: string; respond_due?: string };
+    let ticket: Ticket | null = null;
+    if (isComplaint) {
+      const { data: t, error: te } = await admin.rpc('fn_complaint_open', { p_email: email, p_name: name, p_message: message, p_contact_message_id: row?.id ?? null });
+      if (te || !t) {
+        try { await admin.from('agent_runs').insert({ agent:'contact_submit', status:'error', counts:{ complaint_ticket_failed:1 }, note:'contact_submit stored a complaint (contact_messages #'+(row?.id||'')+') but fn_complaint_open failed: '+String(te?.message||'no row').slice(0,300)+'. customer_support must open the ticket by hand.', finished_at:new Date().toISOString() }); } catch(_e3){ /* */ }
+      } else ticket = t as Ticket;
+    }
     // best-effort email notify
     try {
       const key = await sec('resend_api_key');
@@ -40,11 +52,12 @@ Deno.serve(observe('contact_submit', async (req) => {
       } else if (key) {
         await fetch('https://api.resend.com/emails', { method:'POST', headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' }, body: JSON.stringify({
           from, to, reply_to: email || undefined,
-          subject: 'New contact message'+(name?(' from '+name):''),
+          subject: (ticket?.ticket ? ('Complaint '+ticket.ticket+' - ') : '')+'New contact message'+(name?(' from '+name):''),
           html: `<p><b>New contact-form message</b></p><p><b>Name:</b> ${esc(name)||'—'}<br><b>Email:</b> ${esc(email)||'—'}<br><b>Phone:</b> ${esc(phone)||'—'}</p><p style="white-space:pre-wrap">${esc(message)}</p><p style="color:#888;font-size:12px">Ref #${row?.id||''}</p>`
         }) });
       }
     } catch(_e){ /* email is best-effort; the row is stored regardless */ }
+    if (isComplaint) return J({ ok: true, ticket: ticket?.ticket ?? null, acknowledge_due: ticket?.acknowledge_due ?? null, respond_due: ticket?.respond_due ?? null, status_path: '/complaints/status' });
     return J({ ok: true });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));
