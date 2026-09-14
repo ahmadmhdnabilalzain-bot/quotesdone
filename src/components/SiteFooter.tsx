@@ -21,7 +21,9 @@ export function SiteFooter() {
   const link =
     'inline-flex min-h-[26px] items-center text-[14px] text-muted transition-colors duration-200 hover:text-white';
   return (
-    <footer className="mt-beat-s border-t border-[var(--line)] pt-14 pb-10 md:mt-beat">
+    // pb-24: the fixed chat launcher (ChatWidget: 54px at bottom 18px = 72px) sat over the last footer
+    // line on a 375px phone; 96px keeps that line clear of it at every width.
+    <footer className="mt-beat-s border-t border-[var(--line)] pt-14 pb-24 md:mt-beat">
       <div className="container-x">
         <Reveal className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-12">
           <div>

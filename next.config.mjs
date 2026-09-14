@@ -72,7 +72,9 @@ const SECURITY_HEADERS = [
 // Signed-in app shells are not pages a search engine should index. The header works whatever the
 // page files export; src/lib/seo.ts appShellMeta() gives them the matching <meta name=robots>.
 const NOINDEX = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
-const APP_SHELLS = ['/me', '/portal', '/supplier'];
+// /supplier is the public supplier sales page (indexable, its own canonical); only the signed-in
+// shells are noindexed.
+const APP_SHELLS = ['/me', '/portal'];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
