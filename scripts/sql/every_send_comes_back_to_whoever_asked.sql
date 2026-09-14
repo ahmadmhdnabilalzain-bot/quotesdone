@@ -33,6 +33,16 @@
 --   watch   every delivery.request -- watched or not, queued or refused -- gets exactly one
 --           delivery.result back to the seat that asked, once its notification is terminal. A
 --           notification still not terminal 24 hours after it was queued is raised to the CEO.
+--   adopt   every OTHER row written to the table -- by a routine, a trigger, anything -- is adopted by
+--           customer_support the moment it is inserted: a delivery.request from the row's requested_by
+--           seat, already done, with the row as its evidence. Measured 14 Sep 2026: 20 live routines
+--           wrote the table directly (enqueue_supplier_invites, fn_accountant_spend_report_deliver,
+--           fn_accountant_weekly_report_deliver, fn_ai_quality_watch, fn_cancel_inquiry,
+--           fn_ceo_daily_digest_submit, fn_doc_final_notice, fn_edit_inquiry, fn_founder_brief,
+--           fn_inbox_send, fn_licence_expiry_sweep, fn_notify_founder, fn_page_high_agent_action,
+--           fn_quote_coach, fn_reconcile_doc_blocks, fn_sales_engineer_tells_customer_invoice_ready,
+--           fn_smoke, fn_supplier_notice, fn_support_notification_to_outbox, fn_support_request_ratings_due)
+--           plus fn_wa_fanout's WhatsApp twin. One trigger loops all of them, and any written later.
 --   close   the asking seat re-reads the notification itself (it does not take support's word), and
 --           closes on proof: sent WITH a provider message id. Anything else makes it act: one retry on
 --           the other channel, then an escalation to the CEO with the evidence.
@@ -52,8 +62,8 @@
 --   * The watched path (the refund ladder: proof_of_response / no_response_confirmation, the one email
 --     retry) is carried over unchanged, and fn_sales_engineer_attaches_delivery_result still receives
 --     exactly those results and no others.
---   * SQL routines that insert into public.notifications themselves (fn_notify_founder,
---     fn_supplier_notice, fn_wa_fanout and others; 24 at the time of writing) are NOT rerouted here.
+--   * The bodies of the SQL routines that insert into public.notifications themselves. They are not
+--     rewritten: section 5 adopts every row they write.
 --
 --   node scripts/apply_sql.mjs scripts/sql/every_send_comes_back_to_whoever_asked.sql --apply --ddl
 
@@ -81,6 +91,8 @@ begin
     end if;
     -- The caller chooses the words and the address. It never chooses the status, the sender or the
     -- requester: those are support's record of what it was asked and what it did.
+    -- Tracked by THIS request, so the adoption trigger (section 5) must not open a second one.
+    perform set_config('app.qd_delivery_tracked', 'on', true);
     insert into public.notifications (type, kind, to_email, cc_emails, to_role, to_phone, lead_id, inquiry_id, quote_id,
                                       channel, subject, body, html, attachments, lang, status, requested_by)
     values (p.type, p.kind, p.to_email, coalesce(p.cc_emails, '{}'), p.to_role, p.to_phone, p.lead_id, p.inquiry_id, p.quote_id,
@@ -89,6 +101,7 @@ begin
     select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
      where n.channel = 'whatsapp' and n.id > v_nid and n.created_at = now() and n.type = p.type
        and n.to_email is not distinct from p.to_email;
+    perform set_config('app.qd_delivery_tracked', 'off', true);
     return jsonb_build_object('delivered', true, 'queued_at', now(), 'notification_id', v_nid, 'whatsapp_ids', v_fan,
                               'channel', coalesce(p.channel, 'email'), 'prepared', true);
   end if;
@@ -100,10 +113,12 @@ begin
       return jsonb_build_object('channel', 'founder', 'stubbed', true, 'event', d->>'event');
     end if;
     select coalesce(max(id), 0) into v_before from public.notifications;
+    perform set_config('app.qd_delivery_tracked', 'on', true);
     v_res := public.fn_notify_founder(p_event => d->>'event', p_detail => d->>'detail', p_level => coalesce(d->>'level', 'high'),
                                       p_kind => d->>'kind', p_dedupe_key => d->>'dedupe_key', p_owner_agent => 'customer_support');
     select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
      where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
+    perform set_config('app.qd_delivery_tracked', 'off', true);
     return jsonb_build_object('channel', 'founder', 'notify', v_res, 'notification_ids', v_fan,
                               'notification_id', v_fan->0);
   end if;
@@ -120,6 +135,7 @@ begin
   v_body    := case when v_ar then d->>'body_ar' else d->>'body_en' end;
   select coalesce(array_agg(x), '{}') into v_cc from jsonb_array_elements_text(coalesce(d->'cc', '[]'::jsonb)) x;
 
+  perform set_config('app.qd_delivery_tracked', 'on', true);
   -- requested_by names the seat that asked (customer_support_is_the_only_sender_on_email_and_whatsapp.sql);
   -- sender stays customer_support by that file's default and check.
   insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
@@ -130,6 +146,7 @@ begin
   select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
    where n.channel = 'whatsapp' and n.type = d->>'msg_type' and n.id > v_nid
      and n.to_email = d->>'to_email' and n.created_at >= now() - interval '1 minute';
+  perform set_config('app.qd_delivery_tracked', 'off', true);
 
   return jsonb_build_object('delivered', true, 'queued_at', now(), 'notification_id', v_nid, 'whatsapp_ids', v_fan,
                             'language', case when v_ar then 'ar' else 'en' end,
@@ -250,9 +267,11 @@ begin
         v_evidence := jsonb_build_object('reply', v_reply);
       elsif n.id is null or n.status in ('failed', 'bounced', 'error') then
         if v_retries < 1 and n.id is not null then
+          perform set_config('app.qd_delivery_tracked', 'on', true);   -- the retry is tracked by this request (retry_notification_id)
           insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
           values (n.type, n.kind, n.to_email, n.cc_emails, n.to_role, n.lead_id, n.inquiry_id, n.quote_id, 'email', n.subject, n.body, 'queued', n.requested_by)
           returning id into v_nid;
+          perform set_config('app.qd_delivery_tracked', 'off', true);
           update public.agent_actions
              set detail = detail || jsonb_build_object('retries', v_retries + 1, 'retry_notification_id', v_nid,
                                                        'first_failure', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error))
@@ -430,3 +449,90 @@ begin
                             'retry_request_id', v_retry, 'escalation', v_rep);
 end $fn$;
 revoke execute on function public.fn_originator_checks_delivery(bigint) from public, anon, authenticated;
+
+-- ── 5. EVERY OTHER SEND IS ADOPTED ───────────────────────────────────────────────────────────────
+-- A row that no request tracks is adopted the instant it is written. Rows the door queues are already
+-- tracked by their request (the handler's insert, the WhatsApp twin fn_wa_fanout makes in the same
+-- statement, the watch's retry, the founder alert the handler raises), and those two routines mark
+-- them with a transaction-local setting for the length of the insert. No other routine may set it:
+-- scripts/checks/every_send_comes_back_to_whoever_asked.test.mjs scans every file in scripts/sql.
+--
+-- WHAT ADOPTION RECORDS, AND WHAT IT DOES NOT (review of #637, 14 Sep 2026). The request is filed in
+-- exactly the state a door request reaches once support has queued it: status 'done' means QUEUED,
+-- never delivered. Delivery is decided only by fn_customer_support_delivery_watch, which reads the
+-- notification's own status on every heartbeat, waits while it is pending or queued, and returns ONE
+-- delivery.result on the terminal status; the asking seat then re-reads the row and closes it only on
+-- sent + provider id, and otherwise retries on the other channel or escalates. So the loop is OPEN at
+-- adoption (no result, no loop, no closed_by) and a later failure or bounce is exactly what comes back.
+-- The evidence says 'queued', not 'delivered', so no reader can take adoption for proof of delivery.
+--
+-- THE REQUESTER IS NEVER REASSIGNED. The row's requested_by is the asking seat, always. A seat with no
+-- delivery.request conversation in fn_seat_handoff_types is still filed under its own name, and the
+-- gap is raised to the CEO once per seat ('unregistered_sender:<seat>'): its result cannot be
+-- addressed back until the register lists it, and saying so loudly is the point. A sign-in code
+-- (requested_by 'platform') is the OTP service's, not a notice, and is not adopted.
+--
+-- NO PARTIAL RECORD. The insert and both stream events sit in ONE exception block, which PL/pgSQL runs
+-- as a subtransaction: an error in any of them rolls back all three, and the send itself goes through.
+-- That failure is raised to the CEO rather than left as a warning in a log nobody reads.
+create or replace function public.fn_customer_support_adopts_untracked_send()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_from text; v_id bigint;
+begin
+  if coalesce(current_setting('app.qd_delivery_tracked', true), '') = 'on' then return null; end if;
+  if coalesce(NEW.requested_by, '') = 'platform' then return null; end if;
+  v_from := coalesce(nullif(btrim(NEW.requested_by), ''), 'customer_support');
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, detail, evidence, target_table, target_id, decided_at, decided_by)
+    values ('customer_support', 'handoff', 'done', 'low',
+            left('delivery.request from ' || v_from || ' about notifications ' || NEW.id, 200),
+            jsonb_build_object('type', 'delivery.request', 'from', v_from, 'from_name', v_from, 'to', 'customer_support',
+                               'subject_table', 'notifications', 'subject_id', NEW.id::text, 'adopted', true,
+                               'msg_type', NEW.type, 'recipient_role', NEW.to_role, 'to_email', NEW.to_email,
+                               'supplier_id', NEW.lead_id, 'inquiry_id', NEW.inquiry_id, 'quote_id', NEW.quote_id),
+            jsonb_build_object('queued', true, 'adopted', true, 'notification_id', NEW.id, 'channel', NEW.channel),
+            'notifications', 'delivery.request:notification:' || NEW.id, now(), 'customer_support')
+    returning id into v_id;
+    perform public.fn_seat_handoff_event(v_id, 'sent');
+    perform public.fn_seat_handoff_event(v_id, 'done');
+  exception when others then
+    begin
+      perform public.fn_support_report_to_ceo('adoption_failed:' || NEW.id, 'serious',
+        'A ' || coalesce(NEW.type, 'notice') || ' left the outbox without a loop: adopting it failed',
+        jsonb_build_object('notification_id', NEW.id, 'requested_by', NEW.requested_by, 'error', left(sqlerrm, 500)),
+        jsonb_build_array('the send itself was kept'),
+        'Find why fn_customer_support_adopts_untracked_send failed and track this notification by hand.',
+        'notifications#' || NEW.id);
+    exception when others then
+      raise warning 'fn_customer_support_adopts_untracked_send: notification % not adopted and not reported: %', NEW.id, sqlerrm;
+    end;
+    return null;
+  end;
+  -- a seat the register does not list: filed under its own name above, and the gap raised once
+  if v_from <> 'customer_support' and not exists (select 1 from public.fn_seat_handoff_types() t
+       where t.type = 'delivery.request' and t.from_seat = v_from and t.to_seat = 'customer_support') then
+    perform public.fn_support_report_to_ceo('unregistered_sender:' || v_from, 'elevated',
+      v_from || ' sends notices but has no delivery conversation with customer_support',
+      jsonb_build_object('seat', v_from, 'first_notification_id', NEW.id, 'request_id', v_id),
+      jsonb_build_array('the request was filed under ' || v_from || ', not reassigned'),
+      'Add delivery.request (' || v_from || ' -> customer_support) and delivery.result (customer_support -> ' || v_from || ') to fn_seat_handoff_types.',
+      'agent_actions#' || v_id);
+  end if;
+  return null;
+end $fn$;
+revoke execute on function public.fn_customer_support_adopts_untracked_send() from public, anon, authenticated;
+
+-- ── 6. THE LOOKUPS THIS LOOP ADDS, INDEXED ───────────────────────────────────────────────────────
+-- Measured 14 Sep 2026 (370 handoffs). fn_seat_handoff's duplicate check reads (agent, kind, target_id)
+-- for every status except 'failed', and agent_actions_dedupe covers 'pending' rows only. The watch reads
+-- every open customer_support delivery.request on each heartbeat, and adoption now files one for every
+-- row any routine writes (fn_wa_fanout twins and digest rows included). The partial index holds only
+-- the requests still waiting for a result, so it shrinks as results return instead of growing forever.
+create index if not exists agent_actions_handoff_target_idx on public.agent_actions (agent, kind, target_id);
+create index if not exists agent_actions_open_delivery_request_idx on public.agent_actions (id)
+  where kind = 'handoff' and agent = 'customer_support' and detail->>'type' = 'delivery.request'
+    and (detail->>'result_handoff_id') is null;
+
+drop trigger if exists z90_every_send_is_tracked on public.notifications;
+create trigger z90_every_send_is_tracked after insert on public.notifications
+  for each row execute function public.fn_customer_support_adopts_untracked_send();
