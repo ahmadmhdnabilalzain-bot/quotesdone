@@ -4,7 +4,7 @@ name: IT engineer post-deploy smoke
 # succeeded, wait for Vercel's production deployment of the same commit, run a short harness journey
 # on demo data (sign in, portal overview, one request, one quote, the comparison PDF in en and ar),
 # purge it, and hand the result to fn_it_smoke_ingest with the merge's changed files. A failed step
-# goes to the seat owning most of those files. Needs the SUPABASE_ACCESS_TOKEN repository secret.
+# goes to the seat owning most of those files. Uses the SUPABASE_ACCESS_TOKEN repository secret (present since 7 Sep 2026).
 
 on:
   workflow_run:

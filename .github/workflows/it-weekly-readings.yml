@@ -4,8 +4,8 @@ name: IT engineer weekly readings
 # size): the readings that need a Supabase management token or the repository itself. Each report
 # goes to a database function that decides; nothing here changes code or configuration.
 #
-# Needs the repository secret SUPABASE_ACCESS_TOKEN, which only the founder can add. Without it the
-# job skips with a notice, and the IT engineer raises the missing readings itself after eight days
+# Uses the repository secret SUPABASE_ACCESS_TOKEN (present since 7 Sep 2026). If it were ever missing
+# the job skips with a notice, and the IT engineer raises the missing readings itself after eight days
 # (fn_it_workflow_heartbeats).
 
 on:

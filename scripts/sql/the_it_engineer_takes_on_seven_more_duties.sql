@@ -682,19 +682,22 @@ revoke execute on function public.fn_it_dependency_ingest(jsonb) from public, an
 
 -- ── HEARTBEATS FOR THE READINGS THAT ARRIVE FROM GITHUB ──────────────────────────────────────────
 -- Checked by the hourly duties tick: a weekly audit or a platform reading that stops arriving is a
--- finding for the CEO (the workflows need the SUPABASE_ACCESS_TOKEN repository secret).
+-- finding for the CEO — once the scheduled duties have themselves run longer than the interval, so a
+-- workflow merged today is not reported missing before its first schedule comes round.
 create or replace function public.fn_it_workflow_heartbeats()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_items jsonb := '[]'::jsonb; x record;
 begin
   for x in select * from (values ('dependency', interval '8 days', '.github/workflows/it-weekly-readings.yml'),
                                  ('platform',   interval '8 days', '.github/workflows/it-weekly-readings.yml')) v(job, every, wf) loop
-    if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:' || x.job
+    if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%'
+                and started_at < now() - x.every)
+       and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:' || x.job
                     and started_at > now() - x.every) then
       v_items := v_items || jsonb_build_object('item', x.job, 'owner_seat', 'ceo', 'subject', 'github',
         'title', 'The ' || x.job || ' readings from GitHub have not arrived for ' || x.every,
         'blast', 'agent_facing', 'affected', 1,
-        'evidence', jsonb_build_object('workflow', x.wf, 'needs', 'repository secret SUPABASE_ACCESS_TOKEN; only the founder can add it'));
+        'evidence', jsonb_build_object('workflow', x.wf, 'look_at', 'the workflow''s runs in GitHub Actions: not triggered, failed, or failed to report'));
     end if;
   end loop;
   return public.fn_it_duty_settle('workflow_heartbeat', v_items);
