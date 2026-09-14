@@ -21,6 +21,13 @@
 --  10 charge audit  fn_accountant_charge_audit_record                                (charge audit file)
 --  11 costs         fn_accountant_book_stripe_fees + fn_accountant_cost_booking_tick (costs file)
 --
+-- The five further duties (founder, 14 Sep 2026: "add all for accountant and IT"):
+--  F1 cash          fn_accountant_bank_balance_tick; the close carries the cash and runway   (cash file)
+--  F2 ad spend      fn_accountant_ad_spend_tick                                  (Meta invoice file)
+--  F3 recovery      fn_accountant_recovery_tick                                  (recovery ledger file)
+--  F4 year end      fn_accountant_year_end_tick; the runtime writes the pack      (year-end file)
+--  F5 renewals      fn_accountant_renewals_tick; renewal.due from the it_engineer (renewals file)
+--
 --   node scripts/apply_sql.mjs scripts/sql/the_accountant_runs_its_duties_every_hour.sql --apply --ddl
 
 create or replace function public.fn_accountant_duties_due()
@@ -75,14 +82,27 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'disputes', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('costs', public.fn_accountant_cost_booking_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'costs', 'error', sqlerrm); end;
+  -- The five further duties (14 Sep 2026). Ad spend, recovery and renewals run BEFORE the close, which
+  -- reads their figures; the bank balance and the year-end pack read the close, so they run after it.
+  begin o := o || jsonb_build_object('ad_spend', public.fn_accountant_ad_spend_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ad_spend', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('recovery', public.fn_accountant_recovery_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'recovery', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('renewals', public.fn_accountant_renewals_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'renewals', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('close', public.fn_accountant_month_close_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'close', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('bank_balance', public.fn_accountant_bank_balance_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'bank_balance', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('year_end', public.fn_accountant_year_end_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'year_end', 'error', sqlerrm); end;
   begin
     o := o || jsonb_build_object('ceo_acknowledged', public.fn_ceo_accountant_reports_sweep(),
                                  'completed', public.fn_accountant_reports_complete());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
 
-  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs', 'close', 'ceo'] loop
+  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs',
+                                'ad_spend', 'recovery', 'renewals', 'close', 'bank_balance', 'year_end', 'ceo'] loop
     perform public.fn_accountant_duty_stage(v_step,
       (select string_agg(e->>'error', '; ') from jsonb_array_elements(v_err) e where e->>'step' = v_step));
   end loop;

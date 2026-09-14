@@ -204,13 +204,31 @@ begin
   -- ── 6. EXPENSES: a booked receipt with no document behind it ─────────────────────────────────────
   insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note)
   values ('ZZ DEMO Vendor', 'Usage', 10, 'AED', current_date, 'receipt', 'ZZ DEMO probe') returning id into v_n;
+  -- The fixture judges its OWN key: ZZ DEMO expenses are acct:expenses:no_document:zz_demo, so a real
+  -- expense with no receipt can neither keep this loop open nor close it.
   perform public.fn_accountant_expense_duty();
-  perform pg_temp.zz_assert(pg_temp.zz_open('acct:expenses:no_document'), 'expenses: a receipt with no document raised no finding');
-  h := pg_temp.zz_loop_opens('acct:expenses:no_document', 'accountant');
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:expenses:no_document:zz_demo'), 'expenses: a receipt with no document raised no finding');
+  h := pg_temp.zz_loop_opens('acct:expenses:no_document:zz_demo', 'accountant');
   update public.expense_entries set doc_path = 'zz/demo.pdf', doc_kind = 'vendor_document' where id = v_n;
   perform public.fn_accountant_expense_duty();
-  perform pg_temp.zz_loop_closes('acct:expenses:no_document', h);
-  r := r || jsonb_build_object('6_expenses', jsonb_build_object('entry', v_n, 'handoff', h, 'closed', true));
+  perform pg_temp.zz_loop_closes('acct:expenses:no_document:zz_demo', h);
+  -- An expense the founder vouched for is documented by his word, and shown as such; no other source may claim it.
+  insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_kind, doc_note)
+  values ('ZZ DEMO PRO agent fee', 'Licences', 1200, 'AED', current_date, 'founder_reported', 'ZZ DEMO probe', 'founder_statement',
+          'ZZ DEMO: no need for a receipt') returning id into v_n;
+  v := public.fn_accountant_expense_duty();
+  perform pg_temp.zz_assert(not pg_temp.zz_open('acct:expenses:no_document:zz_demo'),
+    'expenses: an expense the founder vouched for was raised as a missing receipt');
+  perform pg_temp.zz_assert(v->'documented_by_founder_statement' @> jsonb_build_array(jsonb_build_object('entry', v_n)),
+    'expenses: the expense the founder vouched for is not listed as documented by his statement: ' || v::text);
+  v_refused := false;
+  begin
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_kind, doc_note)
+    values ('ZZ DEMO Vendor', 'Usage', 10, 'AED', current_date, 'receipt', 'ZZ DEMO probe', 'founder_statement', 'ZZ DEMO');
+  exception when others then v_refused := true; end;
+  perform pg_temp.zz_assert(v_refused, 'expenses: a mailbox receipt was allowed to claim the founder''s statement');
+  r := r || jsonb_build_object('6_expenses', jsonb_build_object('entry', v_n, 'handoff', h, 'closed', true,
+    'founder_statement', 'documented, not raised; refused on any other source'));
 
   -- ── 7. DISPUTES: a test-mode chargeback on a ZZ DEMO payment, 20 hours before Stripe's deadline ────
   t2 := pg_temp.zz_case('acct2', 3433.33, 103.00, 108.82);
@@ -304,6 +322,132 @@ begin
   perform pg_temp.zz_assert((select r2.status from public.support_ceo_report r2 join public.accountant_month_close c on c.ceo_report_id = r2.id
                               where c.month = v_m) = 'completed', 'close: the CEO did not sign for the close, or the accountant did not complete it');
   r := r || jsonb_build_object('8_close', jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'ceo_signed', true));
+
+  -- ═══ THE FIVE FURTHER DUTIES (founder, 14 Sep 2026: "add all for accountant and IT") ═══════════════
+
+  -- ── F1. CASH: the close carries cash, runway, ads, recovery and renewals; a missing balance is a finding ─
+  v := (select figures from public.accountant_month_close where month = v_m);
+  perform pg_temp.zz_assert(v ? 'cash_position' and v ? 'ad_spend' and v ? 'supplier_charge_recovery' and v ? 'renewals',
+    'cash: the close does not carry the cash position, ad spend, recovery and renewals');
+  v := public.fn_accountant_month_close_document(v_m);
+  perform pg_temp.zz_assert(position('Cash in the bank, runway' in (v->'blocks')::text) > 0 and position('cash,runway_months,' in v->>'csv') > 0,
+    'cash: the close document has no cash and runway section');
+  update public.bank_statement_intake set closing_balance_aed = null, balance_on = null where account = 'mashreq';
+  perform public.fn_accountant_bank_balance_tick();
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM')), 'cash: a closed month with no Mashreq balance raised no finding');
+  h := pg_temp.zz_loop_opens('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'), 'accountant');
+  insert into public.bank_statement_intake (source_ref, account, statement_month, state, lines) values ('zz_probe_mashreq_balance', 'mashreq', v_m, 'parsed', 0);
+  perform public.fn_accountant_bank_balance_record('zz_probe_mashreq_balance', 12000, (v_m + interval '1 month')::date - 1);
+  perform public.fn_accountant_bank_balance_tick();
+  perform pg_temp.zz_loop_closes('acct:bank_balance:bank_balance:' || to_char(v_m, 'YYYY-MM'), h);
+  v := public.fn_accountant_cash_position(v_m, 1000);
+  perform pg_temp.zz_assert((v#>>'{cash_in_bank,aed}')::numeric = 12000 and (v#>>'{runway,months}') is not null,
+    'cash: the recorded balance gave no cash figure or no runway: ' || v::text);
+  perform pg_temp.zz_assert((public.fn_accountant_cash_position(v_m - 3650, 1000)#>>'{cash_in_bank,aed}') is null,
+    'cash: a month before any recorded balance was given a cash figure');
+  r := r || jsonb_build_object('x1_cash', jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'handoff', h, 'runway_months', v#>>'{runway,months}'));
+
+  -- ── F2. AD SPEND: Meta invoiced AED 150 against AED 100 reported, then the invoice corrected ─────────
+  insert into public.accountant_ad_spend_month (month, reported_spend_aed, reported_at) values ('2020-01-01', 100, now())
+  on conflict (month) do update set reported_spend_aed = 100;
+  insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note)
+  values ('Meta Platforms (ZZ DEMO)', 'Advertising', 150, 'AED', '2020-01-15', 'receipt', 'ZZ DEMO probe') returning id into v_n;
+  v := public.fn_accountant_ad_spend_tick('2020-02-20');
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:ad_spend:mismatch:2020-01'), 'ad spend: an invoice AED 50 over the reported spend raised no finding: ' || v::text);
+  h := pg_temp.zz_loop_opens('acct:ad_spend:mismatch:2020-01', 'accountant');
+  update public.expense_entries set amount = 100 where id = v_n;
+  v := public.fn_accountant_ad_spend_tick('2020-02-20');
+  perform pg_temp.zz_loop_closes('acct:ad_spend:mismatch:2020-01', h);
+  v := public.fn_accountant_ad_spend_figures('2020-01-01');
+  perform pg_temp.zz_assert((v->>'invoiced_aed')::numeric = 100 and (v->>'difference_aed')::numeric = 0
+    and v->>'cost_per_inquiry_aed' is null and jsonb_array_length(v->'missing') > 0,
+    'ad spend: the figures invent a cost, or do not name what is missing: ' || v::text);
+  r := r || jsonb_build_object('x2_ad_spend', jsonb_build_object('month', '2020-01', 'handoff', h, 'closed_by', 'invoice matched'));
+
+  -- ── F3. RECOVERY: refused before a demand, then filed, issued, served, and recovered ─────────────────
+  t := pg_temp.zz_case('acct5', 3433.33, 103.00, 108.82);
+  select supplier_id into l from public.transactions where id = t;
+  insert into public.supplier_dues (transaction_id, supplier_id, quote_id, amount_due, admin_fee, interest_amount, total_claim, currency,
+                                    reveal_date, due_date, status)
+  select t, l, quote_id, 108.82, 250, 0, 358.82, 'AED', current_date - 60, current_date - 55, 'due' from public.transactions where id = t
+  returning id into d;
+  v_refused := false;
+  begin perform public.fn_accountant_record_court_step(d, 'filed', current_date); exception when others then v_refused := true; end;
+  perform pg_temp.zz_assert(v_refused, 'recovery: a payment order was recorded as filed with no formal demand (CPL Art 144(1))');
+  update public.supplier_dues set legal_stage = 'filing_pack_due', legal_escalated_at = now() - interval '20 days' where id = d;
+  perform public.fn_accountant_record_court_step(d, 'filed', current_date - 10, 'ZZ DEMO case');
+  perform public.fn_accountant_record_court_step(d, 'order_issued', current_date - 9);
+  perform public.fn_accountant_recovery_tick(current_date + 80);
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:recovery:serve:' || d), 'recovery: an order near its CPL Art 146(2) service deadline raised no finding');
+  h := pg_temp.zz_loop_opens('acct:recovery:serve:' || d, 'ceo');
+  perform public.fn_accountant_record_court_step(d, 'order_served', current_date);
+  perform public.fn_accountant_recovery_tick(current_date + 80);
+  perform pg_temp.zz_loop_closes('acct:recovery:serve:' || d, h);
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:recovery:enforce:' || d), 'recovery: a served order past its 15 grievance days raised no enforcement finding');
+  h2 := pg_temp.zz_loop_opens('acct:recovery:enforce:' || d, 'ceo');
+  perform public.fn_accountant_record_court_step(d, 'recovered', current_date, 'ZZ DEMO execution');
+  perform public.fn_accountant_recovery_tick(current_date + 80);
+  perform pg_temp.zz_loop_closes('acct:recovery:enforce:' || d, h2);
+  perform pg_temp.zz_assert((select stage in ('paid', 'settled') and limitation_on = (due_date + interval '5 years')::date
+                               and legal_pack like 'docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md%'
+                               from public.v_accountant_recovery_ledger where due_id = d),
+    'recovery: the ledger does not read recovered, with its 5-year limitation and the legal pack');
+  r := r || jsonb_build_object('x3_recovery', jsonb_build_object('due', d, 'serve_handoff', h, 'enforce_handoff', h2, 'closed_by', 'recovered'));
+
+  -- ── F4. YEAR END: seven CSVs; the close, a statement and the pack filed in Dropbox and expected by IT ──
+  v := public.fn_accountant_year_end_pack_document(extract(year from current_date)::int);
+  perform pg_temp.zz_assert(jsonb_array_length(v->'files') = 7 and position('entry_no,entry_date' in v#>>'{files,0,csv}') = 1,
+    'year end: the pack does not hold its seven CSVs');
+  perform public.fn_accountant_month_close_attach(v_m, 'finance-reports', 'accountant/close/zz_probe/close.pdf', 'accountant/close/zz_probe/close.csv');
+  update public.bank_statement_intake set doc_path = 'receipt-files/bank/zz_probe/statement.pdf' where source_ref = 'zz_probe_mashreq_balance';
+  v := public.fn_accountant_year_end_pack_attach(2019, jsonb_build_array(
+         jsonb_build_object('name', '2019 Ledger.csv', 'bucket', 'backups', 'path', 'accountant/year-end/zz_probe_2019/2019 Ledger.csv'),
+         jsonb_build_object('name', 'ZZ DEMO 2019 Ledger.csv', 'bucket', 'backups', 'path', 'accountant/year-end/zz_demo_2019/ZZ DEMO 2019 Ledger.csv')));
+  perform pg_temp.zz_assert(exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:year_end:2019:2019 Ledger.csv'
+                                       and dropbox_path like '%Finance/Year End/2019/%'), 'year end: the pack was not queued for Dropbox');
+  perform pg_temp.zz_assert(not exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:year_end:2019:ZZ DEMO 2019 Ledger.csv'),
+    'year end: a ZZ DEMO pack file was queued for Dropbox');
+  -- A document issued to a ZZ DEMO recipient is neither queued nor expected. Its path carries no demo marker,
+  -- so the recipient filter is what is proved.
+  insert into public.accountant_issued_document (document_kind, template_version, content_sha256, recipient, file_path)
+  values ('invoice', 'zz_probe', repeat('a', 64), 'zz-demo-issued@example.invalid', 'backups/accountant/issued/zz_probe_issued.pdf')
+  returning id into v_n;
+  perform public.fn_enqueue_doc_backups();
+  perform pg_temp.zz_assert(not exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:issued:' || v_n
+                                          or (bucket = 'backups' and path = 'accountant/issued/zz_probe_issued.pdf')),
+    'year end: a document issued to a ZZ DEMO recipient was queued for Dropbox');
+  perform pg_temp.zz_assert(not exists (select 1 from public.fn_it_backup_expected() e where e.item_key = 'obj:backups:accountant/issued/zz_probe_issued.pdf'),
+    'year end: the it_engineer expects a document issued to a ZZ DEMO recipient');
+  perform pg_temp.zz_assert(exists (select 1 from public.doc_backups
+                                     where dedupe_key = 'ACCT:close:' || to_char(v_m, 'YYYY-MM') || ':accountant/close/zz_probe/close.pdf'
+                                       and dropbox_path like '%Finance/Month Close/%'), 'year end: the month close was not queued under Finance/Month Close');
+  perform pg_temp.zz_assert(exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:bank:zz_probe_mashreq_balance'
+                                       and bucket = 'receipt-files' and path = 'bank/zz_probe/statement.pdf'), 'year end: the Mashreq statement was not queued');
+  perform pg_temp.zz_assert(exists (select 1 from public.fn_it_backup_expected_status() e
+                                     where e.item_key = 'obj:finance-reports:accountant/close/zz_probe/close.pdf' and e.doc_backup_id is not null),
+    'year end: the it_engineer does not expect the month close, or cannot see its queued backup');
+  r := r || jsonb_build_object('x4_year_end', jsonb_build_object('csvs', 7, 'queued', 3, 'it_engineer_expects', true));
+
+  -- ── F5. RENEWALS: unbudgeted near expiry, the it_engineer's renewal.due answered, the fee booked ──────
+  insert into public.it_expiry (item, kind, expires_on, owner_seat, route, source)
+  values ('zz_demo_licence', 'licence', current_date + 30, 'it_engineer', 'accountant', 'ZZ DEMO probe');
+  perform public.fn_accountant_renewals_tick();
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:renewals:unbudgeted:zz_demo_licence'), 'renewals: a licence 30 days from expiry with no booked fee raised no finding');
+  update public.decision_policy set value = value || '[{"item": "^zz_demo_licence$", "vendor": "^ZZ DEMO Licensing"}]'::jsonb
+   where key = 'accountant_renewal_vendor_patterns';
+  insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_path, doc_kind)
+  values ('ZZ DEMO Licensing', 'Licences', 500, 'AED', current_date - 300, 'receipt', 'ZZ DEMO probe', 'zz/demo_licence.pdf', 'vendor_document');
+  h := public.fn_seat_handoff('it_engineer', 'accountant', 'renewal.due', 'it_expiry', 'zz_demo_licence@' || (current_date + 30),
+                              jsonb_build_object('item', 'zz_demo_licence'));
+  perform pg_temp.zz_assert((select status <> 'failed' and detail ? 'awaiting' and evidence->>'reply' like 'accountant: AED 500%'
+                               from public.agent_actions where id = h),
+    'renewals: the accountant did not answer the it_engineer''s renewal.due with the budget and wait for its re-verification');
+  perform public.fn_accountant_renewals_tick();
+  perform pg_temp.zz_assert(not pg_temp.zz_open('acct:renewals:unbudgeted:zz_demo_licence'), 'renewals: booking the fee did not close the finding');
+  perform pg_temp.zz_assert((select budget_aed = 500 and pay_by = current_date + 16 and handoff_id = h
+                               from public.accountant_renewal_budget where item = 'zz_demo_licence'),
+    'renewals: the budget line is not AED 500, payable 14 days before expiry, tied to the handoff');
+  r := r || jsonb_build_object('x5_renewals', jsonb_build_object('handoff', h, 'budget_aed', 500, 'closed_by', 'fee booked'));
 
   -- ── THE HOUR, END TO END ─────────────────────────────────────────────────────────────────────────
   v := public.fn_accountant_duties('{"stripe": {"live": {"basis": "not_configured"}, "test": {"basis": "not_configured"}}, "charge_audit": null}'::jsonb);

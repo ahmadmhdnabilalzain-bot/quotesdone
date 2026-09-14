@@ -49,7 +49,7 @@ create or replace function public.fn_accountant_month_close_figures(p_month date
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_m date := date_trunc('month', p_month)::date; v_e date; v_fx numeric;
-  v_from timestamptz; v_to timestamptz; v_pnl jsonb; v_rev numeric; v_exp numeric; v_aging jsonb;
+  v_from timestamptz; v_to timestamptz; v_pnl jsonb; v_rev numeric; v_exp numeric; v_aging jsonb; v_out jsonb;
 begin
   v_e := (v_m + interval '1 month' - interval '1 day')::date;
   v_from := v_m::timestamp at time zone 'Asia/Dubai'; v_to := (v_e + 1)::timestamp at time zone 'Asia/Dubai';
@@ -73,7 +73,7 @@ begin
             from public.supplier_dues
            where paid_at is null and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled')) z;
 
-  return jsonb_build_object(
+  v_out := jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'), 'from', v_m, 'to', v_e, 'timezone', 'Asia/Dubai',
     'profit_and_loss', jsonb_build_object('accounts', v_pnl, 'revenue_aed', v_rev, 'expenses_aed', v_exp,
                                           'net_result_aed', v_rev - v_exp,
@@ -113,6 +113,13 @@ begin
     'vat', public.fn_accountant_vat_threshold_check(false),
     'weekly_figures_over_the_month', public.fn_accountant_weekly_report_figures(v_m, v_e),
     'measured_at', now());
+  -- 14 Sep 2026, the five further duties ("add all for accountant and IT"): the CEO's monthly report of cash,
+  -- runway, ad spend, recovery and renewals rides on the close rather than being a second report.
+  return v_out || jsonb_build_object(
+    'cash_position', public.fn_accountant_cash_position(v_m, (v_out#>>'{cash_out,expenses_aed}')::numeric),
+    'ad_spend', public.fn_accountant_ad_spend_figures(v_m),
+    'supplier_charge_recovery', public.fn_accountant_recovery_position(),
+    'renewals', public.fn_accountant_renewal_position());
 end $fn$;
 revoke execute on function public.fn_accountant_month_close_figures(date) from public, anon, authenticated;
 
@@ -149,7 +156,19 @@ begin
     || 'disputes,open,' || (f#>>'{disputes,open}') || ',count' || E'\n'
     || 'collections,open_aed,' || (f#>>'{collections_aging,open_aed}') || ',' || E'\n'
     || 'charge_audit,open_differences,' || (f->>'charge_audit_open_differences') || ',count' || E'\n'
-    || 'vat,rolling_12m_turnover,' || (f#>>'{vat,turnover_aed}') || ',' || coalesce(f#>>'{vat,band}', '') || E'\n';
+    || 'vat,rolling_12m_turnover,' || (f#>>'{vat,turnover_aed}') || ',' || coalesce(f#>>'{vat,band}', '') || E'\n'
+    -- A month closed before 14 Sep 2026 carries none of the lines below; they print MISSING, never a guess.
+    || 'cash,in_bank,' || coalesce(f#>>'{cash_position,cash_in_bank,aed}', 'MISSING') || ','
+       || replace(coalesce(f#>>'{cash_position,cash_in_bank,as_of}', f#>>'{cash_position,cash_in_bank,missing}', ''), ',', ' ') || E'\n'
+    || 'cash,runway_months,' || coalesce(f#>>'{cash_position,runway,months}', 'MISSING') || ','
+       || replace(coalesce(f#>>'{cash_position,runway,missing}', ''), ',', ' ') || E'\n'
+    || 'ads,meta_invoiced,' || coalesce(f#>>'{ad_spend,invoiced_aed}', 'MISSING') || ',' || E'\n'
+    || 'ads,meta_reported,' || coalesce(f#>>'{ad_spend,reported_spend_aed}', 'MISSING') || ',' || E'\n'
+    || 'ads,cost_per_inquiry,' || coalesce(f#>>'{ad_spend,cost_per_inquiry_aed}', 'MISSING') || ',' || E'\n'
+    || 'ads,cost_per_reveal,' || coalesce(f#>>'{ad_spend,cost_per_reveal_aed}', 'MISSING') || ',' || E'\n'
+    || 'recovery,open_claims_aed,' || coalesce(f#>>'{supplier_charge_recovery,open_aed}', 'MISSING') || ',' || E'\n'
+    || 'renewals,budgeted_aed,' || coalesce(f#>>'{renewals,budgeted_aed}', 'MISSING') || ','
+       || coalesce(f#>>'{renewals,unbudgeted}', '?') || ' unbudgeted' || E'\n';
   return jsonb_build_object('month', f->>'month', 'title', v_title, 'name', 'QuotesDone_Monthly_Close_' || (f->>'month'),
     'csv', v_csv,
     'blocks', jsonb_build_array(
@@ -185,6 +204,21 @@ begin
         jsonb_build_array('Open charge-audit differences', f->>'charge_audit_open_differences'),
         jsonb_build_array('Suppliers ranked toward the free thousand', f#>>'{subscriptions,registered_ranked}'),
         jsonb_build_array('Rolling 12-month turnover for VAT (AED)', f#>>'{vat,turnover_aed}'))),
+      jsonb_build_object('t', 'h3', 'text', 'Cash in the bank, runway, advertising, recovery and renewals'),
+      jsonb_build_object('t', 'table', 'head', jsonb_build_array('Item', 'Value'), 'widths', jsonb_build_array(0.6, 0.4), 'rows', jsonb_build_array(
+        jsonb_build_array('Cash in the Mashreq account (AED)', coalesce(f#>>'{cash_position,cash_in_bank,aed}', 'missing: no closing balance recorded')),
+        jsonb_build_array('Balance as of', coalesce(f#>>'{cash_position,cash_in_bank,as_of}', '-')),
+        jsonb_build_array('Mashreq money in / out in the month (AED)',
+          coalesce((f#>>'{cash_position,bank_movements,in_aed}') || ' / ' || (f#>>'{cash_position,bank_movements,out_aed}'), 'missing: no statement line in the month')),
+        jsonb_build_array('Runway (months)', coalesce(f#>>'{cash_position,runway,months}', 'missing: ' || coalesce(f#>>'{cash_position,runway,missing}', 'not measured'))),
+        jsonb_build_array('Meta invoices booked (AED)', coalesce(f#>>'{ad_spend,invoiced_aed}', 'missing')),
+        jsonb_build_array('Ad spend Meta reported (AED)', coalesce(f#>>'{ad_spend,reported_spend_aed}', 'missing')),
+        jsonb_build_array('Cost per inquiry / per reveal (AED)',
+          coalesce(f#>>'{ad_spend,cost_per_inquiry_aed}', 'missing') || ' / ' || coalesce(f#>>'{ad_spend,cost_per_reveal_aed}', 'missing')),
+        jsonb_build_array('Supplier-charge claims open (count / AED)',
+          coalesce(f#>>'{supplier_charge_recovery,open_claims}', 'missing') || ' / ' || coalesce(f#>>'{supplier_charge_recovery,open_aed}', 'missing')),
+        jsonb_build_array('Renewals budgeted (AED) / lines with no budget',
+          coalesce(f#>>'{renewals,budgeted_aed}', 'missing') || ' / ' || coalesce(f#>>'{renewals,unbudgeted}', 'missing')))),
       jsonb_build_object('t', 'note', 'text', 'Prepared by the QuotesDone accountant from public.gl_journal, stripe_payout, bank_statement_line, transactions, refunds, expense_entries, supplier_dues, stripe_dispute and charge_audit. The CSV beside this document carries the same figures line by line.')));
 end $fn$;
 revoke execute on function public.fn_accountant_month_close_document(date) from public, anon, authenticated;
@@ -202,9 +236,13 @@ begin
   end if;
   f := public.fn_accountant_month_close_figures(v_m);
   v_sev := case when (f#>>'{bank_reconciliation,unmatched}')::int > 0 or (f->>'charge_audit_open_differences')::int > 0
-                     or (f#>>'{disputes,open}')::int > 0 then 'elevated' else 'routine' end;
+                     or (f#>>'{disputes,open}')::int > 0
+                     or (f#>>'{cash_position,runway,months}') is null or (f#>>'{cash_position,runway,months}')::numeric < 6
+                then 'elevated' else 'routine' end;
   v_rep := public.fn_support_report_to_ceo('accountant_close:' || to_char(v_m, 'YYYY-MM'), v_sev,
     'Monthly close ' || to_char(v_m, 'Mon YYYY') || ': net result AED ' || (f#>>'{profit_and_loss,net_result_aed}')
+      || ', cash in the bank ' || coalesce('AED ' || (f#>>'{cash_position,cash_in_bank,aed}'), 'MISSING')
+      || ', runway ' || coalesce((f#>>'{cash_position,runway,months}') || ' months', 'MISSING')
       || ', AED ' || (f#>>'{held_for_possible_refunds,held_for_possible_refunds_aed}') || ' held for possible refunds, '
       || (f#>>'{bank_reconciliation,unmatched}') || ' payout(s) not yet in the bank',
     f, '[]'::jsonb,
