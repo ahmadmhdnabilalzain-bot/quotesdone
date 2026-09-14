@@ -282,7 +282,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
         const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
-        return J({ ok: true, ...s, user_kind: kind, email });
+        return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.' }, 503);
@@ -302,7 +302,7 @@ Deno.serve(observe('login_otp', async (req) => {
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
       const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
-      return J({ ok: true, ...s, user_kind: kind, email });
+      return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 
     return J({ error: 'Unknown action' }, 400);

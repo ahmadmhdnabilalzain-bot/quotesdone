@@ -129,11 +129,13 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     const { score: quality_score, why } = qualityScore(q);
 
     const flags: string[] = [];
-    if (q.expired) flags.push(ar ? 'انتهت صلاحية عرض السعر' : 'This quote has expired — ask the supplier to reconfirm it.');
+    // Facts only. Before the reveal the customer cannot reach a supplier (founder, 14 Sep 2026), so
+    // no flag tells them to ask, confirm with or contact one.
+    if (q.expired) flags.push(ar ? 'انتهت صلاحية عرض السعر' : 'This quote has expired.');
     if (!q.itemised) flags.push(ar ? 'سعر إجمالي بدون تفاصيل' : 'Lump sum with no line items — it cannot be checked item by item.');
-    if (!stated(q.warranty)) flags.push(ar ? 'الضمان غير مذكور' : 'Warranty not stated — confirm before paying.');
-    if (!stated(q.lead_time)) flags.push(ar ? 'مدة التسليم غير مذكورة' : 'Lead time not stated — confirm before paying.');
-    if (!stated(q.payment_terms)) flags.push(ar ? 'شروط الدفع غير مذكورة' : 'Payment terms not stated — confirm before paying.');
+    if (!stated(q.warranty)) flags.push(ar ? 'الضمان غير مذكور' : 'Warranty not stated.');
+    if (!stated(q.lead_time)) flags.push(ar ? 'مدة التسليم غير مذكورة' : 'Lead time not stated.');
+    if (!stated(q.payment_terms)) flags.push(ar ? 'شروط الدفع غير مذكورة' : 'Payment terms not stated.');
     if (q.completeness?.passed === false) flags.push(ar ? 'لم يجتز فحص الاكتمال' : 'Failed our automated completeness check.');
     if (typeof q.completeness?.missing_mandatory === 'number' && q.completeness.missing_mandatory > 0) {
       flags.push(ar ? `${q.completeness.missing_mandatory} حقل إلزامي ناقص` : `${q.completeness.missing_mandatory} mandatory field(s) still missing for this trade.`);
@@ -217,12 +219,17 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
       ? 'أعلى مجموع نقاط على السعر والاكتمال والتسليم من الأرقام المذكورة.'
       : 'Highest combined score on price, completeness and delivery, from the stated figures.',
     watch_outs: [
-      ...(scored.some(s => s.flags.some(f => /expired|انتهت/.test(f)))
-        ? [ar ? 'أحد العروض منتهي الصلاحية.' : 'At least one quote has expired — reconfirm before you rely on it.'] : []),
+      // From the data, not from a flag's wording: rewording the expired flag on 14 Sep 2026 silently
+      // switched this watch-out off (deterministic.test.mjs caught it).
+      ...(labelled.some((x) => x.expired)
+        ? [ar ? 'أحد العروض منتهي الصلاحية.' : 'At least one quote has expired.'] : []),
       // The method line is said once, in the bottom line; repeating it here read as a warning.
     ],
+    // What actually happens, never "confirm it with the supplier": before the reveal the customer
+    // cannot reach one (founder, 14 Sep 2026). A quote missing a required detail is held and the
+    // sales engineer asks the supplier for it through customer_support until it is filled.
     advice: ar
-      ? 'راجع المواصفات والبنود الناقصة مع المورد قبل الدفع.'
-      : 'Confirm the specification and any missing terms with the supplier before paying.',
+      ? 'تُقارن العروض بما ذكره كل مورّد كتابيًا. العرض الذي ينقصه تفصيل إلزامي يبقى معلّقًا ونطلب التفصيل من المورّد، ثم ينضم إلى هذه المقارنة عند الرد.'
+      : 'Quotes are compared on what each supplier stated in writing. A quote missing a required detail is held and we request it from the supplier; it joins this comparison once they answer.',
   };
 }

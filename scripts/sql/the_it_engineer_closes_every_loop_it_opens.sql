@@ -20,8 +20,8 @@
 --      else the ceo). Reusing fn_seat_handoff: the seats already converse this way.
 --   2. The owning seat answers at once through fn_seat_answers_it_finding — its playbook remedy where it
 --      has one, or a plain statement that it has none. The answer is a REPLY, never a close.
---   3. Only the originator closes. public.seat_handoff_window names, per (type, from_seat), the reply
---      window and whether only the originator may close; trigger z61 refuses any other close.
+--   3. Only the originator closes. public.seat_handoff_kind names, per conversation, the reply window
+--      and whether only the originator may close; trigger z61 refuses any other close.
 --   4. The IT engineer re-verifies itself on every tick: the handoff closes only when the finding it
 --      tracked is closed by its own detector or duty check.
 --   5. Past the reply window with the finding still open, the IT engineer reports to the CEO
@@ -32,10 +32,12 @@
 --   6. Once a Dubai day, after 19:00, a routine daily line goes to the CEO; the CEO acknowledges it;
 --      the IT engineer completes it only after the acknowledgement is on the row.
 --
--- SHARED WITH THE DELIVERY LOOP. fn_seat_handoff_types and fn_seat_handoff_act are also redefined by
--- customer_support's delivery-loop build (delivery.result back to every originator, checked by
--- fn_originator_checks_delivery). Both definitions here carry that build's rows and branch as they were
--- live at 14:40 UTC on 14 Sep 2026; whichever file is applied last must carry both.
+-- THE CONVERSATIONS ARE DATA (14 Sep 2026). fn_seat_handoff_types and fn_seat_handoff_act were
+-- redefined by four builds the same day (this loop, customer_support's delivery loop, the accountant's
+-- notices, the refund loop), and whichever was applied last deleted the others' rows and branches.
+-- Every conversation is now a row of public.seat_handoff_kind naming its handler routine; a build adds
+-- its conversations with an INSERT in its own file and never redefines a routine.
+-- scripts/checks/handoff_kinds_are_data.test.mjs fails if any later file defines them.
 --
 -- WHAT THIS DOES NOT DO. It holds no remediation playbook of the IT engineer's own: the seats' replies
 -- are the remedies it has today. A separate build owns the IT engineer's playbook; when it lands its
@@ -44,40 +46,42 @@
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql --apply --ddl
 
--- ── 1. WHO MUST ANSWER, BY WHEN, AND WHO MAY CLOSE ────────────────────────────────────────────────
-create table if not exists public.seat_handoff_window (
-  type              text     not null,
+-- ── 1. THE CONVERSATIONS, AS ROWS ───────────────────────────────────────────────────────────────
+-- One row per (type, from, to): what it means, the routine the receiving seat answers with
+-- (handler(p_id bigint) returns jsonb), how long the receiver has to reply, and whether only the
+-- originator may close it. owner_file is the file that inserts the row. It replaces
+-- public.seat_handoff_window, whose three rows are the reply_within / originator_closes values below.
+create table if not exists public.seat_handoff_kind (
+  type              text     not null check (type ~ '^[a-z]+(\.[a-z_]+)+$'),
   from_seat         text     not null,
-  reply_within      interval not null check (reply_within > interval '0'),
-  originator_closes boolean  not null,
-  note              text     not null,
-  primary key (type, from_seat)
+  to_seat           text     not null,
+  meaning           text     not null check (btrim(meaning) <> ''),
+  handler           text     not null check (handler ~ '^fn_[a-z0-9_]+$'),
+  reply_within      interval check (reply_within > interval '0'),
+  originator_closes boolean  not null default false,
+  owner_file        text     not null check (owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'),
+  primary key (type, from_seat, to_seat)
 );
-comment on table public.seat_handoff_window is
-  'Per handoff conversation: how long the receiving seat has to reply, and whether only the originating seat may close it. Every conversation the it_engineer starts must have a row with originator_closes = true (scripts/checks/it_engineer_loop_is_closed.test.mjs).';
-alter table public.seat_handoff_window enable row level security;
-drop policy if exists seat_handoff_window_service_role_only on public.seat_handoff_window;
-create policy seat_handoff_window_service_role_only on public.seat_handoff_window
+comment on table public.seat_handoff_kind is
+  'Every conversation the seats have: meaning, the handler routine the receiving seat answers with, the reply window and who may close it. A build adds conversations by INSERT in its own file; fn_seat_handoff_types and fn_seat_handoff_act only read this table (scripts/checks/handoff_kinds_are_data.test.mjs).';
+alter table public.seat_handoff_kind enable row level security;
+drop policy if exists seat_handoff_kind_service_role_only on public.seat_handoff_kind;
+create policy seat_handoff_kind_service_role_only on public.seat_handoff_kind
   as permissive for all to public using (false) with check (false);
-revoke all on public.seat_handoff_window from anon, authenticated;
+revoke all on public.seat_handoff_kind from anon, authenticated;
 
-insert into public.seat_handoff_window (type, from_seat, reply_within, originator_closes, note) values
-  ('it.finding', 'it_engineer', interval '4 hours', true,
-   'The owning seat replies with its remedy or with none; past four hours with the finding still open the IT engineer reports to the CEO.'),
-  ('delivery.request', 'it_engineer', interval '1 hour', false,
-   'customer_support completes the send itself; the IT engineer closes the LOOP through the delivery.result conversation back to it (fn_originator_checks_delivery), which retries or escalates to the CEO.'),
-  ('backup.refile', 'it_engineer', interval '48 hours', true,
-   'The backup build''s rule: two refiles or 48 hours, then a serious report to the CEO. Closed only by the IT engineer''s re-check.')
-on conflict (type, from_seat) do update
-  set reply_within = excluded.reply_within, originator_closes = excluded.originator_closes, note = excluded.note;
-
--- ── 2. THE CONVERSATIONS ─────────────────────────────────────────────────────────────────────────
--- The live list (the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql) plus the IT
--- engineer's two. Mirrored in supabase/functions/_shared/payment_handoffs.ts for the payment types only.
-create or replace function public.fn_seat_handoff_types()
-returns table(type text, from_seat text, to_seat text, meaning text)
-language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  values
+-- The 34 conversations live on 14 Sep 2026, each with the handler fn_seat_handoff_act used for it.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+select v.type, v.from_seat, v.to_seat, v.meaning,
+       case when v.type = 'it.finding' then 'fn_seat_answers_it_finding'
+            when v.type = 'delivery.result' then 'fn_delivery_result_acts'
+            else 'fn_' || v.to_seat || '_acts_on_handoff' end,
+       case when (v.type, v.from_seat) = ('it.finding', 'it_engineer') then interval '4 hours'
+            when (v.type, v.from_seat) = ('delivery.request', 'it_engineer') then interval '1 hour'
+            when (v.type, v.from_seat) = ('backup.refile', 'it_engineer') then interval '48 hours' end,
+       (v.type, v.from_seat) in (('it.finding', 'it_engineer'), ('backup.refile', 'it_engineer')),
+       'scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql'
+  from (values
     ('reveal.paid',              'accountant',       'sales_engineer',   'A reveal charge settled at Stripe: tell the customer the contact is released and the supplier that they were revealed.'),
     ('payment.failed',           'accountant',       'sales_engineer',   'A reveal checkout expired or failed: tell the customer nothing was charged and how to try again.'),
     ('payment.received',         'accountant',       'sales_engineer',   'A supplier paid an outstanding charge or the registration fee: confirm it to them.'),
@@ -112,7 +116,80 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('it.finding',               'it_engineer',      'accountant',       'The IT engineer found a fault in something the accountant owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
     ('it.finding',               'it_engineer',      'customer_support', 'The IT engineer found a fault in something customer support owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
     ('it.finding',               'it_engineer',      'ceo',              'The IT engineer found a fault in something only the CEO owns: decide the remedy or say there is none. The IT engineer re-verifies and closes.')
+  ) v(type, from_seat, to_seat, meaning)
+on conflict (type, from_seat, to_seat) do update
+  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
+      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+
+drop table if exists public.seat_handoff_window;
+
+-- ── 2. THE CONVERSATIONS, AS THE ROUTINE EVERY CALLER ALREADY READS ─────────────────────────────
+-- Mirrored in supabase/functions/_shared/payment_handoffs.ts for the payment types only.
+create or replace function public.fn_seat_handoff_types()
+returns table(type text, from_seat text, to_seat text, meaning text)
+language sql stable set search_path to 'public', 'pg_temp' as $fn$
+  select k.type, k.from_seat, k.to_seat, k.meaning from public.seat_handoff_kind k
 $fn$;
+
+
+-- ── 2b. STARTING A CONVERSATION ─────────────────────────────────────────────────────────────────
+-- Live definition (payments_are_the_accountant_and_the_seats_close_every_refund_together.sql) with one
+-- change, from the review of #648: a (type, from, to) with no row in seat_handoff_kind used to raise,
+-- and a caller that caught the exception lost the conversation with no trace. It is now recorded as a
+-- FAILED handoff and as an it.finding 'unregistered handoff kind' (monitor:unregistered_handoff_kind:…),
+-- which goes round the IT loop to the ceo like any other finding; the caller gets the failed row's id,
+-- the same shape it gets when a receiving seat's handler fails.
+create or replace function public.fn_seat_handoff(p_from text, p_to text, p_type text, p_subject_table text, p_subject_id text, p_payload jsonb default '{}'::jsonb)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
+begin
+  if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
+  v_known := exists (select 1 from public.seat_handoff_kind k
+                      where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
+
+  select id into v_id from public.agent_actions
+   where kind = 'handoff' and agent = p_to and target_id = v_key and status <> 'failed'
+   order by id limit 1;
+  if v_id is not null then return v_id; end if;
+
+  insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+  values (p_to, 'handoff', case when v_known then 'pending' else 'failed' end, 'low',
+          left(p_type || ' from ' || p_from || ' about ' || p_subject_table || ' ' || p_subject_id, 200),
+          coalesce(p_payload, '{}'::jsonb) || jsonb_build_object(
+            'type', p_type, 'from', p_from, 'from_name', p_from, 'to', p_to,
+            'subject_table', p_subject_table, 'subject_id', p_subject_id)
+          || case when v_known then '{}'::jsonb
+                  else jsonb_build_object('error', 'unregistered handoff kind: no row in public.seat_handoff_kind') end,
+          p_subject_table, v_key)
+  returning id into v_id;
+
+  if not v_known then
+    perform public.fn_seat_handoff_event(v_id, 'failed');
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:unregistered_handoff_kind:' || p_type || ':' || p_from || ':' || p_to,
+      'Unregistered handoff kind: ' || p_from || ' tried to start "' || p_type || '" with ' || p_to,
+      'public.fn_seat_handoff (caller: ' || p_from || ')', 'agent_facing', 1,
+      jsonb_build_object('type', p_type, 'from', p_from, 'to', p_to, 'handoff_id', v_id, 'owner_seat', 'ceo',
+                         'fix', 'insert the conversation into public.seat_handoff_kind with its handler, in the file of the build that starts it'),
+      '{}'::text[], array['which build starts this conversation and which handler answers it'], 'fn_seat_handoff');
+    return v_id;
+  end if;
+  perform public.fn_seat_handoff_event(v_id, 'sent');
+
+  -- THE RECEIVING SEAT ACTS NOW. A failure is recorded on the row and in the stream and never
+  -- rolls back the money event that raised it: a refund that settled stays settled.
+  begin
+    perform public.fn_seat_handoff_act(v_id);
+  exception when others then
+    update public.agent_actions
+       set status = 'failed', decided_at = now(),
+           detail = detail || jsonb_build_object('error', left(sqlerrm, 500))
+     where id = v_id;
+    perform public.fn_seat_handoff_event(v_id, 'failed');
+  end;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_seat_handoff(text, text, text, text, text, jsonb) from public, anon, authenticated;
 
 -- ── 3. ONLY THE ORIGINATOR CLOSES ────────────────────────────────────────────────────────────────
 -- The closer names itself in qd.handoff_closer inside its own transaction. qd.backup_closer is the
@@ -122,8 +199,8 @@ returns trigger language plpgsql security definer set search_path to 'public', '
 declare v_closer text;
 begin
   if new.kind = 'handoff' and new.status = 'done' and old.status is distinct from 'done'
-     and exists (select 1 from public.seat_handoff_window w
-                  where w.type = new.detail->>'type' and w.from_seat = new.detail->>'from' and w.originator_closes) then
+     and exists (select 1 from public.seat_handoff_kind k
+                  where k.type = new.detail->>'type' and k.from_seat = new.detail->>'from' and k.originator_closes) then
     v_closer := coalesce(nullif(current_setting('qd.handoff_closer', true), ''),
                          nullif(current_setting('qd.backup_closer', true), ''));
     if v_closer is distinct from new.detail->>'from' then
@@ -138,38 +215,40 @@ drop trigger if exists z61_handoff_only_originator_closes on public.agent_action
 create trigger z61_handoff_only_originator_closes before update of status on public.agent_actions
   for each row execute function public.trg_handoff_only_originator_closes();
 
--- ── 4. THE RECEIVING SEAT ACTS; ON AN ORIGINATOR-CLOSED CONVERSATION ITS ANSWER IS A REPLY ─────────
--- Live definition (payments_are_the_accountant_and_the_seats_close_every_refund_together.sql) with two
--- changes: 'it.finding' is answered by fn_seat_answers_it_finding whichever seat receives it, and any
--- answer on a conversation seat_handoff_window marks originator-closed is stored as the reply
--- (detail.replied_at) instead of completing the handoff.
+-- ── 4. THE RECEIVING SEAT ANSWERS WITH THE HANDLER ITS ROW NAMES ────────────────────────────────
+-- The delivery loop's answer, moved verbatim out of the old branch in fn_seat_handoff_act: the
+-- originator checks what became of its send (fn_originator_checks_delivery is customer_support's).
+create or replace function public.fn_delivery_result_acts(p_id bigint)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff' and detail->>'type' = 'delivery.result';
+  if not found then raise exception 'fn_delivery_result_acts: % is not a delivery.result handoff', p_id; end if;
+  return case when a.agent = 'sales_engineer' and a.detail->>'result' in ('proof_of_response', 'no_response_confirmation')
+              then public.fn_sales_engineer_acts_on_handoff(p_id) else '{}'::jsonb end
+         || public.fn_originator_checks_delivery(p_id);
+end $fn$;
+revoke execute on function public.fn_delivery_result_acts(bigint) from public, anon, authenticated;
+
+-- The receiving seat answers with the handler its row names. An answer on a conversation its row
+-- marks originator-closed is stored as the reply (detail.replied_at) instead of completing the handoff.
 create or replace function public.fn_seat_handoff_act(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare a public.agent_actions; v jsonb; v_originator_closes boolean;
+declare a public.agent_actions; k public.seat_handoff_kind; v jsonb;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
   if not found then raise exception 'no handoff %', p_id; end if;
   if a.status = 'done' then return a.evidence; end if;
 
-  if a.detail->>'type' = 'delivery.result' then
-    -- The delivery loop (customer_support's build): the originator checks what became of its send.
-    v := case when a.agent = 'sales_engineer' and a.detail->>'result' in ('proof_of_response', 'no_response_confirmation')
-              then public.fn_sales_engineer_acts_on_handoff(p_id) else '{}'::jsonb end
-         || public.fn_originator_checks_delivery(p_id);
-  elsif a.detail->>'type' = 'it.finding' then
-    v := public.fn_seat_answers_it_finding(p_id);
-  else
-    v := case a.agent
-           when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)
-           when 'accountant'       then public.fn_accountant_acts_on_handoff(p_id)
-           when 'customer_support' then public.fn_customer_support_acts_on_handoff(p_id)
-           else null end;
+  select * into k from public.seat_handoff_kind
+   where type = a.detail->>'type' and from_seat = a.detail->>'from' and to_seat = a.agent;
+  if not found then
+    raise exception 'no conversation % from % to % in public.seat_handoff_kind', a.detail->>'type', a.detail->>'from', a.agent;
   end if;
-  if v is null then raise exception 'seat % has no handler for %', a.agent, a.detail->>'type'; end if;
+  execute format('select public.%I($1)', k.handler) into v using p_id;
+  if v is null then raise exception '% answered nothing for handoff %', k.handler, p_id; end if;
 
-  select w.originator_closes into v_originator_closes from public.seat_handoff_window w
-   where w.type = a.detail->>'type' and w.from_seat = a.detail->>'from';
-  if v ? 'waiting' or coalesce(v_originator_closes, false) then
+  if v ? 'waiting' or k.originator_closes then
     update public.agent_actions
        set detail = detail || jsonb_build_object('awaiting', coalesce(v->>'waiting', a.detail->>'from' || ' re-verification'),
                                                  'replied_at', now()),
@@ -319,7 +398,7 @@ declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
   n_closed int := 0; n_esc int := 0; n_wait int := 0;
 begin
-  select reply_within into v_window from public.seat_handoff_window where type = 'it.finding' and from_seat = 'it_engineer';
+  select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop

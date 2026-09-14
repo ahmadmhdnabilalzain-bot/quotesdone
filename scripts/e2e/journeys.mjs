@@ -4,8 +4,9 @@
 // three suppliers' quotes (one held then released, one with two options, one complete), a comparison.
 // The screens (overview, invitation, deep link, every nav item) run across the whole matrix: English
 // and Arabic, desktop 1440 and mobile 375. Every step records PASS, FAIL or SKIP with the reason.
+import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
-import { signedInPage, openPortal, portalUrl, shot, realErrors } from './browser.mjs';
+import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
 import { makeInquiry } from '../staging/demo_factory.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
@@ -18,7 +19,11 @@ const tag = (m) => `${m.lang}-${m.viewport}`;
 // ---- the quotations each supplier sends ---------------------------------------------------------
 // COMPLETE: every detail the sales engineer's hold desk requires for a glazing line
 // (_shared/line_specs/model.ts glazing + assess.ts terms), stated exactly.
-const COMPLETE_LINE = 'Aluminium sliding windows, Schuco AWS 70 thermal break series, double glazed unit 6mm + 12mm air + 6mm, powder coated RAL 9016, BS EN 14351-1';
+// "glass" is named on the line: the fallback request carries materials [{component:'glass'}] and
+// assess.ts componentOnLine matches the component by word. "double glazed unit" alone never names
+// it, so on 14 Sep 2026 the complete quote was held for component:glass and the comparison had one
+// live quote. A complete quote that answers a named component names it.
+const COMPLETE_LINE = 'Aluminium sliding windows, Schuco AWS 70 thermal break series, double glazed glass unit 6mm + 12mm air + 6mm, powder coated RAL 9016, BS EN 14351-1';
 const completeTerms = (amount) => ({
   lead_time: '21 days from order', validity: '30 days', payment_terms: '50% advance, 50% on completion',
   warranty: '2 years covering manufacturing defects, glass seal failure and workmanship',
@@ -45,7 +50,7 @@ const twoOptionQuote = (inquiryId, a1, a2) => ({
     { description: 'Option 1: standard system' },
     { description: COMPLETE_LINE, qty: 40, unit: 'nos', unit_price: Math.round(a1 / 40) },
     { description: 'Option 2: premium system' },
-    { description: 'Aluminium sliding windows, Technal Soleal thermal break series, double glazed unit 6mm + 16mm argon + 6mm low-e, anodised finish, BS EN 14351-1', qty: 40, unit: 'nos', unit_price: Math.round(a2 / 40) },
+    { description: 'Aluminium sliding windows, Technal Soleal thermal break series, double glazed glass unit 6mm + 16mm argon + 6mm low-e, anodised finish, BS EN 14351-1', qty: 40, unit: 'nos', unit_price: Math.round(a2 / 40) },
   ],
   option_totals: { 1: a1, 2: a2 },
   ...completeTerms(a1), price_ex_vat: undefined,
@@ -64,8 +69,15 @@ const TERM_FILL = (amount) => ({
 export async function journeyCustomerRequest(ctx) {
   const { rep, browser, fx, dir } = ctx;
   const J = 'a customer';
+  // THE ARABIC PASS IS AN ARABIC-REGISTERED CUSTOMER (14 Sep 2026). Signed in, the portal follows
+  // customers.locale (founder: "if someone registered while the language was arabic then arabic
+  // follows through the whole workflow"), so an English-registered customer on /ar correctly sees
+  // English, and the old pass, which always used the 'en' fixture, asserted rtl from someone the
+  // rule says gets ltr. The row is a demo customer at example.invalid; nothing reaches a person.
+  const setCustomerLocale = (lang) => write(`update public.customers set locale = ${q(lang)} where id = ${q(fx.customer.customerId)} and is_demo = true and email like '%@example.invalid'`, 'e2e portal language');
   // Screens across the matrix: sign-in without an OTP, and the overview's data inside 2.5 s.
   for (const m of MATRIX) {
+    await setCustomerLocale(m.lang);
     const s = await signedInPage(browser, fx.customer, m);
     try {
       const t = await openPortal(s.page, portalUrl('customer', m.lang), s.calls);
@@ -79,9 +91,27 @@ export async function journeyCustomerRequest(ctx) {
     } finally { await s.ctx.close(); }
   }
 
+  await setCustomerLocale('en');   // the request below is filed in English
+
+  // EVERY ARABIC PAGE RENDERS RIGHT-TO-LEFT. Each /ar URL the sitemap publishes is fetched and its
+  // server-rendered <html> must say lang="ar" dir="rtl"; the signed-in portals are the browser steps
+  // above. The client side (one writer of the root element) is src/lib/documentLocale.test.mjs.
+  {
+    const xml = await fetch(`${SITE}/sitemap.xml`).then((r) => r.text()).catch((e) => { ctx.consoleErrors.push('[sitemap] ' + e); return ''; });
+    const arUrls = [...xml.matchAll(/<loc>([^<]*\/ar(?:\/[^<]*)?)<\/loc>/g)].map((x) => x[1]);
+    const bad = [];
+    for (const u of arUrls) {
+      const html = await fetch(u).then((r) => r.text()).catch((e) => 'fetch failed: ' + e);
+      const root = (html.match(/<html[^>]*>/i) || [''])[0];
+      if (!/\bdir="rtl"/.test(root) || !/\blang="ar"/.test(root)) bad.push(u.replace(/^https?:\/\/[^/]+/, '') + ' → ' + (root || html.slice(0, 60)));
+    }
+    rep.step(J, 'every Arabic page in the sitemap renders right-to-left', arUrls.length && !bad.length ? 'PASS' : 'FAIL',
+      arUrls.length ? `${arUrls.length - bad.length}/${arUrls.length} Arabic pages rtl${bad.length ? ' — ' + bad.slice(0, 3).join(' | ') : ''}` : 'the sitemap listed no /ar page');
+  }
+
   // The request itself, through the real chat, in English on desktop.
   const s = await signedInPage(browser, fx.customer, { lang: 'en', viewport: 'desktop' });
-  let inquiryId = null, via = 'ui';
+  let inquiryId = null, via = 'ui', quotable = [];
   try {
     await openPortal(s.page, portalUrl('customer', 'en'), s.calls);
     await s.page.getByRole('button', { name: /^New request/ }).first().click({ timeout: 15000 });
@@ -130,8 +160,12 @@ export async function journeyCustomerRequest(ctx) {
         send.click({ timeout: 20000 }),
       ]);
       const j = res ? await res.json().catch(() => ({})) : {};
-      inquiryId = j.id ?? j.inquiry_id ?? null;
-      rep.step(J, 'request posted from the portal', inquiryId ? 'PASS' : 'FAIL', `HTTP ${res?.status() ?? 0} id=${inquiryId ?? 'none'} ${JSON.stringify(j).slice(0, 160)}`, { shot: await shot(s.page, dir, 'a_posted') });
+      // One answer shape (_shared/inquiry_posted.ts): inquiry_id is the request the customer made — the
+      // combined parent when it was split by trade — and quotable_ids are what suppliers quote on.
+      inquiryId = j.inquiry_id ?? j.parent_id ?? j.id ?? null;
+      quotable = Array.isArray(j.quotable_ids) && j.quotable_ids.length ? j.quotable_ids.map(String) : (inquiryId ? [String(inquiryId)] : []);
+      for (const c of Array.isArray(j.child_ids) ? j.child_ids : []) ctx.run.ids.inquiries.add(String(c));
+      rep.step(J, 'request posted from the portal', inquiryId ? 'PASS' : 'FAIL', `HTTP ${res?.status() ?? 0} id=${inquiryId ?? 'none'}${j.split ? ` split into ${quotable.length} (${(j.trades || []).join(', ')})` : ''} ${JSON.stringify(j).slice(0, 160)}`, { shot: await shot(s.page, dir, 'a_posted') });
     }
   } catch (e) {
     rep.step(J, 'request posted from the portal', 'FAIL', `UI error: ${String(e.message).slice(0, 200)}`, { shot: await shot(s.page, dir, 'a_error') });
@@ -161,7 +195,9 @@ export async function journeyCustomerRequest(ctx) {
   rep.step(J, 'database: the request belongs to the customer and is demo', row.mine === true && row.demo === true ? 'PASS' : 'FAIL', `owner match=${row.mine}, demo=${row.demo}, category=${row.category}, status=${row.status}, rfq_ready=${row.rfq_ready}`);
   rep.step(J, 'database: the sales-engineer answers are on the request (installation, warranty, materials, date)',
     asked.length === 4 ? 'PASS' : (via === 'fallback' ? 'SKIP' : 'FAIL'), `answered: ${asked.join(', ') || 'none'}${via === 'fallback' ? ' (fallback request)' : ''}`);
-  ctx.inquiryId = inquiryId;
+  // Suppliers quote a request they can see: for a split that is a child, never the 'split' parent.
+  ctx.inquiryId = quotable[0] || inquiryId;
+  ctx.parentInquiryId = inquiryId;
 }
 
 // ---- b. three suppliers quote --------------------------------------------------------------------
@@ -181,7 +217,12 @@ export async function journeySuppliers(ctx) {
     `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness`);
 
   const identity = [fx.customer.fullName, fx.customer.email, fx.customer.phone, fx.customer.phone.replace('+', '')];
+  // The supplier portal, once signed in, opens in leads.locale (PR #629), so each pass registers
+  // supplier A in that pass's language; without it the Arabic pass ran the English portal.
+  // Demo lead at example.invalid only.
+  const setSupplierLocale = (lang) => write(`update public.leads set locale = ${q(lang)} where id = ${Number(A.leadId)} and is_demo = true`, 'e2e supplier portal language');
   for (const m of MATRIX) {
+    await setSupplierLocale(m.lang);
     const s = await signedInPage(browser, A, m);
     try {
       await openPortal(s.page, portalUrl('supplier', m.lang), s.calls);
@@ -195,6 +236,7 @@ export async function journeySuppliers(ctx) {
       ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[supplier ${tag(m)}] ${e}`));
     } finally { await s.ctx.close(); }
   }
+  await setSupplierLocale('en');   // the rest of journey b quotes in English
   const inbox = await call('supplier_api', A.jwt, { action: 'inbox' });
   const blob = JSON.stringify(inbox.json || {});
   rep.step(J, 'API: the inbox carries no customer identity', inbox.status === 200 && !identity.some((x) => x && blob.includes(x)) && !blob.includes('customer_id') ? 'PASS' : 'FAIL',
@@ -269,19 +311,68 @@ export async function journeyComparison(ctx) {
   const { rep, browser, fx, dir, inquiryId } = ctx;
   const J = 'c comparison';
   if (!inquiryId) return rep.step(J, 'comparison', 'SKIP', 'no request');
-  const isPdf = async (url) => { if (!url) return false; const r = await fetch(url).catch(() => null); if (!r?.ok) return false; const b = Buffer.from(await r.arrayBuffer()); return b.subarray(0, 5).toString() === '%PDF-'; };
+  // The bytes are kept in the run directory so a person can open exactly what the customer got.
+  const pdfBytes = async (url) => { if (!url) return null; const r = await fetch(url).catch(() => null); if (!r?.ok) return null; const b = Buffer.from(await r.arrayBuffer()); return b.subarray(0, 5).toString() === '%PDF-' ? b : null; };
+  // THE REGISTERED LANGUAGE DECIDES THE DOCUMENT (founder, 14 Sep 2026: "if someone registered while
+  // the language was arabic then arabic follows through the whole workflow"), so an Arabic report is
+  // proven by an Arabic-registered customer, not by lang:'ar' alone. Measured 14 Sep 2026: with
+  // customers.locale='en', the "ar" PDF and CSV were byte-identical to the English ones and the step
+  // still passed on "%PDF-". The demo row's locale is set per pass AND lang is sent, which holds
+  // whichever of the two decides. The update cannot reach a real person: demo row, example.invalid.
+  const setLocale = (lang) => write(`update public.customers set locale = ${q(lang)} where id = ${q(fx.customer.customerId)} and is_demo = true and email like '%@example.invalid'`, 'e2e comparison language');
   for (const lang of ['en', 'ar']) {
+    await setLocale(lang);
     const r = await call('customer_api', fx.customer.jwt, { action: 'compare_pdf', inquiry_id: inquiryId, lang }, 180000);
     const url = r.json?.url || r.json?.pdf_url || r.json?.file_url;
-    const ok = await isPdf(url);
-    rep.step(J, `comparison report opens as a PDF (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} ${ok ? 'valid %PDF' : 'no PDF: ' + r.text.slice(0, 140)}`);
+    const b = await pdfBytes(url);
+    const saved = b ? `${dir}/c_comparison_${lang}.pdf` : null;
+    if (b) writeFileSync(saved, b);
+    rep.step(J, `comparison report opens as a PDF (${lang})`, b ? 'PASS' : 'FAIL', `HTTP ${r.status} ${b ? 'valid %PDF, saved ' + saved : 'no PDF: ' + r.text.slice(0, 140)}`);
+  }
+  // compare_csv goes through the same quote_compare call as compare_pdf (customer_api
+  // fetchCompareAnalysis), so it is asserted here rather than assumed to follow.
+  for (const lang of ['en', 'ar']) {
+    await setLocale(lang);
+    const r = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang }, 180000);
+    const csv = String(r.json?.csv || '');
+    const rows = csv.split(/\r?\n/).filter((x) => x.trim());
+    const arabic = lang !== 'ar' || /[؀-ۿ]/.test(rows[0] || '');
+    const ok = r.json?.ok === true && rows.length >= 2 && arabic;
+    if (csv) writeFileSync(`${dir}/c_comparison_${lang}.csv`, csv);
+    rep.step(J, `comparison exports as CSV (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} rows=${rows.length} header_arabic=${lang === 'ar' ? arabic : 'n/a'}${ok ? '' : ' ' + r.text.slice(0, 140)}`);
+  }
+  // THE TWO PATHS MUST SEE ONE ANALYSIS. 14 Sep 2026: quote_compare answered the customer's JWT with
+  // a deterministic analysis while compare_pdf/compare_csv (server-to-server, __secret) got
+  // comparison_unavailable. The CSV's quote columns are compareTable(analysis) from the
+  // server-to-server call; they must be exactly quote_compare's non-held quotes, in order, at the
+  // same prices. compare_pdf shares that call (customer_api fetchCompareAnalysis).
+  await setLocale('en');
+  {
+    const direct = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' }, 180000);
+    const csvR = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang: 'en' }, 180000);
+    const a = direct.json?.analysis;
+    // Kept with the run: the exact analysis the customer's JWT got, so a report can be re-rendered
+    // from it offline (demo data only; the run directory is scratch, never committed).
+    if (a) writeFileSync(`${dir}/c_quote_compare_analysis.json`, JSON.stringify(a, null, 2));
+    const held = new Set((a?.all_quotes || []).filter((x) => x?.status === 'held').map((x) => String(x.label)));
+    const want = (a?.quotes || []).filter((x) => !held.has(String(x.label)));
+    const parseRow = (line) => { const out = []; let cur = '', qd = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (qd) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') qd = false; else cur += c; } else if (c === '"') qd = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
+    const lines = String(csvR.json?.csv || '').replace(/^﻿/, '').split(/\r\n/).filter(Boolean);
+    const head = lines[0] ? parseRow(lines[0]).slice(1) : [];
+    const priceRow = lines.map(parseRow).find((r) => r[0] === 'Price')?.slice(1) || [];
+    const digits = (s) => Number(String(s).replace(/[^\d.]/g, '')) || 0;
+    const wantPrice = want.map((x) => Math.round(Number(x.price_ex_vat) > 0 ? Number(x.price_ex_vat) : Number(x.price)));
+    const sameCols = want.length >= 2 && head.length === want.length && want.every((x, i) => head[i].includes(String(x.label)));
+    const samePrice = priceRow.length === want.length && priceRow.every((p, i) => Math.round(digits(p)) === wantPrice[i]);
+    rep.step(J, 'compare_pdf/compare_csv see the same analysis as quote_compare with the customer JWT', direct.json?.ok && sameCols && samePrice ? 'PASS' : 'FAIL',
+      `direct HTTP ${direct.status} ok=${direct.json?.ok} degraded=${direct.json?.degraded ?? false} live=${want.length} held=${held.size} | csv cols=[${head.join(' | ')}] want=[${want.map((x) => x.label).join(' | ')}] prices csv=[${priceRow.map(digits).join(',')}] want=[${wantPrice.join(',')}]`);
   }
   const live = (ctx.quoteIds || []).filter((x) => x.status !== 'draft');
   if (live[0]) {
     for (const lang of ['en', 'ar']) {
       const r = await call('customer_api', fx.customer.jwt, { action: 'quote_pdf', quote_id: live[0].id, lang }, 120000);
       const url = r.json?.url || r.json?.pdf_url || r.json?.file_url;
-      const ok = await isPdf(url);
+      const ok = !!(await pdfBytes(url));
       rep.step(J, `quotation PDF opens (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} ${ok ? 'valid %PDF' : 'no PDF: ' + r.text.slice(0, 140)}`);
     }
   } else rep.step(J, 'quotation PDF opens', 'FAIL', 'no live quote to open');
@@ -363,7 +454,7 @@ export async function journeyInvoiceRefund(ctx) {
   const J = 'e invoice+refund';
   if (!ctx.paid) {
     rep.step(J, 'invoice appears in the portal', 'SKIP', 'needs a paid reveal, and journey d did not record one (see its steps)');
-    rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'needs a paid reveal. Built and merged: customer_api request_refund, fn_refund_open_from_customer, the 5-working-day ladder, ceo_agent decide. NOT merged on main: a CEO refund checklist in code (refund_ceo_check / refund_ceo_review exist as tables only).');
+    rep.step(J, 'refund end to end in Stripe TEST mode', 'SKIP', 'needs a paid reveal (journey d)');
     return;
   }
   const qid = ctx.paidQuote;
@@ -383,30 +474,89 @@ export async function journeyInvoiceRefund(ctx) {
     const seen = await s.page.getByText(/Invoice \(PDF\)|Invoice/).first().isVisible().catch(() => false);
     rep.step(J, 'the invoice is in the portal', seen ? 'PASS' : 'FAIL', seen ? '"Invoice" visible on the revealed request' : 'no invoice control on screen', { shot: await shot(s.page, ctx.dir, 'e_invoice_in_portal') });
   } finally { await s.ctx.close(); }
-  // THE REFUND LOOP (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql),
-  // driven as far as it can go without moving money. The customer asks in the portal's own endpoint; the
-  // request becomes a refunds case, the sales engineer hands it to the accountant, and the CEO's checklist
-  // decides. On day 0 the checklist MUST refuse: the day-3 chase and the day-5 final call have not happened.
-  const txId = tx?.id;
-  const rr = await call('customer_api', ctx.fx.customer.jwt, { action: 'request_refund', quote_id: qid });
-  const st = txId ? (await read(`select refund_status from public.transactions where id = ${q(txId)}`))[0] : null;
-  rep.step(J, 'the customer requests a refund in the portal', rr.status === 200 && st?.refund_status === 'requested' ? 'PASS' : 'FAIL',
-    `HTTP ${rr.status} refund_status=${st?.refund_status ?? 'none'} ${rr.text.slice(0, 120)}`);
-  const rf = txId ? (await read(`select id, status, requested_by from public.refunds where transaction_id = ${q(txId)} order by id desc limit 1`))[0] : null;
-  rep.step(J, 'the request opens a refund case', rf?.status === 'requested' && rf?.requested_by === 'customer' ? 'PASS' : 'FAIL', JSON.stringify(rf || {}));
-  const rh = rf ? (await read(`select agent, status, detail->>'type' as type, detail->>'from' as sender from public.agent_actions
-      where kind = 'handoff' and detail->>'type' = 'refund.requested' and detail->>'subject_id' = ${q(String(rf.id))} order by id desc limit 1`))[0] : null;
-  rep.step(J, 'the sales engineer hands the refund to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
-  const ck = txId ? (await read(`select public.fn_ceo_refund_checklist(${q(txId)}::uuid, 'approve', false) as c`))[0]?.c : null;
+  await refundEndToEnd(ctx, { id: qid }, J);
+}
+
+// THE REFUND, END TO END, ON THE DEMO REVEAL JOURNEY D PAID IN STRIPE TEST MODE (14 Sep 2026).
+// The customer asks through customer_api; the day-3 chase and day-5 final call run through the real
+// sales engineer and support routines for THIS transaction only (never the global sweep); the CEO's
+// review decides on the checklist; the accountant executes this one refund with the test key.
+// Two things are fixtures, both refused unless the row is a demo identity on @example.invalid:
+//   * TIME TRAVEL: the reveal is moved ten days back, because the terms give the supplier five
+//     working days and the harness cannot wait them out;
+//   * DELIVERY: mail to @example.invalid is captured by design and never sent, and the support watch
+//     counts only a sent message as delivered, so the captured demo message is marked sent.
+async function refundEndToEnd(ctx, live, J) {
+  const { rep, fx } = ctx;
+  const tx = (await read(`select t.id, t.total_charged, t.reveal_fee, c.is_demo, c.email
+      from public.transactions t join public.customers c on c.id = t.customer_id where t.quote_id = ${q(live.id)}`))[0];
+  if (!tx || tx.is_demo !== true || !/@example\.invalid$/i.test(String(tx.email))) {
+    return rep.step(J, 'refund end to end in Stripe TEST mode', 'FAIL', 'the paid reveal is not on a ZZ DEMO customer; a refund is never driven on a real row');
+  }
+  const want = Math.round(Number(tx.total_charged ?? tx.reveal_fee) * 100);
+  const DEMO_TX = `id = ${q(tx.id)} and customer_id in (select id from public.customers where is_demo and email like '%@example.invalid')`;
+
+  // 1. The request opens the case, and only then does the sale read 'requested'.
+  const req = await call('customer_api', fx.customer.jwt, { action: 'request_refund', quote_id: live.id });
+  const rf = await read(`select id, status, amount_fils from public.refunds where transaction_id = ${q(tx.id)} order by id`);
+  const sale = (await read(`select refund_status from public.transactions where id = ${q(tx.id)}`))[0];
+  const opened = req.json?.ok === true && rf.length === 1 && rf[0].status === 'requested' && Number(rf[0].amount_fils) === want && sale?.refund_status === 'requested';
+  rep.step(J, 'the request opens the case, then the sale reads requested', opened ? 'PASS' : 'FAIL',
+    `HTTP ${req.status} ${JSON.stringify(req.json)} refunds=${JSON.stringify(rf)} sale=${sale?.refund_status}`);
+  if (!opened) return;
+  const rid = Number(rf[0].id);
+  const conf = (await read(`select detail->>'locale' as locale from public.agent_actions where kind = 'handoff' and agent = 'customer_support'
+      and detail->>'msg_type' = 'refund_request_received' and detail->>'transaction_id' = ${q(tx.id)}`))[0];
+  rep.step(J, 'the confirmation goes to support in the registered language', conf?.locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(conf || {}));
+  const rh = (await read(`select agent from public.agent_actions where kind = 'handoff' and detail->>'type' = 'refund.requested'
+      and detail->>'subject_id' = ${q(String(rid))} order by id desc limit 1`))[0];
+  rep.step(J, 'the case is handed to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
+  // Day 0: the customer may ask, but the CEO may not decide before the day-3 chase and the day-5 final call.
+  const ck = (await read(`select public.fn_ceo_refund_checklist(${q(tx.id)}::uuid, 'approve', false) as c`))[0]?.c;
   const failedItems = (ck?.failed || []).map((x) => x.item);
   rep.step(J, "the CEO's checklist refuses approval before the day-3 chase and the day-5 final call",
     ck && ck.ok === false && failedItems.includes('day3_chase_happened') && failedItems.includes('day5_final_call_happened') ? 'PASS' : 'FAIL',
     ck ? `ok=${ck.ok}, failing: ${failedItems.join(', ') || 'none'}` : 'checklist did not run');
-  const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(qid)} or inquiry_id = ${q(ctx.inquiryId)} group by 1`);
-  rep.step(J, 'nothing the refund caused was dispatched', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
+  const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(live.id)} or to_email = ${q(tx.email)} group by 1`);
+  rep.step(J, 'nothing the request caused was dispatched to a real address', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
     rn.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no notification rows');
-  rep.step(J, 'the refund is executed in Stripe TEST mode', 'SKIP',
-    'MISSING PIECE: refund execution has no test-mode switch. refunds_api (index.ts ~L52) and accountant execute_refunds (~L629) always read stripe_secret_key, the LIVE key, so a demo refund of a TEST payment would be sent to live Stripe. Not driven. They need the same account-derived key choice as stripe_checkout/stripe_confirm (_shared/demo_identity.ts stripeKeyNames).');
+
+  // 2. Time travel, demo only.
+  const moved = await write(`update public.transactions set revealed_at = now() - interval '10 days',
+      refund_deadline = public.fn_add_working_days(now() - interval '10 days', 5) where ${DEMO_TX} returning id`, 'e2e refund time travel (demo only)');
+  if (!Array.isArray(moved) || moved.length !== 1) return rep.step(J, 'demo time travel', 'FAIL', JSON.stringify(moved));
+
+  // 3. Day 3 chase and day 5 final call, each delivered and watched to a no-response confirmation.
+  for (const [day, step] of [[3, 'chase'], [5, 'final_call']]) {
+    const reqId = Number((await write(`select public.fn_sales_engineer_ladder_step(${q(tx.id)}, '${step}', ${step === 'final_call' ? rid : 'null'}, null) as id`, 'e2e ladder step'))[0]?.id);
+    const n = (await read(`select (evidence->>'notification_id')::bigint as nid, detail->>'to_email' as to_email from public.agent_actions where id = ${reqId}`))[0];
+    // sent_at ONLY: the status stays as the capture left it (suppressed), so the safety step's count of
+    // dispatched rows stays honest. The first run of this journey wrote status='sent' here and the
+    // safety step counted those two captured demo rows as sent (14 Sep 2026, 16:19 run).
+    await write(`update public.notifications set sent_at = now() where id = ${Number(n?.nid) || 0} and to_email like '%@example.invalid'`, 'e2e demo delivery');
+    await write(`update public.agent_actions set detail = detail || jsonb_build_object('watch_until', now() - interval '1 minute')
+                 where id = ${reqId} and detail->>'to_email' like '%@example.invalid'`, 'e2e watch window');
+    const w = (await write(`select public.fn_customer_support_delivery_watch(${reqId}) as r`, 'e2e watch'))[0]?.r;
+    const ev = (await read(`select result, delivered from public.refund_ladder_evidence where transaction_id = ${q(tx.id)} and step = '${step}' order by id desc limit 1`))[0];
+    rep.step(J, `day ${day} ${step.replace('_', ' ')} delivered, no response confirmed`,
+      ev?.result === 'no_response_confirmation' && ev?.delivered === true ? 'PASS' : 'FAIL', JSON.stringify({ reqId, n, w, ev }));
+  }
+
+  // 4. The CEO decides on the checklist (fn_ceo_refund_review ran when the final call's result landed).
+  const dec = (await read(`select r.refund_decision_id, a.decision from public.refunds r
+      left join public.ceo_approval a on a.decision_id = r.refund_decision_id where r.id = ${rid}`))[0];
+  const failed = await read(`select item, reason from public.refund_ceo_check where refund_id = ${rid} and not passed order by id desc limit 10`);
+  rep.step(J, 'the CEO approves after verifying every step', dec?.decision === 'approved' ? 'PASS' : 'FAIL', JSON.stringify({ dec, failed }));
+  if (dec?.decision !== 'approved') return;
+
+  // 5. The accountant executes THIS refund only, and the key follows the payer: TEST.
+  const cred = (await read(`select value from public.app_secrets where key = 'cred_fn_accountant'`))[0]?.value;
+  const ex = await call('accountant', null, { __secret: cred, action: 'execute_refunds', refund_id: rid });
+  const res = (ex.json?.results || []).find((x) => Number(x.refund_id) === rid);
+  const after = (await read(`select status, stripe_refund_id, amount_fils from public.refunds where id = ${rid}`))[0];
+  const paid = res?.mode === 'test' && String(res?.stripe_refund_id || '').startsWith('re_') && Number(after?.amount_fils) === want
+    && ['processing', 'succeeded'].includes(String(after?.status));
+  rep.step(J, 'the accountant refunds everything paid, in Stripe TEST mode', paid ? 'PASS' : 'FAIL', JSON.stringify({ http: ex.status, res, after, want }));
 }
 
 // ---- f. every nav item on both portals ----------------------------------------------------------

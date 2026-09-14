@@ -162,6 +162,16 @@ export const PROFILES: Record<string, Profile> = {
   waterproofing: P(false, true, [{ c: 'system', en: 'Waterproofing system', ar: 'نظام العزل المائي', opts: [['bitumen', 'Bitumen membrane', 'غشاء بيتومين'], ['pu_liquid', 'Polyurethane liquid', 'بولي يوريثين سائل'], ['cementitious', 'Cementitious coating', 'طلاء إسمنتي']] }]),
 };
 export const profileFor = (category: string): Profile => PROFILES[String(category || '')] || DEFAULT_PROFILE;
+/** A component's names from the catalogue above, for a stored material that carries only its key
+ * (measured 14 Sep 2026: a request with materials [{component:'glass'}] printed "المادة — glass" in
+ * the Arabic comparison). The first trade that defines the key names it. */
+export function componentLabel(c: string): { en: string; ar: string } | null {
+  for (const p of [...Object.values(PROFILES), DEFAULT_PROFILE]) {
+    const hit = p.components.find((x) => x.c === c);
+    if (hit) return { en: hit.en, ar: hit.ar };
+  }
+  return null;
+}
 
 // ── THE QUESTIONS ────────────────────────────────────────────────────────────────────────────────
 export type Kind = 'material' | 'installation' | 'warranty' | 'required_by';
@@ -267,7 +277,12 @@ export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new D
       });
       if (hit) return { v: hit.v };
       if (NOPREF_RE.test(raw) || isUnknown(raw)) return { v: NO_PREFERENCE.v };
-      return { v: 'other', note: raw.slice(0, 200) };
+      // The customer's own words are an answer — a phrase, not a paragraph about something else
+      // (measured, harness journey a: "Ground and first floor, direct vehicle access, no crane
+      // needed. Budget is open." was recorded as the aluminium profile). A long statement is asked again.
+      // "A phrase" = one clause, at most 80 characters: a reply with a sentence break in it is a
+      // statement (the measured one was 79 characters, so length alone was not the test).
+      return raw.length <= 80 && !/[.!?؟]\s+\S/.test(raw) ? { v: 'other', note: raw.slice(0, 200) } : null;
     }
     case 'required_by': {
       const iso = raw.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
@@ -321,6 +336,49 @@ export function suggestions(category: string, details: Record<string, unknown>, 
   return out;
 }
 
+/**
+ * ANSWERS THE CUSTOMER ALREADY STATED, in their own words, anywhere in the conversation. Not
+ * suggestions: only an unambiguous statement is read — "installation is required", "2 year
+ * warranty", "delivery needed by 30 November 2026", or an option of a material question named
+ * outright. Measured on harness journey a (14 Sep 2026): the customer said all four in their first
+ * three messages and was asked all four again, with each later message stored as the wrong answer.
+ */
+export function statedAnswers(category: string, conversation: string, now = new Date()): Answers {
+  const out: Answers = {};
+  const t = normDigits(String(conversation || '')).replace(/\s+/g, ' ');
+  const lo = t.toLowerCase();
+  for (const q of requirementQuestions(category)) {
+    if (q.kind === 'installation') {
+      if (/\b(?:supply|delivery|deliver)\s+only\b|\bwithout installation\b|\bno installation\b|توريد فقط|بدون تركيب/.test(lo)) out[q.key] = { v: 'supply_only' };
+      else if (/\binstallation (?:is )?(?:required|needed|included)\b|\bsuppl(?:y|ied) and install(?:ed)?\b|\bwith installation\b|\bneeds? (?:to be )?installed\b|مع التركيب|التوريد والتركيب/.test(lo)) out[q.key] = { v: 'yes' };
+    }
+    if (q.kind === 'warranty') {
+      const m = lo.match(/(\d+(?:\.\d+)?|one|two|three|five|ten)[\s-]*(years?|yrs?|months?)[\s-]+warranty|warranty (?:of|for)\s+(?:at least\s+)?(\d+(?:\.\d+)?|one|two|three|five|ten)\s*(years?|months?)/);
+      if (m) {
+        const words: Record<string, number> = { one: 1, two: 2, three: 3, five: 5, ten: 10 };
+        const n = Number(words[m[1] || m[3]] ?? (m[1] || m[3])); const unit = m[2] || m[4];
+        if (n > 0) out[q.key] = { v: 'yes', min_months: Math.round(/month/.test(unit) ? n : n * 12) };
+      }
+    }
+    if (q.kind === 'required_by') {
+      const d = t.match(/\b(?:by|before|deadline|needed by|required by|delivery (?:needed |required )?by)\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+      if (d) {
+        const parsed = Date.parse(d[1].replace(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/, '$3-$2-$1'));
+        if (!isNaN(parsed)) { const iso = new Date(parsed + 12 * 3600e3).toISOString().slice(0, 10); if (iso >= now.toISOString().slice(0, 10)) out[q.key] = { v: 'date', date: iso, text: d[1] }; }
+      }
+    }
+    if (q.kind === 'material') {
+      // Hyphens and spaces fold the same way on both sides: the option "Thermal-break (insulated)"
+      // is what a customer writes as "thermal break" (measured, harness journey a).
+      const fold = (s: string) => s.toLowerCase().replace(/[-\s]+/g, ' ').trim();
+      const flo = fold(lo);
+      const hit = q.options.find((x) => x.v !== NO_PREFERENCE.v && (() => { const en = fold(x.en.replace(/\s*\(.*?\)\s*/g, ' ')); return en.length > 4 && new RegExp(`(^|[^a-z])${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(flo); })());
+      if (hit) out[q.key] = { v: hit.v };
+    }
+  }
+  return out;
+}
+
 export type ReqStep = {
   answers: Answers; filled_now: string[]; retry: boolean;
   next: { key: string; text: string; options: string[]; suggested: string | null } | null;
@@ -331,11 +389,14 @@ export type ReqStep = {
  * returned with its suggestion, if any, highlighted but NOT recorded. Only the customer's own choice
  * fills an answer.
  */
-export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date()): ReqStep {
+export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), conversation = ''): ReqStep {
   const qs = requirementQuestions(category);
   const answers: Answers = {};
   for (const q of qs) if (prev && isValidAnswer(q, prev[q.key])) answers[q.key] = prev[q.key];
   const filledNow: string[] = [];
+  // What the customer already said outright is their answer; nothing inferred, nothing suggested.
+  const stated = conversation ? statedAnswers(category, conversation, now) : {};
+  for (const q of qs) if (!answers[q.key] && stated[q.key] && isValidAnswer(q, stated[q.key])) { answers[q.key] = stated[q.key]; filledNow.push(q.key); }
   let retry = false;
   if (askedKey && String(text || '').trim()) {
     const q = qs.find((x) => x.key === askedKey);
