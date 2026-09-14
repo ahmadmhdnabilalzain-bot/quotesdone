@@ -1432,9 +1432,35 @@ Deno.serve(observe('accountant', async (req) => {
         } else rendered.push({ month: dd.month, error: perr || cu.error?.message });
       }
 
-      await run('duties', 'ok', { disputes_answered: answered.length, months_rendered: rendered.length,
+      // FILE THE YEAR-END PACK WHEN IT FALLS DUE (duty 4 of the five further duties, 14 Sep 2026): seven CSVs
+      // from the books into the private backups bucket; the attach queues them for Dropbox, and the
+      // it_engineer's backup loop verifies each one arrived.
+      const yearEnd: Record<string, unknown>[] = [];
+      const { data: yDue } = await admin.rpc('fn_accountant_year_end_pack_due');
+      if (yDue) {
+        const { data: ydoc, error: yErr } = await admin.rpc('fn_accountant_year_end_pack_document', { p_year: yDue });
+        if (yErr || !ydoc) yearEnd.push({ year: yDue, error: yErr?.message || 'no document' });
+        else {
+          const yd = ydoc as { year: number; folder: string; files: { name: string; csv: string }[] };
+          const files: { name: string; bucket: string; path: string }[] = [];
+          let yFail = '';
+          for (const f of yd.files) {
+            const p = yd.folder + '/' + f.name;
+            const up = await admin.storage.from('backups').upload(p, new Blob([f.csv], { type: 'text/csv' }), { upsert: true });
+            if (up.error) { yFail = f.name + ': ' + up.error.message; break; }
+            files.push({ name: f.name, bucket: 'backups', path: p });
+          }
+          if (!yFail) {
+            const { error: aErr } = await admin.rpc('fn_accountant_year_end_pack_attach', { p_year: yd.year, p_files: files });
+            if (aErr) yFail = aErr.message;
+          }
+          yearEnd.push(yFail ? { year: yd.year, error: yFail } : { year: yd.year, files: files.length });
+        }
+      }
+
+      await run('duties', 'ok', { disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
         stripe_live: (stripe.live as Record<string, unknown>)?.basis, stripe_test: (stripe.test as Record<string, unknown>)?.basis });
-      return J({ ok: true, seat: 'accountant', result: out, disputes_answered: answered, months_rendered: rendered });
+      return J({ ok: true, seat: 'accountant', result: out, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
     }
 
     // ── BANK_STATEMENT: a statement handed in directly (CSV export or text) ───────────────────────
@@ -1446,8 +1472,17 @@ Deno.serve(observe('accountant', async (req) => {
         p_account: String(body.account || 'mashreq'), p_source_ref: src, p_statement_month: body.month ?? null,
         p_lines: lines, p_doc_path: null, p_note: lines.length ? null : 'handed in, and no line could be read without guessing a sign' });
       if (error) return J({ ok: false, error: error.message }, 400);
-      await run('bank_statement', 'ok', { lines: lines.length });
-      return J({ ok: true, ...(data as Record<string, unknown>) });
+      // The closing balance the statement prints (duty 1 of the five further duties): the CEO's cash and
+      // runway read it. Only as printed, never worked out from the lines.
+      let balance: unknown = null;
+      if (body.closing_balance_aed !== undefined && body.closing_balance_aed !== null) {
+        const { data: b, error: bErr } = await admin.rpc('fn_accountant_bank_balance_record', {
+          p_source_ref: src, p_balance_aed: Number(body.closing_balance_aed), p_on: body.balance_on ?? null });
+        if (bErr) return J({ ok: false, error: bErr.message, lines: lines.length }, 400);
+        balance = b;
+      }
+      await run('bank_statement', 'ok', { lines: lines.length, closing_balance: balance !== null });
+      return J({ ok: true, ...(data as Record<string, unknown>), closing_balance: balance });
     }
 
     // ── The two outcomes only a person can record ─────────────────────────────────────────────────
@@ -1456,6 +1491,15 @@ Deno.serve(observe('accountant', async (req) => {
         p_due_id: Number(body.due_id), p_outcome: String(body.outcome || ''), p_reference: body.reference ?? null });
       if (error) return J({ ok: false, error: error.message }, 400);
       await run('filing_outcome', 'ok', { due_id: Number(body.due_id) });
+      return J(data);
+    }
+    // What happened in court on a supplier charge (duty 3 of the five further duties): filed, order_issued,
+    // order_served, grievance_filed, recovered or withdrawn, on the day it happened.
+    if (action === 'court_step') {
+      const { data, error } = await admin.rpc('fn_accountant_record_court_step', {
+        p_due_id: Number(body.due_id), p_step: String(body.step || ''), p_on: body.on ?? null, p_reference: body.reference ?? null });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('court_step', 'ok', { due_id: Number(body.due_id), step: String(body.step || '') });
       return J(data);
     }
     if (action === 'charge_resolve') {
@@ -1468,7 +1512,7 @@ Deno.serve(observe('accountant', async (req) => {
 
     // The document doors were missing from this list until 9 Sep 2026, which made them unreachable
     // to anyone who asked the function what it could do rather than reading its source.
-    return J({ error: 'unknown_action', action, actions: ['health', 'grants', 'ledger', 'refund_request', 'expense_sweep', 'spend_report', 'assist', 'document', 'documents', 'refund_document', 'refund_documents', 'revenue_document', 'revenue_documents', 'execute_refunds', 'handoffs', 'complete_handoff', 'duties', 'bank_statement', 'filing_outcome', 'charge_resolve'] }, 400);
+    return J({ error: 'unknown_action', action, actions: ['health', 'grants', 'ledger', 'refund_request', 'expense_sweep', 'spend_report', 'assist', 'document', 'documents', 'refund_document', 'refund_documents', 'revenue_document', 'revenue_documents', 'execute_refunds', 'handoffs', 'complete_handoff', 'duties', 'bank_statement', 'filing_outcome', 'court_step', 'charge_resolve'] }, 400);
   } catch (e) {
     await run('error', 'error', {}, String((e as Error).message || e));
     return J({ error: String((e as Error).message || e) }, 500);
