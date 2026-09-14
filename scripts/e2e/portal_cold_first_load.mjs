@@ -12,6 +12,19 @@
 // ONE demo customer (ZZ DEMO / @example.invalid) is created once and reused for every run — creating
 // a fresh customer per run would itself warm customer_api/kyc, which is not what this measures.
 //
+// BEFORE POINTING THIS AT A PREVIEW: check the preview deployment actually reaches Supabase.
+// Measured 14 Sep 2026 against a live Vercel preview: every /me data call failed
+// (net::ERR_NAME_NOT_RESOLVED against pglpqrhvozwepymcuunn.supabase.co — the staging project
+// DELETED 15 Aug 2026, quotesdone-session §5). src/lib/supaEnv.ts's own fallback is correct (a
+// Preview build with NEXT_PUBLIC_SUPABASE_URL unset gets NO target rather than production); this
+// was the Vercel project's Preview-scope environment variable itself carrying the stale ref, which
+// only someone with Vercel dashboard/token access can correct — not a code defect, and not fixed by
+// this script. A quick check: `curl -sL <preview>/me | grep -o '_next/static/chunks/[^"]*\.js'`,
+// then load one chunk's page in a browser and watch the network tab for ERR_NAME_NOT_RESOLVED before
+// spending idle-gap time on a run that will only time out. portal_local_shell_hydration.mjs measures
+// the JS-payload/hydration delta against a local `next start` (real production Supabase, no CDN)
+// when a working preview isn't available.
+//
 // Usage: QD_SITE=https://<preview>.vercel.app node scripts/e2e/portal_cold_first_load.mjs [runs] [idleMinutes]
 import { openRun, closeRun, makeDemoCustomer } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, launch } from './browser.mjs';
@@ -24,7 +37,9 @@ const q50 = (a) => a.slice().sort((x, y) => x - y)[Math.floor((a.length - 1) * 0
 const q95 = (a) => a.slice().sort((x, y) => x - y)[Math.floor((a.length - 1) * 0.95)];
 
 async function main() {
-  const run = await openRun({ tag: 'coldload' });
+  // A fresh tag per invocation (not a fixed 'coldload') so a crashed run's untorn-down rows never
+  // collide with the next one on demoEmail's qd-<tag>-cust0@example.invalid.
+  const run = await openRun();
   const results = {}; // "en-desktop" -> { shellMs: [], dataMs: [] }
   for (const m of MATRIX) results[`${m.lang}-${m.viewport}`] = { shellMs: [], dataMs: [] };
   try {
