@@ -22,7 +22,7 @@
 //
 //   node scripts/staging/apply_missing_objects.mjs
 import { readFileSync } from 'node:fs';
-import { splitStatements, repairDumpSectionBreaks } from './sql_split.mjs';
+import { splitStatements } from './sql_split.mjs';
 import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
 import { REF } from './demo_factory.mjs';
 
@@ -86,7 +86,7 @@ for (const s of prodSeq) {
   } catch (err) { console.log(`FAILED sequence ${s}: ${String(err.message).slice(0, 140)}`); }
 }
 
-const raw = repairDumpSectionBreaks(readFileSync(SCHEMA_FILE, 'utf8'));
+const raw = readFileSync(SCHEMA_FILE, 'utf8');
 // The CRON JOBS section arms 151 schedules pointing at production. It is never applied to a branch.
 const SEC = /^-- ===== (.+?) =====/gm;
 const bounds = [];
