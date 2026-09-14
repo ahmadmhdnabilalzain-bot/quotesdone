@@ -58,11 +58,12 @@ select '2026-09-14T00:00:00Z', x.i, x.s, x.st, x.ev, x.n
      'Duty 2: the reminder and final-demand timeline and wording are configuration rows citing docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; when the final deadline passes the filing pack goes to the founder and the item stays open until he records the outcome.'),
     ('with stamp and signature of course', 'recovery documents carry his signature and the company stamp', 'open', null,
      'The accountant''s recovery documents (reminders, final demand, filing pack) go out automatically with the founder''s signature and the company stamp, and every issued document is logged in public.accountant_issued_document (document, version, content hash, recipient, sent time) as the audit trail of what was signed in his name. The stamped and signed rendering is the legal build''s template (#643/#649).'),
-    -- Recorded as relayed: the coordinator''s relay and #649 both quote this approval with an ellipsis, and
-    -- the elided middle is not invented here. The full text is to be completed from his own message.
-    ('do these: … 1. Add WhatsApp and SMS as formal notice channels … 2. Make the Arabic text the one that',
+    ('do these: Changes to your Supplier Agreement that would make this stronger. These need your yes, because suppliers have accepted the current version: 1. Add WhatsApp and SMS as formal notice channels. Today only email and the portal count as official notice. 2. Make the Arabic text the one that counts in court. Right now English governs, so every court filing would need a certified translation. 3. State that the total charge is a fixed amount. Courts issue payment orders for fixed sums. 4. Link the AED 250 fee to the law on agreed compensation, so it''s harder for a court to reduce. 5. Correct the licence wording in the agreement to match your actual trade licence.',
      'the five Supplier Agreement changes (v11)', 'open', null,
-     'His approval of the five Supplier Agreement changes, implemented by the legal build''s v11 PR (#649). RECORDED AS RELAYED, WITH ITS ELLIPSES: the complete verbatim text was not in the relay and must replace this row''s instruction once obtained.')
+     'His approval of the five Supplier Agreement changes, implemented by the legal build''s v11 PR (#649). Duty 2''s notices and filing pack rest on that version.'),
+    ('commercial register get it from the trade license. you already have it',
+     'the company is identified by its trade licence', 'open', null,
+     'The DET trade licence carries no commercial register number, so none is printed: the company is identified by Trader License No. 1633275 only (the legal build, #649).')
   ) x(i, s, st, ev, n)
  where not exists (select 1 from public.founder_instruction f where f.instruction = x.i);
 
