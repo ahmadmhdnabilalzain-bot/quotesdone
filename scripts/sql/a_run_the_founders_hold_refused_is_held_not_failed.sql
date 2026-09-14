@@ -5,7 +5,9 @@
 -- Full redefinition of fn_it_detect, as d9_stops_paging_him_about_his_own_rules.sql was. Only D1
 -- changed: a run that matches a registered public.it_hold_signature while a HELD BY THE FOUNDER route
 -- is open is counted as window_held and removed from both sides of the failure rate. Everything else
--- is byte-identical to the live definition read back on 14 Sep 2026.
+-- is byte-identical to the live definition read back on 14 Sep 2026, except two later changes the same day:
+-- D9 leaves out requests inside a rehearsal window (see D9), and fn_it_run_is_refusal skips its twin
+-- lookup for fn: telemetry rows (see its comment), which brought a run from 10.0 s to about 2.5 s.
 --
 -- WHAT WAS MEASURED. On 14 Sep 2026 the founder was emailed "[HIGH] inquiry_intake is failing 50% of
 -- attempts". Over the seven days to 14 Sep: all 84 inquiry_intake error rows carried
@@ -64,6 +66,37 @@ $$;
 comment on function public.fn_it_run_is_held(text, timestamptz, jsonb, text) is
   'True when an agent_runs row was refused by the founder''s OpenRouter hold: it matches a registered it_hold_signature AND a HELD BY THE FOUNDER route was open when the run started. D1 counts such rows as window_held, never as failures.';
 revoke execute on function public.fn_it_run_is_held(text, timestamptz, jsonb, text) from public, anon, authenticated;
+
+-- THE REFUSAL CLASSIFIER, REDEFINED FOR COST (14 Sep 2026). Live definition from
+-- nothing_watched_the_database_backups.sql with one change: the ±5s twin lookup runs only for a SEMANTIC
+-- row (agent without the fn: prefix), the case it exists for. Measured: fn_it_detect(null,false) took
+-- 10,047 ms against PostgREST's 8 s statement timeout, so no detector tick persisted after 14:30 UTC.
+-- One pass of this classifier over the 22,519 agent_runs rows of the last 7 days cost 3,769 ms, and
+-- D1 and D6 each make one. 20,892 of those rows are fn: telemetry rows, for which the twin lookup finds
+-- the row itself (already judged by the first arm) or a NEIGHBOURING request — the very case D9's
+-- comments record as marking a genuine 200 refused. Skipping it for them changes no verdict the first
+-- four arms do not already give, and removes the neighbour misreading.
+create or replace function public.fn_it_run_is_refusal(p_agent text, p_started timestamptz, p_counts jsonb)
+returns boolean
+language sql
+stable
+set search_path to 'public'
+as $$
+  select coalesce(
+       (p_counts ->> 'http') ~ '^4[0-9][0-9]$'
+    or (p_counts ->> 'signal') in ('forbidden','bad_secret')
+    or (p_counts ->> 'authorised') = '0'
+    or coalesce(nullif(p_counts ->> 'forbidden','')::int, 0) > 0
+    or (p_agent not like 'fn:%' and exists (
+         select 1 from public.agent_runs t
+         where t.agent = 'fn:' || p_agent
+           and t.started_at between p_started - interval '5 seconds' and p_started + interval '5 seconds'
+           and (t.counts ->> 'http') ~ '^4[0-9][0-9]$'))
+  , false)
+$$;
+comment on function public.fn_it_run_is_refusal(text, timestamptz, jsonb) is
+  'True when an agent_runs row records a caller being TURNED AWAY (4xx / forbidden / bad_secret / authorised=0), or, for a semantic row, when its fn: telemetry twin within 5 seconds carries a 4xx. Excluded from failure rates and latency baselines, reported as window_refused.';
+revoke execute on function public.fn_it_run_is_refusal(text, timestamptz, jsonb) from public, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.fn_it_detect(p_web jsonb DEFAULT NULL::jsonb, p_persist boolean DEFAULT true)
  RETURNS jsonb
@@ -134,11 +167,10 @@ for r in
            coalesce(status,'error') <> all (c_ok)                  bad,
            -- A run the founder's hold refused is neither the caller turned away nor the subject's
            -- fault: it leaves both sides of the rate and is reported apart as window_held.
-           public.fn_it_run_is_refusal(agent, started_at, counts)
-             or public.fn_it_run_is_held(agent, started_at, counts, note)  refused,
-           public.fn_it_run_is_held(agent, started_at, counts, note)       held
-    from public.agent_runs
-    where started_at > v_now - c_base),
+           public.fn_it_run_is_refusal(agent, started_at, counts) or held  refused,
+           held
+    from (select *, public.fn_it_run_is_held(agent, started_at, counts, note) held
+            from public.agent_runs where started_at > v_now - c_base) ar0),
   w as (
     select subject,
            count(*) filter (where not refused)::int              n,
@@ -743,6 +775,11 @@ for r in
     select regexp_replace(a.agent, '^fn:', '') subject, a.agent, a.started_at, a.status, a.counts
     from public.agent_runs a
     where a.started_at > v_now - c_base
+      -- 14 Sep 2026: a request made inside a rehearsal window is the test harness, not a customer.
+      -- Measured: all 264 non-policy login_otp refusals of the day fell inside e2e rehearsal windows and
+      -- none outside, and the finding they raised was hours from emailing the founder. The demo
+      -- hygiene duty closes any window left open past six hours, which bounds what this can hide.
+      and not public.fn_rehearsal_window_covers(a.started_at)
       -- drop the semantic half of a double-logged request; see THE DOUBLE LOG above
       and not (a.agent not like 'fn:%' and exists (
         select 1 from public.agent_runs t
