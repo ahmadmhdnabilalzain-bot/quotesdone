@@ -28,8 +28,10 @@ const SQL = join(REPO, 'scripts', 'sql');
 // In MANIFEST order: a later file redefines a routine, and the LAST definition is the live one. Only
 // files whose definitions are still canonical: the_dropbox_backup_is_confirmed_not_assumed.sql is
 // superseded by the last file and cannot be replayed over it (fn_dropbox_reconcile_sample changed shape).
+// every_send_comes_back_to_whoever_asked.sql is last: it carries support's handler and the watch.
 const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql',
-  'the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql'];
+  'the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql',
+  'every_send_comes_back_to_whoever_asked.sql'];
 
 // Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
 // in this repository (it is not deployed from here); it is checked against production only.
@@ -89,6 +91,8 @@ test('every conversation has a producer and a handler in the receiving seat', ()
     if (!handlers[to].includes(`'${type}'`)) missing.push(`${k}: ${to} has no handler`);
     const produced = sqlText.includes(`fn_seat_handoff('${from}', '${to}', '${type}'`)
       || (type === 'delivery.request' && from === 'sales_engineer' && sqlText.includes('fn_seat_handoff(\'sales_engineer\', \'customer_support\', \'delivery.request\''))
+      // the watch answers whoever asked (every_send_comes_back_to_whoever_asked.sql)
+      || (type === 'delivery.result' && sqlText.includes("fn_seat_handoff('customer_support', q.detail->>'from', 'delivery.result'"))
       || new RegExp(`p_from: '${from}', p_to: '${to}', p_type: '${type.replace('.', '\\.')}'`).test(ts)
       || (type === 'refund.remediate' && sqlText.includes("fn_seat_handoff('ceo', x.owner, 'refund.remediate'"))
       || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"));

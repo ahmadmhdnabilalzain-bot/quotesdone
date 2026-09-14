@@ -15,6 +15,7 @@ import { accountMissing } from '../_shared/account_rule.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -80,7 +81,7 @@ function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): s
   }
   return out;
 }
-async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
+async function queueNotifications(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 // AUDIT 1.5 (4 Aug 2026) -----------------------------------------------------------------------
 // Both supplier-facing emails in this file passed ownName = null to scrubIdentity. companyRe(null)
 // returns null, so the buyer's name pattern was never added to the loop and only ID_PATTERNS ran -
