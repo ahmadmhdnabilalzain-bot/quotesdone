@@ -1045,7 +1045,9 @@ export async function teardown(run) {
   const steps = [
     // trg_event_transaction emits payment.received keyed on the transaction id (as TEXT), so it must go
     // before the transaction row it names — the same ordering rule as the quote/inquiry/lead log rows.
-    ['company_event (transaction)', `delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
+    // The accountant's reveal-invoice handoff to the sales engineer targets the transaction (14 Sep 2026).
+    ['agent_actions (transaction)', `delete from public.agent_actions where target_table='transactions' and target_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
+    ['company_event (transaction)',`delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
