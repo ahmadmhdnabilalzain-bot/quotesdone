@@ -4,9 +4,9 @@ name: Nightly full journey (demo data)
 # identities on reserved addresses, Stripe TEST only, every row torn down by its tag — and hands the
 # result to public.fn_it_journey_ingest, which opens a finding for the seat that owns each failed step.
 #
-# It needs the repository secret SUPABASE_ACCESS_TOKEN, which only the founder can add. Without it the
-# job skips with a notice rather than failing every night, and the IT engineer reports the missing run
-# itself after 26 hours (fn_it_duties, 'journey_heartbeat').
+# It uses the repository secret SUPABASE_ACCESS_TOKEN (present since 7 Sep 2026, also used by the deploy
+# workflow). If it were ever missing the job skips with a notice, and the IT engineer reports the missing
+# run itself after 26 hours (fn_it_duties, 'journey_heartbeat').
 
 on:
   schedule:
