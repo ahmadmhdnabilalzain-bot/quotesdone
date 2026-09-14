@@ -1,6 +1,6 @@
 // Readings only a Supabase management token can take, handed to the IT engineer
 // (public.fn_it_platform_ingest): database backups and PITR, the disk size the plan allows, and the
-// organisation's members for the access review. Run by .github/workflows/it-platform-readings.yml.
+// organisation's members for the access review. Run by .github/workflows/it-weekly-readings.yml.
 // Prints counts only: never a key, never a member's email.
 //
 //   node scripts/it/report_platform_readings.mjs

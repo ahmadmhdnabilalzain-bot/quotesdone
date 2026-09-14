@@ -88,6 +88,20 @@ test('OTP pumping: a burst to a country we do not serve is blocked at once; one 
   assert.equal(r.finding, 'agent_facing');
 });
 
+test('OTP override: only the ceo or founder lifts a block, it sticks, and a newly served country lifts its blocks', { skip: SKIP }, async () => {
+  const r = await probe(`declare v_refused boolean := false; begin
+    insert into public.otp_blocked_prefix (prefix, reason, blocked_by) values ('88898', 'ZZ DEMO', 'it_engineer'), ('88997', 'ZZ DEMO', 'it_engineer');
+    begin perform public.fn_it_otp_unblock('88898', 'ZZ DEMO', 'sales_engineer'); exception when others then v_refused := true; end;
+    perform public.fn_it_otp_unblock('88898', 'ZZ DEMO: a real customer group', 'ceo');
+    insert into public.otp_served_country (prefix, country) values ('889', 'ZZ DEMO country');
+    raise exception 'CHK<<%>>', json_build_object('refused_other_seat', v_refused,
+      'lifted_by_ceo', not public.fn_otp_prefix_blocked('+888980000001'),
+      'allowed_sticks', exists (select 1 from public.otp_prefix_allowed where prefix = '88898' and allowed_by = 'ceo'),
+      'lifted_by_expansion', not public.fn_otp_prefix_blocked('+889970000001'));
+  end`);
+  assert.deepEqual(r, { refused_other_seat: true, lifted_by_ceo: true, allowed_sticks: true, lifted_by_expansion: true });
+});
+
 test('dependencies: a high advisory can reach the founder; a moderate one never does', { skip: SKIP }, async () => {
   const r = await probe(`begin
     perform public.fn_it_dependency_ingest('{"advisories":[{"ecosystem":"app","package":"zz-high","severity":"high","id":"ZZ-1","title":"ZZ DEMO"},

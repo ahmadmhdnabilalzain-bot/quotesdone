@@ -186,6 +186,58 @@ returns boolean language sql stable security definer set search_path to 'public'
 $fn$;
 revoke execute on function public.fn_otp_prefix_blocked(text) from public, anon, authenticated;
 
+-- THE HUMAN OVERRIDE (review of #641). The CEO or the founder lifts a block with a reason; the prefix
+-- is then allowed, so the next burst does not re-block it, until someone withdraws the allowance.
+-- Every lift is recorded in agent_runs (job otp_unblock) with who and why.
+create table if not exists public.otp_prefix_allowed (
+  prefix      text primary key check (prefix ~ '^[0-9]{3,8}$'),
+  reason      text not null check (btrim(reason) <> ''),
+  allowed_by  text not null check (allowed_by in ('ceo', 'founder', 'otp_served_country')),
+  allowed_at  timestamptz not null default now()
+);
+alter table public.otp_prefix_allowed enable row level security;
+drop policy if exists otp_prefix_allowed_service_role_only on public.otp_prefix_allowed;
+create policy otp_prefix_allowed_service_role_only on public.otp_prefix_allowed as permissive for all to public using (false) with check (false);
+revoke all on public.otp_prefix_allowed from anon, authenticated;
+
+create or replace function public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare n int;
+begin
+  if coalesce(p_by, '') not in ('ceo', 'founder') then
+    raise exception 'fn_it_otp_unblock: only the ceo or the founder lifts a prefix block (got %)', coalesce(p_by, 'nobody');
+  end if;
+  if coalesce(btrim(p_reason), '') = '' then raise exception 'fn_it_otp_unblock: a reason is required'; end if;
+  if coalesce(p_prefix, '') !~ '^[0-9]{3,8}$' then raise exception 'fn_it_otp_unblock: % is not a digits-only prefix', p_prefix; end if;
+  delete from public.otp_blocked_prefix where prefix = p_prefix;
+  get diagnostics n = row_count;
+  insert into public.otp_prefix_allowed (prefix, reason, allowed_by) values (p_prefix, p_reason, p_by)
+  on conflict (prefix) do update set reason = excluded.reason, allowed_by = excluded.allowed_by, allowed_at = now();
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'otp_unblock', 'prefix', p_prefix, 'by', p_by, 'lifted', n), p_reason);
+  return jsonb_build_object('ok', true, 'prefix', p_prefix, 'lifted', n, 'allowed_by', p_by);
+end $fn$;
+revoke execute on function public.fn_it_otp_unblock(text, text, text) from public, anon, authenticated;
+
+-- A country added to otp_served_country lifts every automatic block now inside it.
+create or replace function public.trg_otp_served_country_lifts_blocks()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare n int;
+begin
+  delete from public.otp_blocked_prefix where prefix like new.prefix || '%' and blocked_by = 'it_engineer';
+  get diagnostics n = row_count;
+  if n > 0 then
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'otp_unblock', 'prefix', new.prefix, 'by', 'otp_served_country', 'lifted', n),
+            new.country || ' is now a served country');
+  end if;
+  return new;
+end $fn$;
+revoke execute on function public.trg_otp_served_country_lifts_blocks() from public, anon, authenticated;
+drop trigger if exists otp_served_country_lifts_blocks on public.otp_served_country;
+create trigger otp_served_country_lifts_blocks after insert or update of prefix on public.otp_served_country
+  for each row execute function public.trg_otp_served_country_lifts_blocks();
+
 -- ── 15. ROTATION ─────────────────────────────────────────────────────────────────────────────────
 -- A credential is rotatable when its secret lives in app_secrets under cred_<context with dots as
 -- underscores> (84 of 86 active on 14 Sep 2026; fn.wa_inbound_docs and fn.wa_inbound_pdf have no key
@@ -422,7 +474,9 @@ begin
                      union all select phone, created_at from public.customer_phone_otps) z
               where created_at > now() - interval '1 hour' and phone is not null
               group by 1 having count(*) > v_max loop
-      if not exists (select 1 from public.otp_served_country s where x.prefix like s.prefix || '%') then
+      -- A prefix the CEO or founder allowed is never auto-blocked again; its burst is handed on instead.
+      if not exists (select 1 from public.otp_served_country s where x.prefix like s.prefix || '%')
+         and not exists (select 1 from public.otp_prefix_allowed a where x.prefix like a.prefix || '%') then
         insert into public.otp_blocked_prefix (prefix, reason, blocked_by, expires_at)
         values (x.prefix, x.n || ' codes in an hour to a country we do not serve', 'it_engineer',
                 now() + make_interval(hours => coalesce(public.fn_it_threshold('otp_block_hours'), 24)::int))
