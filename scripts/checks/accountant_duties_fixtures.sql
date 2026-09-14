@@ -135,6 +135,16 @@ begin
     and n.to_email = 'zz-demo-sup-acct1@example.invalid'), 'collections: the reminder never reached the outbox through the sales engineer and support');
   perform pg_temp.zz_assert(exists (select 1 from public.notifications n where n.id > v_start and n.type = 'nonresponse_final_demand'
     and n.to_email = 'zz-demo-sup-acct1@example.invalid'), 'collections: the final demand never reached the outbox');
+  -- Every recovery document issued in the founder's name is logged, hashed and addressed, and the log
+  -- cannot be edited.
+  perform pg_temp.zz_assert((select count(*) from public.v_accountant_issued_documents
+                              where due_id = d and document_kind in ('charge_reminder', 'final_demand')
+                                and content_sha256 ~ '^[0-9a-f]{64}$' and recipient = 'zz-demo-sup-acct1@example.invalid'
+                                and signed_as = 'founder' and stamp_required and signature_required and notification_id is not null) = 2,
+    'collections: the reminder and the final demand were not both logged as documents signed in the founder''s name');
+  v_refused := false;
+  begin update public.accountant_issued_document set recipient = 'x' where due_id = d; exception when others then v_refused := true; end;
+  perform pg_temp.zz_assert(v_refused, 'collections: the issued-document log could be edited');
   update public.supplier_dues set legal_escalated_at = now() - interval '20 days' where id = d;
   perform public.fn_accountant_collections_tick();
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:collections:filing:' || d), 'collections: an expired final demand did not make the filing pack due');

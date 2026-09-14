@@ -55,7 +55,14 @@ select '2026-09-14T00:00:00Z', x.i, x.s, x.st, x.ev, x.n
      'Withdraws duty 5 of the eight accountant duties.'),
     ('you need to check as per UAE law the deadline for that and accordingly set it. once the deadline is over, the accountant need to issue a proper legal document that i can take to dubai police or court and complain officially. all as per UAE law exactly, i am not gonna hire any lawyer so make sure the form and the wordings is done correctly',
      'supplier charge recovery under UAE law', 'open', null,
-     'Duty 2: the reminder and final-demand timeline and wording are configuration rows citing docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; when the final deadline passes the filing pack goes to the founder and the item stays open until he records the outcome.')
+     'Duty 2: the reminder and final-demand timeline and wording are configuration rows citing docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; when the final deadline passes the filing pack goes to the founder and the item stays open until he records the outcome.'),
+    ('with stamp and signature of course', 'recovery documents carry his signature and the company stamp', 'open', null,
+     'The accountant''s recovery documents (reminders, final demand, filing pack) go out automatically with the founder''s signature and the company stamp, and every issued document is logged in public.accountant_issued_document (document, version, content hash, recipient, sent time) as the audit trail of what was signed in his name. The stamped and signed rendering is the legal build''s template (#643/#649).'),
+    -- Recorded as relayed: the coordinator''s relay and #649 both quote this approval with an ellipsis, and
+    -- the elided middle is not invented here. The full text is to be completed from his own message.
+    ('do these: … 1. Add WhatsApp and SMS as formal notice channels … 2. Make the Arabic text the one that',
+     'the five Supplier Agreement changes (v11)', 'open', null,
+     'His approval of the five Supplier Agreement changes, implemented by the legal build''s v11 PR (#649). RECORDED AS RELAYED, WITH ITS ELLIPSES: the complete verbatim text was not in the relay and must replace this row''s instruction once obtained.')
   ) x(i, s, st, ev, n)
  where not exists (select 1 from public.founder_instruction f where f.instruction = x.i);
 
@@ -130,6 +137,69 @@ begin
   return r;
 end $fn$;
 revoke execute on function public.fn_render_template(text, jsonb) from public, anon, authenticated;
+
+-- ── 2b. EVERY DOCUMENT SIGNED IN THE FOUNDER'S NAME, LOGGED ─────────────────────────────────────
+-- Founder, 14 Sep 2026: "with stamp and signature of course". The recovery documents go out automatically
+-- carrying his signature and the company stamp, so the record of what was signed in his name is this
+-- table: the document, the template version, the SHA-256 of exactly what was sent, the recipient, and
+-- (through the delivery handoff) when it was sent and the provider's message id. Append-only by trigger:
+-- an audit trail that can be edited is not one. The stamped and signed PDF rendering is the legal
+-- build's (#643/#649); its filing pack logs itself here through fn_accountant_log_issued_document.
+create table if not exists public.accountant_issued_document (
+  id                 bigserial   primary key,
+  document_kind      text        not null check (document_kind in ('charge_reminder', 'final_demand', 'filing_pack', 'invoice')),
+  template_key       text,
+  template_version   text        not null,
+  content_sha256     text        not null check (content_sha256 ~ '^[0-9a-f]{64}$'),
+  recipient          text        not null,
+  supplier_id        bigint,
+  due_id             bigint,
+  handoff_id         bigint,
+  file_path          text,
+  signed_as          text        not null default 'founder',
+  stamp_required     boolean     not null default true,
+  signature_required boolean     not null default true,
+  issued_at          timestamptz not null default now()
+);
+comment on table public.accountant_issued_document is
+  'Every recovery document the accountant issued in the founder''s name, with his signature and the company stamp (founder, 14 Sep 2026: "with stamp and signature of course"): kind, template version, SHA-256 of the content sent, recipient, and the delivery handoff that carries the sent time. Append-only.';
+alter table public.accountant_issued_document enable row level security;
+drop policy if exists accountant_issued_document_service_role_only on public.accountant_issued_document;
+create policy accountant_issued_document_service_role_only on public.accountant_issued_document as permissive for all to public using (false) with check (false);
+revoke all on public.accountant_issued_document from anon, authenticated;
+revoke all on sequence public.accountant_issued_document_id_seq from anon, authenticated;
+
+create or replace function public.trg_accountant_issued_document_is_append_only()
+returns trigger language plpgsql set search_path to 'public', 'pg_temp' as $fn$
+begin
+  raise exception 'accountant_issued_document is the audit trail of what was signed in the founder''s name: rows are never changed or deleted';
+end $fn$;
+revoke execute on function public.trg_accountant_issued_document_is_append_only() from public, anon, authenticated;
+drop trigger if exists a00_append_only on public.accountant_issued_document;
+create trigger a00_append_only before update or delete on public.accountant_issued_document
+  for each row execute function public.trg_accountant_issued_document_is_append_only();
+
+-- For documents rendered outside this file (the legal build's filing pack): the rendered file's hash.
+create or replace function public.fn_accountant_log_issued_document(p_kind text, p_template_version text, p_sha256 text,
+  p_recipient text, p_supplier_id bigint, p_due_id bigint, p_file_path text)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_id bigint;
+begin
+  insert into public.accountant_issued_document (document_kind, template_version, content_sha256, recipient, supplier_id, due_id, file_path)
+  values (p_kind, p_template_version, lower(p_sha256), p_recipient, p_supplier_id, p_due_id, p_file_path)
+  returning id into v_id;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_accountant_log_issued_document(text, text, text, text, bigint, bigint, text) from public, anon, authenticated;
+
+-- The sent time is the delivery's, read through the handoff chain rather than copied (a copy can drift).
+create or replace view public.v_accountant_issued_documents with (security_invoker = true) as
+  select d.*, dr.id as delivery_request_id, n.id as notification_id, n.status as delivery_status, n.sent_at, n.provider_message_id
+    from public.accountant_issued_document d
+    left join public.agent_actions h on h.id = d.handoff_id
+    left join public.agent_actions dr on dr.id = (h.evidence->>'delivery_request')::bigint
+    left join public.notifications n on n.id = (dr.evidence->>'notification_id')::bigint;
+revoke all on public.v_accountant_issued_documents from anon, authenticated;
 
 -- ── 3. THE SALES ENGINEER'S WORDS FOR THE ACCOUNTANT'S NOTICES ───────────────────────────────────
 -- Called only from fn_seat_handoff_act, for a sales_engineer handoff whose detail carries 'notice'.
@@ -207,6 +277,16 @@ begin
 
   if v_body_en ~ '\{\{[a-z_]+\}\}' or coalesce(v_body_ar, '') ~ '\{\{[a-z_]+\}\}' then
     raise exception 'notice % for handoff % still carries an unfilled placeholder; nothing was sent', v_notice, p_id;
+  end if;
+  -- A RECOVERY DOCUMENT IS SIGNED IN THE FOUNDER'S NAME (founder, 14 Sep 2026: "with stamp and signature
+  -- of course"), so every one issued is logged before it leaves: what, which version, its hash, to whom.
+  if v_notice in ('charge_reminder', 'final_demand') then
+    insert into public.accountant_issued_document (document_kind, template_key, template_version, content_sha256, recipient,
+      supplier_id, due_id, handoff_id, signed_as, stamp_required, signature_required)
+    values (v_notice, case v_notice when 'charge_reminder' then 'supplier_charge_reminder_template' else 'supplier_charge_final_demand_template' end,
+            coalesce(v_tpl->>'version', 'unversioned'),
+            encode(sha256(convert_to(coalesce(v_sub_en, '') || E'\n' || v_body_en || E'\n' || coalesce(v_sub_ar, '') || E'\n' || coalesce(v_body_ar, ''), 'UTF8')), 'hex'),
+            v_sup.email, v_sup.id, (d->>'due_id')::bigint, p_id, 'founder', true, true);
   end if;
   v_req := public.fn_sales_engineer_writes(v_msg, 'supplier', v_sup.email, v_sup.id, null,
     (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid, v_sub_en, v_body_en, v_sub_ar, v_body_ar,
