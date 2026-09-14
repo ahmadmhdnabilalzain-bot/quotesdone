@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T12:53:50.864Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T13:35:43.115Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -184,7 +184,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (476) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (477) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -1728,6 +1728,15 @@ CREATE TABLE IF NOT EXISTS public.control_mode_session (
   actions_used integer DEFAULT 0 NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.conversation_archive (
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  pdf_bucket text DEFAULT 'backups'::text NOT NULL,
+  pdf_path text NOT NULL,
+  bytes bigint,
+  archived_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.critical_capability (
   capability_key text NOT NULL,
   capability text NOT NULL,
@@ -2090,7 +2099,11 @@ CREATE TABLE IF NOT EXISTS public.doc_backups (
   source text DEFAULT 'storage'::text NOT NULL,
   gen_kind text,
   gen_ref text,
-  dedupe_key text
+  dedupe_key text,
+  dropbox_content_hash text,
+  dropbox_size bigint,
+  verified_at timestamp with time zone,
+  requeued_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.doc_reviews (
@@ -2863,7 +2876,9 @@ CREATE TABLE IF NOT EXISTS public.inbound_messages (
   triaged_at timestamp with time zone,
   replied_at timestamp with time zone,
   replied_by text,
-  owner_role text
+  owner_role text,
+  provider_email_id text,
+  html text
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiries (
@@ -6809,6 +6824,7 @@ ALTER TABLE public.control_mode_audit ADD CONSTRAINT control_mode_audit_pkey PRI
 ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_pkey PRIMARY KEY (id);
 ALTER TABLE public.control_mode_identity ADD CONSTRAINT control_mode_identity_pkey PRIMARY KEY (admin_email);
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_pkey PRIMARY KEY (id);
+ALTER TABLE public.conversation_archive ADD CONSTRAINT conversation_archive_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_pkey PRIMARY KEY (capability_key);
 ALTER TABLE public.crm_activities ADD CONSTRAINT crm_activities_pkey PRIMARY KEY (id);
 ALTER TABLE public.crm_notes ADD CONSTRAINT crm_notes_pkey PRIMARY KEY (id);
@@ -8013,6 +8029,7 @@ CREATE INDEX idx_user_roles_role ON public.user_roles USING btree (role);
 CREATE INDEX im_category_idx ON public.institutional_memory USING btree (category_slug);
 CREATE INDEX im_kind_idx ON public.institutional_memory USING btree (kind, occurred_at DESC);
 CREATE INDEX im_subject_idx ON public.institutional_memory USING btree (subject_type, subject_id);
+CREATE UNIQUE INDEX inbound_messages_provider_email_id_key ON public.inbound_messages USING btree (provider_email_id) WHERE (provider_email_id IS NOT NULL);
 CREATE INDEX inquiries_project ON public.inquiries USING btree (project_id);
 CREATE UNIQUE INDEX inquiries_rfq_no_key ON public.inquiries USING btree (rfq_no);
 CREATE UNIQUE INDEX inquiry_answer_conflict_open_uidx ON public.inquiry_answer_conflict USING btree (group_id, field_id) WHERE (resolved_at IS NULL);
@@ -9884,6 +9901,230 @@ CREATE OR REPLACE VIEW public.v_category_open AS  SELECT c.num,
      CROSS JOIN ( SELECT pricing_config.category_open_min_suppliers
            FROM pricing_config
           WHERE (pricing_config.id = 1)) p);
+
+CREATE OR REPLACE VIEW public.v_conversation_message AS  SELECT 'inbound_messages'::text AS source_table,
+    (m.id)::text AS source_id,
+    'email'::text AS channel,
+    'in'::text AS direction,
+    m.created_at AS occurred_at,
+    m.from_email AS from_addr,
+    m.to_email AS to_addr,
+    NULL::text AS cc,
+    m.subject,
+    m.body,
+    m.html,
+    jsonb_build_object('count', COALESCE(m.attachments_count, 0)) AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    ((COALESCE(m.from_email, ''::text) ~* 'example\.invalid'::text) OR p.demo) AS is_demo
+   FROM (inbound_messages m
+     CROSS JOIN LATERAL fn_conversation_party(m.lead_id, NULL::uuid, NULL::uuid, m.from_email, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'notifications'::text AS source_table,
+    (n.id)::text AS source_id,
+    COALESCE(n.channel, 'email'::text) AS channel,
+    'out'::text AS direction,
+    COALESCE(n.sent_at, n.created_at) AS occurred_at,
+    COALESCE(n.sender, 'QuotesDone'::text) AS from_addr,
+    COALESCE(n.to_email, n.to_phone) AS to_addr,
+    array_to_string(n.cc_emails, ', '::text) AS cc,
+    n.subject,
+    n.body,
+    n.html,
+    COALESCE(n.attachments, '[]'::jsonb) AS attachments,
+    p.party_kind,
+    p.party_id,
+    COALESCE(p.inquiry_id, (n.inquiry_id)::text) AS inquiry_id,
+    ((COALESCE(n.to_email, ''::text) ~* 'example\.invalid'::text) OR (COALESCE(n.subject, ''::text) ~* 'ZZ DEMO'::text) OR p.demo) AS is_demo
+   FROM (notifications n
+     CROSS JOIN LATERAL fn_conversation_party(n.lead_id, NULL::uuid, n.inquiry_id, n.to_email, n.to_phone) p(party_kind, party_id, inquiry_id, demo))
+  WHERE ((n.status = 'sent'::text) AND (COALESCE(n.channel, 'email'::text) = ANY (ARRAY['email'::text, 'whatsapp'::text])))
+UNION ALL
+ SELECT 'wa_messages'::text AS source_table,
+    (w.id)::text AS source_id,
+    'whatsapp'::text AS channel,
+    'in'::text AS direction,
+    w.created_at AS occurred_at,
+    w.wa_from AS from_addr,
+    w.wa_to AS to_addr,
+    NULL::text AS cc,
+    ('WhatsApp'::text || COALESCE((' from '::text || NULLIF(w.profile_name, ''::text)), ''::text)) AS subject,
+    ((('Received:'::text || '
+'::text) || COALESCE(w.inbound, ''::text)) ||
+        CASE
+            WHEN (COALESCE(w.reply, ''::text) <> ''::text) THEN ((((('
+
+'::text || 'Replied'::text) ||
+            CASE
+                WHEN w.sent THEN ''::text
+                ELSE ' (not delivered)'::text
+            END) || ':'::text) || '
+'::text) || w.reply)
+            ELSE ''::text
+        END) AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    p.demo AS is_demo
+   FROM (wa_messages w
+     CROSS JOIN LATERAL fn_conversation_party(NULL::bigint, NULL::uuid, NULL::uuid, NULL::text, w.wa_from) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'messages'::text AS source_table,
+    (pm.id)::text AS source_id,
+    'chat'::text AS channel,
+        CASE
+            WHEN (pm.sender = ANY (ARRAY['customer'::text, 'supplier'::text])) THEN 'in'::text
+            ELSE 'out'::text
+        END AS direction,
+    pm.created_at AS occurred_at,
+    pm.sender AS from_addr,
+    NULL::text AS to_addr,
+    NULL::text AS cc,
+    ('Portal chat - '::text || COALESCE(pm.sender, ''::text)) AS subject,
+    (pm.body || COALESCE((('
+
+'::text || 'Attachment: '::text) || pm.attachment_path), ''::text)) AS body,
+    NULL::text AS html,
+        CASE
+            WHEN (pm.attachment_path IS NULL) THEN '[]'::jsonb
+            ELSE jsonb_build_array(jsonb_build_object('path', pm.attachment_path))
+        END AS attachments,
+    p.party_kind,
+    p.party_id,
+    COALESCE(p.inquiry_id, (pm.inquiry_id)::text) AS inquiry_id,
+    p.demo AS is_demo
+   FROM (messages pm
+     CROSS JOIN LATERAL fn_conversation_party(pm.supplier_id, pm.customer_id, pm.inquiry_id, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'rfq_clarification'::text AS source_table,
+    (r.id)::text AS source_id,
+    'chat'::text AS channel,
+    'in'::text AS direction,
+    r.asked_at AS occurred_at,
+    ('supplier '::text || COALESCE((r.supplier_id)::text, ''::text)) AS from_addr,
+    NULL::text AS to_addr,
+    NULL::text AS cc,
+    ('Clarification - '::text || COALESCE(r.kind, ''::text)) AS subject,
+    ((('Question:'::text || '
+'::text) || COALESCE(r.question, ''::text)) ||
+        CASE
+            WHEN (r.answer IS NOT NULL) THEN ((('
+
+'::text || 'Answer:'::text) || '
+'::text) || r.answer)
+            ELSE ''::text
+        END) AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    COALESCE(p.inquiry_id, (r.inquiry_id)::text) AS inquiry_id,
+    p.demo AS is_demo
+   FROM (rfq_clarification r
+     CROSS JOIN LATERAL fn_conversation_party(r.supplier_id, NULL::uuid, r.inquiry_id, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'assistant_logs'::text AS source_table,
+    (a.id)::text AS source_id,
+    'chat'::text AS channel,
+    'in'::text AS direction,
+    a.created_at AS occurred_at,
+        CASE
+            WHEN (a.audience ~ '^customer:'::text) THEN 'portal customer'::text
+            ELSE 'website visitor'::text
+        END AS from_addr,
+    COALESCE(a.seat, 'customer_support'::text) AS to_addr,
+    NULL::text AS cc,
+    (
+        CASE
+            WHEN (a.seat = 'sales_engineer'::text) THEN 'Portal - sales engineer'::text
+            ELSE 'Website assistant'::text
+        END || COALESCE((' - '::text || a.path), ''::text)) AS subject,
+    (((((('Asked:'::text || '
+'::text) || COALESCE(a.message, ''::text)) || '
+
+'::text) || 'Answered:'::text) || '
+'::text) || COALESCE(a.reply, ''::text)) AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    p.demo AS is_demo
+   FROM (assistant_logs a
+     CROSS JOIN LATERAL fn_conversation_party(NULL::bigint,
+        CASE
+            WHEN (a.audience ~ '^customer:[0-9a-f-]{36}$'::text) THEN (SUBSTRING(a.audience FROM 10))::uuid
+            ELSE NULL::uuid
+        END, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'contact_messages'::text AS source_table,
+    (cm.id)::text AS source_id,
+    'form'::text AS channel,
+    'in'::text AS direction,
+    cm.created_at AS occurred_at,
+    COALESCE(cm.email, cm.phone) AS from_addr,
+    NULL::text AS to_addr,
+    NULL::text AS cc,
+    ('Contact form'::text || COALESCE((' - '::text || cm.name), ''::text)) AS subject,
+    cm.message AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    ((COALESCE(cm.email, ''::text) ~* 'example\.invalid'::text) OR p.demo) AS is_demo
+   FROM (contact_messages cm
+     CROSS JOIN LATERAL fn_conversation_party(NULL::bigint, NULL::uuid, NULL::uuid, cm.email, cm.phone) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'complaint_tickets'::text AS source_table,
+    (ct.id)::text AS source_id,
+    'form'::text AS channel,
+    'in'::text AS direction,
+    ct.created_at AS occurred_at,
+    ct.email AS from_addr,
+    NULL::text AS to_addr,
+    NULL::text AS cc,
+    ('Complaint '::text || COALESCE(ct.ticket_no, ''::text)) AS subject,
+    (COALESCE(ct.message, ''::text) ||
+        CASE
+            WHEN (ct.final_response IS NOT NULL) THEN ((('
+
+'::text || 'Final response:'::text) || '
+'::text) || ct.final_response)
+            ELSE ''::text
+        END) AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    ((COALESCE(ct.email, ''::text) ~* 'example\.invalid'::text) OR p.demo) AS is_demo
+   FROM (complaint_tickets ct
+     CROSS JOIN LATERAL fn_conversation_party(NULL::bigint, NULL::uuid, NULL::uuid, ct.email, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'quote_review_messages'::text AS source_table,
+    (q.id)::text AS source_id,
+    'chat'::text AS channel,
+        CASE
+            WHEN (q.role = 'customer'::text) THEN 'in'::text
+            ELSE 'out'::text
+        END AS direction,
+    q.created_at AS occurred_at,
+    q.role AS from_addr,
+    NULL::text AS to_addr,
+    NULL::text AS cc,
+    ('Quote review - '::text || COALESCE(q.role, ''::text)) AS subject,
+    q.body,
+    NULL::text AS html,
+    COALESCE(q.attachments, '[]'::jsonb) AS attachments,
+    'company'::text AS party_kind,
+    NULL::text AS party_id,
+    NULL::text AS inquiry_id,
+    false AS is_demo
+   FROM quote_review_messages q;
 
 CREATE OR REPLACE VIEW public.v_critical_capability_tests AS  WITH latest AS (
          SELECT DISTINCT ON (agent_runs.agent) agent_runs.agent,
@@ -17408,21 +17649,80 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_backup_coverage()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_not_done int; v_ids jsonb; v_abandoned int; v_unqueued int; v_unq_err text; v_last_ok timestamptz;
+  v_conv jsonb; v_conv_fn text := 'public.fn_conversation_retention' || '_breaches(interval)';
+  v_refile int; v_fail text[] := '{}';
+begin
+  -- (a) queued and still not done 48h after it was queued. Documented abandonments are excepted.
+  select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]'::jsonb) into v_not_done, v_ids
+    from (select d.id, row_number() over (order by d.id) rn from public.doc_backups d
+           where d.status <> 'done'
+             and not (d.status = 'abandoned' and coalesce(d.error, '') like 'abandoned:%')
+             and coalesce(d.requeued_at, d.created_at) < now() - interval '48 hours') x;
+  select count(*) into v_abandoned from public.doc_backups where status = 'abandoned' and coalesce(error, '') like 'abandoned:%';
+  if v_not_done > 0 then v_fail := array_append(v_fail, 'not_done_after_48h'); end if;
+
+  -- (b) sources the enqueue would pick up that have no row. Measured by running the enqueue itself
+  -- and rolling it back, so this can never disagree with what fn_enqueue_doc_backups does.
+  begin
+    v_unqueued := public.fn_enqueue_doc_backups();
+    raise exception using errcode = 'QDRBK', message = 'roll back the coverage measurement';
+  exception
+    when sqlstate 'QDRBK' then null;
+    when read_only_sql_transaction then v_unq_err := 'not measurable in a read-only transaction';
+    when others then v_unq_err := left(sqlerrm, 200);
+  end;
+  select max(started_at) into v_last_ok from public.agent_runs where agent = 'dropbox_backup' and status = 'ok';
+  if (v_unqueued > 0 and coalesce(v_last_ok, '-infinity') < now() - interval '48 hours')
+     or (v_unq_err is not null and v_unq_err <> 'not measurable in a read-only transaction') then
+    v_fail := array_append(v_fail, 'sources_without_a_row');
+  end if;
+
+  -- (c) the conversation archive, once its retention function exists.
+  if to_regprocedure(v_conv_fn) is not null then
+    begin
+      execute 'select ' || replace(v_conv_fn, '(interval)', '($1)') into v_conv using interval '48 hours';
+    exception when others then v_conv := jsonb_build_object('error', left(sqlerrm, 200));
+    end;
+    if coalesce((v_conv->>'total')::int, 0) > 0 or v_conv ? 'error' then v_fail := array_append(v_fail, 'conversation_retention'); end if;
+  end if;
+
+  -- (d) refiles the sales engineer has not got verified within 48h, or that failed outright.
+  select count(*) into v_refile from public.agent_actions
+   where kind = 'handoff' and agent = 'sales_engineer' and detail->>'type' = 'backup.refile'
+     and (status = 'failed' or (status = 'pending' and created_at < now() - interval '48 hours'));
+  if v_refile > 0 then v_fail := array_append(v_fail, 'refile_not_verified_in_48h'); end if;
+
+  return jsonb_build_object(
+    'ok', cardinality(v_fail) = 0, 'failing', to_jsonb(v_fail),
+    'not_done_after_48h', v_not_done, 'not_done_ids', v_ids, 'abandoned_documented', v_abandoned,
+    'sources_without_a_row', v_unqueued, 'sources_error', v_unq_err, 'last_ok_backup', v_last_ok,
+    'conversation_retention', coalesce(v_conv, jsonb_build_object('checked', false, 'reason', 'function not installed')),
+    'refiles_open_past_48h', v_refile, 'measured_at', now());
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_backup_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_last timestamptz; v_status text; v_stale boolean; v_open int; v_subject_rows int;
+  v_cov jsonb; v_cov_ok boolean; v_cov_open int := 0; v_date text := to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
   -- The subject is the backup that this database can actually SEE. Managed physical backups are
   -- not in here and this function makes no claim about them.
   c_agents constant text[] := array['dropbox_backup','fn:dropbox_backup'];
 begin
-  -- POSITIVE CONTROL FIRST, AND IT IS THE ENTIRE POINT OF THIS REVISION. The previous definition
-  -- looked for agent = 'backup', which nothing writes, got NULL, and read NULL as "no backup has
-  -- ever succeeded". A name that matches no rows is a fact about the query. Refuse to conclude.
+  -- POSITIVE CONTROL FIRST. A name that matches no rows is a fact about the query. Refuse to conclude.
   select count(*) into v_subject_rows from agent_runs where agent = any(c_agents);
   if v_subject_rows = 0 then
     return jsonb_build_object(
@@ -17437,25 +17737,50 @@ begin
   select started_at, status into v_last, v_status
     from agent_runs where agent = any(c_agents) order by started_at desc limit 1;
 
-  v_stale := (v_last < now() - interval '26 hours') or (coalesce(v_status,'') = 'error');
-  if not v_stale then
-    return jsonb_build_object('ok', true, 'last', v_last, 'status', v_status, 'watched', c_agents);
+  -- COVERAGE (14 Sep 2026). A run that succeeded says nothing about whether every document is in
+  -- Dropbox. A coverage failure is by construction 48 hours old, so it is both the it_engineer's
+  -- finding and a report to the CEO; deduped to one of each per 20 hours / per Dubai day.
+  v_cov := public.fn_backup_coverage();
+  v_cov_ok := coalesce((v_cov->>'ok')::boolean, false);
+  if not v_cov_ok then
+    select count(*) into v_cov_open from agent_actions
+     where kind = 'backup_coverage' and agent = 'it_engineer' and coalesce(status,'') in ('pending','needs_review')
+       and created_at > now() - interval '20 hours';
+    if v_cov_open = 0 then
+      insert into agent_actions(agent, kind, status, risk, title, recommendation, target_table, detail)
+      values('it_engineer','backup_coverage','pending','medium',
+        'Dropbox backup coverage failing: ' || (v_cov->>'failing'),
+        'Something that should be in Dropbox has not reached it within 48 hours: '
+        || (v_cov->>'not_done_after_48h') || ' queued row(s) not done, '
+        || coalesce(v_cov->>'sources_without_a_row','unknown') || ' source(s) with no row, '
+        || (v_cov->>'refiles_open_past_48h') || ' refile(s) not verified. Rows: ' || (v_cov->>'not_done_ids') || '.',
+        'doc_backups', v_cov);
+      perform public.fn_support_report_to_ceo(
+        'dropbox_backup_escalation:' || v_date, 'serious',
+        'Dropbox backup coverage has been failing for over 48 hours (' || (v_cov->>'failing') || ')',
+        v_cov,
+        coalesce((select jsonb_agg(jsonb_build_object('handoff_id', id, 'status', status, 'doc_backup_id', detail->>'doc_backup_id'))
+                    from agent_actions where kind = 'handoff' and detail->>'type' = 'backup.refile' and status <> 'done'), '[]'::jsonb),
+        'Decide whether the missing documents need the founder''s Dropbox checked by hand or the filing corrected. The IT engineer has raised it and handed each missing file to the sales engineer to refile; this is past 48 hours, which is why it reaches you.',
+        p_review_in => interval '1 day', p_source_agent => 'it_engineer');
+    end if;
   end if;
 
-  -- A DEDUPE WINDOW THE SAME LENGTH AS THE CHECK INTERVAL SUPPRESSES ON A KNIFE EDGE (13 Aug 2026).
-  -- The backup was broken from 10 to 12 August and this watcher produced exactly ONE alert:
-  -- agent_action 2662 at 2026-08-11 08:00:00.63, one email, still pending. The watcher runs daily
-  -- at 08:00, and the previous row was 24 hours old minus a fraction of a second, so it was still
-  -- inside `created_at > now() - 24 hours` and the second day's alert was skipped. Twenty hours is
-  -- strictly shorter than the cadence, so a daily check always re-alerts on a continuing outage
-  -- while a ten-minute caller still cannot spam.
+  v_stale := (v_last < now() - interval '26 hours') or (coalesce(v_status,'') = 'error');
+  if not v_stale then
+    return jsonb_build_object('ok', v_cov_ok, 'last', v_last, 'status', v_status, 'watched', c_agents,
+                              'coverage', v_cov, 'coverage_alerted', not v_cov_ok and v_cov_open = 0);
+  end if;
+
+  -- Twenty hours is strictly shorter than the daily cadence, so a daily check always re-alerts on a
+  -- continuing outage while a ten-minute caller still cannot spam (13 Aug 2026).
   select count(*) into v_open from agent_actions
    where kind = 'backup_alert' and coalesce(status,'') in ('pending','needs_review')
      and created_at > now() - interval '20 hours';
 
   if v_open = 0 then
     insert into agent_actions(agent, kind, status, risk, title, recommendation, target_table, detail)
-    values('security','backup_alert','pending','high',
+    values('it_engineer','backup_alert','pending','high',
       'Document backup to Dropbox has failed or is overdue',
       'The Dropbox document mirror has not completed successfully in the last 26 hours (last: '
       || coalesce(v_last::text,'never') || ', status: ' || coalesce(v_status,'unknown')
@@ -17467,13 +17792,8 @@ begin
     values('backup_overdue','high','backup','dropbox document mirror',
       jsonb_build_object('last_backup', v_last, 'last_status', v_status, 'watched', c_agents));
 
-    -- 6 SEP 2026: ONE page per event. The agent_action above is paged by trg_page_high_agent_action
-    -- with the backup_alert kind, which founder_mail_policy routes as one org_task; the direct
-    -- notifications row that used to sit here was the second of THREE emails for one missed backup.
-    -- AN OUTAGE THAT LASTS MUST GET LOUDER, NOT REPEAT ITSELF. Past 48 hours this also pages the
-    -- founder and states the age in hours. v_last cannot be NULL here — the positive control above
-    -- returned early if the subject had no runs at all — so the "as long as there are records"
-    -- branch that produced today's false critical is gone with it.
+    -- An outage that lasts must get louder, not repeat itself: past 48 hours this also pages the
+    -- founder (the one founder-mail kind this watcher is allowed) and states the age in hours.
     if v_last < now() - interval '48 hours' then
       perform public.fn_notify_founder(
         'Document backup failing after retry: no successful Dropbox mirror for '
@@ -17489,7 +17809,7 @@ begin
   end if;
 
   return jsonb_build_object('alerted', true, 'last', v_last, 'status', v_status,
-                            'existing_open', v_open, 'watched', c_agents);
+                            'existing_open', v_open, 'watched', c_agents, 'coverage', v_cov);
 end
 $function$
 
@@ -21415,6 +21735,167 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_conversation_archive_pending(p_limit integer DEFAULT 25)
+ RETURNS SETOF v_conversation_message
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select v.* from public.v_conversation_message v
+   where not v.is_demo
+     and not exists (select 1 from public.conversation_archive a
+                      where a.source_table = v.source_table and a.source_id = v.source_id)
+   order by v.occurred_at
+   limit greatest(1, least(coalesce(p_limit, 25), 200));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_archived(p_source_table text, p_source_id text, p_path text, p_bytes bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_queued integer;
+begin
+  if coalesce(p_path, '') !~ '^conversations/' then
+    return jsonb_build_object('ok', false, 'reason', 'the PDF must live under backups/conversations/');
+  end if;
+  insert into public.conversation_archive (source_table, source_id, pdf_path, bytes)
+  values (p_source_table, p_source_id, p_path, p_bytes)
+  on conflict (source_table, source_id) do update set pdf_path = excluded.pdf_path, bytes = excluded.bytes, archived_at = now();
+  v_queued := public.fn_enqueue_doc_backups();
+  return jsonb_build_object('ok', true, 'queued_for_dropbox', v_queued);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_party(p_lead bigint, p_customer uuid, p_inquiry uuid, p_email text, p_phone text)
+ RETURNS TABLE(party_kind text, party_id text, inquiry_id text, demo boolean)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_email text := lower(nullif(btrim(coalesce(p_email, '')), ''));
+        v_tail text := nullif(right(regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'), 9), '');
+        v_c uuid; v_l bigint;
+begin
+  if v_tail is not null and length(v_tail) < 7 then v_tail := null; end if;
+  v_c := p_customer;
+  if v_c is null and p_inquiry is not null then select i.customer_id into v_c from public.inquiries i where i.id = p_inquiry; end if;
+  if v_c is not null then
+    return query select 'customer'::text, v_c::text, p_inquiry::text,
+      coalesce((select c.is_demo or coalesce(c.email, '') ~* 'example\.invalid' from public.customers c where c.id = v_c), false);
+    return;
+  end if;
+  v_l := p_lead;
+  if v_l is null and v_email is not null then
+    select c.id into v_c from public.customers c where lower(c.email) = v_email limit 1;
+    if v_c is not null then
+      return query select 'customer'::text, v_c::text, null::text,
+        coalesce((select c.is_demo or coalesce(c.email, '') ~* 'example\.invalid' from public.customers c where c.id = v_c), false);
+      return;
+    end if;
+    select l.id into v_l from public.leads l where lower(l.email) = v_email or lower(l.claimed_by) = v_email limit 1;
+  end if;
+  if v_l is null and v_tail is not null then
+    select c.id into v_c from public.customers c where right(regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g'), 9) = v_tail limit 1;
+    if v_c is not null then
+      return query select 'customer'::text, v_c::text, null::text,
+        coalesce((select c.is_demo from public.customers c where c.id = v_c), false);
+      return;
+    end if;
+    -- ponytail: a sequential scan of leads per phone lookup; fine at tens of WhatsApp rows a day,
+    -- an expression index on the 9-digit tail when that stops being true.
+    select l.id into v_l from public.leads l
+     where v_tail in (right(regexp_replace(coalesce(l.phone_e164, ''), '[^0-9]', '', 'g'), 9),
+                      right(regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g'), 9),
+                      right(regexp_replace(coalesce(l.whatsapp, ''), '[^0-9]', '', 'g'), 9)) limit 1;
+  end if;
+  if v_l is not null then
+    return query select 'supplier'::text, v_l::text, null::text,
+      coalesce((select coalesce(l.is_demo, false) or coalesce(l.email, '') ~* 'example\.invalid'
+                     or coalesce(l.company_name, '') ~* 'ZZ DEMO' from public.leads l where l.id = v_l), false);
+    return;
+  end if;
+  return query select 'company'::text, null::text, null::text, false;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_record(p_contact text, p_limit integer DEFAULT 200)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_raw text := btrim(coalesce(p_contact, '')); v_email text; v_tail text;
+        v_kind text; v_id text; v_msgs jsonb;
+begin
+  v_raw := regexp_replace(v_raw, '^whatsapp:', '', 'i');
+  if v_raw ~* '^(customer|supplier):.+' then
+    v_kind := lower(split_part(v_raw, ':', 1)); v_id := substring(v_raw from position(':' in v_raw) + 1);
+  elsif position('@' in v_raw) > 0 then
+    v_email := lower(v_raw);
+  elsif length(regexp_replace(v_raw, '[^0-9]', '', 'g')) >= 7 then
+    v_tail := right(regexp_replace(v_raw, '[^0-9]', '', 'g'), 9);
+  else
+    return jsonb_build_object('ok', false, 'reason', 'give an email, a phone number, customer:<id> or supplier:<id>');
+  end if;
+  if v_kind is null then
+    select p.party_kind, p.party_id into v_kind, v_id
+      from public.fn_conversation_party(null, null, null, v_email, v_tail) p;
+    if v_kind = 'company' then v_kind := null; v_id := null; end if;
+  end if;
+
+  select coalesce(jsonb_agg(x order by x->>'at' desc), '[]'::jsonb) into v_msgs from (
+    select jsonb_build_object(
+             'at', v.occurred_at, 'channel', v.channel, 'direction', v.direction,
+             'from', v.from_addr, 'to', v.to_addr, 'cc', v.cc, 'subject', v.subject,
+             'body', v.body, 'has_html', v.html is not null, 'attachments', v.attachments,
+             'party', v.party_kind, 'party_id', v.party_id, 'inquiry_id', v.inquiry_id,
+             'ref', v.source_table || ':' || v.source_id,
+             'pdf', case when a.pdf_path is not null then jsonb_build_object('bucket', a.pdf_bucket, 'path', a.pdf_path) end,
+             'dropbox', case when b.id is not null then jsonb_build_object('path', b.dropbox_path, 'status', b.status) end) x
+      from public.v_conversation_message v
+      left join public.conversation_archive a on a.source_table = v.source_table and a.source_id = v.source_id
+      left join public.doc_backups b on b.dedupe_key = 'CONV:' || v.source_table || ':' || v.source_id
+     where (v_id is not null and v.party_kind = v_kind and v.party_id = v_id)
+        or (v_email is not null and (lower(v.from_addr) = v_email or lower(v.to_addr) = v_email or lower(coalesce(v.cc, '')) like '%' || v_email || '%'))
+        or (v_tail is not null and (right(regexp_replace(coalesce(v.from_addr, ''), '[^0-9]', '', 'g'), 9) = v_tail
+                                 or right(regexp_replace(coalesce(v.to_addr, ''), '[^0-9]', '', 'g'), 9) = v_tail))
+     order by v.occurred_at desc
+     limit greatest(1, least(coalesce(p_limit, 200), 2000))) z;
+
+  return jsonb_build_object('ok', true, 'contact', coalesce(v_email, v_tail, v_raw),
+    'party', v_kind, 'party_id', v_id, 'message_count', jsonb_array_length(v_msgs), 'messages', v_msgs,
+    'assembled_by', 'fn_conversation_record (deterministic; full text from every store; no model)');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_conversation_retention_breaches(p_grace interval DEFAULT '02:00:00'::interval)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with unarchived as (
+    select v.source_table, v.source_id, v.channel from public.v_conversation_message v
+     where not v.is_demo and v.occurred_at < now() - p_grace
+       and not exists (select 1 from public.conversation_archive a where a.source_table = v.source_table and a.source_id = v.source_id)),
+  unqueued as (
+    select a.source_table, a.source_id from public.conversation_archive a
+     where a.archived_at < now() - p_grace
+       and not exists (select 1 from public.doc_backups b where b.dedupe_key = 'CONV:' || a.source_table || ':' || a.source_id))
+  select jsonb_build_object(
+    'grace', p_grace::text,
+    'emails_without_pdf', (select count(*) from unarchived where channel = 'email'),
+    'conversations_without_pdf', (select count(*) from unarchived),
+    'pdfs_without_dropbox_row', (select count(*) from unqueued),
+    'total', (select count(*) from unarchived) + (select count(*) from unqueued),
+    'sample', (select coalesce(jsonb_agg(u.source_table || ':' || u.source_id), '[]'::jsonb)
+                 from (select source_table, source_id from unarchived union all select * from unqueued limit 10) u));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_cron_liveness()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -23454,6 +23935,32 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_dropbox_backup_daily_report()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_local timestamp := now() at time zone 'Asia/Dubai'; s jsonb;
+begin
+  if v_local::time < time '19:00' then
+    return jsonb_build_object('filed', false, 'reason', 'before 19:00 Asia/Dubai');
+  end if;
+  if exists (select 1 from public.support_ceo_report
+              where idempotency_key = 'dropbox_backup_daily:' || to_char(v_local, 'YYYY-MM-DD')) then
+    return jsonb_build_object('filed', false, 'reason', 'already filed today');
+  end if;
+  s := public.fn_dropbox_backup_summary();
+  return public.fn_support_report_to_ceo(
+    'dropbox_backup_daily:' || to_char(v_local, 'YYYY-MM-DD'),
+    case when (s->>'failing_now')::int > 0 or (s->>'failed_24h')::int > 0 then 'elevated' else 'routine' end,
+    'Dropbox backup ' || to_char(v_local, 'DD Mon') || ': ' || (s->>'line'),
+    s, '[]'::jsonb,
+    'Note the day''s backup position. NOTHING IS REQUESTED: this is the IT engineer''s daily line on the Dropbox backup. A failure past 48 hours reaches you separately, as a serious report.',
+    p_review_in => interval '1 day', p_source_agent => 'it_engineer') || jsonb_build_object('filed', true);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dropbox_backup_due()
  RETURNS jsonb
  LANGUAGE sql
@@ -23480,6 +23987,36 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_dropbox_backup_summary()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with f as (
+    select
+      count(*) filter (where created_at > now() - interval '24 hours')                         as queued_24h,
+      count(*) filter (where backed_up_at > now() - interval '24 hours')                       as uploaded_24h,
+      count(*) filter (where verified_at > now() - interval '24 hours')                        as verified_24h,
+      count(*) filter (where status in ('pending','error') and coalesce(attempts,0) < 5)        as waiting,
+      count(*) filter (where status = 'done')                                                  as uploaded_total,
+      count(*) filter (where status = 'done' and verified_at is not null)                      as verified_total,
+      count(*) filter (where status in ('error','skipped_large'))                              as failing_now,
+      count(*) filter (where status = 'abandoned')                                             as abandoned,
+      count(*)                                                                                 as total
+    from public.doc_backups),
+  r as (select coalesce(sum((counts->>'failed')::int), 0) as failed_24h from public.agent_runs
+         where agent = 'dropbox_backup' and started_at > now() - interval '24 hours' and counts ? 'failed')
+  select to_jsonb(f) || to_jsonb(r) || jsonb_build_object('line',
+    'Dropbox backup, last 24h: ' || f.queued_24h || ' queued, ' || f.uploaded_24h || ' uploaded, '
+    || f.verified_24h || ' verified, ' || r.failed_24h || ' failed. Totals: ' || f.uploaded_total || ' uploaded ('
+    || f.verified_total || ' verified in Dropbox), ' || f.waiting || ' waiting, ' || f.failing_now || ' failing, '
+    || f.abandoned || ' abandoned with a recorded reason, of ' || f.total || '.',
+    'measured_at', now())
+  from f, r;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dropbox_list(p_prefix text DEFAULT ''::text)
  RETURNS jsonb
  LANGUAGE sql
@@ -23497,6 +24034,93 @@ AS $function$
       ) t
     ), '[]'::jsonb)
   );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_apply(p_results jsonb, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r jsonb; v_id bigint; v_out text; v_week text := to_char(now() at time zone 'Asia/Dubai', 'IYYY-"W"IW');
+  c jsonb := jsonb_build_object('job', 'dropbox_reconcile', 'week', v_week);
+  n_ok int := 0; n_missing int := 0; n_changed int := 0; n_unver int := 0; n_err int := 0;
+  v_handoffs jsonb := '[]'::jsonb; v_h bigint; v_status text; v_note text;
+begin
+  if p_error is not null then
+    insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'error', c || jsonb_build_object('stage', 'fatal'),
+            left('The weekly Dropbox reconciliation did not run: ' || p_error || '. No file was re-checked this attempt; it is retried after 6 hours.', 500), now(), now());
+    return jsonb_build_object('ok', false, 'error', p_error);
+  end if;
+
+  for r in select * from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) loop
+    v_id := (r->>'id')::bigint; v_out := r->>'outcome';
+    if v_out = 'ok' then
+      update public.doc_backups set dropbox_content_hash = r->>'hash', dropbox_size = (r->>'size')::bigint, verified_at = now()
+       where id = v_id and status = 'done';
+      n_ok := n_ok + 1;
+    elsif v_out in ('missing', 'changed') then
+      if v_out = 'missing' then n_missing := n_missing + 1; else n_changed := n_changed + 1; end if;
+      -- The finding, on the row: no longer confirmed. The status stays the filer's to change.
+      update public.doc_backups
+         set verified_at = null,
+             error = case when v_out = 'missing' then 'reconcile: missing in Dropbox'
+                          else 'reconcile: content in Dropbox differs from what was confirmed' end
+       where id = v_id;
+      v_h := public.fn_seat_handoff('it_engineer', 'sales_engineer', 'backup.refile', 'doc_backups', v_id::text || '@' || v_week,
+               jsonb_build_object('doc_backup_id', v_id, 'reason', 'reconcile ' || v_out, 'dropbox_hash_seen', r->>'hash', 'basis', r->>'basis'));
+      v_handoffs := v_handoffs || to_jsonb(v_h);
+    elsif v_out = 'unverifiable' then n_unver := n_unver + 1;
+    else n_err := n_err + 1;
+    end if;
+  end loop;
+
+  c := c || jsonb_build_object('checked', jsonb_array_length(coalesce(p_results, '[]'::jsonb)), 'ok', n_ok,
+         'missing', n_missing, 'changed', n_changed, 'unverifiable', n_unver, 'errors', n_err, 'handoffs', v_handoffs);
+  v_status := case when n_missing + n_changed + n_err > 0 then 'warn' else 'ok' end;
+  v_note := 'Weekly Dropbox reconciliation ' || v_week || ': ' || (c->>'checked') || ' checked, ' || n_ok || ' confirmed, '
+         || n_missing || ' missing, ' || n_changed || ' changed, ' || n_unver || ' unverifiable (no recorded hash and no source), '
+         || n_err || ' could not be read.'
+         || case when n_missing + n_changed > 0 then ' Each missing or changed file was handed to the sales engineer to refile.' else '' end;
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('it_engineer', v_status, c, left(v_note, 500), now(), now());
+  return c || jsonb_build_object('status', v_status, 'note', v_note);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_due()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with w as (select to_char(now() at time zone 'Asia/Dubai', 'IYYY-"W"IW') as week)
+  select jsonb_build_object(
+    'due', not exists (select 1 from public.agent_runs r, w
+                        where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_reconcile'
+                          and r.status in ('ok', 'warn')
+                          and to_char(r.started_at at time zone 'Asia/Dubai', 'IYYY-"W"IW') = w.week)
+       and not exists (select 1 from public.agent_runs r
+                        where r.agent = 'it_engineer' and r.counts->>'job' = 'dropbox_reconcile'
+                          and r.status = 'error' and r.started_at > now() - interval '6 hours'),
+    'week', (select week from w));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dropbox_reconcile_sample(p_n integer DEFAULT 20)
+ RETURNS TABLE(id bigint, dropbox_path text, bucket text, path text, bytes bigint, dropbox_content_hash text)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select d.id, d.dropbox_path, d.bucket, d.path, d.bytes, d.dropbox_content_hash
+    from public.doc_backups d
+   where d.status = 'done' and d.dropbox_path is not null
+   order by random()
+   limit greatest(1, least(coalesce(p_n, 20), 200));
 $function$
 
 
@@ -24247,6 +24871,44 @@ begin
          'storage', 'T:'||t.id||':invoice:'||t.doc_path
   from public.transactions t
   where t.doc_path is not null and length(t.doc_path) > 0
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+
+  -- ============ CORRESPONDENCE (14 SEP 2026) ============
+  -- The founder: "by back up i mean 2 points. supabase and dropbox." Every conversation message whose
+  -- PDF is in backups/conversations/ (public.conversation_archive) is mirrored to Dropbox on his
+  -- entity -> type -> date tree. A customer's message on an inquiry goes under that inquiry; a
+  -- supplier's goes under the supplier ONLY when the supplier is a registrant (the same predicate the
+  -- supplier documents use above); everything else is Company correspondence by month. Demo rows are
+  -- never queued. Times are Dubai time.
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select x.entity, x.entity_id, 'Correspondence', a.pdf_bucket, a.pdf_path, x.fname, x.base || x.fname, 'storage',
+         'CONV:' || a.source_table || ':' || a.source_id
+  from public.conversation_archive a
+  join public.v_conversation_message v on v.source_table = a.source_table and v.source_id = a.source_id
+  left join public.customers c on v.party_kind = 'customer' and c.id::text = v.party_id
+  left join public.inquiries i on c.id is not null and i.id::text = v.inquiry_id
+  left join public.leads l on v.party_kind = 'supplier' and l.id::text = v.party_id
+       and (l.approved_at is not null or l.registration_submitted_at is not null
+         or l.signed_terms_path is not null or l.company_profile_doc_path is not null
+         or l.license_doc_path is not null or coalesce(l.claimed,false))
+  cross join lateral (select
+      case when c.id is not null then 'customer' when l.id is not null then 'supplier' else 'company' end as entity,
+      coalesce(c.id::text, l.id::text, v.source_table || ':' || v.source_id) as entity_id,
+      case when c.id is not null then
+             '/QuotesDone Backup/Customers/' || public.fn_dbx_safe(coalesce(c.full_name,'Customer')) || ' (' || left(c.id::text,8) || ')/'
+             || case when i.id is not null then 'Inquiries/' || to_char(i.created_at,'YYYY-MM-DD') || ' ' || left(i.id::text,8)
+                       || ' - ' || public.fn_dbx_safe(coalesce(i.status,'inquiry')) || '/' else '' end
+             || 'Correspondence/'
+           when l.id is not null then
+             '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id) || '/'
+             || public.fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/Correspondence/'
+           else '/QuotesDone Backup/Company/Correspondence/' || to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM') || '/'
+      end as base,
+      to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM-DD HH24MI') || ' ' || v.direction || ' ' || v.channel || ' - '
+        || public.fn_dbx_safe(left(coalesce(nullif(btrim(v.subject),''),'(no subject)'),80)) || ' #' || v.source_id || '.pdf' as fname) x
+  where not v.is_demo
   on conflict (dedupe_key) do nothing;
   get diagnostics m = row_count; n := n + m;
 
@@ -27135,6 +27797,48 @@ AS $function$
   select extract(isodow from p_date) < 6
      and not exists (select 1 from public.public_holidays h where h.holiday_date = p_date);
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_refile_close()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record; n int := 0;
+begin
+  for h in
+    select a.id, d.id as doc_id, d.verified_at, d.dropbox_content_hash
+      from public.agent_actions a
+      join public.doc_backups d on d.id = (a.detail->>'doc_backup_id')::bigint
+     where a.kind = 'handoff' and a.agent = 'sales_engineer' and a.detail->>'type' = 'backup.refile'
+       and a.status = 'pending' and d.status = 'done' and d.verified_at > a.created_at
+  loop
+    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'it_engineer',
+      'doc_backup_id', h.doc_id, 'verified_at', h.verified_at, 'dropbox_content_hash', h.dropbox_content_hash));
+    update public.agent_actions set decided_by = 'it_engineer' where id = h.id;
+    n := n + 1;
+  end loop;
+  return jsonb_build_object('closed', n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_backup_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare o jsonb := '{}'::jsonb;
+begin
+  begin o := o || jsonb_build_object('refiles', public.fn_it_backup_refile_close());
+  exception when others then o := o || jsonb_build_object('refiles', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  begin o := o || jsonb_build_object('watch', public.fn_backup_watch());
+  exception when others then o := o || jsonb_build_object('watch', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  begin o := o || jsonb_build_object('daily', public.fn_dropbox_backup_daily_report());
+  exception when others then o := o || jsonb_build_object('daily', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  return o || jsonb_build_object('reconcile', public.fn_dropbox_reconcile_due());
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_detect(p_web jsonb DEFAULT NULL::jsonb, p_persist boolean DEFAULT true)
@@ -34210,6 +34914,16 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -34380,16 +35094,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -38420,6 +39124,9 @@ begin
 
   elsif t = 'delivery.result' then
     return public.fn_sales_engineer_attaches_delivery_result(p_id);
+
+  elsif t = 'backup.refile' then
+    return public.fn_sales_engineer_refiles_backup(p_id);
   end if;
   raise exception 'sales_engineer has no handler for %', t;
 end $function$
@@ -38537,6 +39244,26 @@ begin
       '{}', v_key, null, v_extra);
   end if;
   raise exception 'no such ladder step %', p_step;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_refiles_backup(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; v_row bigint; n int;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  v_row := (a.detail->>'doc_backup_id')::bigint;
+  update public.doc_backups
+     set status = 'pending', attempts = 0, verified_at = null, requeued_at = now(),
+         error = left('refile: ' || coalesce(a.detail->>'reason', 'requested') || ' (it_engineer handoff ' || p_id || ')', 300)
+   where id = v_row and status <> 'abandoned';
+  get diagnostics n = row_count;
+  if n = 0 then raise exception 'backup.refile: doc_backups row % does not exist or is abandoned', v_row; end if;
+  return jsonb_build_object('waiting', 'it_engineer re-verification', 'doc_backup_id', v_row, 'requeued_at', now());
 end $function$
 
 
@@ -39149,7 +39876,8 @@ AS $function$
     ('delivery.request',         'sales_engineer',   'customer_support', 'Deliver these words to a customer or supplier through the outbox, and watch for the reply when asked.'),
     ('delivery.request',         'ceo',              'customer_support', 'Deliver this summary to the founder on his command channel.'),
     ('delivery.request',         'accountant',       'customer_support', 'Deliver this money exception to the founder on his command channel.'),
-    ('delivery.result',          'customer_support', 'sales_engineer',   'What came back: proof the supplier responded, or confirmation that nothing did.')
+    ('delivery.result',          'customer_support', 'sales_engineer',   'What came back: proof the supplier responded, or confirmation that nothing did.'),
+    ('backup.refile',            'it_engineer',      'sales_engineer',   'The IT engineer found a backed-up document missing, changed or unconfirmed in Dropbox: file it again. The IT engineer closes it once the new copy is verified.')
 $function$
 
 
@@ -50994,6 +51722,7 @@ ALTER TABLE public.control_mode_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_session ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_archive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.critical_capability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_notes ENABLE ROW LEVEL SECURITY;
@@ -51359,6 +52088,7 @@ CREATE POLICY brand_assets_public_read ON public.brand_assets AS PERMISSIVE FOR 
 CREATE POLICY "specs readable" ON public.category_specs AS PERMISSIVE FOR SELECT TO anon USING (true);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY conversation_archive_service_role_only ON public.conversation_archive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM fn_customer_document_refs() r(ref_table, ref_id, source, supplier_id, supplier_name, revealed)
