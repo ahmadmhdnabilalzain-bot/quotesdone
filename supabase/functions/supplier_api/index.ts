@@ -336,7 +336,7 @@ Deno.serve(observe('supplier_api', async (req) => {
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
     // answered with the value we already hold.
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at,wa_optin').eq('claimed_by', email).maybeSingle(); return J({ supplier: data || null }); }
+    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at,wa_optin').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select('id,company_name,emirate,business_role,claimed,claimed_by').ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); return J({ results: (data || []).map((r) => ({ ...r, claimable: !r.claimed || r.claimed_by === email })) }); }
     if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) return J({ error: error.message }, 500); const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
@@ -560,6 +560,23 @@ Deno.serve(observe('supplier_api', async (req) => {
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, saved: Object.keys(upd).filter((k) => k !== 'portal_updated_at') });
+    }
+
+    // RE-ACCEPTANCE OF A NEW AGREEMENT VERSION (14 Sep 2026, agent: sales_engineer). The founder approved
+    // Supplier Agreement v11; clause 23 asks a supplier to re-confirm acceptance of a material change, and
+    // the portal now asks on the next sign-in (SupplierPortal ReacceptTerms). This records exactly what
+    // save_profile's accept_terms records — when, WHICH version (read server-side from terms_version, never
+    // from the browser), the client IP, and the SHA-256 of the exact text accepted (null, never the wrong
+    // hash, while the live version is not the one supplier_agreement.ts was exported for).
+    if (action === 'accept_terms') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const tv = String((await secretVal('terms_version')) || '').trim().slice(0, 20);
+      if (!tv) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
+      const sha = tv === SUPPLIER_AGREEMENT_VERSION ? await agreementSha256() : null;
+      const { error } = await admin.from('leads').update({ accepted_terms_at: new Date().toISOString(), accepted_terms_version: tv, accepted_terms_ip: clientIp(req) || null, accepted_terms_sha256: sha }).eq('id', sup.id);
+      if (error) return J({ error: error.message }, 500);
+      return J({ ok: true, accepted_terms_version: tv, text_hash_stored: !!sha });
     }
 
     if (action === 'settings') {

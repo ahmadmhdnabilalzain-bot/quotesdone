@@ -41,7 +41,9 @@ export async function GET() {
   const mk = lastmod('src/content/marketing.json');
   for (const slug of Object.keys(marketing as Record<string, unknown>)) push('/' + slug, slug === 'services' ? 0.8 : 0.6, mk);
   const lg = lastmod('src/content/legal.json');
-  for (const slug of Object.keys(legal as Record<string, unknown>)) push('/' + slug, 0.3, lg);
+  // A superseded version is kept in legal.json as '<slug>-vN' and served at /<slug>/vN (14 Sep 2026:
+  // supplier-agreement-v10 -> /supplier-agreement/v10), so the key is not the path.
+  for (const slug of Object.keys(legal as Record<string, unknown>)) push('/' + slug.replace(/-(v\d+)$/, '/$1'), 0.3, lg);
   // Only the 24 canonical service pages. The 168 emirate variants per locale canonicalise to these
   // (src/lib/seo.ts splitServiceSlug) and a sitemap lists canonical URLs only.
   const sv = lastmod('src/content/services.json');
