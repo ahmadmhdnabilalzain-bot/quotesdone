@@ -32,6 +32,7 @@
 import type { PdfPage, TextRun } from './pdf_text_positions.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 
+import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 export type Box = { x: number; y: number; w: number; h: number };
 export type SeedSource = { name?: string; company?: string; email?: string; phone?: string; project?: string; address?: string; plot?: string; makani?: string; extra?: string[] };
 
@@ -142,6 +143,7 @@ const GENERIC_ID: [string, RegExp][] = [
   ['email', /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g],
   ['url', /\b(?:https?:\/\/|www\.)\S+/gi],
   ['phone', /(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g],
+  ['trn', TRN_LABELLED], ['trn_bare', TRN_BARE], ['licence_no', LICENCE_NO],
 ];
 const REDACT_ONLY_BEFORE_SCRUB = GENERIC_ID.slice(0, 9);
 

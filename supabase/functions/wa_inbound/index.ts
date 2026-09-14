@@ -163,9 +163,9 @@ function bidiSafe(s: string): string {
 
 const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers, who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- We cover ALL trades and product categories across the UAE - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- A job can be described by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST), management@quotesdone.com, or https://quotesdone.com/contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, Dubai DET E-Trader Licence No. 1633275.`;
 
-const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. A 3% facilitation fee applies ONLY when the customer chooses to reveal a supplier's contact details.\n- Post a job: https://quotesdone.com/app`;
+const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee plus the card processing fee (both shown in full before payment) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job: https://quotesdone.com/app`;
 
-const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this message. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response fine (equal to the customer's reveal fee) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at https://quotesdone.com/suppliers with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised. We are currently onboarding founding suppliers ahead of opening the platform to clients.`;
+const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this message. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response charge (the exact amount refunded to the customer (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at https://quotesdone.com/suppliers with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised. We are currently onboarding founding suppliers ahead of opening the platform to clients.`;
 
 async function retrieveFaq(q: string): Promise<{ ctx: string; ids: number[] }> {
   const { data } = await admin.from('company_faq').select('id,question,answer,tags').eq('status', 'approved').eq('public', true);
@@ -502,6 +502,19 @@ Deno.serve(observe('wa_inbound', async (req) => {
       const { data: idres } = await admin.rpc('fn_identify_contact', { p_phone: From });
       if (idres && idres.audience) { audience = String(idres.audience); known = idres; }
     } catch (_e) { /* fall back to inference */ }
+
+    // ---- THE CONTACT'S TIMELINE, read before anything is composed (14 Sep 2026) ----------------
+    // Founder: "the only agent who uses the whatsapp and email is the customer support agent. so he
+    // should be always up to date with that is going on." fn_contact_timeline assembles, in SQL and
+    // with no model, everything the company has done with this person on every channel and every
+    // seat: requests, quotes (held/released), reveals, invoices, refunds and the CEO's decisions on
+    // them, and every message sent or received. Scoped to the sender's own number.
+    let timeline: Record<string, unknown> | null = null;
+    try {
+      const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 });
+      timeline = (tl || null) as Record<string, unknown> | null;
+    } catch (_e) { timeline = null; /* a missing timeline must never lose their message */ }
+    const timelineEvents = Number((timeline as any)?.event_count ?? 0);
 
     // ---- THE FOUNDER'S COMMAND CHANNEL, v13 ---------------------------------
     // He asked to run the company by texting his registered number. Until now he could ASK it
@@ -865,7 +878,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
           inbound: Body.slice(0, 2000), reply: replyR, lang: 'en',
           escalated: route.needs_a_person === true, sent: sentR,
           meta: { enabled: enabledR, audience, route: 'deterministic',
-                  intent: route.deterministic_intent, cost_aed: 0,
+                  intent: route.deterministic_intent, cost_aed: 0, timeline_events: timelineEvents,
                   shared_founder_number: route.founder_number !== null,
                   send_error: sendErrR || null, provenance_verified: true,
                   message_sid: MessageSid || null },
@@ -921,6 +934,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
       else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
     } catch (_e) { /* fall through with no record rather than dropping the message */ }
+    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
 
     // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
     // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
@@ -986,7 +1000,7 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
 
     let rowSaved = true;
-    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
     const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
 

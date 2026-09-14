@@ -1,10 +1,14 @@
 // quote_documents.test.ts — the quotation and the comparison report, in English AND Arabic.
 // deno test --no-lock supabase/functions/_shared/quote_documents.test.ts
 //
-// Built from the ZZ DEMO fixture (seven HVAC quotes, one incomplete, one draft) and rendered by the
-// real renderer. Each document must: render to a PDF that loads back; carry the strings a customer
-// relies on; carry NO supplier identity (name, email, phone, website) before the reveal; and never
-// claim only three quotes came in when seven did.
+// Built from the ZZ DEMO fixtures (HVAC: seven quotes, one incomplete, one draft; FIT-OUT joinery:
+// five quotes with material specs, one held for a missing thickness) and rendered by the real
+// renderer. Each document must: render to a PDF that loads back; carry its sections, its legal
+// footer and its document-control line; carry NO supplier identity before the reveal; carry no VAT
+// detail and no TRN; never say "AI" or "assistant"; and — in Arabic — carry no English word in its
+// primary text except brands, standards and codes (the supplier's original wording may sit only on
+// the secondary line labelled "النص الأصلي من المورد"). The comparison report must list every quote,
+// show a held quote as on hold with none of its details, and never make it a technical column.
 //
 // No permissions are granted by run.mjs, so the brand fonts cannot be fetched here and the renderer
 // falls back to Helvetica — which cannot draw Arabic. The Arabic assertions therefore run on the
@@ -12,39 +16,79 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { quoteDocument, compareDocument, arDuration, arPayment, arUnit, maskContacts, supplierLabel } from './quote_documents.ts';
-import { footerLines, FALLBACK } from './doc_template.ts';
+import { quoteDocument, compareDocument, compareTable, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE } from './quote_documents.ts';
+import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { portalLink } from './site_origins.ts';
-import { INQUIRY, liveQuotes, labelled, identities } from './quote_documents.fixture.ts';
+import { latinLeaks } from './trade_glossary_ar.test.ts';
+import * as F from './quote_documents.fixture.ts';
 
 const BRAND = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/';
 async function fetchBytes(p: string) { try { const r = await fetch(BRAND + p); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch { return null; } }
+type Lang = 'en' | 'ar';
+const dates = (lang: Lang) => lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' };
 
-function analysisFor(lang: 'en' | 'ar') {
-  const lab = labelled();
+const CASES = {
+  hvac: { inq: F.INQUIRY, live: F.liveQuotes, lab: F.labelled, ids: F.identities, tech: () => F.HVAC_TECHNICAL, n: 7, held: 'Supplier G' },
+  fitout: { inq: F.FITOUT_INQUIRY, live: F.fitoutLive, lab: F.fitoutLabelled, ids: F.fitoutIdentities, tech: F.fitoutTechnical, n: 5, held: 'Supplier B' },
+};
+type CaseKey = keyof typeof CASES;
+function analysisFor(c: CaseKey, lang: Lang, withTech = true) {
+  const C = CASES[c]; const lab = C.lab();
   // deno-lint-ignore no-explicit-any
   const a: any = deterministicCompare(lab, lang);
   a.all_quotes = rosterOf(lab, a.top3);
   a.total_quotes = lab.length;
+  if (withTech) a.technical = C.tech();
   return a;
 }
-function quoteBody(letterIdx: number, lang: 'en' | 'ar') {
-  const q = liveQuotes()[letterIdx];
-  return quoteDocument({ quote: q, inquiry: INQUIRY, items: q.items, letter: supplierLabel(letterIdx), lang, maskNames: [q.supplier.company_name, q.supplier.email, q.supplier.phone, q.supplier.website], requestUrl: portalLink(lang, INQUIRY.id, q.id), ...(lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' }) }).body;
+function quoteBody(c: CaseKey, lang: Lang, idx = 0) {
+  const C = CASES[c]; const q = C.live()[idx];
+  return quoteDocument({ quote: q, inquiry: C.inq, items: q.items, letter: supplierLabel(idx), lang, maskNames: C.ids(), requestUrl: portalLink(lang, C.inq.id, q.id), ...dates(lang) }).body;
 }
-function compareBody(lang: 'en' | 'ar') {
-  return compareDocument({ analysis: analysisFor(lang), inquiry: INQUIRY, lang, maskNames: identities(), portalUrl: portalLink(lang, INQUIRY.id), linkFor: (qid: string) => portalLink(lang, INQUIRY.id, qid),...(lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' }) }).body;
+function compareBody(c: CaseKey, lang: Lang, withTech = true) {
+  const C = CASES[c];
+  return compareDocument({ analysis: analysisFor(c, lang, withTech), inquiry: C.inq, lang, maskNames: C.ids(), portalUrl: portalLink(lang, C.inq.id), linkFor: (qid: string) => portalLink(lang, C.inq.id, qid), ...dates(lang) }).body;
 }
-function assertNoIdentity(body: unknown) {
+function assertNoIdentity(body: unknown, c: CaseKey) {
   const s = JSON.stringify(body);
-  for (const id of identities()) assert(!s.includes(id), 'supplier identity reached the page: ' + id);
+  for (const id of CASES[c].ids()) assert(!s.includes(id), 'supplier identity reached the page: ' + id);
   assert(!/ZZ DEMO/i.test(s), 'a ZZ DEMO supplier name reached the page');
   assert(!/example\.invalid/i.test(s), 'a supplier email or website reached the page');
   assert(!/\+?971[\s-]?50[\s-]?000/.test(s), 'a supplier phone number reached the page');
 }
-async function assertRenders(body: Record<string, unknown>, lang: 'en' | 'ar') {
+// VAT: the one neutral line is the only mention; no rate, amount or TRN anywhere, in either language.
+function assertNoVat(body: unknown, lang: Lang) {
+  const s = JSON.stringify(body);
+  assertStringIncludes(s, lang === 'ar' ? VAT_LINE.ar : VAT_LINE.en);
+  const rest = s.split(VAT_LINE.en).join('').split(VAT_LINE.ar).join('');
+  assert(!VAT_RE.test(rest), 'a VAT or TRN detail reached the customer page: ' + (rest.match(VAT_RE) || [])[0]);
+  assert(!/100123456700003/.test(s), 'the supplier TRN reached the page');
+}
+function assertNoMachinery(body: unknown) {
+  const s = JSON.stringify(body);
+  assert(!/\bAI\b|assistant|artificial intelligence|الذكاء الاصطناعي|المساعد|AI adviser|unavailable|غير متاح/i.test(s), 'AI / assistant / unavailable wording reached the page');
+}
+// Every string the Arabic page draws as PRIMARY text (not the "original wording" line, not a link).
+const SKIP = new Set(['sub', 'link', 't', 'tone', 'flag', 'lang', 'name', 'ref', 'align', 'options', 'widths', 'fs', 'zebra', 'n', 'size', 'muted', 'bold', 'group', 'cols', 'rank', 'scores', 'overall']);
+function primary(v: unknown, key = ''): string[] {
+  if (SKIP.has(key)) return [];
+  if (typeof v === 'string') return /^(match|differs|missing|na|short|open|hold)$/.test(v) ? [] : [v];
+  if (Array.isArray(v)) return v.flatMap((x) => primary(x));
+  if (v && typeof v === 'object') return Object.entries(v).flatMap(([k, x]) => primary(x, k));
+  return [];
+}
+function assertFullyArabic(body: Record<string, unknown>) {
+  const leaks = primary({ cover: body.cover, blocks: body.blocks, control: body.control, title: body.title }).flatMap((s) => latinLeaks(s).map((w) => `${w}  ←  ${s.slice(0, 90)}`));
+  assertEquals(leaks, [], 'English left in the Arabic primary text');
+  // The supplier's own words appear only on the labelled secondary line.
+  const subs: string[] = [];
+  const walk = (v: unknown) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { if (k === 'sub' && typeof x === 'string') subs.push(x); else walk(x); } };
+  walk(body.blocks);
+  for (const s of subs) assert(s.startsWith('النص الأصلي من المورد'), 'an unlabelled secondary line: ' + s);
+}
+async function assertRenders(body: Record<string, unknown>, lang: Lang) {
   const out = await renderPdf(body, { fetchBytes });
   assert(out.ok, 'renderer refused: ' + JSON.stringify(!out.ok && out.body));
   if (!out.ok) return;
@@ -73,35 +117,41 @@ async function linksIn(bytes: Uint8Array): Promise<string[]> {
   return out;
 }
 // The deep link format as a literal: src/lib/portalLink.test.mjs expects the same one.
-const deep = (lang: 'en' | 'ar', qid: string) => `https://quotesdone.com${lang === 'ar' ? '/ar' : ''}/me?request=${INQUIRY.id}&quote=${qid}`;
+const deep = (c: CaseKey, lang: Lang, qid: string) => `https://quotesdone.com${lang === 'ar' ? '/ar' : ''}/me?request=${CASES[c].inq.id}&quote=${qid}`;
+// deno-lint-ignore no-explicit-any
+const blocksOf = (body: any, t: string) => (body.blocks as any[]).filter((b) => b.t === t);
+// deno-lint-ignore no-explicit-any
+const cellText = (c: any) => typeof c === 'string' ? c : String(c?.text ?? '');
 
-Deno.test('the legal footer names the company, the DET licence and the TDRA permit', () => {
+Deno.test('the legal footer names the company, the DET licence and the TDRA permit, in both languages', () => {
   const [l1, l2] = footerLines(FALLBACK);
-  assertStringIncludes(l1, 'QuotesDone Technologies');
-  assertStringIncludes(l1, '1633275');
-  assertStringIncludes(l1, 'TDRA NOL-26-100000665');
+  assertStringIncludes(l1, 'QuotesDone Technologies'); assertStringIncludes(l1, '1633275'); assertStringIncludes(l1, 'TDRA NOL-26-100000665');
   assertStringIncludes(l2, 'quotesdone.com');
+  const [a1, a2] = footerLinesAr(FALLBACK);
+  assertStringIncludes(a1, 'QuotesDone Technologies'); assertStringIncludes(a1, '1633275'); assertStringIncludes(a1, 'NOL-26-100000665'); assertStringIncludes(a1, 'رخصة');
+  assertStringIncludes(a2, 'quotesdone.com');
 });
 
 Deno.test('labels: drafts take no letter, the incomplete quote sorts last, seven live quotes', () => {
-  const lab = labelled();
+  const lab = F.labelled();
   assertEquals(lab.length, 7);
   assertEquals(lab.map((l) => l.label), ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((x) => 'Supplier ' + x));
   assertEquals(lab[0].price, 78900);
   assertEquals(lab[6].price, null);
 });
 
-Deno.test('roster: every quote listed, three shortlisted, the incomplete one held', () => {
-  const a = analysisFor('en');
-  assertEquals(a.all_quotes.length, 7);
-  // deno-lint-ignore no-explicit-any
-  const by = (s: string) => a.all_quotes.filter((r: any) => r.status === s);
-  assertEquals(by('shortlisted').length, 3);
-  assertEquals(by('held').map((r: { label: string }) => r.label), ['Supplier G']);
-  assertEquals(by('received').length, 3);
+Deno.test('roster: every quote listed, three shortlisted, the incomplete one held — both cases', () => {
+  for (const c of ['hvac', 'fitout'] as const) {
+    const a = analysisFor(c, 'en');
+    assertEquals(a.all_quotes.length, CASES[c].n);
+    // deno-lint-ignore no-explicit-any
+    const by = (s: string) => a.all_quotes.filter((r: any) => r.status === s).map((r: any) => r.label);
+    assertEquals(by('shortlisted').length, 3, c);
+    assertEquals(by('held'), [CASES[c].held], c);
+  }
 });
 
-Deno.test('Arabic, deterministically: durations, payment terms, units', () => {
+Deno.test('Arabic, deterministically: durations, payment terms (LC at sight included), units', () => {
   assertEquals(arDuration('2 weeks'), 'أسبوعان');
   assertEquals(arDuration('12 months'), '12 شهرًا');
   assertEquals(arDuration('3 weeks'), '3 أسابيع');
@@ -112,138 +162,158 @@ Deno.test('Arabic, deterministically: durations, payment terms, units', () => {
   assertEquals(arDuration('after the site visit'), null);
   assertEquals(arPayment('50% advance, 50% on completion'), '50% دفعة مقدّمة، 50% عند الإنجاز');
   assertEquals(arPayment('100% advance'), '100% دفعة مقدّمة');
-  // Not every part recognised → not translated at all, never half-translated.
-  assertEquals(arPayment('LC at sight'), null);
-  assertEquals(arPayment('50% advance, balance by LC'), null);
+  assertEquals(arPayment('LC at sight'), 'اعتماد مستندي بالاطلاع');
+  assertEquals(arPayment('50% advance, balance by LC'), '50% دفعة مقدّمة، الرصيد باعتماد مستندي');
+  assertEquals(arPayment('30% advance, 60% on delivery, 10% retention'), '30% دفعة مقدّمة، 60% عند التسليم، 10% محتجزة لضمان حسن التنفيذ');
+  assertEquals(arPayment('LC 90 days'), 'اعتماد مستندي لأجل 90 يومًا');
+  // Not every part recognised → not translated as a payment term at all, never half-translated.
+  assertEquals(arPayment('50% advance, balance when we feel like it'), null);
   assertEquals(arUnit('Nos'), 'عدد');
   assertEquals(arUnit('LM'), 'م.ط');
   assertEquals(arUnit('furlong'), null);
 });
 
-Deno.test('contacts are masked in supplier free text', () => {
+Deno.test('contacts are masked and VAT / TRN sentences are dropped from supplier free text', () => {
   const s = maskContacts('Call ZZ DEMO Cool Air on +971 50 000 0001, 050 000 0001 or sales1@zzdemo-1.example.invalid / www.zzdemo-1.example.invalid', ['ZZ DEMO Cool Air LLC']);
   assert(!/ZZ DEMO|000 0001|example\.invalid/i.test(s), s);
   // Quantities and model numbers are not phone numbers.
   assertEquals(maskContacts('24 TR, 120 LM, model FDYQ180LA'), '24 TR, 120 LM, model FDYQ180LA');
+  assertEquals(stripVat('Price includes delivery. Prices exclude 5% VAT; our TRN is 100123456700003.'), 'Price includes delivery.');
+  assertEquals(stripVat('Delivery in 2 weeks'), 'Delivery in 2 weeks');
 });
 
-Deno.test('quotation (EN): the right quote, its figures, no identity, renders', async () => {
-  const body = quoteBody(0, 'en');
+for (const c of ['hvac', 'fitout'] as const) {
+  for (const lang of ['en', 'ar'] as const) {
+    Deno.test(`quotation ${c} (${lang.toUpperCase()}): sections, figures, four checks, no identity, no VAT, renders`, async () => {
+      // deno-lint-ignore no-explicit-any
+      const body: any = quoteBody(c, lang);
+      const s = JSON.stringify(body);
+      const q = CASES[c].live()[0];
+      const want = lang === 'en'
+        ? ['Request and quoting party', 'Scope and technical specification', 'Completeness check', 'Commercial terms', 'Standardised by QuotesDone from the supplier', 'Prepared by the QuotesDone sales engineer', 'Supplier A', 'Material specification, per line', 'Delivery / lead time', 'Installation', 'Warranty — period and coverage']
+        : ['الطلب والجهة مقدّمة العرض', 'نطاق العمل والمواصفات الفنية', 'فحص اكتمال العرض', 'الشروط التجارية', 'وحّدته QuotesDone', 'أعدّه مهندس مبيعات QuotesDone', 'المورّد A', 'مواصفات المواد لكل بند', 'التسليم / مدة التنفيذ', 'التركيب', 'الضمان — المدة والتغطية'];
+      for (const w of want) assertStringIncludes(s, w);
+      assertEquals(blocksOf(body, 'checks')[0].items.length, 4, 'the four completeness checks');
+      assertStringIncludes(body.control, 'v2.0');
+      assertStringIncludes(body.control, lang === 'en' ? 'Prepared by the QuotesDone sales engineer' : 'أعدّه مهندس مبيعات QuotesDone');
+      assertStringIncludes(JSON.stringify(body.cover), q.quote_amount!.toLocaleString('en-AE'));
+      assertEquals(body.cover.figures.length, 4);
+      assertEquals(blocksOf(body, 'link')[0].link, deep(c, lang, q.id));
+      if (lang === 'en') assert(!/[؀-ۿ]/.test(s), 'Arabic in the English quotation');
+      else assertFullyArabic(body);
+      assertNoIdentity(body, c); assertNoVat(body, lang); assertNoMachinery(body);
+      const out = await assertRenders(body, lang);
+      if (out && out.ok && (lang === 'en' || out.meta.fonts.arabic)) assert((await linksIn(out.bytes)).includes(deep(c, lang, q.id)), 'the quotation links back to its quote');
+    });
+  }
+}
+
+Deno.test('quotation (fit-out): every line carries its specification and its price; totals add up', () => {
+  // deno-lint-ignore no-explicit-any
+  const body: any = quoteBody('fitout', 'en');
+  const t = blocksOf(body, 'table')[0];
+  assertEquals(t.head.map(cellText), ['#', 'Description', 'Specification', 'Qty', 'Unit', 'Rate (AED)', 'Amount (AED)']);
+  assertStringIncludes(cellText(t.rows[0][2]), 'Thickness: 18 mm');
+  assertStringIncludes(cellText(t.rows[0][2]), 'Moisture resistant MDF');
+  assertEquals(cellText(t.rows[0][6]), '29,400.00');
+  const tot = blocksOf(body, 'totals')[0];
+  assertEquals(tot.rows.map((r: string[]) => r[1]), ['AED 62,400.00', 'AED 62,400.00']);
+  assertEquals(tot.note, '');
+});
+
+for (const c of ['hvac', 'fitout'] as const) {
+  for (const lang of ['en', 'ar'] as const) {
+    Deno.test(`comparison ${c} (${lang.toUpperCase()}): sections, every quote listed, held quote without details, technical table, no identity, no VAT, renders`, async () => {
+      // deno-lint-ignore no-explicit-any
+      const body: any = compareBody(c, lang);
+      const s = JSON.stringify(body);
+      const N = CASES[c].n; const held = CASES[c].held; const heldAr = held.replace('Supplier', 'المورّد');
+      const want = lang === 'en'
+        ? ['Quote comparison report', 'Executive summary', 'Method and scope of assessment', 'Technical comparison', 'Commercial comparison', `All quotes received (${N})`, 'Risks and clarifications by supplier', `3 of ${N}`, 'Shortlisted #1', `${held} is on hold`, 'Recommended', 'You can choose any of them', 'Matches your request', 'Completeness: the four checks, side by side', 'Prepared by the QuotesDone sales engineer']
+        : ['تقرير مقارنة العروض', 'الملخص التنفيذي', 'المنهجية ونطاق التقييم', 'المقارنة الفنية', 'المقارنة التجارية', `جميع العروض المستلمة (${N})`, 'المخاطر والاستيضاحات لكل مورّد', `3 من ${N}`, `${heldAr} معلّق`, 'التوصية', 'يمكنك اختيار أي منها', 'مطابق لطلبك', 'أعدّه مهندس مبيعات QuotesDone'];
+      for (const w of want) assertStringIncludes(s, w);
+      // "Only three quotes" must never be said about a request that received more.
+      assert(!/only (3|three) quotes/i.test(s));
+      // Every quote is in the roster; the held one says so and shows no price and no lead time.
+      const statusHead = lang === 'en' ? 'Status' : 'الحالة';
+      const roster = blocksOf(body, 'table').find((t) => cellText(t.head[3]) === statusHead);
+      assertEquals(roster.rows.length, N);
+      const heldRow = roster.rows.find((r: unknown[]) => cellText(r[3]) === (lang === 'en' ? 'On hold' : 'معلّق'));
+      assert(heldRow, 'the held quote is listed as on hold');
+      assertEquals(cellText(heldRow[0]), lang === 'en' ? held : heldAr);
+      assertEquals([cellText(heldRow[1]), cellText(heldRow[2])], ['—', '—']);
+      // The held quote is never a technical or commercial column.
+      for (const t of blocksOf(body, 'table')) if (cellText(t.head[3]) !== statusHead) assert(!t.head.map(cellText).includes(lang === 'en' ? held : heldAr), 'held quote is a column: ' + JSON.stringify(t.head));
+      // The line-by-line table: one group row per scope line, one flagged cell per supplier per attribute.
+      const spec = blocksOf(body, 'table').find((t) => cellText(t.head[1]) === (lang === 'en' ? 'You asked for' : 'طلبك'));
+      assert(spec, 'technical line-by-line table');
+      assertEquals(spec.rows.filter((r: unknown[]) => r.length === 1).length, CASES[c].tech().lines.length);
+      // deno-lint-ignore no-explicit-any
+      const flags = spec.rows.filter((r: unknown[]) => r.length > 1).flatMap((r: any[]) => r.slice(2).map((x) => x.flag));
+      assert(flags.includes('match') && flags.includes('differs') && flags.includes('missing'), 'the table marks matches, differences and gaps');
+      assertStringIncludes(body.control, 'v2.0');
+      if (lang === 'ar') { assertFullyArabic(body); assert(!s.includes('"Supplier '), 'an untranslated supplier label on the Arabic report'); }
+      assertNoIdentity(body, c); assertNoVat(body, lang); assertNoMachinery(body);
+      await assertRenders(body, lang);
+    });
+  }
+}
+
+Deno.test('comparison (fit-out): the others show their differences; the held quote\'s gaps are not detailed', () => {
+  // deno-lint-ignore no-explicit-any
+  const body: any = compareBody('fitout', 'en');
   const s = JSON.stringify(body);
-  assertStringIncludes(s, '"supplier_label":"A"');
-  assertStringIncludes(s, 'QD-ZZD3M0AA-A');
-  assertStringIncludes(s, '78900');
-  assertStringIncludes(s, 'Gree ducted split unit 5 TR');
-  assertStringIncludes(s, '50% advance, 50% on completion');
-  assert(!/[؀-ۿ]/.test(JSON.stringify((body as { quote: unknown }).quote)), 'Arabic in the English quotation');
-  assertStringIncludes(s, '"letterhead":true');
-  assertNoIdentity(body);
-  await assertRenders(body, 'en');
+  assertStringIncludes(s, 'Line 1 (Built-in wardrobe): finish is PU lacquer, high gloss; you asked for PU lacquer, matt.');
+  assertStringIncludes(s, 'Line 2 (Kitchen cabinets): thickness is 16 mm; you asked for 18 mm.');
+  assert(!s.includes('Line 1 (Built-in wardrobe): thickness not stated'), 'the held quote\'s gaps are not detailed');
 });
 
-Deno.test('quotation (AR): translated terms, supplier text kept and declared, no identity, renders', async () => {
-  const body = quoteBody(0, 'ar');
+Deno.test('comparison without a technical comparison says specifications are not assessed — once', () => {
+  for (const lang of ['en', 'ar'] as const) {
+    const s = JSON.stringify(compareBody('hvac', lang, false));
+    assertEquals((s.match(lang === 'en' ? /Specifications are not assessed/g : /لم تُقيَّم المواصفات/g) || []).length, 1, lang);
+    assertStringIncludes(s, lang === 'en' ? 'All 7 quotes are listed in this report; the top 3 are compared in detail.' : 'جميع العروض الـ7 مدرجة في هذا التقرير');
+  }
+});
+
+Deno.test('compare_csv exports the same commercial rows the report shows, markers as text', () => {
+  const a = analysisFor('fitout', 'en');
+  const t = compareTable(a, false)!;
   // deno-lint-ignore no-explicit-any
-  const q = (body as any).quote;
-  assertEquals(body.lang, 'ar');
-  assertEquals(q.lead_time, 'أسبوعان');
-  assertEquals(q.warranty, '12 شهرًا');
-  assertEquals(q.validity, '30 يومًا');
-  assertEquals(q.payment_terms, '50% دفعة مقدّمة، 50% عند الإنجاز');
-  assertEquals(q.emirate, 'دبي');
-  assertEquals(q.job_category, 'التكييف والتبريد (HVAC)');
-  assertEquals(q.items[0].unit, 'عدد');
-  assertStringIncludes(q.source_note, 'دون ترجمة');
-  assertEquals(q.total, 78900);
-  assertNoIdentity(body);
-  await assertRenders(body, 'ar');
+  const shortlisted = a.top3.map((x: any) => x.label);
+  assertEquals(t.head, ['Compare', ...shortlisted]);
+  assert(!t.head.includes('Supplier B'), 'the held quote is not a CSV column');
+  const lead = t.rows.find((r) => r[0] === 'Delivery / lead time')!;
+  for (const cell of lead.slice(1)) assert(/^[✓≠—] /.test(cell), 'a marker on ' + cell);
 });
 
-for (const lang of ['en', 'ar'] as const) {
-  Deno.test(`comparison report (${lang.toUpperCase()}): top 3, all seven listed, the held quote explained, no identity, renders`, async () => {
-    const body = compareBody(lang);
-    const s = JSON.stringify(body);
-    if (lang === 'en') {
-      assertStringIncludes(s, 'Quote comparison report');
-      assertStringIncludes(s, 'All quotes received (7)');
-      assertStringIncludes(s, '3 of 7');
-      assertStringIncludes(s, 'Shortlisted #1');
-      assertStringIncludes(s, 'Supplier G is on hold');
-      assertStringIncludes(s, 'Recommended');
-    } else {
-      assertStringIncludes(s, 'تقرير مقارنة العروض');
-      assertStringIncludes(s, 'جميع العروض المستلمة (7)');
-      assertStringIncludes(s, '3 من 7');
-      assertStringIncludes(s, 'المورّد G معلّق');
-      assertStringIncludes(s, 'التوصية');
-      assert(!s.includes('"Supplier '), 'an untranslated supplier label on the Arabic report');
-    }
-    // "Only three quotes" must never be said about a request that received seven.
-    assert(!/only (3|three) quotes/i.test(s));
-    if (lang === 'en') {
-      assertStringIncludes(s, 'All 7 quotes are listed in this report; the top 3 are compared in detail.');
-      assertStringIncludes(s, 'You can choose any of them');
-      assertStringIncludes(s, 'Specifications are not assessed');
-    } else {
-      assertStringIncludes(s, 'جميع العروض الـ7 مدرجة في هذا التقرير');
-      assertStringIncludes(s, 'يمكنك اختيار أي منها');
-    }
-    // A customer never reads that something of ours is unavailable, and a rules ranking never
-    // claims to have matched the specification.
-    assert(!/AI adviser|unavailable|المساعد الذكي|غير متاح|strongest \d+ are shown|وعرضت أفضل|من حيث المواصفات/i.test(s), 'internal-failure or spec-match wording reached the report');
-    // The method line is said once, not repeated as a "Watch out" bullet.
-    assertEquals((s.match(lang === 'en' ? /Specifications are not assessed/g : /لم تُقيَّم المواصفات/g) || []).length, 1);
-    assertNoIdentity(body);
-    await assertRenders(body, lang);
-  });
+for (const c of ['hvac', 'fitout'] as const) {
+  for (const lang of ['en', 'ar'] as const) {
+    Deno.test(`comparison ${c} (${lang.toUpperCase()}): every quote row and every recommendation links to its own quote`, async () => {
+      const body = compareBody(c, lang);
+      const lab = CASES[c].lab();
+      const want = lab.map((l) => deep(c, lang, l.quote_id));
+      assertEquals(portalLink(lang, CASES[c].inq.id, lab[0].quote_id), want[0]);
+      const s = JSON.stringify(body);
+      for (const u of want) assertStringIncludes(s, JSON.stringify(u));
+      const out = await assertRenders(body, lang);
+      if (!out || !out.ok || (lang === 'ar' && !out.meta.fonts.arabic)) return;
+      const links = await linksIn(out.bytes);
+      for (const u of want) assert(links.includes(u), 'no link on the page to ' + u + ' - found ' + JSON.stringify(links));
+      // A recommended quote links from the "Recommended" table AND "All quotes received" (the first
+      // pick also from its recommendation box).
+      const a = analysisFor(c, lang);
+      // deno-lint-ignore no-explicit-any
+      for (const t of a.top3) { const r = a.all_quotes.find((x: any) => x.label === t.label); assert(links.filter((u) => u === deep(c, lang, r.quote_id)).length >= 2, 'recommended ' + t.label); }
+      assert(links.includes(portalLink(lang, CASES[c].inq.id)), 'the portal note should open this request');
+      // Ids only: the query holds `request` (this inquiry) and, on a quote link, `quote` (a live quote id).
+      const ids = new Set(lab.map((l) => l.quote_id));
+      for (const u of links) {
+        const p = new URL(u).searchParams;
+        assertEquals([...p.keys()].filter((k) => k !== 'request' && k !== 'quote'), [], 'a link carries more than ids: ' + u);
+        assertEquals(p.get('request'), CASES[c].inq.id);
+        if (p.has('quote')) assert(ids.has(String(p.get('quote'))), 'a link names a quote that is not on this request: ' + u);
+      }
+    });
+  }
 }
-
-for (const lang of ['en', 'ar'] as const) {
-  Deno.test(`comparison report (${lang.toUpperCase()}): every quote row and every recommendation links to its own quote`, async () => {
-    const body = compareBody(lang);
-    const lab = labelled();
-    const want = lab.map((l) => deep(lang, l.quote_id));
-    assertEquals(portalLink(lang, INQUIRY.id, lab[0].quote_id), want[0]);
-    const s = JSON.stringify(body);
-    for (const u of want) assertStringIncludes(s, JSON.stringify(u));
-    assertNoIdentity(body);
-    const out = await assertRenders(body, lang);
-    if (!out || !out.ok) return;
-    const links = await linksIn(out.bytes);
-    for (const u of want) assert(links.includes(u), 'no link on the page to ' + u + ' - found ' + JSON.stringify(links));
-    // A recommended quote links from both tables: "Recommended" and "All quotes received".
-    const a = analysisFor(lang);
-    // deno-lint-ignore no-explicit-any
-    for (const t of a.top3) { const r = a.all_quotes.find((x: any) => x.label === t.label); assertEquals(links.filter((u) => u === deep(lang, r.quote_id)).length, 2, 'recommended ' + t.label); }
-    assert(links.includes(portalLink(lang, INQUIRY.id)), 'the portal note should open this request');
-    // Ids only: the query holds `request` (this inquiry) and, on a quote link, `quote` (a live quote id).
-    const ids = new Set(lab.map((l) => l.quote_id));
-    for (const u of links) {
-      const p = new URL(u).searchParams;
-      assertEquals([...p.keys()].filter((k) => k !== 'request' && k !== 'quote'), [], 'a link carries more than ids: ' + u);
-      assertEquals(p.get('request'), INQUIRY.id);
-      if (p.has('quote')) assert(ids.has(String(p.get('quote'))), 'a link names a quote that is not on this request: ' + u);
-    }
-  });
-}
-
-Deno.test('quotation (EN): links back to its quote on its request', async () => {
-  const q = liveQuotes()[0];
-  const body = quoteBody(0, 'en');
-  // deno-lint-ignore no-explicit-any
-  assertEquals((body as any).quote.link, deep('en', q.id));
-  const out = await assertRenders(body, 'en');
-  if (!out || !out.ok) return;
-  assert((await linksIn(out.bytes)).includes(deep('en', q.id)));
-});
-
-Deno.test('quotation (AR): links back to /ar/me', async () => {
-  const q = liveQuotes()[0];
-  const body = quoteBody(0, 'ar');
-  // deno-lint-ignore no-explicit-any
-  assertEquals((body as any).quote.link, deep('ar', q.id));
-  const out = await assertRenders(body, 'ar');
-  // The link text is Arabic. Without the Arabic font (no --allow-net) it cannot be drawn, so the
-  // annotation is asserted only when the font is embedded.
-  if (out && out.ok && out.meta.fonts.arabic) assert((await linksIn(out.bytes)).includes(deep('ar', q.id)));
-});

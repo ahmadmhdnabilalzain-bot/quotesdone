@@ -31,6 +31,12 @@ export type Labelled = {
 export const RULES_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted three, ranked on the price, completeness, lead time, warranty and payment terms each supplier stated, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes.";
 export const RULES_DISCLAIMER_AR = 'هذه توصية محايدة من QuotesDone أعددناها لتسهيل قرارك. من بين جميع العروض التي استلمتها، اخترنا ثلاثة عروض رُتّبت وفق السعر واكتمال العرض ومدة التنفيذ والضمان وشروط الدفع التي ذكرها كل مورّد، وقارنّاها بالتفصيل. يبقى لك كامل الحرية في كشف واختيار أي مورّد من قائمة عروضك الكاملة.';
 
+// The method sentence the rules ranking puts in its bottom line. Exported so the comparison report,
+// which states its method in its own section, can take it out of the bottom line instead of saying
+// it twice (quote_documents.ts compareDocument).
+export const METHOD_NOTE_EN = 'Quotes are ranked on the figures each supplier stated: price, completeness, lead time, warranty and payment terms. Specifications are not assessed; check them before you pay.';
+export const METHOD_NOTE_AR = 'رُتّبت العروض وفق الأرقام التي ذكرها كل مورّد: السعر، واكتمال العرض، ومدة التنفيذ، والضمان، وشروط الدفع. لم تُقيَّم المواصفات؛ يُرجى التحقق منها قبل الدفع.';
+
 const clamp15 =(n: number) => Math.max(1, Math.min(5, Math.round(n)));
 
 // Score a lower-is-better value ACROSS THE RANGE THE QUOTES ACTUALLY OCCUPY, not as a ratio to
@@ -174,12 +180,10 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     tradeoff: s.flags.length ? s.flags[0] : '',
   }));
 
-  const note = ar
-    // THE METHOD, NEVER THE MACHINERY (coordinator review of the #600 samples, 14 Sep 2026). This
-    // said the "AI adviser was unavailable". A customer must never read that something of ours is
-    // down; they need to know how the ranking was made and what it did not look at. Same facts.
-    ? 'رُتّبت العروض وفق الأرقام التي ذكرها كل مورّد: السعر، واكتمال العرض، ومدة التنفيذ، والضمان، وشروط الدفع. لم تُقيَّم المواصفات؛ يُرجى التحقق منها قبل الدفع.'
-    : 'Quotes are ranked on the figures each supplier stated: price, completeness, lead time, warranty and payment terms. Specifications are not assessed; check them before you pay.';
+  // THE METHOD, NEVER THE MACHINERY (coordinator review of the #600 samples, 14 Sep 2026). This
+  // said the "AI adviser was unavailable". A customer must never read that something of ours is
+  // down; they need to know how the ranking was made and what it did not look at. Same facts.
+  const note = ar ? METHOD_NOTE_AR : METHOD_NOTE_EN;
 
   return {
     degraded: true,

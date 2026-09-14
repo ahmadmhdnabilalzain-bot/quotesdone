@@ -168,6 +168,17 @@ const COPY: Record<string, Entry> = {
   reg_exempt: s((p) => `Your registration is permanently free — you are supplier number ${p.rank}, inside the founding 1,000. There is no fee, now or in future.`, (p) => `تسجيلك مجاني بشكل دائم — أنت المورّد رقم ${p.rank} ضمن أول 1,000 مورّد. لا رسوم الآن ولا مستقبلًا.`),
   reg_not_due: s('There is nothing to pay. The yearly fee applies only from the 1,001st registration.', 'لا يوجد ما تدفعه. تُطبَّق الرسوم السنوية فقط اعتبارًا من التسجيل رقم 1,001.'),
   reg_paid: s((p) => `Your registration is paid${p.until ? ' until ' + p.until : ''}.`, (p) => `رسوم تسجيلك مدفوعة${p.until ? ' حتى ' + p.until : ''}.`),
+  // ── The sales engineer's hold desk (14 Sep 2026) ────────────────────────────────────────────────
+  spec_hold: s('Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.', 'عرضك معلّق حتى تُذكر التفاصيل الدقيقة المذكورة. أكملها هنا أو ارفع عرضًا معدّلًا.'),
+  options_split: s((p) => `Your submission carried ${p.count} options; each is now its own quotation.`, (p) => `احتوى عرضك على ${p.count} خيارات؛ أصبح كل خيار عرضًا مستقلًا.`),
+  option_total_missing: s((p) => `Enter the total for option ${p.option}.`, (p) => `أدخل الإجمالي للخيار ${p.option}.`),
+  too_many_options: s('A quote can carry at most 20 options.', 'يمكن أن يتضمن العرض 20 خيارًا كحدّ أقصى.'),
+  invalid_values: s('Some details are not exact yet — see the marked fields.', 'بعض التفاصيل ليست دقيقة بعد — راجع الحقول المحددة.'),
+  not_awaiting_approval: s('There is no regenerated quotation waiting for your approval.', 'لا يوجد عرض مُعاد إعداده بانتظار اعتمادك.'),
+  confirm_required: s('Tick the box to confirm the regenerated quotation is correct.', 'ضع علامة لتأكيد أن العرض المُعاد إعداده صحيح.'),
+  still_missing: s('Some required details are still missing.', 'ما زالت بعض التفاصيل المطلوبة ناقصة.'),
+  no_hold: s('This quote is not on hold.', 'هذا العرض غير معلّق.'),
+  not_found: s('That quote was not found.', 'لم يُعثر على هذا العرض.'),
   payment_unavailable: s('Online payment is not available right now. Please try again later.', 'الدفع الإلكتروني غير متاح حاليًا. يُرجى المحاولة لاحقًا.'),
 };
 
