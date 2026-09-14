@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T08:11:56.011Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T08:58:59.875Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -42221,18 +42221,20 @@ begin
             where m.user_id=c.id and coalesce(m.active,true))
          limit 1),
       'last_active',(select max(created_at) from inquiries where customer_id=c.id),
-      -- AI UNDERSTANDING (§2) — the share of the eight profile facts the system actually holds for
-      -- this customer. The spec prints 96%; a constant would be a decoration, so this counts.
-      'understanding_pct',(select round(100.0 * (
+      -- AI UNDERSTANDING (§2) — the share of eight profile facts held, and ONLY once the customer
+      -- has raised a request. Before that there is no buying behaviour to understand, and a tally of
+      -- sign-up fields is not understanding (see the header of this file).
+      'understanding_pct',(case when exists (select 1 from inquiries where customer_id=c.id) then
+         (select round(100.0 * (
              (c.full_name is not null and c.full_name <> '')::int
            + (c.phone is not null and c.phone <> '')::int
            + coalesce(c.email_verified,false)::int
            + (c.tos_accepted_at is not null)::int
            + (c.locale is not null)::int
            + (c.industry is not null and c.industry <> '')::int
-           + (exists (select 1 from inquiries where customer_id=c.id))::int
+           + 1
            + (exists (select 1 from customer_preference cp where cp.customer_id=c.id))::int
-         ) / 8.0)),
+         ) / 8.0)) end),
       'banned',c.banned) into res from customers c where c.id::text=p_id;
 
   elsif p_kind='rfq' then

@@ -103,6 +103,11 @@ export function CustomerMemory({ token, lang = 'en' }: { token: string; lang?: s
             ))}
           </div>
         </div>
+      ) : loaded && !err ? (
+        // customer_preference held zero rows on 14 Sep 2026, so this is every customer's state.
+        <div className={cn(S.sub, 'mt-2.5')}>
+          {L(lang, 'Nothing learned yet. This fills in from your requests.', 'لم نستخلص شيئًا بعد. سيمتلئ هذا من طلباتك.')}
+        </div>
       ) : null}
 
       {loaded ? (

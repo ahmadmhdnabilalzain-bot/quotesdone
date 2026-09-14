@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Seal, Kicker } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
+import { durationLabel } from '@/lib/durationLabel';
+import { statusLabel as projectStatusLabel } from '@/components/portal/projects/strings';
 // Spec §22 modules that were written and never mounted. Each renders ONLY fields the endpoint it
 // names already returns; see the header comment in each file for the field-by-field provenance.
 import { ProjectsModule } from '@/components/portal/projects';
@@ -67,8 +70,11 @@ const tokenAlive = (t) => {
 async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
 import { t, tf, errText, emirateName } from './portalText';
+// The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
+import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
 import { BrandMark } from '@/components/BrandMark';
-const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+// Wrapped in LRI…PDI so "AED 36,900" keeps its order inside an Arabic sentence.
+const aed = (n) => '⁦AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 }) + '⁩';
 // The hour is the CUSTOMER'S, not the server's: the portal renders client-side only (the shell
 // returns null until mounted), so a customer opening it at 07:00 in Dubai is not greeted with the
 // deployment region's afternoon. Arabic uses مساء from midday onward, which is why it has two
@@ -366,7 +372,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
     <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</h1>
     <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
     <Input className="mt-3" aria-label={t(lang, 'full_name')} autoComplete="name" placeholder={t(lang, 'full_name')} value={full_name} onChange={(e) => setFullName(e.target.value)} />
-    <Input className="mt-3" aria-label={t(lang, 'acct_phone')} inputMode="tel" autoComplete="tel" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
+    <Input className="mt-3" aria-label={t(lang, 'acct_phone')} type="tel" dir="ltr" inputMode="tel" autoComplete="tel" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
     <label htmlFor="qd-dob" className={cn(S.sub, 'mt-3 mb-1 block')}>{t(lang, 'dob_label')}</label>
     {/* The native date picker follows the customer's chosen theme; it was pinned dark (audit 14 Sep). */}
     <Input id="qd-dob" type="date" className="mt-0" style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }} value={dob} required aria-invalid={isUnder18(dob) || undefined} onChange={(e) => setDob(e.target.value)} />
@@ -596,9 +602,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
 
     {note && <div className={S.note}>{note}</div>}
     {receipt && <ReceiptNote receipt={receipt} inqs={inqs} lang={lang} onClose={() => setReceipt(null)} />}
-    {/* llm_available comes from customer_portal's overview (llm_route_health): voice and drawing
-        reading say "paused" before the customer tries instead of failing after the upload. */}
-    {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} call={call} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
+    {/* llm_available comes from customer_portal's overview (llm_route_health): it hides the mic
+        while transcription is held. Drawings and BOQs are read server-side and are never gated. */}
+    {/* An incomplete account is a place to go, not a dead end: create_inquiry answers
+        account_incomplete (with `missing`), and the Account page lists exactly what is missing. */}
+    {showNew && <div className="mb-5"><NewRequest token={token} lang={lang}
+      call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
       onDone={() => { setShowNew(false); setDraft(''); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => { setShowNew(false); setDraft(''); }} /></div>}
 
     {/* The severity marker was a 4px border-l — which is both a well-worn generated-UI tell and,
@@ -659,7 +668,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
             const budget = p.budget_total == null ? null : Number(p.budget_total);
             const timeline = p.timeline_pct == null ? null : Math.max(0, Math.min(100, Number(p.timeline_pct)));
             return (<Card key={p.project_id} className="p-3.5 transition-colors duration-200">
-              <div className="flex justify-between items-center gap-2"><b className="text-[13.5px] text-foreground">{p.name}</b><span className={cn(S.sub, 'capitalize')}>{p.status}</span></div>
+              <div className="flex justify-between items-center gap-2"><b className="text-[13.5px] text-foreground">{p.name}</b><span className={S.sub}>{projectStatusLabel(lang, p.status)}</span></div>
               <div className={cn(S.sub, 'mt-1')}>{openN + ' / ' + totalN + ' ' + t(lang, 'rfqs_open_of')}{' · '}{(Number(p.supplier_count) || 0) + ' ' + t(lang, 'suppliers_engaged')}</div>
               <div className={cn(S.sub, 'mt-0.5')}>{budget == null ? t(lang, 'no_budget_set') : (t(lang, 'budget_label') + ': ' + aed(budget))}</div>
               {timeline == null
@@ -892,7 +901,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill state={stateOf(inq, quotes)} t={(k) => t(lang, k)} />
-          <b className="font-head text-[15px] font-semibold capitalize tracking-snug">{inq.category || t(lang, 'rc_request')}</b>
+          <b className="font-head text-[15px] font-semibold tracking-snug">{inq.category ? categoryLabel(inq.category, lang) : t(lang, 'rc_request')}</b>
           {inq.rfq_no ? <span className="tabular rounded-chip border border-border bg-secondary/40 px-1.5 py-0.5 font-mono text-label text-muted-foreground">{inq.rfq_no}</span> : null}
         </div>
         {/* Emirate and the quote count stay separate spans: the Row #4 blueprint asserts each. */}
@@ -982,7 +991,7 @@ function LevelledRows({ quotes, vmap, bestId, lang }) {
                 </span>
                 <span role="cell" className={cn('tabular text-end font-mono', best ? 'font-semibold text-primary' : 'text-foreground')}>{Number(q.price) > 0 ? aed(q.price) : miss}</span>
                 <span role="cell" className="min-w-0 truncate text-muted-foreground">{q.lead_time || miss}</span>
-                <span role="cell" className="min-w-0 truncate text-muted-foreground">{q.warranty || miss}</span>
+                <span role="cell" className="min-w-0 truncate text-muted-foreground">{q.warranty ? durationLabel(q.warranty, lang) : miss}</span>
                 <span role="cell" className={cn('tabular text-end font-mono', best ? 'text-primary' : 'text-muted-foreground')}>{vmap[q.id] != null ? vmap[q.id] : '—'}</span>
               </div>
             );
@@ -1169,7 +1178,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
       <div className="min-w-0"><b className="font-head font-semibold tracking-snug">{supLabel(q.label, lang)}</b>{!revealed ? <span aria-hidden className="ms-2 inline-block align-middle leading-none"><Seal className="text-[11px]">{'••••••••••'}</Seal></span> : null}{best ? <span className="ms-1.5 rounded-chip border border-primary/30 bg-primary/12 px-1.5 py-0.5 align-middle font-mono text-[10px] font-semibold text-primary">{t(lang, 'q_best')}</span> : null}{q.verified ? <span className="text-[11px] font-bold text-primary"> ✓ {t(lang, 'q_verified')}</span> : null}{q.rating != null ? <span className="text-[12px] font-semibold text-accent"> ★ {q.rating}{q.rating_count != null ? ' (' + q.rating_count + ')' : ''}</span> : <span className="text-[11px] text-muted-foreground" title={t(lang, 'q_unrated_tip')}> {t(lang, 'q_unrated')}</span>}</div>
       <div className="shrink-0 text-end"><div className="tabular font-mono text-[18px] font-semibold text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="tabular font-mono text-[10.5px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
     </div>
-    <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + q.warranty : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
+    <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + durationLabel(q.warranty, lang) : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
     {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
     {q.badges ? <div className="mt-1.5"><QuoteBadges f={q.badges} /></div> : null}
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
@@ -1189,8 +1198,9 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {revealed ? (contact
         ? <RevealMoment play={justRevealed && !reduce}><Contact play={justRevealed && !reduce} c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
-      : (<div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 border-t border-border pt-3">
-          <div className={cn(S.sub, 'min-w-0 flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
+      : (<div className="mt-3 flex flex-col items-stretch gap-2.5 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* Stacked below sm: beside the button the fee sentence was squeezed to 1-2 words a line at 375px. */}
+          <div className={cn(S.sub, 'min-w-0 sm:flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
           {/* Gold: the one action in the product that unseals an identity. */}
           <Button variant="reveal" disabled={busy || concluded} onClick={reveal}><Lock aria-hidden />{busy ? t(lang, 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
@@ -1227,7 +1237,7 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
       <div className="mt-1.5 flex flex-wrap gap-3.5">
         {s.phone && <a href={'tel:' + s.phone} className="font-semibold text-primary">📞 <bdi dir="ltr">{s.phone}</bdi></a>}
         {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="font-semibold text-primary">WhatsApp</a>}
-        {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi>{s.email}</bdi></a>}
+        {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi dir="ltr">{s.email}</bdi></a>}
         {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
       </div>
       {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</a></div>}
@@ -1366,10 +1376,10 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
 // and being told that before they press the button is the difference between a feature and a trap.
 function AccountSettings({ token, lang, onChanged }) {
   const [me, setMe] = useState(null); const [err, setErr] = useState('');
-  const [name, setName] = useState(''); const [phone, setPhone] = useState('');
+  const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
   const load = () => call('customer_api', { action: 'me' }, token)
-    .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); } else setErr(t(lang, 'acct_failed')); })
+    .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); setDob(String(j.customer.date_of_birth || '').slice(0, 10)); } else setErr(t(lang, 'acct_failed')); })
     .catch(() => setErr(t(lang, 'acct_failed')));
   // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
   // render, when `token` is still '' because it is read from localStorage and from
@@ -1386,10 +1396,19 @@ function AccountSettings({ token, lang, onChanged }) {
   const since = me.created_at ? new Date(me.created_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const digits = (v) => String(v || '').replace(/\D/g, '');
   const phoneChanged = digits(phone) !== digits(me.phone);
-  const dirty = (name || '') !== (me.full_name || '') || phoneChanged;
+  const dobChanged = dob !== String(me.date_of_birth || '').slice(0, 10);
+  const dirty = (name || '') !== (me.full_name || '') || phoneChanged || dobChanged;
+  // Same rule create_inquiry applies, plus the reachable mobile it also requires.
+  const missing = accountMissing(me);
+  if (!digits(me.phone)) missing.push('mobile_number');
+  // A badge belongs to the channel that was verified, and a number that is not there is not verified.
+  const phoneOk = !!me.phone_verified && !!digits(me.phone);
+  const badge = (ok) => <span className={ok ? 'text-primary font-bold' : ''}>{t(lang, ok ? 'verified' : 'acct_unverified')}</span>;
   const saveProfile = async () => {
+    if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; }
     setBusy('save'); setMsg('');
-    const j = await call('kyc', { action: 'save_customer', full_name: name, phone, dob: me.date_of_birth || '' }, token);
+    // kyc save_customer already validates dob (dob_required / dob_invalid / under_18, answered by errText).
+    const j = await call('kyc', { action: 'save_customer', full_name: name, phone, dob: dob || me.date_of_birth || '' }, token);
     setBusy('');
     if (j && j.ok) { setMsg(t(lang, j.phone_reverify_required ? 'acct_reverify' : 'acct_saved')); load(); if (onChanged) onChanged(); }
     else setMsg(errText(j, lang, 'acct_failed'));
@@ -1408,17 +1427,26 @@ function AccountSettings({ token, lang, onChanged }) {
   );
   return (<div className="flex flex-col gap-4">
     <p className={S.sub}>{t(lang, 'acct_sub')}</p>
+    {missing.length ? <Card className="p-4 border-warn-fg/40" role="status">
+      <div className="text-[13.5px] font-semibold text-warn-fg">{t(lang, 'acct_incomplete_h')}</div>
+      <ul className="mt-1.5 list-disc ps-5 text-[13px] text-foreground">{missing.map((m) => <li key={m}>{t(lang, 'acct_miss_' + m)}</li>)}</ul>
+    </Card> : null}
     <Card className="flex flex-col gap-3.5 p-4">
       <Row label={t(lang, 'acct_name')}><Input aria-label={t(lang, 'acct_name')} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} /></Row>
       <Row label={t(lang, 'acct_phone')}>
-        <Input aria-label={t(lang, 'acct_phone')} autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+        <Input aria-label={t(lang, 'acct_phone')} type="tel" dir="ltr" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
         <div className={cn('mt-1 text-[11.5px]', phoneChanged ? 'text-warn-fg' : 'text-muted-foreground')}>
-          {phoneChanged ? t(lang, 'acct_phone_warn') : (me.phone_verified ? t(lang, 'verified') : t(lang, 'acct_unverified'))}
+          {phoneChanged ? t(lang, 'acct_phone_warn') : badge(phoneOk)}
         </div>
       </Row>
       <Row label={t(lang, 'acct_email')}>
         {/* Isolated so a Latin address does not scramble inside an Arabic line. */}
-        <div className="text-[13px] text-foreground"><bdi>{me.email || '—'}</bdi></div>
+        <div className="text-[13px] text-foreground"><bdi dir="ltr">{me.email || '—'}</bdi></div>
+        <div className="mt-1 text-[11.5px] text-muted-foreground">{badge(!!me.email_verified && !!me.email)}</div>
+      </Row>
+      <Row label={t(lang, 'acct_dob')}>
+        <Input type="date" aria-label={t(lang, 'acct_dob')} autoComplete="bday" value={dob} aria-invalid={isUnder18(dob) || undefined} onChange={(e) => setDob(e.target.value)} />
+        {isUnder18(dob) && <div className={S.err} role="alert">{t(lang, 'err_under_18')}</div>}
       </Row>
       <Row label={t(lang, 'acct_locale')}>
         <div className="flex flex-wrap gap-2">

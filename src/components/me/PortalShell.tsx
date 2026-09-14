@@ -231,7 +231,8 @@ export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
       {/* The kit's lit top edge, on the tile that is asking for a decision. */}
       {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" /> : null}
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
+        {/* Wraps, never truncates: "AWAITING YOUR DECISI…" cut the tile's one word that mattered. */}
+        <div className="min-w-0 break-words font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
         <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-panel border',
           tone === 'accent' ? 'border-primary/35 bg-primary/12 text-primary' : 'border-border bg-secondary/40 text-muted-foreground')}>
           <Icon className="h-4 w-4" aria-hidden />
@@ -438,7 +439,7 @@ export function PortalShell({
                   id="qd-ask" ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder={narrow ? t('ask_ph_short') : t('ask_ph')} autoComplete="off"
                   className={cn(
-                    'h-11 w-full rounded-btn border border-input bg-card ps-11 pe-16 text-[13.5px] text-foreground shadow-e1',
+                    'h-11 w-full rounded-btn border border-input bg-card ps-11 pe-3 sm:pe-16 text-[13.5px] text-foreground shadow-e1',
                     'placeholder:text-muted-foreground focus-visible:outline-none',
                     'focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/25',
                     'transition-[border-color,box-shadow] duration-200',
@@ -490,7 +491,7 @@ export function PortalShell({
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-[12px] font-bold text-primary">
                 {String(customerName || '?').trim().charAt(0).toUpperCase()}
               </span>
-              <span className="hidden max-w-[140px] truncate text-[13px] font-semibold text-foreground lg:block">{customerName || ''}</span>
+              <span dir="auto" className="hidden max-w-[140px] truncate text-start text-[13px] font-semibold text-foreground lg:block">{customerName || ''}</span>
             </button>
 
             <div className="hidden shrink-0 items-center gap-1 sm:flex">

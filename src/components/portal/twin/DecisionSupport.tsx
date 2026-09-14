@@ -25,6 +25,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
 import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
@@ -141,7 +142,7 @@ export function DecisionSupport({ token, lang = 'en' }:
         const sooner = days(r.days_sooner, lang);
         return (
           <div key={r.inquiry_id} className="mt-2.5 border-t border-border/60 pt-2.5 first:border-0 first:pt-0">
-            <div className={S.head}>{r.summary || r.category || L(lang, 'Your request', 'طلبك')}</div>
+            <div className={S.head}>{r.summary || (r.category && categoryLabel(r.category, lang)) || L(lang, 'Your request', 'طلبك')}</div>
             <div className={cn(S.sub, 'mt-1')}>
               {r.same_quote_wins
                 ? L(lang,
@@ -180,8 +181,8 @@ export function DecisionSupport({ token, lang = 'en' }:
               the Arabic half of one L() call empty, which is not a translation. */}
           <div className={cn(S.head, 'first-letter:uppercase')}>
             {L(lang,
-               `What ${m.category} jobs cost${m.emirate ? ' in ' + m.emirate : ' in the UAE'}`,
-               `كم تكلّف أعمال ${m.category}${m.emirate ? ' في ' + m.emirate : ' في الإمارات'}`)}
+               `What ${categoryLabel(m.category || '', 'en')} jobs cost${m.emirate ? ' in ' + m.emirate : ' in the UAE'}`,
+               `كم تكلّف أعمال ${categoryLabel(m.category || '', 'ar')}${m.emirate ? ' في ' + m.emirate : ' في الإمارات'}`)}
           </div>
           <div className={cn(S.sub, 'mt-1')}>
             {m.price_known
@@ -212,10 +213,12 @@ export function DecisionSupport({ token, lang = 'en' }:
         if (!copy) return null;
         return (
           <div key={c.inquiry_id} className="mt-2.5 border-t border-border/60 pt-2.5">
-            <div className={S.head}>{c.summary || c.category || L(lang, 'Your request', 'طلبك')}</div>
+            <div className={S.head}>{c.summary || (c.category && categoryLabel(c.category, lang)) || L(lang, 'Your request', 'طلبك')}</div>
             <div className={cn(S.sub, 'mt-1')}>
-              {L(lang, `Posted ${Math.round(Number(c.age_days))} days ago. `,
-                       `نُشر قبل ${Math.round(Number(c.age_days))} يومًا. `)}
+              {Math.round(Number(c.age_days)) < 1
+                ? L(lang, 'Posted today. ', 'نُشر اليوم. ')
+                : L(lang, `Posted ${Math.round(Number(c.age_days))} days ago. `,
+                         `نُشر قبل ${Math.round(Number(c.age_days))} يومًا. `)}
               {L(lang, copy[0], copy[1])}
             </div>
           </div>

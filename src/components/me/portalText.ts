@@ -33,7 +33,7 @@ export const T = {
     unread_message:'unread message', unread_messages:'unread messages',
     acct_title:'Your account', acct_sub:'What we hold for you, and the preferences this device remembers.',
     acct_name:'Name', acct_email:'Email', acct_phone:'Mobile', acct_locale:'Language on your profile', acct_since:'Customer since',
-    acct_local_note:'Language and appearance are remembered on this device. We have no settings endpoint that writes them back to your profile yet, so nothing here is saved to your account.',
+    acct_local_note:'Language and appearance are remembered on this device only. They are not saved to your account.',
     acct_failed:'Could not load your account details.',
     attention_one:'decision needs your attention', attention_many:'decisions need your attention',
     attention_none:'Nothing needs your attention right now.',
@@ -57,7 +57,7 @@ export const T = {
     // ── what happens after you post ──
     next_h:'What happens after you post',
     next_1:'We structure your description into a request suppliers can price, and send it to matching UAE suppliers — without your name or number.',
-    next_2:'Their quotes come back onto this screen. Most requests get their first quote within 48 hours; you are emailed as each one arrives.',
+    next_2:'Their quotes come back onto this screen. Quotes usually arrive within 3–5 working days; you are emailed as each one arrives.',
     next_3:'You compare them side by side for free. Supplier names stay hidden until you choose one.',
     next_4:'Revealing a supplier costs 3% of that quote, and nothing else. It is refunded in full if they do not respond within 5 working days: we chase them for you after 3, and banks take 7-14 working days to show a refund.',
     // ── shell ──
@@ -93,6 +93,9 @@ export const T = {
     acct_reverify:'Saved. Your new mobile needs verifying — reload this page and we will send you a code.',
     acct_phone_warn:'Changing your mobile will un-verify it. You will be asked to confirm the new number with a code before you can post a request.',
     acct_device_note:'Appearance is remembered on this device. Your language is saved to your account and follows you to any device you sign in on.',
+    acct_dob:'Date of birth', acct_incomplete_h:'Finish your account to post a request. Still missing:',
+    acct_miss_name:'Your full name', acct_miss_date_of_birth:'Your date of birth', acct_miss_age_18_or_over:'You must be 18 or over',
+    acct_miss_verified_email_or_mobile:'A verified mobile or email', acct_miss_terms_accepted:'Accepting the Terms', acct_miss_mobile_number:'Your mobile number',
     req_one:'request', req_many:'requests',
     qa_compare_off:'Needs a request with two or more quotes' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
@@ -122,7 +125,7 @@ export const T = {
     unread_message:'رسالة غير مقروءة', unread_messages:'رسائل غير مقروءة',
     acct_title:'حسابك', acct_sub:'ما نحتفظ به لك، والتفضيلات التي يتذكرها هذا الجهاز.',
     acct_name:'الاسم', acct_email:'البريد الإلكتروني', acct_phone:'الجوال', acct_locale:'اللغة في ملفك', acct_since:'عميل منذ',
-    acct_local_note:'تُحفظ اللغة والمظهر على هذا الجهاز فقط. لا يوجد لدينا حتى الآن نقطة نهاية لحفظ الإعدادات في ملفك، لذا لا يُحفظ أي شيء هنا في حسابك.',
+    acct_local_note:'تُحفظ اللغة والمظهر على هذا الجهاز فقط، ولا تُحفظ في حسابك.',
     acct_failed:'تعذّر تحميل تفاصيل حسابك.',
     attention_one:'قرار بحاجة إلى انتباهك', attention_many:'قرارات بحاجة إلى انتباهك',
     attention_none:'لا شيء يحتاج انتباهك الآن.',
@@ -146,7 +149,7 @@ export const T = {
     // ── ماذا يحدث بعد النشر ──
     next_h:'ماذا يحدث بعد أن ترسل طلبك',
     next_1:'نحوّل وصفك إلى طلب يستطيع الموردون تسعيره، ونرسله إلى الموردين المطابقين في الإمارات — دون اسمك أو رقمك.',
-    next_2:'تعود عروضهم إلى هذه الشاشة. معظم الطلبات يصلها أول عرض خلال 48 ساعة، ويصلك بريد عند وصول كل عرض.',
+    next_2:'تعود عروضهم إلى هذه الشاشة. تصل العروض عادةً خلال 3 إلى 5 أيام عمل، ويصلك بريد عند وصول كل عرض.',
     next_3:'تقارنها جنبًا إلى جنب مجانًا. تبقى أسماء الموردين مخفية حتى تختار أحدهم.',
     next_4:'كشف المورّد يكلّف 3% من قيمة عرضه، ولا شيء غير ذلك. ويُردّ بالكامل إذا لم يردّ خلال 5 أيام عمل: نتابعه نيابةً عنك بعد 3 أيام، وتستغرق البنوك 7-14 يوم عمل لإظهار الاسترداد.',
     // ── الهيكل ──
@@ -182,6 +185,9 @@ export const T = {
     acct_reverify:'تم الحفظ. رقمك الجديد يحتاج إلى تحقق — أعد تحميل الصفحة وسنرسل لك رمزًا.',
     acct_phone_warn:'تغيير رقم جوالك سيلغي التحقق منه. سيُطلب منك تأكيد الرقم الجديد برمز قبل أن تتمكن من نشر طلب.',
     acct_device_note:'يُحفظ المظهر على هذا الجهاز. أما لغتك فتُحفظ في حسابك وتتبعك على أي جهاز تسجّل الدخول منه.',
+    acct_dob:'تاريخ الميلاد', acct_incomplete_h:'أكمل حسابك لتتمكن من نشر طلب. ما زال ناقصًا:',
+    acct_miss_name:'اسمك الكامل', acct_miss_date_of_birth:'تاريخ ميلادك', acct_miss_age_18_or_over:'يجب أن يكون عمرك 18 عامًا أو أكثر',
+    acct_miss_verified_email_or_mobile:'جوال أو بريد إلكتروني موثّق', acct_miss_terms_accepted:'الموافقة على الشروط', acct_miss_mobile_number:'رقم جوالك',
     req_one:'طلب', req_many:'طلبات',
     qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر' }
 };
@@ -192,7 +198,7 @@ export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 // one merge so the audit's list can be checked against one block; every key has both languages.
 Object.assign(T.en, {
   nr_title: 'New request', nr_cancel: 'Cancel',
-  nr_greeting: "Hi — I'm your QuotesDone intake assistant. Tell me what you need done and which emirate it's in, and I'll ask a couple of quick questions so suppliers can quote accurately. You can type, attach a drawing, photo or your own quotation, or tap the mic. Your identity stays hidden until you choose to reveal a supplier.",
+  nr_greeting: "Hi — I'm your QuotesDone intake assistant. Tell me what you need done and which emirate it's in, and I'll ask a couple of quick questions so suppliers can quote accurately. You can type, or attach a drawing, BOQ, photo or your own quotation. Your identity stays hidden until you choose to reveal a supplier.",
   nr_reading: 'Reading your file…', nr_typing: 'Typing…', nr_ph: 'Message the assistant…', nr_listening: 'Listening… tap the mic to stop', nr_send: 'Send',
   nr_attach: 'Attach a drawing, photo or quotation',
   nr_attach_boq: 'Attach a BOQ — Excel, CSV, PDF or a photo', nr_attach_boq_short: 'BOQ',
@@ -205,8 +211,7 @@ Object.assign(T.en, {
   nr_boq_err_encrypted: 'That file is password-protected. Remove the password and attach it again.',
   nr_boq_err_type: 'That file type cannot be read. Send a PDF, photo, Word, Excel, CSV, PowerPoint, CAD (DXF), IFC, GAEB, email or zip file.',
   nr_boq_err_generic: 'I could not read that BOQ, but you can still describe the job here in the chat.', nr_mic: 'Speak your request', nr_input_label: 'Your message to the intake assistant',
-  nr_voice_paused: 'Voice input is paused while our transcription service is on hold. Please type your request instead.',
-  nr_drawing_paused: 'Automatic drawing reading is paused. You can still attach a drawing: you will mark what to hide yourself before it goes to suppliers.',
+  nr_attach_privacy: 'Attach a drawing, BOQ or photo. We remove your name, contacts and project details before any supplier sees it.',
   nr_err_generic: 'Sorry — something went wrong. Please try again.',
   nr_scope: 'Scope', nr_quantity: 'Quantity', nr_timeline: 'Timeline', nr_budget: 'Budget', nr_qty_inferred: '(estimated from your description — correct it below if it is wrong)',
   nr_req_docs: 'Required documents and approvals',
@@ -294,7 +299,7 @@ Object.assign(T.en, {
 });
 Object.assign(T.ar, {
   nr_title: 'طلب جديد', nr_cancel: 'إلغاء',
-  nr_greeting: 'مرحبًا — أنا مساعد الطلبات في QuotesDone. أخبرني بالعمل الذي تحتاجه وفي أي إمارة، وسأطرح عليك أسئلة قليلة وسريعة حتى يسعّر الموردون بدقة. يمكنك الكتابة، أو إرفاق رسم أو صورة أو عرض سعر لديك، أو الضغط على الميكروفون. تبقى هويتك مخفية حتى تختار كشف مورّد.',
+  nr_greeting: 'مرحبًا — أنا مساعد الطلبات في QuotesDone. أخبرني بالعمل الذي تحتاجه وفي أي إمارة، وسأطرح عليك أسئلة قليلة وسريعة حتى يسعّر الموردون بدقة. يمكنك الكتابة، أو إرفاق رسم أو جدول كميات أو صورة أو عرض سعر لديك. تبقى هويتك مخفية حتى تختار كشف مورّد.',
   nr_reading: 'جارٍ قراءة ملفك…', nr_typing: 'يكتب…', nr_ph: 'اكتب رسالتك للمساعد…', nr_listening: 'أستمع إليك… اضغط الميكروفون للإيقاف', nr_send: 'إرسال',
   nr_attach: 'أرفق رسمًا أو صورة أو عرض سعر',
   nr_attach_boq: 'أرفق جدول كميات — Excel أو CSV أو PDF أو صورة', nr_attach_boq_short: 'جدول الكميات',
@@ -307,8 +312,7 @@ Object.assign(T.ar, {
   nr_boq_err_encrypted: 'هذا الملف محمي بكلمة مرور. أزل كلمة المرور ثم أرفقه من جديد.',
   nr_boq_err_type: 'لا يمكن قراءة هذا النوع من الملفات. أرسل ملف PDF أو صورة أو Word أو Excel أو CSV أو PowerPoint أو CAD ‏(DXF) أو IFC أو GAEB أو بريدًا إلكترونيًا أو ملفًا مضغوطًا.',
   nr_boq_err_generic: 'تعذّرت قراءة جدول الكميات، لكن يمكنك وصف العمل هنا في المحادثة.', nr_mic: 'تحدّث بطلبك', nr_input_label: 'رسالتك إلى مساعد الطلبات',
-  nr_voice_paused: 'الإدخال الصوتي متوقف مؤقتًا لأن خدمة تحويل الصوت إلى نص معلّقة. يُرجى كتابة طلبك بدلًا من ذلك.',
-  nr_drawing_paused: 'القراءة الآلية للرسومات متوقفة مؤقتًا. ما زال بإمكانك إرفاق رسم، وستحدد بنفسك ما يجب إخفاؤه قبل أن يصل إلى الموردين.',
+  nr_attach_privacy: 'أرفق رسمًا أو جدول كميات أو صورة. نزيل اسمك وبيانات التواصل وتفاصيل المشروع قبل أن يراها أي مورّد.',
   nr_err_generic: 'عذرًا — حدث خطأ. يُرجى المحاولة مرة أخرى.',
   nr_scope: 'النطاق', nr_quantity: 'الكمية', nr_timeline: 'المدة الزمنية', nr_budget: 'الميزانية', nr_qty_inferred: '(تقدير من وصفك — صحّحه أدناه إن كان خطأ)',
   nr_req_docs: 'المستندات والموافقات المطلوبة',

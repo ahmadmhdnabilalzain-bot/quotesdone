@@ -37,6 +37,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
 import {
   buildModel, chainLegs, docsForRfq, elapsedPct, fmtDate, money,
   NO_INQUIRIES, STAGE_COLOR, STAGE_LABEL,
@@ -305,7 +306,7 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
                       >
                         <span className="inline-block h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: STAGE_COLOR[p.stage] }} />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold capitalize text-foreground">{p.category}</span>
+                          <span className="block truncate text-[13px] font-semibold text-foreground">{categoryLabel(p.category, lang)}</span>
                           <span className="block truncate text-[11.5px] text-muted-foreground">{STAGE_LABEL[lang][p.stage]}{p.value == null ? '' : ' · ' + money(p.value)}</span>
                         </span>
                       </button>
@@ -381,7 +382,7 @@ function PackageDetail({ pkg, project, documents, inquiries, lang, onOpenRfq }: 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: STAGE_COLOR[pkg.stage] }} />
-          <span className="text-[15px] font-bold capitalize text-foreground">{pkg.category}</span>
+          <span className="text-[15px] font-bold text-foreground">{categoryLabel(pkg.category, lang)}</span>
           <Badge variant="secondary">{STAGE_LABEL[lang][pkg.stage]}</Badge>
         </div>
         {onOpenRfq ? <Button size="sm" variant="secondary" onClick={() => onOpenRfq(pkg.rfqId)}>{tx(lang, 'sel_open_rfq')}</Button> : null}

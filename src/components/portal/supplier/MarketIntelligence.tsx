@@ -24,6 +24,7 @@
 // reader, so a supplier who has done the work is told they are ahead instead of being told a lie.
 import React, { useEffect, useState } from 'react';
 import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { categoryLabel } from '@/lib/categoryLabel';
 
 type Blocked = { available?: boolean; value?: unknown; basis?: string; population?: number; note?: string };
 type Trend = Blocked & {
@@ -75,7 +76,7 @@ const T = {
     thisPeriod: 'enquiries in the last 14 days', priorPeriod: 'in the 14 before',
     shareOf: 'of all enquiries', newDemand: 'new', perWeek: 'Enquiries per week',
     median: 'median', quartiles: 'middle half', range: 'range', from: 'from',
-    demoBanner: 'Demonstration data. These figures are computed from QuotesDone demo fixtures, not from live trading.',
+    demoBanner: 'Sample data. These figures are an illustration, not live market trading.',
   },
   ar: {
     title: 'ذكاء السوق', competitors: 'المنافسون', inArea: 'في نطاق خدمتك',
@@ -256,7 +257,7 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
         {m.most_requested?.available ? (
           <Figure label={t(lang, 'mostRequested')}>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold capitalize">{m.most_requested.value}</span>
+              <span className="text-lg font-semibold">{categoryLabel(String(m.most_requested.value || ''), lang)}</span>
               <span className="text-[11px] opacity-50">{m.most_requested.count} {t(lang, 'companies') === 'companies' ? 'enquiries' : 'طلب'}</span>
             </div>
             <p className="text-[10px] opacity-40 mt-1">{m.most_requested.basis}</p>

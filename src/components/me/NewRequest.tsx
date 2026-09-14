@@ -11,8 +11,10 @@
 //     urgency tag, classifier_override as "I read this as X, not Y", and the BOQ as a table with
 //     confidence, assumptions and missing information BEFORE Send.
 //   * English only -> every string comes from portalText (EN + AR); the panel carries its own dir.
-//   * Voice and drawing reading fail AFTER the upload while the model routes are held
-//     -> llmAvailable (customer_portal overview, llm_route_health) gates the mic and says why.
+//   * Voice fails AFTER recording while the model routes are held (transcribe is a model call)
+//     -> llmAvailable (customer_portal overview, llm_route_health) hides the mic entirely. Drawings
+//     and BOQs are NOT gated: since PR #591 they are read and anonymised server-side without a model,
+//     so the old "drawing reading is paused" line was false and is gone (founder walk, 14 Sep 2026).
 //   * A drawing could not reach suppliers under the hold, because drawing_redact verified nothing
 //     -> RedactionEditor: the customer boxes what must be hidden, and customer_api forwards
 //     manual_boxes (normalised 0..1 per page) to drawing_redact, which applies them without a model.
@@ -23,6 +25,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
 import { t, tf, errText, emirateName } from './portalText';
 
 const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
@@ -218,7 +221,6 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
   };
 
   const startRec = async () => {
-    if (modelHeld) { setMsg(t(lang, 'nr_voice_paused')); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const mr = new MediaRecorder(stream); recRef.current = { mr, chunks: [], stream };
       mr.ondataavailable = (e) => { if (e.data && e.data.size) recRef.current.chunks.push(e.data); };
@@ -312,7 +314,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
           {ready && brief && (
             <motion.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
               className="rounded-2xl border border-primary/35 bg-primary/[0.06] p-4 shadow-[0_18px_50px_-30px_rgba(20,184,166,.55)]">
-              <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" aria-hidden /><div className="text-[13.5px] font-bold capitalize text-foreground">{brief.category || t(lang, 'rc_request')}{brief.emirate ? ' — ' + emirateName(brief.emirate, lang) : ''}</div></div>
+              <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" aria-hidden /><div className="text-[13.5px] font-bold text-foreground">{brief.category ? categoryLabel(brief.category, lang) : t(lang, 'rc_request')}{brief.emirate ? ' — ' + emirateName(brief.emirate, lang) : ''}</div></div>
               {brief.summary ? <div className="mt-1 text-[13px] text-muted-foreground">{brief.summary}</div> : null}
               <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-[12.5px] sm:grid-cols-2">
                 {brief.scope ? <Fact k={t(lang, 'nr_scope')} v={brief.scope} /> : null}
@@ -353,7 +355,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
       </div>
 
       <div className="shrink-0 border-t border-border bg-secondary/20 px-3 py-3 sm:px-4">
-        {modelHeld ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_drawing_paused')}</div> : null}
+        {!drawing ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_attach_privacy')}</div> : null}
         {msg && <div className="mb-1.5 text-[12.5px] text-danger-fg" role="alert">{msg}</div>}
         {/* The drawing surface: the same file picker as the paperclip, and it takes a dropped file
             through the same onFile. Hidden once a drawing is attached, so it never crowds the input. */}
@@ -375,10 +377,13 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
               decode it, and when it is absent iOS Safari converts a HEIC photo to JPEG before handing it over. */}
           <input ref={boqRef} type="file" accept=".xlsx,.xls,.csv,.ods,.pdf,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp,.tif,.tiff,.doc,.docx,.odt,.rtf,.txt,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach_boq')} onChange={(e) => onBoq(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach_boq')} aria-label={t(lang, 'nr_attach_boq')} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2 text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => boqRef.current && boqRef.current.click()}><FileSpreadsheet className="h-5 w-5" aria-hidden /><span className="hidden text-[12.5px] font-semibold sm:inline">{t(lang, 'nr_attach_boq_short')}</span></button>
-          <button type="button" title={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-label={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-disabled={modelHeld}
-            className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-danger' : 'text-primary', modelHeld && 'cursor-not-allowed opacity-40')} onClick={rec ? stopRec : startRec}>
-            {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
-          </button>
+          {/* No mic while transcription is held: a button that cannot work is a claim, not a feature. */}
+          {!modelHeld && (
+            <button type="button" title={t(lang, 'nr_mic')} aria-label={t(lang, 'nr_mic')}
+              className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-danger' : 'text-primary')} onClick={rec ? stopRec : startRec}>
+              {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
+            </button>
+          )}
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
           <textarea id="qd-intake-input" ref={inputRef} className="min-h-[48px] min-w-0 flex-1 resize-none rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
             placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />

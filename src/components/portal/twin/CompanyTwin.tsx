@@ -23,6 +23,7 @@
 // thirties and says which facts are missing.
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
 
 export type Twin = {
   kind?: string;
@@ -99,7 +100,7 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
           <div className="mt-1 flex flex-wrap gap-1.5">
             {cats.slice(0, 6).map((c) => (
               <span key={c.category} className="rounded-full border border-border bg-secondary/25 px-2 py-0.5 text-[12px] text-foreground">
-                {c.category} <span className="text-muted-foreground">×{c.rfqs}</span>
+                {categoryLabel(c.category, lang)} <span className="text-muted-foreground">×{c.rfqs}</span>
               </span>
             ))}
           </div>
