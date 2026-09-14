@@ -245,13 +245,13 @@
     "semantic_hash": ""
   },
   "src/components/me/CustomerPortal.tsx": {
-    "mtime": 1789403858.0837011,
-    "ast_hash": "c3218403245377214d68828142b99fb5",
+    "mtime": 1789404563.438188,
+    "ast_hash": "d79c392e4e5dfade1930e1cc36024c05",
     "semantic_hash": ""
   },
   "src/components/portal/SupplierPortal.tsx": {
-    "mtime": 1789403894.300195,
-    "ast_hash": "a628d335ba3605a854d7a03cecf479c3",
+    "mtime": 1789404546.047697,
+    "ast_hash": "55d44ae64fcc6a3656b255e2b1229615",
     "semantic_hash": ""
   },
   "src/components/ui/badge.tsx": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/login_otp/index.ts": {
-    "mtime": 1789403701.9032335,
-    "ast_hash": "c91e32d1f7a3dbdfec31d609cfd92eec",
+    "mtime": 1789404525.6404345,
+    "ast_hash": "dbfae2ff163abbec93c642176ca9fd89",
     "semantic_hash": ""
   },
   "supabase/functions/messages_api/index.ts": {
@@ -4880,8 +4880,8 @@
     "semantic_hash": ""
   },
   "src/components/portal/supplier/SupplierSettings.tsx": {
-    "mtime": 1789403701.4972312,
-    "ast_hash": "f5c46ded9a2b83d4c1decd3dae532da1",
+    "mtime": 1789404573.5230448,
+    "ast_hash": "b3f4b7d4840d0e8f225fe4421de410be",
     "semantic_hash": ""
   },
   "src/components/portal/supplier/SupplierTier.tsx": {
@@ -10325,8 +10325,8 @@
     "semantic_hash": ""
   },
   "src/components/me/PortalShell.tsx": {
-    "mtime": 1789403701.378839,
-    "ast_hash": "bf578f45bc58f6867d0952521e821892",
+    "mtime": 1789404568.6622021,
+    "ast_hash": "b9260e6079449f869e82427c85729e99",
     "semantic_hash": ""
   },
   "docs/sessions/PROMPT_NEXT_SESSION_THE_CUSTOMER_PORTAL.md": {
@@ -17185,8 +17185,8 @@
     "semantic_hash": ""
   },
   "src/components/me/portalText.ts": {
-    "mtime": 1789403701.3878374,
-    "ast_hash": "41064c3cf2ca6efd2573cd6f938022b9",
+    "mtime": 1789404560.95374,
+    "ast_hash": "bf534a4001e73dbe0d195de7e1cd7c98",
     "semantic_hash": ""
   },
   "src/components/me/workingDays.test.mjs": {
@@ -18390,13 +18390,13 @@
     "semantic_hash": ""
   },
   "src/lib/documentLocale.test.mjs": {
-    "mtime": 1789403826.797554,
-    "ast_hash": "f2a7b223eac4c9e75c0342b69258e029",
+    "mtime": 1789404672.902583,
+    "ast_hash": "4d5d3bd671eda256937f3aa1984f4265",
     "semantic_hash": ""
   },
   "src/lib/documentLocale.ts": {
-    "mtime": 1789403813.157391,
-    "ast_hash": "0203c856572bb0f8d220413202a86cfb",
+    "mtime": 1789404521.6479669,
+    "ast_hash": "ba60577525365d98b51de21606b1cb51",
     "semantic_hash": ""
   },
   "supabase/functions/_shared/code_email.ts": {
