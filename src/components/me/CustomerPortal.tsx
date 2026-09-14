@@ -12,27 +12,48 @@ import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { durationLabel } from '@/lib/durationLabel';
 import { statusLabel as projectStatusLabel } from '@/components/portal/projects/strings';
-// Spec §22 modules that were written and never mounted. Each renders ONLY fields the endpoint it
-// names already returns; see the header comment in each file for the field-by-field provenance.
-import { ProjectsModule } from '@/components/portal/projects';
+// Cold-first-load fix (14 Sep 2026, en-desktop p50 10.8s / p95 13.2s against a 2.5s bar): shellMs
+// (time to the nav being visible, before any API call) was 6.2-7.4s cold vs 1.2-3.3s seconds later
+// against the same warm deployment. /me is prerendered static HTML (next build: "me" -> SSG), so
+// this is not a Vercel function cold start — it's 1.45 MB raw / ~430 KB gzip of client JS across 16
+// chunks that must download, parse and execute before hydration makes the nav visible. Measured on
+// quotesdone.com: under normal traffic Vercel's edge cache serves every /me chunk as X-Vercel-Cache
+// HIT in <0.25s each; these chunks are portal-only (no marketing page imports them), so after a real
+// idle gap with no visitor to /me they fall out of the edge cache and the first request pays a
+// cold-cascade refetch across all 16. Fewer, smaller chunks in the critical path shrinks that penalty
+// regardless of cache state, and they miss the cache less often once they are only fetched on the
+// tab click that needs them instead of on every /me load.
 // recharts is the heaviest thing on /me and this chart sits below the fold, so it loads on its own
 // after the portal is on screen (website audit 14 Sep 2026: 1.37 MB portal first load).
 import dynamic from 'next/dynamic';
 const SpendingIntelligence = dynamic(() => import('@/components/portal/intelligence/SpendingIntelligence').then((m) => m.SpendingIntelligence), { ssr: false });
+// Spec §22 modules that were written and never mounted, and the five module-agent surfaces below:
+// every one of them renders behind `id === '<tab>'` (see ~line 1505) inside a panel the customer
+// opens by clicking a tab — never on the initial /me paint — so none of them belongs in the bundle
+// that has to parse before the nav is visible.
+const ProjectsModule = dynamic(() => import('@/components/portal/projects').then((m) => m.ProjectsModule), { ssr: false });
 import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/portal/suppliers/SupplierRelationship';
 // The five surfaces the module agents exported and nothing mounted. Each fetches its own endpoint
 // and owns its own empty state; the portal supplies only the token, the language and — where the
 // surface can use them — rows it already holds, so nothing is fetched twice.
-import { SpatialModule } from '@/components/portal/spatial';
-import { DocumentVault } from '@/components/portal/documents';
+const SpatialModule = dynamic(() => import('@/components/portal/spatial').then((m) => m.SpatialModule), { ssr: false });
+const DocumentVault = dynamic(() => import('@/components/portal/documents').then((m) => m.DocumentVault), { ssr: false });
 import { RevealPayment } from './RevealPayment';
-import { CommunicationCenter } from '@/components/portal/comms';
-import { OrdersList } from '@/components/portal/approvals';
-import { PredictiveIntelligence, NegotiationAssistant } from '@/components/portal/predict';
+const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false });
+const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false });
+const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false });
+// NegotiationAssistant only mounts once a quote's negotiation accordion is opened (negOpen, ~line 1378).
+const NegotiationAssistant = dynamic(() => import('@/components/portal/predict').then((m) => m.NegotiationAssistant), { ssr: false });
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
-import { CompanyTwin, SupplierDiscovery, CustomerMemory, DecisionSupport } from '@/components/portal/twin';
+// CompanyTwin and DecisionSupport also render on the main overview (below the request list, gated on
+// data having arrived), not just the profile tab — still deferred: the overview's own cards are the
+// first paint, these mount once ov/twin resolve, well after nav is already visible.
+const CompanyTwin = dynamic(() => import('@/components/portal/twin').then((m) => m.CompanyTwin), { ssr: false });
+const SupplierDiscovery = dynamic(() => import('@/components/portal/twin').then((m) => m.SupplierDiscovery), { ssr: false });
+const CustomerMemory = dynamic(() => import('@/components/portal/twin').then((m) => m.CustomerMemory), { ssr: false });
+const DecisionSupport = dynamic(() => import('@/components/portal/twin').then((m) => m.DecisionSupport), { ssr: false });
 // THE SHELL. The portal was a stack of cards under ten grey pills; this is the application frame
 // the founder asked for — persistent grouped sidebar, a top bar whose widest element is the
 // assistant, a mobile tab bar, and the assistant docked in the layout rather than floating in a
