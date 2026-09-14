@@ -130,14 +130,29 @@ begin
     ('supplier_charge_reminder_template', '{"subject_en":"ZZ DEMO reminder {{reminder_no}} on charge {{due_id}}","body_en":"ZZ DEMO {{company}} owes AED {{total_aed}}, {{days_overdue}} days after {{due_date}}.","subject_ar":"ZZ DEMO","body_ar":"ZZ DEMO {{total_aed}}"}'::jsonb, 'ZZ DEMO probe'),
     ('supplier_charge_final_demand_template', '{"subject_en":"ZZ DEMO final demand on charge {{due_id}}","body_en":"ZZ DEMO pay AED {{total_aed}} by {{pay_by}}.","subject_ar":"ZZ DEMO","body_ar":"ZZ DEMO {{pay_by}}"}'::jsonb, 'ZZ DEMO probe')
   on conflict (key) do update set value = excluded.value;
+  -- The supplier accepted v10: the reminder goes, the final demand (which cites v11) is held for the CEO.
+  update public.leads set accepted_terms_version = 'v10' where id = l;
   perform public.fn_accountant_collections_tick();
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:collections:demand_held_version:' || d), 'collections: a v10 supplier was not held from the v11 demand');
+  perform pg_temp.zz_assert(not exists (select 1 from public.notifications n where n.id > v_start and n.type = 'nonresponse_final_demand'),
+    'collections: a final demand went to a supplier who accepted v10');
+  -- The supplier accepts v11: the next run sends the demand and the hold closes.
+  update public.leads set accepted_terms_version = 'v11' where id = l;
+  perform public.fn_accountant_collections_tick();
+  perform pg_temp.zz_assert(not pg_temp.zz_open('acct:collections:demand_held_version:' || d), 'collections: the version hold did not close once v11 was accepted');
+  -- The demand period can never fall below the legal minimum (CPL Art 144(1)).
+  v_refused := false;
+  update public.decision_policy set value = '4'::jsonb where key = 'supplier_charge_final_demand_notice_days';
+  begin perform public.fn_accountant_collections_tick(); exception when others then v_refused := true; end;
+  update public.decision_policy set value = '7'::jsonb where key = 'supplier_charge_final_demand_notice_days';
+  perform pg_temp.zz_assert(v_refused, 'collections: a 4-day demand period below the CPL Art 144(1) minimum was accepted');
   perform pg_temp.zz_assert(exists (select 1 from public.notifications n where n.id > v_start and n.type = 'nonresponse_charge_reminder'
     and n.to_email = 'zz-demo-sup-acct1@example.invalid'), 'collections: the reminder never reached the outbox through the sales engineer and support');
   perform pg_temp.zz_assert(exists (select 1 from public.notifications n where n.id > v_start and n.type = 'nonresponse_final_demand'
     and n.to_email = 'zz-demo-sup-acct1@example.invalid'), 'collections: the final demand never reached the outbox');
   -- Every recovery document issued in the founder's name is logged, hashed and addressed, and the log
   -- cannot be edited.
-  perform pg_temp.zz_assert((select count(*) from public.v_accountant_issued_documents
+  perform pg_temp.zz_assert((select count(distinct document_kind) from public.v_accountant_issued_documents
                               where due_id = d and document_kind in ('charge_reminder', 'final_demand')
                                 and content_sha256 ~ '^[0-9a-f]{64}$' and recipient = 'zz-demo-sup-acct1@example.invalid'
                                 and signed_as = 'founder' and stamp_required and signature_required and notification_id is not null) = 2,
