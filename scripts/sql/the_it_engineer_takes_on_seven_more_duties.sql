@@ -564,7 +564,10 @@ begin
                 and (coalesce(ic.rotated_at, ic.created_at) < now() - make_interval(days => public.fn_it_threshold('credential_rotate_days')::int)
                      or ic.expires_at < now() + interval '30 days')
               order by coalesce(ic.rotated_at, ic.created_at)
-              limit public.fn_it_threshold('credential_rotations_per_run')::int loop
+              limit public.fn_it_threshold('credential_rotations_per_run')::int
+              -- Two ticks at the same instant must not rotate one credential twice: the first holds the
+              -- row until its rotation row ('overlap') exists, and the second skips what is held.
+              for update of ic skip locked loop
       perform public.fn_it_credential_rotate(c.id);
       v_rot := v_rot + 1;
     end loop;
