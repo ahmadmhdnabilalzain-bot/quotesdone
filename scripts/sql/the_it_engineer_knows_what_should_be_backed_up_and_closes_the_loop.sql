@@ -116,7 +116,13 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   -- a Stripe invoice the transaction names but storage no longer holds is still expected
   select 'obj:finance-docs:' || t.doc_path, 'invoice', 'finance-docs', t.doc_path, null, null, 'transaction:' || t.id, t.revealed_at
     from public.transactions t
+    -- transactions carries no is_demo of its own: a sale is demo when either party is (review of
+    -- #628). Without this, a purged demo invoice would read never_queued forever and escalate.
+    left join public.customers tc on tc.id = t.customer_id
+    left join public.leads tl on tl.id = t.supplier_id
    where t.doc_path is not null
+     and not coalesce(tc.is_demo, false) and not coalesce(tl.is_demo, false)
+     and coalesce(tc.email, '') !~* 'example\.invalid' and coalesce(tl.email, '') !~* 'example\.invalid'
      and not exists (select 1 from storage.objects o where o.bucket_id = 'finance-docs' and o.name = t.doc_path)
   union all
   select 'msg:' || m.source_table || ':' || m.source_id, 'conversation', c.pdf_bucket, c.pdf_path, null, null,
@@ -135,6 +141,11 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i;
 $fn$;
 revoke execute on function public.fn_it_backup_expected() from public, anon, authenticated;
+
+-- The lateral join below looks a row up by (bucket, path) or by (gen_kind, gen_ref) for every
+-- expected item (review of #628). (bucket, path) is already indexed by the unique constraint
+-- doc_backups_bucket_path_key; (gen_kind, gen_ref) was not.
+create index if not exists doc_backups_gen_kind_ref_idx on public.doc_backups (gen_kind, gen_ref);
 
 -- Each expected item with the doc_backups row that covers it, if any.
 create or replace function public.fn_it_backup_expected_status()
@@ -337,6 +348,14 @@ begin
      and new.status = 'done' and old.status is distinct from 'done'
      and coalesce(current_setting('qd.backup_closer', true), '') <> 'it_engineer' then
     raise exception 'only the it_engineer closes a backup handoff (% %), after verifying every file itself', new.detail->>'type', new.id;
+  end if;
+  -- An allowed close is recorded: which routine closed it and as which session user (review of #628).
+  if new.kind = 'handoff' and new.detail->>'type' in ('backup.refile', 'backup.remediate')
+     and new.status = 'done' and old.status is distinct from 'done' then
+    new.detail := coalesce(new.detail, '{}'::jsonb) || jsonb_build_object('closed_by', jsonb_build_object(
+      'seat', current_setting('qd.backup_closer', true),
+      'routine', nullif(current_setting('qd.backup_closer_routine', true), ''),
+      'session_user', session_user::text, 'at', now()));
   end if;
   return new;
 end $fn$;
@@ -615,8 +634,10 @@ begin
 
     if n_fail = 0 and n_wait = 0 then
       perform set_config('qd.backup_closer', 'it_engineer', true);
+      perform set_config('qd.backup_closer_routine', 'fn_it_backup_recheck', true);
       perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'it_engineer', 'files', v_files, 'verified_at', now()));
       perform set_config('qd.backup_closer', '', true);
+      perform set_config('qd.backup_closer_routine', '', true);
       update public.agent_actions set decided_by = 'it_engineer' where id = h.id;
       n_closed := n_closed + 1;
     elsif h.detail->>'type' = 'backup.refile' and not (h.detail ? 'escalated_report_id') then
@@ -935,18 +956,43 @@ begin
 end $fn$;
 
 -- ── 9. THE TICK ─────────────────────────────────────────────────────────────────────────────────
+-- A stage that throws must not only say so in the tick's JSON (review of #628): it writes an
+-- agent_runs error row and opens ONE it_engineer finding per stage per 20 hours, so a silently
+-- broken recheck / ceo / watch / daily stage is itself something the loop has to close.
+create or replace function public.fn_it_backup_stage_failed(p_stage text, p_error text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_id bigint;
+begin
+  insert into public.agent_runs(agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'error', now(), now(), jsonb_build_object('job', 'backup_tick', 'stage', p_stage),
+          'backup tick stage ' || p_stage || ' failed: ' || left(coalesce(p_error, ''), 300));
+  if not exists (select 1 from public.agent_actions
+                  where agent = 'it_engineer' and kind = 'backup_tick_stage_failed' and detail->>'stage' = p_stage
+                    and coalesce(status, '') in ('pending', 'needs_review') and created_at > now() - interval '20 hours') then
+    insert into public.agent_actions(agent, kind, status, risk, title, recommendation, target_table, detail)
+    values ('it_engineer', 'backup_tick_stage_failed', 'pending', 'medium',
+            'Backup check stage "' || p_stage || '" is failing',
+            'The it_engineer''s ' || p_stage || ' stage threw: ' || left(coalesce(p_error, ''), 300)
+              || '. Until it runs cleanly this part of the backup is not being checked.',
+            'doc_backups', jsonb_build_object('stage', p_stage, 'error', left(coalesce(p_error, ''), 500)))
+    returning id into v_id;
+  end if;
+  return jsonb_build_object('error', left(coalesce(p_error, ''), 200), 'finding_id', v_id);
+end $fn$;
+revoke execute on function public.fn_it_backup_stage_failed(text, text) from public, anon, authenticated;
+
 create or replace function public.fn_it_backup_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare o jsonb := '{}'::jsonb;
 begin
   begin o := o || jsonb_build_object('recheck', public.fn_it_backup_recheck());
-  exception when others then o := o || jsonb_build_object('recheck', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  exception when others then o := o || jsonb_build_object('recheck', public.fn_it_backup_stage_failed('recheck', sqlerrm)); end;
   begin o := o || jsonb_build_object('ceo', public.fn_ceo_backup_escalation_sweep());
-  exception when others then o := o || jsonb_build_object('ceo', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  exception when others then o := o || jsonb_build_object('ceo', public.fn_it_backup_stage_failed('ceo', sqlerrm)); end;
   begin o := o || jsonb_build_object('watch', public.fn_backup_watch());
-  exception when others then o := o || jsonb_build_object('watch', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  exception when others then o := o || jsonb_build_object('watch', public.fn_it_backup_stage_failed('watch', sqlerrm)); end;
   begin o := o || jsonb_build_object('daily', public.fn_dropbox_backup_daily_report());
-  exception when others then o := o || jsonb_build_object('daily', jsonb_build_object('error', left(sqlerrm, 200))); end;
+  exception when others then o := o || jsonb_build_object('daily', public.fn_it_backup_stage_failed('daily', sqlerrm)); end;
   return o || jsonb_build_object('reconcile', public.fn_dropbox_reconcile_due());
 end $fn$;
 
