@@ -54,7 +54,12 @@ begin
     'documents', (select count(*) from public.documents where bucket = 'finance-docs' and path = v_path and kind = 'invoice'
                     and ref_table = 'inquiries' and ref_id = i::text),
     'handoffs', (select jsonb_agg(jsonb_build_object('agent', agent, 'status', status, 'from', detail->>'from', 'decided_by', decided_by))
-                   from public.agent_actions where kind = 'handoff' and detail->>'transaction_id' = t::text),
+                   from public.agent_actions where kind = 'handoff' and detail->>'transaction_id' = t::text
+                    and detail->>'subject' = 'reveal_invoice'),
+    -- Scoped to THIS handoff's subject (14 Sep 2026). Since b3cd406 every reveal also raises a
+    -- reveal.paid handoff (accountant -> sales engineer -> customer support, for the reveal receipt and
+    -- the supplier's notice) carrying the same transaction_id; counting every handoff on the sale
+    -- counted that separate chain as duplicates of this one.
     'ready_msgs', (select count(*) from public.notifications where type = 'invoice_ready' and to_email = 'zz.demo.invoice.probe@example.invalid'),
     'ready_names_accountant', (select count(*) from public.notifications where type = 'invoice_ready'
                                  and to_email = 'zz.demo.invoice.probe@example.invalid' and (subject || body) ilike '%accountant%'),
