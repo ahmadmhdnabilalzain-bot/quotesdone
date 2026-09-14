@@ -39,10 +39,11 @@
 --      a support_case, and a notice. A guard trigger refuses clearing it on any path but
 --      fn_supplier_collaboration_hold_lift, which only the service role can run, only with a
 --      founder_instruction that names the supplier, and which sends a "welcome back" note.
---   5. fn_contact_timeline carries the collaboration events. It is redefined here, whole, with one
---      branch added: the branch reads a table this file creates, so the earlier definition in
---      customer_support_is_the_only_sender_on_email_and_whatsapp.sql (whose own probe runs first in
---      MANIFEST order) could not carry it. This file is canonical for the routine from now on.
+--   5. fn_contact_timeline carries the collaboration events. It is redefined here, whole: the union of
+--      #614's definition (customer_support_is_the_only_sender_on_email_and_whatsapp.sql), #617's seat-
+--      handoff branch (payments_are_the_accountant_and_the_seats_close_every_refund_together.sql) and the
+--      collaboration branch, which reads a table this file creates and so could not live in either
+--      earlier file. This file sits after both in MANIFEST and is canonical for the routine.
 --   6. fn.supplier_api may call send_outbox and send_whatsapp: the notice goes out at once, not at the
 --      next tick ("we notify directly").
 --
@@ -458,6 +459,16 @@ begin
     select pm.created_at, 'message', 'portal_chat', case when pm.customer_id = any (v_cust) and pm.sender = 'customer' then 'in' else 'out' end,
            'sales_engineer', pm.id::text, left(coalesce(pm.redacted_body, ''), 140)
       from public.messages pm where pm.customer_id = any (v_cust) or pm.supplier_id = any (v_lead)
+    -- every handoff between the seats about this party (payments_are_the_accountant_and_it_talks_to_the_
+    -- sales_engineer.sql): who handed what to whom, and where it stands, so support reads the money and
+    -- the refund loops before it answers — #617's branch, kept here verbatim so the live body is the union
+    union all
+    select a.created_at, 'handoff', 'internal', 'internal', a.agent, a.id::text,
+           coalesce(a.detail->>'type', a.kind) || ' from ' || coalesce(a.detail->>'from', '?') || ' to ' || a.agent || ': ' || a.status
+      from public.agent_actions a
+     where a.kind = 'handoff'
+       and ((a.detail->>'customer_id') = any (v_cust::text[]) or (a.detail->>'supplier_id') = any (v_lead::text[])
+            or (a.detail->>'transaction_id') = any (v_txn::text[]) or (a.detail->>'refund_id') = any (v_ref::text[]))
     union all
     select cm.created_at, 'message', 'contact_form', 'in', 'customer_support', cm.id::text, left(coalesce(cm.message, ''), 140)
       from public.contact_messages cm

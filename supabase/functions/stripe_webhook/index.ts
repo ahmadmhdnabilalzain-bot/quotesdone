@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS } from '../_shared/stripe_events.ts';
+import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { observe } from '../_shared/observe.ts';
@@ -204,11 +204,14 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           else {
             // Push the collection straight into the ledger rather than waiting for the next cron.
             let posted = 0; try { const { data: gp } = await admin.rpc('fn_gl_sync_business'); posted = Number(gp || 0); } catch (_e) { /* cron will catch up */ }
+            // The supplier is thanked by the sales engineer, through customer_support: the accountant
+            // hands the settled payment over rather than writing to the outbox itself (14 Sep 2026).
             try {
               const supId = (settled || [])[0]?.supplier_id;
-              const { data: sup } = await admin.from('leads').select('email,company_name').eq('id', supId).maybeSingle();
-              if (sup?.email && /@/.test(sup.email)) await admin.from('notifications').insert([{ type: 'dues_paid', to_email: sup.email, to_role: 'supplier', lead_id: supId, subject: 'Payment received - thank you', body: 'We have received your payment of AED ' + paidAmount.toFixed(2) + ' settling ' + n + ' commission item(s). Your account is now up to date.' }]);
-            } catch (_e) { /* */ }
+              await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.received',
+                p_subject_table: 'supplier_dues', p_subject_id: payRef,
+                p_payload: { supplier_id: supId, kind: 'supplier_dues', msg_type: 'dues_paid', amount_aed: paidAmount.toFixed(2), items: n } });
+            } catch (_e) { /* the payment is recorded; a failed handoff is visible in agent_actions */ }
             await logRun('ok', { kind: 'supplier_dues', settled: n, amount: paidAmount, gl_entries_posted: posted }, 'Supplier settled ' + n + ' commission due(s) totalling AED ' + paidAmount.toFixed(2) + ' via Stripe (ref ' + payRef + ').');
           }
           return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -247,7 +250,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           const n = (settled || []).length;
           if (n === 0) { await logRun('ok', { kind: 'supplier_registration', duplicate: true, supplier_id: supId }, 'Duplicate Stripe delivery for supplier registration ignored - that supplier was already marked paid.'); }
           else {
-            try { const sup = (settled || [])[0]; if (sup?.email && /@/.test(sup.email)) await admin.from('notifications').insert([{ type: 'registration_paid', to_email: sup.email, to_role: 'supplier', lead_id: supId, subject: 'Registration confirmed - thank you', body: 'We have received your registration payment of AED ' + paidAmount.toFixed(2) + '. Your QuotesDone supplier account is registered for the next 12 months.' }]); } catch (_e) { /* */ }
+            try {
+              await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.received',
+                p_subject_table: 'leads', p_subject_id: payRef,
+                p_payload: { supplier_id: supId, kind: 'supplier_registration', msg_type: 'registration_paid', amount_aed: paidAmount.toFixed(2) } });
+            } catch (_e) { /* the payment is recorded; a failed handoff is visible in agent_actions */ }
             await logRun('ok', { kind: 'supplier_registration', supplier_id: supId, amount: paidAmount }, 'Supplier ' + supId + ' paid the registration fee of AED ' + paidAmount.toFixed(2) + ' via Stripe (ref ' + payRef + ').');
           }
           return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -320,6 +327,25 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           // Paid session with no quote_id and no supplier_dues marker - previously silent.
           await logRun('error', { amount_total: s.amount_total, session: String(s.id || '') }, 'PAID BUT NOT RECORDED - checkout session has neither metadata.quote_id nor metadata.kind=supplier_dues');
         }
+      }
+    }
+    // ---- A REVEAL PAYMENT THAT DID NOT COMPLETE (14 Sep 2026) ------------------------------
+    // An expired session or a delayed payment that failed took no money. The accountant hands it to
+    // the sales engineer (payment.failed), who tells the customer nothing was charged and how to try
+    // again; customer_support delivers it. Only reveal sessions (metadata.quote_id) are handed off: a
+    // supplier's own unfinished payment leaves their balance where it was and they see it in Billing.
+    if ((FAILED_CHECKOUT_EVENTS as readonly string[]).includes(String(event.type))) {
+      const s = event.data?.object || {};
+      const md = s.metadata || {};
+      if (md.quote_id && s.payment_status !== 'paid') {
+        const { error: hErr } = await admin.rpc('fn_seat_handoff', {
+          p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.failed',
+          p_subject_table: 'checkout_session', p_subject_id: String(s.id || md.quote_id),
+          p_payload: { quote_id: md.quote_id, inquiry_id: md.inquiry_id || null, customer_id: md.customer_id || null,
+                       reason: String(event.type), session: String(s.id || '') },
+        });
+        await logRun(hErr ? 'error' : 'ok', { type: event.type, quote_id: md.quote_id },
+          hErr ? 'payment.failed handoff refused: ' + hErr.message : 'reveal checkout did not complete; handed to the sales engineer');
       }
     }
     // ---- THE REVEAL-FEE INVOICE, ONCE STRIPE HAS FINALISED IT (14 Sep 2026, agent: accountant) --

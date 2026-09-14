@@ -250,8 +250,8 @@
     "semantic_hash": ""
   },
   "src/components/portal/SupplierPortal.tsx": {
-    "mtime": 1789386565.6896093,
-    "ast_hash": "95e31d22faee79bc9cb200691a2416e7",
+    "mtime": 1789388437.0478835,
+    "ast_hash": "2ce585f1e125d27d579d557cffcc8006",
     "semantic_hash": ""
   },
   "src/components/ui/badge.tsx": {
@@ -465,8 +465,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/refunds_api/index.ts": {
-    "mtime": 1789386565.737342,
-    "ast_hash": "7864d11e3a795d9fa60d893690a453a7",
+    "mtime": 1789388437.05308,
+    "ast_hash": "6805ef0a3513c1cb1e2bb776b66eba50",
     "semantic_hash": ""
   },
   "supabase/functions/resend_inbound/index.ts": {
@@ -520,8 +520,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/stripe_confirm/index.ts": {
-    "mtime": 1789386565.7466464,
-    "ast_hash": "51a81f8727a6c9d0516189456a690372",
+    "mtime": 1789388437.0557783,
+    "ast_hash": "cb9639f99b6cf8160bfa9208cd94e35f",
     "semantic_hash": ""
   },
   "supabase/functions/stripe_setup/index.ts": {
@@ -535,8 +535,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/stripe_webhook/index.ts": {
-    "mtime": 1789386565.7476506,
-    "ast_hash": "2cf1a73ed052b051b89a7e756047e3d8",
+    "mtime": 1789388437.056942,
+    "ast_hash": "ec344f236dfd3100576ff9318f7c08eb",
     "semantic_hash": ""
   },
   "supabase/functions/supplier_ack/index.ts": {
@@ -545,13 +545,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/supplier_api/index.ts": {
-    "mtime": 1789387912.5280125,
-    "ast_hash": "e93a890f5bc76420ce02e726fcadfe06",
+    "mtime": 1789388437.0589497,
+    "ast_hash": "9d57d13729acef7f9e956647a4342e51",
     "semantic_hash": ""
   },
   "supabase/functions/supplier_pay/index.ts": {
-    "mtime": 1789380780.7273662,
-    "ast_hash": "8b674f84ad5ce411542851470b9c335a",
+    "mtime": 1789388437.0594542,
+    "ast_hash": "7c598dce2d7b2c46d39f8cb1c976cff4",
     "semantic_hash": ""
   },
   "supabase/functions/supplier_portal/index.ts": {
@@ -1710,8 +1710,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/resilience_ping/index.ts": {
-    "mtime": 1789380780.685126,
-    "ast_hash": "edd98ee4c93a3fb21433f9c476d19bab",
+    "mtime": 1789388437.054773,
+    "ast_hash": "89af29971e72b54e198257768c6c1dd2",
     "semantic_hash": ""
   },
   "supabase/migrations-superseded-consolidated/20260802190000_p2_c1_stage_a_mep_model.sql": {
@@ -1815,8 +1815,8 @@
     "semantic_hash": ""
   },
   "supabase/schema/full_schema.sql": {
-    "mtime": 1789388250.091127,
-    "ast_hash": "6f70fdcfb06f25e620a39a97f30a7772",
+    "mtime": 1789388553.5135443,
+    "ast_hash": "8d660f0353aa7f9e41346f511b77ec5a",
     "semantic_hash": ""
   },
   "supabase/seeds/agent_knowledge.seed.sql": {
@@ -11930,13 +11930,13 @@
     "semantic_hash": ""
   },
   "scripts/sql/DROPPED.txt": {
-    "mtime": 1789386565.6635985,
-    "ast_hash": "24870edc859dc808b1fb37c0d642f875",
+    "mtime": 1789388437.0428777,
+    "ast_hash": "1f9077985ddd59e2d798385a8fffab7f",
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1789388240.6677983,
-    "ast_hash": "4f7cdf52563c2c4460b6c3eadbf53805",
+    "mtime": 1789388468.0205634,
+    "ast_hash": "39d8bff7c23fdf87b7edd93e339a5efa",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -12760,8 +12760,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/_shared/stripe_events.ts": {
-    "mtime": 1789386565.717221,
-    "ast_hash": "50ef55518bfb493ccd629b4f5dac0f33",
+    "mtime": 1789388437.049883,
+    "ast_hash": "6bdcdf60db1a78d84270950bf30cb957",
     "semantic_hash": ""
   },
   "docs/UPGRADE_PLAN.md": {
@@ -17625,13 +17625,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/accountant/index.ts": {
-    "mtime": 1789380780.562749,
-    "ast_hash": "795e3a2fcf1436001df8894236e4d74e",
+    "mtime": 1789388437.052078,
+    "ast_hash": "6e3ca4a209166372f814fa49c95ef488",
     "semantic_hash": ""
   },
   "supabase/functions/ceo_agent/index.ts": {
-    "mtime": 1789380780.5680938,
-    "ast_hash": "4767a54e0becdbf94cc20723b583d098",
+    "mtime": 1789388437.052078,
+    "ast_hash": "f9b7c150908a1e23c23fac8f03770270",
     "semantic_hash": ""
   },
   "supabase/functions/complaint_status/index.ts": {
@@ -17700,8 +17700,8 @@
     "semantic_hash": ""
   },
   "supabase/functions/sales_engineer/index.ts": {
-    "mtime": 1789380780.699837,
-    "ast_hash": "98ae8bafe3b17ec34bea99c0373688e9",
+    "mtime": 1789388437.0557783,
+    "ast_hash": "38278b5e07b1ed9bdd718a7aa76ce840",
     "semantic_hash": ""
   },
   ".claude/skills/quotesdone-apply-discipline/SKILL.md": {
@@ -17855,8 +17855,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/the_portals_are_the_sales_engineer.test.mjs": {
-    "mtime": 1789383787.2129118,
-    "ast_hash": "d7d4f7d4aaba9d9fb97012f2ff6acafd",
+    "mtime": 1789388437.0408788,
+    "ast_hash": "a325d6dc78af258fc3522c5d3e9878d3",
     "semantic_hash": ""
   },
   "scripts/sql/the_portals_are_the_sales_engineer_and_nobody_else.sql": {
@@ -17924,14 +17924,19 @@
     "ast_hash": "88e763b782ed162b73cc71ef99f16959",
     "semantic_hash": ""
   },
-  "scripts/checks/a_supplier_who_ignores_holds_is_warned_then_held.test.mjs": {
-    "mtime": 1789388264.5349298,
-    "ast_hash": "359189f6abda4694abd2017e75bcc358",
-    "semantic_hash": ""
-  },
   "scripts/checks/customer_support_is_the_only_sender.test.mjs": {
     "mtime": 1789386565.6583092,
     "ast_hash": "0d39931ce2ab44843d02756c9c79b783",
+    "semantic_hash": ""
+  },
+  "scripts/checks/payments_are_the_accountant.test.mjs": {
+    "mtime": 1789388437.037877,
+    "ast_hash": "64b433a5958aaf1bd0f2972971a76e4a",
+    "semantic_hash": ""
+  },
+  "scripts/checks/refund_ladder_fixtures.sql": {
+    "mtime": 1789388437.039883,
+    "ast_hash": "3b29dde88cdc3be48ef4fe460659969a",
     "semantic_hash": ""
   },
   "scripts/checks/the_intake_is_the_sales_engineer.test.mjs": {
@@ -17940,8 +17945,8 @@
     "semantic_hash": ""
   },
   "scripts/checks/the_reveal_invoice_is_the_accountants_and_reaches_the_sales_engineer.test.mjs": {
-    "mtime": 1789386565.660823,
-    "ast_hash": "05a2810f9e77e4a3a87cc863930e587f",
+    "mtime": 1789388437.0418773,
+    "ast_hash": "74db6f0c8f3dfbc0a3dea5b1f16a4eab",
     "semantic_hash": ""
   },
   "scripts/sql/a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql": {
@@ -17954,11 +17959,6 @@
     "ast_hash": "20867b52c22ab20cc2971d2a74fd6a72",
     "semantic_hash": ""
   },
-  "scripts/sql/a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql": {
-    "mtime": 1789388053.970608,
-    "ast_hash": "e4327c9dbeb7a9f2c878d91d1584dc51",
-    "semantic_hash": ""
-  },
   "scripts/sql/customer_support_is_the_only_sender_on_email_and_whatsapp.sql": {
     "mtime": 1789388166.6412845,
     "ast_hash": "5b73a5f7a245283530fbd3c12039c973",
@@ -17967,6 +17967,11 @@
   "scripts/sql/fn_company_facts_sync_is_closed_to_the_browser_roles.sql": {
     "mtime": 1789386565.6665993,
     "ast_hash": "4e29735b926632944e2975b3fb2b4120",
+    "semantic_hash": ""
+  },
+  "scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql": {
+    "mtime": 1789388437.045882,
+    "ast_hash": "f99f2e79f0b77f16cc845ce2c9ce3b3d",
     "semantic_hash": ""
   },
   "scripts/sql/the_accountant_files_the_reveal_invoice_and_the_sales_engineer_tells_the_customer.sql": {
@@ -18064,6 +18069,16 @@
     "ast_hash": "b972ad343ea9c0f9287ad7a258e2440d",
     "semantic_hash": ""
   },
+  "supabase/functions/_shared/payment_handoffs.test.ts": {
+    "mtime": 1789388437.0488834,
+    "ast_hash": "94a64618e0c8ab892a3a98aef69207f0",
+    "semantic_hash": ""
+  },
+  "supabase/functions/_shared/payment_handoffs.ts": {
+    "mtime": 1789388437.049883,
+    "ast_hash": "0ec206e518616dfa9ad24d31aaa4cbcd",
+    "semantic_hash": ""
+  },
   "supabase/functions/_shared/quote_labels.ts": {
     "mtime": 1789382250.7636833,
     "ast_hash": "bc93c631d2610d16a25d04b5c0219785",
@@ -18142,6 +18157,21 @@
   "docs/contracts/technical_comparison.md": {
     "mtime": 1789388145.130808,
     "ast_hash": "8218da8e36e8d9de5fb2d895c59f8e60",
+    "semantic_hash": ""
+  },
+  "scripts/checks/a_supplier_who_ignores_holds_is_warned_then_held.test.mjs": {
+    "mtime": 1789388264.5349298,
+    "ast_hash": "359189f6abda4694abd2017e75bcc358",
+    "semantic_hash": ""
+  },
+  "scripts/sql/a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql": {
+    "mtime": 1789388489.233434,
+    "ast_hash": "c1f669301bff3cc58a746b551b35b9f3",
+    "semantic_hash": ""
+  },
+  "scripts/sql/customer_support_names_the_kind_when_it_reaches_the_founder.sql": {
+    "mtime": 1789388437.0448833,
+    "ast_hash": "333e940fdc7b1974ee79e77084fa0a8a",
     "semantic_hash": ""
   }
 }

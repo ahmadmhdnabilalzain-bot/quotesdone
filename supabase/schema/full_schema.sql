@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T12:17:30.085Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T12:22:33.504Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -21272,6 +21272,16 @@ begin
     select pm.created_at, 'message', 'portal_chat', case when pm.customer_id = any (v_cust) and pm.sender = 'customer' then 'in' else 'out' end,
            'sales_engineer', pm.id::text, left(coalesce(pm.redacted_body, ''), 140)
       from public.messages pm where pm.customer_id = any (v_cust) or pm.supplier_id = any (v_lead)
+    -- every handoff between the seats about this party (payments_are_the_accountant_and_it_talks_to_the_
+    -- sales_engineer.sql): who handed what to whom, and where it stands, so support reads the money and
+    -- the refund loops before it answers — #617's branch, kept here verbatim so the live body is the union
+    union all
+    select a.created_at, 'handoff', 'internal', 'internal', a.agent, a.id::text,
+           coalesce(a.detail->>'type', a.kind) || ' from ' || coalesce(a.detail->>'from', '?') || ' to ' || a.agent || ': ' || a.status
+      from public.agent_actions a
+     where a.kind = 'handoff'
+       and ((a.detail->>'customer_id') = any (v_cust::text[]) or (a.detail->>'supplier_id') = any (v_lead::text[])
+            or (a.detail->>'transaction_id') = any (v_txn::text[]) or (a.detail->>'refund_id') = any (v_ref::text[]))
     union all
     select cm.created_at, 'message', 'contact_form', 'in', 'customer_support', cm.id::text, left(coalesce(cm.message, ''), 140)
       from public.contact_messages cm
