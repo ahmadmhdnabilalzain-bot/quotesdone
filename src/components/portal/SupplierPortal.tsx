@@ -651,15 +651,19 @@ function Dashboard({ token, lang, onExpired }) {
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
         </div>
-        <nav aria-label={t(lang, 'main_nav')} className="-mx-1 overflow-x-auto px-1 pb-1">
-          <div className={cn(S.tabsWrap, 'flex-nowrap')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'whitespace-nowrap', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}
+        {/* EVERY SECTION NAME IS ON SCREEN (founder, 14 Sep 2026: navigation must read as text).
+            This strip used to be flex-nowrap inside overflow-x-auto, so at 375px only the first
+            two and a half names were visible and the rest sat off-screen with no hint they existed.
+            It wraps now, and every control is at least 44px tall for a thumb. */}
+        <nav aria-label={t(lang, 'main_nav')}>
+          <div className={cn(S.tabsWrap, 'flex')}>
+            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}
           </div>
         </nav>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+        <nav aria-label={t(lang, 'account')} className="flex flex-wrap items-center gap-x-4 text-[13px]">
           <span className="text-muted-foreground">{t(lang, 'account')}:</span>
-          {ACCOUNT_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn('font-semibold underline-offset-2 hover:underline', tab === k ? 'text-primary' : 'text-muted-foreground')} onClick={() => setTab(k)}>{TAB[k]}</button>)}
-        </div>
+          {ACCOUNT_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn('inline-flex min-h-11 items-center rounded-md px-1 font-semibold underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'text-primary' : 'text-muted-foreground')} onClick={() => setTab(k)}>{TAB[k]}</button>)}
+        </nav>
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
       {tab === 'overview' && <>
