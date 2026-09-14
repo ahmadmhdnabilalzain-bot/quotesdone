@@ -4,6 +4,8 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { Link } from '@/i18n/routing';
 import { notFound } from 'next/navigation';
 import { buildMeta, textFromHtml } from '@/lib/seo';
+import { anchorHeadings, ContentsRail, CtaPanel } from '@/components/DocFrame';
+import { Button } from '@/components/ui/button';
 
 type Body = { title: string; excerpt: string | null; meta_desc: string | null; category: string | null; body_html: string };
 export type Post = Body & {
@@ -20,7 +22,7 @@ export const BLOG_T = {
     ctaP: 'Post it once. Vetted UAE suppliers compete anonymously — you compare and reveal only the one you choose.',
     cta: 'Get quotes', onlyEnglish: '', indexH: 'QuotesDone blog',
     indexLead: 'Practical guides for buying building, fit-out and home services in the UAE — real price ranges, checklists and the right questions to ask suppliers before you sign.',
-    read: 'Read guide →', author: 'QuotesDone',
+    read: 'Read guide →', author: 'QuotesDone', contents: 'In this guide',
   },
   ar: {
     home: 'الرئيسية', blog: 'المدوّنة', crumb: 'مسار التنقل', ready: 'جاهزون متى شئت',
@@ -28,7 +30,7 @@ export const BLOG_T = {
     ctaP: 'انشر طلبك مرة واحدة، ويتنافس عليه موردون موثّقون في الإمارات بسرّية تامة — تقارن العروض ولا تكشف إلا عن المورد الذي تختاره.',
     cta: 'احصل على عروض الأسعار', onlyEnglish: 'هذا المقال متاح حالياً باللغة الإنجليزية فقط.', indexH: 'مدوّنة QuotesDone',
     indexLead: 'أدلة عملية لشراء خدمات البناء والتشطيبات الداخلية والخدمات المنزلية في الإمارات — نطاقات أسعار حقيقية وقوائم تحقق والأسئلة الصحيحة التي تطرحها على الموردين قبل التوقيع.',
-    read: 'اقرأ الدليل ←', author: 'QuotesDone',
+    read: 'اقرأ الدليل ←', author: 'QuotesDone', contents: 'في هذا الدليل',
   },
 } as const;
 export const blogT = (locale: string) => (locale === 'ar' ? BLOG_T.ar : BLOG_T.en);
@@ -84,77 +86,64 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
   const t = localized(p, locale);
   const rtl = t.lang === 'ar';
   const date = fmt(p.published_at, locale);
+  const { html: body, list } = anchorHeadings(rtl ? isolateLatin(t.body_html) : t.body_html, 'h2', 'part');
   return (
     <>
       <SiteHeader />
-      <main id="main" className="container-x py-beat-s md:py-beat" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-        <nav
-          aria-label={T.crumb}
-          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.05] px-3.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.16em] text-faint backdrop-blur"
-        >
-          <span className="node-dot" aria-hidden />
-          <Link href="/" className="transition-colors hover:text-teal-light">{T.home}</Link>
-          <span className="text-teal/50">/</span>
-          <Link href="/blog/" className="transition-colors hover:text-teal-light">{T.blog}</Link>
-        </nav>
-
-        <article className="max-w-[820px]">
-          <header className="border-b border-[var(--line)] pb-8">
+      <main id="main" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        <section className="qd-keylight relative overflow-hidden border-b border-line">
+          <span className="grid-tech" aria-hidden />
+          <div className="container-x relative pb-14 pt-14 md:pb-20 md:pt-20">
+            <nav aria-label={T.crumb} className="qd-kicker">
+              <Link href="/" className="transition-colors hover:text-white">{T.home}</Link>
+              <span aria-hidden className="mx-2 text-faint">/</span>
+              <Link href="/blog/" className="transition-colors hover:text-white">{T.blog}</Link>
+            </nav>
             {t.category && (
-              <p className="font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-gold">{t.category}</p>
+              <p className="mt-8 font-mono text-label uppercase tracking-caps text-teal-light">{t.category}</p>
             )}
             <h1
               lang={t.lang} dir={rtl ? 'rtl' : 'ltr'}
-              className="text-brand-grad mt-4 max-w-[20ch] text-balance font-head text-[clamp(28px,4vw,46px)] font-semibold leading-[1.08] tracking-[-0.035em]"
+              className="mt-4 max-w-[22ch] text-balance font-head text-display-sm text-white"
               {...(rtl ? { dangerouslySetInnerHTML: { __html: bidiText(t.title) } } : { children: t.title })}
             />
             {t.excerpt && (
               <p
                 lang={t.lang} dir={rtl ? 'rtl' : 'ltr'}
-                className="mt-5 max-w-[62ch] text-pretty text-[17px] leading-relaxed text-muted"
+                className="mt-6 max-w-[62ch] text-pretty text-lead text-muted"
                 {...(rtl ? { dangerouslySetInnerHTML: { __html: bidiText(t.excerpt) } } : { children: t.excerpt })}
               />
             )}
-            <p className="mt-6 font-mono text-[12px] text-faint">
-              {p.author}{p.author && date ? ' · ' : ''}{date}
+            <p className="mt-8 flex flex-wrap items-center gap-3 font-mono text-label text-faint">
+              {p.author ? <span>{p.author}</span> : null}
+              {p.author && date ? <span aria-hidden className="h-3 w-px bg-[var(--line2)]" /> : null}
+              {date ? <span>{date}</span> : null}
             </p>
-          </header>
+          </div>
+        </section>
 
-          {locale === 'ar' && !rtl && (
-            <p className="mt-8 rounded-xl border border-[var(--line2)] bg-teal-light/[0.05] px-4 py-3 text-[14px] text-muted">
-              {T.onlyEnglish}
-            </p>
-          )}
+        <div className="container-x grid gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-16">
+          <article className="min-w-0 max-w-[720px]">
+            {locale === 'ar' && !rtl && (
+              <p className="mb-10 rounded-panel border border-line2 bg-teal-light/[0.05] px-4 py-3 text-small text-muted">
+                {T.onlyEnglish}
+              </p>
+            )}
+            {/* lang/dir follow the text actually shown, so screen readers and translation tools
+                handle an English fallback correctly on an Arabic page */}
+            <div
+              lang={t.lang}
+              dir={rtl ? 'rtl' : 'ltr'}
+              className="qd-prose [&_h2]:scroll-mt-28"
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
+          </article>
+          {list.length > 2 ? <aside className="-order-1 min-w-0 lg:order-none"><ContentsRail title={T.contents} list={list} /></aside> : null}
+        </div>
 
-          {/* lang/dir follow the text actually shown, so screen readers and translation tools
-              handle an English fallback correctly on an Arabic page */}
-          <div
-            lang={t.lang}
-            dir={rtl ? 'rtl' : 'ltr'}
-            className="qd-prose mt-10"
-            dangerouslySetInnerHTML={{ __html: rtl ? isolateLatin(t.body_html) : t.body_html }}
-          />
-
-          <aside className="glass mesh-glow relative mt-14 overflow-hidden rounded-[22px] p-8 text-center sm:p-10">
-            <span className="corners absolute inset-3" aria-hidden />
-            <p className="inline-flex items-center gap-2.5 font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-teal-light">
-              <span className="node-dot" aria-hidden />
-              {T.ready}
-            </p>
-            <h2 className="text-brand-grad mt-4 text-balance font-head text-[clamp(22px,3vw,28px)] font-semibold tracking-[-0.02em]">
-              {T.ctaH}
-            </h2>
-            <p className="mx-auto mt-3 max-w-[48ch] text-[15px] leading-relaxed text-muted">
-              {T.ctaP}
-            </p>
-            <Link
-              href="/me"
-              className="btn-key press mt-7 inline-block rounded-full bg-teal px-8 py-3.5 text-[15px] font-bold text-[#04231F] shadow-[0_14px_38px_-14px_rgba(20,184,166,.7)] transition-all duration-200 hover:bg-[#1ED0BC] hover:shadow-[0_18px_44px_-14px_rgba(20,184,166,.9)]"
-            >
-              {T.cta}
-            </Link>
-          </aside>
-        </article>
+        <CtaPanel kicker={T.ready} title={T.ctaH} body={T.ctaP}>
+          <Button asChild size="xl" className="qd-magnet"><Link href="/me">{T.cta}</Link></Button>
+        </CtaPanel>
       </main>
       <SiteFooter />
     </>

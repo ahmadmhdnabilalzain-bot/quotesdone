@@ -54,30 +54,32 @@ export async function SupplierNeeds({ service, locale }: { service: string; loca
   if (!questions.length && !documents.length) return null;
   const t = await getTranslations({ locale, namespace: 'brief' });
   return (
-    <section aria-labelledby="supplier-needs" className="glass depth relative mt-6 overflow-hidden rounded-[22px] p-6 text-start md:p-8">
-      <span className="grid-tech grid-tech-sm opacity-40" aria-hidden />
-      <h2 id="supplier-needs" className="relative font-head text-[20px] font-semibold tracking-[-0.02em] text-white rtl:tracking-normal">
-        {t('serviceTitle')}
-      </h2>
-      <div className="relative mt-5 grid gap-6 md:grid-cols-2">
+    <section aria-labelledby="supplier-needs" className="qd-frame qd-grain relative mt-8 overflow-hidden text-start">
+      <div className="qd-frame-bar"><i /><i /><i />
+        <h2 id="supplier-needs" className="ms-2 truncate font-mono text-label text-muted">{t('serviceTitle')}</h2>
+      </div>
+      <div className="grid md:grid-cols-2 md:divide-x md:divide-[var(--line)] rtl:md:divide-x-reverse">
         {questions.length > 0 && (
-          <div>
-            <h3 className="text-[13px] font-semibold text-teal-light">{t('questions')}</h3>
-            <ul className="mt-2 space-y-2">
-              {questions.map((q) => (
-                <li key={q.key} dir="auto" className="text-[14px] leading-relaxed text-paper/90">{q.question}</li>
+          <div className="p-6 md:p-7">
+            <h3 className="font-mono text-label uppercase tracking-caps text-teal-light">{t('questions')}</h3>
+            <ol className="mt-4 flex flex-col divide-y divide-[var(--line)]">
+              {questions.map((q, i) => (
+                <li key={q.key} className="flex gap-3 py-3 first:pt-0">
+                  <span className="tabular shrink-0 font-mono text-label text-faint">{String(i + 1).padStart(2, '0')}</span>
+                  <span dir="auto" className="text-body text-paper/90">{q.question}</span>
+                </li>
               ))}
-            </ul>
+            </ol>
           </div>
         )}
         {documents.length > 0 && (
-          <div>
-            <h3 className="text-[13px] font-semibold text-teal-light">{t('docs')}</h3>
-            <ul className="mt-2 space-y-2">
+          <div className="border-t border-line p-6 md:border-t-0 md:p-7">
+            <h3 className="font-mono text-label uppercase tracking-caps text-teal-light">{t('docs')}</h3>
+            <ul className="mt-4 flex flex-col divide-y divide-[var(--line)]">
               {documents.map((d) => (
-                <li key={d.item} className="text-[14px] leading-relaxed text-paper/90">
-                  <span dir="auto">{d.item}</span>
-                  {d.authority && <span dir="auto" className="ms-2 text-[12.5px] text-muted">({d.authority})</span>}
+                <li key={d.item} className="flex flex-col gap-1 py-3 first:pt-0">
+                  <span dir="auto" className="text-body text-paper/90">{d.item}</span>
+                  {d.authority && <span dir="auto" className="font-mono text-label text-faint">{d.authority}</span>}
                 </li>
               ))}
             </ul>

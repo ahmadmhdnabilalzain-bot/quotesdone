@@ -57,9 +57,9 @@ export function Clarifications({ inq, token, lang, call }) {
     );
   }
   return (
-    <section className="qd-panel p-4" onClick={(e) => e.stopPropagation()} aria-label={t(lang, 'cl_title')}>
-      <h3 className="font-head text-[14px] font-bold text-foreground">{t(lang, 'cl_title')}</h3>
-      <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{t(lang, 'cl_sub')}</p>
+    <section className="qd-panel p-4 sm:p-5" onClick={(e) => e.stopPropagation()} aria-label={t(lang, 'cl_title')}>
+      <h3 className="flex items-center gap-2 font-head text-[15px] font-semibold tracking-snug text-foreground"><MessageCircleQuestion className="h-4 w-4 text-primary" aria-hidden />{t(lang, 'cl_title')}</h3>
+      <p className="mt-1 text-small leading-relaxed text-muted-foreground">{t(lang, 'cl_sub')}</p>
 
       <div className="mt-3 flex flex-col gap-2.5">
         {items == null ? (
@@ -70,10 +70,10 @@ export function Clarifications({ inq, token, lang, call }) {
           <AnimatePresence initial={false}>
             {items.map((it) => (
               <motion.div key={it.id} layout={!reduce} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-border bg-card/50 p-3">
+                className={cn('rounded-card border bg-secondary/20 p-3', it.kind === 'question' && !it.answered_at ? 'border-warn/40' : 'border-border')}>
                 {it.kind === 'question' ? (
                   <>
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-primary">{tf(lang, 'cl_asked', { label: lang === 'ar' ? String(it.supplier_label || '').replace('Supplier', 'المورّد') : it.supplier_label })}</div>
+                    <div className="font-mono text-label uppercase tracking-caps text-primary">{tf(lang, 'cl_asked', { label: lang === 'ar' ? String(it.supplier_label || '').replace('Supplier', 'المورّد') : it.supplier_label })}</div>
                     <p className="mt-0.5 text-[13px] text-foreground">{it.question}</p>
                     {it.answered_at ? (
                       <p className="mt-2 flex gap-1.5 text-[13px] text-muted-foreground"><CornerDownRight className="mt-0.5 h-3.5 w-3.5 shrink-0 rtl:-scale-x-100" aria-hidden /><span><b className="text-foreground">{t(lang, 'cl_answered')}: </b>{it.answer}</span></p>
@@ -88,7 +88,7 @@ export function Clarifications({ inq, token, lang, call }) {
                   </>
                 ) : (
                   <>
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t(lang, 'cl_you_added')}</div>
+                    <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'cl_you_added')}</div>
                     <p className="mt-0.5 text-[13px] text-foreground">{it.answer}</p>
                   </>
                 )}

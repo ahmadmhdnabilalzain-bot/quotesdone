@@ -2,12 +2,22 @@
 import { useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import mk from '@/content/marketing.json';
-import css from '@/content/marketingCss.json';
 import { arDoc } from '@/lib/arabicDoc';
+import { PageHero, ContentsRail, splitHero, anchorHeadings } from '@/components/DocFrame';
+
+// Styles: globals.css §9 (.mk-faq) for the questions and the search box; the hero and the
+// category rail are the Sealed frame (DocFrame). The search box keeps its ids (#q, #nm), so the
+// filter below finds it wherever it is rendered.
+const L = {
+  en: { kicker: 'FAQ · 150 answers', rail: 'Topics' },
+  ar: { kicker: 'الأسئلة الشائعة · 150 إجابة', rail: 'المواضيع' },
+};
 export function FaqInner() {
   const locale = useLocale();
+  const t = locale === 'ar' ? L.ar : L.en;
   const entry = (mk as any).faq; const d = entry[locale] || entry.en;
-  const html = arDoc(d.html as string, locale); const style = (css as any).faq as string;
+  const hero = splitHero(arDoc(d.html as string, locale));
+  const { html: rest, list } = anchorHeadings(hero.rest, 'h2', 'topic');
   useEffect(() => {
     const q = document.getElementById('q') as HTMLInputElement | null;
     const nm = document.getElementById('nm') as HTMLElement | null;
@@ -29,26 +39,16 @@ export function FaqInner() {
     q.addEventListener('input', run); run();
     return () => q.removeEventListener('input', run);
   }, [locale]);
-  return (<><style dangerouslySetInnerHTML={{ __html: style }} /><style dangerouslySetInnerHTML={{ __html: FAQ_DECK_CSS.replace('FAQ · 150 ANSWERS', locale === 'ar' ? 'الأسئلة الشائعة · 150 إجابة' : 'FAQ · 150 ANSWERS') }} /><main id="main" className="mk mk-faq" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} /></>);
+  return (
+    <main id="main" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+      <PageHero center kicker={t.kicker} title={<span dangerouslySetInnerHTML={{ __html: hero.title ?? d.title }} />}
+        lead={hero.lead ? <span dangerouslySetInnerHTML={{ __html: hero.lead }} /> : undefined}>
+        {hero.extra ? <div className="mk mk-faq [&_.search]:!mb-0 [&_.search]:!mt-10" dangerouslySetInnerHTML={{ __html: hero.extra }} /> : null}
+      </PageHero>
+      <div className="container-x grid gap-10 pb-beat-s pt-10 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-16">
+        <aside className="min-w-0"><ContentsRail title={t.rail} list={list} /></aside>
+        <div className="mk mk-faq min-w-0 [&_.content]:!pt-0 [&_.fwrap]:!max-w-[860px] [&_.fwrap]:!px-0 [&_.sec:first-child]:!mt-0 [&_.sec_h2]:scroll-mt-28" dangerouslySetInnerHTML={{ __html: rest }} />
+      </div>
+    </main>
+  );
 }
-
-/* Command-deck polish layered on top of the base FAQ stylesheet — a kicker
-   pill above the title (injected via ::before, no HTML change), a teal→gold
-   gradient headline, accent-barred section headers, a glowing search focus
-   and hover-lift accordions. Style only; the search/filter logic is untouched. */
-const FAQ_DECK_CSS = `
-.mk-faq .hero{padding-top:70px}
-.mk-faq .hero h1{position:relative;background:linear-gradient(96deg,#EAF4F2 0%,#6EE7D4 44%,#EAF4F2 60%,#E3C065 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.mk-faq .hero h1::before{content:"FAQ · 150 ANSWERS";display:inline-flex;align-items:center;gap:9px;margin:0 auto 20px;padding:6px 15px;border:1px solid rgba(110,231,212,.19);background:rgba(110,231,212,.05);border-radius:999px;font-family:var(--font-mono),ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#6EE7D4;-webkit-text-fill-color:#6EE7D4;width:max-content}
-.mk-faq .hero h1::after{content:"";position:absolute;left:50%;top:-34px;width:6px;height:6px;translate:-50% 0;border-radius:99px;background:#14B8A6;box-shadow:0 0 10px rgba(20,184,166,.95)}
-.mk-faq .search input{transition:border-color .22s,box-shadow .22s}
-.mk-faq .search input:focus{box-shadow:0 0 0 3px rgba(20,184,166,.16)}
-.mk-faq .sec h2{position:relative;padding-inline-start:14px;border-bottom:none}
-.mk-faq .sec h2::before{content:"";position:absolute;inset-inline-start:0;top:.05em;height:1em;width:3px;border-radius:2px;background:linear-gradient(180deg,var(--teal),var(--gold))}
-.mk-faq details.qa{transition:border-color .28s cubic-bezier(.16,1,.3,1),transform .28s cubic-bezier(.16,1,.3,1)}
-@media(hover:hover){.mk-faq details.qa:hover{border-color:rgba(110,231,212,.4);transform:translateY(-2px)}}
-.mk-faq details.qa[open]{border-color:rgba(110,231,212,.32)}
-.mk-faq details.qa summary:after{transition:transform .25s ease}
-.mk-faq details.qa[open] summary:after{transform:translateY(-50%) rotate(45deg)}
-@media(prefers-reduced-motion:reduce){.mk-faq details.qa,.mk-faq details.qa summary:after{transition:none}.mk-faq details.qa:hover{transform:none}}
-`;

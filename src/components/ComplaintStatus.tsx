@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { Button } from '@/components/ui/button';
 
 type Status = 'acknowledged' | 'in_review' | 'final_response';
 type Ticket = {
@@ -85,85 +86,96 @@ export function ComplaintStatus() {
   }
 
   const timer = (label: string, days: string, due: string, doneAt: string | null, left: number) => (
-    <li className="rounded-xl border border-[var(--line)] bg-teal-light/[0.03] px-4 py-3 text-[14.5px]">
-      <span>{label} <strong>{fmt(due)}</strong> {days}</span>
-      <span className="ms-2 text-muted">
-        — {doneAt ? `${t.met} (${fmt(doneAt)})` : left > 0 ? t.left(left) : t.dueToday}
+    <li className="qd-row !gap-x-4 !px-5 !py-4 sm:!grid-cols-[1fr_auto]">
+      <span className="text-body text-paper">{label} <strong className="text-white">{fmt(due)}</strong> <span className="text-faint">{days}</span></span>
+      <span className={'font-mono text-label ' + (doneAt ? 'text-teal-light' : left > 0 ? 'text-muted' : 'text-warn-fg')}>
+        {doneAt ? `${t.met} (${fmt(doneAt)})` : left > 0 ? t.left(left) : t.dueToday}
       </span>
     </li>
   );
 
   const cur = res ? ORDER.indexOf(res.status) : -1;
-  const inputCls = 'mt-1.5 w-full rounded-xl border border-[var(--line)] bg-transparent px-4 py-3 text-[15px] outline-none focus:border-[var(--line2)]';
+  const inputCls = 'mt-2 h-12 w-full rounded-btn border border-line2 bg-navy-deep/60 px-4 font-mono text-copy text-paper shadow-key outline-none transition-[border-color,box-shadow] duration-base placeholder:text-faint focus:border-teal focus:shadow-ring';
 
   return (
-    <main id="main" className="container-x py-beat-s md:py-beat" dir={ar ? 'rtl' : 'ltr'}>
-      <div className="mx-auto max-w-[720px]">
-        <h1 className="text-[clamp(28px,4vw,40px)] font-bold">{t.title}</h1>
-        <p className="mt-3 text-[16px] leading-relaxed text-muted">{t.intro}</p>
-
-        <form onSubmit={submit} className="mt-8 grid gap-4 sm:grid-cols-2">
-          <label className="block text-[14px]">{t.ticket}
+    <main id="main" dir={ar ? 'rtl' : 'ltr'}>
+      <section className="qd-keylight relative overflow-hidden border-b border-line">
+        <span className="grid-tech" aria-hidden />
+        <div className="container-x relative pb-12 pt-16 md:pb-16 md:pt-24">
+          <span className="qd-kicker">{ar ? 'الشكاوى' : 'Complaints'}</span>
+          <h1 className="mt-6 font-head text-display-sm text-white">{t.title}</h1>
+          <p className="mt-5 max-w-[56ch] text-lead text-muted">{t.intro}</p>
+        </div>
+      </section>
+      <div className="container-x py-12 md:py-16">
+      <div className="mx-auto max-w-[760px]">
+        <form onSubmit={submit} className="qd-panel qd-grain grid gap-5 p-6 sm:grid-cols-2 md:p-8">
+          <label className="block text-small font-medium text-muted">{t.ticket}
             <input className={inputCls} dir="ltr" required value={ticket} onChange={(e) => setTicket(e.target.value.toUpperCase())} placeholder="QD-C-ABC234" autoComplete="off" />
           </label>
-          <label className="block text-[14px]">{t.email}
+          <label className="block text-small font-medium text-muted">{t.email}
             <input className={inputCls} dir="ltr" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </label>
           <div className="sm:col-span-2">
-            <button type="submit" disabled={busy} className="btn-key press rounded-full bg-teal px-8 py-3.5 text-[15px] font-bold text-[#04231F] transition-colors duration-200 hover:bg-[#1ED0BC] disabled:opacity-60">
+            <Button type="submit" size="lg" disabled={busy} className="w-full sm:w-auto">
               {busy ? t.checking : t.check}
-            </button>
+            </Button>
           </div>
         </form>
 
-        {err && <p role="alert" className="mt-6 rounded-xl border border-[var(--line2)] px-4 py-3 text-[14.5px] text-[#ff9a9a]">{err}</p>}
+        {err && <p role="alert" className="mt-6 rounded-panel border border-danger/40 bg-danger/10 px-4 py-3 text-body text-danger-fg">{err}</p>}
 
         {res && (
-          <section className="mt-10 border-t border-[var(--line)] pt-8" aria-live="polite">
-            <p className="font-mono text-[13px] uppercase tracking-[0.12em] text-muted">{t.ticket}: <bdi dir="ltr">{res.ticket}</bdi></p>
+          <section className="qd-frame mt-10" aria-live="polite">
+            <div className="qd-frame-bar"><i /><i /><i /><span className="ms-2 font-mono text-label text-muted">{t.ticket}: <bdi dir="ltr" className="text-paper">{res.ticket}</bdi></span></div>
 
-            <ol className="mt-5 grid grid-cols-3 gap-2">
+            <ol className="grid grid-cols-3 border-b border-line">
               {ORDER.map((s, i) => (
                 <li key={s} aria-current={i === cur ? 'step' : undefined}
-                  className={'rounded-xl border px-3 py-3 text-center text-[13.5px] font-semibold ' + (i <= cur ? 'border-teal bg-teal/15' : 'border-[var(--line)] text-muted')}>
+                  className={'relative flex flex-col items-center gap-2.5 px-2 py-5 text-center text-small font-semibold ' + (i <= cur ? 'text-white' : 'text-faint')}>
+                  <span aria-hidden className={'grid h-7 w-7 place-items-center rounded-full border font-mono text-label ' + (i < cur ? 'border-teal bg-teal/20 text-teal-light' : i === cur ? 'border-teal bg-teal/20 text-teal-light shadow-glow-teal' : 'border-line2 text-faint')}>
+                    {i < cur ? '✓' : String(i + 1).padStart(2, '0')}
+                  </span>
                   {t.steps[s]}
+                  <span aria-hidden className={'absolute inset-x-0 bottom-0 h-0.5 ' + (i <= cur ? 'bg-teal' : 'bg-transparent')} />
                 </li>
               ))}
             </ol>
 
-            <ul className="mt-6 grid gap-3">
+            <ul>
               {timer(t.ackDue, t.ackDays, res.acknowledge_due, res.acknowledged_at, res.acknowledge_days_left)}
               {timer(t.resDue, t.resDays, res.respond_due, res.final_response_at, res.respond_days_left)}
             </ul>
 
             {res.status === 'final_response' && (
-              <>
+              <div className="border-t border-line p-6 md:p-7">
                 {res.final_response && (
-                  <div className="mt-8">
-                    <h2 className="text-[18px] font-bold">{t.ourResponse}</h2>
-                    <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed">{res.final_response}</p>
+                  <div>
+                    <h2 className="font-head text-h3 text-white">{t.ourResponse}</h2>
+                    <p className="mt-3 whitespace-pre-wrap text-copy text-paper/90">{res.final_response}</p>
                     {res.decision_ref && (
-                      <p className="mt-3 text-[13.5px] text-muted">
+                      <p className="mt-3 text-small text-muted">
                         {t.decisionRef}: <bdi dir="ltr" className="font-mono">{res.decision_ref}</bdi>
                         {res.decided_by ? <> · {t.decidedBy[res.decided_by]}</> : null}
                       </p>
                     )}
                   </div>
                 )}
-                <div className="mt-8 rounded-xl border border-[var(--line2)] bg-teal-light/[0.05] px-5 py-4 text-[14.5px] leading-relaxed">
-                  <h2 className="text-[16px] font-bold">{t.escalateTitle}</h2>
+                <div className="qd-panel mt-8 px-5 py-5 text-body">
+                  <h2 className="font-head text-[16px] font-semibold text-white">{t.escalateTitle}</h2>
                   <p className="mt-2 text-muted">{t.escalate}</p>
                   <ul className="mt-3 list-disc space-y-1.5 ps-5">
                     <li><a className="underline" href="https://consumerrights.ae" target="_blank" rel="noopener noreferrer">{t.det}</a> — <bdi dir="ltr">consumerrights.ae</bdi></li>
                     <li>{t.app}</li>
                     <li>{t.hotline}: <a className="underline" href="tel:8001222"><bdi dir="ltr">800 1222</bdi></a></li>
                   </ul>
-                  <p className="mt-3"><Link className="underline" href="/complaints">{t.policy}</Link></p>
+                  <p className="mt-3"><Link className="text-teal-light underline underline-offset-2 hover:text-white" href="/complaints">{t.policy}</Link></p>
                 </div>
-              </>
+              </div>
             )}
           </section>
         )}
+      </div>
       </div>
     </main>
   );

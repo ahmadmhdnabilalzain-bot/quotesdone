@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Kicker, Stepper } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
 import { call } from './api';
 import { itemCopy, srvText } from './serverCopy';
@@ -52,7 +53,6 @@ function Ring({ done, total, lang }: { done: number; total: number; lang: Lang }
 
 export default function GetMatched({ token, lang, go }: { token: string; lang: Lang; go: (where: string) => void }) {
   const ar = lang === 'ar';
-  const reduce = useReducedMotion();
   const [e, setE] = useState<any>(null);
   const [err, setErr] = useState(false);
   useEffect(() => {
@@ -81,42 +81,46 @@ export default function GetMatched({ token, lang, go }: { token: string; lang: L
   const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'إلى المستندات' : 'Go to Documents') : fix === 'scope' ? (ar ? 'تأكيد نطاقي' : 'Confirm my scope') : fix === 'contact' ? '' : (ar ? 'إلى الملف' : 'Go to Profile');
 
   return (
-    <section aria-labelledby="qd-getmatched-h" className="qd-panel mb-4 p-5">
+    <section aria-labelledby="qd-getmatched-h" className="qd-panel qd-lit mb-4 p-5 sm:p-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
         <Ring done={done} total={steps.length} lang={lang} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 id="qd-getmatched-h" className="font-[family-name:var(--font-head)] text-[18px] font-bold tracking-[-.02em] text-white">{ar ? 'احصل على المطابقة' : 'Get matched'}</h2>
-            <Badge variant={e.eligible ? 'ok' : 'destructive'}>{e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل بعد' : 'Not eligible yet')}</Badge>
+          <Kicker>{ar ? 'رحلة المورّد' : 'Supplier journey'}</Kicker>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <h2 id="qd-getmatched-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'احصل على المطابقة' : 'Get matched'}</h2>
+            <Badge dot variant={e.eligible ? 'ok' : 'danger'}>{e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل بعد' : 'Not eligible yet')}</Badge>
           </div>
-          <p className="mt-1 max-w-[62ch] text-[13px] leading-[1.65] text-muted-foreground">
+          <p className="mt-1 max-w-[62ch] text-copy text-muted-foreground">
             {next ? (ar ? 'الخطوة التالية: ' : 'Next step: ') + next.label + '.' : srvText(lang, e.note_code, {}, e.note)}
           </p>
           {next && next.fix !== 'contact' && <Button className="mt-3" onClick={() => go(next.fix)}>{fixLabel(next.fix)} {ar ? '←' : '→'}</Button>}
         </div>
         <dl className="grid grid-cols-3 gap-4 sm:w-[240px]">
           {[[e.reach?.matched_requests ?? 0, ar ? 'طلبات مطابقة' : 'matched'], [e.reach?.quotes_sent ?? 0, ar ? 'عروض مُرسلة' : 'quoted'], [e.reach?.shortlist_size ?? 8, ar ? 'حجم القائمة' : 'shortlist']].map(([v, l], i) => (
-            <div key={i}><dd className="font-[family-name:var(--font-head)] text-[20px] font-extrabold leading-none text-foreground tabular-nums">{v}</dd><dt className="mt-1 text-[11px] text-muted-foreground">{l}</dt></div>
+            <div key={i} className="border-s border-border ps-3"><dd className="font-head text-[22px] font-semibold leading-none text-foreground tabular-nums">{v}</dd><dt className="mt-1.5 font-mono text-label uppercase tracking-caps text-muted-foreground">{l}</dt></div>
           ))}
         </dl>
       </div>
 
-      <ol className="mt-5 grid gap-2 sm:grid-cols-2">
-        {steps.map((s, i) => (
-          <motion.li key={s.code}
-            initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: EASE, delay: reduce ? 0 : 0.05 * i }}>
+      {/* Progress as the kit meter, then the journey as the kit Stepper: done / current (the next
+          undone step) / next. Each title is still the button that sends the supplier to the fix. */}
+      <div className="mt-5 flex items-center gap-3">
+        <span className="qd-meter flex-1" aria-hidden><span style={{ width: `${steps.length ? Math.round((100 * done) / steps.length) : 0}%` }} /></span>
+        <span className="font-mono text-label tabular-nums text-muted-foreground">{done}/{steps.length}</span>
+      </div>
+      <div className="mt-5 border-t border-border pt-5">
+        <Stepper steps={steps.map((s) => ({
+          state: s.done ? 'done' : s === next ? 'current' : 'next',
+          title: (
             <button type="button" disabled={s.done} onClick={() => go(s.fix)}
-              className={cn('flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start transition-colors',
-                s.done ? 'cursor-default border-[var(--line)] bg-white/[.02]' : 'border-primary/30 bg-primary/[.06] hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
-              <span aria-hidden className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold',
-                s.done ? 'bg-primary text-primary-foreground' : 'border border-primary/50 text-primary')}>{s.done ? '✓' : i + 1}</span>
-              <span className={cn('text-[13.5px]', s.done ? 'text-muted-foreground line-through decoration-white/20' : 'font-semibold text-foreground')}>{s.label}</span>
+              className={cn('rounded-sm text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                s.done ? 'cursor-default text-muted-foreground line-through decoration-white/20' : 'hover:text-primary')}>
+              {s.label}
               <span className="sr-only">{s.done ? (ar ? ' — مكتمل' : ' — done') : (ar ? ' — مطلوب' : ' — to do')}</span>
             </button>
-          </motion.li>
-        ))}
-      </ol>
+          ),
+        }))} />
+      </div>
 
       {otherBlocking.length > 0 && (
         <div className="mt-5">

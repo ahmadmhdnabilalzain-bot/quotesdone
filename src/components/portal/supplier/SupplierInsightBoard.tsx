@@ -67,7 +67,7 @@ const num = (v: unknown): number | null => (typeof v === 'number' && isFinite(v)
 const ChartDefs = () => (
   <defs>
     <linearGradient id="ib-neon" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stopColor="#38bdf8" /><stop offset="100%" stopColor="#a78bfa" />
+      <stop offset="0%" stopColor="rgb(45,212,191)" /><stop offset="100%" stopColor="rgb(110,231,212)" />
     </linearGradient>
     <filter id="ib-glow"><feGaussianBlur stdDeviation="2.5" result="b" />
       <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -201,9 +201,12 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
     strength: {
       title: L.strength,
       body: (
-        <p className="text-3xl font-semibold text-white">
-          {num(twin?.company_strength) ?? <span className="text-base italic text-muted-foreground/70">{L.notRated}</span>}
-        </p>
+        <div className="qd-ticks pt-5">
+          <p className="qd-figure font-head text-[44px] font-semibold">
+            {num(twin?.company_strength) ?? <span className="text-base italic text-muted-foreground/70">{L.notRated}</span>}
+          </p>
+          {num(twin?.company_strength) !== null && <span className="qd-meter mt-3 block" aria-hidden><span style={{ width: `${Math.max(0, Math.min(100, num(twin?.company_strength) as number))}%` }} /></span>}
+        </div>
       ),
       detail: 'Company strength is computed by fn_supplier_twin from verification, documents, capability coverage and product depth. It is not a rating given by customers.',
     },
@@ -215,10 +218,13 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
     reach: {
       title: L.reach,
       body: (
-        <ul className="flex flex-col gap-1.5 text-[13px]">
-          <li className="text-muted-foreground">{L.products}: <b className="text-white">{String(twin?.product_count ?? 0)}</b></li>
-          <li className="text-muted-foreground">{L.certs}: <b className="text-white">{((twin?.certifications as unknown[]) || []).length}</b></li>
-          <li className="text-muted-foreground">{L.countries}: <b className="text-white">{((twin?.countries as unknown[]) || []).length}</b></li>
+        <ul className="flex flex-col text-[13px]">
+          {([[L.products, String(twin?.product_count ?? 0)], [L.certs, ((twin?.certifications as unknown[]) || []).length], [L.countries, ((twin?.countries as unknown[]) || []).length]] as const).map(([k, v]) => (
+            <li key={k} className="flex items-baseline justify-between gap-3 border-b border-border py-2 last:border-0">
+              <span className="text-muted-foreground">{k}</span>
+              <b className="font-head text-[20px] font-semibold tabular-nums text-foreground">{v}</b>
+            </li>
+          ))}
         </ul>
       ),
       detail: 'Counts come straight from the supplier record. A zero here is a real zero — nothing has been uploaded yet.',
@@ -230,7 +236,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
   return (
     <div className="relative flex flex-col gap-3">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-semibold text-white">{L.title}</h2>
+        <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{L.title}</h2>
         <p className="text-xs text-muted-foreground">
           {L.hint}{seenAt && <> · {L.live} {seenAt}</>}
         </p>
@@ -255,9 +261,9 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onDrop(id)}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ id, x: e.clientX, y: e.clientY }); }}
-              className="qd-panel cursor-grab p-4 ring-1 ring-white/10 transition-shadow hover:shadow-[0_0_28px_-6px_rgba(56,189,248,0.35)] active:cursor-grabbing"
+              className="qd-panel qd-panel-hover cursor-grab p-5 active:cursor-grabbing"
             >
-              <h3 className="mb-2 text-[13px] font-semibold text-white/90">{CARDS[id].title}</h3>
+              <h3 className="mb-3 font-mono text-label uppercase tracking-caps text-muted-foreground">{CARDS[id].title}</h3>
               {CARDS[id].body}
             </motion.section>
           ))}
@@ -267,7 +273,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
       {/* CONTEXT MENU — floating, positioned at the pointer. */}
       {menu && (
         <div
-          className="fixed z-50 min-w-[10rem] rounded-lg bg-[#0b1220]/95 p-1 shadow-xl ring-1 ring-white/15 backdrop-blur"
+          className="fixed z-50 min-w-[10rem] rounded-lg border border-border bg-popover p-1 shadow-e3"
           style={{ left: menu.x, top: menu.y }}
           role="menu"
         >
@@ -285,7 +291,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
         {detail && (
           <motion.aside
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-6 end-6 z-50 w-[min(22rem,90vw)] rounded-xl bg-[#0b1220]/95 p-4 shadow-2xl ring-1 ring-cyan-400/25 backdrop-blur"
+            className="fixed bottom-6 end-6 z-50 w-[min(22rem,90vw)] rounded-panel border border-border bg-popover p-4 shadow-e3"
             role="dialog" aria-label={detail.title}
           >
             <h4 className="mb-1.5 text-[13.5px] font-semibold text-white">{detail.title}</h4>

@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
@@ -144,7 +145,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       role="complementary"
       aria-label={t('asst_title')}
       className={cn(
-        'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card/95 backdrop-blur-xl',
+        'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
         // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
         'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
@@ -223,20 +224,20 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
 export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
   return (
     <Card className={cn(
-      'group relative overflow-hidden p-4 transition-[transform,border-color] duration-300 motion-safe:hover:-translate-y-0.5',
-      tone === 'accent' && 'border-primary/35',
+      'group relative overflow-hidden p-4 shadow-e1 transition-[transform,border-color,box-shadow] duration-300 hover:shadow-e2 motion-safe:hover:-translate-y-0.5 sm:p-5',
+      tone === 'accent' && 'border-primary/40',
     )}>
+      {/* The kit's lit top edge, on the tile that is asking for a decision. */}
+      {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" /> : null}
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className={cn('font-head text-[26px] font-extrabold leading-none tracking-tight tabular-nums',
-            tone === 'accent' ? 'text-primary' : 'text-foreground')}>{value}</div>
-          <div className="mt-1.5 text-[12px] font-medium text-muted-foreground">{label}</div>
-        </div>
-        <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl',
-          tone === 'accent' ? 'bg-primary/15 text-primary' : 'bg-secondary/60 text-muted-foreground')}>
+        <div className="min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
+        <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-panel border',
+          tone === 'accent' ? 'border-primary/35 bg-primary/12 text-primary' : 'border-border bg-secondary/40 text-muted-foreground')}>
           <Icon className="h-4 w-4" aria-hidden />
         </span>
       </div>
+      <div className={cn('tabular mt-3 font-head text-[30px] font-semibold leading-none tracking-snug',
+        tone === 'accent' ? 'text-primary' : 'text-foreground')}>{value}</div>
       {hint ? <div className="mt-2 text-[11.5px] leading-snug text-muted-foreground/85">{hint}</div> : null}
     </Card>
   );
@@ -247,11 +248,11 @@ export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
 // request that is being matched, then quoted, then decided, then revealed, then closed. Colour
 // carries meaning and is never the ONLY carrier — the word is always present.
 export const RFQ_STATE = {
-  matching:  { key: 'st_matching',  cls: 'bg-info/12 text-info-fg border-info/25' },
-  quoting:   { key: 'st_quoting',   cls: 'bg-warn/12 text-warn-fg border-warn/25' },
-  quotes_in: { key: 'st_quotes_in', cls: 'bg-primary/12 text-primary border-primary/30' },
-  revealed:  { key: 'st_revealed',  cls: 'bg-ok/12 text-ok-fg border-ok/25' },
-  closed:    { key: 'st_closed',    cls: 'bg-secondary/60 text-muted-foreground border-border' },
+  matching:  { key: 'st_matching',  cls: 'bg-info/12 text-info-fg border-info/25',           variant: 'info' },
+  quoting:   { key: 'st_quoting',   cls: 'bg-warn/12 text-warn-fg border-warn/25',           variant: 'warn' },
+  quotes_in: { key: 'st_quotes_in', cls: 'bg-primary/12 text-primary border-primary/30',     variant: 'default' },
+  revealed:  { key: 'st_revealed',  cls: 'bg-ok/12 text-ok-fg border-ok/25',                 variant: 'ok' },
+  closed:    { key: 'st_closed',    cls: 'bg-secondary/60 text-muted-foreground border-border', variant: 'outline' },
 };
 // Derived from facts the row already carries, never from the clock.
 export function rfqState(inq, quotes) {
@@ -265,10 +266,10 @@ export function rfqState(inq, quotes) {
 export function StatusPill({ state, t }) {
   const s = RFQ_STATE[state] || RFQ_STATE.matching;
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold', s.cls)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" aria-hidden />
+    // The kit Badge with its status light; `closed` keeps the muted token so it reads in both themes.
+    <Badge variant={s.variant} dot className={cn('shrink-0 font-semibold', state === 'closed' && 'text-muted-foreground')}>
       {t(s.key)}
-    </span>
+    </Badge>
   );
 }
 
@@ -379,7 +380,7 @@ export function PortalShell({
       <nav
         aria-label={t('nav_main')}
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col border-e border-border bg-card/55 backdrop-blur-xl md:flex',
+          'sticky top-0 hidden h-screen shrink-0 flex-col border-e border-border bg-card/80 md:flex',
           'transition-[width] duration-300 ease-out',
           collapsed ? 'w-[76px]' : 'w-[264px]',
         )}
@@ -398,7 +399,7 @@ export function PortalShell({
           {NAV_GROUPS.map((g) => (
             <div key={g.caption} className="mb-4">
               {!collapsed && (
-                <div className="px-3 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/65">{t(g.caption)}</div>
+                <div className="px-3 pb-1.5 font-mono text-label uppercase tracking-caps text-muted-foreground/70">{t(g.caption)}</div>
               )}
               <div className="flex flex-col gap-0.5">
                 {g.items.map((item) => <NavButton key={item.id} item={item} compact={collapsed} />)}
@@ -421,7 +422,7 @@ export function PortalShell({
 
       {/* ── MAIN COLUMN ───────────────────────────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/95 shadow-e1">
           <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 font-head text-[15px] font-extrabold text-primary md:hidden">Q</span>
 
@@ -436,7 +437,7 @@ export function PortalShell({
                   id="qd-ask" ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder={narrow ? t('ask_ph_short') : t('ask_ph')} autoComplete="off"
                   className={cn(
-                    'h-11 w-full rounded-2xl border border-input bg-card/70 ps-11 pe-16 text-[13.5px] text-foreground',
+                    'h-11 w-full rounded-btn border border-input bg-card ps-11 pe-16 text-[13.5px] text-foreground shadow-e1',
                     'placeholder:text-muted-foreground focus-visible:outline-none',
                     'focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/25',
                     'transition-[border-color,box-shadow] duration-200',
@@ -507,7 +508,7 @@ export function PortalShell({
 
       {/* ── MOBILE TAB BAR ────────────────────────────────────────────────────────────────── */}
       <nav aria-label={t('nav_main')}
-        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card/95 backdrop-blur-xl md:hidden">
+        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card shadow-e2 md:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
           const active = view === item.id || (item.id === 'home' && (view === '' || view === 'home'));
@@ -534,11 +535,11 @@ export function PortalShell({
       {moreOpen && (
         <>
           <button type="button" aria-label={t('close')} onClick={() => setMoreOpen(false)}
-            className="fixed inset-0 z-30 bg-background/70 backdrop-blur-sm md:hidden" />
+            className="fixed inset-0 z-30 bg-background/80 md:hidden" />
           <div className="fixed inset-x-0 bottom-[60px] z-40 max-h-[62vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
             {overflowGroups.map((g) => (
               <div key={g.caption} className="mb-3">
-                <div className="px-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/65">{t(g.caption)}</div>
+                <div className="px-1 pb-1.5 font-mono text-label uppercase tracking-caps text-muted-foreground/70">{t(g.caption)}</div>
                 <div className="grid grid-cols-2 gap-1.5">
                   {g.items.map((item) => {
                     const Icon = item.icon;

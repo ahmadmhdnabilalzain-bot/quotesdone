@@ -56,7 +56,7 @@ export default function EmiratesMap({ locale }: SceneProps) {
       <svg viewBox="0 0 520 240" className="h-full w-full" aria-hidden preserveAspectRatio="xMidYMid meet">
         {/* extrusion: a darker copy of each dot, dropped below it */}
         {DOTS.map((d, i) => (
-          <circle key={`s${i}`} cx={d.p[0]} cy={d.p[1] + 4} r={1.5} fill="#0C2330" />
+          <circle key={`s${i}`} cx={d.p[0]} cy={d.p[1] + 4} r={1.5} fill="#0F2231" />
         ))}
         {DOTS.map((d, i) => (
           <circle key={i} cx={d.p[0]} cy={d.p[1]} r={1.6} fill={TINT[d.e]} opacity={0.5} />
@@ -69,11 +69,11 @@ export default function EmiratesMap({ locale }: SceneProps) {
               cy={cy}
               r={4}
               fill="none"
-              stroke={e === 2 ? '#E3C065' : '#14B8A6'}
+              stroke={e === 2 ? '#6EE7D4' : '#14B8A6'}
               strokeWidth={0.8}
               style={{ animationDelay: `${e * 0.45}s`, animationPlayState: active ? 'running' : 'paused' }}
             />
-            <circle cx={cx} cy={cy} r={2.6} fill={e === 2 ? '#E3C065' : '#6EE7D4'} />
+            <circle cx={cx} cy={cy} r={2.6} fill={e === 2 ? '#EEF6F4' : '#6EE7D4'} />
           </g>
         ))}
         {EMIRATES.map((em, e) => {
@@ -82,7 +82,7 @@ export default function EmiratesMap({ locale }: SceneProps) {
           return (
             <g key={em.en}>
               <line x1={cx} y1={cy} x2={lx} y2={ly + 3} stroke="rgba(110,231,212,.28)" strokeWidth={0.6} />
-              <text x={lx} y={ly} textAnchor="middle" fill="#EAF4F2" fontSize={locale === 'ar' ? 11 : 9.5} fontFamily="var(--font-body), system-ui" letterSpacing={locale === 'ar' ? 0 : 0.4}>
+              <text x={lx} y={ly} textAnchor="middle" fill="#EEF6F4" fontSize={locale === 'ar' ? 11 : 9.5} fontFamily="var(--font-body), system-ui" letterSpacing={locale === 'ar' ? 0 : 0.4}>
                 {em[locale]}
               </text>
             </g>
