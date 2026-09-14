@@ -13,7 +13,7 @@ import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_A
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
-import { assessQuote } from '../_shared/line_specs/assess.ts';
+import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
@@ -182,6 +182,16 @@ async function notifyNewQuote(inquiryId: string) {
     if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]);
   } catch (_e) { /* */ }
 }
+// "WE NOTIFY DIRECTLY" (founder, 14 Sep 2026). The sales engineer's notices are delivery requests
+// customer_support sends (#614). Queued rows would otherwise wait for the next outbox tick; this asks
+// both of support's dispatchers to send now. Best-effort: the scheduled flush still sends if it fails.
+async function kickDelivery() {
+  const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return;
+  await Promise.allSettled(['send_outbox', 'send_whatsapp'].map((fn) => fetch(`${SUPA_URL}/functions/v1/${fn}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret }) })));
+}
+/** The supplier as the hold desk addresses them: every channel on file, in their language. */
+// deno-lint-ignore no-explicit-any
+const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
   const r = await acceptRule(qid);
@@ -714,55 +724,29 @@ Deno.serve(observe('supplier_api', async (req) => {
     // only CREATES a Checkout Session, it never marks anything paid". Registration was the one
     // money path that never got it. registration_status is now written solely by stripe_webhook
     // on a signature-verified checkout.session.completed event.
+    // PAYMENTS ARE THE ACCOUNTANT'S (founder, 14 Sep 2026). The registration checkout that lived here
+    // moved to supplier_pay, which the accountant owns; this action is a pass-through with the
+    // supplier's own session token so an older portal build keeps working. It creates nothing itself.
     if (action === 'pay_registration') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,email').eq('claimed_by', email).maybeSingle();
+      const pr = await fetch(`${SUPA_URL}/functions/v1/supplier_pay`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' },
+        body: JSON.stringify({ action: 'registration', return_url: body.return_url }) });
+      return new Response(await pr.text(), { status: pr.status, headers: cors });
+    }
+    // A SUPPLIER DISPUTES A CHARGE. The portal is the sales engineer's voice, the figures are the
+    // accountant's: the dispute is handed over (charge.disputed), the accountant recomputes the charge
+    // from the refund record, and the answer comes back to the supplier in the sales engineer's words.
+    if (action === 'dispute_charge') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      // AUDIT 4.2. Read the single source of truth rather than the stored label, which is only
-      // recomputed on write and can be a day stale across the charging start date.
-      const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
-      if (regErr || !(regSt as any)?.ok) return J({ error: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found' }, 503);
-      const reg = regSt as any;
-      if (reg.status === 'paid') return J({ ok: true, already_paid: true, paid_until: reg.paid_until, code: 'reg_paid', params: { until: reg.paid_until || null } });
-      if (reg.status === 'exempt') return J({ ok: true, exempt: true, founding_rank: reg.founding_rank, code: 'reg_exempt', params: { rank: reg.founding_rank }, message: 'Your registration is permanently free - you are supplier number ' + reg.founding_rank + ', inside the founding cohort. There is no fee to pay, now or in future.' });
-      // 6 Sep 2026 (founder): there is no calendar start date - charging_starts is NULL and stays NULL; the
-      // yearly fee begins with the registration after the free count. The sentence comes from the single
-      // source of truth (fn_supplier_registration_state.reason), which states the cohort rule, never a date.
-      if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, code: reg.charging_starts ? null : 'reg_not_due', message: 'There is nothing to pay yet. ' + (reg.charging_starts ? 'The yearly registration fee starts on ' + reg.charging_starts + '.' : (reg.reason ? reg.reason.charAt(0).toUpperCase() + reg.reason.slice(1) + '.' : 'The yearly registration fee applies from the registration after the free count; there is no calendar start date.')) });
-      const fee = Number(reg.fee_due || 0);
-      if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true, code: 'reg_not_due' });
-      const sk = await secretVal('stripe_secret_key');
-      if (!sk) return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503);
-      // Allowlisted (was taken verbatim): back to the site origin the supplier paid from, .ae included.
-      const base = siteReturnBase(req, body.return_url);
-      const form = new URLSearchParams();
-      form.set('mode', 'payment');
-      form.set('success_url', base + '/portal?registration_paid={CHECKOUT_SESSION_ID}');
-      form.set('cancel_url', base + '/portal');
-      form.set('client_reference_id', 'registration:' + sup.id);
-      if (sup.email && /@/.test(String(sup.email))) form.set('customer_email', String(sup.email));
-      form.set('line_items[0][quantity]', '1');
-      form.set('line_items[0][price_data][currency]', 'aed');
-      form.set('line_items[0][price_data][unit_amount]', String(Math.round(fee * 100)));
-      form.set('line_items[0][price_data][product_data][name]', 'QuotesDone supplier registration');
-      form.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
-      // STRIPE ISSUES THE INVOICE (9 Sep 2026). Registration revenue books to 4200 and, like the
-      // reveal fee and the penalty settlement, must produce a document the accountant files and
-      // mirrors to Dropbox. Enabled on all three money-in paths so no revenue stream is the one
-      // without paperwork.
-      form.set('invoice_creation[enabled]', 'true');
-      form.set('invoice_creation[invoice_data][description]',
-        'QuotesDone supplier registration — annual listing fee');
-      form.set('invoice_creation[invoice_data][footer]',
-        'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
-
-      form.set('metadata[kind]', 'supplier_registration');
-      form.set('metadata[supplier_id]', String(sup.id));
-      form.set('payment_intent_data[metadata][kind]', 'supplier_registration');
-      form.set('payment_intent_data[metadata][supplier_id]', String(sup.id));
-      const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
-      const sj = await r.json();
-      if (!r.ok) return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502);
-      return J({ ok: true, url: sj.url, amount: fee, currency: 'AED' });
+      const { data: due } = await admin.from('supplier_dues').select('id,supplier_id').eq('id', Number(body.due_id)).maybeSingle();
+      if (!due || Number(due.supplier_id) !== Number(sup.id)) return J({ error: 'not_found' }, 404);
+      const { data: hid, error: hErr } = await admin.rpc('fn_seat_handoff', {
+        p_from: 'sales_engineer', p_to: 'accountant', p_type: 'charge.disputed', p_subject_table: 'supplier_dues',
+        p_subject_id: String(due.id) + ':' + Date.now(),
+        p_payload: { supplier_id: sup.id, due_id: due.id, reason: String(body.reason || '').slice(0, 1000) } });
+      if (hErr) return J({ error: 'dispute_not_recorded', detail: hErr.message }, 503);
+      return J({ ok: true, handoff_id: hid, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
     }
     if (action === 'inbox') {
       const { data: sup } = await admin.from('leads').select('id,approval_status').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
@@ -990,18 +974,18 @@ Deno.serve(observe('supplier_api', async (req) => {
     // then is it released; (b) upload a revised quote, which is submit_quote again and supersedes the
     // hold. Every step is the sales_engineer seat's (_shared/line_specs/workflow.ts).
     if (action === 'spec_hold' || action === 'spec_fill' || action === 'spec_approve') {
-      const { data: sup } = await admin.from('leads').select('id,locale').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,locale,whatsapp,phone').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const qid = String(body.quote_id || '');
       if (!UUID_RE.test(qid)) return J({ error: 'not found', code: 'not_found' }, 404);
-      const repo = supabaseRepo(admin);
+      const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const q = await repo.quote(qid);
       if (!q || Number(q.supplier_id) !== Number(sup.id)) return J({ error: 'not found', code: 'not_found' }, 404);
       const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', q.inquiry_id).maybeSingle();
       const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
       // deno-lint-ignore no-explicit-any
       const spec: any = inqRow?.spec;
-      const ctx = { category: inqRow?.category ?? null, requirements: spec && typeof spec.requirements === 'object' ? spec.requirements : null, ref: String(q.inquiry_id).slice(0, 8).toUpperCase(), multiOption: (optCount || 0) > 1 };
+      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: String(q.inquiry_id).slice(0, 8).toUpperCase(), multiOption: (optCount || 0) > 1 };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       if (action === 'spec_hold') {
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
@@ -1018,17 +1002,17 @@ Deno.serve(observe('supplier_api', async (req) => {
           const j = await r.json().catch(() => null);
           return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
         };
-        const out = await fillIn(repo, qid, Number(sup.id), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
+        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
         if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
         if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
         return J(out);
       }
-      const out = await approve(repo, qid, Number(sup.id), email, body.confirm, ctx, async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted);
+      const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx, async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted);
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
     if (action === 'submit_quote') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,locale,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first', code: 'terms_not_accepted' }, 400);
       // 3 SEP 2026 (MASTER_PLAN #11): there is no admin queue and never was - approval is the automatic
@@ -1066,7 +1050,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
       const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', body.inquiry_id).maybeSingle();
       // deno-lint-ignore no-explicit-any
-      const requirements = ((inqRow?.spec as any)?.requirements && typeof (inqRow?.spec as any).requirements === 'object') ? (inqRow!.spec as any).requirements : null;
+      const requirements = requirementsOf(inqRow?.spec);
       const category = inqRow?.category ?? null;
 
       // VAT (founder, 14 Sep 2026: supplier VAT details are hidden from the customer). The price the
@@ -1091,8 +1075,8 @@ Deno.serve(observe('supplier_api', async (req) => {
       const noTotal = plan.find((p) => !(Number(p.amount) > 0));
       if (noTotal) return J({ error: 'Enter the total for option ' + noTotal.option_no + '.', code: 'option_total_missing', params: { option: noTotal.option_no } }, 400);
       const submission_id = crypto.randomUUID();
-      const repo = supabaseRepo(admin);
-      const supplier = { id: Number(sup.id), email: email || null, locale: (sup as any).locale || null };
+      const repo = supabaseRepo(admin, { dispatch: kickDelivery });
+      const supplier = supplierOf(sup, email);
       const ref = String(body.inquiry_id).slice(0, 8).toUpperCase();
       const multiOption = multi || single > 1 || (mine || []).length > 1;
       const results: any[] = [];

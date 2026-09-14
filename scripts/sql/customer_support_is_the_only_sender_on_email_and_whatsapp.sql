@@ -155,6 +155,9 @@ update public.function_owner
  where function_slug = 'email_cron';
 
 -- 6. The timeline customer_support reads before it composes or answers. ------------------------
+-- 14 Sep 2026: SUPERSEDED for this routine by scripts/sql/a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql,
+-- which redefines it whole with one branch added (the sales engineer's supplier-collaboration record).
+-- That branch reads a table the later file creates, so it could not live here; the later file is canonical.
 create or replace function public.fn_contact_timeline(p_contact text, p_limit integer default 60)
 returns jsonb
 language plpgsql

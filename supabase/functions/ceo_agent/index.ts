@@ -265,6 +265,20 @@ Deno.serve(observe('ceo_agent', async (req) => {
       // be reviewed later. The database does not enforce a MINIMUM, so the seat enforces one here.
       if (rationale.length < 12) return J({ error: 'rationale_required', detail: 'say why, in a sentence' }, 400);
 
+      // THE CEO IS THE FOUNDER'S EYES (14 Sep 2026): "ceo approval on refund was made so that the CEO
+      // make sure that the process was fully done correctly." Before a refund approval is written, the
+      // whole process is checked and the evidence recorded (refund_ceo_check). The database refuses the
+      // same approval anyway (a05_ceo_refund_approval_checks_the_process); running it here first is what
+      // leaves the evidence behind for a refused attempt, which the trigger's rollback cannot.
+      if (kind === 'refund' && decision === 'approved') {
+        const { data: rf } = await admin.from('refunds').select('id,transaction_id').eq('id', Number(subject)).maybeSingle();
+        if (!rf?.transaction_id) return J({ ok: false, refused: 'subject_id names no refund on a payment' }, 400);
+        const { data: chk, error: chkErr } = await admin.rpc('fn_ceo_refund_checklist', { p_transaction_id: rf.transaction_id, p_phase: 'approve', p_record: true });
+        if (chkErr) return J({ ok: false, refused: 'checklist_unavailable', detail: chkErr.message }, 503);
+        // deno-lint-ignore no-explicit-any
+        if ((chk as any)?.ok !== true) return J({ ok: false, refused: 'the process checklist failed', failed: (chk as any)?.failed ?? [] }, 409);
+      }
+
       const { data: dec, error: decErr } = await admin.from('ceo_approval').insert({
         subject_kind: kind, subject_id: subject, decision, decided_by: who,
         amount_aed: body.amount_aed ?? null, rationale,
@@ -283,12 +297,24 @@ Deno.serve(observe('ceo_agent', async (req) => {
       return J({ ok: true, decision_id: dec?.decision_id, refund: refundLinked });
     }
 
+    // ── REVIEW_REFUND ──────────────────────────────────────────────────────────────────────────
+    // The CEO's review loop on one refund (fn_ceo_refund_review): every check passes -> approved; a
+    // check that cannot be fixed -> declined with the reason; otherwise rejected with one task per
+    // owning seat (accountant: money; sales engineer: the ladder and the messages), re-checked when
+    // the last task closes, escalated to the founder's summary after three cycles.
+    if (action === 'review_refund') {
+      if (who !== 'ceo') return J({ error: 'only the ceo decides' }, 403);
+      const { data, error } = await admin.rpc('fn_ceo_refund_review', { p_refund_id: Number(body.refund_id), p_trigger: 'ceo_agent' });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      return J({ ok: true, seat: 'ceo', review: data });
+    }
+
     // `task` is deliberately open to BOTH seats and carries no guard of its own. whoami returns
     // only 'founder', 'ceo' or null, the null is already refused above, and both remaining seats
     // legitimately touch ceo_task — the CEO working it, the founder unblocking or cancelling work
     // his own command created. A `who !== 'ceo' && who !== 'founder'` check here would be a
     // condition that cannot occur, which reads as protection and provides none.
-    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'accept'] }, 400);
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept'] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }

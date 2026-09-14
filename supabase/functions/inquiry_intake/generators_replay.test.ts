@@ -91,7 +91,7 @@ Deno.test('replay in Arabic: every question comes back in Arabic and the request
   for (const t of r.asked) assert(/[؀-ۿ]/.test(t), 'asked in Arabic: ' + t);
   assert(r.postable);
   assertEquals(validateStored('generators', r.stored).ok, true);
-  assertEquals(r.stored.installation, { required: 'no' });
+  assertEquals(r.stored.installation, { required: 'supply_only' });
   assertEquals(r.stored.warranty, { required: 'not_sure', min_months: null });
   assertEquals(r.stored.required_by.flexible, true);
 });

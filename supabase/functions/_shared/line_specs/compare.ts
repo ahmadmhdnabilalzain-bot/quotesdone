@@ -2,14 +2,18 @@
 //
 // The founder, 14 Sep 2026: "the comparison report need to be more detailed technically. its not a
 // matter of delivery time only or installation". This builds, for each line of the customer's
-// request, every quote's value for every specification attribute of that line's trade, plus the
-// three quote-level terms (delivery, installation, warranty), each flagged against what the customer
-// asked for: ✓ matches, ≠ differs, — missing. The exact shape is the contract in
-// docs/contracts/technical_comparison.md; the PDF is drawn by another seat's code from this data.
+// request, every quote's value for every specification attribute of that line — the trade's
+// standard ones and every component the customer named in the intake — plus the three quote-level
+// terms (delivery, installation, warranty), each flagged against what the customer asked for:
+// ✓ matches, ≠ differs, — missing. The baseline is the customer's intake answers
+// (inquiries.spec.customer_requirements, docs/contracts/intake_answers.md): a warranty shorter than the
+// customer's minimum is ≠, never ✓; "no preference" matches any stated value; "other" (the customer's
+// own words) is shown beside the supplier's value and never auto-flagged. The exact shape is the
+// contract in docs/contracts/technical_comparison.md.
 //
 // Held quotes never appear here (they are drafts and never reach the comparison); the report is
 // told only how many are on hold. Pure: no I/O.
-import { assessQuote, readDelivery, type Line, type Requirements, type Terms } from './assess.ts';
+import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRequires, lineDefs, MATERIAL_ATTRS, readDelivery, requestedValue, type Line, type Requirements, type Terms } from './assess.ts';
 import { attrsForLine, normText, TRADES, tradeOfCategory, tradeOfLine, type Attr } from './model.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 
@@ -22,7 +26,8 @@ export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; s
 const safe = (v: string | null) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
 export type RequestLine = { line_no: number; description: string; qty?: number | string | null; unit?: string | null };
 export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string };
-export type AttrRow = { code: string; label_en: string; label_ar: string; unit: string | null; unit_ar: string | null; mandatory: boolean; requested: string | null; requested_source: 'boq' | 'intake' | 'no_preference' | null; cells: Cell[] };
+export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference';
+export type AttrRow = { code: string; label_en: string; label_ar: string; unit: string | null; unit_ar: string | null; mandatory: boolean; requested: string | null; requested_source: ReqSource | null; cells: Cell[] };
 export type LineRow = { row: number; item: string; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[] };
 export type TermCell = { quote_id: string; applies: boolean; value: string | null; flag: Flag; marker: string };
 export type TermRow = { code: 'delivery' | 'installation' | 'warranty'; label_en: string; label_ar: string; requested: string | null; requested_source: 'intake' | 'no_preference' | null; cells: TermCell[] };
@@ -58,25 +63,23 @@ const cellOf = (quote_id: string, applies: boolean, value: string | null, reques
   return { quote_id, value: safe(value), source: null, quote_line_no: null, flag, marker: MARKER[flag], ...extra };
 };
 
-/** The request's own values per attribute for one request line: from its BOQ wording, then the customer's intake answers. */
-// `fromRequest` is false when the row's wording is a QUOTE's own line (no BOQ): a quote's own values
-// are never its own baseline, or every quote would "match the request" by construction.
+/**
+ * The customer's own values per attribute for one row: from its BOQ wording (only when the row IS a
+ * request line — a quote's own values are never its own baseline, or every quote would "match the
+ * request" by construction), then from the intake's component answers.
+ */
 function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req: Requirements, fromRequest: boolean) {
-  const out: Record<string, { value: string; source: 'boq' | 'intake' | 'no_preference' }> = {};
+  const out: Record<string, { value: string; source: ReqSource }> = {};
   if (fromRequest) for (const a of attrs) { const v = a.find(rl.description); if (v) out[a.code] = { value: v, source: 'boq' }; }
+  const base = trade ? attrsForLine(trade, rl.description) : [];
   for (const m of req?.materials ?? []) {
-    if (!m?.component) continue;
-    const hit = normText(rl.description).toLowerCase().includes(normText(m.component).toLowerCase()) || similarity(m.component, rl.description) >= 0.34;
-    if (!hit) continue;
-    const noPref = /^no[_\s-]?preference$|^لا تفضيل$/i.test(String(m.value || '').trim());
-    const targets = m.attr ? attrs.filter((a) => a.code === m.attr) : attrs;
-    for (const a of targets) {
-      if (noPref) { out[a.code] = { value: 'no_preference', source: 'no_preference' }; continue; }
-      const v = m.attr ? normText(m.value) : a.find(m.value);
-      if (v) out[a.code] = { value: v, source: 'intake' };
-    }
+    if (!m?.component || (m.component !== 'main' && !componentOnLine(m, rl.description))) continue;
+    const a = componentAttr(m, trade, base);
+    if (/^no[_\s-]?preference$/i.test(String(m.choice ?? ''))) { out[a.code] = { value: 'no_preference', source: 'no_preference' }; continue; }
+    const v = requestedValue(m);
+    if (v) out[a.code] = { value: v, source: m.choice === 'other' ? 'intake_other' : 'intake' };
   }
-  return trade ? out : {};
+  return out;
 }
 
 export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date }): TechnicalComparison {
@@ -106,58 +109,61 @@ export function technicalComparison(input: { category: string | null; request_li
   }
 
   const lines: LineRow[] = rows.map((r, i) => {
-    const text = r.rl?.description ?? (() => { const [qid, ln] = [...r.picks.entries()][0]; return assessed.find((x) => x.q.quote_id === qid)!.a.lines.find((l) => l.line_no === ln)!.description; })();
-    const lt = tradeOfLine(trade, text) ?? (() => { const [qid, ln] = [...r.picks.entries()][0] ?? []; return qid ? assessed.find((x) => x.q.quote_id === qid)!.a.lines.find((l) => l.line_no === ln)?.trade ?? null : null; })();
-    const attrs = lt ? TRADES[lt].attrs : [];
+    const firstPick = [...r.picks.entries()][0];
+    const pickedLine = firstPick ? assessed.find((x) => x.q.quote_id === firstPick[0])!.a.lines.find((l) => l.line_no === firstPick[1]) : undefined;
+    const text = r.rl?.description ?? pickedLine?.description ?? '';
+    const lt = tradeOfLine(trade, text) ?? pickedLine?.trade ?? null;
+    // The row's attributes: what this line is asked for (trade standard + the customer's components),
+    // then the trade's remaining attributes so a stated extra still has a row to appear in.
+    const defs = lineDefs(lt, text, req);
+    const replaced = defs.some((d) => d.code.startsWith('component_'));
+    const attrs: Attr[] = [...defs, ...(lt ? TRADES[lt].attrs.filter((a) => !defs.some((d) => d.code === a.code) && !(replaced && MATERIAL_ATTRS.includes(a.code))) : [])];
     const requested = r.rl ? requestedFor(r.rl, lt, attrs, req, fromRequest) : {};
     const attributes: AttrRow[] = attrs.map((a) => {
       const rq = requested[a.code];
       const noPref = rq?.source === 'no_preference';
+      const baseline = rq && rq.source !== 'no_preference' && rq.source !== 'intake_other' ? rq.value : null;
       const cells = assessed.map(({ q, a: qa }) => {
         const ln = r.picks.get(q.quote_id);
         const l = ln != null ? qa.lines.find((x) => x.line_no === ln) : undefined;
-        if (!l) return cellOf(q.quote_id, true, null, noPref ? null : rq?.value ?? null, noPref);
-        const qLine = q.lines.find((x) => x.line_no === ln)!;
-        const asked = attrsForLine(l.trade ?? lt!, `${qLine.description} ${qLine.specification ?? ''}`).some((x) => x.code === a.code) || l.asked.includes(a.code);
-        return cellOf(q.quote_id, asked, l.spec[a.code] ?? null, noPref ? null : rq?.value ?? null, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
+        if (!l) return cellOf(q.quote_id, true, null, baseline, noPref);
+        return cellOf(q.quote_id, l.asked.includes(a.code) || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
       });
-      return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: a.mandatory, requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
-    }).filter((row) => row.mandatory || row.requested || row.cells.some((c) => c.value));
+      return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: defs.some((d) => d.code === a.code && d.mandatory), requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
+    }).filter((row) => row.mandatory || row.requested || row.requested_source || row.cells.some((c) => c.value));
     return { row: i + 1, item: safe(text) ?? '', request_line: fromRequest ? r.rl : null, trade: lt, trade_en: lt ? TRADES[lt].en : null, trade_ar: lt ? TRADES[lt].ar : null, attributes };
   });
 
   // Quote-level terms, against the customer's intake answers.
-  const noPref = (v: unknown) => v === 'no_preference';
-  const dBy = req?.delivery_by ? new Date(req.delivery_by) : null;
+  const rb = req?.required_by;
+  const dBy = rb && !rb.flexible && rb.date ? new Date(rb.date) : null;
   const dByOk = dBy && !isNaN(dBy.getTime()) ? dBy : null;
-  const deliveryRow: TermRow = { code: 'delivery', label_en: 'Delivery / lead time', label_ar: 'التسليم / مدة التنفيذ', requested: dByOk ? req!.delivery_by! : null, requested_source: dByOk ? 'intake' : null,
+  const deliveryRow: TermRow = { code: 'delivery', label_en: 'Delivery / lead time', label_ar: 'التسليم / مدة التنفيذ', requested: dByOk ? String(rb!.date) : null, requested_source: dByOk ? 'intake' : null,
     cells: assessed.map(({ q, a }) => {
-      const t = a.terms.delivery; let flag: Flag = t.value ? (dByOk ? 'stated' : 'stated') : 'missing';
+      const t = a.terms.delivery; let flag: Flag = t.value ? 'stated' : 'missing';
       if (t.value && dByOk) {
         const due = t.date ? new Date(t.date) : (t.days != null ? new Date(input.now.getTime() + t.days * 864e5) : null);
         flag = due && !isNaN(due.getTime()) ? (due.getTime() <= dByOk.getTime() + 864e5 ? 'match' : 'differs') : 'stated';
       }
       return { quote_id: q.quote_id, applies: true, value: safe(t.value), flag, marker: MARKER[flag] };
     }) };
-  const instReq = req?.installation ?? null;
-  const installationRow: TermRow = { code: 'installation', label_en: 'Installation', label_ar: 'التركيب', requested: instReq && instReq !== 'no_preference' ? instReq : null, requested_source: instReq === 'no_preference' ? 'no_preference' : instReq ? 'intake' : null,
+  const instWant = customerAnswer(req, 'installation');
+  const installationRow: TermRow = { code: 'installation', label_en: 'Installation', label_ar: 'التركيب', requested: instWant === 'yes' ? 'required' : instWant === 'no' ? 'not_required' : null, requested_source: instWant ? 'intake' : null,
     cells: assessed.map(({ q, a }) => {
-      const t = a.terms.installation;
+      const t = a.terms.installation; const applies = customerRequires(req, 'installation');
       const value = t.included ? (t.included === 'yes' ? `Included${t.detail ? ' — ' + t.detail : ''}` : 'Not included (supply only)') : null;
-      const want = instReq === 'required' ? 'yes' : instReq === 'not_required' ? 'no' : null;
-      const flag = flagOf(t.applies, t.included, want, noPref(instReq), (x, y) => x === y);
-      return { quote_id: q.quote_id, applies: t.applies, value: safe(value), flag, marker: MARKER[flag] };
+      const flag: Flag = !applies ? 'not_applicable' : !t.included ? 'missing' : instWant ? (t.included === instWant ? 'match' : 'differs') : 'stated';
+      return { quote_id: q.quote_id, applies, value: safe(value), flag, marker: MARKER[flag] };
     }) };
-  const wReq = req?.warranty ?? null;
-  const wNoPref = noPref(wReq?.required);
-  const warrantyRow: TermRow = { code: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', requested: wReq?.min_months ? `${wReq.min_months} months minimum` : (wReq?.required === true ? 'required' : null), requested_source: wNoPref ? 'no_preference' : (wReq?.min_months || wReq?.required === true ? 'intake' : null),
+  const wWant = customerAnswer(req, 'warranty');
+  const minM = Number(req?.warranty?.min_months) > 0 ? Number(req!.warranty!.min_months) : null;
+  const warrantyRow: TermRow = { code: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', requested: minM ? `${minM} months minimum` : (wWant === 'yes' ? 'required' : wWant === 'no' ? 'not_required' : null), requested_source: minM || wWant ? 'intake' : null,
     cells: assessed.map(({ q, a }) => {
-      const t = a.terms.warranty;
+      const t = a.terms.warranty; const applies = customerRequires(req, 'warranty');
       const value = t.period ? `${t.period}${t.coverage ? ' — ' + t.coverage : ''}` : null;
-      let flag: Flag = flagOf(t.applies, value, null, wNoPref);
-      if (flag === 'stated' && wReq?.min_months && t.months != null) flag = t.months >= wReq.min_months ? 'match' : 'differs';
-      else if (flag === 'stated' && wReq?.required === true) flag = 'match';
-      return { quote_id: q.quote_id, applies: t.applies, value: safe(value), flag, marker: MARKER[flag] };
+      // A warranty below the customer's minimum is ≠ — never ✓ (founder, 14 Sep 2026).
+      const flag: Flag = !applies ? 'not_applicable' : !value ? 'missing' : minM != null && t.months != null ? (t.months >= minM ? 'match' : 'differs') : wWant === 'yes' && minM == null ? 'match' : 'stated';
+      return { quote_id: q.quote_id, applies, value: safe(value), flag, marker: MARKER[flag] };
     }) };
 
   return {

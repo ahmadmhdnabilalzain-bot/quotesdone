@@ -115,7 +115,34 @@ Delivery: a lead time is converted to a date from `generated_at`; on or before t
 Held quotes never appear in `quotes` or in any cell. They are drafts until released; the report may
 say "N quote(s) on hold for missing details" using `on_hold` and nothing else.
 
-## The baseline: the customer's intake answers
+## The baseline and the required set: the customer's intake answers (updated 14 Sep 2026)
+
+Founder (#142): "the automatic check is not fixed, its depending on the customer inquiry details taken
+by the sales agent along with the general standards for such inquiry"; (#159) "we don't assume stuff".
+The hold gate and this comparison read **`inquiries.spec.customer_requirements`** — the intake's own
+stored object, version 1, **docs/contracts/intake_answers.md** (`requirements` is read as a second
+place a newer intake may write). The earlier shape described below this section was never written by
+anything and is superseded.
+
+| Customer answer | Required from the supplier (hold gate) | Comparison baseline |
+|---|---|---|
+| `installation.required = "yes"` | included yes/no, and scope or timeline if yes | ✓ included · ≠ supply only |
+| `installation.required = "no"` / "not needed" / "supply only" | not required | `na` |
+| `"not_sure"`, or no answer at all (a legacy request) | **required** — we don't assume | shown, never ≠ |
+| `warranty.required = "yes"`, `min_months = N` | period and coverage | ✓ ≥ N months · **≠ below N, never ✓** |
+| `warranty.required = "no"` | not required | `na` |
+| material `choice = <value>` for a component | that component's material, **required on the line that names it** (or on the quote when no line does) | ✓ same · ≠ different |
+| material `choice = "no_preference"` | **still required** — the supplier states a value | any stated value ✓ |
+| material `choice = "other"` | required | the customer's words shown (`requested_source = "intake_other"`), never auto-flagged |
+| `required_by.date = D`, not flexible | a concrete delivery date or lead time (always required) | ✓ on or before D · ≠ after |
+
+A customer's component appears as its own attribute row: an explicit match reuses the trade attribute
+(`board` → `material`, `finish` → `finish`, `pipes` → `pipe_material` …); any other component gets
+`component_<key>` (e.g. `component_legs_base`, label "Material — Legs or base" / "المادة — الأرجل أو
+القاعدة"). The trade's own mandatory core (line_specs/model.ts) always applies as the general standard.
+`AttrRow.requested_source` gains `"intake_other"`.
+
+## (superseded) The baseline as first drafted
 
 The branch `intake-asks-the-right-questions` stores the customer's answers on the request. This
 contract reads them from **`inquiries.spec.requirements`** with this shape (all optional):
