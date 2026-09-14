@@ -665,7 +665,14 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         account_incomplete (with `missing`), and the Account page lists exactly what is missing. */}
     {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} pickFile={pickFile}
       call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
-      onDone={() => { setShowNew(false); setPickFile(false); setDraft(''); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
+      onDone={(r) => {
+        setShowNew(false); setPickFile(false); setDraft(''); refresh();
+        // The request just posted is opened by its stable id: a split opens its combined parent, which
+        // lists one card per trade; the note says how many trades were sent separately.
+        const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
+        setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        if (r && r.inquiry_id) openRfq(r.inquiry_id);
+      }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
 
     {/* The severity marker was a 4px border-l — which is both a well-worn generated-UI tell and,
         more to the point here, LEFT: in Arabic it lands on the wrong edge of the card. A tinted

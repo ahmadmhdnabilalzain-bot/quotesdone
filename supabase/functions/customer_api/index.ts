@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
+import { postedSingle, postedSplit, type PostedChild } from '../_shared/inquiry_posted.ts';
 import { detectCat } from '../_shared/trade_classify.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
@@ -990,18 +991,28 @@ Deno.serve(observe('customer_api', async (req) => {
         const { data: parent, error: ep } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
         if (ep) return J({ error: ep.message }, 500);
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
-        const children: any[] = [];
+        const children: PostedChild[] = [];
+        const failedTrades: string[] = [];
         for (const tr of distinctTrades) {
           const tlabel = labelize(tr);
           const childSummary = ((summary ? summary + ' — ' : '') + tlabel + ' works (part of a combined project)').slice(0, 500);
           const childKw = Array.from(new Set([...(KW[tr] || []), tr])).slice(0, 30);
           const { data: child, error: ec } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parent!.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary, keywords: childKw, status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
-          if (ec || !child) continue;
+          // A trade whose child row failed used to vanish without a word; it is now named in the answer.
+          if (ec || !child) { failedTrades.push(tr); continue; }
           const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
           const { matches } = await matchAndNotify(String(child.id), { category: tr, emirate, keywords: childKw, summary: childSummary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: false });
-          children.push({ inquiry_id: child.id, trade: tr, label: tlabel, matches });
+          children.push({ inquiry_id: String(child.id), trade: tr, label: tlabel, matches });
         }
-        return J({ ok: true, split: true, scope_type: 'multi', parent_id: parent!.id, children, trades: distinctTrades });
+        // A combined parent with no child is a request nobody can quote: it is removed (it was
+        // created a moment ago in this call, has no matches and no quotes) and the post fails.
+        if (!children.length) {
+          try { await admin.from('inquiries').delete().eq('id', parent!.id).eq('customer_id', cust.id).eq('status', 'split'); } catch (_e) { /* */ }
+          return J({ error: 'split_failed', message: 'Your request could not be split into its trades. Nothing was sent — please try again.', failed_trades: failedTrades }, 500);
+        }
+        // ONE ANSWER SHAPE (_shared/inquiry_posted.ts): inquiry_id is the parent, the stable id of
+        // what the customer asked for; child_ids / quotable_ids are what suppliers quote on.
+        return J(postedSplit(String(parent!.id), children, distinctTrades, failedTrades));
       }
 
       if (wantTurnkey) {
@@ -1012,7 +1023,7 @@ Deno.serve(observe('customer_api', async (req) => {
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
         const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: true });
-        return J({ ok: true, inquiry_id: inq!.id, scope_type: 'turnkey', matches });
+        return J(postedSingle(String(inq!.id), 'turnkey', matches));
       }
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
@@ -1020,7 +1031,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: true, multi: false });
-      return J({ ok: true, inquiry_id: inq!.id, matches, routing });
+      return J(postedSingle(String(inq!.id), 'single', matches, routing));
     }
 
     // THE CUSTOMER'S FOLLOW-UP REACHES THE RFQ (website audit 14 Sep 2026, BROKEN). "Ask the

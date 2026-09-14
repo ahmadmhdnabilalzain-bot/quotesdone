@@ -321,8 +321,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
     // said. The customer is now told, in their language, that quotes may take longer and why.
     if (r && r.ok) {
-      const reached = Array.isArray(r.children) ? r.children.reduce((n, c) => n + (Number(c && c.matches) || 0), 0) : Number(r.matches) || 0;
-      if (reached > 0) onDone(); else setPosted({ none: true });
+      // One answer shape (customer_api, _shared/inquiry_posted.ts): matches is already summed over a
+      // split's children, and inquiry_id is the request the customer made (the combined parent).
+      const reached = Number(r.matches) || 0;
+      if (reached > 0) onDone(r); else setPosted({ none: true, id: r.inquiry_id || null });
     }
     // Never a dead end: when the server says something is still open, the next question is fetched at
     // once instead of leaving the customer to guess what "more details" means.

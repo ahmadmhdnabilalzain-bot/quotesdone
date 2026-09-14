@@ -86,7 +86,7 @@ export async function journeyCustomerRequest(ctx) {
 
   // The request itself, through the real chat, in English on desktop.
   const s = await signedInPage(browser, fx.customer, { lang: 'en', viewport: 'desktop' });
-  let inquiryId = null, via = 'ui';
+  let inquiryId = null, via = 'ui', quotable = [];
   try {
     await openPortal(s.page, portalUrl('customer', 'en'), s.calls);
     await s.page.getByRole('button', { name: /^New request/ }).first().click({ timeout: 15000 });
@@ -135,8 +135,12 @@ export async function journeyCustomerRequest(ctx) {
         send.click({ timeout: 20000 }),
       ]);
       const j = res ? await res.json().catch(() => ({})) : {};
-      inquiryId = j.id ?? j.inquiry_id ?? null;
-      rep.step(J, 'request posted from the portal', inquiryId ? 'PASS' : 'FAIL', `HTTP ${res?.status() ?? 0} id=${inquiryId ?? 'none'} ${JSON.stringify(j).slice(0, 160)}`, { shot: await shot(s.page, dir, 'a_posted') });
+      // One answer shape (_shared/inquiry_posted.ts): inquiry_id is the request the customer made — the
+      // combined parent when it was split by trade — and quotable_ids are what suppliers quote on.
+      inquiryId = j.inquiry_id ?? j.parent_id ?? j.id ?? null;
+      quotable = Array.isArray(j.quotable_ids) && j.quotable_ids.length ? j.quotable_ids.map(String) : (inquiryId ? [String(inquiryId)] : []);
+      for (const c of Array.isArray(j.child_ids) ? j.child_ids : []) ctx.run.ids.inquiries.add(String(c));
+      rep.step(J, 'request posted from the portal', inquiryId ? 'PASS' : 'FAIL', `HTTP ${res?.status() ?? 0} id=${inquiryId ?? 'none'}${j.split ? ` split into ${quotable.length} (${(j.trades || []).join(', ')})` : ''} ${JSON.stringify(j).slice(0, 160)}`, { shot: await shot(s.page, dir, 'a_posted') });
     }
   } catch (e) {
     rep.step(J, 'request posted from the portal', 'FAIL', `UI error: ${String(e.message).slice(0, 200)}`, { shot: await shot(s.page, dir, 'a_error') });
@@ -166,7 +170,9 @@ export async function journeyCustomerRequest(ctx) {
   rep.step(J, 'database: the request belongs to the customer and is demo', row.mine === true && row.demo === true ? 'PASS' : 'FAIL', `owner match=${row.mine}, demo=${row.demo}, category=${row.category}, status=${row.status}, rfq_ready=${row.rfq_ready}`);
   rep.step(J, 'database: the sales-engineer answers are on the request (installation, warranty, materials, date)',
     asked.length === 4 ? 'PASS' : (via === 'fallback' ? 'SKIP' : 'FAIL'), `answered: ${asked.join(', ') || 'none'}${via === 'fallback' ? ' (fallback request)' : ''}`);
-  ctx.inquiryId = inquiryId;
+  // Suppliers quote a request they can see: for a split that is a child, never the 'split' parent.
+  ctx.inquiryId = quotable[0] || inquiryId;
+  ctx.parentInquiryId = inquiryId;
 }
 
 // ---- b. three suppliers quote --------------------------------------------------------------------
