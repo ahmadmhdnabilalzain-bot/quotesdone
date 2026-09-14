@@ -20,7 +20,7 @@
 //   * The homepage draft handoff -> initialText is sent as the first message, once.
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser } from 'lucide-react';
+import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { t, tf, errText, emirateName } from './portalText';
@@ -56,6 +56,11 @@ async function blobToWavB64(blob) {
   return btoa(bin);
 }
 
+// ATTACH A BOQ (founder, 14 Sep 2026). A spreadsheet goes to analyze_boq (cells read with no model);
+// a PDF BOQ is read like a drawing, from its text layer. BOQ_ERR maps the server's refusal to words.
+const SHEET_RE = /\.(xlsx|xls|csv)$/i;
+const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type' };
+
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
 const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
 // readiness is {filled, required} from the rebuilt intake or a 0-100 number from the old one.
@@ -82,7 +87,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
-  const fileRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
+  const fileRef = useRef(null); const boqRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
   const modelHeld = llmAvailable === false;
   const push = (m) => setMessages((a) => [...a, m]);
   useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
@@ -113,19 +118,20 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
     const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
     return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}) }, token);
   };
-  const adopt = (res, name) => {
-    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: 'drawing' };
+  // source 'boq' when the customer attached a BOQ (sheet or PDF): create_inquiry tells suppliers so.
+  const adopt = (res, name, source = 'drawing') => {
+    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: source };
     setDrawing(dr);
     return dr;
   };
-  const onFile = async (file) => {
+  const onFile = async (file, source = 'drawing') => {
     if (!file) return; setMsg(''); setAnalyzing(true); setEditor(false);
     push({ role: 'user', text: '', chip: file.name });
     try {
-      const p = { ...(await fileToImages(file)), name: file.name };
+      const p = { ...(await fileToImages(file)), name: file.name, source };
       setPages(p);
       const res = await analyze(p);
-      adopt(res, file.name);
+      adopt(res, file.name, source);
       const n = res && res.boq && res.boq.boq ? res.boq.boq.length : 0;
       if (n >= 1) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
       // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
@@ -154,11 +160,35 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
+  // The parsed BOQ lands in `drawing.boq` exactly as a drawing's does, so inquiry_intake receives it as
+  // drawing_boq and create_inquiry stores it on the RFQ suppliers read.
+  const onBoq = async (file) => {
+    if (!file) return;
+    if (!SHEET_RE.test(file.name)) return onFile(file, 'boq');
+    setMsg(''); push({ role: 'user', text: '', chip: file.name });
+    const reset = () => { try { if (boqRef.current) boqRef.current.value = ''; if (fileRef.current) fileRef.current.value = ''; } catch (_e) {} };
+    if (file.size > 5 * 1024 * 1024) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_too_large') }); reset(); return; }
+    setAnalyzing(true);
+    try {
+      const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
+      const res = await call('customer_api', { action: 'analyze_boq', file_b64: await fileB64(file), mime: file.type || '', file_name: file.name, hint }, token).catch(() => null);
+      const rows = (res && res.ok && res.boq && res.boq.boq) || [];
+      if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
+      else if (!rows.length) push({ role: 'assistant', text: t(lang, 'nr_boq_sheet_empty') });
+      else {
+        adopt(res, file.name, 'boq');
+        setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true);
+        push({ role: 'assistant', text: tf(lang, rows.length === 1 ? 'nr_boq_sheet_one' : 'nr_boq_sheet_many', { n: rows.length }) + t(lang, 'nr_add_or_send') });
+      }
+    } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
+    setAnalyzing(false); reset();
+  };
+  const onAny = (f) => (f && SHEET_RE.test(f.name) ? onBoq(f) : onFile(f));
   const applyBoxes = async (boxes) => {
     if (!pages) return false;
     const res = await analyze(pages, boxes).catch(() => null);
     const ok = !!(res && res.redaction_complete === true && Number(res.redaction_pages_in) > 0);
-    const dr = adopt(res, pages.name);
+    const dr = adopt(res, pages.name, pages.source);
     if (res && res.boq && res.boq.boq && res.boq.boq.length && !brief) { setBrief({ category: res.boq.category || '', summary: res.boq.summary || pages.name, emirate: '', trades: [] }); setReady(true); }
     push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { n: (dr.drawing_redacted_paths || []).length || Number(res.redaction_pages_out) }) : t(lang, 'rd_failed') });
     if (ok) setEditor(false);
@@ -307,7 +337,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
             through the same onFile. Hidden once a drawing is attached, so it never crowds the input. */}
         {!drawing && (
           <button type="button" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}
-            onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (!analyzing && !thinking) onFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
+            onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (!analyzing && !thinking) onAny(e.dataTransfer.files && e.dataTransfer.files[0]); }}
             className="mb-2.5 flex h-10 w-full items-center gap-2.5 rounded-btn border border-dashed border-primary/35 bg-[repeating-linear-gradient(135deg,transparent_0_8px,hsl(var(--primary)/0.05)_8px_9px)] px-3 text-start transition-colors hover:border-primary/60 hover:bg-primary/[0.06] disabled:opacity-40">
             <Paperclip className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span className="min-w-0 truncate font-mono text-label text-muted-foreground">{t(lang, 'nr_drop')}</span>
@@ -315,8 +345,14 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
         )}
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
-          <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onFile(e.target.files[0])} />
+          {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
+          <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
+          {/* Founder, 14 Sep 2026: "boq can be anything: a photo, pdf, png, jpg, excel". Photos and PDFs take the
+              drawing path (onFile, source 'boq'). HEIC is deliberately NOT listed: storage and the redactor cannot
+              decode it, and when it is absent iOS Safari converts a HEIC photo to JPEG before handing it over. */}
+          <input ref={boqRef} type="file" accept=".xlsx,.xls,.csv,.pdf,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" aria-label={t(lang, 'nr_attach_boq')} onChange={(e) => onBoq(e.target.files[0])} />
+          <button type="button" title={t(lang, 'nr_attach_boq')} aria-label={t(lang, 'nr_attach_boq')} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2 text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => boqRef.current && boqRef.current.click()}><FileSpreadsheet className="h-5 w-5" aria-hidden /><span className="hidden text-[12.5px] font-semibold sm:inline">{t(lang, 'nr_attach_boq_short')}</span></button>
           <button type="button" title={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-label={modelHeld ? t(lang, 'nr_voice_paused') : t(lang, 'nr_mic')} aria-disabled={modelHeld}
             className={cn('grid h-10 w-10 place-items-center rounded-xl hover:bg-primary/10', rec ? 'text-danger' : 'text-primary', modelHeld && 'cursor-not-allowed opacity-40')} onClick={rec ? stopRec : startRec}>
             {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
