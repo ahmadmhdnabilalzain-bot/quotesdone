@@ -30,7 +30,7 @@ export function BlogIndex({ locale }: { locale: string }) {
       <main id="main" className="container-x py-beat-s md:py-beat" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <nav
           aria-label={T.crumb}
-          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.05] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint backdrop-blur"
+          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.05] px-3.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.16em] text-faint backdrop-blur"
         >
           <span className="node-dot" aria-hidden />
           <Link href="/" className="transition-colors hover:text-teal-light">{T.home}</Link>
@@ -54,7 +54,7 @@ export function BlogIndex({ locale }: { locale: string }) {
                   className="glass group flex h-full flex-col rounded-[18px] p-6 transition-colors hover:border-teal/40"
                 >
                   {t.category && (
-                    <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">{t.category}</span>
+                    <span className="font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-gold">{t.category}</span>
                   )}
                   <h2
                     lang={t.lang} dir={rtl ? 'rtl' : 'ltr'}

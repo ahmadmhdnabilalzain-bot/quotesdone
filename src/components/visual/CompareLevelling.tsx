@@ -42,7 +42,7 @@ export default function CompareLevelling({ locale }: SceneProps) {
     <div ref={ref} dir={locale === 'ar' ? 'rtl' : 'ltr'} className="relative w-full overflow-x-auto">
       <LayoutGroup>
         <div className="grid min-w-[520px] gap-x-2 gap-y-1.5" style={{ gridTemplateColumns: 'minmax(120px,1.1fr) repeat(3,minmax(110px,1fr))' }} aria-hidden>
-          <span className="self-end pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-faint" style={{ gridRow: 1, gridColumn: 1 }}>
+          <span className="self-end pb-1 font-mono text-[12px] uppercase tracking-[0.14em] text-faint" style={{ gridRow: 1, gridColumn: 1 }}>
             {t.item}
           </span>
           {SUPPLIERS.map((s, si) => (
@@ -57,7 +57,7 @@ export default function CompareLevelling({ locale }: SceneProps) {
               </div>
               <span className="mt-1 flex items-center gap-1.5">
                 <span className="redact h-2 w-12" />
-                <span className="text-[10px] text-faint">{t.hidden}</span>
+                <span className="text-[12px] text-faint">{t.hidden}</span>
               </span>
             </div>
           ))}
@@ -85,13 +85,13 @@ export default function CompareLevelling({ locale }: SceneProps) {
                   }`}
                 >
                   {isMissing ? (
-                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-gold">
+                    <span className="flex items-center gap-1.5 text-[12px] font-semibold text-gold">
                       <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden><path d="M6 1 11 10.5H1Z" fill="none" stroke="currentColor" strokeWidth="1.2" /><path d="M6 4.5v3M6 8.6v.4" stroke="currentColor" strokeWidth="1.2" /></svg>
                       {t.missing}
                     </span>
                   ) : (
                     <>
-                      <motion.span animate={{ opacity: levelled ? 0 : 1, width: levelled ? 0 : 'auto' }} className="truncate text-[11px] text-muted">
+                      <motion.span animate={{ opacity: levelled ? 0 : 1, width: levelled ? 0 : 'auto' }} className="truncate text-[12px] text-muted">
                         {name}
                       </motion.span>
                       <span className="redact ms-auto h-2 shrink-0" style={{ width: BAR[si][item] * 0.8 }} />
@@ -104,11 +104,11 @@ export default function CompareLevelling({ locale }: SceneProps) {
         </div>
       </LayoutGroup>
 
-      <div className="mt-3 flex min-w-[520px] flex-wrap items-center justify-between gap-2 text-[11.5px]" aria-hidden>
+      <div className="mt-3 flex min-w-[520px] flex-wrap items-center justify-between gap-2 text-[12px]" aria-hidden>
         <motion.span animate={{ opacity: phase === 2 ? 1 : 0 }} className="text-gold/90">
           {t.supplier} {SUPPLIERS[BEST]} · {t.reason}
         </motion.span>
-        <span className="font-mono text-[10px] text-faint">{t.demo}</span>
+        <span className="font-mono text-[12px] text-faint">{t.demo}</span>
       </div>
       <p className="sr-only">{t.alt}</p>
     </div>

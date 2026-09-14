@@ -90,7 +90,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
       <main id="main" className="container-x py-beat-s md:py-beat" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <nav
           aria-label={T.crumb}
-          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.05] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-faint backdrop-blur"
+          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.05] px-3.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.16em] text-faint backdrop-blur"
         >
           <span className="node-dot" aria-hidden />
           <Link href="/" className="transition-colors hover:text-teal-light">{T.home}</Link>
@@ -101,7 +101,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
         <article className="max-w-[820px]">
           <header className="border-b border-[var(--line)] pb-8">
             {t.category && (
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">{t.category}</p>
+              <p className="font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-gold">{t.category}</p>
             )}
             <h1
               lang={t.lang} dir={rtl ? 'rtl' : 'ltr'}
@@ -115,7 +115,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
                 {...(rtl ? { dangerouslySetInnerHTML: { __html: bidiText(t.excerpt) } } : { children: t.excerpt })}
               />
             )}
-            <p className="mt-6 font-mono text-[11px] text-faint">
+            <p className="mt-6 font-mono text-[12px] text-faint">
               {p.author}{p.author && date ? ' · ' : ''}{date}
             </p>
           </header>
@@ -137,7 +137,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
 
           <aside className="glass mesh-glow relative mt-14 overflow-hidden rounded-[22px] p-8 text-center sm:p-10">
             <span className="corners absolute inset-3" aria-hidden />
-            <p className="inline-flex items-center gap-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.2em] text-teal-light">
+            <p className="inline-flex items-center gap-2.5 font-mono text-[12px] font-semibold uppercase tracking-[0.2em] text-teal-light">
               <span className="node-dot" aria-hidden />
               {T.ready}
             </p>

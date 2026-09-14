@@ -39,7 +39,7 @@ export function FaqInner() {
 const FAQ_DECK_CSS = `
 .mk-faq .hero{padding-top:70px}
 .mk-faq .hero h1{position:relative;background:linear-gradient(96deg,#EAF4F2 0%,#6EE7D4 44%,#EAF4F2 60%,#E3C065 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.mk-faq .hero h1::before{content:"FAQ · 150 ANSWERS";display:inline-flex;align-items:center;gap:9px;margin:0 auto 20px;padding:6px 15px;border:1px solid rgba(110,231,212,.19);background:rgba(110,231,212,.05);border-radius:999px;font-family:var(--font-mono),ui-monospace,monospace;font-size:10.5px;font-weight:700;letter-spacing:.2em;color:#6EE7D4;-webkit-text-fill-color:#6EE7D4;width:max-content}
+.mk-faq .hero h1::before{content:"FAQ · 150 ANSWERS";display:inline-flex;align-items:center;gap:9px;margin:0 auto 20px;padding:6px 15px;border:1px solid rgba(110,231,212,.19);background:rgba(110,231,212,.05);border-radius:999px;font-family:var(--font-mono),ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#6EE7D4;-webkit-text-fill-color:#6EE7D4;width:max-content}
 .mk-faq .hero h1::after{content:"";position:absolute;left:50%;top:-34px;width:6px;height:6px;translate:-50% 0;border-radius:99px;background:#14B8A6;box-shadow:0 0 10px rgba(20,184,166,.95)}
 .mk-faq .search input{transition:border-color .22s,box-shadow .22s}
 .mk-faq .search input:focus{box-shadow:0 0 0 3px rgba(20,184,166,.16)}

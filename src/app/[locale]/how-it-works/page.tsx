@@ -3,7 +3,7 @@ import { buildMeta } from '@/lib/seo';
 import { Link } from '@/i18n/routing';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
-import { Reveal, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { Reveal, Stagger, StaggerItem } from '@/components/motion/reveal';
 import { WorkedCase } from '@/components/WorkedCase';
 import { AnonymityFlow } from '@/components/visual/slots';
 
@@ -32,7 +32,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
         <section className="bloom relative overflow-hidden">
           <span className="grid-tech" aria-hidden />
           <div className="container-x relative z-10 pb-12 pt-16 md:pt-24">
-            <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-teal-light rtl:tracking-normal">{t('kicker')}</span>
+            <span className="font-mono text-[12px] uppercase tracking-[0.2em] text-teal-light rtl:tracking-normal">{t('kicker')}</span>
             <h1 className="crisp mt-4 max-w-[22ch] font-head text-[clamp(34px,5vw,60px)] font-semibold leading-[1.02] tracking-[-0.045em] text-white rtl:leading-[1.25] rtl:tracking-normal">
               {t('title')}
             </h1>

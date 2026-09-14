@@ -16,6 +16,7 @@
 // card reads the same with JavaScript off or prefers-reduced-motion on. The replay starts after mount.
 import { useEffect, useMemo, useState } from 'react';
 import { BrandMark } from '@/components/BrandMark';
+import { onFirstInteraction } from '@/lib/firstInteraction';
 import { deterministicCompare, type Labelled } from '../../supabase/functions/quote_compare/deterministic';
 
 export type LiveMatchLabels = {
@@ -43,7 +44,7 @@ const ROW = 96; // px per row slot; each row is ROW-10 tall
 function Stars({ n, label }: { n: number; label: string }) {
   return (
     <span className="flex items-center gap-1" aria-label={`${label} ${n}/5`}>
-      <span className="w-[4.4em] shrink-0 font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint rtl:tracking-normal">{label}</span>
+      <span className="w-[4.4em] shrink-0 font-mono text-[12px] uppercase tracking-[0.1em] text-faint rtl:tracking-normal">{label}</span>
       <span className="flex gap-[3px]" aria-hidden>
         {[1, 2, 3, 4, 5].map((i) => (
           <span key={i} className={`h-1.5 w-2.5 rounded-[1px] ${i <= n ? 'bg-teal' : 'bg-[var(--line2)]'}`} />
@@ -57,11 +58,18 @@ export function LiveMatch({ labels, locale }: { labels: LiveMatchLabels; locale:
   const lang: 'en' | 'ar' = locale === 'ar' ? 'ar' : 'en';
   const [step, setStep] = useState(FINAL);
 
+  // The replay waits for the visitor's first interaction (src/lib/firstInteraction.ts). Starting on
+  // mount reset the card to step 0 right after hydration and re-rendered it every 820 ms inside the
+  // first-load window; until the first scroll/touch/pointer move the card shows the server's final,
+  // ranked frame, which is the complete result anyway.
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    setStep(0);
-    const id = setInterval(() => setStep((s) => (s + 1) % STEPS), TICK);
-    return () => clearInterval(id);
+    let id = 0;
+    const stop = onFirstInteraction(() => {
+      setStep(0);
+      id = window.setInterval(() => setStep((s) => (s + 1) % STEPS), TICK);
+    });
+    return () => { stop(); clearInterval(id); };
   }, []);
 
   const money = useMemo(
@@ -90,16 +98,16 @@ export function LiveMatch({ labels, locale }: { labels: LiveMatchLabels; locale:
     <div className="glass depth relative overflow-hidden rounded-[22px]">
       <div className="flex items-center gap-2.5 border-b border-[var(--line)] bg-teal-light/[0.03] px-5 py-3.5">
         <BrandMark className="h-4 w-4 shrink-0" />
-        <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-faint rtl:font-sans rtl:tracking-normal">
+        <span className="font-mono text-[12px] font-medium uppercase tracking-[0.2em] text-faint rtl:font-sans rtl:tracking-normal">
           {labels.engine}
         </span>
-        <span className="ms-auto rounded-full border border-gold/40 bg-gold/[0.08] px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.16em] text-gold rtl:font-sans rtl:tracking-normal">
+        <span className="ms-auto rounded-full border border-gold/40 bg-gold/[0.08] px-2 py-0.5 font-mono text-[12px] uppercase tracking-[0.16em] text-gold rtl:font-sans rtl:tracking-normal">
           {labels.demo}
         </span>
       </div>
 
       <div className="flex items-start gap-3 px-5 py-4">
-        <span className="mt-0.5 shrink-0 rounded border border-[var(--line2)] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-teal-light rtl:font-sans rtl:tracking-normal">
+        <span className="mt-0.5 shrink-0 rounded border border-[var(--line2)] px-1.5 py-0.5 font-mono text-[12px] uppercase tracking-[0.14em] text-teal-light rtl:font-sans rtl:tracking-normal">
           {labels.posted}
         </span>
         <p className="text-[13px] leading-relaxed text-paper/90">{labels.brief}</p>
@@ -129,11 +137,11 @@ export function LiveMatch({ labels, locale }: { labels: LiveMatchLabels; locale:
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[12.5px] font-semibold text-paper">{q.label}</span>
-                      <span className="rounded border border-[var(--line2)] px-1 py-px font-mono text-[9.5px] text-muted rtl:font-sans">{q.region}</span>
-                      {best && <span className="rounded-full bg-gold/90 px-1.5 py-px text-[10px] font-semibold text-[#2A2000]">{labels.best}</span>}
-                      {out && <span className="text-[10.5px] text-faint">{labels.cut}</span>}
+                      <span className="rounded border border-[var(--line2)] px-1 py-px font-mono text-[12px] text-muted rtl:font-sans">{q.region}</span>
+                      {best && <span className="rounded-full bg-gold/90 px-1.5 py-px text-[12px] font-semibold text-[#2A2000]">{labels.best}</span>}
+                      {out && <span className="text-[12px] text-faint">{labels.cut}</span>}
                     </div>
-                    <span className="mt-0.5 block text-[10.5px] text-faint">{labels.hidden}</span>
+                    <span className="mt-0.5 block text-[12px] text-faint">{labels.hidden}</span>
                   </div>
                   <span dir="ltr" className={`shrink-0 font-mono text-[14px] font-semibold tabular ${best ? 'text-gold' : 'text-white'}`}>
                     {fmt(q.price)}
@@ -155,11 +163,11 @@ export function LiveMatch({ labels, locale }: { labels: LiveMatchLabels; locale:
       <div className="flex items-center gap-3 border-t border-[var(--line)] px-5 py-3.5">
         <span className="node-dot shrink-0" aria-hidden />
         <span aria-live="polite" className="min-w-0 flex-1 truncate text-[12.5px] text-muted">{status}</span>
-        <span className="shrink-0 rounded-full border border-[var(--line2)] px-2.5 py-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-faint rtl:font-sans rtl:tracking-normal">
+        <span className="shrink-0 rounded-full border border-[var(--line2)] px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.14em] text-faint rtl:font-sans rtl:tracking-normal">
           {labels.reveal}
         </span>
       </div>
-      <p className="border-t border-[var(--line)] px-5 py-2.5 text-[11.5px] leading-relaxed text-faint">{labels.note}</p>
+      <p className="border-t border-[var(--line)] px-5 py-2.5 text-[12px] leading-relaxed text-faint">{labels.note}</p>
     </div>
   );
 }

@@ -51,7 +51,10 @@ export function BriefBox() {
   return (
     <div className="glass depth relative overflow-hidden rounded-[22px] text-start">
       <span className="grid-tech grid-tech-sm opacity-50" aria-hidden />
+      {/* method="post": handled in JS (preventDefault); the attribute keeps a no-JS submit from
+          putting the job description in a GET query string. */}
       <form
+        method="post"
         className="relative p-5 sm:p-6"
         onSubmit={(e) => { e.preventDefault(); check(); }}
       >
@@ -105,11 +108,11 @@ export function BriefBox() {
           <div className="border-t border-[var(--line)] bg-navy-deep/40 px-5 py-5 sm:px-6">
             <dl className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[12px] border border-[var(--line2)] bg-teal/[0.05] px-3.5 py-2.5">
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint rtl:tracking-normal">{t('recognised')}</dt>
+                <dt className="font-mono text-[12px] uppercase tracking-[0.16em] text-faint rtl:tracking-normal">{t('recognised')}</dt>
                 <dd className="mt-1 font-head text-[15px] font-semibold text-white">{res.label}</dd>
               </div>
               <div className="rounded-[12px] border border-[var(--line)] px-3.5 py-2.5">
-                <dt className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint rtl:tracking-normal">{t('emirate')}</dt>
+                <dt className="font-mono text-[12px] uppercase tracking-[0.16em] text-faint rtl:tracking-normal">{t('emirate')}</dt>
                 <dd className="mt-1 text-[14px] text-paper">{res.emirate || t('noEmirate')}</dd>
               </div>
             </dl>
@@ -119,7 +122,7 @@ export function BriefBox() {
                 <ol className="mt-2 space-y-1.5">
                   {res.questions.map((q, i) => (
                     <li key={q.key || i} dir="auto" className="flex gap-2.5 text-[13.5px] leading-relaxed text-paper">
-                      <span className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-teal/50 font-mono text-[9.5px] text-teal-light">{i + 1}</span>
+                      <span className="mt-[3px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-teal/50 font-mono text-[12px] text-teal-light">{i + 1}</span>
                       {q.question}
                     </li>
                   ))}

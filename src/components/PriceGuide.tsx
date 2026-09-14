@@ -66,12 +66,15 @@ export function PriceGuide({ slug }: { slug?: string }) {
     <div className="glass depth relative overflow-hidden rounded-[22px] p-6 text-start md:p-8">
       <span className="grid-tech grid-tech-sm opacity-40" aria-hidden />
       {slug && <h2 className="relative font-head text-[20px] font-semibold tracking-[-0.02em] text-white">{t('titleService')}</h2>}
+      {/* method="post": the form is handled in JS (preventDefault); the attribute only stops a
+          no-JS submit from putting the question in a GET query string. */}
       {!slug && (
-        <form className="relative" onSubmit={(e) => { e.preventDefault(); if (q.trim().length > 2) ask({ question: q.trim() }, q.trim()); }}>
+        <form method="post" className="relative" onSubmit={(e) => { e.preventDefault(); if (q.trim().length > 2) ask({ question: q.trim() }, q.trim()); }}>
           <label htmlFor={id} className="text-[13px] font-semibold text-teal-light">{t('label')}</label>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <input
-              id={id} dir="auto" value={q} maxLength={300} onChange={(e) => setQ(e.target.value)} placeholder={t('ph')}
+              id={id} name="question" type="text" inputMode="text" autoComplete="off" enterKeyHint="search"
+              dir="auto" value={q} maxLength={300} onChange={(e) => setQ(e.target.value)} placeholder={t('ph')}
               className="min-w-0 flex-1 rounded-full border border-[var(--line2)] bg-navy-deep/60 px-5 py-3 text-[14.5px] text-paper shadow-[var(--key)] outline-none placeholder:text-faint focus-visible:border-teal focus-visible:ring-2 focus-visible:ring-teal/30"
             />
             <button type="submit" disabled={busy} className="btn-key press rounded-full bg-teal px-6 py-3 text-[14px] font-bold text-[#04231F] hover:bg-[#1ED0BC] disabled:opacity-50">
