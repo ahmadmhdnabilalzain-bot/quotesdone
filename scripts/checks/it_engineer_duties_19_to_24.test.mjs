@@ -231,6 +231,26 @@ test('the table drill passes a page identical to live and names a stale export',
   assert.equal(r.restore_open, true, 'a drill with no table to restore must fail');
 });
 
+test('an empty page passes only when the export itself says the table was empty', { skip: SKIP }, async () => {
+  // ZZ DEMO: a scratch table in the drill list, empty live, so the only difference is what the export says.
+  const r = await probe(`
+    declare v_lost jsonb; v_empty jsonb;
+    begin
+      create table public.zz_demo_drill (id int primary key, note text);
+      insert into public.it_restore_drill_table (table_name, key_column, note) values ('zz_demo_drill', 'id', 'ZZ DEMO probe');
+      v_lost := public.fn_it_restore_table_record(jsonb_build_object('newest_export_day', current_date,
+        'table', jsonb_build_object('table', 'zz_demo_drill', 'path', 'zz_demo/page_0000.json', 'rows', '[]'::jsonb, 'rows_in_file', 3)));
+      v_empty := public.fn_it_restore_table_record(jsonb_build_object('newest_export_day', current_date,
+        'table', jsonb_build_object('table', 'zz_demo_drill', 'path', 'zz_demo/page_0000.json', 'rows', '[]'::jsonb, 'rows_in_file', 0)));
+      raise exception 'CHK<<%>>', json_build_object('lost_error', v_lost->'drill'->>'error',
+        'lost_settle', v_lost->'restore_table'->'failing', 'empty_error', v_empty->'drill'->>'error',
+        'restore_open_after_empty', (select closed_at is null from public.it_engineer_finding where issue_key = 'duty:restore_table:restore'));
+    end`);
+  assert.match(r.lost_error, /export holds 3 row\(s\) and none reached the restore/, 'an export that lost its rows passed because the live table is empty');
+  assert.equal(r.empty_error, null);
+  assert.equal(r.restore_open_after_empty, false, 'an empty table exported empty must pass');
+});
+
 test('a bill over its recorded cap is a finding for the accountant; an unread provider is named', { skip: SKIP }, async () => {
   const r = await probe(`
     declare v jsonb;

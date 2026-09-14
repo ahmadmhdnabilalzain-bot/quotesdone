@@ -214,9 +214,15 @@ begin
     exception when others then v_err := 'restore into scratch failed: ' || sqlerrm;
     end;
   end if;
-  -- An empty page of a table that is empty live restored exactly what there is: that passes.
+  -- An empty restore passes only when the EXPORT says the table was empty (rows_in_file is the whole
+  -- file's count, taken before the sample) AND the table is empty live. Review of e820d64: judged on the
+  -- live table alone, an export that lost its rows would pass as soon as the table was emptied too.
   if v_err is null and n_rest = 0 and v_key is not null then
-    execute format('select not exists (select 1 from public.%I)', v_tab) into v_live_empty;
+    if coalesce((t->>'rows_in_file')::int, -1) = 0 then
+      execute format('select not exists (select 1 from public.%I)', v_tab) into v_live_empty;
+    else
+      v_err := 'the export holds ' || coalesce(t->>'rows_in_file', 'an unknown number of') || ' row(s) and none reached the restore';
+    end if;
   end if;
   v_ok := v_err is null and ((n_rest > 0 and n_match > 0) or coalesce(v_live_empty, false));
   v_detail := jsonb_build_object('table', v_tab, 'path', t->>'path', 'rows_in_file', t->'rows_in_file', 'restored', n_rest,
