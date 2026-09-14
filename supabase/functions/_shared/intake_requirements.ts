@@ -162,6 +162,16 @@ export const PROFILES: Record<string, Profile> = {
   waterproofing: P(false, true, [{ c: 'system', en: 'Waterproofing system', ar: 'نظام العزل المائي', opts: [['bitumen', 'Bitumen membrane', 'غشاء بيتومين'], ['pu_liquid', 'Polyurethane liquid', 'بولي يوريثين سائل'], ['cementitious', 'Cementitious coating', 'طلاء إسمنتي']] }]),
 };
 export const profileFor = (category: string): Profile => PROFILES[String(category || '')] || DEFAULT_PROFILE;
+/** A component's names from the catalogue above, for a stored material that carries only its key
+ * (measured 14 Sep 2026: a request with materials [{component:'glass'}] printed "المادة — glass" in
+ * the Arabic comparison). The first trade that defines the key names it. */
+export function componentLabel(c: string): { en: string; ar: string } | null {
+  for (const p of [...Object.values(PROFILES), DEFAULT_PROFILE]) {
+    const hit = p.components.find((x) => x.c === c);
+    if (hit) return { en: hit.en, ar: hit.ar };
+  }
+  return null;
+}
 
 // ── THE QUESTIONS ────────────────────────────────────────────────────────────────────────────────
 export type Kind = 'material' | 'installation' | 'warranty' | 'required_by';
