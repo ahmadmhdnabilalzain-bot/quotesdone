@@ -12,7 +12,9 @@
 -- WHAT THIS ADDS: an event trigger on ddl_command_end that writes one row per routine created,
 -- replaced, altered or dropped in public: who (session user, application name, client address,
 -- backend pid), what (command tag, object identity), and the first 2,000 characters of the
--- statement. It never raises: a failure to record must not block the change it records.
+-- statement, with anything shaped like a key, token, secret or password redacted. It never raises:
+-- a failure to record must not block the change it records. Rows are kept (no pruning): this is an
+-- audit trail, and the founder keeps records.
 -- The log is service-role only, like every audit table here.
 
 create table if not exists public.routine_change_log (
@@ -45,13 +47,13 @@ begin
   for r in select * from pg_event_trigger_ddl_commands()
             where object_type in ('function', 'procedure') and schema_name = 'public'
   loop
-    begin
       insert into public.routine_change_log (application_name, client_addr, command_tag, object_identity, statement_head)
       values (current_setting('application_name', true), inet_client_addr(), r.command_tag, r.object_identity,
-              left(current_query(), 2000));
-    exception when others then null;  -- recording must never block the change it records
-    end;
+              regexp_replace(regexp_replace(left(current_query(), 2000),
+                '((key|secret|password|passwd|token|bearer|authorization)[a-z_]*\s*(=|:)\s*)(''[^'']*''|"[^"]*"|\S{8,})', '\1[REDACTED]', 'gi'),
+                '\m((sk|rk|pk)_(live|test)_|whsec_|sbp_|eyJ)[A-Za-z0-9_\-\.]{8,}', '[REDACTED]', 'g'));
   end loop;
+exception when others then null;  -- recording must never block the change it records, including a failure to read the event
 end $fn$;
 
 create or replace function public.fn_record_routine_drop()
@@ -65,13 +67,13 @@ begin
   for r in select * from pg_event_trigger_dropped_objects()
             where object_type in ('function', 'procedure') and schema_name = 'public'
   loop
-    begin
       insert into public.routine_change_log (application_name, client_addr, command_tag, object_identity, statement_head)
       values (current_setting('application_name', true), inet_client_addr(), 'DROP FUNCTION', r.object_identity,
-              left(current_query(), 2000));
-    exception when others then null;
-    end;
+              regexp_replace(regexp_replace(left(current_query(), 2000),
+                '((key|secret|password|passwd|token|bearer|authorization)[a-z_]*\s*(=|:)\s*)(''[^'']*''|"[^"]*"|\S{8,})', '\1[REDACTED]', 'gi'),
+                '\m((sk|rk|pk)_(live|test)_|whsec_|sbp_|eyJ)[A-Za-z0-9_\-\.]{8,}', '[REDACTED]', 'g'));
   end loop;
+exception when others then null;
 end $fn$;
 
 revoke execute on function public.fn_record_routine_change() from public, anon, authenticated;
@@ -86,9 +88,14 @@ drop event trigger if exists qd_record_routine_drop;
 create event trigger qd_record_routine_drop on sql_drop
   execute function public.fn_record_routine_drop();
 
--- The trigger must be attached and enabled, or nothing is recorded.
+-- Both triggers must be attached and enabled, or nothing is being recorded. (An end-to-end probe,
+-- a throwaway routine created and dropped, was run after the first apply and logged both rows.)
 do $check$
+declare n int;
 begin
+  if not exists (select 1 from pg_event_trigger where evtname = 'qd_record_routine_drop' and evtenabled <> 'D') then
+    raise exception 'qd_record_routine_drop is not attached';
+  end if;
   if not exists (select 1 from pg_event_trigger where evtname = 'qd_record_routine_change' and evtenabled <> 'D') then
     raise exception 'qd_record_routine_change is not attached';
   end if;

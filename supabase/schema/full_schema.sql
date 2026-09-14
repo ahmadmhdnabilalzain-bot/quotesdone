@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T16:06:20.855Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T16:10:25.757Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -23231,6 +23231,8 @@ begin
     end if;
     -- The caller chooses the words and the address. It never chooses the status, the sender or the
     -- requester: those are support's record of what it was asked and what it did.
+    -- Tracked by THIS request, so the adoption trigger (section 5) must not open a second one.
+    perform set_config('app.qd_delivery_tracked', 'on', true);
     insert into public.notifications (type, kind, to_email, cc_emails, to_role, to_phone, lead_id, inquiry_id, quote_id,
                                       channel, subject, body, html, attachments, lang, status, requested_by)
     values (p.type, p.kind, p.to_email, coalesce(p.cc_emails, '{}'), p.to_role, p.to_phone, p.lead_id, p.inquiry_id, p.quote_id,
@@ -23239,6 +23241,7 @@ begin
     select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
      where n.channel = 'whatsapp' and n.id > v_nid and n.created_at = now() and n.type = p.type
        and n.to_email is not distinct from p.to_email;
+    perform set_config('app.qd_delivery_tracked', 'off', true);
     return jsonb_build_object('delivered', true, 'queued_at', now(), 'notification_id', v_nid, 'whatsapp_ids', v_fan,
                               'channel', coalesce(p.channel, 'email'), 'prepared', true);
   end if;
@@ -23250,10 +23253,12 @@ begin
       return jsonb_build_object('channel', 'founder', 'stubbed', true, 'event', d->>'event');
     end if;
     select coalesce(max(id), 0) into v_before from public.notifications;
+    perform set_config('app.qd_delivery_tracked', 'on', true);
     v_res := public.fn_notify_founder(p_event => d->>'event', p_detail => d->>'detail', p_level => coalesce(d->>'level', 'high'),
                                       p_kind => d->>'kind', p_dedupe_key => d->>'dedupe_key', p_owner_agent => 'customer_support');
     select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
      where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
+    perform set_config('app.qd_delivery_tracked', 'off', true);
     return jsonb_build_object('channel', 'founder', 'notify', v_res, 'notification_ids', v_fan,
                               'notification_id', v_fan->0);
   end if;
@@ -23270,6 +23275,7 @@ begin
   v_body    := case when v_ar then d->>'body_ar' else d->>'body_en' end;
   select coalesce(array_agg(x), '{}') into v_cc from jsonb_array_elements_text(coalesce(d->'cc', '[]'::jsonb)) x;
 
+  perform set_config('app.qd_delivery_tracked', 'on', true);
   -- requested_by names the seat that asked (customer_support_is_the_only_sender_on_email_and_whatsapp.sql);
   -- sender stays customer_support by that file's default and check.
   insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
@@ -23280,6 +23286,7 @@ begin
   select coalesce(jsonb_agg(n.id), '[]'::jsonb) into v_fan from public.notifications n
    where n.channel = 'whatsapp' and n.type = d->>'msg_type' and n.id > v_nid
      and n.to_email = d->>'to_email' and n.created_at >= now() - interval '1 minute';
+  perform set_config('app.qd_delivery_tracked', 'off', true);
 
   return jsonb_build_object('delivered', true, 'queued_at', now(), 'notification_id', v_nid, 'whatsapp_ids', v_fan,
                             'language', case when v_ar then 'ar' else 'en' end,
@@ -23409,9 +23416,11 @@ begin
         v_evidence := jsonb_build_object('reply', v_reply);
       elsif n.id is null or n.status in ('failed', 'bounced', 'error') then
         if v_retries < 1 and n.id is not null then
+          perform set_config('app.qd_delivery_tracked', 'on', true);   -- the retry is tracked by this request (retry_notification_id)
           insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by)
           values (n.type, n.kind, n.to_email, n.cc_emails, n.to_role, n.lead_id, n.inquiry_id, n.quote_id, 'email', n.subject, n.body, 'queued', n.requested_by)
           returning id into v_nid;
+          perform set_config('app.qd_delivery_tracked', 'off', true);
           update public.agent_actions
              set detail = detail || jsonb_build_object('retries', v_retries + 1, 'retry_notification_id', v_nid,
                                                        'first_failure', jsonb_build_object('notification_id', n.id, 'status', n.status, 'error', n.last_error))
@@ -37820,13 +37829,13 @@ begin
   for r in select * from pg_event_trigger_ddl_commands()
             where object_type in ('function', 'procedure') and schema_name = 'public'
   loop
-    begin
       insert into public.routine_change_log (application_name, client_addr, command_tag, object_identity, statement_head)
       values (current_setting('application_name', true), inet_client_addr(), r.command_tag, r.object_identity,
-              left(current_query(), 2000));
-    exception when others then null;  -- recording must never block the change it records
-    end;
+              regexp_replace(regexp_replace(left(current_query(), 2000),
+                '((key|secret|password|passwd|token|bearer|authorization)[a-z_]*\s*(=|:)\s*)(''[^'']*''|"[^"]*"|\S{8,})', '\1[REDACTED]', 'gi'),
+                '\m((sk|rk|pk)_(live|test)_|whsec_|sbp_|eyJ)[A-Za-z0-9_\-\.]{8,}', '[REDACTED]', 'g'));
   end loop;
+exception when others then null;  -- recording must never block the change it records, including a failure to read the event
 end $function$
 
 
@@ -37841,13 +37850,13 @@ begin
   for r in select * from pg_event_trigger_dropped_objects()
             where object_type in ('function', 'procedure') and schema_name = 'public'
   loop
-    begin
       insert into public.routine_change_log (application_name, client_addr, command_tag, object_identity, statement_head)
       values (current_setting('application_name', true), inet_client_addr(), 'DROP FUNCTION', r.object_identity,
-              left(current_query(), 2000));
-    exception when others then null;
-    end;
+              regexp_replace(regexp_replace(left(current_query(), 2000),
+                '((key|secret|password|passwd|token|bearer|authorization)[a-z_]*\s*(=|:)\s*)(''[^'']*''|"[^"]*"|\S{8,})', '\1[REDACTED]', 'gi'),
+                '\m((sk|rk|pk)_(live|test)_|whsec_|sbp_|eyJ)[A-Za-z0-9_\-\.]{8,}', '[REDACTED]', 'g'));
   end loop;
+exception when others then null;
 end $function$
 
 
