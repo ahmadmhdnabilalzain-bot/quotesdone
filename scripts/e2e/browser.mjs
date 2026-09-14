@@ -19,7 +19,9 @@ const KEYS = {
 export const portalUrl = (kind, lang, query = '') => `${SITE}${lang === 'ar' ? '/ar' : ''}${KEYS[kind].path}${query}`;
 
 export async function launch() {
-  return chromium.launch({ headless: process.env.QD_HEADED !== '1' });
+  // QD_BROWSER_CHANNEL=chrome|msedge uses an installed browser when Playwright's own build for this
+  // version has not been downloaded (14 Sep 2026: headless_shell-1243 missing, run died at fixtures).
+  return chromium.launch({ headless: process.env.QD_HEADED !== '1', ...(process.env.QD_BROWSER_CHANNEL ? { channel: process.env.QD_BROWSER_CHANNEL } : {}) });
 }
 
 /**
