@@ -41,7 +41,7 @@ export const ACCOUNTANT_SERVICES = ['stripe_checkout', 'stripe_confirm', 'suppli
 export const PLATFORM_SERVICES = {
   login_otp: 'sign-in / OTP', send_sms: 'sign-in / OTP', mobile_otp: 'sign-in / OTP', voice_otp: 'sign-in / OTP',
   voice_otp_capture: 'sign-in / OTP', sup_dob: 'sign-in / OTP', auth_api: 'sign-in / OTP', role_guard: 'auth',
-  transcribe: 'channel (Support pipe)', wa_optin_set: 'channel consent (Support pipe)', ai_gateway: 'model gateway (Support pipe)',
+  transcribe: 'channel (Support pipe)', ai_gateway: 'model gateway (Support pipe)',
   extract_text: 'channel (Support pipe)', license_extract: 'channel (Support pipe)', doc_extract: 'channel (Support pipe)',
   send_outbox: 'channel (Support pipe)', send_whatsapp: 'channel (Support pipe)',
 };
