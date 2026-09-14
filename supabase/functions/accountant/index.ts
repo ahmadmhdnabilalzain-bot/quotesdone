@@ -68,7 +68,8 @@ import { isDemoEmail } from '../_shared/demo_identity.ts';
 // the charge audit uses the #616 formula itself, the statement reader and the dispute form are pure
 // modules with their own tests.
 import { revealChargeFor, shortfallAfterPayment } from '../_shared/reveal_fee.ts';
-import { isBankStatement, parseStatement } from '../_shared/bank_statement_parse.ts';
+import { isBankStatement, readStatement } from '../_shared/bank_statement_parse.ts';
+import { pdfTextByRows } from '../_shared/pdf_text_positions.ts';
 import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -916,20 +917,40 @@ Deno.serve(observe('accountant', async (req) => {
         } else if (att) {
           readNote = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
         }
-        if (stmt) {
-          const lines = parseStatement(csvText || docText);
-          if (dryRun) { say('bank_statement', { lines: lines.length, files: fileNotes }); continue; }
+        // THE STATEMENT'S TABLE NEEDS ITS ROWS (14 Sep 2026). Measured on the founder's real Mashreq
+        // e-statement: pdf_text returns '' for it (its Arabic captions are glyph noise, correctly refused by
+        // looksLikeText), and its filename and forwarder name no bank. The positioned reader rebuilds the rows;
+        // that text is used ONLY to recognise and read a statement — a receipt keeps pdf_text's guard.
+        let rowText = '';
+        if (att && att.mime === 'application/pdf' && (stmt || !docText)) rowText = await pdfTextByRows(att.bytes).catch(() => '');
+        const isStmt = stmt || (!!rowText && isBankStatement(from, subject, atts.map((a) => String(a.filename || a.name || '')), rowText));
+        if (isStmt) {
+          const st = readStatement(csvText || rowText || docText);
+          const lines = st.lines;
+          if (dryRun) { say('bank_statement', { lines: lines.length, adds_up: !st.problem, files: fileNotes }); continue; }
           let stPath: string | null = null;
           if (att) {
             const sp = 'bank/' + seenAt.slice(0, 10) + '/' + emailId + '.' + att.ext;
             const up = await admin.storage.from('receipt-files').upload(sp, att.bytes, { contentType: att.mime, upsert: true });
             if (!up.error) stPath = sp;
           }
+          // A statement that does not add up is ingested with NO lines: it is recorded unreadable, which
+          // fn_accountant_bank_reconcile reports as an open accountant finding carrying this note.
           const { data: ing, error: ingErr } = await admin.rpc('fn_accountant_bank_statement_ingest', {
-            p_account: 'mashreq', p_source_ref: msgKey, p_statement_month: null, p_lines: lines,
+            p_account: 'mashreq', p_source_ref: msgKey, p_statement_month: st.period_from ? st.period_from.slice(0, 8) + '01' : null, p_lines: lines,
             p_doc_path: stPath ? 'receipt-files/' + stPath : null,
-            p_note: lines.length ? null : 'No line could be read without guessing a sign: ' + (readNote || 'no CSV export and no CR/DR markers in the text layer') });
-          say(ingErr ? 'bank_statement_failed' : 'bank_statement', { lines: lines.length, result: ing ?? null, error: ingErr?.message ?? null });
+            p_note: st.problem ? 'The statement does not add up, so none of it was booked: ' + st.problem
+                  : lines.length ? null : 'No line could be read without guessing a sign: ' + (readNote || 'no CSV export and no CR/DR markers in the text layer') });
+          // The closing balance as printed (#659's fn_accountant_bank_balance_record), only for a statement
+          // whose every row was proved against it. Before #659 is applied the routine is absent and this says so.
+          let balance: unknown = null;
+          if (!ingErr && !st.problem && st.closing_balance_aed !== null && st.period_to) {
+            const { data: b, error: bErr } = await admin.rpc('fn_accountant_bank_balance_record', {
+              p_source_ref: msgKey, p_balance_aed: st.closing_balance_aed, p_on: st.period_to });
+            balance = bErr ? { error: bErr.message } : b;
+          }
+          say(ingErr ? 'bank_statement_failed' : 'bank_statement', { lines: lines.length, adds_up: !st.problem, problem: st.problem,
+            result: ing ?? null, closing_balance: balance, error: ingErr?.message ?? null });
           continue;
         }
         // The PDF text is APPENDED, so the forwarded "From:" header still names the original vendor
@@ -1441,10 +1462,20 @@ Deno.serve(observe('accountant', async (req) => {
     if (action === 'bank_statement') {
       const src = String(body.source_ref || '').trim();
       if (!src) return J({ ok: false, error: 'source_ref is required' }, 400);
-      const lines = parseStatement(String(body.csv || body.text || ''));
+      const st = readStatement(String(body.csv || body.text || ''));
+      const lines = st.lines;
+      // A statement that prints its closing balance and adds up supplies closing_balance_aed / balance_on
+      // itself (#659's field names) unless the caller gave them. One that does not add up supplies none.
+      if (!st.problem && st.closing_balance_aed !== null && (body.closing_balance_aed === undefined || body.closing_balance_aed === null)) {
+        body.closing_balance_aed = st.closing_balance_aed;
+        body.balance_on = body.balance_on ?? st.period_to;
+      }
       const { data, error } = await admin.rpc('fn_accountant_bank_statement_ingest', {
-        p_account: String(body.account || 'mashreq'), p_source_ref: src, p_statement_month: body.month ?? null,
-        p_lines: lines, p_doc_path: null, p_note: lines.length ? null : 'handed in, and no line could be read without guessing a sign' });
+        p_account: String(body.account || 'mashreq'), p_source_ref: src,
+        p_statement_month: body.month ?? (st.period_from ? st.period_from.slice(0, 8) + '01' : null),
+        p_lines: lines, p_doc_path: null,
+        p_note: st.problem ? 'handed in, and it does not add up, so none of it was booked: ' + st.problem
+              : lines.length ? null : 'handed in, and no line could be read without guessing a sign' });
       if (error) return J({ ok: false, error: error.message }, 400);
       await run('bank_statement', 'ok', { lines: lines.length });
       return J({ ok: true, ...(data as Record<string, unknown>) });
