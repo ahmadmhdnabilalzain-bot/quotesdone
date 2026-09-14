@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T14:50:34.216Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T14:55:08.585Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -184,7 +184,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (480) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (482) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -3329,6 +3329,16 @@ CREATE TABLE IF NOT EXISTS public.it_engineer_scanner (
   registered_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.it_expiry (
+  item text NOT NULL,
+  kind text NOT NULL,
+  expires_on date,
+  owner_seat text NOT NULL,
+  route text NOT NULL,
+  source text NOT NULL,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.it_hold_signature (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   subject text NOT NULL,
@@ -3342,6 +3352,12 @@ CREATE TABLE IF NOT EXISTS public.it_refusal_policy (
   reason_key text NOT NULL,
   justification text NOT NULL,
   added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_security_baseline (
+  object text NOT NULL,
+  kind text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_watch_finding (
@@ -6977,8 +6993,10 @@ ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY K
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey PRIMARY KEY (issue_key);
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_pkey PRIMARY KEY (scanner);
+ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_pkey PRIMARY KEY (item);
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
+ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_pkey PRIMARY KEY (object, kind);
 ALTER TABLE public.it_watch_finding ADD CONSTRAINT it_watch_finding_pkey PRIMARY KEY (detector_key);
 ALTER TABLE public.it_watch_queue ADD CONSTRAINT it_watch_queue_pkey PRIMARY KEY (queue_key);
 ALTER TABLE public.it_watch_subject ADD CONSTRAINT it_watch_subject_pkey PRIMARY KEY (subject);
@@ -7446,6 +7464,8 @@ ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_blast_
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_engineering'::text, 'diagnostic_lens'::text, 'estate_architecture_measured'::text, 'failure_signature'::text, 'security_posture_no_version_claim'::text, 'resolve_from_live_system'::text, 'company_governance_ruling'::text, 'company_record_generated'::text])));
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck CHECK (((max_gap_minutes >= 5) AND (max_gap_minutes <= 1440)));
+ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text])));
+ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_kind_check CHECK ((kind = ANY (ARRAY['anon_executable_definer'::text, 'rls_off'::text, 'rls_no_policy'::text])));
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_tier_check CHECK (((tier >= 1) AND (tier <= 4)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
@@ -14797,6 +14817,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -14822,16 +14852,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -15543,135 +15563,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -16187,6 +16078,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -29435,6 +29455,298 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_duties(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_out jsonb := '{}'::jsonb; v_items jsonb; x record; s jsonb; v_mode text; v_hook jsonb; v_missing text[];
+  v_p95 numeric; v_hour int;
+begin
+  if jsonb_typeof(p_r) is distinct from 'object' then
+    raise exception 'fn_it_duties takes the readings object from _shared/it_duty_readings.ts';
+  end if;
+
+  -- ── 2. LIVE == CODE ──
+  -- Reads: the latest main commit's GitHub check runs ('checks', 'deploy functions') and the Vercel
+  -- production deployment for that commit. The canonical routine manifest itself runs inside the
+  -- 'checks' workflow, so its conclusion is the drift verdict. Cannot see: drift introduced after the
+  -- last merge by a live apply with no commit (the manifest check in the next CI run catches that).
+  if (p_r->'github'->>'basis') = 'measured' then
+    v_items := '[]'::jsonb;
+    for x in select key, value from jsonb_each(coalesce(p_r->'github'->'conclusions', '{}'::jsonb)) loop
+      if x.value #>> '{}' not in ('success', 'skipped', 'neutral', 'in_progress', 'queued') then
+        v_items := v_items || jsonb_build_object('item', 'ci:' || x.key, 'owner_seat', 'ceo', 'subject', 'github',
+          'title', 'On main ' || left(p_r->'github'->>'sha', 7) || ', "' || x.key || '" ended ' || (x.value #>> '{}')
+                   || ' — what is live may not be what is merged',
+          'blast', 'agent_facing', 'affected', 1, 'evidence', p_r->'github');
+      end if;
+    end loop;
+    if (p_r->'vercel'->>'basis') = 'measured' and coalesce(p_r->'vercel'->>'state', '') not in ('READY', 'BUILDING', 'QUEUED', 'INITIALIZING') then
+      v_items := v_items || jsonb_build_object('item', 'vercel', 'owner_seat', 'ceo', 'subject', 'website',
+        'title', 'The website deployment for main ' || left(p_r->'github'->>'sha', 7) || ' is ' || coalesce(p_r->'vercel'->>'state', 'missing'),
+        'blast', 'customer_facing', 'affected', 0, 'evidence', p_r->'vercel');
+    end if;
+    v_out := v_out || jsonb_build_object('live_code', public.fn_it_duty_settle('live_code', v_items));
+  else
+    v_out := v_out || jsonb_build_object('live_code', jsonb_build_object('basis', coalesce(p_r->'github'->>'basis', 'not_read'), 'reason', p_r->'github'->>'reason'));
+  end if;
+
+  -- ── 3. EXPIRIES ──
+  -- Reads: it_expiry (licences from the founder, domains from RDAP, TLS from crt.sh), internal_credential
+  -- expires_at, and each provider credential answering a harmless authenticated GET. Cannot see: a
+  -- provider key's own expiry date — Stripe, Resend, Twilio and Dropbox do not publish one, so the
+  -- test is whether the key still works today. Credentials used to rotate on a pg_cron job that went
+  -- with the 7 Sep removal and no routine rotates them now, so an expiry inside 30 days is handed on.
+  for x in select key, value from jsonb_each(coalesce(p_r->'expiries', '{}'::jsonb)) loop
+    if (x.value->>'expires_on') is not null then
+      update public.it_expiry set expires_on = (x.value->>'expires_on')::date, checked_at = now() where item = x.key;
+    end if;
+  end loop;
+  v_items := '[]'::jsonb;
+  for x in select * from public.it_expiry where expires_on is not null and expires_on < current_date + 30 loop
+    v_items := v_items || jsonb_build_object('item', x.item, 'owner_seat', x.owner_seat, 'subject', x.item,
+      'title', x.item || ' expires on ' || x.expires_on || ' (' || (x.expires_on - current_date) || ' days)',
+      'blast', case when x.expires_on < current_date + 7 then 'customer_facing' else 'agent_facing' end, 'affected', 1,
+      'evidence', jsonb_build_object('route', x.route, 'source', x.source, 'checked_at', x.checked_at));
+  end loop;
+  for x in select context, expires_at from public.internal_credential
+            where active and expires_at is not null and expires_at < now() + interval '30 days' loop
+    v_items := v_items || jsonb_build_object('item', 'credential:' || x.context, 'owner_seat', 'ceo', 'subject', x.context,
+      'title', 'Internal credential ' || x.context || ' expires ' || to_char(x.expires_at, 'DD Mon YYYY') || ' and nothing rotates it',
+      'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('expires_at', x.expires_at));
+  end loop;
+  v_out := v_out || jsonb_build_object('expiry', public.fn_it_duty_settle('expiry', v_items));
+
+  -- Provider credentials are their own duty so a tick without the providers reading leaves them as
+  -- they were instead of closing them.
+  if jsonb_typeof(p_r->'providers') = 'object' then
+    v_items := '[]'::jsonb;
+    for x in select key, value from jsonb_each(p_r->'providers') loop
+      if (x.value->>'basis') = 'measured' and (x.value->>'status')::int in (401, 403) then
+        v_items := v_items || jsonb_build_object('item', x.key,
+          'owner_seat', coalesce(x.value->>'owner_seat', 'ceo'), 'subject', x.key,
+          'title', 'The ' || x.key || ' credential was refused (HTTP ' || (x.value->>'status') || ')',
+          'blast', 'customer_facing', 'affected', 1, 'evidence', x.value);
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('credential', public.fn_it_duty_settle('credential', v_items));
+  end if;
+
+  -- ── 4. DELIVERY CONFIRMATION ──
+  -- Reads: the delivery loop (customer_support's build) — every delivery.request gets a delivery.result
+  -- back to its originator, which records detail.loop. What IT watches is that the loop CLOSED: a request
+  -- older than two hours with no loop verdict, and an email marked sent with no provider id.
+  v_items := '[]'::jsonb;
+  for x in select a.id, a.detail->>'from' frm, a.created_at from public.agent_actions a
+            where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
+              and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
+              and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%' loop
+    v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+      'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
+               || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',
+      'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('handoff_id', x.id));
+  end loop;
+  for x in select n.id, n.to_role, n.sent_at from public.notifications n
+            where n.status = 'sent' and n.channel = 'email' and coalesce(btrim(n.provider_message_id), '') = ''
+              and n.sent_at > now() - interval '48 hours' loop
+    v_items := v_items || jsonb_build_object('item', 'notification:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+      'title', 'Email ' || x.id || ' to the ' || coalesce(x.to_role, 'recipient') || ' is marked sent but the provider never gave it an id',
+      'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('notification_id', x.id, 'sent_at', x.sent_at));
+  end loop;
+  v_out := v_out || jsonb_build_object('delivery', public.fn_it_duty_settle('delivery', v_items));
+
+  -- ── 5. PAYMENT RECONCILIATION ──
+  -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
+  -- webhook endpoints' enabled events against HANDLED_STRIPE_EVENTS (passed in from
+  -- _shared/stripe_events.ts, the list the webhook itself branches on). IT checks the wiring; the
+  -- accountant owns the money and answers every mismatch. A mode whose key is absent is reported, not
+  -- treated as matched.
+  v_items := '[]'::jsonb;
+  for v_mode in select unnest(array['live', 'test']) loop
+    s := p_r->'stripe'->v_mode;
+    continue when coalesce(s->>'basis', '') <> 'measured';
+    for x in select e from jsonb_array_elements(coalesce(s->'paid_sessions', '[]'::jsonb)) e loop
+      if not exists (select 1 from public.transactions t
+                      where t.payment_ref in (x.e->>'id', x.e->>'payment_intent')) then
+        v_items := v_items || jsonb_build_object('item', v_mode || ':session:' || (x.e->>'id'), 'owner_seat', 'accountant',
+          'subject', 'stripe_webhook',
+          'title', 'Stripe ' || v_mode || ' took AED ' || round(coalesce((x.e->>'amount_total')::numeric, 0) / 100, 2)
+                   || ' in session ' || (x.e->>'id') || ' and no transaction records it',
+          'blast', 'customer_facing', 'affected', 1, 'demo', v_mode = 'test', 'evidence', x.e);
+      end if;
+    end loop;
+    for x in select e from jsonb_array_elements(coalesce(s->'refunds', '[]'::jsonb)) e loop
+      if not exists (select 1 from public.refunds r where r.stripe_refund_id = x.e->>'id')
+         and not exists (select 1 from public.transactions t where t.refund_stripe_id = x.e->>'id') then
+        v_items := v_items || jsonb_build_object('item', v_mode || ':refund:' || (x.e->>'id'), 'owner_seat', 'accountant',
+          'subject', 'stripe_webhook',
+          'title', 'Stripe ' || v_mode || ' refunded ' || (x.e->>'id') || ' and our books do not record it',
+          'blast', 'customer_facing', 'affected', 1, 'demo', v_mode = 'test', 'evidence', x.e);
+      end if;
+    end loop;
+    v_hook := (select e from jsonb_array_elements(coalesce(s->'webhooks', '[]'::jsonb)) e
+                where e->>'url' like '%/functions/v1/stripe_webhook%' and e->>'status' = 'enabled' limit 1);
+    select array_agg(h) into v_missing from jsonb_array_elements_text(coalesce(p_r->'stripe'->'handled', '[]'::jsonb)) h
+     where v_hook is null or not (v_hook->'enabled_events' ? h or v_hook->'enabled_events' ? '*');
+    if v_missing is not null then
+      v_items := v_items || jsonb_build_object('item', v_mode || ':webhook', 'owner_seat', 'accountant', 'subject', 'stripe_webhook',
+        'title', case when v_hook is null then 'No enabled Stripe ' || v_mode || ' webhook points at stripe_webhook'
+                      else 'The Stripe ' || v_mode || ' webhook does not send ' || array_to_string(v_missing, ', ') end,
+        'blast', 'customer_facing', 'affected', 0, 'demo', v_mode = 'test',
+        'evidence', jsonb_build_object('missing', to_jsonb(v_missing), 'endpoint', v_hook));
+    end if;
+  end loop;
+  if coalesce(p_r->'stripe'->'live'->>'basis', '') = 'measured' or coalesce(p_r->'stripe'->'test'->>'basis', '') = 'measured' then
+    v_out := v_out || jsonb_build_object('payment', public.fn_it_duty_settle('payment', v_items));
+  else
+    v_out := v_out || jsonb_build_object('payment', jsonb_build_object('basis', 'not_read', 'reading', p_r->'stripe'));
+  end if;
+
+  -- ── 6. SECURITY SWEEP ──
+  -- Reads: the catalogue (routines anon/authenticated may execute with the definer's rights, tables with
+  -- RLS off or on with no policy) against it_security_baseline, and sign-in codes sent in the last hour
+  -- against this estate's own hourly p95 over seven days. Cannot see: the Supabase security advisors
+  -- (management API, run in CI by security_advisors_match_the_baseline.mjs). A known fix — a revoke or
+  -- a pinned search_path — is shipped only as a file with a MANIFEST line in a PR, never live.
+  v_items := '[]'::jsonb;
+  for x in select e.object, e.kind from public.fn_it_security_exposures() e
+            where not exists (select 1 from public.it_security_baseline b where b.object = e.object and b.kind = e.kind) loop
+    v_items := v_items || jsonb_build_object('item', x.kind || ':' || x.object, 'owner_seat', 'ceo', 'subject', x.object,
+      'title', case x.kind when 'anon_executable_definer' then 'A browser can run ' || x.object || ' with the definer''s rights'
+                           when 'rls_off' then 'Table ' || x.object || ' has row security switched off'
+                           else 'Table ' || x.object || ' has row security on and no policy, and a browser role can read it' end,
+      'blast', 'security', 'affected', 1,
+      'evidence', jsonb_build_object('kind', x.kind, 'baseline_size', (select count(*) from public.it_security_baseline),
+                                     'fix', 'a file with a MANIFEST line in a PR: revoke execute / enable RLS and add a policy'));
+  end loop;
+  select coalesce(percentile_cont(0.95) within group (order by n), 0) into v_p95
+    from (select date_trunc('hour', created_at) h, count(*) n from public.customer_phone_otps
+           where created_at > now() - interval '7 days' and created_at <= now() - interval '1 hour' group by 1) z;
+  select count(*) into v_hour from public.customer_phone_otps where created_at > now() - interval '1 hour';
+  if v_hour > greatest(10, 3 * v_p95) then
+    v_items := v_items || jsonb_build_object('item', 'otp_spike', 'owner_seat', 'ceo', 'subject', 'login_otp',
+      'title', v_hour || ' sign-in codes were sent in the last hour against an hourly p95 of ' || round(v_p95),
+      'blast', 'security', 'affected', 1, 'evidence', jsonb_build_object('last_hour', v_hour, 'p95_hourly_7d', v_p95));
+  end if;
+  v_out := v_out || jsonb_build_object('security', public.fn_it_duty_settle('security', v_items));
+
+  -- ── 7. UPTIME ──
+  -- Reads: each public origin answered this hour. fn_it_detect already judges the edge functions'
+  -- failure rates (D1, with the founder's hold now counted as held) and public_site_url's latency; this
+  -- adds the other origins. Cannot see: that a UAE visitor is really sent to .ae — the redirect keys on
+  -- Vercel's x-vercel-ip-country, which an outside request cannot set. What is checked is its other
+  -- half: that quotesdone.ae itself serves the site.
+  if jsonb_typeof(p_r->'sites') = 'array' then
+    v_items := '[]'::jsonb;
+    for x in select e from jsonb_array_elements(p_r->'sites') e loop
+      if coalesce((x.e->>'status')::int, 0) not between 200 and 399 then
+        v_items := v_items || jsonb_build_object('item', x.e->>'url', 'owner_seat', 'ceo', 'subject', 'website',
+          'title', x.e->>'url' || ' ' || coalesce('answered HTTP ' || (x.e->>'status'), 'did not answer: ' || coalesce(x.e->>'error', 'no status')),
+          'blast', 'customer_facing', 'affected', 1, 'evidence', x.e);
+      end if;
+    end loop;
+    v_out := v_out || jsonb_build_object('uptime', public.fn_it_duty_settle('uptime', v_items));
+  end if;
+
+  -- ── 8. DEMO HYGIENE ──
+  -- Reads: demo customers and suppliers (is_demo, or the harness's qd-<tag>- address) created more
+  -- than six hours ago outside an open rehearsal window. A leftover is a demo row that can reach a
+  -- count; the harness purges its own tag, so one that survives is a teardown fault. Cannot see: a
+  -- dashboard that counts demo rows while none exist — with zero leftovers there is nothing to leak.
+  v_items := '[]'::jsonb;
+  for x in select 'customers' t, count(*) n from public.customers c
+            where (c.is_demo or c.email like 'qd-%@example.invalid') and c.created_at < now() - interval '6 hours'
+           union all
+           select 'leads', count(*) from public.leads l
+            where (l.is_demo or l.email like 'qd-%@example.invalid') and l.created_at < now() - interval '6 hours' loop
+    -- Only a run still in progress excuses leftovers. Measured on the proof: four e2e windows and one
+    -- from 5 Sep were never closed, and "any open window" silenced this check for good.
+    if x.n > 0 and not exists (select 1 from public.rehearsal_window w
+                                where w.ended_at is null and w.started_at > now() - interval '6 hours') then
+      v_items := v_items || jsonb_build_object('item', x.t, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+        'title', x.n || ' demo ' || x.t || ' row(s) outlived their run by more than six hours',
+        'blast', 'internal', 'affected', 1, 'demo', true,
+        'evidence', jsonb_build_object('table', x.t, 'rows', x.n, 'purge', 'node scripts/e2e/run.mjs --purge-tag <tag>'));
+    end if;
+  end loop;
+  -- A rehearsal window left open is a run that never tore down.
+  for x in select w.id, w.run_tag, w.opened_by, w.started_at from public.rehearsal_window w
+            where w.ended_at is null and w.started_at < now() - interval '6 hours' loop
+    v_items := v_items || jsonb_build_object('item', 'window:' || x.id, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+      'title', 'Rehearsal window ' || x.run_tag || ' (' || x.opened_by || ') has been open since '
+               || to_char(x.started_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+      'blast', 'internal', 'affected', 1, 'demo', true,
+      'evidence', jsonb_build_object('rehearsal_window_id', x.id, 'close', 'update public.rehearsal_window set ended_at = now() where id = ' || x.id));
+  end loop;
+  v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
+
+  -- ── 1. THE NIGHTLY JOURNEY'S HEARTBEAT ──
+  -- The run itself reports through fn_it_journey_ingest. Silence for 26 hours is its own finding: the
+  -- workflow needs the SUPABASE_ACCESS_TOKEN repository secret, which only the founder can add.
+  v_items := '[]'::jsonb;
+  if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey'
+                  and started_at > now() - interval '26 hours') then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'no_run', 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+      'title', 'The nightly full-journey test has not reported for 26 hours',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('workflow', '.github/workflows/nightly-journey.yml',
+        'needs', 'repository secret SUPABASE_ACCESS_TOKEN (GitHub > Settings > Secrets > Actions); only the founder can add it')));
+  end if;
+  v_out := v_out || jsonb_build_object('journey_heartbeat', public.fn_it_duty_settle('journey_heartbeat', v_items));
+
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', v_out), null);
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
+                      and started_at > now() - interval '55 minutes')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duty_settle(p_duty text, p_items jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
+begin
+  if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
+    raise exception 'fn_it_duty_settle(duty, items[]): a duty name and an array of failing items are required';
+  end if;
+  for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce(btrim(x->>'item'), '') = '' or coalesce(btrim(x->>'title'), '') = '' then
+      raise exception 'fn_it_duty_settle: every item needs an item key and a title (%)', x;
+    end if;
+    v_key := 'duty:' || p_duty || ':' || (x->>'item');
+    v_keys := v_keys || v_key;
+    perform public.fn_it_engineer_finding_upsert(v_key, x->>'title', 'IT engineer duty: ' || p_duty,
+      coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
+      coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+        'duty', p_duty, 'owner_seat', x->>'owner_seat', 'subject', x->>'subject',
+        'demo', coalesce((x->>'demo')::boolean, false)),
+      '{}'::text[], '{}'::text[], 'it_engineer.' || p_duty);
+  end loop;
+  for v_open in select issue_key from public.it_engineer_finding
+                 where closed_at is null and issue_key like 'duty:' || p_duty || ':%' and not (issue_key = any (v_keys)) loop
+    perform public.fn_it_engineer_finding_close(v_open, 'the ' || p_duty || ' duty no longer finds it');
+    n_closed := n_closed + 1;
+  end loop;
+  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_alert_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -29956,6 +30268,42 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_journey_ingest(p_report jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; x jsonb; v_owner text; v_letter text; v_res jsonb;
+begin
+  if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'tag'), '') = '' then
+    raise exception 'fn_it_journey_ingest takes {tag, steps:[...]} from scripts/e2e/report_to_it_engineer.mjs';
+  end if;
+  for x in select e from jsonb_array_elements(p_report->'steps') e where e->>'status' = 'FAIL' loop
+    v_letter := left(coalesce(x->>'journey', ''), 1);
+    -- a/b/c/f drive the portals, the intake, the quotes and the comparison — the sales engineer's
+    -- (function_owner: customer_portal, supplier_portal, inquiry_intake, quote_compare). d/e are the
+    -- payment and the invoice — the accountant's (stripe_checkout, reveal_invoice). Fixtures, safety
+    -- and cleanup are the harness itself, which the ceo owns.
+    v_owner := case when v_letter in ('a', 'b', 'c', 'f') then 'sales_engineer'
+                    when v_letter in ('d', 'e') then 'accountant' else 'ceo' end;
+    v_items := v_items || jsonb_build_object(
+      'item', coalesce(x->>'journey', '?') || ':' || left(regexp_replace(coalesce(x->>'name', '?'), '[^a-zA-Z0-9]+', '_', 'g'), 80),
+      'owner_seat', v_owner, 'subject', 'journey ' || coalesce(x->>'journey', '?'),
+      'title', 'Nightly journey failed: [' || coalesce(x->>'journey', '?') || '] ' || coalesce(x->>'name', '?'),
+      'blast', 'customer_facing', 'affected', 0,
+      'demo', coalesce((p_report->>'demo')::boolean, false),
+      'evidence', jsonb_build_object('tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
+  end loop;
+  v_res := public.fn_it_duty_settle('journey', v_items);
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', case when jsonb_array_length(v_items) = 0 then 'ok' else 'warn' end, now(), now(),
+          jsonb_build_object('job', 'journey', 'tag', p_report->>'tag', 'failed', jsonb_array_length(v_items),
+                             'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers'), null);
+  return v_res;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_loop_open(p_issue_key text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -30171,6 +30519,27 @@ AS $function$
            and t.started_at between p_started - interval '5 seconds' and p_started + interval '5 seconds'
            and (t.counts ->> 'http') ~ '^4[0-9][0-9]$')
   , false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_security_exposures()
+ RETURNS TABLE(object text, kind text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p.oid::regprocedure::text, 'anon_executable_definer'
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+  union all
+  select c.oid::regclass::text, case when not c.relrowsecurity then 'rls_off' else 'rls_no_policy' end
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r'
+     and (not c.relrowsecurity or not exists (select 1 from pg_policy pl where pl.polrelid = c.oid))
+     -- Only what a browser role can actually read: an RLS-less table nobody is granted is not exposed.
+     and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('authenticated', c.oid, 'select'))
 $function$
 
 
@@ -40719,6 +41088,16 @@ begin
     raise exception 'fn_seat_answers_it_finding: % is not an it.finding handoff', p_id;
   end if;
   d := a.detail;
+  -- THE CEO OWNS THE HARNESS, AND CAN CLOSE A REHEARSAL WINDOW A RUN LEFT OPEN. An open window keeps
+  -- the failed-run watcher from paging for anything it covers, so closing it is the remedy, not a risk.
+  if d->>'duty' = 'demo' and (d->'finding_evidence'->>'rehearsal_window_id') is not null then
+    update public.rehearsal_window set ended_at = now()
+     where id = (d->'finding_evidence'->>'rehearsal_window_id')::bigint and ended_at is null;
+    return jsonb_build_object('waiting', 'it_engineer re-verification', 'seat', a.agent, 'duty', 'demo',
+      'remedy', 'closed rehearsal_window ' || (d->'finding_evidence'->>'rehearsal_window_id'),
+      'reply', a.agent || ' closed rehearsal window ' || (d->'finding_evidence'->>'rehearsal_window_id')
+               || ', which its run had left open.');
+  end if;
   return jsonb_build_object(
     'waiting', 'it_engineer re-verification',
     'seat', a.agent,
@@ -53003,8 +53382,10 @@ ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_scanner ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_expiry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_security_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_watch_subject ENABLE ROW LEVEL SECURITY;
@@ -53260,8 +53641,10 @@ CREATE POLICY os_owner_admin_read ON public.expenses AS PERMISSIVE FOR SELECT TO
 CREATE POLICY founder_instruction_service_role_only ON public.founder_instruction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.gl_journal AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_security_baseline_service_role_only ON public.it_security_baseline AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantine AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
