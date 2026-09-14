@@ -105,8 +105,16 @@ begin
   v := public.fn_accountant_book_bank_charges();
   perform pg_temp.zz_assert(exists (select 1 from public.gl_journal where source = 'bank_charge' and status = 'draft' and memo like 'ZZ DEMO%'),
     'costs: the ZZ DEMO bank charge was not prepared as a draft');
-  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal where source in ('bank_charge', 'stripe_fee_bt_test') and status = 'posted'),
-    'costs: a bank or test-mode entry was POSTED');
+  -- What is ALWAYS a defect, whatever the hold: a test-mode Stripe fee posted, or a ZZ DEMO statement's charge
+  -- posted (joined through its bank line, never read from the memo, which is masked). A REAL bank charge posted
+  -- is correct once the founder lifts the hold (gl_settings.bank_booking_on_hold = 0; 15 Sep 2026, journals
+  -- 692-695); only while the hold is 1 is a bank charge posted by this batch (created_at = now()) a defect.
+  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal g where g.status = 'posted' and (
+      g.source = 'stripe_fee_bt_test'
+      or (g.source = 'bank_charge' and exists (select 1 from public.bank_statement_line bl where bl.id::text = g.source_ref and bl.account = 'zz_demo'))
+      or (g.source = 'bank_charge' and g.created_at = now()
+          and coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0))),
+    'costs: a test-mode or ZZ DEMO entry was POSTED, or a bank charge was posted under the hold');
   v := public.fn_accountant_book_stripe_fees(false, jsonb_build_array(jsonb_build_object('id', 'txn_zz_probe_usd', 'type', 'stripe_fee',
     'amount', -300, 'currency', 'usd', 'created', extract(epoch from now())::bigint)));
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:stripe_fees_test:currency:txn_zz_probe_usd'), 'costs: a non-AED Stripe fee was skipped without a finding');
