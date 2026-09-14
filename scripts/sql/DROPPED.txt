@@ -648,3 +648,6 @@ fn_approval_policy_match :: dropped 14 Sep 2026 (scripts/sql/a_company_buys_like
 qd_on_refund_resolved :: bound to no trigger (pg_trigger 0 rows) and called by nothing; it raised the supplier charge from reveal_fee, superseded by fn_accountant_raise_nonresponse_charge :: none
 fn_supplier_nonresponse_penalty :: no caller (prosrc and repository scans); computed the charge as 3% of the job value, contradicting the founder rule of 14 Sep 2026; superseded by fn_accountant_nonresponse_charge :: none
 fn_refund_founder_decision_only :: bound to no trigger and called by nothing; the founder register it served went on 9 Sep 2026 :: none
+# 14 Sep 2026 — the_it_engineer_closes_every_loop_it_opens.sql. The founder-email sections of fn_it_engineer_alert_tick
+# were its only caller and are replaced by the loop; the canonical file is kept as history.
+fn_it_engineer_handover_body :: dropped 14 Sep 2026; its only caller emailed every finding to the founder and was replaced by fn_it_loop_tick :: none
