@@ -29,8 +29,24 @@ select '2026-09-15T00:00:00Z', 'nothing is unclear for the statement. if the age
  where not exists (select 1 from public.founder_instruction
                     where instruction = 'nothing is unclear for the statement. if the agent cant read it then fix it.');
 
-update public.gl_settings set txt_value = 'charge|fee|maint|commission|vat on|value added tax'
- where key = 'bank_charge_pattern' and txt_value = 'charge|fee|maint|commission|vat on';
+-- Anchored to Mashreq's own fee-VAT row text ("Value Added Tax - Output"), not the bare phrase: an outgoing
+-- wire whose memo says "incl. value added tax" is a payment, not a bank charge (review of #676).
+update public.gl_settings set txt_value = 'charge|fee|maint|commission|vat on|value added tax\s*-\s*output'
+ where key = 'bank_charge_pattern'
+   and txt_value in ('charge|fee|maint|commission|vat on', 'charge|fee|maint|commission|vat on|value added tax');
+
+-- PROBE (no rows written; a failure rolls this whole file back, a pass is a notice).
+do $probe$
+declare p text := (select txt_value from public.gl_settings where key = 'bank_charge_pattern');
+begin
+  if not ('Value Added Tax - Output 000000000000 099REFEAED 00000' ~* p) then
+    raise exception 'CHK<<bank_charge_pattern does not match the real fee-VAT row>>'; end if;
+  if not ('Value Added Tax-Output' ~* p and 'VALUE ADDED TAX  -  OUTPUT' ~* p) then
+    raise exception 'CHK<<bank_charge_pattern is not whitespace-tolerant around the hyphen>>'; end if;
+  if 'payment incl. value added tax' ~* p then
+    raise exception 'CHK<<bank_charge_pattern matches a debit memo that merely mentions VAT>>'; end if;
+  raise notice 'bank_charge_pattern probe passed: the fee-VAT row matches, a VAT-mentioning payment memo does not';
+end $probe$;
 
 create or replace function public.fn_accountant_statement_reader_defects()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
