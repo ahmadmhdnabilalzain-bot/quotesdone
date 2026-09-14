@@ -99,7 +99,8 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
             <div>
               <Kicker>QuotesDone · {t.cover}</Kicker>
               <h1 className="mt-8 font-head text-display-xl text-white">
-                <Seal loop>Sealed.</Seal>
+                {/* bdi: the Latin brand word keeps its own order inside the Arabic page (it read ".Sealed") */}
+                <Seal loop><bdi>Sealed.</bdi></Seal>
               </h1>
               <p className="mt-8 max-w-[34ch] text-lead text-muted">{t.idea}</p>
               <div className="mt-10 flex flex-wrap gap-3">
@@ -157,7 +158,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
                 {EN_SCALE.map(([name, cls, spec]) => (
                   <div key={name} className="grid gap-2 py-5 md:grid-cols-[140px_1fr] md:items-baseline">
                     <div className="flex flex-col"><span className="text-small text-white">{name}</span><Spec k="" v={spec} /></div>
-                    <div className={`${cls} ${cls === 'text-label' ? 'font-mono uppercase tracking-caps text-teal-light' : 'font-head text-white'} truncate`}>
+                    <div className={`${cls} ${cls === 'text-label' ? 'font-mono uppercase tracking-caps text-teal-light' : 'font-head text-white'} min-w-0 text-balance`}>
                       {cls === 'text-label' ? 'Quote Q-0412 · Levelled' : cls.startsWith('text-display') || cls === 'text-h2' ? 'Only the best one opened.' : 'Describe the job once. Licence-verified suppliers quote blind.'}
                     </div>
                   </div>
@@ -170,7 +171,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
                 {AR_SCALE.map(([name, cls, spec]) => (
                   <div key={name} className="grid gap-2 py-5 md:grid-cols-[140px_1fr] md:items-baseline">
                     <div className="flex flex-col"><span className="text-small text-white">{name}</span><span dir="ltr" className="text-end"><Spec k="" v={spec} /></span></div>
-                    <div className={`${cls} truncate font-head text-white`}>
+                    <div className={`${cls} min-w-0 text-balance font-head text-white`}>
                       {cls.startsWith('text-display') || cls === 'text-h2' ? 'كل عرض مختوم.' : 'صف عملك مرة واحدة، ويقدّم الموردون المرخّصون عروضهم دون أن يعرفوك.'}
                     </div>
                   </div>
