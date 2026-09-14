@@ -324,7 +324,10 @@ begin
     for e in select s from jsonb_array_elements(p_r->'restore'->'samples') s loop
       select * into d from public.doc_backups where id = (e->>'doc_backup_id')::bigint;
       if d.id is null then continue; end if;
+      -- Duty 19 (founder, 14 Sep 2026: "add all for accountant and IT"): a restored copy must also open.
+      -- Compared as text so a reading taken before duty 19 (no 'opens' key) is not failed for it.
       if not coalesce((e->'dropbox'->>'ok')::boolean, false)
+         or (e->'dropbox'->>'opens') = 'false'
          or (d.dropbox_content_hash is not null and e->'dropbox'->>'content_hash' is distinct from d.dropbox_content_hash)
          or (d.dropbox_size is not null and (e->'dropbox'->>'size')::bigint is distinct from d.dropbox_size) then
         v_items := v_items || jsonb_build_object('item', 'dropbox:' || d.id, 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
@@ -333,7 +336,11 @@ begin
           'evidence', jsonb_build_object('doc_backup_id', d.id, 'dropbox_path', d.dropbox_path, 'recorded_hash', d.dropbox_content_hash,
                                          'recorded_size', d.dropbox_size, 'restored', e->'dropbox'));
       end if;
+      -- Duty 19: the storage copy must open and must be the same file as the Dropbox copy.
       if d.bucket is not null and (not coalesce((e->'storage'->>'ok')::boolean, false)
+         or (e->'storage'->>'opens') = 'false'
+         or (e->'storage'->>'content_hash' is not null and e->'dropbox'->>'content_hash' is not null
+             and e->'storage'->>'content_hash' <> e->'dropbox'->>'content_hash')
          or (d.bytes is not null and (e->'storage'->>'size')::bigint is distinct from d.bytes)) then
         v_items := v_items || jsonb_build_object('item', 'storage:' || d.id, 'owner_seat', 'sales_engineer', 'subject', 'storage',
           'title', 'Restore drill: ' || coalesce(d.file_name, d.path) || ' did not come back intact from Supabase storage',

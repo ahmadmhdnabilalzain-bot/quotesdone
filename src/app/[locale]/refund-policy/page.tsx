@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { LegalDoc, metaFor } from '@/components/LegalDoc';
 import { RevealGuarantee } from '@/components/me/RevealGuarantee';
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, SUPA_FN, SUPA_URL } from '@/lib/supaEnv';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -13,6 +13,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 // public_site 'guarantee_terms', revalidated hourly; if that read fails the panel is simply absent
 // and the policy text below still states the terms in full.
 async function guaranteeTerms() {
+  // A preview build with no database target (supaEnv, 3 Sep guard) has nothing to ask: fetching the
+  // relative '/functions/v1' hung the prerender past 60s (15 Sep 2026). Same outcome as a failed read.
+  if (!SUPA_URL) return null;
   try {
     const r = await fetch(`${SUPA_FN}/public_site`, {
       method: 'POST',
