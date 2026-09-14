@@ -207,7 +207,19 @@ if (!APPLY) {
 
 const shapeBefore = DDL ? one(await mgmtRead(PROD_REF, SHAPE)) : null;
 
-await dbPost(sql);
+// THE APPLY SIGNS ITS WRITE. public.routine_change_log records application_name for every routine
+// change. Three times on 14 Sep 2026 a reviewed routine was rewritten seconds later by an older copy
+// of its file from an unknown caller, logged only as 'mgmt-api'. Every apply from this tool now names
+// its commit, working directory and file, so an untagged routine change is, by construction, not from
+// a current checkout of this tool.
+const { execSync } = await import('node:child_process');
+let rev = 'unknown';
+try { rev = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { /* not a git checkout */ }
+// application_name holds 63 bytes, so keep the parts that identify a caller: commit, the last
+// folder of the working directory (the worktree name), and the start of the file name.
+const base = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || '';
+const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/'/g, '').slice(0, 63);
+await dbPost(`set application_name = '${tag}';\n` + sql);
 console.log(`applied ${file} to ${PROD_REF}`);
 
 // READ THE DEFINITIONS BACK OUT. This is the founder's rule, and it is the only reason the exit
