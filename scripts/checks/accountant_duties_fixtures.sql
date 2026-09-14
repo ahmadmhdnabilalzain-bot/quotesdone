@@ -204,13 +204,31 @@ begin
   -- ── 6. EXPENSES: a booked receipt with no document behind it ─────────────────────────────────────
   insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note)
   values ('ZZ DEMO Vendor', 'Usage', 10, 'AED', current_date, 'receipt', 'ZZ DEMO probe') returning id into v_n;
+  -- The fixture judges its OWN key: ZZ DEMO expenses are acct:expenses:no_document:zz_demo, so a real
+  -- expense with no receipt can neither keep this loop open nor close it.
   perform public.fn_accountant_expense_duty();
-  perform pg_temp.zz_assert(pg_temp.zz_open('acct:expenses:no_document'), 'expenses: a receipt with no document raised no finding');
-  h := pg_temp.zz_loop_opens('acct:expenses:no_document', 'accountant');
+  perform pg_temp.zz_assert(pg_temp.zz_open('acct:expenses:no_document:zz_demo'), 'expenses: a receipt with no document raised no finding');
+  h := pg_temp.zz_loop_opens('acct:expenses:no_document:zz_demo', 'accountant');
   update public.expense_entries set doc_path = 'zz/demo.pdf', doc_kind = 'vendor_document' where id = v_n;
   perform public.fn_accountant_expense_duty();
-  perform pg_temp.zz_loop_closes('acct:expenses:no_document', h);
-  r := r || jsonb_build_object('6_expenses', jsonb_build_object('entry', v_n, 'handoff', h, 'closed', true));
+  perform pg_temp.zz_loop_closes('acct:expenses:no_document:zz_demo', h);
+  -- An expense the founder vouched for is documented by his word, and shown as such; no other source may claim it.
+  insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_kind, doc_note)
+  values ('ZZ DEMO PRO agent fee', 'Licences', 1200, 'AED', current_date, 'founder_reported', 'ZZ DEMO probe', 'founder_statement',
+          'ZZ DEMO: no need for a receipt') returning id into v_n;
+  v := public.fn_accountant_expense_duty();
+  perform pg_temp.zz_assert(not pg_temp.zz_open('acct:expenses:no_document:zz_demo'),
+    'expenses: an expense the founder vouched for was raised as a missing receipt');
+  perform pg_temp.zz_assert(v->'documented_by_founder_statement' @> jsonb_build_array(jsonb_build_object('entry', v_n)),
+    'expenses: the expense the founder vouched for is not listed as documented by his statement: ' || v::text);
+  v_refused := false;
+  begin
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_kind, doc_note)
+    values ('ZZ DEMO Vendor', 'Usage', 10, 'AED', current_date, 'receipt', 'ZZ DEMO probe', 'founder_statement', 'ZZ DEMO');
+  exception when others then v_refused := true; end;
+  perform pg_temp.zz_assert(v_refused, 'expenses: a mailbox receipt was allowed to claim the founder''s statement');
+  r := r || jsonb_build_object('6_expenses', jsonb_build_object('entry', v_n, 'handoff', h, 'closed', true,
+    'founder_statement', 'documented, not raised; refused on any other source'));
 
   -- ── 7. DISPUTES: a test-mode chargeback on a ZZ DEMO payment, 20 hours before Stripe's deadline ────
   t2 := pg_temp.zz_case('acct2', 3433.33, 103.00, 108.82);
