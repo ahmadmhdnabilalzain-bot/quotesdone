@@ -43,13 +43,12 @@ async function probe(body) {
 // receiver completes its step and a delivery.result conversation carries the outcome back to the
 // it_engineer, which checks it (fn_originator_checks_delivery).
 test('every conversation the it_engineer starts has a reply window and comes back to it', { skip: SKIP }, async () => {
-  const types = await sql(`select t.type, t.to_seat, w.reply_within::text reply_within, w.originator_closes,
-                                  exists (select 1 from public.fn_seat_handoff_types() r
-                                           where r.type = 'delivery.result' and r.from_seat = t.to_seat
+  const types = await sql(`select k.type, k.to_seat, k.reply_within::text reply_within, k.originator_closes,
+                                  exists (select 1 from public.seat_handoff_kind r
+                                           where r.type = 'delivery.result' and r.from_seat = k.to_seat
                                              and r.to_seat = 'it_engineer') result_comes_back
-                             from public.fn_seat_handoff_types() t
-                             left join public.seat_handoff_window w on w.type = t.type and w.from_seat = t.from_seat
-                            where t.from_seat = 'it_engineer' order by 1, 2`);
+                             from public.seat_handoff_kind k
+                            where k.from_seat = 'it_engineer' order by 1, 2`);
   assert.ok(types.length > 0, 'fn_seat_handoff_types lists no it_engineer conversation at all');
   const bad = types.filter((t) => !t.reply_within || !(t.originator_closes === true
     || (t.type === 'delivery.request' && t.result_comes_back === true)));
@@ -64,9 +63,8 @@ test('a receiving seat cannot close an it_engineer handoff; the it_engineer can'
   const r = await probe(`
     declare t record; v_id bigint; n int := 0; refused int := 0; closed int := 0;
     begin
-      for t in select distinct h.type, h.to_seat from public.fn_seat_handoff_types() h
-                 join public.seat_handoff_window w on w.type = h.type and w.from_seat = h.from_seat and w.originator_closes
-                where h.from_seat = 'it_engineer' loop
+      for t in select k.type, k.to_seat from public.seat_handoff_kind k
+                where k.from_seat = 'it_engineer' and k.originator_closes loop
         n := n + 1;
         insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
         values (t.to_seat, 'handoff', 'pending', 'low', 'ZZ DEMO close probe',
@@ -94,7 +92,7 @@ test('no it.finding handoff sits past its reply window unanswered and unescalate
   // Thirty minutes of slack: the tick that escalates runs every fifteen.
   const late = await sql(`select a.id, a.agent, a.created_at
                             from public.agent_actions a
-                            join public.seat_handoff_window w on w.type = 'it.finding' and w.from_seat = 'it_engineer'
+                            join public.seat_handoff_kind w on w.type = 'it.finding' and w.from_seat = 'it_engineer' and w.to_seat = a.agent
                            where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status in ('pending', 'failed')
                              and not (a.detail ? 'escalated_report_id')
                              and a.created_at + w.reply_within < now() - interval '30 minutes'`);
@@ -105,6 +103,22 @@ test('the alert tick never writes to the outbox itself', { skip: SKIP }, async (
   const [f] = await sql(`select prosrc from pg_proc where oid = 'public.fn_it_engineer_alert_tick()'::regprocedure`);
   assert.doesNotMatch(f.prosrc, /insert\s+into\s+public\.notifications/i);
   assert.match(f.prosrc, /fn_it_loop_tick\(\)/);
+});
+
+test('a conversation with no row in seat_handoff_kind is a failed handoff and an it.finding, not only an exception', { skip: SKIP }, async () => {
+  const r = await probe(`
+    declare v_id bigint;
+    begin
+      v_id := public.fn_seat_handoff('it_engineer', 'ceo', 'zz.unregistered_probe', 'agent_actions', 'zz-demo-probe');
+      raise exception 'CHK<<%>>', json_build_object(
+        'row', (select json_build_object('status', status, 'error', detail->>'error') from public.agent_actions where id = v_id),
+        'finding', (select json_build_object('open', closed_at is null, 'owner', evidence->>'owner_seat')
+                      from public.it_engineer_finding
+                     where issue_key = 'monitor:unregistered_handoff_kind:zz.unregistered_probe:it_engineer:ceo'));
+    end`);
+  assert.equal(r.row?.status, 'failed', 'the unregistered handoff must be recorded as a failed row');
+  assert.match(r.row.error, /unregistered handoff kind/);
+  assert.deepEqual(r.finding, { open: true, owner: 'ceo' }, 'the unregistered kind must be an open it.finding owned by the ceo');
 });
 
 test('a run the founder\'s hold refused is held; a real failure still raises a finding', { skip: SKIP }, async () => {
