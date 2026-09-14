@@ -547,6 +547,8 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     await rpc('fn_it_usage_watch', { p_r: await takeUsageReadings(sec) });
     return { due: true };
   });
+  // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
+  await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');

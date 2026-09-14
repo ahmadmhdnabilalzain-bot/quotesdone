@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T20:55:31.675Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T21:21:08.162Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -34649,11 +34649,13 @@ end $function$
 
 CREATE OR REPLACE FUNCTION public.fn_it_restore_table_due()
  RETURNS boolean
- LANGUAGE sql
+ LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
+ SET lock_timeout TO '250ms'
 AS $function$
-  select ('restore_table' = any (public.fn_it_scheduled_due())
+begin
+  return ('restore_table' = any (public.fn_it_scheduled_due())
           or (exists (select 1 from public.it_engineer_finding where closed_at is null and issue_key like 'duty:restore\_table:%')
               and (not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'
                                 and started_at > now() - interval '20 hours')
@@ -34663,8 +34665,47 @@ AS $function$
                                where r.status = 'done' and r.stamp::text > coalesce(
                                  (select d.detail->>'newest_export_day' from public.it_restore_drill_result d order by d.id desc limit 1), '')))))
      and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'restore_table_pick'
-                      and started_at > now() - interval '6 hours')
-$function$
+                      and started_at > now() - interval '6 hours');
+exception when lock_not_available then
+  -- In the postgres log, which the db_health duty reads: a skipped tick is never silent.
+  raise warning 'fn_it_restore_table_due: a lock held elsewhere outlived lock_timeout 250ms; not due this tick (55P03)';
+  return false;   -- another transaction holds a lock on something this reads: not due this tick
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_restore_table_overdue()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET lock_timeout TO '250ms'
+AS $function$
+declare v_last timestamptz; v_window interval := interval '33 days';
+begin
+  select max(started_at) into v_last from public.agent_runs
+   where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table' and started_at > now() - v_window;
+  if v_last is not null then
+    perform public.fn_it_engineer_finding_close('duty:restore_table:overdue',
+      'a restore drill completed at ' || to_char(v_last at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai');
+    return jsonb_build_object('overdue', false, 'last_drill', v_last);
+  end if;
+  -- Limit: this gate keys off ANY scheduled duty's age, not this drill's own start; a duty added long after the others needs its own start date.
+  if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%'
+                  and started_at < now() - v_window) then
+    return jsonb_build_object('overdue', false, 'reason', 'the scheduled duties are younger than the window');
+  end if;
+  perform public.fn_it_engineer_finding_upsert('duty:restore_table:overdue',
+    'No monthly restore drill has completed in ' || extract(day from v_window) || ' days',
+    'resilience_ping -> fn_it_restore_table_due / _pick / _record', 'monitor', 1,
+    jsonb_build_object('duty', 'restore_table', 'owner_seat', 'ceo', 'subject', 'table_backup',
+      'last_drill', (select max(started_at) from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'),
+      'look_at', 'the postgres log for "fn_it_restore_table_due: a lock held elsewhere", and resilience_ping''s restore_table step'),
+    '{}'::text[], array['whether the due-check is being skipped by locks or the drill itself is failing'], 'it_engineer.restore_table');
+  return jsonb_build_object('overdue', true);
+exception when lock_not_available then
+  raise warning 'fn_it_restore_table_overdue: a lock held elsewhere outlived lock_timeout 250ms; checked again next tick (55P03)';
+  return jsonb_build_object('overdue', null, 'reason', 'lock timeout');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_restore_table_pick()
@@ -40876,16 +40917,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41056,6 +41087,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 

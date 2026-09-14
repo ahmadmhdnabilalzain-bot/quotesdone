@@ -66,12 +66,16 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
   page.on('requestfinished', async (req) => {
     const u = req.url();
     if (!u.includes('/functions/v1/')) return;
+    // timing().startTime is epoch ms; responseEnd is ms after it. Both are kept so a report can say
+    // which call started when and how long it took - "6 calls, 3.7 s" alone could not tell serial
+    // from slow (smoke run 34888342875, 14 Sep 2026).
     const t = req.timing();
     let action = null;
     try { action = JSON.parse(req.postData() || '{}').action ?? null; } catch { /* not JSON */ }
     const res = await req.response().catch(() => null);
+    const ms = Math.round(t.responseEnd >= 0 ? t.responseEnd : 0);
     calls.push({ fn: u.split('/functions/v1/')[1].split('?')[0], action, status: res?.status() ?? 0,
-      ms: Math.round(t.responseEnd >= 0 ? t.responseEnd : 0), at: Date.now() });
+      ms, startAt: Math.round(t.startTime), at: Date.now() });
   });
   page.on('requestfailed', (req) => {
     const u = req.url();
@@ -97,7 +101,11 @@ export async function openPortal(page, url, calls, navSelector = PORTAL_READY) {
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   const mine = calls.filter((c) => c.at >= t0);
   const dataMs = mine.length ? Math.max(...mine.map((c) => c.at)) - t0 : shellMs;
-  return { shellMs, dataMs, calls: mine.length };
+  // Each call as "<fn>:<action> @<start after navigation> +<duration>", in start order, so a slow
+  // call and a call that waited for another are told apart in the report.
+  const breakdown = mine.slice().sort((a, b) => (a.startAt || 0) - (b.startAt || 0))
+    .map((c) => `${c.fn}${c.action ? ':' + c.action : ''} @${c.startAt ? c.startAt - t0 : '?'} +${c.ms}`);
+  return { shellMs, dataMs, calls: mine.length, breakdown };
 }
 
 export async function shot(page, dir, name) {

@@ -81,9 +81,22 @@ insert into public.it_duty_schedule (duty, every, note) values
   ('restore_table', interval '30 days', 'duty 19: one table page from the newest finished export restored into scratch and compared with live; the export''s age and the kb_chunks chain')
 on conflict (duty) do update set every = excluded.every, note = excluded.note;
 
+-- BOUNDED BY A LOCK TIMEOUT, AND A LOCK IS "NOT DUE THIS TICK". Measured 14 Sep 2026: at 21:04 UTC a
+-- resilience_ping tick got "fn_it_restore_table_due: canceling statement due to statement timeout". The
+-- check itself costs 5 ms (explain analyze: 992 buffer hits, every agent_runs lookup on
+-- agent_runs_agent_started_idx; pg_stat_statements max 2.7 ms over its PostgREST calls). It did not run
+-- slowly - it waited: the postgres log shows sessions "still waiting for AccessShareLock" on
+-- table_export_run, doc_backups, seat_handoff_kind and others from 21:01 to 21:04, while rolled-back
+-- test probes and whole-file applies held exclusive locks, and the wait outlived PostgREST's 8-second
+-- statement_timeout. So the check now waits at most 250 ms for any lock and then answers false: the
+-- drill is not started on a tick that cannot even read its own state, and the next tick asks again.
 create or replace function public.fn_it_restore_table_due()
-returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select ('restore_table' = any (public.fn_it_scheduled_due())
+returns boolean language plpgsql stable security definer
+set search_path to 'public', 'pg_temp'
+set lock_timeout to '250ms'
+as $fn$
+begin
+  return ('restore_table' = any (public.fn_it_scheduled_due())
           or (exists (select 1 from public.it_engineer_finding where closed_at is null and issue_key like 'duty:restore\_table:%')
               and (not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'
                                 and started_at > now() - interval '20 hours')
@@ -93,9 +106,56 @@ returns boolean language sql stable security definer set search_path to 'public'
                                where r.status = 'done' and r.stamp::text > coalesce(
                                  (select d.detail->>'newest_export_day' from public.it_restore_drill_result d order by d.id desc limit 1), '')))))
      and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'restore_table_pick'
-                      and started_at > now() - interval '6 hours')
-$fn$;
+                      and started_at > now() - interval '6 hours');
+exception when lock_not_available then
+  -- In the postgres log, which the db_health duty reads: a skipped tick is never silent.
+  raise warning 'fn_it_restore_table_due: a lock held elsewhere outlived lock_timeout 250ms; not due this tick (55P03)';
+  return false;   -- another transaction holds a lock on something this reads: not due this tick
+end $fn$;
 revoke execute on function public.fn_it_restore_table_due() from public, anon, authenticated;
+
+-- THE DRILL CANNOT GO QUIET. Review of #675: a lock timeout answers "not due" and sustained contention
+-- would stop the monthly drill with nothing to show for it - zero cannot tell a dead guard from an idle
+-- system. So a completed drill (agent_runs 'duty:restore_table', written only by
+-- fn_it_restore_table_record) older than 30 days + 3 days of slack is its own finding,
+-- 'duty:restore_table:overdue', whatever the reason. This does NOT call fn_it_restore_table_due; it reads
+-- agent_runs alone, through agent_runs_agent_started_idx, and runs as its own step of resilience_ping.
+-- A recorded drill closes it (fn_it_duty_settle('restore_table', ...) closes every restore_table key the
+-- drill does not raise) and so does this check once a drill is inside the window. It fires only once the
+-- IT engineer's scheduled duties have themselves run for longer than the window, so a new estate is not
+-- "overdue" on day one. Lock-safe the same way: 250 ms, then a warning and no change either way.
+create or replace function public.fn_it_restore_table_overdue()
+returns jsonb language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+set lock_timeout to '250ms'
+as $fn$
+declare v_last timestamptz; v_window interval := interval '33 days';
+begin
+  select max(started_at) into v_last from public.agent_runs
+   where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table' and started_at > now() - v_window;
+  if v_last is not null then
+    perform public.fn_it_engineer_finding_close('duty:restore_table:overdue',
+      'a restore drill completed at ' || to_char(v_last at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai');
+    return jsonb_build_object('overdue', false, 'last_drill', v_last);
+  end if;
+  -- Limit: this gate keys off ANY scheduled duty's age, not this drill's own start; a duty added long after the others needs its own start date.
+  if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%'
+                  and started_at < now() - v_window) then
+    return jsonb_build_object('overdue', false, 'reason', 'the scheduled duties are younger than the window');
+  end if;
+  perform public.fn_it_engineer_finding_upsert('duty:restore_table:overdue',
+    'No monthly restore drill has completed in ' || extract(day from v_window) || ' days',
+    'resilience_ping -> fn_it_restore_table_due / _pick / _record', 'monitor', 1,
+    jsonb_build_object('duty', 'restore_table', 'owner_seat', 'ceo', 'subject', 'table_backup',
+      'last_drill', (select max(started_at) from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:restore_table'),
+      'look_at', 'the postgres log for "fn_it_restore_table_due: a lock held elsewhere", and resilience_ping''s restore_table step'),
+    '{}'::text[], array['whether the due-check is being skipped by locks or the drill itself is failing'], 'it_engineer.restore_table');
+  return jsonb_build_object('overdue', true);
+exception when lock_not_available then
+  raise warning 'fn_it_restore_table_overdue: a lock held elsewhere outlived lock_timeout 250ms; checked again next tick (55P03)';
+  return jsonb_build_object('overdue', null, 'reason', 'lock timeout');
+end $fn$;
+revoke execute on function public.fn_it_restore_table_overdue() from public, anon, authenticated;
 
 create or replace function public.fn_it_restore_table_pick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
