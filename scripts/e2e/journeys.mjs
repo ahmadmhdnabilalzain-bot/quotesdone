@@ -295,6 +295,9 @@ export async function journeyComparison(ctx) {
     const direct = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' }, 180000);
     const csvR = await call('customer_api', fx.customer.jwt, { action: 'compare_csv', inquiry_id: inquiryId, lang: 'en' }, 180000);
     const a = direct.json?.analysis;
+    // Kept with the run: the exact analysis the customer's JWT got, so a report can be re-rendered
+    // from it offline (demo data only; the run directory is scratch, never committed).
+    if (a) writeFileSync(`${dir}/c_quote_compare_analysis.json`, JSON.stringify(a, null, 2));
     const held = new Set((a?.all_quotes || []).filter((x) => x?.status === 'held').map((x) => String(x.label)));
     const want = (a?.quotes || []).filter((x) => !held.has(String(x.label)));
     const parseRow = (line) => { const out = []; let cur = '', qd = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (qd) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') qd = false; else cur += c; } else if (c === '"') qd = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
