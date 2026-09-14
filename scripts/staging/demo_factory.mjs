@@ -1045,15 +1045,20 @@ export async function teardown(run) {
   const steps = [
     // trg_event_transaction emits payment.received keyed on the transaction id (as TEXT), so it must go
     // before the transaction row it names — the same ordering rule as the quote/inquiry/lead log rows.
-    // A run that drove a refund (e2e journey e) leaves the case and its evidence on the transaction;
-    // refunds_transaction_id_fkey is NO ACTION, so they go first. ceo_approval is append-only by
-    // design (z00_ceo_approval_append_only) and its demo decisions stay, naming a refund id only.
-    ['refund_ladder_evidence', `delete from public.refund_ladder_evidence where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
-    ['refund_ceo_check', `delete from public.refund_ceo_check where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
-    ['refund_ceo_review', `delete from public.refund_ceo_review where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
-    ['company_event (refund)', `delete from public.company_event where entity_type='refund' and entity_id in (select id::text from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}))`],
-    ['refunds', `delete from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
-    ['company_event (transaction)', `delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
+    // THE REFUND LOOP'S ROWS (14 Sep 2026). A demo customer's refund request opens a refunds case, and
+    // the CEO's loop writes beside it. None of these cascade from the transaction, and refunds is
+    // ON DELETE SET NULL, so without these steps a run's refund case would outlive it as an orphan.
+    // refund_status_transition carries no transaction, refund or quote column, so it cannot be scoped
+    // to a run and is left alone on purpose.
+    ...['refund_case', 'refund_ceo_check', 'refund_ceo_review', 'refund_incident', 'refund_ladder_evidence'].map((t) => [t,
+      `delete from public.${t} where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})
+          or refund_id in (select id from public.refunds where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST})`]),
+    // trg_emit_refund_requested puts the case on the bus keyed on the refund id (entity_type 'refund').
+    ['company_event (refund)', `delete from public.company_event where entity_type='refund' and entity_id in (select id::text from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}) or quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST})`],
+    ['refunds', `delete from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}) or quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST}`],
+    // The accountant's reveal-invoice handoff to the sales engineer targets the transaction (14 Sep 2026).
+    ['agent_actions (transaction)', `delete from public.agent_actions where target_table='transactions' and target_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
+    ['company_event (transaction)',`delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.

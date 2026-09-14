@@ -127,6 +127,8 @@ export default function SupplierOnboarding({ token, lang = 'en', goTo }:
     const created = await call('supplier_api', {
       action: 'create_company', company_name: profile.company_name,
       emirate: profile.location, category: profile.category, role: 'supplier',
+      // Registering the company records the language of the page it was registered on.
+      lang,
     }, token).catch(() => ({}));
     // 409 "already manages a company" is the normal path for a supplier who claimed a scraped row —
     // it is not an error, it just means create was unnecessary.

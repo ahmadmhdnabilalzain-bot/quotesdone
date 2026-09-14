@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS } from '../_shared/stripe_events.ts';
+import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, stripeEventMode, signingSecretFor } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { shortfallAfterPayment } from '../_shared/reveal_fee.ts';
@@ -165,6 +165,39 @@ async function verifySig(sigHeader: string, payload: string, key: string): Promi
   let diff = 0; for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
   return diff === 0;
 }
+// Whether a verified TEST-mode event is about demo data only. Fails closed: anything it cannot trace to a
+// demo account (customers.is_demo, leads.is_demo, fn_inquiry_is_demo) answers false and is ignored.
+//   reveal / invoice   metadata.quote_id   -> the quote's request -> fn_inquiry_is_demo
+//   supplier payments  metadata.supplier_id -> leads.is_demo
+//   refunds / charges  payment_intent       -> the transaction it reverses -> its customer
+// deno-lint-ignore no-explicit-any
+async function testEventIsDemo(event: any): Promise<boolean> {
+  try {
+    const o = event?.data?.object || {};
+    const md = o.metadata || {};
+    const qid = String(md.quote_id || '');
+    if (qid) {
+      const { data: q } = await admin.from('quotes').select('inquiry_id').eq('id', qid).maybeSingle();
+      if (!q?.inquiry_id) return false;
+      const { data } = await admin.rpc('fn_inquiry_is_demo', { p_inquiry: q.inquiry_id });
+      return data === true;
+    }
+    const supId = Number(md.supplier_id || 0);
+    if (supId > 0) {
+      const { data: l } = await admin.from('leads').select('is_demo').eq('id', supId).maybeSingle();
+      return l?.is_demo === true;
+    }
+    const pi = String(o.payment_intent || (o.object === 'payment_intent' ? o.id : '') || '');
+    if (pi) {
+      const { data: t } = await admin.from('transactions').select('customer_id').eq('payment_ref', pi).maybeSingle();
+      if (!t?.customer_id) return false;
+      const { data: c } = await admin.from('customers').select('is_demo').eq('id', t.customer_id).maybeSingle();
+      return c?.is_demo === true;
+    }
+    return false;
+  } catch (_e) { return false; }
+}
+
 Deno.serve(observe('stripe_webhook', async (req) => {
   const logRun = mkLog(Date.now());
   if (req.method !== 'POST') return new Response('POST only', { status: 405 });
@@ -184,11 +217,27 @@ Deno.serve(observe('stripe_webhook', async (req) => {
     await logRun('error', {}, 'not_configured: neither stripe_webhook_secret nor stripe_webhook_secret_test is set');
     return new Response('not_configured', { status: 400 });
   }
+  // THE EVENT'S OWN MODE PICKS THE SECRET (14 Sep 2026, agent: accountant). Every Stripe event states
+  // `livemode`, and that field is inside the signed payload. So the body is read once to learn which
+  // mode it CLAIMS, it is verified with that mode's secret alone, and a claim the signature does not
+  // back is rejected. A test delivery can never be accepted by the live secret, nor the reverse, and
+  // the livemode the code acts on is the one Stripe signed. Nothing is written before this passes.
+  let event: any; try { event = JSON.parse(raw); } catch { await logRun('error', {}, 'bad_json (rejected before verification)'); return new Response('bad json', { status: 400 }); }
+  const claimedMode = stripeEventMode(event) ?? '';
+  const whsecForMode = signingSecretFor(stripeEventMode(event), { live: whsecLive, test: whsecTest });
   let sigMode = '';
-  if (whsecLive && await verifySig(sig, raw, whsecLive)) sigMode = 'live';
-  else if (whsecTest && await verifySig(sig, raw, whsecTest)) sigMode = 'test';
-  if (!sigMode) { await logRun('error', {}, 'bad_signature (rejected before parsing)'); return new Response('bad signature', { status: 400 }); }
-  let event: any; try { event = JSON.parse(raw); } catch { await logRun('error', {}, 'bad_json from Stripe'); return new Response('bad json', { status: 400 }); }
+  if (whsecForMode && await verifySig(sig, raw, whsecForMode)) sigMode = claimedMode;
+  // Only facts about the attempt reach the log (which mode it claimed, whether that mode has a secret
+  // configured), computed before the log call so no secret-bearing name is ever handed to it.
+  const modeConfigured = whsecForMode.length > 0;
+  if (!sigMode) { await logRun('error', { claimed_mode: claimedMode || 'none', mode_configured: modeConfigured }, 'bad_signature (rejected before any write)'); return new Response('bad signature', { status: 400 }); }
+  // A TEST-MODE EVENT MAY ONLY EVER TOUCH DEMO DATA. The test account exists so the e2e harness can pay
+  // as a demo customer; a verified test event about a real customer, a real supplier or a real payment
+  // is logged and ignored, never allowed to write a real ledger row.
+  if (sigMode === 'test' && !(await testEventIsDemo(event))) {
+    await logRun('ok', { mode: 'test', type: String(event?.type || ''), ignored: 'test_event_not_demo' }, 'TEST-mode event ignored: its subject is not a demo account, so it may not write a real ledger row.');
+    return new Response(JSON.stringify({ received: true, ignored: 'test_event_not_demo' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
   // Ledger (Finding 7): record every signature-verified delivery for audit + reconciliation and
   // count retries. Best-effort and non-blocking — correctness is still enforced by the conditional
   // updates below, so a ledger failure can never drop a payment.

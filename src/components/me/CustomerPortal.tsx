@@ -195,7 +195,10 @@ export function CustomerPortal() {
     } catch (_e) {}
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
-  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); };
+  // Switching language while signed in IS a change of the registered language (founder, 14 Sep 2026:
+  // the registered language follows every message), so it is saved to customers.locale exactly as
+  // Account settings saves it. Signed out, it only changes this page.
+  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); if (token) call('customer_api', { action: 'set_locale', locale: l }, token).then((j) => { if (!j || !j.ok) console.error('set_locale refused - customers.locale unchanged', j); }).catch((e) => console.error('set_locale failed - customers.locale unchanged', e)); };
 
   // THE DOCUMENT ITSELF NEVER LEARNED IT HAD SWITCHED LANGUAGE (13 Aug 2026). Measured in the
   // browser with the portal fully in Arabic: document.documentElement.dir was "ltr" and .lang was
@@ -216,12 +219,14 @@ export function CustomerPortal() {
   // language once got English on every new device, and the Arabic journey exercised a code path the
   // portal could never reach.
   //
-  // PRECEDENCE MATTERS: an explicit choice on THIS device wins. setLang writes qd-lang, so if that
-  // key exists the customer has chosen, and a profile field must not override a preference they set
-  // seconds ago. Only when they have chosen nothing here does the stored locale apply.
+  // 14 SEP 2026 - THE REGISTERED LANGUAGE WINS once signed in. This used to let this device's
+  // localStorage (or the NEXT_LOCALE cookie) override customers.locale, so an Arabic-registered
+  // customer on a browser that once saw English got an English portal while every message went out
+  // in Arabic. A choice made while signed in is saved to customers.locale by setLang above, so the
+  // stored value is always the latest choice, and it is written back here so this device agrees.
   const onServedLocale = (l) => {
     if (l !== 'ar' && l !== 'en') return;
-    try { if (localStorage.getItem('qd-lang')) return; } catch (_e) { return; }
+    try { localStorage.setItem('qd-lang', l); } catch (_e) {}
     setLangState(l);
   };
   const onAuth = (access, refresh) => { try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
@@ -290,8 +295,8 @@ function Login({ onAuth, lang }) {
   const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'customer', identifier: v }); if (g && g.conflict === 'supplier') { setBusy(false); setMsg(t(lang, 'conflict_supplier')); return; } } catch (_e) {}
-    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
+    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (<AuthShell lang={lang}><Card className="relative w-full overflow-hidden p-6 shadow-e3 sm:p-8">
     <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
@@ -365,7 +370,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
-  const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
+  const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.

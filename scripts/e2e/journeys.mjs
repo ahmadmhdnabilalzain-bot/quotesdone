@@ -69,7 +69,8 @@ export async function journeyCustomerRequest(ctx) {
     const s = await signedInPage(browser, fx.customer, m);
     try {
       const t = await openPortal(s.page, portalUrl('customer', m.lang), s.calls);
-      const signedIn = await s.page.locator('nav').first().isVisible().catch(() => false);
+      // Desktop shows the sidebar <nav>; a phone shows a bottom bar whose More button controls #qd-nav-more.
+      const signedIn = await s.page.locator('nav:visible, button[aria-controls="qd-nav-more"]:visible').first().isVisible().catch(() => false);
       const rtl = await s.page.evaluate(() => document.documentElement.dir).catch(() => '');
       rep.step(J, `signed in without an OTP (${tag(m)})`, signedIn ? 'PASS' : 'FAIL', `nav visible=${signedIn}, dir=${rtl || 'ltr'}`, { shot: await shot(s.page, dir, `a_overview_${tag(m)}`) });
       rep.step(J, `overview data under 2.5 s (${tag(m)})`, t.dataMs < 2500 ? 'PASS' : 'FAIL', `data settled in ${t.dataMs} ms (shell ${t.shellMs} ms, ${t.calls} function call(s))`, { ms: t.dataMs });
@@ -94,7 +95,11 @@ export async function journeyCustomerRequest(ctx) {
       'Please proceed with these details.', 'Yes, that is correct.',
     ];
     let status = null, turns = 0, readiness = 0;
+    // A budget, not just a turn count: each reply may take up to 90 s, and a chat that never reaches
+    // ready must not stall the whole run (run 5 sat here for over ten minutes).
+    const deadline = Date.now() + 5 * 60 * 1000;
     for (const a of answers) {
+      if (Date.now() > deadline) break;
       await box.fill(a);
       const [res] = await Promise.all([
         s.page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake'), { timeout: 90000 }).catch(() => null),
@@ -102,8 +107,20 @@ export async function journeyCustomerRequest(ctx) {
       ]);
       turns++;
       const j = res ? await res.json().catch(() => ({})) : {};
-      status = j.status ?? status; readiness = Number(j.readiness ?? readiness);
+      status = j.status ?? status; readiness = Number(j.readiness ?? readiness) || 0;
       if (status === 'ready') break;
+      // When the sales engineer offers answer chips, tap the first one, as a customer would.
+      const chip = s.page.locator('[role="group"] button').first();
+      if (await chip.isVisible().catch(() => false)) {
+        const [r2] = await Promise.all([
+          s.page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake'), { timeout: 90000 }).catch(() => null),
+          chip.click().catch(() => {}),
+        ]);
+        turns++;
+        const j2 = r2 ? await r2.json().catch(() => ({})) : {};
+        status = j2.status ?? status; readiness = Number(j2.readiness ?? readiness) || 0;
+        if (status === 'ready') break;
+      }
     }
     rep.step(J, 'the sales engineer interview reaches ready', status === 'ready' ? 'PASS' : 'FAIL', `${turns} turn(s), status=${status}, readiness=${readiness}`, { shot: await shot(s.page, dir, 'a_intake') });
     if (status === 'ready') {
@@ -129,7 +146,9 @@ export async function journeyCustomerRequest(ctx) {
     // the report says so. This is a fallback, never a pass for step a.
     via = 'fallback';
     const inq = await makeInquiry(ctx.run, { customer: { customerId: fx.customer.customerId, locale: 'en' }, trade: 'aluminium', status: 'sent',
-      spec: { products: ['aluminium windows'], quantity: 40, requirements: { installation: 'required', warranty: { required: true, min_months: 24 }, delivery_by: '2026-11-30', materials: [{ component: 'glass', value: 'double glazed' }] } } });
+      // No materials requirement on purpose: the live hold desk turns each one into a quote-level
+      // "component:<name>" detail, and the fallback must not manufacture holds the customer never asked for.
+      spec: { products: ['aluminium windows'], quantity: 40, requirements: { installation: 'required', warranty: { required: true, min_months: 24 }, delivery_by: '2026-11-30' } } });
     inquiryId = inq.id;
     rep.step(J, 'fallback request written for the rest of the funnel', 'SKIP', `inquiry ${inquiryId} written by demo_factory.makeInquiry because the portal did not post one`);
   }
@@ -223,7 +242,9 @@ export async function journeySuppliers(ctx) {
     const lines = {};
     for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (lines[l.line_no] ||= {})[f.attr] = FILL[f.attr] ?? (f.type === 'number' ? '10' : (f.options?.[0] ?? `ZZ DEMO ${f.attr} 10 mm`));
     const terms = {};
-    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr];
+    // A detail the harness does not know by name (e.g. a customer's "component:<name>" material
+    // requirement) still gets a concrete, exact value - never a vague one the desk would refuse.
+    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr] ?? (t.type === 'number' ? '10' : (t.options?.[0] ?? 'Double glazed 6mm + 12mm air + 6mm, Schuco AWS 70, RAL 9016'));
     const f1 = await call('supplier_api', A.jwt, { action: 'spec_fill', quote_id: aQid, values: { lines, terms } });
     rep.step(J, 'filling in the details regenerates the quotation', f1.json?.complete === true ? 'PASS' : 'FAIL',
       `HTTP ${f1.status} complete=${f1.json?.complete} pdf=${f1.json?.pdf_url ? 'yes' : 'no'} still missing=${(f1.json?.missing || []).map((x) => x.attr).join(',') || 'none'} errors=${JSON.stringify(f1.json?.errors || []).slice(0, 120)}`);
@@ -297,17 +318,43 @@ export async function journeyPayment(ctx) {
   // Checkout Session (the fallback path) paid with Stripe's test card in a real browser.
   const sess = await call('stripe_checkout', fx.customer.jwt, { quote_id: live.id, return_url: 'https://quotesdone.com/me' });
   if (!sess.json?.url) { ctx.paid = false; return rep.step(J, 'test checkout session created', 'FAIL', sess.text); }
-  const b = await ctx.browser.newContext(); const p = await b.newPage();
+  // Paid in the CUSTOMER's signed-in browser, as a customer does: Stripe returns to /me?session_id=…
+  // and the portal calls stripe_confirm, which records the reveal. Run 5 paid in a fresh browser with no
+  // session, so Stripe completed the payment (test, paid) but the return landed on a signed-out page
+  // and nothing recorded it.
+  const signed = await signedInPage(ctx.browser, fx.customer, { lang: 'en', viewport: 'desktop' });
+  const b = signed.ctx; const p = signed.page;
   try {
     await p.goto(sess.json.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await p.locator('#cardNumber').fill('4242 4242 4242 4242'); await p.locator('#cardExpiry').fill('12 / 34');
     await p.locator('#cardCvc').fill('123'); await p.locator('#billingName').fill('ZZ DEMO Customer').catch(() => {});
+    await shot(p, ctx.dir, 'd_stripe_checkout_filled');
     await p.locator('button[type=submit]').click();
     await p.waitForURL(/quotesdone\.(com|ae)/, { timeout: 90000 }).catch(() => {});
+    await shot(p, ctx.dir, 'd_after_pay');
+    rep.step(J, 'Stripe test checkout completed and returned to the portal', /quotesdone\.(com|ae)/.test(p.url()) ? 'PASS' : 'FAIL', `landed on ${p.url().split('?')[0].slice(0, 80)}`);
+  } catch (e) {
+    await shot(p, ctx.dir, 'd_checkout_error');
+    rep.step(J, 'Stripe test checkout completed and returned to the portal', 'FAIL', String(e.message).split('\n')[0].slice(0, 200));
   } finally { await b.close(); }
-  const tx = await waitFor(async () => (await read(`select fee_status, payment_ref from public.transactions where quote_id = ${q(live.id)}`))[0], { timeoutMs: 60000 });
-  ctx.paid = !!tx;
-  rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL', JSON.stringify(tx || {}));
+  const tx = await waitFor(async () => (await read(`select id, fee_status, payment_ref, reveal_fee, processing_fee, total_charged, quote_amount,
+      stripe_invoice_id is not null has_invoice, doc_path from public.transactions where quote_id = ${q(live.id)}`))[0], { timeoutMs: 90000 });
+  ctx.paid = !!tx; ctx.paidQuote = live.id; ctx.tx = tx;
+  rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL',
+    JSON.stringify({ fee_status: tx?.fee_status, payment_ref: String(tx?.payment_ref || '').slice(0, 5) + '…' }));
+  if (!tx) return;
+  // #616's formula (_shared/reveal_fee.ts revealCharge on main): base = round(rate x quote) to the fils;
+  // total = ceil((base + fixed) / (1 - pct)), where the Checkout Session charges the safest
+  // (international) basis: pct = (3.9% card + 0.5% invoicing) x 1.05 VAT on Stripe's fees = 4.62%,
+  // fixed = AED 1.00 x 1.05 = AED 1.05. Measured 14 Sep 2026: 118,500 x 3% = 3,555 -> 3,728.30.
+  const rate = Number((await read('select standard_reveal_rate r from public.pricing_config where id = 1'))[0].r);
+  const PCT = (0.039 + 0.005) * 1.05, FIXED_F = 105;
+  const baseF = Math.round(Number(tx.quote_amount) * rate * 100);
+  const totalF = Math.ceil((baseF + FIXED_F) / (1 - PCT) - 1e-9);
+  const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.total_charged) * 100) === totalF
+    && Math.round((Number(tx.reveal_fee) + Number(tx.processing_fee)) * 100) === totalF;
+  rep.step(J, "the fee matches #616's formula (3% + card processing, no VAT)", ok ? 'PASS' : 'FAIL',
+    `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing ${(totalF - baseF) / 100} = ${totalF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------
@@ -315,15 +362,28 @@ export async function journeyInvoiceRefund(ctx) {
   const { rep } = ctx;
   const J = 'e invoice+refund';
   if (!ctx.paid) {
-    rep.step(J, 'invoice appears in the portal', 'SKIP', 'needs a paid reveal (journey d), which needs the Stripe test keys');
+    rep.step(J, 'invoice appears in the portal', 'SKIP', 'needs a paid reveal, and journey d did not record one (see its steps)');
     rep.step(J, 'refund end to end in Stripe TEST mode', 'SKIP', 'needs a paid reveal (journey d)');
     return;
   }
-  const live = (ctx.quoteIds || []).find((x) => x.status !== 'draft');
-  const inv = await call('reveal_invoice', ctx.fx.customer.jwt, { quote_id: live.id });
-  const row = (await read(`select ri.invoice_no from public.reveal_invoices ri join public.transactions t on t.id = ri.transaction_id where t.quote_id = ${q(live.id)}`))[0];
-  rep.step(J, 'invoice filed for the reveal', row?.invoice_no ? 'PASS' : 'FAIL', `HTTP ${inv.status} invoice=${row?.invoice_no ?? 'none'}`);
-  await refundEndToEnd(ctx, live, J);
+  const qid = ctx.paidQuote;
+  // The Stripe invoice: created and paid by Stripe, attached by stripe_webhook (doc_path invoices/…).
+  const tx = await waitFor(async () => { const r = (await read(`select id, stripe_invoice_id is not null has_invoice, doc_path, stripe_invoice_number from public.transactions where quote_id = ${q(qid)}`))[0]; return r?.doc_path ? r : null; }, { timeoutMs: 90000 });
+  rep.step(J, 'Stripe invoice created, paid and its PDF stored', tx?.has_invoice && tx?.doc_path ? 'PASS' : 'FAIL', JSON.stringify(tx || { doc_path: null }));
+  const doc = tx ? (await read(`select kind, bucket, status from public.documents where bucket = 'finance-docs' and path = ${q(tx.doc_path)}`))[0] : null;
+  rep.step(J, "the accountant filed it in the customer's Documents", doc?.kind === 'invoice' ? 'PASS' : 'FAIL', JSON.stringify(doc || {}));
+  const ho = tx ? (await read(`select status, decided_by from public.agent_actions where kind = 'handoff' and target_table = 'transactions' and target_id = ${q(tx.id)}`))[0] : null;
+  rep.step(J, 'handoff accountant -> sales engineer closed', ho?.status === 'done' && ho?.decided_by === 'sales_engineer' ? 'PASS' : 'FAIL', JSON.stringify(ho || {}));
+  const nr = (await read(`select status from public.notifications where type = 'invoice_ready' and quote_id = ${q(qid)}`))[0];
+  rep.step(J, "the sales engineer's 'invoice ready' notice was written and captured", nr?.status === 'suppressed' ? 'PASS' : 'FAIL', JSON.stringify(nr || {}));
+  // The invoice in the portal: the revealed quote's card, deep-linked.
+  const s = await signedInPage(ctx.browser, ctx.fx.customer, { lang: 'en', viewport: 'desktop' });
+  try {
+    await openPortal(s.page, portalUrl('customer', 'en', `?request=${ctx.inquiryId}&quote=${qid}`), s.calls);
+    const seen = await s.page.getByText(/Invoice \(PDF\)|Invoice/).first().isVisible().catch(() => false);
+    rep.step(J, 'the invoice is in the portal', seen ? 'PASS' : 'FAIL', seen ? '"Invoice" visible on the revealed request' : 'no invoice control on screen', { shot: await shot(s.page, ctx.dir, 'e_invoice_in_portal') });
+  } finally { await s.ctx.close(); }
+  await refundEndToEnd(ctx, { id: qid }, J);
 }
 
 // THE REFUND, END TO END, ON THE DEMO REVEAL JOURNEY D PAID IN STRIPE TEST MODE (14 Sep 2026).
@@ -357,6 +417,18 @@ async function refundEndToEnd(ctx, live, J) {
   const conf = (await read(`select detail->>'locale' as locale from public.agent_actions where kind = 'handoff' and agent = 'customer_support'
       and detail->>'msg_type' = 'refund_request_received' and detail->>'transaction_id' = ${q(tx.id)}`))[0];
   rep.step(J, 'the confirmation goes to support in the registered language', conf?.locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(conf || {}));
+  const rh = (await read(`select agent from public.agent_actions where kind = 'handoff' and detail->>'type' = 'refund.requested'
+      and detail->>'subject_id' = ${q(String(rid))} order by id desc limit 1`))[0];
+  rep.step(J, 'the case is handed to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
+  // Day 0: the customer may ask, but the CEO may not decide before the day-3 chase and the day-5 final call.
+  const ck = (await read(`select public.fn_ceo_refund_checklist(${q(tx.id)}::uuid, 'approve', false) as c`))[0]?.c;
+  const failedItems = (ck?.failed || []).map((x) => x.item);
+  rep.step(J, "the CEO's checklist refuses approval before the day-3 chase and the day-5 final call",
+    ck && ck.ok === false && failedItems.includes('day3_chase_happened') && failedItems.includes('day5_final_call_happened') ? 'PASS' : 'FAIL',
+    ck ? `ok=${ck.ok}, failing: ${failedItems.join(', ') || 'none'}` : 'checklist did not run');
+  const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(live.id)} or to_email = ${q(tx.email)} group by 1`);
+  rep.step(J, 'nothing the request caused was dispatched to a real address', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
+    rn.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no notification rows');
 
   // 2. Time travel, demo only.
   const moved = await write(`update public.transactions set revealed_at = now() - interval '10 days',
@@ -419,7 +491,9 @@ export async function journeyCrawl(ctx) {
         await openPortal(s.page, portalUrl(who.kind, m.lang), s.calls);
         for (const label of NAV[who.kind][m.lang]) {
           const btn = s.page.getByRole('button', { name: new RegExp('^' + esc(label)) }).first();
-          if (!(await btn.isVisible().catch(() => false))) await s.page.locator('#qd-nav-more').click({ timeout: 3000 }).catch(() => {});
+          // On a phone the item may sit in the More sheet; its button is aria-controls="qd-nav-more"
+          // (the sheet itself, #qd-nav-more, only exists while open).
+          if (!(await btn.isVisible().catch(() => false))) await s.page.locator('button[aria-controls="qd-nav-more"]').first().click({ timeout: 3000 }).catch(() => {});
           const t0 = Date.now();
           try {
             await btn.click({ timeout: 8000 });

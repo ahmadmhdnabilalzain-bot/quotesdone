@@ -28,6 +28,14 @@ Deno.test("another customer's invoice is refused, and Stripe is never asked for 
   assertEquals(x.asked, []);
 });
 
+Deno.test('an Arabic-registered customer gets the receipt, never Stripe (no Arabic there), and only their own', async () => {
+  const x = deps();
+  const mine = await resolveInvoice({ ...x.d, preferReceipt: true }, 'zz.demo.buyer@example.invalid', 'q-mine');
+  assertEquals('fallback' in mine && mine.fallback, true);
+  assertEquals(x.asked, []);
+  assertEquals((await resolveInvoice({ ...x.d, preferReceipt: true }, 'zz.demo.buyer@example.invalid', 'q-theirs')).status, 403);
+});
+
 Deno.test('an unknown sign-in gets no invoice', async () => {
   const x = deps();
   assertEquals((await resolveInvoice(x.d, 'nobody@example.invalid', 'q-mine')).status, 403);

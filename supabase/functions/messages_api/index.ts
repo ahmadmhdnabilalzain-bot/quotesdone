@@ -11,13 +11,15 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 import { observe } from '../_shared/observe.ts';
 import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
 const WARNING = 'Messages here are kept on record for both of you. Please keep them about this job.';
 
-async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) {} }
+async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) {} }
 
 async function revealed(inquiry_id: string, supplier_id: number) {
   const { data } = await admin.from('transactions').select('id,customer_id').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).not('revealed_at', 'is', null).maybeSingle();
@@ -186,7 +188,8 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     try {
       const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
       if (c?.email && /@/.test(c.email)) {
-        const ar = String(c.locale || '') === 'ar';
+        // customers.locale through the one helper: 'ar-AE' is Arabic too, which the exact test missed.
+        const ar = asLocale(c.locale) === 'ar';
         await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
           subject: ar ? 'لدى أحد الموردين سؤال عن طلبك' : 'A supplier has a question about your request',
           body: ar
