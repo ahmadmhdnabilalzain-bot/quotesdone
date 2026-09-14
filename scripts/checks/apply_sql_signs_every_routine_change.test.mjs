@@ -40,6 +40,27 @@ test('a comment that mentions the word does not make a routine file run unsigned
   assert.equal(definesRoutine('alter function public.f() set search_path to public;'), true);
 });
 
+// Re-review of 12f5ed5: text inside a literal is not a comment, and a comment is not a literal.
+test('literals, quoted identifiers, bodies and comments are read the way Postgres reads them', () => {
+  // a -- inside a literal does not hide the real statement after it on the same line
+  assert.equal(runsOutsideTransaction("comment on table t is 'a -- b'; create index concurrently if not exists x on t (a);"), true);
+  assert.equal(definesRoutine("comment on table t is 'a -- b'; create function f() returns int language sql as $$ select 1 $$;"), true);
+  assert.notEqual(refuseUnsignable("comment on table t is 'a -- b'; create index concurrently x on t (a); create or replace function f() returns int language sql as $$ select 1 $$;"), null);
+  // '' is an escaped quote inside the literal, so the literal (and its --) runs to the second quote
+  assert.equal(runsOutsideTransaction("select 'it''s -- fine'; create index concurrently x on t (a);"), true);
+  assert.equal(runsOutsideTransaction("select 'it''s -- fine concurrently';"), false);
+  // E'\'' : a backslash-escaped quote does not end the string
+  assert.equal(runsOutsideTransaction("select E'\\' -- '; create index concurrently x on t (a);"), true);
+  assert.equal(runsOutsideTransaction("select E'\\' -- concurrently';"), false);
+  // a $tag$ inside a block comment opens no body, so what follows the comment is still code
+  assert.equal(runsOutsideTransaction("/* the body is $fn$ quoted */ create index concurrently x on t (a);"), true);
+  assert.equal(definesRoutine("/* $fn$ */ create or replace function f() returns int language sql as $fn$ select 1 $fn$;"), true);
+  // nested block comments, quoted identifiers, and $1 parameters are not mistaken for anything
+  assert.equal(runsOutsideTransaction('/* a /* concurrently */ still comment */ select 1;'), false);
+  assert.equal(runsOutsideTransaction('select 1 as "concurrently";'), false);
+  assert.equal(runsOutsideTransaction("create function f(int) returns int language sql as $b$ select $1 $b$; -- concurrently"), false);
+});
+
 test('apply_sql refuses a file that does both, before touching the database', () => {
   const dir = mkdtempSync(join(tmpdir(), 'qd-apply-'));
   try {
