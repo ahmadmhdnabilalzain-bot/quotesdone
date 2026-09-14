@@ -83,6 +83,7 @@ const T = {
     gap_note:
       'On each request with two or more quotes, the gap between the highest and the lowest quote, added up per category. This is what comparing quotes was worth to you — not a discount any supplier offered.',
     gap_empty_none: 'You have no requests yet, so there are no quotes to compare.',
+    gap_missing: 'Your requests are still loading, so the quote spread is not shown yet.',
     gap_empty_thin:
       'None of your requests has two or more quotes yet. A spread needs at least two quotes on the same request to measure, so there is nothing to show.',
     gap_alt: (pairs: string, total: string, n: number) =>
@@ -115,6 +116,7 @@ const T = {
     gap_note:
       'في كل طلب استلم عرضين أو أكثر، الفارق بين أعلى وأدنى عرض، مجموعًا لكل فئة. هذا ما تساويه مقارنة العروض بالنسبة لك — وليس خصمًا قدّمه أي مورّد.',
     gap_empty_none: 'لا توجد لديك طلبات بعد، لذلك لا توجد عروض للمقارنة.',
+    gap_missing: 'ما زالت طلباتك قيد التحميل، لذلك لا يظهر فارق الأسعار بعد.',
     gap_empty_thin:
       'لا يوجد أي من طلباتك استلم عرضين أو أكثر بعد. قياس الفارق يحتاج إلى عرضين على الأقل للطلب نفسه، لذلك لا يوجد ما يُعرض.',
     gap_alt: (pairs: string, total: string, n: number) =>
@@ -329,7 +331,7 @@ export function QuoteSpreadChart({
       <Panel
         title={t.gap_title}
         note={t.gap_note}
-        empty={hasRequests ? t.gap_empty_thin : t.gap_empty_none}
+        empty={hasRequests ? t.gap_empty_thin : Array.isArray(inquiries) ? t.gap_empty_none : t.gap_missing}
         className={className}
       />
     );

@@ -206,12 +206,18 @@ export function DocumentRow({ doc, token, lang = 'en', showMatch = false, classN
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState('');
 
+  // The tab is opened INSIDE the click, then pointed at the signed URL when it arrives. Opened after
+  // the await, Safari and Firefox treat it as an unrequested popup and block it, so "Open file"
+  // did nothing visible on those browsers.
   const openFile = async () => {
     setBusy(true); setErr('');
+    const win = window.open('', '_blank');
+    if (win) win.opener = null;
     const res = await getDocument(token, doc.id);
     setBusy(false);
-    if (!res.ok || !res.data.document?.file_url) { setErr(w.err_open); return; }
-    window.open(res.data.document.file_url, '_blank', 'noopener,noreferrer');
+    const url = res.ok ? res.data.document?.file_url : null;
+    if (!url) { if (win) win.close(); setErr(w.err_open); return; }
+    if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // THREE DIFFERENT ABSENCES, THREE DIFFERENT SENTENCES. "not revealed yet" is not the same fact as
@@ -311,12 +317,12 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
     return () => { live = false; };
   }, [token, lang, kind, refreshKey, reloads, asked]);
 
-  const ask = async (e?: React.FormEvent) => {
+  const ask = async (e?: React.FormEvent, k: string | null = kind) => {
     e?.preventDefault();
     const text = q.trim();
     if (!text) return;
     setBusy(true); setErr(''); setRes(null);
-    const r = await askDocuments(token, text, kind);
+    const r = await askDocuments(token, text, k);
     setBusy(false);
     if (!r.ok) { setErr(errText(lang, r.error)); setAsked(text); return; }
     setAsked(text);
@@ -324,6 +330,9 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
   };
 
   const clear = () => { setAsked(''); setQ(''); setRes(null); setReloads((n) => n + 1); };
+  // A kind chip filters whichever view is on screen. While a question was active the list effect
+  // exits early, so a chip lit up and the answers did not change; it now re-asks under that kind.
+  const pickKind = (k: string | null) => { setKind(k); if (asked) void ask(undefined, k); };
 
   const docs = res?.documents || [];
   const answer = (res as VaultSearchResponse | null)?.answer || null;
@@ -354,13 +363,13 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
       {/* Kind filters, from what the vault actually holds. */}
       {kinds.length > 1 ? (
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => setKind(null)}
+          <button type="button" onClick={() => pickKind(null)}
             className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors',
               kind === null ? 'border-primary bg-primary/15 font-semibold text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
             {w.all_kinds}
           </button>
           {kinds.map((k) => (
-            <button key={k} type="button" onClick={() => setKind(k)}
+            <button key={k} type="button" onClick={() => pickKind(k)}
               className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors',
                 kind === k ? 'border-primary bg-primary/15 font-semibold text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
               {kindLabel(k, lang)}
@@ -372,7 +381,9 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
       {err ? (
         <Card className="p-4">
           <div role="alert" className="text-[13px] font-semibold text-destructive">{err}</div>
-          <Button type="button" variant="outline" size="sm" className="mt-2.5" onClick={() => { setErr(''); setReloads((n) => n + 1); }}>
+          {/* Retry repeats what failed: after a failed question the list effect is parked (asked is
+              set), so bumping reloads alone did nothing and the error stayed. */}
+          <Button type="button" variant="outline" size="sm" className="mt-2.5" onClick={() => { setErr(''); if (asked) void ask(); else setReloads((n) => n + 1); }}>
             {w.retry}
           </Button>
         </Card>

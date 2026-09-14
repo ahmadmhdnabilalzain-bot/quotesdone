@@ -298,7 +298,7 @@ const rankOf = (id, order) => {
 
 export function PortalShell({
   lang, t, theme, onSwapTheme, onSetLang, onSignOut,
-  view, onView, customerName, unread = 0, alerts = 0, alertList = [], token, order, suggestions, children,
+  view, onView, customerName, unread = 0, alerts = 0, alertList = [], onAlert, token, order, suggestions, children,
 }) {
   const rtl = lang === 'ar';
   const [collapsed, setCollapsed] = useState(false);
@@ -469,14 +469,20 @@ export function PortalShell({
                       <p className="px-4 py-4 text-[13px] text-muted-foreground">{t('attention_none')}</p>
                     ) : (
                       <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
+                        {/* Each notification opens what it is about — the request it names, or
+                            Approvals — through the same onAlert the Overview's alert cards use. */}
                         {alertList.map((a, i) => (
-                          <li key={i} className="flex items-start gap-3 px-4 py-3">
-                            <span className={cn('mt-0.5 h-2 w-2 shrink-0 rounded-full',
-                              a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} aria-hidden />
-                            <div className="min-w-0">
-                              <div className="text-[13px] font-semibold text-foreground">{a.title}</div>
-                              {a.detail ? <div className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{a.detail}</div> : null}
-                            </div>
+                          <li key={i}>
+                            <button type="button" onClick={() => { setBellOpen(false); if (onAlert) onAlert(a); }}
+                              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                              <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                                a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} aria-hidden />
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[13px] font-semibold text-foreground">{a.title}</span>
+                                {a.detail ? <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{a.detail}</span> : null}
+                              </span>
+                              <ChevronRight className={cn('mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground', rtl && 'rotate-180')} aria-hidden />
+                            </button>
                           </li>
                         ))}
                       </ul>

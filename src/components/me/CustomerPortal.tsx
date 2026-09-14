@@ -68,6 +68,16 @@ const tokenAlive = (t) => {
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
 async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
+// The five reads the dashboard makes on its first render, started beside the kyc gate rather than
+// behind it — see prefetch.ts for the measurement. Keys are what Dashboard and DecisionSupport take.
+import { warm, take, drop } from './prefetch';
+const warmDashboard = (tk, lang) => {
+  warm(tk, 'inq', () => call('customer_api', { action: 'my_inquiries' }, tk));
+  warm(tk, 'ov', () => call('customer_portal', { action: 'overview', lang }, tk));
+  warm(tk, 'pd', () => call('project_api', { action: 'dashboard' }, tk));
+  warm(tk, 'threads', () => call('messages_api', { action: 'threads' }, tk));
+  warm(tk, 'decision_support', () => call('customer_portal', { action: 'decision_support', lang }, tk));
+};
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
 import { t, tf, errText, emirateName } from './portalText';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
@@ -327,7 +337,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
   // Wait for a token, and for a token that has not already expired. SB.auth refreshes on its own
   // and the auth listener re-renders with the new one, so this costs nothing but the 401.
-  useEffect(() => { if (tokenAlive(token)) load(); }, [token]);
+  useEffect(() => { if (tokenAlive(token)) { warmDashboard(token, lang); load(); } }, [token]);
   if (err === 'unauth') return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div></>;
   if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div>{/* () => load(), not load: a click handler passes the MouseEvent as the first argument, which
         would arrive as `retried` and skip the one refresh attempt this retry exists to make. */}
@@ -351,7 +361,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
@@ -420,30 +430,53 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // call the portal makes that has it — `me` serves it too, but the portal never calls `me`, which
   // is why the field was on the wire for months with nothing listening. The handler upstream
   // decides whether it applies; an explicit choice on this device still wins.
-  const loadInq = () => call('customer_api', { action: 'my_inquiries' }, token).then((j) => {
+  // `first` takes the request Authed already started beside kyc (prefetch.ts); every later call —
+  // tab focus, the minute timer, a refresh after a write — asks the server fresh.
+  const get = (first, key, path, body) => (first ? take(token, key, () => call(path, body, token)) : call(path, body, token));
+  const loadInq = (first) => get(first, 'inq', 'customer_api', { action: 'my_inquiries' }).then((j) => {
     setData(j);
     if (j && j.locale && onServedLocale) onServedLocale(j.locale);
   });
-  const loadOv = () => call('customer_portal', { action: 'overview', lang }, token).then((j) => { if (j && j.ok) setOv(j); else setErr(j ? errText(j, lang, 'load_failed') : ''); });
+  const loadOv = (first) => get(first, 'ov', 'customer_portal', { action: 'overview', lang }).then((j) => { if (j && j.ok) setOv(j); else setErr(j ? errText(j, lang, 'load_failed') : ''); });
   // THE ROLLUP THAT WAS COMPUTED AND THROWN AWAY. project_api action='dashboard' recomputes, on
   // every call, this customer's project_summary rows (each carrying rfq_count, rfq_open,
   // budget_total, timeline_pct and supplier_count) plus an avg_savings_pct measured across the
   // spread of quotes on their own RFQs — and no file in src/ has ever called it. The Command
   // Center the spec asks for in §1 and §4 is made of exactly these numbers.
-  const loadPd = () => call('project_api', { action: 'dashboard' }, token)
+  const loadPd = (first) => get(first, 'pd', 'project_api', { action: 'dashboard' })
     .then((j) => { if (j && j.ok && j.dashboard) setPd(j.dashboard); else setPdFailed(true); })
     .catch(() => setPdFailed(true));
   // Silent by design: a badge that cannot load must not put an error where a count goes, and the
   // inbox reports its own failure when the customer opens it.
-  const loadUnread = () => call('messages_api', { action: 'threads' }, token)
+  const loadUnread = (first) => get(first, 'threads', 'messages_api', { action: 'threads' })
     .then((j) => setUnread(((j && j.threads) || []).reduce((n, th) => n + (Number(th.unread) || 0), 0)))
     .catch(() => {});
   const refresh = () => { loadInq(); loadOv(); loadPd(); loadUnread(); };
+  // OPEN THIS REQUEST. Projects, the Project room, the supply-chain map, Messages, Approvals, Orders,
+  // the alerts and "Help me decide" all hand the portal an inquiry id and asked it to open that
+  // request — and every one of them was wired to onClose, which threw the id away and landed the
+  // customer on the Overview. This is the one target they all call: My requests, filters cleared so
+  // the row cannot be hidden, and that request's card opened and scrolled to (InquiryCard).
+  const [focusInq, setFocusInq] = useState('');
+  const [focusProject, setFocusProject] = useState('');
+  const [pickFile, setPickFile] = useState(false);
+  const openRfq = (id) => { setFocusInq(id ? String(id) : ''); setBallFilter('all'); setQtext(''); setView('requests'); };
+  const openProject = (id) => { setFocusProject(id ? String(id) : ''); setView('projects'); };
+  const openNew = (withFile) => { setPickFile(!!withFile); setShowNew(true); setView('home'); };
+  // Where an alert goes is decided by what it is about: a request it names, the approvals it counts,
+  // the need it forecasts. Kinds without a subject of their own (price moves, lead times) are about
+  // the requests list as a whole.
+  const onAlert = (a) => {
+    if (a && a.inquiry_id) return openRfq(a.inquiry_id);
+    if (a && a.kind === 'approval_due') return setView('approvals');
+    if (a && a.kind === 'forecast_need') return openNew(false);
+    return openRfq('');
+  };
   useEffect(() => {
-    loadOv();
-    loadInq();
-    loadPd();
-    loadUnread();
+    loadOv(true);
+    loadInq(true);
+    loadPd(true);
+    loadUnread(true);
     const qs = new URLSearchParams(location.search);
     const sid = qs.get('session_id'); const revealQ = qs.get('reveal') || '';
     // Only drop session_id from the URL once the payment is confirmed — it is the customer's
@@ -549,16 +582,18 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     profile:   () => setView('profile'),
     account:   () => setView('account'),
   };
-  const navigate = (id) => (GO[id] ? GO[id]() : setView('home'));
+  // A sidebar click is a fresh destination: it must not re-open the request or project an earlier
+  // click was aimed at.
+  const navigate = (id) => { setFocusInq(''); setFocusProject(''); return GO[id] ? GO[id]() : setView('home'); };
   return (<PortalShell
     lang={lang} t={(k) => t(lang, k)} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang}
     onSignOut={onSignOut} view={view} onView={navigate} token={token}
     customerName={(ov && ov.customer && ov.customer.name) || ''}
-    unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} order={ov && ov.layout && ov.layout.order}
+    unread={unread} alerts={alertsCount} alertList={(ov && ov.alerts) || []} onAlert={onAlert} order={ov && ov.layout && ov.layout.order}
     suggestions={assistantOffers(lang, inqs, ballOf)}
   >
   {MODULES.some((m) => m[0] === view) ? (
-    <ModuleWindow id={view} onClose={() => setView('home')} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
+    <ModuleWindow id={view} onClose={() => navigate('home')} onOpenRfq={openRfq} projectId={focusProject} token={token} lang={lang} inqs={inqs} onChanged={refresh} twin={ov && ov.twin} />
   ) : (
   <div className="mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6">
     {/* THE WELCOME BAND. §1 asks the opening screen to greet by time of day AND company name; the
@@ -606,22 +641,25 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         while transcription is held. Drawings and BOQs are read server-side and are never gated. */}
     {/* An incomplete account is a place to go, not a dead end: create_inquiry answers
         account_incomplete (with `missing`), and the Account page lists exactly what is missing. */}
-    {showNew && <div className="mb-5"><NewRequest token={token} lang={lang}
+    {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} pickFile={pickFile}
       call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
-      onDone={() => { setShowNew(false); setDraft(''); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => { setShowNew(false); setDraft(''); }} /></div>}
+      onDone={() => { setShowNew(false); setPickFile(false); setDraft(''); refresh(); setNote(t(lang, 'request_sent')); }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
 
     {/* The severity marker was a 4px border-l — which is both a well-worn generated-UI tell and,
         more to the point here, LEFT: in Arabic it lands on the wrong edge of the card. A tinted
         glyph carries the same three levels, on the correct side, in both directions. */}
+    {/* Each alert opens what it is about (onAlert): "2 quotes to review on HVAC" was a box you could
+        read and not act on, and the request it named was somewhere further down the page. */}
     {ov && !!(ov.alerts || []).length && <div className="mb-5 flex flex-col gap-2">{ov.alerts.map((a, i) => (
-      <div key={i} className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3">
+      <button key={i} type="button" onClick={() => onAlert(a)} className="flex w-full items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-start transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <span className={cn('mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg',
           a.severity === 'high' ? 'bg-danger/15 text-danger' : a.severity === 'medium' ? 'bg-warn/15 text-warn-fg' : 'bg-primary/15 text-primary')}>
           <BellRing className="h-3.5 w-3.5" aria-hidden />
         </span>
-        <div className="min-w-0"><b className="text-[13.5px] text-foreground">{a.title}</b>
-          <div className="text-xs leading-relaxed text-muted-foreground">{a.detail}</div></div>
-      </div>))}</div>}
+        <span className="min-w-0 flex-1"><b className="block text-[13.5px] text-foreground">{a.title}</b>
+          <span className="block text-xs leading-relaxed text-muted-foreground">{a.detail}</span></span>
+        <ArrowRight className={cn('mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground', rtl && 'rotate-180')} aria-hidden />
+      </button>))}</div>}
 
     {!onlyRequests && (ov ? (
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -637,8 +675,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
       </div>
     ))}
 
-    {!onlyRequests && <QuickActions lang={lang} onNew={() => setShowNew(true)} onView={navigate}
-      comparable={inqs.filter((i) => (i.quotes || []).length >= 2).length} />}
+    {/* Compare opens the request that HAS two quotes (the most recent one), not the list; Upload
+        opens the composer with its file picker already open, not the composer alone. */}
+    {!onlyRequests && <QuickActions lang={lang} onNew={() => openNew(false)} onUpload={() => openNew(true)}
+      onCompare={() => { const c = inqs.flatMap((i) => [i, ...(i.children || [])]).find((i) => (i.quotes || []).length >= 2); openRfq(c ? c.id : ''); }}
+      comparable={inqs.flatMap((i) => [i, ...(i.children || [])]).filter((i) => (i.quotes || []).length >= 2).length} />}
+    {!onlyRequests && <div className="mb-5"><DecisionSupport token={token} lang={lang === 'ar' ? 'ar' : 'en'} onOpenRfq={openRfq} /></div>}
     {/* §2 THE PROFILE, ON THE ENTRY SCREEN. Six KPI tiles say what the customer has DONE; the twin
         says who they ARE — industry, live projects, the suppliers they keep coming back to, the
         categories they actually buy, their approval chain, and how much of that profile we hold.
@@ -648,7 +690,6 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         that tells the customer what to DO. It renders nothing at all when there is nothing to
         recommend, nothing quiet and no category history, so it never occupies the best space on
         the page with an empty heading. */}
-    {!onlyRequests && <div className="mb-5"><DecisionSupport token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>}
     {!onlyRequests && ov && ov.twin ? <div className="mb-5"><CompanyTwin twin={ov.twin} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {/* ── THE PROJECTS / FINANCIAL / SUPPLIER-NETWORK PANELS (§1, §4) ──────────────────────────
         Every figure below is nullable and every one of them says which absence is true rather than
@@ -667,7 +708,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
             const openN = Number(p.rfq_open) || 0, totalN = Number(p.rfq_count) || 0;
             const budget = p.budget_total == null ? null : Number(p.budget_total);
             const timeline = p.timeline_pct == null ? null : Math.max(0, Math.min(100, Number(p.timeline_pct)));
-            return (<Card key={p.project_id} className="p-3.5 transition-colors duration-200">
+            // The card opens THAT project's workspace (ProjectsModule initialProjectId, the same
+            // project_summary.project_id ProjectList's own cards open by). It was a plain box.
+            return (<Card key={p.project_id} role="button" tabIndex={0} aria-label={p.name}
+              onClick={() => openProject(p.project_id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProject(p.project_id); } }}
+              className="cursor-pointer p-3.5 transition-colors duration-200 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex justify-between items-center gap-2"><b className="text-[13.5px] text-foreground">{p.name}</b><span className={S.sub}>{projectStatusLabel(lang, p.status)}</span></div>
               <div className={cn(S.sub, 'mt-1')}>{openN + ' / ' + totalN + ' ' + t(lang, 'rfqs_open_of')}{' · '}{(Number(p.supplier_count) || 0) + ' ' + t(lang, 'suppliers_engaged')}</div>
               <div className={cn(S.sub, 'mt-0.5')}>{budget == null ? t(lang, 'no_budget_set') : (t(lang, 'budget_label') + ': ' + aed(budget))}</div>
@@ -727,17 +773,18 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         <WhatHappensNext lang={lang} />
       </Card>
     ) : (filtered && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, needle ? 'no_search_match' : 'ball_none_you')}</div></Card>
-      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} />)}</div>
+      : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} />)}</div>
       // The overview shows the five most recent and links to the full list; My requests shows all.
       // Mapped then sliced, rather than sliced then mapped, so this stays the dashboard's list over
       // `inqs` — the thing the entry-not-login-dashboard leg reads to tell a workspace carrying live
       // work from a page of figures and links. Ten rows at most; the extra map costs nothing.
-      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} />).slice(0, onlyRequests ? undefined : 5)}</div>}
+      : <div className={cn(S.list, 'mt-3')}>{inqs.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} />).slice(0, onlyRequests ? undefined : 5)}</div>}
     {/* fn_customer_stats computes history_12m on EVERY overview call and nothing drew it; recharts
         and ui/chart.tsx were installed with no importers, so the customer product contained zero
         charts. Each chart states what is true when there is nothing to draw rather than rendering
         a flat line at zero, which reads as a real but quiet year. */}
-    {!onlyRequests && <div className="mt-5"><SpendingIntelligence stats={s} inquiries={inqs} lang={lang === 'ar' ? 'ar' : 'en'} /></div>}
+    {/* null until my_inquiries answers: an empty array here read "You have no requests yet" while loading. */}
+    {!onlyRequests && <div className="mt-5"><SpendingIntelligence stats={s} inquiries={data ? inqs : null} lang={lang === 'ar' ? 'ar' : 'en'} /></div>}
   </div>
   )}
   </PortalShell>);
@@ -822,7 +869,7 @@ function ballHeadline(lang, ball) {
   if (!ball.you) return t(lang, 'hl_nothing');
   return parts.join(lang === 'ar' ? '، ' : ' · ') + '.';
 }
-function QuickActions({ lang, onNew, onView, comparable }) {
+function QuickActions({ lang, onNew, onUpload, onCompare, comparable }) {
   const rtl = lang === 'ar';
   // A BUTTON THAT CANNOT DO ITS JOB SHOULD SAY SO, NOT PRETEND. "Compare quotes" navigated to My
   // requests unconditionally, so on a new account — which is every account on day one — it landed
@@ -832,8 +879,8 @@ function QuickActions({ lang, onNew, onView, comparable }) {
   // dead end.
   const rows = [
     { icon: Plus, label: 'qa_new', run: onNew },
-    { icon: Scale, label: 'qa_compare', run: () => onView('requests'), off: comparable === 0, why: 'qa_compare_off' },
-    { icon: Upload, label: 'qa_upload', run: onNew },
+    { icon: Scale, label: 'qa_compare', run: onCompare, off: comparable === 0, why: 'qa_compare_off' },
+    { icon: Upload, label: 'qa_upload', run: onUpload },
     // A BUTTON HAS TO DO SOMETHING WHERE THE FINGER IS. This focused #qd-ask and stopped there: on
     // the dashboard that put a caret in a field at the top of the page and changed nothing else,
     // and at 375 the top bar collapses the field to an icon, so "Ask the assistant" moved a caret
@@ -869,12 +916,18 @@ function QuickActions({ lang, onNew, onView, comparable }) {
     </section>
   );
 }
-function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
-  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} />)}</div></Card>); }
-  const hasFocus = !!focusQuote && (inq.quotes || []).some((q) => q.id === focusQuote);
+function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq }) {
+  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card id={'inq-' + inq.id} className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} focusInq={focusInq} />)}</div></Card>); }
+  // Opened by the quote a payment was for (focusQuote) or by any control that asked to open THIS
+  // request by id (focusInq — Dashboard's openRfq). The id is the same inquiries.id every caller holds.
+  const hasFocus = (!!focusQuote && (inq.quotes || []).some((q) => q.id === focusQuote)) || (!!focusInq && String(inq.id) === String(focusInq));
   const [open, setOpen] = useState(hasFocus);
-  // The receipt names the quote it paid for; when that quote lives on this request, open it.
-  useEffect(() => { if (hasFocus) setOpen(true); }, [hasFocus]);
+  const cardRef = useRef(null);
+  useEffect(() => {
+    if (!hasFocus) return;
+    setOpen(true);
+    try { cardRef.current && cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {}
+  }, [hasFocus]);
   const [canceling, setCanceling] = useState(false);
   const [editing, setEditing] = useState(false);
   const [eSummary, setESummary] = useState(inq.summary || '');
@@ -892,7 +945,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
-  return (<Card className={cn('p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
+  return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
         children and <div> inside <button> is an invalid content model. */}
     <div className="flex justify-between items-center gap-2.5 cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setOpen(!open)}
@@ -1143,6 +1196,7 @@ function ExportComparison({ inqId, token, lang }) {
 function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [dialog, ask] = useConfirm(lang);
+  const [negOpen, setNegOpen] = useState(false);
   const reduce = useReducedMotion();
   // THE REVEAL MOMENT: the redaction bar lifts off the supplier the first time the customer sees
   // them — in this session, or on the return from Stripe (focus). Once; a later visit is plain.
@@ -1194,7 +1248,14 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
     <div className="mt-1.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
-    <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
+    {/* Behind a disclosure: mounted on every quote card, it fired one negotiation_assistant call
+        per quote on every open request, for guidance most customers never looked at. */}
+    <div className="mt-2">
+      <button type="button" aria-expanded={negOpen} onClick={() => setNegOpen((v) => !v)} className="text-[12.5px] font-semibold text-primary">
+        {t(lang, negOpen ? 'q_neg_hide' : 'q_neg_show')}
+      </button>
+      {negOpen ? <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
+    </div>
     {revealed ? (contact
         ? <RevealMoment play={justRevealed && !reduce}><Contact play={justRevealed && !reduce} c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
@@ -1298,7 +1359,7 @@ const MODULES = [
 // needs — and a sidebar item that opens a modal is the tell that a screen is a dashboard wearing an
 // application's clothes. Nothing here fetches: each surface still owns its endpoint, its loading
 // state and its empty state.
-function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
+function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, onChanged, twin }) {
   const l2 = lang === 'ar' ? 'ar' : 'en';
   const rtl = lang === 'ar';
   const entry = MODULES.find((m) => m[0] === id);
@@ -1313,12 +1374,16 @@ function ModuleWindow({ id, onClose, token, lang, inqs, onChanged, twin }) {
       <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, entry[1])}</h1>
     </div>
     <div className="flex flex-col gap-3">
-      {id === 'projects' && <ProjectsModule token={token} lang={l2} linkableRfqs={inqs.map((i) => ({ id: i.id, summary: i.summary, category: i.category }))} onOpenRfq={onClose} onChanged={onChanged} />}
-      {id === 'spatial' && <SpatialModule token={token} lang={l2} inquiries={inqs} onOpenRfq={onClose} />}
+      {/* onOpenRfq is Dashboard's openRfq: each of these hands back an inquiries.id and that request
+          opens. It was onClose, which discarded the id and showed the Overview. */}
+      {/* linkableRfqs: requests not already in a project. Offering all of them let "Link" silently
+          move a request out of another project (project_api link overwrites inquiries.project_id). */}
+      {id === 'projects' && <ProjectsModule token={token} lang={l2} initialProjectId={projectId || undefined} linkableRfqs={inqs.filter((i) => !i.project_id).map((i) => ({ id: i.id, summary: i.summary, category: i.category }))} onOpenRfq={onOpenRfq} onChanged={onChanged} />}
+      {id === 'spatial' && <SpatialModule token={token} lang={l2} inquiries={inqs} onOpenRfq={onOpenRfq} />}
       {id === 'documents' && <DocumentVault token={token} lang={l2} />}
-      {id === 'messages' && <CommunicationCenter token={token} lang={l2} onOpenRfq={onClose} />}
-      {id === 'approvals' && <ApprovalChain token={token} lang={l2} onOpenRfq={onClose} />}
-      {id === 'orders' && <OrdersList token={token} lang={l2} onOpenRfq={onClose} />}
+      {id === 'messages' && <CommunicationCenter token={token} lang={l2} onOpenRfq={onOpenRfq} />}
+      {id === 'approvals' && <ApprovalChain token={token} lang={l2} onOpenRfq={onOpenRfq} />}
+      {id === 'orders' && <OrdersList token={token} lang={l2} onOpenRfq={onOpenRfq} />}
       {id === 'predict' && <PredictiveIntelligence token={token} lang={l2} />}
       {/* §2 the twin, §9 discovery and §17 the memory — three surfaces whose backends were complete
           and whose only reader was os_api, the staff console. They share one window because they

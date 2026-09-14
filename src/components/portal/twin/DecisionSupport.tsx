@@ -27,6 +27,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { take } from '@/components/me/prefetch';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
 const S = {
@@ -62,6 +63,17 @@ type Chase = {
 // One sentence per state, each ending in the thing the customer can actually do. Written as
 // statements about THEIR request, not about our pipeline: "no supplier has replied" is their
 // situation; "0 inquiry_matches rows" is ours.
+// A request's name: a button to that request when the portal can open one, a heading when not.
+function Head({ id, onOpen, children }: { id: string; onOpen?: (id: string) => void; children: React.ReactNode }) {
+  if (!onOpen || !id) return <div className={S.head}>{children}</div>;
+  return (
+    <button type="button" onClick={() => onOpen(String(id))}
+      className={cn(S.head, 'text-start underline-offset-2 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+      {children}
+    </button>
+  );
+}
+
 const CHASE_COPY: Record<string, [string, string]> = {
   not_yet_sent: [
     'This has not reached any supplier yet. Open it and check the trade is right — that is what we match on.',
@@ -81,12 +93,12 @@ const CHASE_COPY: Record<string, [string, string]> = {
   ],
 };
 
-// No onOpenRfq. The overview renders every InquiryCard inline directly below this panel, so there
-// is no open-a-request-by-id target to navigate to - `navigate` here takes a MODULE id and an
-// inquiry id would have fallen through it to the home view. A heading styled as a button that
-// goes nowhere is worse than a heading, so these are headings.
-export function DecisionSupport({ token, lang = 'en' }:
-  { token: string; lang?: string }) {
+// onOpenRfq (14 Sep 2026). There was no open-a-request-by-id target, so these were headings; the
+// copy under them says "Open it" and nothing could be opened. The portal now has one (Dashboard's
+// openRfq: My requests, that card opened and scrolled to), so each recommendation and each quiet
+// request is a button to the request it is about. Without the prop they stay headings.
+export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
+  { token: string; lang?: string; onOpenRfq?: (inquiryId: string) => void }) {
   const [rec, setRec] = useState<Rec[]>([]);
   const [mkt, setMkt] = useState<Mkt[]>([]);
   const [chase, setChase] = useState<Chase[]>([]);
@@ -97,12 +109,15 @@ export function DecisionSupport({ token, lang = 'en' }:
     let on = true;
     (async () => {
       try {
-        const r = await fetch(`${SUPA_FN}/customer_portal`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
-          body: JSON.stringify({ action: 'decision_support', lang }),
-        });
-        const j = await r.json().catch(() => null);
+        // First render takes the request CustomerPortal started beside the kyc gate (prefetch.ts).
+        const j: any = await take(token, 'decision_support', async () => {
+          const r = await fetch(`${SUPA_FN}/customer_portal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
+            body: JSON.stringify({ action: 'decision_support', lang }),
+          });
+          return r.json().catch(() => null);
+        }).catch(() => null);
         if (!on) return;
         if (!j || !j.ok) { setState('failed'); return; }
         setRec(Array.isArray(j.recommend) ? j.recommend : []);
@@ -142,7 +157,7 @@ export function DecisionSupport({ token, lang = 'en' }:
         const sooner = days(r.days_sooner, lang);
         return (
           <div key={r.inquiry_id} className="mt-2.5 border-t border-border/60 pt-2.5 first:border-0 first:pt-0">
-            <div className={S.head}>{r.summary || (r.category && categoryLabel(r.category, lang)) || L(lang, 'Your request', 'طلبك')}</div>
+            <Head id={r.inquiry_id} onOpen={onOpenRfq}>{r.summary || (r.category && categoryLabel(r.category, lang)) || L(lang, 'Your request', 'طلبك')}</Head>
             <div className={cn(S.sub, 'mt-1')}>
               {r.same_quote_wins
                 ? L(lang,
@@ -213,7 +228,7 @@ export function DecisionSupport({ token, lang = 'en' }:
         if (!copy) return null;
         return (
           <div key={c.inquiry_id} className="mt-2.5 border-t border-border/60 pt-2.5">
-            <div className={S.head}>{c.summary || (c.category && categoryLabel(c.category, lang)) || L(lang, 'Your request', 'طلبك')}</div>
+            <Head id={c.inquiry_id} onOpen={onOpenRfq}>{c.summary || (c.category && categoryLabel(c.category, lang)) || L(lang, 'Your request', 'طلبك')}</Head>
             <div className={cn(S.sub, 'mt-1')}>
               {Math.round(Number(c.age_days)) < 1
                 ? L(lang, 'Posted today. ', 'نُشر اليوم. ')

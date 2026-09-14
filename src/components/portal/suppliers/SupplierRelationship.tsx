@@ -100,6 +100,12 @@ type HistoryResponse = {
   projects_count?: number;
   /** Not served today. Read opportunistically so the endpoint change alone lights this up. */
   score?: SupplierScore | null;
+  /** customer_api supplier_history: THIS customer's record with this supplier, plus one
+   *  platform-wide count labelled as such. Served on every call and, until 14 Sep 2026, never read. */
+  relationship?: {
+    rfqs_sent?: number; quotes_returned?: number; orders?: number;
+    response_rate_pct?: number | null; rfqs_sent_platform_wide?: number;
+  } | null;
 };
 
 type Lang = 'en' | 'ar';
@@ -360,7 +366,10 @@ export function SupplierHistoryPanel({
         if (!on) return;
         setBusy(false);
         if (j && j.ok) setData(j);
-        else setErr((j && j.error) || 'Could not load this supplier’s history.');
+        // The server's error is an English sentence; the customer reads their own language.
+        else setErr(j && j.error === 'Reveal this supplier first to see their profile.'
+          ? ar(lang, 'اكشف هذا المورّد أولاً لرؤية ملفه وسجل مشاريعه.', 'Reveal this supplier first to see their profile and project history.')
+          : ar(lang, 'تعذّر تحميل سجل المورّد.', 'Could not load this supplier’s history.'));
       })
       .catch(() => {
         if (!on) return;
@@ -467,6 +476,26 @@ export function SupplierHistoryPanel({
             label={ar(lang, 'عروض فائزة', 'Quotes won')}
             value={typeof score.quotes_won === 'number' ? String(score.quotes_won) : null}
           />
+        </div>
+      ) : null}
+
+      {/* §13 "History: 17 RFQs, 8 Orders" — your record with them, not their platform record. A
+          response rate with nothing sent is unmeasured (null), never 0%. */}
+      {data?.relationship ? (
+        <div className="mt-2.5">
+          <div className={S.h2}>{ar(lang, 'تعاملك مع هذا المورّد', 'Your history with this supplier')}</div>
+          <div className="mt-1.5 grid gap-2 grid-cols-2 sm:grid-cols-4">
+            <Stat label={ar(lang, 'طلبات أُرسلت إليه', 'Your RFQs sent to them')} value={String(data.relationship.rfqs_sent ?? 0)} />
+            <Stat label={ar(lang, 'عروض ردّ بها', 'Quotes they returned')} value={String(data.relationship.quotes_returned ?? 0)} />
+            <Stat label={ar(lang, 'نسبة الردّ', 'Response rate')} value={data.relationship.response_rate_pct == null ? null : data.relationship.response_rate_pct + '%'} />
+            <Stat label={ar(lang, 'مشاريع مكشوفة', 'Revealed projects')} value={String(data.relationship.orders ?? 0)} />
+          </div>
+          {typeof data.relationship.rfqs_sent_platform_wide === 'number' ? (
+            <div className={cn(S.note, 'mt-1')}>
+              {ar(lang, `على المنصة كلها: ${data.relationship.rfqs_sent_platform_wide} طلبًا أُرسل إلى هذا المورّد.`,
+                `Across the whole platform: ${data.relationship.rfqs_sent_platform_wide} RFQs sent to this supplier.`)}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
