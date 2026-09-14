@@ -36,6 +36,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { takeInStatement } from '../_shared/bank_statement_intake.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -129,7 +130,8 @@ function isReceiptish(toLocal:string, subject:string, from:string){
   if (/(billing|invoice|receipts?|no-?reply.*(pay|billing)|stripe)/i.test(from)) return true;
   return false;
 }
-Deno.serve(observe('resend_inbound', async (req) => {
+// Exported so its test drives the real handler; the runtime serves it (a test sets RESEND_INBOUND_NO_SERVE).
+export const handler = observe('resend_inbound', async (req) => {
   try {
     const url = new URL(req.url);
     const s = url.searchParams.get('s');
@@ -247,6 +249,33 @@ Deno.serve(observe('resend_inbound', async (req) => {
           if (!docText) receiptReason = 'The attached PDF carries no text layer we can trust — it is scanned, or uses a font we cannot map — so nothing was read from it. ';
         } else if (att) {
           receiptReason = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
+        }
+        // 15 SEP 2026 — A BANK STATEMENT IS NOT A RECEIPT. Recognised and taken in by the SAME routine the
+        // accountant's expense_sweep uses (_shared/bank_statement_intake.ts), before the receipt parser and
+        // the model fallback: the founder's first forwarded Mashreq statement was held here as an
+        // unreadable receipt, after a gateway call it should never have made.
+        if (isExpenseMailbox && expenseSenderOk) {
+          let csvText = '';
+          for (const a of atts.slice(0, 8)) {
+            if (!/\.csv$/i.test(String(a.filename || a.name || ''))) continue;
+            const by = await attachmentBytes(a, emailId, rkey);
+            if (by && by.length <= 5 * 1024 * 1024) { csvText = new TextDecoder().decode(by); break; }
+          }
+          const svixKey = req.headers.get('svix-id') || req.headers.get('webhook-id') || '';
+          const stRef = emailId ? 'resend:' + emailId : 'svix:' + svixKey;
+          const stIn = await takeInStatement(admin, {
+            from, subject, filenames: atts.map((a) => String(a.filename || a.name || '')),
+            pdf: att && att.mime === 'application/pdf' ? att : null, csvText, docText, readNote: receiptReason,
+            sourceRef: stRef, archivePath: 'bank/' + new Date().toISOString().slice(0, 10) + '/' + (emailId || svixKey || Date.now()) });
+          if (stIn) {
+            await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, html: fullHtml, provider_email_id: providerEmailId,
+              body: `[BANK STATEMENT — taken in as ${stRef}, ${stIn.lines} line(s)${stIn.problem ? ', does NOT add up, recorded unreadable' : ''}]${stIn.doc_path ? ' document: ' + stIn.doc_path : ''}\n\n` + fullText,
+              attachments_count: stIn.doc_path ? 1 : 0, matched_existing: false, needs_review: !!stIn.error });
+            await logRun(stIn.error ? 'error' : 'ok', { expenses_mailbox: 1, bank_statement: true, source_ref: stRef, lines: stIn.lines, adds_up: stIn.adds_up },
+              stIn.error ? 'bank statement recognised but fn_accountant_bank_statement_ingest failed: ' + stIn.error
+                         : 'bank statement taken in as ' + stRef + (stIn.problem ? ' — it does not add up: ' + stIn.problem : ''));
+            return J({ ok: true, receipt: false, bank_statement: true, source_ref: stRef, ...stIn }, stIn.error ? 500 : 200);
+          }
         }
         // the PDF text is APPENDED, so the forwarded "From:" header at the top of the note still
         // identifies the original vendor and a figure in the note still wins over one in the file
@@ -614,4 +643,5 @@ Deno.serve(observe('resend_inbound', async (req) => {
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));
     return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception (inbound email dropped): ' + m); return J({ error: m }, 500); }
-}));
+});
+if (!Deno.env.get('RESEND_INBOUND_NO_SERVE')) Deno.serve(handler);

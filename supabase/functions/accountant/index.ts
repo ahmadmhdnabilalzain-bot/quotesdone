@@ -69,7 +69,7 @@ import { isDemoEmail } from '../_shared/demo_identity.ts';
 // modules with their own tests.
 import { revealChargeFor, shortfallAfterPayment } from '../_shared/reveal_fee.ts';
 import { isBankStatement, readStatement } from '../_shared/bank_statement_parse.ts';
-import { pdfTextByRows } from '../_shared/pdf_text_positions.ts';
+import { takeInStatement } from '../_shared/bank_statement_intake.ts';
 import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -809,7 +809,10 @@ Deno.serve(observe('accountant', async (req) => {
       }
 
       const toList = (v: unknown): string[] => (Array.isArray(v) ? v : [v]).map((x) => String(x || '').toLowerCase().trim()).filter(Boolean);
-      const mine = history.filter((m) => toList(m.to).some((a) => a === EXPENSE_MAILBOX || a.split('@')[0] === 'expenses'));
+      // body.email_id narrows the sweep to ONE message (reprocessing a single email after a fix).
+      const only = String(body.email_id || '').trim();
+      const mine = history.filter((m) => toList(m.to).some((a) => a === EXPENSE_MAILBOX || a.split('@')[0] === 'expenses'))
+        .filter((m) => !only || String(m.id) === only);
 
       const results: Record<string, unknown>[] = [];
       let booked = 0, already = 0, held = 0, refused = 0, failed = 0;
@@ -921,36 +924,13 @@ Deno.serve(observe('accountant', async (req) => {
         // e-statement: pdf_text returns '' for it (its Arabic captions are glyph noise, correctly refused by
         // looksLikeText), and its filename and forwarder name no bank. The positioned reader rebuilds the rows;
         // that text is used ONLY to recognise and read a statement — a receipt keeps pdf_text's guard.
-        let rowText = '';
-        if (att && att.mime === 'application/pdf' && (stmt || !docText)) rowText = await pdfTextByRows(att.bytes).catch(() => '');
-        const isStmt = stmt || (!!rowText && isBankStatement(from, subject, atts.map((a) => String(a.filename || a.name || '')), rowText));
-        if (isStmt) {
-          const st = readStatement(csvText || rowText || docText);
-          const lines = st.lines;
-          if (dryRun) { say('bank_statement', { lines: lines.length, adds_up: !st.problem, files: fileNotes }); continue; }
-          let stPath: string | null = null;
-          if (att) {
-            const sp = 'bank/' + seenAt.slice(0, 10) + '/' + emailId + '.' + att.ext;
-            const up = await admin.storage.from('receipt-files').upload(sp, att.bytes, { contentType: att.mime, upsert: true });
-            if (!up.error) stPath = sp;
-          }
-          // A statement that does not add up is ingested with NO lines: it is recorded unreadable, which
-          // fn_accountant_bank_reconcile reports as an open accountant finding carrying this note.
-          const { data: ing, error: ingErr } = await admin.rpc('fn_accountant_bank_statement_ingest', {
-            p_account: 'mashreq', p_source_ref: msgKey, p_statement_month: st.period_from ? st.period_from.slice(0, 8) + '01' : null, p_lines: lines,
-            p_doc_path: stPath ? 'receipt-files/' + stPath : null,
-            p_note: st.problem ? 'The statement does not add up, so none of it was booked: ' + st.problem
-                  : lines.length ? null : 'No line could be read without guessing a sign: ' + (readNote || 'no CSV export and no CR/DR markers in the text layer') });
-          // The closing balance as printed (#659's fn_accountant_bank_balance_record), only for a statement
-          // whose every row was proved against it. Before #659 is applied the routine is absent and this says so.
-          let balance: unknown = null;
-          if (!ingErr && !st.problem && st.closing_balance_aed !== null && st.period_to) {
-            const { data: b, error: bErr } = await admin.rpc('fn_accountant_bank_balance_record', {
-              p_source_ref: msgKey, p_balance_aed: st.closing_balance_aed, p_on: st.period_to });
-            balance = bErr ? { error: bErr.message } : b;
-          }
-          say(ingErr ? 'bank_statement_failed' : 'bank_statement', { lines: lines.length, adds_up: !st.problem, problem: st.problem,
-            result: ing ?? null, closing_balance: balance, error: ingErr?.message ?? null });
+        // One recogniser and one intake for this sweep AND the live webhook (_shared/bank_statement_intake.ts).
+        const stIn = await takeInStatement(admin, {
+          from, subject, filenames: atts.map((a) => String(a.filename || a.name || '')),
+          pdf: att && att.mime === 'application/pdf' ? att : null, csvText, docText, readNote,
+          sourceRef: msgKey, archivePath: 'bank/' + seenAt.slice(0, 10) + '/' + emailId, dryRun });
+        if (stIn) {
+          say(stIn.error ? 'bank_statement_failed' : 'bank_statement', { ...stIn, files: fileNotes });
           continue;
         }
         // The PDF text is APPENDED, so the forwarded "From:" header still names the original vendor

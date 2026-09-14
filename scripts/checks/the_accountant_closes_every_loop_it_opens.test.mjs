@@ -44,6 +44,9 @@ export const FILES = [
   'the_accountant_budgets_every_renewal_the_it_engineer_sees_coming.sql',
   'the_accountant_tells_the_ceo_every_month_what_is_in_the_bank_and_how_long_it_lasts.sql',
   'the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql',
+  // backup retention (15 Sep 2026, #672) adds table_export_run.pruned_at, which fn_it_backup_expected
+  // in the registry file reads, so it is replayed before the registry exactly as MANIFEST applies it
+  'the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql',
   'every_stored_document_source_is_registered_for_backup.sql',
   'an_expense_the_founder_vouches_for_is_documented_by_his_word.sql',
 ];

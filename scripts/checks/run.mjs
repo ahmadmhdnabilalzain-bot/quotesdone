@@ -210,7 +210,11 @@ function main() {
     // BEFORE running a single assertion — the whole Deno suite reported as one failure with no test
     // names in it. Every `deno check` step in this repo already carries this flag; the test step
     // did not, and nothing needed it until a test reached a module with an npm dependency.
-    const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto', ...deno],
+    // --allow-env, SCOPED to three names (15 Sep 2026): resend_inbound/index.test.ts drives the live
+    // webhook's own handler, whose module builds its Supabase client from these at import. The test points
+    // them at a stub host and replaces fetch; no network, no filesystem, no other variable is granted.
+    const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto',
+      '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE', ...deno],
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoRes.error && denoRes.error.code === 'ENOENT') {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file

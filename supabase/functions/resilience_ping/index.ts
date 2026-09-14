@@ -305,6 +305,33 @@ async function tableExportTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// BACKUP RETENTION (15 Sep 2026, it_engineer): 90 days for every export day, 12 months for Friday full
+// copies. fn_backup_prune_tick runs its pass once per Dubai day after that day's export finished, and
+// in dry-run mode (the default) only logs what it would delete. In delete mode the two workers below
+// remove what it logged: backup op 'prune' (storage) and dropbox_backup op 'prune' (Dropbox). Public
+// endpoint: counts only.
+async function backupPruneTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_backup_prune_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const d = data as any;
+    const out: Record<string, unknown> = { mode: d?.mode, pass: d?.pass ?? null, storage_pending: d?.storage_pending,
+                                           dropbox_pending: d?.dropbox_pending, findings: d?.findings };
+    if (!d?.storage_pending && !d?.dropbox_pending) return out;
+    const secret = await sec('cred_fn_resilience_ping');
+    const call = async (fn: string) => {
+      const r = await fetch(FN + '/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: secret, op: 'prune' }), signal: AbortSignal.timeout(55000) });
+      await r.body?.cancel().catch(() => {});
+      return r.status;
+    };
+    if (d.storage_pending) out.storage_run = await call('backup').catch((e) => String((e as Error)?.message || e));
+    if (d.dropbox_pending) out.dropbox_run = await call('dropbox_backup').catch((e) => String((e as Error)?.message || e));
+    return out;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE FOUNDER'S WHATSAPP QUEUE HAD NO CONSUMER AT ALL. Measured 9 Sep 2026: public.notifications
 // held a channel='whatsapp' founder alert queued since 7 Sep 18:15 with attempts = 0, and
 // public.agent_runs held ZERO rows for send_whatsapp — it has never run. Nothing in the repository
@@ -680,6 +707,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const backup = await backupTick();
     const backupVerify = await dropboxVerifyTick();
     const tableExport = await tableExportTick();
+    const backupPrune = await backupPruneTick();
     const weekly = await accountantWeeklyTick();
     const vat = await vatThresholdTick();
     const ceoWeekly = await ceoWeeklyTick();
@@ -712,7 +740,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, tableExport, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -736,6 +764,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, tableExport, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
