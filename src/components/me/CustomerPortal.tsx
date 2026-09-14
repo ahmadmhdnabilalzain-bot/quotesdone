@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { urlLocale, applyDocumentLocale } from '@/lib/documentLocale';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -80,7 +81,11 @@ const warmDashboard = (tk, lang) => {
   warm(tk, 'threads', () => call('messages_api', { action: 'threads' }, tk));
   warm(tk, 'decision_support', () => call('customer_portal', { action: 'decision_support', lang }, tk));
 };
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
+// Before sign-in the URL decides - it is what the [locale] layout already rendered, so the page never
+// flips. This read localStorage and the NEXT_LOCALE cookie only; in a fresh browser both are empty,
+// so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
+// language decides (onServedLocale). src/lib/documentLocale.ts.
+function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
 import { t, tf, errText, emirateName } from './portalText';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
@@ -207,11 +212,7 @@ export function CustomerPortal() {
   // and pronunciation rules, so an Arabic portal was being announced as English. It is also what
   // the browser uses for hyphenation, quotation marks, and the direction of anything that does not
   // carry a dir of its own. The panels keep their local dir; this sets the thing above them.
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  }, [lang]);
+  useEffect(() => { applyDocumentLocale(lang); }, [lang]);
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   // THE STORED PROFILE LOCALE. customers.locale has existed all along and the portal could not
   // honour it: my_inquiries did not serve it (fixed 5 Aug 2026) and this component decided language

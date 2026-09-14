@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { urlLocale, applyDocumentLocale } from '@/lib/documentLocale';
 import { createClient } from '@supabase/supabase-js';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
 // the ones whose routine has something to show, each on demand. The AI onboarding chat
@@ -240,7 +241,7 @@ const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 // The URL decides the language (14 Sep 2026). /ar/portal must render Arabic and /portal English, the
 // same as every other page and the same as the page's own <title>; a remembered localStorage choice
 // used to override the URL, so a shared /ar/portal link could open in English.
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; return /^\/ar(\/|$)/.test(window.location.pathname) ? 'ar' : 'en'; }catch(_e){} return 'en'; }
+function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
 function switchLang(to){ try{ localStorage.setItem('qd-lang', to); document.cookie = 'NEXT_LOCALE=' + to + ';path=/;max-age=31536000;samesite=lax'; }catch(_e){} const p = window.location.pathname.replace(/^\/ar(?=\/|$)/, '') || '/'; window.location.href = (to === 'ar' ? '/ar' : '') + (p === '/' && to === 'ar' ? '' : p) + window.location.search; }
 // Typography and chrome carry the platform's voice: display weights are optically
 // tightened, body copy keeps a readable measure, and the tab bar is an inset well
@@ -497,7 +498,7 @@ export function SupplierPortal() {
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
   // The root element, not only this div, carries the language: it is what a screen reader reads.
-  useEffect(() => { try { document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; } catch (_e) {} }, [lang]);
+  useEffect(() => { applyDocumentLocale(lang); }, [lang]);
   // Light/dark is a per-device choice, the same key and the same .osx[data-theme] palette as the
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
