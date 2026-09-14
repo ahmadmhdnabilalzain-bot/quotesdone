@@ -48,6 +48,13 @@ export async function capabilityState(admin: Admin, supplierId: number) {
 export const tradeCode = (name: unknown): string =>
   String(name ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
 
+/** Does decision_policy's match_relevance_floor gate this match? Only when the request named
+ *  products: fn_match_capability's product term is 0 without them, so the floor would measure
+ *  nothing and refuse every exact-trade supplier without a track record (measured 15 Sep 2026: 5.0
+ *  against a floor of 35). The exact trade is then the whole relevance test. */
+export const relevanceFloorApplies = (products: unknown): boolean =>
+  Array.isArray(products) && products.some((p) => String(p ?? '').trim() !== '');
+
 // Returns [httpStatus, body]. What the supplier agrees to is what we store.
 //
 // THE TRADE LIST IS OPEN (founder, 14 Sep 2026: "our categories are not finalized. if a supplier

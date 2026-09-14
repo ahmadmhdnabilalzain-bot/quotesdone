@@ -28,6 +28,7 @@ import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
+import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -537,7 +538,16 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // cleared the hard gates; `above_floor` is what then cleared the relevance floor. A gap after
       // the gates is a market fact; a gap after the floor is a policy fact; they call for different
       // work and were previously one number.
-      const aboveFloor = rows.filter((r) => Number(r.score) >= floor);
+      // THE FLOOR GATES ONLY WHAT IT CAN MEASURE (15 Sep 2026). Measured on production:
+      // fn_match_capability(['aluminium']) with no products scored two verified, confirmed demo
+      // aluminium suppliers at 5.0 (the product term is 0 and size is unknown, 0.5 x 10), and with
+      // products ['aluminium windows'] at 45.0. customer_api's create_inquiry match sends no products,
+      // so against the floor of 35 every supplier without a track record was dropped and a ready
+      // aluminium request invited nobody (smoke run 34888342875: 0/3 matched). The #658 check calls
+      // the SQL directly and never met this floor. With no product named there is no relevance to
+      // measure; the exact trade already is the relevance test ("either exact match or no match"),
+      // so the floor gates only when products were asked for. Fanout and per-trade caps still apply.
+      const aboveFloor = relevanceFloorApplies(products) ? rows.filter((r) => Number(r.score) >= floor) : rows;
 
       const usedByTrade = new Map<string, number>();
       const picked: Array<Record<string, unknown>> = [];
