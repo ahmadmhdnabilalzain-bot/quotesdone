@@ -125,7 +125,7 @@ const H = { Authorization: 'Bearer ' + token };
 // MEASURED 13 Aug 2026: a change to _shared/internal_auth.ts made every importer a changed function,
 // so the job deployed 130. All 130 uploaded; the read-back then verified 120 and returned
 // "CHECK FAILED: 429 ThrottlerException" for the last ten — translate_page, uptime_check,
-// vercel_status, vt_scan, wa_inbound, wa_optin_set, wa_template_setup, wa_templates_watch,
+// vercel_status, vt_scan, wa_inbound, wa_optin_set (retired 14 Sep 2026, PR #657), wa_template_setup, wa_templates_watch,
 // workflow_dispatch, yello_scrape. Re-running the job failed on the SAME TEN. That is not a flake:
 // the management API's rate limit lands at a fixed point in an alphabetical loop of 130, so the
 // verifier could never confirm a full-fleet deploy, and a red job that means "we deployed fine but
