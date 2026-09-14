@@ -91,6 +91,8 @@ export async function leftovers(run) {
       (select count(*) from public.quote_spec_hold where quote_id::text in (${ids(run.ids.quotes)}))::int quote_spec_hold,
       (select count(*) from public.notifications where to_email like ${like} or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(run.ids.quotes)}))::int notifications,
       (select count(*) from public.transactions where quote_id::text in (${ids(run.ids.quotes)}))::int transactions,
+      (select count(*) from public.refunds where quote_id::text in (${ids(run.ids.quotes)}) or inquiry_id::text in (${ids(run.ids.inquiries)}))::int refunds,
+      (select count(*) from public.refund_case where refund_id in (select id from public.refunds where quote_id::text in (${ids(run.ids.quotes)})))::int refund_case,
       (select count(*) from public.inquiry_intake where email like ${like})::int inquiry_intake,
       (select count(*) from public.email_verifications where email like ${like})::int email_verifications,
       (select count(*) from storage.objects where name like ${q('%' + t + '%')})::int storage_objects`))[0];

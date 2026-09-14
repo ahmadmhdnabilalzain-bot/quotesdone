@@ -383,7 +383,30 @@ export async function journeyInvoiceRefund(ctx) {
     const seen = await s.page.getByText(/Invoice \(PDF\)|Invoice/).first().isVisible().catch(() => false);
     rep.step(J, 'the invoice is in the portal', seen ? 'PASS' : 'FAIL', seen ? '"Invoice" visible on the revealed request' : 'no invoice control on screen', { shot: await shot(s.page, ctx.dir, 'e_invoice_in_portal') });
   } finally { await s.ctx.close(); }
-  rep.step(J, 'refund ladder with the CEO checklist', 'SKIP', 'not driven: the CEO refund checklist is not merged in code on main (refund_ceo_check / refund_ceo_review exist as tables only); request_refund would open a live CEO case');
+  // THE REFUND LOOP (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql),
+  // driven as far as it can go without moving money. The customer asks in the portal's own endpoint; the
+  // request becomes a refunds case, the sales engineer hands it to the accountant, and the CEO's checklist
+  // decides. On day 0 the checklist MUST refuse: the day-3 chase and the day-5 final call have not happened.
+  const txId = tx?.id;
+  const rr = await call('customer_api', ctx.fx.customer.jwt, { action: 'request_refund', quote_id: qid });
+  const st = txId ? (await read(`select refund_status from public.transactions where id = ${q(txId)}`))[0] : null;
+  rep.step(J, 'the customer requests a refund in the portal', rr.status === 200 && st?.refund_status === 'requested' ? 'PASS' : 'FAIL',
+    `HTTP ${rr.status} refund_status=${st?.refund_status ?? 'none'} ${rr.text.slice(0, 120)}`);
+  const rf = txId ? (await read(`select id, status, requested_by from public.refunds where transaction_id = ${q(txId)} order by id desc limit 1`))[0] : null;
+  rep.step(J, 'the request opens a refund case', rf?.status === 'requested' && rf?.requested_by === 'customer' ? 'PASS' : 'FAIL', JSON.stringify(rf || {}));
+  const rh = rf ? (await read(`select agent, status, detail->>'type' as type, detail->>'from' as sender from public.agent_actions
+      where kind = 'handoff' and detail->>'type' = 'refund.requested' and detail->>'subject_id' = ${q(String(rf.id))} order by id desc limit 1`))[0] : null;
+  rep.step(J, 'the sales engineer hands the refund to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
+  const ck = txId ? (await read(`select public.fn_ceo_refund_checklist(${q(txId)}::uuid, 'approve', false) as c`))[0]?.c : null;
+  const failedItems = (ck?.failed || []).map((x) => x.item);
+  rep.step(J, "the CEO's checklist refuses approval before the day-3 chase and the day-5 final call",
+    ck && ck.ok === false && failedItems.includes('day3_chase_happened') && failedItems.includes('day5_final_call_happened') ? 'PASS' : 'FAIL',
+    ck ? `ok=${ck.ok}, failing: ${failedItems.join(', ') || 'none'}` : 'checklist did not run');
+  const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(qid)} or inquiry_id = ${q(ctx.inquiryId)} group by 1`);
+  rep.step(J, 'nothing the refund caused was dispatched', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
+    rn.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no notification rows');
+  rep.step(J, 'the refund is executed in Stripe TEST mode', 'SKIP',
+    'MISSING PIECE: refund execution has no test-mode switch. refunds_api (index.ts ~L52) and accountant execute_refunds (~L629) always read stripe_secret_key, the LIVE key, so a demo refund of a TEST payment would be sent to live Stripe. Not driven. They need the same account-derived key choice as stripe_checkout/stripe_confirm (_shared/demo_identity.ts stripeKeyNames).');
 }
 
 // ---- f. every nav item on both portals ----------------------------------------------------------
