@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { MobileNav } from './MobileNav';
 import { LangSwitch } from './LangSwitch';
-import { SpringHover } from '@/components/motion/primitives';
 
 /**
  * THE HEADER HAD NO CONCEPT OF AUDIENCE.
@@ -102,14 +101,12 @@ export function AudienceNav({ labels, linkClass }: { labels: AudienceLabels; lin
             {labels.login}
           </Link>
         ) : null}
-        <SpringHover className="rounded-full">
-          <Link
-            href={cta.href}
-            className="btn-key whitespace-nowrap rounded-full bg-teal px-2.5 py-2.5 text-[12.5px] font-bold leading-none text-[#04231F] shadow-[0_10px_30px_-14px_rgba(20,184,166,.55)] transition-colors duration-200 hover:bg-[#1ED0BC] sm:px-5 sm:text-[14px]"
-          >
-            {cta.label}
-          </Link>
-        </SpringHover>
+        <Link
+          href={cta.href}
+          className="btn-key whitespace-nowrap rounded-full bg-teal px-2.5 py-2.5 text-[12.5px] font-bold leading-none text-[#04231F] shadow-[0_10px_30px_-14px_rgba(20,184,166,.55)] transition-[transform,background-color] duration-300 ease-expo hover:-translate-y-0.5 hover:bg-[#1ED0BC] motion-reduce:hover:translate-y-0 sm:px-5 sm:text-[14px]"
+        >
+          {cta.label}
+        </Link>
         <MobileNav
           items={items}
           cta={audience === 'supplier' ? { href: '/me', label: labels.getQuotes } : undefined}

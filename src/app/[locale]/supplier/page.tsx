@@ -50,7 +50,9 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
             {/* What the supplier sees before a reveal: the job, never the buyer. */}
             <div className="glass depth relative overflow-hidden rounded-[22px] p-6" aria-hidden>
               <span className="grid-tech grid-tech-sm opacity-50" />
-              <EmiratesMap className="relative" locale={locale} />
+              <div className="relative mb-5 aspect-[16/10] w-full overflow-hidden rounded-[14px] empty:hidden">
+                <EmiratesMap locale={locale} />
+              </div>
               <div className="relative space-y-3">
                 <div className="flex items-center gap-2"><span className="redact redact-sq !h-7 !w-7" /><span className="redact redact-bar !w-32" /></div>
                 <div className="rounded-[12px] border border-[var(--line2)] bg-navy-deep/60 p-4">

@@ -35,7 +35,9 @@ export function EngineStrip() {
         <Reveal className="relative">
           <div className="glass depth mesh-glow relative flex h-full flex-col justify-between overflow-hidden rounded-[22px] p-8">
             <span className="grid-tech opacity-50" aria-hidden />
-            <DrawingScan className="relative" locale={locale} />
+            <div className="relative mb-7 aspect-[16/10] w-full overflow-hidden rounded-[14px] empty:hidden">
+              <DrawingScan locale={locale} />
+            </div>
             <div className="relative">
               <div className="flex items-end gap-2" aria-hidden>
                 {[0, 1, 2].map((i) => (
@@ -50,7 +52,9 @@ export function EngineStrip() {
               </h3>
               <p className="mt-3 max-w-[40ch] text-[14.5px] leading-relaxed text-muted">{t('top3Body')}</p>
             </div>
-            <CompareLevelling className="relative mt-6" locale={locale} />
+            <div className="relative mt-6 empty:hidden">
+              <CompareLevelling locale={locale} />
+            </div>
           </div>
         </Reveal>
       </div>

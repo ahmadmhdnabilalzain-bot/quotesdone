@@ -61,7 +61,9 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
           <Reveal>
             <h2 className="font-head text-[clamp(26px,3vw,36px)] font-semibold tracking-[-0.03em] text-white">{t('maskTitle')}</h2>
             <p className="mt-3 max-w-[60ch] text-[15px] text-muted">{t('maskSub')}</p>
-            <AnonymityFlow className="mt-8" locale={locale} />
+            <div className="mt-8 empty:hidden">
+              <AnonymityFlow locale={locale} />
+            </div>
             <div className="mt-8 overflow-x-auto rounded-[18px] border border-[var(--line2)]">
               <table className="w-full min-w-[640px] border-collapse text-start text-[14px]">
                 <thead>

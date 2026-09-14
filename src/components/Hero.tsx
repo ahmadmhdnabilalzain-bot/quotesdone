@@ -1,5 +1,4 @@
 import { useLocale, useTranslations } from 'next-intl';
-import { Spotlight } from '@/components/motion/primitives';
 import { LiveMatch } from '@/components/LiveMatch';
 import { BriefBox } from '@/components/BriefBox';
 import { HeroCtas } from '@/components/HeroCtas';
@@ -23,9 +22,12 @@ export function Hero() {
   const ticker = [...proof, ...proof];
 
   return (
-    <Spotlight className="bloom relative overflow-hidden" size={620}>
+    <div className="bloom relative isolate overflow-hidden">
       <span className="grid-tech" aria-hidden />
-      <HeroScene className="pointer-events-none absolute inset-0 z-0" locale={locale} />
+      {/* The 3D scene sits behind the text and paints after first paint; the h1 stays the LCP. */}
+      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+        <HeroScene locale={locale} />
+      </div>
       <section className="container-x relative z-10 grid items-start gap-12 pb-16 pt-12 md:pt-20 lg:grid-cols-[1.08fr_.92fr] lg:gap-14 lg:pb-20">
         <div className="flex flex-col items-start text-start">
           <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-4 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-teal-light backdrop-blur-sm rtl:font-sans rtl:normal-case rtl:tracking-normal">
@@ -87,6 +89,6 @@ export function Hero() {
           </div>
         </div>
       </Counters>
-    </Spotlight>
+    </div>
   );
 }

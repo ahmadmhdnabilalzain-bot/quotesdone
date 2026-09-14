@@ -8,7 +8,6 @@
 // visitor set, so there is no hydration mismatch and the text is on screen before hydration.
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
-import { SpringHover } from '@/components/motion/primitives';
 import { readAudience, type Audience } from '@/components/AudienceNav';
 
 export type HeroCtaLabels = {
@@ -16,8 +15,10 @@ export type HeroCtaLabels = {
   supplierTitle?: string; supplierBody?: string; supplierHow?: string;
 };
 
-const primary = 'btn-key press inline-flex rounded-full bg-teal px-7 py-3.5 text-[15px] font-bold text-[#04231F] shadow-[0_16px_44px_-16px_rgba(20,184,166,.8)] transition-colors duration-200 hover:bg-[#1ED0BC]';
-const secondary = 'press inline-flex rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-7 py-3.5 text-[15px] font-semibold text-paper transition-colors duration-200 hover:border-teal hover:bg-teal/[0.07] hover:text-white';
+// Hover lift is CSS (transform on :hover), not a spring library — see LiveMatch on the bundle.
+const lift = 'transition-[transform,background-color,border-color,color] duration-300 ease-expo hover:-translate-y-0.5 motion-reduce:hover:translate-y-0';
+const primary = `btn-key press inline-flex rounded-full bg-teal px-7 py-3.5 text-[15px] font-bold text-[#04231F] shadow-[0_16px_44px_-16px_rgba(20,184,166,.8)] hover:bg-[#1ED0BC] ${lift}`;
+const secondary = `press inline-flex rounded-full border border-[var(--line2)] bg-teal-light/[0.03] px-7 py-3.5 text-[15px] font-semibold text-paper hover:border-teal hover:bg-teal/[0.07] hover:text-white ${lift}`;
 
 export function HeroCtas({ labels, align = 'start', note = false }: { labels: HeroCtaLabels; align?: 'start' | 'center'; note?: boolean }) {
   const [who, setWho] = useState<Audience>('visitor');
@@ -32,9 +33,7 @@ export function HeroCtas({ labels, align = 'start', note = false }: { labels: He
     <div className={align === 'center' ? 'flex flex-col items-center' : 'flex flex-col items-start'}>
       <div className={`flex flex-wrap items-center gap-3 ${align === 'center' ? 'justify-center' : ''}`}>
         {buttons.map((b) => (
-          <SpringHover key={b.href} className="rounded-full">
-            <Link href={b.href} className={b.main ? primary : secondary}>{b.label}</Link>
-          </SpringHover>
+          <Link key={b.href} href={b.href} className={b.main ? primary : secondary}>{b.label}</Link>
         ))}
       </div>
       {note && who === 'supplier' && labels.supplierTitle && (

@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl';
-import { Stagger, StaggerItem, TiltCard } from '@/components/motion/primitives';
+import { Stagger, StaggerItem } from '@/components/motion/primitives';
 import { SectionHeader } from '@/components/SectionHeader';
 
 type Item = { title: string; body: string };
@@ -19,11 +19,8 @@ export function WhyAnonymous() {
           const wide = i === 0 || i === 3;
           return (
             <StaggerItem key={it.title} className={SPAN[i % SPAN.length]}>
-              <TiltCard
-                className="neon-edge tile h-full rounded-[22px]"
-                max={wide ? 5 : 7}
-                glow={wide}
-              >
+              {/* CSS lift in place of the spring tilt: the same depth cue without a motion library. */}
+              <div className="neon-edge tile h-full rounded-[22px] transition-transform duration-500 ease-expo hover:-translate-y-1 motion-reduce:hover:translate-y-0">
                 <article
                   className={`glass relative flex h-full flex-col overflow-hidden rounded-[22px] p-7 md:p-8 ${
                     wide ? 'mesh-glow' : ''
@@ -50,7 +47,7 @@ export function WhyAnonymous() {
                     {it.body}
                   </p>
                 </article>
-              </TiltCard>
+              </div>
             </StaggerItem>
           );
         })}
