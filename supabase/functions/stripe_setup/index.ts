@@ -123,6 +123,64 @@ Deno.serve(observe('stripe_setup', async (req) => {
       return J({ ok: methods.ok && domains.ok, mode, dry_run:dry, payment_methods:methods, wallet_domains:domains });
     }
 
+    // WEBHOOK_ENSURE (14 Sep 2026, agent: accountant). The e2e harness paid a real Stripe TEST-mode
+    // reveal and nothing recorded it: the TEST account had 0 webhook endpoints, so stripe_webhook never
+    // heard of the payment, and no invoice was filed or handed to the sales engineer. Registering one
+    // by hand would mean copying a signing secret through a person or a session. It never is: this
+    // action creates the endpoint and writes Stripe's signing secret straight into app_secrets, inside
+    // this function. The response carries the endpoint id and its events, never the secret.
+    //   mode 'test' -> stripe_secret_key_test / stripe_webhook_secret_test
+    //   mode 'live' -> stripe_secret_key      / stripe_webhook_secret
+    // Idempotent: an endpoint already at this project's exact URL is synced additively, never
+    // duplicated. And it answers back: every run is recorded in agent_runs, and stripe_webhook logs the
+    // mode of each delivery it verifies, so the first test event confirms the endpoint works.
+    if(action==='webhook_ensure'){
+      const t0=new Date().toISOString();
+      const mode = b.mode==='test' ? 'test' : (b.mode==='live' ? 'live' : '');
+      if(!mode) return J({ ok:false, error:'mode must be "test" or "live"' },400);
+      const keyName = mode==='test' ? 'stripe_secret_key_test' : 'stripe_secret_key';
+      const whName  = mode==='test' ? 'stripe_webhook_secret_test' : 'stripe_webhook_secret';
+      const sk=await sec(keyName);
+      // The same prefix guard as elsewhere, for THIS mode: a live key can never create a test
+      // endpoint's secret, or the reverse.
+      if(!new RegExp('^(sk|rk)_'+mode+'_').test(sk)) return J({ ok:false, error:'no '+mode+' secret key stored under '+keyName },400);
+      const url = String(Deno.env.get('SUPABASE_URL')||'').replace(/\/+$/,'') + WEBHOOK_URL_SUFFIX;
+      const list = await stripe('webhook_endpoints?limit=100', sk);
+      if(!list.ok) return J({ ok:false, error:'stripe_list_failed', detail:list.j?.error?.message||null },502);
+      // Exact URL, not the suffix: a TEST account can carry another project's stripe_webhook endpoint.
+      const mine = (list.j?.data||[]).filter((e:any)=>String(e?.url||'')===url);
+      let created=false, id='', events:string[]=[], added:string[]=[], note='';
+      if(!mine.length){
+        const form=new URLSearchParams({ url, description:'QuotesDone stripe_webhook ('+mode+'), managed by stripe_setup webhook_ensure' });
+        for(const e of REQUIRED_EVENTS) form.append('enabled_events[]', e);
+        const c=await stripe('webhook_endpoints', sk, form);
+        if(!c.ok) return J({ ok:false, error:'stripe_create_failed', detail:c.j?.error?.message||null },502);
+        if(Boolean(c.j?.livemode)!==(mode==='live')) return J({ ok:false, error:'mode_mismatch', id:c.j?.id||null },502);
+        const whsec=String(c.j?.secret||'');
+        if(!/^whsec_/.test(whsec)) return J({ ok:false, error:'created_without_signing_secret', id:c.j?.id||null },502);
+        await put(whName, whsec);
+        created=true; id=String(c.j.id); events=c.j.enabled_events||[];
+      } else {
+        const ep=mine[0]; id=String(ep.id); events=ep.enabled_events||[];
+        const d=drift(ep);
+        if(!d.wildcard && d.missing.length){
+          const form=new URLSearchParams();
+          for(const e of Array.from(new Set([...events, ...REQUIRED_EVENTS]))) form.append('enabled_events[]', e);
+          const up=await stripe('webhook_endpoints/'+ep.id, sk, form);
+          if(!up.ok) return J({ ok:false, error:'stripe_update_failed', id, detail:up.j?.error?.message||null },502);
+          events=up.j?.enabled_events||events; added=d.missing;
+        }
+        // Stripe reveals a signing secret only when the endpoint is created. An existing endpoint whose
+        // secret is not stored cannot be repaired by reading it; say so rather than pretend.
+        if(!(await sec(whName))) note='This endpoint existed before and its signing secret is not stored under '+whName+'. Stripe shows it only at creation: roll the secret on this endpoint in Stripe, or delete the endpoint and run webhook_ensure again.';
+      }
+      const secretStored=!!(await sec(whName));
+      try{ await admin.from('agent_runs').insert({ agent:'stripe_setup', status: secretStored?'ok':'error', started_at:t0, finished_at:new Date().toISOString(),
+        counts:{ action:'webhook_ensure', mode, created, endpoint_id:id, events:events.length, added:added.length, secret_stored:secretStored },
+        note:(created?'Created the '+mode+' webhook endpoint and stored its signing secret.':'The '+mode+' webhook endpoint exists'+(added.length?'; subscribed '+added.join(', '):'; already in sync')+'.')+(note?' '+note:'') }); }catch(_e){ /* the answer below still reports it */ }
+      return J({ ok:secretStored, mode, created, id, events, added, secret_stored:secretStored, ...(note?{ note }:{}) });
+    }
+
     // save
     const sk=String(b.sk||'').trim();
     const pk=String(b.pk||'').trim();
