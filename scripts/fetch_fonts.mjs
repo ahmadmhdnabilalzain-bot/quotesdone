@@ -24,20 +24,14 @@ const OUT = 'public/fonts';
 const LATIN  = 'U+0000-00FF';
 const ARABIC = 'U+0600-06FF';
 
+// Brand direction A "Sealed" (14 Sep 2026): Geist (Latin display + text), Geist Mono (figures, IDs),
+// Readex Pro (Arabic). All SIL OFL 1.1, all VARIABLE, so one file per family per script replaces
+// the 11 Jakarta/Space Grotesk/JetBrains/Tajawal files. Readex Pro ships two unicode-range files;
+// the Latin half carries the digits in "AED 12,400" on Arabic pages, so both are kept.
 const FAMILIES = [
-  // The three Latin families ship as VARIABLE fonts: one file covers the whole weight range the
-  // layout asks for, instead of one file per weight.
-  { css: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap', want: [[LATIN, 'plus-jakarta-sans-latin.woff2']] },
-  { css: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap',     want: [[LATIN, 'space-grotesk-latin.woff2']] },
-  { css: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..800&display=swap',    want: [[LATIN, 'jetbrains-mono-latin.woff2']] },
-  // Tajawal has no variable version, so it is one file per weight - and TWO per weight, because
-  // Google serves Arabic and Latin as separate unicode-range files. The layout uses Tajawal for
-  // Latin too ("Tajawal covers Latin + tabular figures, so data (AED, region codes) is safe"), so
-  // dropping the Latin half would render every AED figure in the Arabic locale as a fallback face.
-  { css: 'https://fonts.googleapis.com/css?family=Tajawal:400&display=swap',  want: [[ARABIC, 'tajawal-400-arabic.woff2'], [LATIN, 'tajawal-400-latin.woff2']] },
-  { css: 'https://fonts.googleapis.com/css?family=Tajawal:500&display=swap',  want: [[ARABIC, 'tajawal-500-arabic.woff2'], [LATIN, 'tajawal-500-latin.woff2']] },
-  { css: 'https://fonts.googleapis.com/css?family=Tajawal:700&display=swap',  want: [[ARABIC, 'tajawal-700-arabic.woff2'], [LATIN, 'tajawal-700-latin.woff2']] },
-  { css: 'https://fonts.googleapis.com/css?family=Tajawal:800&display=swap',  want: [[ARABIC, 'tajawal-800-arabic.woff2'], [LATIN, 'tajawal-800-latin.woff2']] },
+  { css: 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap',       want: [[LATIN, 'geist-latin.woff2']] },
+  { css: 'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap',  want: [[LATIN, 'geist-mono-latin.woff2']] },
+  { css: 'https://fonts.googleapis.com/css2?family=Readex+Pro:wght@160..700&display=swap',  want: [[ARABIC, 'readex-pro-arabic.woff2'], [LATIN, 'readex-pro-latin.woff2']] },
 ];
 
 /** Every @font-face block in the sheet, as { url, ranges }. */

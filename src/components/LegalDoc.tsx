@@ -1,5 +1,4 @@
 import legal from '@/content/legal.json';
-import { LEGAL_CSS } from '@/content/legalCss';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CompanyIdentity } from '@/components/CompanyIdentity';
@@ -25,7 +24,6 @@ export function LegalDoc({ slug, locale, lead }: { slug: string; locale: string;
   return (
     <>
       <SiteHeader />
-      <style dangerouslySetInnerHTML={{ __html: LEGAL_CSS }} />
       <main id="main" className="legalx" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         {lead ? <div className="docwrap">{lead}</div> : null}
         <div className="docwrap" dangerouslySetInnerHTML={{ __html: arDoc(d.html, locale) }} />

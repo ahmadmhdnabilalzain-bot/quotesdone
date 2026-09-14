@@ -1,5 +1,4 @@
 import services from '@/content/services.json';
-import { SERVICES_CSS } from '@/content/servicesCss';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { notFound } from 'next/navigation';
@@ -56,7 +55,6 @@ export function ServiceDoc({ slug, locale, children }: { slug: string; locale: s
   return (
     <>
       <SiteHeader />
-      <style dangerouslySetInnerHTML={{ __html: SERVICES_CSS }} />
       <main id="main" className="mk" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} />
       {children}
       <SiteFooter />
