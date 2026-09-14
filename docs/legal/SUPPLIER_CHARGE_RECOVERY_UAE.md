@@ -27,7 +27,7 @@ the parties agreed it: it runs as simple interest from the due date, and compoun
 | Civil Procedure Code, Federal Decree-Law No. 42 of 2022 (CPL) | https://uaelegislation.gov.ae/en/legislations/1602 (EN; Arabic prevails) | Arts 5, 8–11, 29, 44, 52, 143–148 |
 | CPL amendment, Federal Decree-Law No. 22 of 2025 (in force 1 Jan 2026) | https://www.uaelegislation.gov.ae/ar/constitution/modifications/3289/download | amends arts 32, 164, 175, 176 only; **143–150 unchanged** |
 | Commercial Transactions Law, Federal Decree-Law No. 50 of 2022 (CTL) | https://uaelegislation.gov.ae/en/legislations/1610/download | Arts 70–92, 674–684 |
-| Civil Transactions Law, Federal Decree-Law No. 25 of 2025 (in force 1 Jun 2026; repeals Federal Law 5/1985) | https://www.uaelegislation.gov.ae/ar/legislations/4011/download (Arabic) | Arts 4, 340, 429 |
+| Civil Transactions Law, Federal Decree-Law No. 25 of 2025 (in force 1 Jun 2026; repeals Federal Law 5/1985) | https://uaelegislation.gov.ae/en/legislations/4011 (EN) and https://uaelegislation.gov.ae/ar/legislations/4011 (AR) | Arts 4, 429; **Art 340 verbatim, EN and AR** |
 | Penal Code, Federal Decree-Law No. 31 of 2021 | https://www.uaelegislation.gov.ae/ar/legislations/1529/download | Arts 451, 453 |
 | Notaries Public, Federal Decree-Law No. 20 of 2022 | https://www.uaelegislation.gov.ae/ar/legislations/1563/download | Arts 2, 4 |
 | Dubai Courts service "Repayment Order" (C5) | https://www.dc.gov.ae/PublicServices/GessServiceDetails.aspx?lang=en&ServiceCode=C5 | documents, fee, channels |
@@ -35,9 +35,10 @@ the parties agreed it: it runs as simple interest from the due date, and compoun
 | Dubai Law No. 21 of 2015, Judicial Fees | dlp.dubai.gov.ae | Art 14, schedule |
 | Dubai Courts Resolution No. 4 of 2025 (Amicable Settlement Centre) | dlp.dubai.gov.ae | Art 1(3) |
 
-Could not be reached: elaws.moj.gov.ae, dubaipolice.gov.ae, the English PDFs of 25/2025 and the Penal Code. The
-Arabic quotations from 25/2025 and the Penal Code come from PDF text extraction, which drops some letters. Check
-their exact wording against the PDF before quoting them in a filing.
+Could not be reached: elaws.moj.gov.ae, dubaipolice.gov.ae, the English PDF of the Penal Code. The Arabic
+quotations from the Penal Code and from 25/2025 Arts 4 and 429 come from PDF text extraction, which drops some
+letters; check them against the PDF before quoting them in a filing. **Art 340 is quoted verbatim** from the
+official pages.
 
 ## 3. Findings
 
@@ -141,17 +142,25 @@ their exact wording against the PDF before quoting them in a filing.
   days after the due date ÷ 365`. It is simple interest on (a)+(b) only, rounded to the fils.
 
 ### f) The AED 250 administrative fee
-- **Civil Transactions Law 25/2025 Art 340.** The parties may fix compensation in advance. The court may reduce it
-  if the debtor proves it was exaggerated (مبالغاً فيه) or that the obligation was partly performed.
+- **Civil Transactions Law 25/2025 Art 340**, verbatim from the official text
+  (https://uaelegislation.gov.ae/en/legislations/4011; Arabic https://uaelegislation.gov.ae/ar/legislations/4011):
+  - 340(1): *"The contracting parties may pre-determine the amount of compensation by stipulating it in the contract
+    or in a subsequent agreement, subject to the provisions of the law."* Arabic: «يجوز للمتعاقدين أن يُحددا مقدمًا
+    قيمة التعويض بالنص عليها في العقد أو في اتفاق لاحق، مع مراعاة أحكام القانون.»
+  - 340(2): the court may reduce it *"if the debtor proves that the assessment was excessive or that the original
+    obligation has been partially performed."*
+  - 340(3): it may be reduced where the creditor's own fault contributed to the damage.
+  - 340(4): more than the agreed amount only on proof of *"fraud or gross fault."*
+  - 340(5): *"Any agreement contrary to the provisions of this Article shall be void."*
+- **The documents cite 340(1)** for the AED 250, which clause 33 stipulates. The Arabic application quotes the
+  official Arabic wording; nothing in it is a translation made here.
 - **Transition (Art 4(1)).** The new law does not apply to acts before 1 June 2026. Every supplier acceptance of v10
   is after that date, so Art 340 governs.
-- **Enforceability.** The AED 250 is enforceable as agreed, subject to that reduction power.
-  - Its best defence is that clause 33 already ties it to QuotesDone's real cost of processing the refund.
+- **Enforceability.** The AED 250 is enforceable as agreed, subject to the 340(2) reduction power. Its best defence
+  is that clause 33 already ties it to QuotesDone's real cost of processing the refund.
 - **A risk.** A judge may treat the AED 250, or the whole charge, as compensation rather than a debt. The amount is
-  fixed only when the refund happens, which leaves room to argue it was not a "sum certain at creation" (CTL Art 84).
-  - That exposes the AED 250 to review under Art 340.
-  - It could also make a judge send the claim to an ordinary case instead of a payment order.
-  - See §8.
+  fixed only when the refund happens, which leaves room to argue it was not a "sum certain at creation" (CTL Art
+  84). That could make a judge send the claim to an ordinary case instead of a payment order. See §8.
 
 ## 4. The timeline this build uses
 
@@ -229,7 +238,9 @@ recommendations above can go into the next version without re-notifying anyone.
 ## 7. Checks written into the build
 - The demand's period (7 days) is asserted to be at least the legal minimum (5 days).
 - The invoice, demand and application agree on the principal, to the fils.
-- Interest: zero before the due date, 9% of principal over a full year, no compounding, partial payments netted.
+- Interest: zero before the due date, 9% of principal over a full year, no compounding. A payment reduces the
+  principal only from its own date (a day-by-day ledger), tested for a mid-period part-payment, a full payment
+  mid-period and a span over 29 February.
 - No document charges VAT.
 - Every party in the fixture is ZZ DEMO / example.invalid, and every Stripe id is ZZDEMO.
 - All 14 documents render through the real renderer. The branded samples rendered with both brand fonts and 0

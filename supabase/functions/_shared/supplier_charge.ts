@@ -27,8 +27,8 @@ export type ChargeInput = {
   notice_date: string;
   /** ISO date the amount is computed to. */
   as_of: string;
-  /** Amounts the supplier has already paid, AED. */
-  paid?: number;
+  /** Payments received, each reducing the principal from its own date (AED, ISO date). */
+  payments?: { date: string; amount: number }[];
 };
 
 export type Charge = {
@@ -52,13 +52,25 @@ export function computeCharge(i: ChargeInput): Charge {
   if (!(reveal > 0) || proc < 0) throw new Error('a non-response charge needs a positive refunded reveal fee');
   const charge = reveal + proc;
   const principal = charge + fils(ADMIN_FEE_AED);
-  const paid = Math.max(0, fils(i.paid ?? 0));
-  const unpaid = Math.max(0, principal - paid);
   const due = addDays(i.notice_date, DUE_AFTER_NOTICE_DAYS);
-  const days = Math.max(0, Math.floor((isoDay(i.as_of) - isoDay(due)) / DAY));
-  // ponytail: payments are netted against principal as one sum on as_of; a part-payment mid-period
-  // would need interest split by period. Add a payment schedule when the first part-payment arrives.
-  const interest = Math.round(unpaid * INTEREST_RATE_PA * days / DAYS_IN_YEAR);
+  const dueT = isoDay(due), asT = isoDay(i.as_of);
+  const days = Math.max(0, Math.floor((asT - dueT) / DAY));
+  // A day-by-day ledger: interest on each period's outstanding principal, from the due date (or the
+  // later payment date) to the next payment or as_of. A payment reduces principal from ITS date only;
+  // anything beyond the principal settles accrued interest. Calendar days (UTC dates), so a span over
+  // 29 February counts that day; the year stays 365 days, as the formula in the documents states.
+  const pays = (i.payments ?? []).filter((p) => isoDay(p.date) <= asT && fils(p.amount) > 0)
+    .map((p) => ({ t: isoDay(p.date), f: fils(p.amount) })).sort((a, b) => a.t - b.t);
+  let outstanding = principal, accrued = 0, from = dueT, paid = 0, overpay = 0;
+  for (const p of pays) {
+    const to = Math.max(dueT, p.t);
+    if (to > from) { accrued += outstanding * INTEREST_RATE_PA * ((to - from) / DAY) / DAYS_IN_YEAR; from = to; }
+    const onPrincipal = Math.min(outstanding, p.f);
+    outstanding -= onPrincipal; overpay += p.f - onPrincipal; paid += p.f;
+  }
+  if (asT > from) accrued += outstanding * INTEREST_RATE_PA * ((asT - from) / DAY) / DAYS_IN_YEAR;
+  const interest = Math.max(0, Math.round(accrued) - overpay);
+  const unpaid = outstanding;
   return {
     refunded_reveal_fee: aed(reveal), refunded_processing_fee: aed(proc), non_response_charge: aed(charge),
     admin_fee: ADMIN_FEE_AED, principal: aed(principal), paid: aed(paid), unpaid_principal: aed(unpaid),

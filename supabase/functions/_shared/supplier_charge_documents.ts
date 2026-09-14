@@ -39,7 +39,7 @@ export type CaseFile = {
   reminders: { n: number; date: string }[];
   final_demand: { date: string; service: string; service_ar: string };
   as_of: string;
-  paid?: number;
+  payments?: { date: string; amount: number }[];
 };
 
 // ── The law, in one place. Each entry names the instrument and article exactly as the research doc
@@ -52,7 +52,10 @@ export const LEGAL = {
   cpl_service: { en: 'Articles 8 and 9 (service by email, SMS, smart applications or an agreed means)', ar: 'المادتان (8) و(9) (الإعلان بالبريد الإلكتروني أو الرسائل النصية أو التطبيقات الذكية أو الوسيلة المتفق عليها)' },
   ctl_arts: { en: 'Articles 73, 84, 86 and 88 (agreed delay interest from the due date; no compound interest) and Article 92 (five-year limitation)', ar: 'المواد (73) و(84) و(86) و(88) (فائدة التأخير المتفق عليها من تاريخ الاستحقاق، ولا فائدة مركّبة) والمادة (92) (التقادم بخمس سنوات)' },
   ctl: { en: 'Federal Decree-Law No. 50 of 2022 promulgating the Commercial Transactions Law', ar: 'المرسوم بقانون اتحادي رقم (50) لسنة 2022 بإصدار قانون المعاملات التجارية' },
+  // Art 340(1), verbatim from the official texts (uaelegislation.gov.ae/en|ar/legislations/4011), confirmed
+  // by the coordinator 14 Sep 2026. The Arabic filing quotes the official Arabic, not a translation.
   civil: { en: 'Federal Decree-Law No. 25 of 2025 promulgating the Civil Transactions Law', ar: 'المرسوم بقانون اتحادي رقم (25) لسنة 2025 بإصدار قانون المعاملات المدنية' },
+  civil_340_1: { en: '"The contracting parties may pre-determine the amount of compensation by stipulating it in the contract or in a subsequent agreement, subject to the provisions of the law."', ar: '«يجوز للمتعاقدين أن يُحددا مقدمًا قيمة التعويض بالنص عليها في العقد أو في اتفاق لاحق، مع مراعاة أحكام القانون.»' },
   etl: { en: 'Federal Decree-Law No. 46 of 2021 on Electronic Transactions and Trust Services', ar: 'المرسوم بقانون اتحادي رقم (46) لسنة 2021 بشأن المعاملات الإلكترونية وخدمات الثقة' },
 };
 
@@ -75,7 +78,7 @@ const FORMULA = {
 };
 
 function chargeOf(c: CaseFile, asOf = c.as_of): Charge {
-  return computeCharge({ refunded_reveal_fee: c.refund.reveal_fee, refunded_processing_fee: c.refund.processing_fee, notice_date: c.invoice.date, as_of: asOf, paid: c.paid });
+  return computeCharge({ refunded_reveal_fee: c.refund.reveal_fee, refunded_processing_fee: c.refund.processing_fee, notice_date: c.invoice.date, as_of: asOf, payments: c.payments });
 }
 
 // deno-lint-ignore no-explicit-any
@@ -230,8 +233,8 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'section', n: 6, text: 'الأساس القانوني' },
     { t: 'li', text: `${LEGAL.cpl.ar}، ${LEGAL.cpl_po_arts.ar} (أمر الأداء).` },
     { t: 'li', text: `${LEGAL.ctl.ar}، ${LEGAL.ctl_arts.ar}.` },
+    { t: 'li', text: `${LEGAL.civil.ar}، المادة (340) البند (1) (التعويض الاتفاقي — أساس الرسم الإداري البالغ 250 درهمًا المنصوص عليه في البند 33): ${LEGAL.civil_340_1.ar}` },
     { t: 'li', text: `${LEGAL.cpl.ar}، ${LEGAL.cpl_service.ar}، والبند 21 من اتفاقية المورّد (الإشعارات).` },
-    { t: 'li', text: `${LEGAL.civil.ar}، المادة (340) (التعويض الاتفاقي).` },
     { t: 'li', text: `${LEGAL.etl.ar} (حجية القبول والتوقيع الإلكترونيين).` },
     { t: 'li', text: 'اتفاقية المورّد، البنود 31 و33 و34 (الاختصاص الحصري لمحاكم دبي).' },
     { t: 'section', n: 7, text: 'الطلبات' },
@@ -254,8 +257,8 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'section', n: 6, text: 'Legal basis' },
     { t: 'li', text: `${LEGAL.cpl.en}, ${LEGAL.cpl_po_arts.en} (payment orders).` },
     { t: 'li', text: `${LEGAL.ctl.en}, ${LEGAL.ctl_arts.en}.` },
+    { t: 'li', text: `${LEGAL.civil.en}, Article 340(1) (agreed compensation — the basis of the AED 250 administrative fee stipulated in clause 33): ${LEGAL.civil_340_1.en}` },
     { t: 'li', text: `${LEGAL.cpl.en}, ${LEGAL.cpl_service.en}, and Supplier Agreement clause 21 (Notices).` },
-    { t: 'li', text: `${LEGAL.civil.en}, Article 340 (agreed compensation).` },
     { t: 'li', text: `${LEGAL.etl.en} (validity of electronic acceptance and signature).` },
     { t: 'li', text: 'Supplier Agreement clauses 31, 33 and 34 (exclusive jurisdiction of the Dubai courts).' },
     { t: 'section', n: 7, text: 'Relief sought' },

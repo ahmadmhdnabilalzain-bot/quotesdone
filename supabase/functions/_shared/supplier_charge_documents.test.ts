@@ -18,9 +18,27 @@ Deno.test('interest: simple, daily, from the due date, on (a)+(b) only', () => {
   assertEquals([d32.days_overdue, d32.interest, d32.total_due], [32, 21.35, 2727.07]); // 2705.72 × 0.09 × 32 / 365 = 21.349
   const yr = computeCharge({ ...base, as_of: '2027-10-16' });
   assertEquals(yr.interest, 243.51, 'a full year is 9% of the principal, not compounded'); // 2705.72 × 0.09
-  const part = computeCharge({ ...base, as_of: '2026-11-17', paid: 705.72 });
-  assertEquals([part.unpaid_principal, part.interest], [2000, 15.78]);
+  // A payment on the day it is due stops interest on that part from that day.
+  const onTime = computeCharge({ ...base, as_of: '2026-11-17', payments: [{ date: '2026-10-16', amount: 705.72 }] });
+  assertEquals([onTime.unpaid_principal, onTime.interest], [2000, 15.78]); // 2000 × 0.09 × 32 / 365
+  // Mid-period part-payment: 2705.72 for 10 days, then 2000 for 22 days.
+  const mid = computeCharge({ ...base, as_of: '2026-11-17', payments: [{ date: '2026-10-26', amount: 705.72 }] });
+  assertEquals([mid.paid, mid.unpaid_principal, mid.interest], [705.72, 2000, 17.52]); // 6.672 + 10.849 = 17.521
+  // Paid in full mid-period: the principal is gone, the interest accrued to that day remains.
+  const full = computeCharge({ ...base, as_of: '2026-11-17', payments: [{ date: '2026-10-26', amount: 2705.72 }] });
+  assertEquals([full.unpaid_principal, full.interest, full.total_due], [0, 6.67, 6.67]);
+  // A payment dated after as_of is not yet counted.
+  assertEquals(computeCharge({ ...base, as_of: '2026-10-20', payments: [{ date: '2026-11-01', amount: 100 }] }).paid, 0);
   assertThrows(() => computeCharge({ ...base, refunded_reveal_fee: 0, as_of: '2026-11-17' }));
+});
+
+Deno.test('a span over 29 February counts the leap day, on a 365-day year', () => {
+  // notice 21 Feb 2028 → due 28 Feb 2028; to 1 Mar 2028 is 2 days (28→29, 29→1).
+  const c = computeCharge({ refunded_reveal_fee: 2367, refunded_processing_fee: 88.72, notice_date: '2028-02-21', as_of: '2028-03-01' });
+  assertEquals([c.due_date, c.days_overdue, c.interest], ['2028-02-28', 2, 1.33]); // 2705.72 × 0.09 × 2 / 365 = 1.334
+  // A payment on 29 Feb splits the span: one day on the full principal, one on the remainder.
+  const p = computeCharge({ refunded_reveal_fee: 2367, refunded_processing_fee: 88.72, notice_date: '2028-02-21', as_of: '2028-03-01', payments: [{ date: '2028-02-29', amount: 1705.72 }] });
+  assertEquals([p.unpaid_principal, p.interest], [1000, 0.91]); // 0.667 + 0.247 = 0.914
 });
 
 Deno.test('the pack is a demo case and can reach nobody real', () => {
@@ -38,6 +56,9 @@ Deno.test('documents agree, give the legal minimum, and charge no VAT', () => {
   assertStringIncludes(JSON.stringify(claimDocument(C, 'en')), 'AED 2,705.72');
   assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), '2,705.72 درهم');
   assert(LEGAL.final_demand_days >= LEGAL.demand_days, 'the demand gives less than the law requires');
+  // Art 340(1) is quoted in the official wording of each language, never a translation made here.
+  assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), 'يجوز للمتعاقدين أن يُحددا مقدمًا قيمة التعويض بالنص عليها في العقد أو في اتفاق لاحق، مع مراعاة أحكام القانون.');
+  assertStringIncludes(JSON.stringify(claimDocument(C, 'en')), 'The contracting parties may pre-determine the amount of compensation by stipulating it in the contract or in a subsequent agreement, subject to the provisions of the law.');
   // CPL Art. 144(1): the right in the notice may not be less than the right in the petition. Both
   // claim the same principal; the petition's interest is the demand's daily rate carried forward.
   const fd = finalDemandDocument(C, 'en'), po = claimDocument(C, 'en');
