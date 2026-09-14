@@ -1,52 +1,26 @@
-// messages_api v4 - GATED customer<->supplier chat with hardened contact detection.
-// Strong disclosure (email/link/UAE mobile/messaging app/solicitation) => block + ban + AED 10,000 (T&C) + owner alert.
-// Borderline (a long number that might be a quantity) => message held + owner review, NO auto-ban.
-// v4: llm() iterates single model (OpenRouter 'models' plural param was rejected).
+// messages_api — the customer's unified inbox, the post-reveal customer<->supplier chat, and the
+// pre-reveal anonymous Q&A (clarify_*).
+//
+// 14 Sep 2026: post-reveal chat no longer waits on an approval queue and no longer bans for sharing
+// contact details. After a paid reveal both parties already hold each other's contact details, so
+// the detector that blocked them and auto-suspended accounts policed a secret that no longer
+// existed; and the "Admin → Agents → approvals" queue it routed chat requests to was removed by the
+// founder's 7-8 Sep rulings (two seats, no approval queue). Contact stripping now applies only
+// where anonymity is the product: the pre-reveal Q&A below.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
+
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
-const WARNING = 'Keep everything inside QuotesDone. Do NOT share phone numbers, emails, links, WhatsApp/social handles, or try to move the deal off-platform. Sharing contact details breaches the Terms you accepted at sign-up and triggers an immediate account ban and a AED 10,000 penalty.';
-async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function ownerEmail(){ const v = await sec('admin_emails'); return String(v || 'management@quotesdone.com').split(',')[0].trim(); }
-async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) {} }
-const llm = makeLlm(SONNET_FIRST, { max: 700 }); // shared OpenRouter client (Sonnet-first ladder + 25s timeout)
+const WARNING = 'Messages here are kept on record for both of you. Please keep them about this job.';
 
-// Hardened detector: normalises Arabic-Indic digits, spelled-out numbers, 'at'/'dot' obfuscation and spaced digits.
-function detectContact(raw: string){
-  const types = new Set<string>(); const strong = new Set<string>();
-  const low = String(raw || '').toLowerCase();
-  const ar = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹';
-  let t = low.replace(/[٠-٩۰-۹]/g, (c) => String(ar.indexOf(c) % 10));
-  const nw: Record<string,string> = { zero:'0', oh:'0', one:'1', two:'2', three:'3', four:'4', five:'5', six:'6', seven:'7', eight:'8', nine:'9' };
-  const spelled = t.replace(/\b(zero|oh|one|two|three|four|five|six|seven|eight|nine)\b/g, (w) => nw[w]);
-  const collapse = (s: string) => s.replace(/(\d)[\s.\-_()]+(?=\d)/g, '$1');
-  const dt = collapse(t), ds = collapse(spelled);
-  const emailObf = t.replace(/\s*[\(\[]?\s*at\s*[\)\]]?\s*/g, '@').replace(/\s*[\(\[]?\s*dot\s*[\)\]]?\s*/g, '.');
-  const emailRe = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/;
-  if (emailRe.test(t) || emailRe.test(emailObf)) { types.add('email'); strong.add('email'); }
-  if (/(https?:\/\/|www\.)\S+/.test(t) || /\b[a-z0-9-]{2,}\.(com|net|ae|org|io|co|me|info|biz|app|link)\b/.test(t)) { types.add('link'); strong.add('link'); }
-  const uaeRe = /(?:\+?971|00971|0)?5\d{8}/;
-  if (uaeRe.test(dt) || uaeRe.test(ds)) { types.add('phone'); strong.add('phone'); }
-  else if (/\d{9,}/.test(dt) || /\d{9,}/.test(ds)) { types.add('phone_generic'); } // borderline only
-  if (/(whats\s*app|whatsapp|wa\.me|telegram|t\.me|viber|botim|snapchat|skype|instagram)/.test(t)) { types.add('messaging_app'); strong.add('messaging_app'); }
-  if (/(call me|whatsapp me|my number|my mobile|my cell|reach me on|contact me directly|outside the platform|off[\s-]?platform|deal directly|my email|email me at|text me on|here is my number|this is my number|save my number)/.test(t)) { types.add('solicitation'); strong.add('solicitation'); }
-  if (/(^|\s)@[a-z0-9_.]{3,}/.test(low)) { types.add('handle'); } // borderline (could be '@ 5pm')
-  return { hit: types.size > 0, types: [...types], strong: strong.size > 0 };
-}
+async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) {} }
 
 async function revealed(inquiry_id: string, supplier_id: number) {
   const { data } = await admin.from('transactions').select('id,customer_id').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).not('revealed_at', 'is', null).maybeSingle();
   return data || null;
-}
-async function resolveCat(category: unknown){
-  if (!category) return null; const c = String(category).toLowerCase().trim(); if (!c) return null;
-  const { data } = await admin.from('category_agents').select('slug,name').eq('active', true);
-  for (const r of (data || [])) { const s = String(r.slug).toLowerCase(); const n = String(r.name).toLowerCase(); if (c === s || c.includes(s) || s.includes(c) || c.includes(n) || n.includes(c)) return r; }
-  return null;
 }
 
 // ── §16 THE UNIFIED INBOX: ONE PLACE, FOUR CHANNELS ─────────────────────────────────────────────
@@ -115,6 +89,135 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
     last: clip(calls![0].summary || (calls![0].direction + ' call, ' + calls![0].status), 240),
     last_at: calls![0].started_at, unread: 0, count: calls!.length });
   return out;
+}
+
+// ── PRE-REVEAL ANONYMOUS Q&A (website audit 14 Sep 2026, verdict ABSENT) ───────────────────────
+// Every thread below is locked until a paid reveal, so between "posted" and "paid" a supplier who
+// needed one measurement could not ask it and the customer could not answer. public.rfq_clarification
+// is that channel, and this is its only writer of questions and answers:
+//   clarify_list   {inquiry_id}   -> the owner sees everything; a matched supplier sees their own
+//                                    questions plus every answered one (answers are addenda to the RFQ)
+//   clarify_ask    {inquiry_id, text}  supplier session, must be matched to the inquiry
+//   clarify_answer {id, text}          customer session, owner only; every matched supplier is told
+// Identities are masked both ways: suppliers appear to the customer as "Supplier A/B..." in the
+// order they were matched, the customer never appears at all, and contact details are stripped from
+// both texts here, server-side, before anything is stored or emailed.
+const STRIP: RegExp[] = [
+  /[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\])\s*[A-Za-z0-9.-]+\s*(?:\.|\(dot\)|\[dot\])\s*[A-Za-z]{2,}/gi,
+  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
+  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info|app|link)(?:\.[A-Za-z]{2})?\b/gi,
+  /(?:\+|00)\s?971[\s.\-]?\d(?:[\s.\-]?\d){6,10}/g,
+  /\b0\d(?:[\s.\-]?\d){7,8}\b/g,
+  /\b5\d(?:[\s.\-]?\d){7}\b/g,
+  /\b(?:whats\s*app|wa\.me|telegram|t\.me|viber|botim|snapchat|skype|instagram)\b\S*/gi,
+  /(^|\s)@[A-Za-z0-9_.]{3,}/g,
+];
+const NAME_STOP = new Set(['llc', 'l.l.c', 'trading', 'contracting', 'general', 'company', 'group', 'est', 'establishment', 'services', 'technical', 'the', 'and']);
+// ponytail: a name is removed as whole words of 4+ letters; a nickname or misspelling survives.
+// Upgrade path is customer_api's companyRe if a leak is ever measured.
+function scrubName(text: string, name: unknown): string {
+  const words = String(name || '').split(/[^A-Za-z؀-ۿ]+/).filter((w) => w.length >= 4 && !NAME_STOP.has(w.toLowerCase()));
+  let out = text;
+  for (const w of words) out = out.replace(new RegExp('(^|[^A-Za-z؀-ۿ])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$|[^A-Za-z؀-ۿ])', 'gi'), '$1[removed]');
+  return out;
+}
+function stripContact(raw: unknown, names: unknown[] = []): string {
+  // Arabic-Indic digits first, so ٠٥٠١٢٣٤٥٦٧ is caught by the same number patterns.
+  let s = clip(raw, 1500).replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g, (c) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
+  for (const re of STRIP) s = s.replace(re, (m: string, lead?: string) => (typeof lead === 'string' && /^\s?$/.test(lead) && m.startsWith(lead) ? lead : '') + '[removed]');
+  for (const n of names) s = scrubName(s, n);
+  return s.trim();
+}
+const letterOf = (i: number) => 'Supplier ' + (i >= 0 && i < 26 ? String.fromCharCode(65 + i) : String(i + 1));
+type Res = { status: number; body: Record<string, unknown> };
+const R = (status: number, body: Record<string, unknown>): Res => ({ status, body });
+
+async function clarify(action: string, b: Record<string, unknown>, supLead: any, cust: any): Promise<Res> {
+  if (action === 'clarify_answer') {
+    if (!cust) return R(403, { error: 'forbidden' });
+    const id = Number(b.id);
+    if (!id) return R(400, { error: 'id_required' });
+    const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,kind,question,answered_at').eq('id', id).maybeSingle();
+    if (!row) return R(404, { error: 'not_found' });
+    const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', row.inquiry_id).maybeSingle();
+    if (!inq || inq.customer_id !== cust.id) return R(403, { error: 'not_your_inquiry' });
+    if (row.kind !== 'question') return R(400, { error: 'not_a_question' });
+    if (row.answered_at) return R(409, { error: 'already_answered' });
+    const { data: me } = await admin.from('customers').select('full_name').eq('id', cust.id).maybeSingle();
+    const text = stripContact(b.text, [me?.full_name]);
+    if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
+    const { error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: new Date().toISOString() }).eq('id', id).is('answered_at', null);
+    if (error) return R(500, { error: 'save_failed' });
+    const notified = await notifyMatched(String(row.inquiry_id), inq, 'clarification_answered',
+      'The customer answered a question on a request you were invited to quote',
+      'On the ' + (inq.category || 'request') + (inq.emirate ? ' job in ' + inq.emirate : ' job') + ' you were invited to quote, a supplier asked:\n\n"' + String(row.question || '') + '"\n\nThe customer answered:\n\n"' + text + '"\n\nThis answer is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.');
+    return R(200, { ok: true, id, answer: text, notified });
+  }
+
+  const inquiry_id = String(b.inquiry_id || '');
+  if (!inquiry_id) return R(400, { error: 'inquiry_id_required' });
+  const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', inquiry_id).maybeSingle();
+  if (!inq) return R(404, { error: 'not_found' });
+  const { data: matches } = await admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', inquiry_id).order('id', { ascending: true });
+  const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
+  const isOwner = !!cust && inq.customer_id === cust.id;
+  const isMatched = !!supLead && order.includes(Number(supLead.id));
+  if (!isOwner && !isMatched) return R(403, { error: 'forbidden' });
+
+  if (action === 'clarify_ask') {
+    if (!isMatched) return R(403, { error: 'not_matched' });
+    if (supLead.banned === true) return R(403, { error: 'suspended' });
+    if (['cancelled', 'closed', 'completed'].includes(String(inq.status))) return R(409, { error: 'inquiry_closed' });
+    const text = stripContact(b.text, [supLead.company_name]);
+    if (text.replace(/\[removed\]/g, '').trim().length < 3) return R(400, { error: 'text_required' });
+    // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat.
+    const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+    const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supLead.id).gte('asked_at', since);
+    if ((count || 0) >= 5) return R(429, { error: 'too_many_questions' });
+    const source = b.source === 'rfq_flag' ? 'rfq_flag' : 'portal';
+    const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id, supplier_id: supLead.id, kind: 'question', question: text, source }).select('id').single();
+    if (error || !ins) return R(500, { error: 'save_failed' });
+    const label = letterOf(order.indexOf(Number(supLead.id)));
+    try {
+      const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
+      if (c?.email && /@/.test(c.email)) {
+        const ar = String(c.locale || '') === 'ar';
+        await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
+          subject: ar ? 'لدى أحد الموردين سؤال عن طلبك' : 'A supplier has a question about your request',
+          body: ar
+            ? ('مرحبًا ' + (c.full_name || '') + '،\n\nسأل ' + label.replace('Supplier', 'المورّد') + ' عن طلبك (' + (inq.category || '') + '):\n\n«' + text + '»\n\nافتح طلبك في QuotesDone وأجب هناك — تصل إجابتك إلى جميع الموردين المدعوين دون اسمك أو رقمك.')
+            : ('Hi ' + (c.full_name || 'there') + ',\n\n' + label + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
+      }
+    } catch (_e) { /* the question is stored either way; the portal shows it on the next load */ }
+    return R(200, { ok: true, id: ins.id, supplier_label: label });
+  }
+
+  if (action === 'clarify_list') {
+    const { data: rows, error } = await admin.from('rfq_clarification').select('id,supplier_id,kind,question,answer,asked_at,answered_at').eq('inquiry_id', inquiry_id).order('asked_at', { ascending: true }).limit(200);
+    if (error) return R(500, { error: 'load_failed' });
+    const visible = (rows || []).filter((r: any) => isOwner || r.kind === 'note' || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
+    const items = visible.map((r: any) => ({
+      id: r.id, kind: r.kind, question: r.question ?? null, answer: r.answer ?? null, asked_at: r.asked_at, answered_at: r.answered_at ?? null,
+      supplier_label: r.supplier_id == null ? null : letterOf(order.indexOf(Number(r.supplier_id))),
+      mine: !isOwner && Number(r.supplier_id) === Number(supLead?.id),
+    }));
+    return R(200, { ok: true, role: isOwner ? 'customer' : 'supplier', items });
+  }
+  return R(400, { error: 'unknown action' });
+}
+
+// The same notification path matchAndNotify uses for the original invitation: one queued email
+// per matched supplier, addressed to the lead, carrying only text that has been through the
+// stripper above. Returns how many were queued so the caller can say so truthfully.
+async function notifyMatched(inquiry_id: string, _inq: unknown, type: string, subject: string, body: string): Promise<number> {
+  const { data: ms } = await admin.from('inquiry_matches').select('supplier_id').eq('inquiry_id', inquiry_id);
+  const ids = [...new Set((ms || []).map((m: { supplier_id: number }) => Number(m.supplier_id)).filter(Boolean))];
+  if (!ids.length) return 0;
+  const { data: ls } = await admin.from('leads').select('id,email,claimed_by,banned').in('id', ids);
+  const rows = (ls || []).filter((l: any) => l.banned !== true).map((l: any) => ({ id: l.id, to: String(l.claimed_by || l.email || '') })).filter((l) => /@/.test(l.to))
+    .map((l) => ({ type, to_email: l.to, to_role: 'supplier', lead_id: l.id, inquiry_id, channel: 'email', status: 'queued', subject, body }));
+  await notify(rows);
+  return rows.length;
 }
 
 Deno.serve(observe('messages_api', async (req) => {
@@ -220,6 +323,13 @@ Deno.serve(observe('messages_api', async (req) => {
       return J({ error: 'unknown channel' }, 400);
     }
 
+    // Pre-reveal Q&A is keyed on the inquiry alone, never on a supplier the customer has paid to
+    // see, so it is answered before the reveal gate below.
+    if (action === 'clarify_list' || action === 'clarify_ask' || action === 'clarify_answer') {
+      const res = await clarify(action, body, supLead, cust);
+      return J(res.body, res.status);
+    }
+
     const inquiry_id = String(body.inquiry_id || ''); const supplier_id = Number(body.supplier_id || 0);
     if (!inquiry_id || !supplier_id) return J({ error: 'missing inquiry_id/supplier_id' }, 400);
     const rev = await revealed(inquiry_id, supplier_id);
@@ -230,26 +340,21 @@ Deno.serve(observe('messages_api', async (req) => {
     if (!rev) return J({ ok: true, locked: true, messages: [], note: 'Messaging unlocks after the quote is revealed.' });
     const banned = (role === 'supplier' ? supLead?.banned : cust?.banned) === true;
     const { data: th } = await admin.from('chat_threads').select('status,reason').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).maybeSingle();
-    const status = th?.status || 'none';
+    // POST-REVEAL CHAT OPENS ON FIRST TOUCH. It used to wait on "Admin → Agents → approvals", a
+    // queue the 7-8 Sep rulings removed, so a paid reveal led to a chat nobody could ever open. A
+    // transactions row is proof the customer paid to know this supplier, which is the only thing
+    // the gate existed to protect. A thread closed for a policy breach stays shut.
+    let status = th?.status || 'none';
+    if (status !== 'open' && status !== 'banned') {
+      await admin.from('chat_threads').upsert({ inquiry_id, supplier_id, customer_id: rev.customer_id, status: 'open', reason: 'opened on reveal', requested_by: role }, { onConflict: 'inquiry_id,supplier_id' });
+      status = 'open';
+    }
 
+    // Kept for callers that still ask first: the answer is simply the thread's state.
     if (action === 'request_chat') {
-      const q = clip(body.question, 1500); if (!q) return J({ error: 'question required' }, 400);
       if (banned) return J({ error: 'Your account is suspended.' }, 403);
-      if (status === 'open') return J({ ok: true, status: 'open', note: 'Chat is already open.' });
-      if (status === 'requested') return J({ ok: true, status: 'requested', note: 'Your request is pending review.' });
       if (status === 'banned') return J({ error: 'This chat is closed due to a policy violation.' }, 403);
-      const { data: inq } = await admin.from('inquiries').select('category,summary,emirate').eq('id', inquiry_id).maybeSingle();
-      const cat = await resolveCat(inq?.category);
-      const sys = 'You are the ' + (cat ? cat.name : 'category') + ' sales/expert agent for QuotesDone, a UAE B2B quotation marketplace. A ' + role + ' wants to ask the other party something on a revealed inquiry. Decide if THIS needs a direct human-to-human chat, or if you can answer it yourself. Generic / process / pricing-norm / scope-clarification questions: answer them. Only complex custom scoping, negotiation, scheduling/site coordination, or anything truly requiring the other party should open a chat. Reply ONLY JSON: {"needs_chat":true|false,"answer":"<your helpful answer if you can resolve it, else empty>"}.';
-      const out = await llm(sys, 'Category: ' + (inq?.category || '') + '\nProject: ' + (inq?.summary || '') + (inq?.emirate ? ' (' + inq.emirate + ')' : '') + '\nAsked by: ' + role + '\nQuestion: ' + q, 700);
-      let needs = true, answer = '';
-      if (out) { const m = out.match(/\{[\s\S]*\}/); if (m) { try { const pj = JSON.parse(m[0]); needs = pj.needs_chat !== false; answer = String(pj.answer || ''); } catch (_e) {} } }
-      if (!needs && answer) return J({ ok: true, answered: true, answer });
-      await admin.from('chat_threads').upsert({ inquiry_id, supplier_id, customer_id: rev.customer_id, status: 'requested', reason: q, requested_by: role, category: inq?.category || null }, { onConflict: 'inquiry_id,supplier_id' });
-      const agentKey = cat ? ('cat:' + cat.slug) : 'followup';
-      try { await admin.from('agent_actions').insert({ agent: agentKey, kind: 'open_chat', status: 'pending', risk: 'low', title: 'Chat requested — ' + (cat ? cat.name : (inq?.category || 'inquiry')) + (inq?.emirate ? ' / ' + inq.emirate : ''), recommendation: 'open the chat only if a direct discussion is genuinely needed', target_table: 'chat_threads', target_id: inquiry_id + ':' + supplier_id, detail: { inquiry_id, supplier_id, by: role, category: inq?.category, question: q } }); } catch (_e) {}
-      await notify([{ type: 'chat_request', to_email: await ownerEmail(), to_role: 'admin', inquiry_id, subject: 'Chat requested on QuotesDone — ' + (cat ? cat.name : (inq?.category || 'inquiry')), body: 'A ' + role + ' asked to open a direct chat on inquiry ' + inquiry_id + '.\n\nQuestion: ' + q + '\n\nThe ' + (cat ? cat.name : 'category') + ' agent judged it needs a human conversation. Approve or decline it in Admin → Agents → approvals.' }]);
-      return J({ ok: true, requested: true, note: 'Sent for review. You will be notified if the chat is opened.' });
+      return J({ ok: true, status: 'open', note: 'Chat is open.' });
     }
 
     if (action === 'thread') {
@@ -265,21 +370,7 @@ Deno.serve(observe('messages_api', async (req) => {
       if (banned) return J({ error: 'Your account is suspended for sharing contact details off-platform.' }, 403);
       if (status !== 'open') return J({ error: 'Chat is not open. Request a chat first.', chat_status: status }, 403);
       const text = clip(body.body, 2000); if (!text) return J({ error: 'empty' }, 400);
-      const det = detectContact(text);
-      if (det.hit) {
-        await admin.from('chat_violations').insert({ inquiry_id, supplier_id, sender_role: role, sender_email: email, matched: det.types.join(',') + (det.strong ? '' : ' (borderline)'), body: text.slice(0, 1000) });
-        await admin.from('messages').insert({ inquiry_id, supplier_id, customer_id: rev.customer_id, sender: role, body: '[blocked]', redacted_body: text.slice(0, 1000), blocked: true, flagged: true, read_by_customer: true, read_by_supplier: true });
-        if (det.strong) {
-          await admin.from('chat_threads').update({ status: 'banned', strikes: 1, closed_at: new Date().toISOString() }).eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id);
-          if (role === 'supplier') await admin.from('leads').update({ banned: true, banned_reason: 'Shared contact info in chat (' + det.types.join(',') + ')' }).eq('id', supplier_id);
-          else await admin.from('customers').update({ banned: true, banned_reason: 'Shared contact info in chat (' + det.types.join(',') + ')' }).eq('id', rev.customer_id);
-          await notify([{ type: 'chat_violation', to_email: await ownerEmail(), to_role: 'admin', inquiry_id, subject: '⚠ Contact-info disclosure blocked on QuotesDone', body: 'A ' + role + ' (' + email + ') tried to share contact info (' + det.types.join(', ') + ') on inquiry ' + inquiry_id + '. The message was blocked, the chat closed, and the account auto-suspended per the Terms (AED 10,000 penalty applies). Review in Admin.\n\nAttempted: ' + text.slice(0, 400) }]);
-          return J({ ok: false, blocked: true, warning: 'Your message was blocked and your account has been suspended. ' + WARNING });
-        } else {
-          await notify([{ type: 'chat_review', to_email: await ownerEmail(), to_role: 'admin', inquiry_id, subject: 'Possible contact info held for review on QuotesDone', body: 'A ' + role + ' (' + email + ') sent a message on inquiry ' + inquiry_id + ' that looks like it may contain a phone number or contact detail (borderline match: ' + det.types.join(', ') + '). It was held and NOT delivered, and the account was NOT auto-suspended. Review in Admin and ban manually if it was a real disclosure attempt.\n\nMessage: ' + text.slice(0, 400) }]);
-          return J({ ok: false, blocked: true, review: true, warning: 'Your message looks like it may include a phone number or contact detail, so it was held. Keep all details on QuotesDone. If that was a quantity or project number, please write it in words and resend.' });
-        }
-      }
+
       // §16 A DOCUMENT INSIDE THE CONVERSATION. The path is a storage path the caller already
       // uploaded through the same buckets the rest of the portal uses; only its SHAPE is trusted
       // here, never its contents, and it is stored on the message rather than merged into the body

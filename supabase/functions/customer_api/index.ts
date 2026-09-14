@@ -605,7 +605,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // suppliers, request refunds and rate them from the main buyer surface. Every mutating
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
-    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry'];
+    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     if (action === 'me') return J({ customer: cust });
@@ -652,12 +652,26 @@ Deno.serve(observe('customer_api', async (req) => {
         // Four pages per call is the measured ceiling with a page in hand; the loop is sequential
         // so two batches never run concurrently against the same budget.
         const REDACT_BATCH = 4;
-        const redactBatch = async (slice: any[]) => {
-          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path }) });
+        // CUSTOMER-DRAWN REDACTION (website audit 14 Sep 2026). Under the model hold drawing_redact
+        // verifies nothing, so a drawing never reached a supplier. The portal now lets the customer
+        // box what must be hidden; drawing_redact applies those boxes deterministically. One entry
+        // per page, normalised 0..1 {x,y,w,h}; anything malformed is dropped here, never forwarded.
+        const c01 = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0; };
+        const manualBoxes: { x: number; y: number; w: number; h: number }[][] | null = Array.isArray(body.manual_boxes)
+          ? body.manual_boxes.slice(0, 10).map((pg: unknown) => Array.isArray(pg)
+            ? pg.slice(0, 40).map((bx: any) => ({ x: c01(bx?.x), y: c01(bx?.y), w: c01(bx?.w), h: c01(bx?.h) })).filter((bx) => bx.w > 0 && bx.h > 0)
+            : [])
+          : null;
+        const redactBatch = async (slice: any[], from: number) => {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
           return await r.json();
         };
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images }) });
+        // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime }) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
+        // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
+        // under the hold) — the portal opens the customer's box editor on exactly that signal.
+        let needsManual = false;
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
@@ -665,8 +679,9 @@ Deno.serve(observe('customer_api', async (req) => {
         for (let i = 0; i < images.length; i += REDACT_BATCH) {
           const slice = images.slice(i, i + REDACT_BATCH);
           try {
-            const rj = await redactBatch(slice);
+            const rj = await redactBatch(slice, i);
             const inN = Number(rj?.pages_in || 0);
+            if (rj?.needs_manual_boxes === true) needsManual = true;
             // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
             // isolate death is counted as pages LOST rather than as a batch that carried no pages.
             if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; continue; }
@@ -678,7 +693,7 @@ Deno.serve(observe('customer_api', async (req) => {
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
-        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn };
+        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: needsManual && !(redIn > 0 && redOut === redIn) };
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
@@ -858,6 +873,43 @@ Deno.serve(observe('customer_api', async (req) => {
       return J({ ok: true, inquiry_id: inq!.id, matches, routing });
     }
 
+    // THE CUSTOMER'S FOLLOW-UP REACHES THE RFQ (website audit 14 Sep 2026, BROKEN). "Ask the
+    // assistant about this request" posted to inquiry_intake, which ignores inquiry_id, so every
+    // follow-up became an orphan intake draft and no supplier ever saw it. A follow-up is now an
+    // addendum: stored on public.rfq_clarification as a born-answered note (the same table the
+    // pre-reveal Q&A uses, so a supplier reads one list), scrubbed of contact details and the
+    // customer's own name, and emailed to every matched supplier through the same queue the
+    // original invitation used.
+    if (action === 'rfq_note') {
+      const iid = String(body.inquiry_id || '');
+      const raw = String(body.text || '').trim().slice(0, 1500);
+      if (!iid || raw.length < 2) return J({ error: 'text_required' }, 400);
+      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', iid).maybeSingle();
+      if (!inq || inq.customer_id !== cust.id) return J({ error: 'not_your_inquiry' }, 403);
+      if (['cancelled', 'closed', 'completed'].includes(String(inq.status))) return J({ error: 'inquiry_closed' }, 409);
+      const hourAgo = new Date(Date.now() - 3600e3).toISOString();
+      const { count: recentNotes } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', iid).eq('kind', 'note').gte('asked_at', hourAgo);
+      if ((recentNotes || 0) >= 10) return J({ error: 'too_many_notes' }, 429);
+      const hits: string[] = [];
+      const clean = String(scrubIdentity(raw, cust.full_name, hits) || '').trim();
+      if (clean.replace(/\[removed\]/g, '').trim().length < 2) return J({ error: 'text_required' }, 400);
+      const nowIso = new Date().toISOString();
+      const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
+      if (nerr || !ins) return J({ error: 'save_failed' }, 500);
+      const { data: ms } = await admin.from('inquiry_matches').select('supplier_id').eq('inquiry_id', iid);
+      const sids = [...new Set((ms || []).map((m: { supplier_id: number }) => Number(m.supplier_id)).filter(Boolean))];
+      let notified = 0;
+      if (sids.length) {
+        const { data: ls } = await admin.from('leads').select('id,email,claimed_by,banned').in('id', sids);
+        const rows = (ls || []).filter((l: any) => l.banned !== true).map((l: any) => ({ id: l.id, to: String(l.claimed_by || l.email || '') })).filter((l) => /@/.test(l.to))
+          .map((l) => ({ type: 'rfq_addendum', to_email: l.to, to_role: 'supplier', lead_id: l.id, inquiry_id: iid, subject: 'The customer added detail to a request you were invited to quote',
+            body: 'The customer added this to the ' + (inq.category || '') + (inq.emirate ? ' job in ' + inq.emirate : ' job') + ' you were invited to quote:\n\n"' + clean + '"\n\nIt is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.' }));
+        await queueNotifications(rows);
+        notified = rows.length;
+      }
+      return J({ ok: true, id: ins.id, text: clean, notified, removed: hits.length });
+    }
+
     if (action === 'my_inquiries') {
       const cfg = await getCfg();
       // rfq_no is the human reference (spec §8, "RFQ #88291"). The primary key is a uuid, which is
@@ -922,7 +974,11 @@ Deno.serve(observe('customer_api', async (req) => {
       // "Supplier A" with banded ratings and supplier_ref null, forever. Found 5 Aug 2026 by the
       // first fixture that ever created a transactions row - the journey never reveals, so a green
       // 37/37 said nothing about it. revealed_at is the column that exists; there is no fallback.
-      if (ids.length) { const { data: txs, error: txErr } = await admin.from('transactions').select('id,quote_id,revealed_at').eq('customer_id', cust.id); if (txErr) console.error('my_inquiries: transactions read failed —', txErr.message); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; } }
+      // The Reveal Guarantee clock on the customer's own job needs the facts the refund ladder runs
+      // on — when they paid, whether the supplier acknowledged, and any refund already in motion.
+      // All four are columns on the sale; nothing is inferred.
+      const guaranteeByQuote: Record<string, Record<string, unknown>> = {};
+      if (ids.length) { const { data: txs, error: txErr } = await admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline').eq('customer_id', cust.id); if (txErr) console.error('my_inquiries: transactions read failed —', txErr.message); for (const t of txs || []) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; } }
       const { data: revs } = await admin.from('reviews').select('transaction_id').eq('customer_id', cust.id); const ratedTx = new Set((revs || []).map((r) => String(r.transaction_id)));
       const now = new Date();
       // Pre-reveal quote rows carry BANDS only (see ratingBand/reviewCountBand/yearsBand above);
@@ -947,7 +1003,7 @@ Deno.serve(observe('customer_api', async (req) => {
         applied_filters: appliedFilters(i.routing),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
-        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
+        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined }; }) });
       const out = [] as any[];
       for (const i of (tops || [])) {
         // mapRow returns an object literal, so its inferred type has no is_combined / child_count /
@@ -966,7 +1022,11 @@ Deno.serve(observe('customer_api', async (req) => {
       // localStorage['qd-lang'] and the NEXT_LOCALE cookie. A customer who set Arabic on one device
       // got English on the next, and the Arabic journey exercised a path the portal could not reach.
       // promo is always false: there is no promotional reveal rate (founder, 6 Sep 2026); the key stays so no reader breaks.
-      return J({ inquiries: out, locale: cust.locale || null, promo: false });
+      // The ladder's numbers, from the same row the refund sweep and the supplier email read, so the
+      // portal's timeline cannot drift from what is actually enforced (5 / 3 / 7-14 on 14 Sep 2026).
+      const pc = cfg as unknown as Record<string, number | null | undefined>;
+      const guarantee_terms = { window_days: pc.refund_window_working_days ?? null, chase_after_days: pc.chase_after_working_days ?? null, bank_min_days: pc.bank_settlement_working_days_min ?? null, bank_max_days: pc.bank_settlement_working_days_max ?? null };
+      return J({ inquiries: out, locale: cust.locale || null, promo: false, guarantee_terms });
     }
 
     if (action === 'compare_pdf') {
@@ -1057,7 +1117,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (tx.refund_status) return J({ ok: true, refund_status: tx.refund_status });
       // 6 Sep 2026: the ladder is pricing_config.refund_window_working_days (5) from payment, a chase at 3,
       // the founder's final call at 5; the sweep files the refund itself once the window has elapsed.
-      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) { const cfgR = await getCfg(); return J({ error: `The ${cfgR.refund_window_working_days} working-day window has elapsed; the case has gone to our founder for the final call and the refund is issued if the supplier does not respond.` }, 400); }
+      if (tx.refund_deadline && new Date() > new Date(tx.refund_deadline)) { const cfgR = await getCfg(); return J({ error: `The ${cfgR.refund_window_working_days} working-day window has elapsed; the case has gone to our chief executive for the final call and the refund is issued if the supplier does not respond.`, code: 'refund_window_elapsed' }, 400); }
       const { data: q2 } = await admin.from('quotes').select('inquiry_id,supplier_id').eq('id', qid).maybeSingle();
       if (q2) {
         const { data: inq2 } = await admin.from('inquiries').select('status,outcome,hired_supplier_id').eq('id', q2.inquiry_id).maybeSingle();
