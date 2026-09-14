@@ -727,6 +727,9 @@ html[lang="ar"] .font-mono.uppercase:not(.rounded-full):not([class*="rounded"]):
 .osx[data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(10,23,32,.22)}
 .osx[data-theme="light"] .qd-panel{background:hsl(var(--card));border-color:hsl(var(--border));box-shadow:var(--e2);backdrop-filter:none}
 .osx[data-theme="light"] .qd-panel::before{display:none}
+/* Panels written for the dark ground use text-white for headings; on a white card that is invisible.
+   Inside a panel it follows the foreground — except in a dialog, which keeps its own dark overlay. */
+.osx[data-theme="light"] .qd-panel .text-white:not([role="dialog"] *){color:hsl(var(--foreground))}
 .qd-section + .qd-section{margin-top:26px}
 .qd-topbar{box-shadow:0 1px 0 var(--line),0 18px 40px -34px rgba(2,8,13,.9)}
 .qd-brandbadge{background:linear-gradient(168deg,rgba(20,184,166,.22),rgba(20,184,166,.05));border:1px solid var(--line2);

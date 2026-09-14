@@ -66,7 +66,7 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
   if (st.loading) return <div className="qd-panel h-32 animate-pulse motion-reduce:animate-none" aria-busy="true" />;
   if (!st.avail.length) return (
     <section className="qd-panel p-5">
-      <h2 className="text-[15.5px] font-bold text-white">{ar ? 'الرؤى' : 'Insights'}</h2>
+      <h2 className="text-[15.5px] font-bold text-foreground">{ar ? 'الرؤى' : 'Insights'}</h2>
       <p className="mt-1 max-w-[62ch] text-[13px] leading-[1.65] text-muted-foreground">{ar
         ? 'لا توجد رؤى بعد. تظهر كل لوحة فور وجود بيانات حقيقية خلفها — لا نعرض رقمًا لم نقِسه.'
         : 'No insights yet. Each panel appears as soon as there is real data behind it — we never show a number we have not measured.'}</p>

@@ -16,6 +16,7 @@ import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer } from './sup
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
 import { call } from './supplier/api';
+import { categoryLabel } from '@/lib/categoryLabel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,24 @@ function Lbl({ text, children, className = '', visible = false }) {
   return <label className={cn('block min-w-0', className)}><span className={visible ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}</span>{children}</label>;
 }
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+// Amounts, phone numbers, e-mails, dates and reference codes are left-to-right runs. Inside the Arabic
+// portal an unisolated "AED 12,500" or "+971 50 …" is reordered by the bidi algorithm around the
+// Arabic text beside it (portal audit 14 Sep 2026); <bdi dir="ltr"> keeps each one whole.
+const Ltr = ({ children, className = '' }) => <bdi dir="ltr" className={className}>{children}</bdi>;
+const fmtDate = (d, lang, withYear = true) => (d ? new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' }) : '');
+// What a held (draft) quote is missing, in the codes fn_quote_structured_score returns. One table for
+// the preflight panel and the held-quote notes, so the two can never describe the same gap differently.
+const MISSING = {
+  line_items: ['Itemised lines', 'بنود العرض'], unit_prices_on_all_items: ['A unit price on every line', 'سعر الوحدة لكل بند'],
+  brand_model_per_item: ['Brand and model on every line', 'الماركة والموديل لكل بند'], specifications: ['Specifications', 'المواصفات'],
+  labour_or_installation: ['Labour or installation', 'العمالة أو التركيب'], warranty: ['Warranty', 'الضمان'],
+  lead_time: ['Lead time', 'مدة التنفيذ'], payment_terms: ['Payment terms', 'شروط الدفع'],
+  exclusions: ['Exclusions', 'الاستثناءات'], validity: ['Quote validity', 'مدة صلاحية العرض'],
+};
+const missingLabel = (lang, m) => (MISSING[m] ? MISSING[m][lang === 'ar' ? 1 : 0] : (lang === 'ar' ? 'بند ناقص' : String(m).replace(/_/g, ' ')));
+// Every format the quotation reader opens (supabase/functions/_shared/doc_read READERS, #591), the same
+// list the customer's composer accepts. A DWG is accepted and stored; it is read once converted.
+const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.xml,.x83,.x84,.x86,.zip';
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
@@ -114,17 +133,17 @@ function BillingPanel({ token, lang, receipt }) {
         {st.dues.map((d) => (
           <div key={d.id} className="flex justify-between items-center border-b border-border pb-2 text-[13.5px]">
             <div>
-              <div className="font-semibold tabular-nums">{aed(d.amount)}</div>
-              <div className={S.sub}>{t(lang, 'bill_commission') + ' ' + aed(d.commission) + (d.fine ? ' · ' + t(lang, 'bill_fine') + ' ' + aed(d.fine) : '')}</div>
+              <div className="font-semibold tabular-nums"><Ltr>{aed(d.amount)}</Ltr></div>
+              <div className={S.sub}>{t(lang, 'bill_commission')} <Ltr>{aed(d.commission)}</Ltr>{d.fine ? <> · {t(lang, 'bill_fine')} <Ltr>{aed(d.fine)}</Ltr></> : null}</div>
             </div>
-            <div className={S.sub}>{d.due_date ? t(lang, 'bill_due') + ' ' + d.due_date : ''}</div>
+            <div className={S.sub}>{d.due_date ? <>{t(lang, 'bill_due')} <Ltr>{fmtDate(d.due_date, lang)}</Ltr></> : ''}</div>
           </div>
         ))}
       </div>
       <div className="flex justify-between items-center mt-3 flex-wrap gap-3">
         <div>
           <div className={S.sub}>{t(lang, 'bill_total')}</div>
-          <div className="text-[20px] font-extrabold text-foreground tabular-nums">{aed(st.total)}</div>
+          <div className="text-[20px] font-extrabold text-foreground tabular-nums"><Ltr>{aed(st.total)}</Ltr></div>
         </div>
         <Button onClick={pay} disabled={busy}>{busy ? t(lang, 'bill_paying') : t(lang, 'bill_pay')}</Button>
       </div>
@@ -169,7 +188,7 @@ const T = {
     email_verified:'✓ E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.',
     wa_alerts:'Send me WhatsApp alerts when a matching RFQ comes in.', verify_first:'Please verify your mobile number first.',
-    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation (PDF/photo) — we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
+    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
     lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
     verify_my_email:'Verify my e-mail →', email_code:'6-digit e-mail code', email_sent:'We emailed you a 6-digit code.', could_not_email:'Could not send the e-mail code.',
     cat_label:'Your trade or category', cat_ph:'e.g. Electrical, AC, Cleaning — type your own if not listed', cat_help:'Every trade is welcome — if yours isn’t listed, just type it in.', emirate_ph:'Choose your main emirate',
@@ -194,7 +213,7 @@ const T = {
     email_verified:'✓ تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.',
     wa_alerts:'أرسل لي تنبيهات واتساب عند وصول طلب تسعير مطابق.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
-    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر (PDF/صورة) — سنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر — PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP — وسنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
     lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فاكتبه أدناه — القراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
     verify_my_email:'تحقّق من بريدي ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليك رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
     cat_label:'تخصصك أو فئتك', cat_ph:'مثال: كهرباء، تكييف، تنظيف — اكتب تخصصك إن لم يكن مدرجًا', cat_help:'كل التخصصات مرحّب بها — إن لم يكن تخصصك مدرجًا فاكتبه.', emirate_ph:'اختر إمارتك الرئيسية',
@@ -212,10 +231,10 @@ function switchLang(to){ try{ localStorage.setItem('qd-lang', to); document.cook
 // nearer to the viewer, which is how the rest of the product signals state.
 const S = {
   center: 'grid place-items-center min-h-[70vh] p-5',
-  h1: 'text-[22px] font-extrabold tracking-[-.03em] text-white',
-  h2: 'text-[15.5px] font-bold tracking-[-.018em] text-white',
+  h1: 'text-[22px] font-extrabold tracking-[-.03em] text-foreground',
+  h2: 'text-[15.5px] font-bold tracking-[-.018em] text-foreground',
   sub: 'text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]',
-  anon: 'ml-1.5 text-[11px] font-semibold text-muted-foreground/80',
+  anon: 'ms-1.5 text-[11px] font-semibold text-muted-foreground/80',
   hint: 'text-xs text-muted-foreground my-2 leading-relaxed max-w-[68ch]',
   err: 'text-[13px] text-danger-fg mt-2',
   wrap: 'max-w-[1040px] mx-auto px-[22px] py-7',
@@ -438,11 +457,31 @@ export function SupplierPortal() {
         call('claim_lookup', { t }).then((j) => { if (j && j.ok) setInvite(j); }).catch(() => {});
       }
     } catch (_e) {}
+    try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
     SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {});
+    // THE HOUR MARK (14 Sep 2026). supabase-js refreshes the access token on schedule, and nothing here
+    // listened — the customer portal learned this on 13 Aug; the supplier portal still sent the token
+    // captured at mount, so after 60 minutes every tab answered "Something went wrong". One listener,
+    // moving forward only: SIGNED_OUT carries no token and is not a refresh failure.
+    let sub;
+    try { sub = SB.auth.onAuthStateChange((_evt, ss) => { const at = ss && ss.access_token; if (!at) return; setToken(at); try { localStorage.setItem('qd-sup-token', at); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} }); } catch (_e) {}
+    return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
+  // The root element, not only this div, carries the language: it is what a screen reader reads.
+  useEffect(() => { try { document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; } catch (_e) {} }, [lang]);
+  // Light/dark is a per-device choice, the same key and the same .osx[data-theme] palette as the
+  // customer portal (globals.css). The supplier portal had no control for it at all.
+  const [theme, setTheme] = useState('dark');
+  const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   const onAuth = (access, refresh) => { try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
+  // A 401 from the dashboard: try the stored refresh token once, and only if that fails send the
+  // supplier back to sign-in — never leave them on a retry button that cannot succeed.
+  const onExpired = async () => {
+    try { const { data } = await SB.auth.refreshSession(); const ss = data && data.session; if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; } } catch (_e) {}
+    doSignOut();
+  };
   const rtl = lang === 'ar';
   if (!mounted) return null;
   return (
@@ -450,7 +489,7 @@ export function SupplierPortal() {
     // not loaded anywhere (public/fonts holds 11 woff2, none Inter; document.fonts showed 0 faces on
     // /supplier), so the portal rendered in the OS fallback and the Arabic portal lost Tajawal. It now
     // inherits the layout's var(--font-body) / var(--font-head), the same faces as the homepage.
-    <div dir={rtl ? 'rtl' : 'ltr'} lang={lang} className="osx min-h-screen bg-background text-foreground">
+    <div dir={rtl ? 'rtl' : 'ltr'} lang={lang} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
       <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between gap-2 px-4 sm:px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
         {/* whitespace-nowrap + the sub-label hidden below sm: at 375px "QuotesDone / SUPPLIER / PORTAL"
             wrapped to three lines beside the buttons (audit mobile screenshot). */}
@@ -460,6 +499,7 @@ export function SupplierPortal() {
         </a>
         <div className="flex gap-2 items-center shrink-0">
           <Button variant="outline" size="sm" lang={lang === 'ar' ? 'en' : 'ar'} onClick={() => switchLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
+          <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
         </div>
@@ -471,7 +511,7 @@ export function SupplierPortal() {
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
-        {phase === 'app' && <Dashboard token={token} lang={lang} />}
+        {phase === 'app' && <Dashboard token={token} lang={lang} onExpired={onExpired} />}
       </>)}
       </main>
     </div>
@@ -554,11 +594,13 @@ function Login({ onAuth, lang, startMode }) {
 // than wrapping, so on a phone it is one row.
 const MAIN_TABS = ['overview', 'rfqs', 'quotes', 'projects', 'messages', 'documents', 'billing', 'insights'];
 const ACCOUNT_TABS = ['profile', 'scope', 'settings'];
-function Dashboard({ token, lang }) {
+function Dashboard({ token, lang, onExpired }) {
   const ar = lang === 'ar';
   const [ov, setOv] = useState(null); const [tab, setTab] = useState('overview'); const [err, setErr] = useState('');
   const [panel, setPanel] = useState(null); const [receipt, setReceipt] = useState(null);
-  const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else setErr((j && j.error) || 'load_err'); };
+  // Which record a card opened: an RFQ by inquiry id (from Quotes), a chat by inquiry id (from Projects).
+  const [focusRfq, setFocusRfq] = useState(null); const [openChat, setOpenChat] = useState(null);
+  const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(); }, [token]);
   useEffect(() => {
     // Stripe's return (see ReceiptBanner). Read once, then removed so a reload does not re-announce it.
@@ -606,7 +648,7 @@ function Dashboard({ token, lang }) {
             {stBadge}
             {ov.supplier.approval_status === 'action_required' && ov.supplier.licence_gate_reason
               ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
-            {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · ' + ov.supplier.license_expiry}</Badge>; })() : null}
+            {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
         </div>
         <nav aria-label={t(lang, 'main_nav')} className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -621,7 +663,7 @@ function Dashboard({ token, lang }) {
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
       {tab === 'overview' && <>
-        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-white">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
+        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-foreground">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
         <GetMatched token={token} lang={lang} go={go} />
         {/* Counts come from fn_supplier_document_impact: open enquiries in this trade, not an estimate. */}
         <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} /></div>
@@ -659,36 +701,65 @@ function Dashboard({ token, lang }) {
           </Card>
         </div>
       </>}
-      {tab === 'rfqs' && <Rfqs token={token} lang={lang} />}
-      {tab === 'quotes' && <MyQuotes token={token} lang={lang} goRfqs={() => setTab('rfqs')} />}
-      {tab === 'projects' && <Projects token={token} lang={lang} />}
-      {tab === 'messages' && <Messages token={token} lang={lang} />}
+      {tab === 'rfqs' && <Rfqs token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} />}
+      {tab === 'quotes' && <MyQuotes token={token} lang={lang} goRfqs={() => setTab('rfqs')} openRfq={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
+      {tab === 'projects' && <Projects token={token} lang={lang} openChat={(id) => { setOpenChat(id); setTab('messages'); }} />}
+      {tab === 'messages' && <Messages token={token} lang={lang} openInquiry={openChat} onOpened={() => setOpenChat(null)} />}
       {tab === 'documents' && <Documents token={token} lang={lang} />}
       {tab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
       {tab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
       {tab === 'scope' && <CapabilityConfirmPanel token={token} lang={lang} />}
-      {tab === 'settings' && <SupplierSettings token={token} lang={lang} />}
+      {tab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={switchLang} />}
     </div>
   );
 }
 // Quotes: what this supplier has sent, and which are still drafts that no customer can see. The inbox
 // already carries each RFQ's quote; this is that list read the other way round.
-function MyQuotes({ token, lang, goRfqs }) {
+// A quote's state in words. draft = held by the accept rule (the customer cannot see it); anything the
+// quotes table may hold that is not listed here still gets an Arabic word rather than a raw code.
+const QUOTE_ST = {
+  draft: { v: 'warn', en: 'Held — not sent yet', ar: 'محجوز — لم يُرسل بعد' },
+  submitted: { v: 'ok', en: 'Sent to the customer', ar: 'أُرسل إلى العميل' },
+  accepted: { v: 'ok', en: 'Customer revealed you', ar: 'كشف العميل عن عرضك' },
+  withdrawn: { v: 'secondary', en: 'Withdrawn', ar: 'مسحوب' },
+  expired: { v: 'secondary', en: 'Expired', ar: 'منتهي الصلاحية' },
+};
+const quoteSt = (q) => QUOTE_ST[q && q.status] || { v: 'secondary', en: String((q && q.status) || '').replace(/_/g, ' '), ar: 'حالة أخرى' };
+// The notes a held quote carries: what fn_quote_structured_score says is missing, in words, and the
+// one button that reopens the form to fix it.
+function HeldNotes({ q, lang, onFix }) {
+  const ar = lang === 'ar';
+  const miss = Array.isArray(q.missing) ? q.missing : [];
+  return (
+    <div role="note" className="mt-3 rounded-md border border-warn/40 bg-warn/10 px-3.5 py-3">
+      <div className="text-[13px] font-semibold text-foreground">{ar ? 'لم يُرسل هذا العرض إلى العميل بعد — أكمل ما يلي ثم أعد الإرسال:' : 'This quote has not reached the customer yet — add the following, then send it again:'}</div>
+      {miss.length
+        ? <ul className="mt-1.5 flex flex-col gap-1">{miss.map((m) => <li key={m} className="flex items-start gap-2 text-[13px] text-foreground"><span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />{missingLabel(lang, m)}</li>)}</ul>
+        : <div className={cn(S.sub, 'mt-1')}>{ar ? 'أضف بندًا مسعّرًا واحدًا على الأقل، ومدة التنفيذ، وصلاحية العرض، والضمان.' : 'Add at least one priced line, the lead time, the quote validity and the warranty.'}</div>}
+      {onFix && <Button size="sm" className="mt-2.5" onClick={onFix}>{ar ? 'أصلح العرض وأعد إرساله' : 'Fix and resend'}</Button>}
+    </div>
+  );
+}
+function MyQuotes({ token, lang, goRfqs, openRfq }) {
   const ar = lang === 'ar';
   const [data, setData] = useState(null);
   useEffect(() => { call('supplier_api', { action: 'inbox' }, token).then(setData); }, [token]);
   if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
+  if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = (data.inquiries || []).filter((i) => i.quote);
   if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{ar ? 'لم تقدّم أي عرض بعد' : 'No quotes yet'}</div><div className={S.sub}>{ar ? 'تظهر هنا عروضك بعد أن تسعّر طلبًا من تبويب طلبات التسعير.' : 'Your quotes appear here once you price a request from the RFQs tab.'}</div><Button className="mt-3" variant="outline" onClick={goRfqs}>{t(lang, 't_rfqs')}</Button></Card>;
-  const ST = { draft: { v: 'warn', en: 'Draft — not sent', ar: 'مسودة — لم تُرسل' }, submitted: { v: 'ok', en: 'Sent to the customer', ar: 'أُرسل إلى العميل' } };
-  return <ul className={S.list}>{list.map((i) => { const q = i.quote; const st = ST[q.status] || { v: 'secondary', en: q.status, ar: q.status }; return (
-    <li key={i.id}><Card className="qd-panel qd-panel-hover p-5 flex flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0">
-        <div className="font-semibold text-foreground">{i.category || t(lang, 'request_w')} · {emirateLabel(lang, i.emirate || '')}</div>
-        <div className="mt-1 flex flex-wrap gap-2 items-center"><Badge variant={st.v}>{ar ? st.ar : st.en}</Badge>{i.you_won ? <Badge variant="ok">{t(lang, 'you_won').replace(' · ', '')}</Badge> : i.concluded ? <Badge variant="secondary">{t(lang, 'concluded').replace(' · ', '')}</Badge> : null}{q.lead_time ? <span className={S.sub}>{(ar ? 'مدة التنفيذ: ' : 'Lead time: ') + q.lead_time}</span> : null}</div>
+  return <ul className={S.list}>{list.map((i) => { const q = i.quote; const st = quoteSt(q); const editable = !i.concluded && !i.revealed; return (
+    <li key={i.id}><Card className="qd-panel qd-panel-hover p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button type="button" className="min-w-0 text-start" onClick={() => openRfq(i.id)} aria-label={(ar ? 'افتح الطلب ' : 'Open request ') + String(i.id).slice(0, 8).toUpperCase()}>
+          <div className="font-semibold text-foreground underline-offset-2 hover:underline">{categoryLabel(i.category || '', lang) || t(lang, 'request_w')} · {emirateLabel(lang, i.emirate || '')}</div>
+          <div className="mt-1 flex flex-wrap gap-2 items-center"><Badge variant={st.v}>{ar ? st.ar : st.en}</Badge>{i.you_won ? <Badge variant="ok">{t(lang, 'you_won').replace(' · ', '')}</Badge> : i.concluded ? <Badge variant="secondary">{t(lang, 'concluded').replace(' · ', '')}</Badge> : null}{q.lead_time ? <span className={S.sub}>{(ar ? 'مدة التنفيذ: ' : 'Lead time: ') + q.lead_time}</span> : null}</div>
+        </button>
+        <div className="text-end"><div className="font-[family-name:var(--font-head)] text-[18px] font-extrabold tabular-nums text-foreground"><Ltr>{aed(q.quote_amount)}</Ltr></div>
+          {editable && q.status !== 'draft' ? <Button size="sm" variant="outline" className="mt-1" onClick={() => openRfq(i.id)}>{ar ? 'عدّل العرض' : 'Edit quote'}</Button> : null}</div>
       </div>
-      <div className="text-end"><div className="font-[family-name:var(--font-head)] text-[18px] font-extrabold tabular-nums text-foreground">{aed(q.quote_amount)}</div>{q.status === 'draft' && !i.concluded ? <Button size="sm" variant="outline" className="mt-1" onClick={goRfqs}>{ar ? 'أكمل العرض' : 'Complete it'}</Button> : null}</div>
+      {q.status === 'draft' && editable ? <HeldNotes q={q} lang={lang} onFix={() => openRfq(i.id)} /> : null}
     </Card></li>); })}</ul>;
 }
 // Label above figure, not below: the eye lands on the number, and the label is
@@ -725,7 +796,7 @@ function Funnel({ s, matched, lang }) {
               <div key={st.k}>
                 <div className="flex justify-between items-baseline gap-2">
                   <span className="text-[13px] text-foreground">{st.label}</span>
-                  <span className="text-[13px] font-bold text-foreground tabular-nums">{st.v}{c != null && <span className="text-muted-foreground font-semibold ml-1.5 text-[11.5px]">{c}%</span>}</span>
+                  <span className="text-[13px] font-bold text-foreground tabular-nums">{st.v}{c != null && <span className="text-muted-foreground font-semibold ms-1.5 text-[11.5px]">{c}%</span>}</span>
                 </div>
                 <div className="qd-meter mt-1.5">
                   <span className="transition-[width] duration-700 motion-reduce:transition-none"
@@ -771,15 +842,23 @@ function Earnings({ s, lang }) {
     </Card>
   );
 }
-function Spark({ hist, lang }) { if (!hist || !hist.length) return <div className={S.sub}>{t(lang, 'no_history')}</div>; const max = Math.max(1, ...hist.map((h) => Math.max(h.quotes || 0, h.reveals || 0))); return <div className="flex gap-1.5 items-end mt-3.5 h-[70px]">{hist.map((h, i) => <div key={i} className="flex-1 flex flex-col items-center" title={h.month + ': ' + h.quotes + ' quotes / ' + h.reveals + ' reveals'}><div className="flex gap-0.5 items-end h-[50px]"><div className="w-[7px] rounded-t-sm bg-primary" style={{ height: Math.max(2, Math.round((h.quotes / max) * 46)) }} /><div className="w-[7px] rounded-t-sm bg-primary/40" style={{ height: Math.max(2, Math.round((h.reveals / max) * 46)) }} /></div><div className="text-[9px] text-muted-foreground mt-1">{String(h.month).split(' ')[0]}</div></div>)}</div>; }
+function Spark({ hist, lang }) { if (!hist || !hist.length) return <div className={S.sub}>{t(lang, 'no_history')}</div>; const max = Math.max(1, ...hist.map((h) => Math.max(h.quotes || 0, h.reveals || 0))); return <div className="flex gap-1.5 items-end mt-3.5 h-[70px]">{hist.map((h, i) => <div key={i} className="flex-1 flex flex-col items-center" title={h.month + ': ' + h.quotes + (lang === 'ar' ? ' عروض / ' : ' quotes / ') + h.reveals + (lang === 'ar' ? ' كشوفات' : ' reveals')}><div className="flex gap-0.5 items-end h-[50px]"><div className="w-[7px] rounded-t-sm bg-primary" style={{ height: Math.max(2, Math.round((h.quotes / max) * 46)) }} /><div className="w-[7px] rounded-t-sm bg-primary/40" style={{ height: Math.max(2, Math.round((h.reveals / max) * 46)) }} /></div><div className="text-[9px] text-muted-foreground mt-1">{String(h.month).split(' ')[0]}</div></div>)}</div>; }
 // An RFQ card shows what is actually being priced: the redacted drawing pages, the BOQ as a table
 // (with "quote against this BOQ" pre-filling the quote's line items), the customer's identity as a
 // redaction bar, and the anonymous pre-reveal Q&A. See ./supplier/RfqParts.tsx for why.
-function Rfqs({ token, lang }) {
+function Rfqs({ token, lang, focus = null, onFocused = null }) {
   const ar = lang === 'ar';
   const [data, setData] = useState(null); const [open, setOpen] = useState(null); const [prefill, setPrefill] = useState({});
   const reload = () => call('supplier_api', { action: 'inbox' }, token).then((j) => setData(j));
   useEffect(() => { reload(); }, [token]);
+  // Opened from a Quotes card: open THAT request's form (if it can still be edited) and scroll to it.
+  useEffect(() => {
+    if (!focus || !data || !data.inquiries) return;
+    const it = data.inquiries.find((x) => x.id === focus);
+    if (it && !it.concluded && !it.revealed) setOpen(focus);
+    requestAnimationFrame(() => { try { document.getElementById('qd-rfq-' + focus)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {} });
+    if (onFocused) onFocused();
+  }, [focus, data]);
   if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading_rfqs')}</Card>;
   if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.inquiries || [];
@@ -791,34 +870,46 @@ function Rfqs({ token, lang }) {
   };
   const date = (d) => (d ? new Date(d).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }) : '');
   return <ul className={S.list}>{list.map((i) => {
-    const canQuote = !i.concluded && !i.quote;
-    return <li key={i.id}><Card className="qd-panel qd-panel-hover p-5 sm:p-6">
+    // A quote can be edited and re-sent until the request concludes or the customer reveals it:
+    // submit_quote upserts on (inquiry, supplier). A held draft must be editable — that is the fix.
+    const canQuote = !i.concluded && !i.revealed;
+    const q = i.quote;
+    return <li key={i.id} id={'qd-rfq-' + i.id}><Card className="qd-panel qd-panel-hover p-5 sm:p-6">
       <div className="flex justify-between items-start gap-3 flex-wrap">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className="me-1 font-mono text-label uppercase tracking-caps text-muted-foreground tabular-nums">{(ar ? 'طلب ' : 'RFQ ') + String(i.id || '').slice(0, 8).toUpperCase()}</span>
-            {i.category ? <Badge variant="outline">{i.category}</Badge> : null}
+            <span className="me-1 font-mono text-label uppercase tracking-caps text-muted-foreground tabular-nums">{ar ? 'طلب ' : 'RFQ '}<Ltr>{String(i.id || '').slice(0, 8).toUpperCase()}</Ltr></span>
+            {i.category ? <Badge variant="outline">{categoryLabel(i.category, lang)}</Badge> : null}
             {i.emirate ? <Badge variant="secondary">{emirateLabel(lang, i.emirate)}</Badge> : null}
           </div>
-          <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{i.category || t(lang, 'request_w')} <span className="font-medium text-muted-foreground">· {emirateLabel(lang, i.emirate || '')}</span>
+          <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{categoryLabel(i.category || '', lang) || t(lang, 'request_w')} <span className="font-medium text-muted-foreground">· {emirateLabel(lang, i.emirate || '')}</span>
             {i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</h2>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">{!i.you_won && <WithheldCustomer lang={lang} />}<span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">{date(i.created_at)}</span>{i.budget ? <span className="text-[11.5px] text-muted-foreground">{(ar ? 'الميزانية: ' : 'Budget: ') + i.budget}</span> : null}</div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">{!i.you_won && !i.revealed && <WithheldCustomer lang={lang} />}<span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">{date(i.created_at)}</span>{i.budget ? <span className="text-[11.5px] text-muted-foreground">{(ar ? 'الميزانية: ' : 'Budget: ') + i.budget}</span> : null}</div>
         </div>
-        {i.quote ? <span className="rounded-chip border border-primary/30 bg-primary/10 px-2.5 py-1 font-mono text-primary text-[13px] tabular-nums">{t(lang, 'quoted')}{aed(i.quote.quote_amount)}</span>
-          : canQuote ? <Button size="sm" aria-expanded={open === i.id} onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : t(lang, 'quote')}</Button> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {q ? <span className="rounded-chip border border-primary/30 bg-primary/10 px-2.5 py-1 font-mono text-primary text-[13px] tabular-nums">{t(lang, 'quoted')}<Ltr>{aed(q.quote_amount)}</Ltr></span> : null}
+          {q ? <Badge variant={quoteSt(q).v}>{ar ? quoteSt(q).ar : quoteSt(q).en}</Badge> : null}
+          {canQuote ? <Button size="sm" variant={q ? 'outline' : 'default'} aria-expanded={open === i.id} aria-controls={'qd-qf-' + i.id} onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : q ? (q.status === 'draft' ? (ar ? 'أصلح العرض' : 'Fix quote') : (ar ? 'عدّل العرض' : 'Edit quote')) : t(lang, 'quote')}</Button> : null}
+        </div>
       </div>
+      {q && q.status === 'draft' && canQuote && open !== i.id ? <HeldNotes q={q} lang={lang} onFix={() => setOpen(i.id)} /> : null}
       {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
       <DrawingGallery pages={i.drawing_pages || []} lang={lang} />
-      <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote ? (rows) => quoteBoq(i.id, rows) : undefined} />
-      <ClarifyThread inquiryId={i.id} token={token} lang={lang} canAsk={canQuote} />
+      <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote && !q ? (rows) => quoteBoq(i.id, rows) : undefined} />
+      {i.boq_withheld ? <div className={cn(S.sub, 'mt-3')}>{ar ? 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والوصف.' : 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the description.'}</div> : null}
+      <ClarifyThread inquiryId={i.id} token={token} lang={lang} canAsk={canQuote && !q} />
       {open === i.id && canQuote && <div id={'qd-qf-' + i.id}><QuoteForm key={i.id + ':' + ((prefill[i.id] || []).length)} inquiry={i} token={token} lang={lang} initialItems={prefill[i.id]} onDone={() => { setOpen(null); reload(); }} /></div>}
     </Card></li>;
   })}</ul>;
 }
 function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
-  const [amount, setAmount] = useState(''); const [lead, setLead] = useState(''); const [notes, setNotes] = useState(''); const [scope, setScope] = useState(''); const [validity, setValidity] = useState(''); const [payment, setPayment] = useState(''); const [warranty, setWarranty] = useState(''); const [items, setItems] = useState(initialItems && initialItems.length ? initialItems : [{ description: '', qty: '', unit: '', unit_price: '' }]); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  // An existing quote (a held draft, or one already sent) reopens with what was sent, lines included.
+  const q0 = inquiry.quote || {};
+  const lines0 = initialItems && initialItems.length ? initialItems
+    : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
+  const [amount, setAmount] = useState(q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
-  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64 } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
   const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form' };
   // Preflight. submit_quote accepts dry_run: it runs the REAL scorer and the REAL accept rule,
@@ -852,7 +943,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
   const lineSum = items.reduce((acc, x) => { const q = Number(x.qty), p = Number(x.unit_price); return acc + (q > 0 && p > 0 ? q * p : 0); }, 0);
   const grp = 'font-mono text-label uppercase tracking-caps text-muted-foreground';
   return <div className="mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5">
-    <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept="image/*,application/pdf,.xlsx,.xls,.csv,.ods,.doc,.docx,.odt,.rtf,.txt,.eml,.msg,.zip" onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
+    <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept={QUOTE_ACCEPT} onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
     <div className={cn(grp, 'border-t border-border pt-4')}>{ar ? 'السعر والشروط' : 'Price and terms'}</div>
     <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
     <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
@@ -901,18 +992,6 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null }) {
 function QuoteCheck({ chk, lang }) {
   const ar = lang === 'ar';
   const sc = chk.score || {}; const pts = sc.score ?? 0; const pass = 70;
-  const LABEL = {
-    line_items: ar ? 'بنود العرض' : 'Itemised lines',
-    unit_prices_on_all_items: ar ? 'سعر الوحدة لكل بند' : 'A unit price on every line',
-    brand_model_per_item: ar ? 'الماركة والموديل لكل بند' : 'Brand and model on every line',
-    specifications: ar ? 'المواصفات' : 'Specifications',
-    labour_or_installation: ar ? 'العمالة أو التركيب' : 'Labour or installation',
-    warranty: ar ? 'الضمان' : 'Warranty',
-    lead_time: ar ? 'مدة التنفيذ' : 'Lead time',
-    payment_terms: ar ? 'شروط الدفع' : 'Payment terms',
-    exclusions: ar ? 'الاستثناءات' : 'Exclusions',
-    validity: ar ? 'مدة صلاحية العرض' : 'Quote validity',
-  };
   const missing = Array.isArray(sc.missing) ? sc.missing : [];
   const viaForm = chk.accept_via === 'form_complete' && !chk.submittable;
   return (
@@ -944,7 +1023,7 @@ function QuoteCheck({ chk, lang }) {
       {!!missing.length && <ul className="mt-2.5 flex flex-col gap-1">
         {missing.map((m, i) => <li key={i} className="flex items-start gap-2">
           <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-warn shrink-0" />
-          <span className="text-[13px] text-foreground">{LABEL[m] || m}</span>
+          <span className="text-[13px] text-foreground">{missingLabel(lang, m)}</span>
         </li>)}
       </ul>}
       {!missing.length && <div className={cn(S.sub, 'mt-2.5')}>{ar ? 'لا ينقص شيء. عرض مكتمل.' : 'Nothing missing — this is a complete quote.'}</div>}
@@ -968,8 +1047,9 @@ function Documents({ token, lang }) {
     const j = await call('supplier_portal', { action: 'save_documents', items: [{ kind, original_b64: b64, filename: file.name, mime: file.type, expiry }] }, token);
     setBusy('');
     const failed = (j && j.failed) || [];
-    if (failed.length) setErr((lang === 'ar' ? 'تعذّر رفع الملف: ' : 'Upload failed: ') + failed.map((f) => f.reason).join('; '));
-    else if (j && j.error) setErr(String(j.error));
+    // The server's per-file reasons are English sentences; an Arabic page says the same thing in Arabic.
+    if (failed.length) setErr(lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى رفع نسخة PDF أو صورة واضحة للمستند كاملًا، ثم المحاولة مرة أخرى.' : 'Upload failed: ' + failed.map((f) => f.reason).join('; '));
+    else if (j && (j.error || j._http)) setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى المحاولة مرة أخرى.' : 'We could not save that file. Please try again.'));
     load();
   };
   if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
@@ -991,8 +1071,8 @@ function Documents({ token, lang }) {
             ? 'رخصتك التجارية وملفك التعريفي مطلوبان للتسجيل، ويجب أن تبقى الرخصة سارية لاستمرار استقبال الطلبات. كل ما عدا ذلك اختياري.'
             : 'Your trade licence and company profile are required to register, and the licence must stay valid to keep receiving requests. Everything else is optional.'}</div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-[22px] font-extrabold text-foreground leading-none">{sum.on_file ?? 0}<span className="text-muted-foreground text-[15px]">/{sum.total ?? docs.length}</span></div>
+        <div className="text-end shrink-0">
+          <div className="text-[22px] font-extrabold text-foreground leading-none"><Ltr>{sum.on_file ?? 0}<span className="text-muted-foreground text-[15px]">/{sum.total ?? docs.length}</span></Ltr></div>
           <div className={S.sub}>{lang === 'ar' ? 'على الملف' : 'on file'}</div>
         </div>
       </div>
@@ -1084,13 +1164,13 @@ function DocRow({ d, busy, onUpload, lang }) {
         <div className={cn(S.sub, 'mt-1')}>{srvText(lang, d.hint_code, {}, d.hint)}</div>
         {/* What is actually on file, by name, so they can tell whether the right file went up. */}
         {!isCat && d.path && <div className={cn(S.sub, 'mt-1.5')}>
-          <span className="text-foreground/80">{cleanName(d.name) || (ar ? 'ملف' : 'File')}</span>
-          {d.expiry ? <> · {ar ? 'تنتهي ' : 'expires '}{d.expiry}</> : null}
+          <bdi className="text-foreground/80">{cleanName(d.name) || (ar ? 'ملف' : 'File')}</bdi>
+          {d.expiry ? <> · {ar ? 'تنتهي ' : 'expires '}<Ltr>{fmtDate(d.expiry, lang)}</Ltr></> : null}
           {d.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={d.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
         </div>}
         {isCat && (items.length
           ? <ul className="mt-1.5 flex flex-col gap-1">{items.map((c, i) => <li key={i} className={S.sub}>
-              <span className="text-foreground/80">{cleanName(c.name)}</span>
+              <bdi className="text-foreground/80">{cleanName(c.name)}</bdi>
               {c.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={c.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
@@ -1099,22 +1179,77 @@ function DocRow({ d, busy, onUpload, lang }) {
       <div className="flex gap-2 items-center flex-wrap shrink-0">
         <FilePick lang={lang} onPick={setFile} />
         {file && <span className={cn(S.sub, 'max-w-[180px] truncate')}>{file.name}</span>}
-        {d.has_expiry && <Input type="date" style={{ colorScheme: 'dark' }} className="w-auto" value={exp}
+        {/* Not for the trade licence: its expiry is read off the licence itself and save_documents
+            refuses a typed one (the #86 gate), so a date box there was a control that could only fail. */}
+        {d.has_expiry && d.key !== 'license' && <Input type="date" dir="ltr" className="w-auto" value={exp}
           onChange={(e) => setExp(e.target.value)} aria-label={(ar ? 'تاريخ انتهاء ' : 'Expiry date for ') + label} />}
-        <Button size="sm" disabled={busy || !file} onClick={() => onUpload(d.key, file, exp)}>
+        <Button size="sm" disabled={busy || !file} onClick={() => onUpload(d.key, file, d.key === 'license' ? '' : exp)}>
           {busy ? t(lang, 'uploading') : (d.path && !isCat ? (ar ? 'استبدال' : 'Replace') : t(lang, 'upload'))}
         </Button>
       </div>
     </div>
   </Card>;
 }
-function Projects({ token, lang }) {
-  const [data, setData] = useState(null);
-  useEffect(() => { call('supplier_api', { action: 'projects' }, token).then((j) => setData(j)); }, [token]);
-  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
+// A revealed job: the customer paid to know this supplier. The signed Supplier Agreement (v9, cl. 11
+// and 33) gives the supplier 5 working days to respond, and QuotesDone chases at 3. The customer's
+// contact is shown here because this list is built from the supplier's own transactions rows — the
+// reveal itself — so it cannot appear before one.
+function Projects({ token, lang, openChat }) {
+  const ar = lang === 'ar';
+  const [data, setData] = useState(null); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  const load = () => call('supplier_api', { action: 'projects' }, token).then((j) => setData(j));
+  useEffect(() => { load(); }, [token]);
+  const ack = async (id) => {
+    setBusy(id); setMsg('');
+    const j = await call('supplier_api', { action: 'ack_contact', transaction_id: id }, token);
+    setBusy('');
+    if (j && j.ok) load(); else setMsg(srvMsg(lang, j, ar ? 'تعذّر تسجيل ذلك. يُرجى المحاولة مرة أخرى.' : 'We could not record that. Please try again.'));
+  };
+  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
+  if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.projects || [];
-  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div></Card>;
-  return <div className={S.list}>{list.map((p, i) => <Card key={i} className="p-5 flex justify-between items-center gap-3 flex-wrap"><div><b>{p.category || t(lang, 'project_w')}</b> · {p.emirate || ''}<div className={S.sub}>{p.summary || ''}</div></div><div className="text-right"><b>{aed(p.amount)}</b><div className={S.sub}>{p.revealed_at ? ((lang === 'ar' ? 'كُشف بتاريخ ' : 'Revealed ') + new Date(p.revealed_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) : (p.month || '')}</div></div></Card>)}</div>;
+  const rule = ar
+    ? 'عندما يكشف العميل عن عرضك يجب أن تتواصل معه خلال 5 أيام عمل من الكشف. إن لم تتواصل خلال 3 أيام عمل نتابع معك ونُشرك العميل في المراسلة، وإن بقيت دون رد يُسترد للعميل رسم الكشف وتُستحق عليك رسوم عدم الاستجابة (البند 33 من اتفاقية المورّد).'
+    : 'When a customer reveals your quote you must respond to them within 5 working days of the reveal. If you have not responded within 3 working days we chase you with the customer copied; if you stay silent the customer’s reveal fee is refunded and the non-response charge applies (Supplier Agreement, clause 33).';
+  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div><div className={cn(S.sub, 'mt-2')}>{rule}</div></Card>;
+  const now = Date.now();
+  return <div className={S.list}>
+    <Card className="qd-panel p-4"><div className={S.sub}>{rule}</div>{msg && <div role="alert" className={S.err}>{msg}</div>}</Card>
+    {list.map((p) => {
+      const c = p.customer || {};
+      const late = !p.acknowledged_at && p.respond_by && new Date(p.respond_by).getTime() < now;
+      const chased = !p.acknowledged_at && p.chase_at && new Date(p.chase_at).getTime() < now;
+      return <Card key={p.id} className="qd-panel p-5">
+        <div className="flex justify-between items-start gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="font-semibold text-foreground">{categoryLabel(p.category || '', lang) || t(lang, 'project_w')} · {emirateLabel(lang, p.emirate || '')}</div>
+            {p.summary ? <div className={cn(S.sub, 'mt-0.5')}>{p.summary}</div> : null}
+          </div>
+          <div className="text-end shrink-0"><b className="tabular-nums text-foreground"><Ltr>{aed(p.amount)}</Ltr></b><div className={S.sub}>{(ar ? 'كُشف في ' : 'Revealed ')}<Ltr>{fmtDate(p.revealed_at, lang)}</Ltr></div></div>
+        </div>
+        <div className="mt-3 rounded-md border border-border px-3.5 py-3">
+          <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">{ar ? 'العميل' : 'Customer'}</div>
+          <div className="mt-1 text-[14px] font-semibold text-foreground"><bdi>{c.name || (ar ? 'العميل' : 'Customer')}</bdi></div>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+            {c.phone ? <a className="text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}
+            {c.email ? <a className="text-primary font-semibold underline-offset-2 hover:underline" href={'mailto:' + c.email}><Ltr>{c.email}</Ltr></a> : null}
+            {!c.phone && !c.email ? <span className={S.sub}>{ar ? 'تواصل عبر الرسائل أدناه.' : 'Use the messages below to reach them.'}</span> : null}
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-[13px]">
+            {p.acknowledged_at
+              ? <Badge variant="ok">{ar ? 'سجّلت أنك تواصلت' : 'You confirmed contact'} · <Ltr>{fmtDate(p.acknowledged_at, lang, false)}</Ltr></Badge>
+              : <Badge variant={late ? 'destructive' : chased ? 'warn' : 'secondary'}>{(late ? (ar ? 'تجاوزت مهلة الرد — ' : 'Response overdue — ') : (ar ? 'ردّ قبل ' : 'Respond by '))}<Ltr>{fmtDate(p.respond_by, lang)}</Ltr></Badge>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => openChat(p.inquiry_id)}>{ar ? 'راسل العميل' : 'Message the customer'}</Button>
+            {!p.acknowledged_at && <Button size="sm" disabled={busy === p.id} onClick={() => ack(p.id)}>{busy === p.id ? (ar ? 'جارٍ التسجيل…' : 'Saving…') : (ar ? 'تواصلت مع العميل' : 'I have contacted the customer')}</Button>}
+          </div>
+        </div>
+      </Card>;
+    })}
+  </div>;
 }
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
 // same validation, terms handling and save_profile call apply whether the supplier is registering
@@ -1160,9 +1295,9 @@ function NewCompany({ token, onReady, lang }) {
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
     <Lbl visible className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
     <Lbl visible className="mt-3" text={t(lang, 'emirate')}>
-      <select className={cn(S.field, 'mt-0')} style={{ colorScheme: 'dark', backgroundColor: 'hsl(205 46% 12%)', color: 'hsl(180 25% 94%)' }} value={em} onChange={(e) => setEm(e.target.value)}>
-        <option value="" style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{t(lang, 'emirate_ph')}</option>
-        {EMIRATES.map((x) => <option key={x} value={x} style={{ backgroundColor: '#0C2330', color: '#EAF4F2' }}>{emirateLabel(lang, x)}</option>)}
+      <select className={cn(S.field, 'mt-0 bg-card')} value={em} onChange={(e) => setEm(e.target.value)}>
+        <option value="">{t(lang, 'emirate_ph')}</option>
+        {EMIRATES.map((x) => <option key={x} value={x}>{emirateLabel(lang, x)}</option>)}
       </select>
     </Lbl>
     <Lbl visible className="mt-3" text={t(lang, 'cat_label')}><Input list="qd-sup-cats" dir="auto" placeholder={t(lang, 'cat_ph')} value={cat} onChange={(e) => setCat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} aria-describedby="qd-cat-help" /></Lbl>
@@ -1333,35 +1468,46 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   </Card>);
 }
 
-function Messages({ token, lang }) {
+// messages_api opens a post-reveal chat on first touch (the request queue it used to wait on was
+// removed 7-8 Sep), so a thread is either open or closed for a policy breach. The "Ask / request a
+// chat" box that sat under a closed thread called request_chat, which now only ever answers "open" —
+// a control with no remaining function — and it is gone. The server's English status words, notes
+// and warning are rendered in the supplier's language here.
+const CHAT_ST = { open: ['Open', 'مفتوحة'], none: ['Not started', 'لم تبدأ'], requested: ['Pending', 'قيد المراجعة'], banned: ['Closed — policy', 'مغلقة — مخالفة'], closed: ['Closed', 'مغلقة'] };
+const chatSt = (lang, s) => (CHAT_ST[s] ? CHAT_ST[s][lang === 'ar' ? 1 : 0] : (lang === 'ar' ? 'مغلقة' : String(s || '')));
+const CHAT_WARNING_AR = 'تُحفظ الرسائل هنا في السجل لكلا الطرفين. يُرجى أن تبقى متعلقة بهذا العمل.';
+function Messages({ token, lang, openInquiry = null, onOpened = null }) {
   const [threads, setThreads] = useState(null); const [open, setOpen] = useState(null);
-  useEffect(() => { call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || [])); }, []);
-  if (!threads) return <Card className="qd-panel p-5">{t(lang, 'loading_msgs')}</Card>;
-  if (open) return <Thread token={token} th={open} lang={lang} onBack={() => { setOpen(null); call('messages_api', { action: 'threads' }, token).then((j) => setThreads(j.threads || [])); }} />;
+  const loadThreads = () => call('messages_api', { action: 'threads' }, token).then((j) => setThreads((j && j.threads) || []));
+  useEffect(() => { loadThreads(); }, [token]);
+  // Opened from a Projects card: go straight to that job's chat.
+  useEffect(() => { if (!openInquiry || !threads) return; const th = threads.find((x) => x.inquiry_id === openInquiry); if (th) setOpen(th); if (onOpened) onOpened(); }, [openInquiry, threads]);
+  if (!threads) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading_msgs')}</Card>;
+  if (open) return <Thread token={token} th={open} lang={lang} onBack={() => { setOpen(null); loadThreads(); }} />;
   if (!threads.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_convos_h')}</div><div className={S.sub}>{t(lang, 'no_convos_sub')}</div></Card>;
-  return <div className={S.list}>{threads.map((it) => <Card key={it.inquiry_id + ':' + it.supplier_id} className="p-5 flex justify-between items-center cursor-pointer gap-3" onClick={() => setOpen(it)}>
-    <div><b>{it.counterpart}</b> · {it.subject}<div className={S.sub}>{it.last || t(lang, 'no_messages')}</div></div>
-    <div className="text-right">{it.unread ? <span className="inline-block rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-bold">{it.unread}</span> : null}<div className={cn(S.sub, 'capitalize')}>{it.chat_status === 'none' ? t(lang, 'no_chat') : it.chat_status}</div></div>
-  </Card>)}</div>;
+  return <ul className={S.list}>{threads.map((it) => <li key={it.inquiry_id + ':' + it.supplier_id}><button type="button" className="qd-panel qd-panel-hover w-full p-5 flex justify-between items-center gap-3 text-start" onClick={() => setOpen(it)}>
+    <span className="min-w-0"><b className="text-foreground">{it.counterpart === 'Customer' ? (lang === 'ar' ? 'العميل' : 'Customer') : <bdi>{it.counterpart}</bdi>}</b> · <bdi>{it.subject || ''}</bdi><span className={cn(S.sub, 'block')}>{it.last || t(lang, 'no_messages')}</span></span>
+    <span className="text-end shrink-0">{it.unread ? <span className="inline-block rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-bold">{it.unread}</span> : null}<span className={cn(S.sub, 'block')}>{it.chat_status === 'none' ? t(lang, 'no_chat') : chatSt(lang, it.chat_status)}</span></span>
+  </button></li>)}</ul>;
 }
 function Thread({ token, th, onBack, lang }) {
-  const [data, setData] = useState(null); const [text, setText] = useState(''); const [q, setQ] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const ar = lang === 'ar';
+  const [data, setData] = useState(null); const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const load = () => call('messages_api', { action: 'thread', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id }, token).then(setData);
   useEffect(() => { load(); }, []);
-  const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg((j && j.warning) || (j && j.error) || t(lang, 'could_not_send')); };
-  const requestChat = async () => { if (!q.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'request_chat', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, question: q.trim() }, token); setBusy(false); if (j && j.answered) setMsg(t(lang, 'assistant_pre') + j.answer); else if (j && j.requested) setMsg(j.note || t(lang, 'sent_review')); else setMsg((j && (j.note || j.error)) || t(lang, 'sent')); setQ(''); };
-  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
+  const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg(ar ? t(lang, 'could_not_send') : ((j && (j.warning || j.error)) || t(lang, 'could_not_send'))); };
+  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
+  const who = !data.counterpart || data.counterpart === 'Customer' ? (ar ? 'العميل' : 'Customer') : data.counterpart;
+  const closedNote = data.chat_status === 'banned' ? (ar ? 'أُغلقت هذه المحادثة بسبب مخالفة للسياسة.' : 'This chat is closed due to a policy violation.')
+    : data.locked && !data.chat_status ? (ar ? 'تُفتح الرسائل بعد أن يكشف العميل عن عرضك.' : 'Messaging unlocks after the quote is revealed.')
+    : (ar ? 'لا توجد محادثة مفتوحة بعد.' : (data.note || t(lang, 'no_chat_open')));
   return <Card className="qd-panel p-5">
-    <div className="flex justify-between items-center gap-2.5"><div className={S.h2}>{data.counterpart || th.counterpart}</div><Button variant="link" className="px-0 h-auto" onClick={onBack}>{t(lang, 'back')}</Button></div>
-    {data.warning && <div className="rounded-md border border-warn/30 bg-warn/10 text-warn-fg px-3 py-2 text-[11.5px] mb-2.5">{data.warning}</div>}
+    <div className="flex justify-between items-center gap-2.5"><div className={S.h2}><bdi>{who}</bdi></div><Button variant="link" className="px-0 h-auto" onClick={onBack}>{t(lang, 'back')}</Button></div>
+    {data.warning && <div className="rounded-md border border-warn/30 bg-warn/10 text-warn-fg px-3 py-2 text-[11.5px] mb-2.5">{ar ? CHAT_WARNING_AR : data.warning}</div>}
     {data.chat_status === 'open' ? (<>
-      <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto">{(data.messages || []).map((m) => <div key={m.id} className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground rounded-br-sm' : 'self-start bg-white/8 text-foreground rounded-bl-sm')}>{m.body}</div>)}</div>
-      <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'type_message')}><Input placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl><Button size="sm" disabled={busy} onClick={send}>{t(lang, 'send')}</Button></div>
-    </>) : (<>
-      <div className={cn(S.sub, 'mb-2')}>{data.note || t(lang, 'no_chat_open')}</div>
-      <Lbl text={t(lang, 'ask_placeholder')}><textarea className={S.area} rows={2} placeholder={t(lang, 'ask_placeholder')} value={q} onChange={(e) => setQ(e.target.value)} /></Lbl>
-      <div className="mt-2.5"><Button size="sm" disabled={busy} onClick={requestChat}>{t(lang, 'ask_request')}</Button></div>
-    </>)}
-    {msg && <div className={cn(S.sub, 'mt-2')} style={{ whiteSpace: 'pre-wrap' }}>{msg}</div>}
+      <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto" aria-live="polite">{(data.messages || []).map((m) => <div key={m.id} dir="auto" className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground' : 'self-start bg-secondary text-foreground')}>{m.body}</div>)}</div>
+      <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'type_message')}><Input dir="auto" placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl><Button size="sm" disabled={busy || !text.trim()} onClick={send}>{t(lang, 'send')}</Button></div>
+    </>) : <div className={cn(S.sub, 'mb-2')}>{closedNote}</div>}
+    {msg && <div role="alert" className={cn(S.err, 'mt-2')}>{msg}</div>}
   </Card>;
 }
