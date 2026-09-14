@@ -493,7 +493,10 @@ async function refundEndToEnd(ctx, live, J) {
   for (const [day, step] of [[3, 'chase'], [5, 'final_call']]) {
     const reqId = Number((await write(`select public.fn_sales_engineer_ladder_step(${q(tx.id)}, '${step}', ${step === 'final_call' ? rid : 'null'}, null) as id`, 'e2e ladder step'))[0]?.id);
     const n = (await read(`select (evidence->>'notification_id')::bigint as nid, detail->>'to_email' as to_email from public.agent_actions where id = ${reqId}`))[0];
-    await write(`update public.notifications set status = 'sent', sent_at = now() where id = ${Number(n?.nid) || 0} and to_email like '%@example.invalid'`, 'e2e demo delivery');
+    // sent_at ONLY: the status stays as the capture left it (suppressed), so the safety step's count of
+    // dispatched rows stays honest. The first run of this journey wrote status='sent' here and the
+    // safety step counted those two captured demo rows as sent (14 Sep 2026, 16:19 run).
+    await write(`update public.notifications set sent_at = now() where id = ${Number(n?.nid) || 0} and to_email like '%@example.invalid'`, 'e2e demo delivery');
     await write(`update public.agent_actions set detail = detail || jsonb_build_object('watch_until', now() - interval '1 minute')
                  where id = ${reqId} and detail->>'to_email' like '%@example.invalid'`, 'e2e watch window');
     const w = (await write(`select public.fn_customer_support_delivery_watch(${reqId}) as r`, 'e2e watch'))[0]?.r;
