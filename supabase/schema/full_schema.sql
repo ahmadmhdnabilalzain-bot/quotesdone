@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T19:14:43.198Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T19:30:10.898Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -187,7 +187,14 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (504) =====
+-- ===== TABLES (507) =====
+CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
+  month date NOT NULL,
+  reported_spend_aed numeric(14,2),
+  reported_at timestamp with time zone,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.accountant_issued_document (
   id bigint DEFAULT nextval('accountant_issued_document_id_seq'::regclass) NOT NULL,
   document_kind text NOT NULL,
@@ -236,6 +243,18 @@ CREATE TABLE IF NOT EXISTS public.accountant_month_close (
   csv_path text,
   closed_at timestamp with time zone DEFAULT now() NOT NULL,
   rendered_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_renewal_budget (
+  item text NOT NULL,
+  kind text NOT NULL,
+  expires_on date,
+  pay_by date,
+  budget_aed numeric(14,2),
+  basis text NOT NULL,
+  last_expense_id bigint,
+  handoff_id bigint,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.accountant_spend_report (
@@ -297,6 +316,13 @@ CREATE TABLE IF NOT EXISTS public.accountant_weekly_report (
   last_delivery_error text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_year_end_pack (
+  year integer NOT NULL,
+  files jsonb DEFAULT '[]'::jsonb NOT NULL,
+  rendered_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.action_class_gate (
@@ -869,7 +895,9 @@ CREATE TABLE IF NOT EXISTS public.bank_statement_intake (
   lines integer DEFAULT 0 NOT NULL,
   doc_path text,
   note text,
-  received_at timestamp with time zone DEFAULT now() NOT NULL
+  received_at timestamp with time zone DEFAULT now() NOT NULL,
+  closing_balance_aed numeric(14,2),
+  balance_on date
 );
 
 CREATE TABLE IF NOT EXISTS public.bank_statement_line (
@@ -6365,7 +6393,12 @@ CREATE TABLE IF NOT EXISTS public.supplier_dues (
   case_file_path text,
   evidence_terms_path text,
   payment_ref text,
-  stripe_session_id text
+  stripe_session_id text,
+  payment_order_filed_on date,
+  payment_order_issued_on date,
+  payment_order_served_on date,
+  grievance_filed_on date,
+  court_reference text
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_kpi_snapshots (
@@ -7046,11 +7079,14 @@ CREATE TABLE IF NOT EXISTS public.yello_staging (
 );
 
 -- ===== CONSTRAINTS =====
+ALTER TABLE public.accountant_ad_spend_month ADD CONSTRAINT accountant_ad_spend_month_pkey PRIMARY KEY (month);
 ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_document_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_pkey PRIMARY KEY (month);
+ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_pkey PRIMARY KEY (item);
 ALTER TABLE public.accountant_spend_report ADD CONSTRAINT accountant_spend_report_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_pkey PRIMARY KEY (id);
+ALTER TABLE public.accountant_year_end_pack ADD CONSTRAINT accountant_year_end_pack_pkey PRIMARY KEY (year);
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_pkey PRIMARY KEY (action_class);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_pkey PRIMARY KEY (id);
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_pkey PRIMARY KEY (campaign_id);
@@ -7638,13 +7674,19 @@ ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_phone_e164_key
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_step_no_key UNIQUE (workflow_run_id, step_no);
+ALTER TABLE public.accountant_ad_spend_month ADD CONSTRAINT accountant_ad_spend_month_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.accountant_ad_spend_month ADD CONSTRAINT accountant_ad_spend_month_reported_spend_aed_check CHECK (((reported_spend_aed IS NULL) OR (reported_spend_aed > (0)::numeric)));
 ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_document_content_sha256_check CHECK ((content_sha256 ~ '^[0-9a-f]{64}$'::text));
 ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_document_document_kind_check CHECK ((document_kind = ANY (ARRAY['charge_reminder'::text, 'final_demand'::text, 'filing_pack'::text, 'invoice'::text])));
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_general_accounting'::text, 'marketplace_policy_derived'::text, 'framework_shape_verify_current_text'::text, 'obligation_shape_no_figures'::text, 'resolve_from_authority'::text, 'company_record_generated'::text, 'company_governance_ruling'::text, 'authority_protocol'::text])));
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_basis_check CHECK ((btrim(basis) <> ''::text));
+ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_budget_aed_check CHECK (((budget_aed IS NULL) OR (budget_aed > (0)::numeric)));
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_status_ck CHECK ((status = ANY (ARRAY['generated'::text, 'pdf_failed'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_week_ck CHECK ((week_end > week_start));
+ALTER TABLE public.accountant_year_end_pack ADD CONSTRAINT accountant_year_end_pack_files_check CHECK ((jsonb_typeof(files) = 'array'::text));
+ALTER TABLE public.accountant_year_end_pack ADD CONSTRAINT accountant_year_end_pack_year_check CHECK ((year >= 2000));
 ALTER TABLE public.action_class_gate ADD CONSTRAINT action_class_gate_known_gate CHECK (((gate_action_class IS NULL) OR (gate_action_class = ANY (ARRAY['ad_spend'::text, 'authentication_identity'::text, 'autonomy_framework'::text, 'destructive_data'::text, 'legal_commitment'::text, 'money_move'::text, 'production_deploy'::text, 'public_claim_publish'::text, 'secrets_security'::text, 'supplier_enforcement'::text]))));
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_daily_budget_aed_check CHECK ((daily_budget_aed >= (0)::numeric));
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_status_check CHECK ((status = ANY (ARRAY['ACTIVE'::text, 'PAUSED'::text])));
@@ -10245,6 +10287,71 @@ CREATE OR REPLACE VIEW public.v_accountant_issued_documents AS  SELECT d.id,
      LEFT JOIN agent_actions dr ON ((dr.id = ((h.evidence ->> 'delivery_request'::text))::bigint)))
      LEFT JOIN notifications n ON ((n.id = ((dr.evidence ->> 'notification_id'::text))::bigint)));
 
+CREATE OR REPLACE VIEW public.v_accountant_recovery_ledger AS  WITH p AS (
+         SELECT ( SELECT ((decision_policy.value #>> '{}'::text[]))::integer AS int4
+                   FROM decision_policy
+                  WHERE (decision_policy.key = 'supplier_charge_final_demand_notice_days'::text)) AS notice_days,
+            ( SELECT ((decision_policy.value #>> '{}'::text[]))::integer AS int4
+                   FROM decision_policy
+                  WHERE (decision_policy.key = 'supplier_charge_legal_minimum_notice_days'::text)) AS min_notice_days,
+            ( SELECT ((decision_policy.value #>> '{}'::text[]))::integer AS int4
+                   FROM decision_policy
+                  WHERE (decision_policy.key = 'supplier_charge_payment_order_serve_months'::text)) AS serve_months,
+            ( SELECT ((decision_policy.value #>> '{}'::text[]))::integer AS int4
+                   FROM decision_policy
+                  WHERE (decision_policy.key = 'supplier_charge_grievance_days'::text)) AS grievance_days,
+            ( SELECT ((decision_policy.value #>> '{}'::text[]))::integer AS int4
+                   FROM decision_policy
+                  WHERE (decision_policy.key = 'supplier_charge_limitation_years'::text)) AS limitation_years
+        )
+ SELECT d.id AS due_id,
+    d.supplier_id,
+    l.company_name AS supplier,
+    COALESCE(l.is_demo, false) AS demo,
+    d.transaction_id,
+    d.amount_due AS refund_aed,
+    d.admin_fee AS admin_fee_aed,
+    d.interest_amount AS interest_aed,
+    COALESCE(d.total_claim, ((d.amount_due + COALESCE(d.admin_fee, (0)::numeric)) + COALESCE(d.interest_amount, (0)::numeric))) AS claim_aed,
+    d.due_date,
+        CASE
+            WHEN ((d.paid_at IS NOT NULL) OR (COALESCE(d.status, ''::text) = 'paid'::text)) THEN 'paid'::text
+            WHEN (COALESCE(d.status, ''::text) = ANY (ARRAY['settled'::text, 'waived'::text, 'cancelled'::text])) THEN d.status
+            WHEN (d.grievance_filed_on IS NOT NULL) THEN 'grievance_filed'::text
+            WHEN (d.payment_order_served_on IS NOT NULL) THEN 'order_served'::text
+            WHEN (d.payment_order_issued_on IS NOT NULL) THEN 'order_issued'::text
+            WHEN ((d.payment_order_filed_on IS NOT NULL) OR (COALESCE(d.legal_stage, ''::text) ~~ 'outcome:filed%'::text)) THEN 'filed'::text
+            WHEN (d.legal_stage IS NOT NULL) THEN d.legal_stage
+            WHEN (COALESCE(d.reminders, 0) > 0) THEN 'reminded'::text
+            ELSE 'notice_sent'::text
+        END AS stage,
+    d.reminders,
+    d.last_reminder_at,
+        CASE
+            WHEN (d.legal_stage IS NOT NULL) THEN d.legal_escalated_at
+            ELSE NULL::timestamp with time zone
+        END AS demand_sent_at,
+        CASE
+            WHEN (d.legal_stage IS NOT NULL) THEN (((d.legal_escalated_at AT TIME ZONE 'Asia/Dubai'::text))::date + GREATEST(p.notice_days, p.min_notice_days))
+            ELSE NULL::date
+        END AS payment_order_earliest_on,
+    d.payment_order_filed_on,
+    d.payment_order_issued_on,
+    ((d.payment_order_issued_on + make_interval(months => p.serve_months)))::date AS serve_order_by,
+    d.payment_order_served_on,
+    (d.payment_order_served_on + p.grievance_days) AS grievance_until,
+    d.grievance_filed_on,
+    ((d.due_date + make_interval(years => p.limitation_years)))::date AS limitation_on,
+    d.court_reference,
+    d.demand_letter_path,
+    d.case_file_path,
+    d.paid_at,
+    'docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; the documents are rendered by supabase/functions/_shared/supplier_charge_documents.ts'::text AS legal_pack,
+    '9% a year simple interest on the refund plus the AED 250 fee, from the due date, never compounded (CTL Arts 73, 86, 88; Supplier Agreement clauses 31 and 33)'::text AS interest_rule
+   FROM ((supplier_dues d
+     LEFT JOIN leads l ON ((l.id = d.supplier_id)))
+     CROSS JOIN p);
+
 CREATE OR REPLACE VIEW public.v_accountant_refund_reserve AS  WITH open_case AS (
          SELECT c_1.transaction_id,
             max(c_1.amount_aed) AS amount_aed,
@@ -12282,6 +12389,120 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_ad_spend_figures(p_month date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_m date := date_trunc('month', p_month)::date; v_e date; v_from timestamptz; v_to timestamptz;
+  v_fx numeric; v_pat text; v_inv numeric; v_n int; v_unconv int; v_rep numeric; v_inq int; v_rev int;
+begin
+  v_e := (v_m + interval '1 month')::date - 1;
+  v_from := v_m::timestamp at time zone 'Asia/Dubai'; v_to := (v_e + 1)::timestamp at time zone 'Asia/Dubai';
+  -- The same conversion the monthly close uses (gl_settings usd_to_aed; AED is pegged at 3.6725).
+  v_fx := coalesce((select num_value from public.gl_settings where key = 'usd_to_aed'), 3.6725);
+  v_pat := (select value #>> '{}' from public.decision_policy where key = 'accountant_meta_invoice_vendor_pattern');
+  if v_pat is null then raise exception 'decision_policy accountant_meta_invoice_vendor_pattern is missing'; end if;
+
+  select count(*) filter (where upper(currency) in ('AED', 'USD')),
+         round(sum(amount * case upper(currency) when 'USD' then v_fx else 1 end) filter (where upper(currency) in ('AED', 'USD')), 2),
+         count(*) filter (where upper(currency) not in ('AED', 'USD'))
+    into v_n, v_inv, v_unconv
+    from public.expense_entries where vendor ~* v_pat and charged_on between v_m and v_e;
+  select reported_spend_aed into v_rep from public.accountant_ad_spend_month where month = v_m;
+  select count(*) into v_inq from public.inquiries i left join public.customers c on c.id = i.customer_id
+   where i.created_at >= v_from and i.created_at < v_to and not coalesce(c.is_demo, false);
+  select count(*) into v_rev from public.transactions t left join public.customers c on c.id = t.customer_id
+   where t.fee_status = 'paid' and t.revealed_at >= v_from and t.revealed_at < v_to and not coalesce(c.is_demo, false);
+
+  return jsonb_build_object(
+    'month', to_char(v_m, 'YYYY-MM'),
+    'invoiced_aed', case when v_n > 0 then v_inv end,
+    'meta_invoices', v_n, 'meta_invoices_unconverted', v_unconv,
+    'reported_spend_aed', v_rep,
+    'difference_aed', case when v_n > 0 and v_rep is not null then v_inv - v_rep end,
+    'inquiries', v_inq, 'reveals', v_rev,
+    'cost_per_inquiry_aed', case when v_n > 0 and v_inq > 0 then round(v_inv / v_inq, 2) end,
+    'cost_per_reveal_aed', case when v_n > 0 and v_rev > 0 then round(v_inv / v_rev, 2) end,
+    'missing', to_jsonb(array_remove(array[
+      case when v_n = 0 then 'no Meta invoice is booked in expense_entries for the month' end,
+      case when v_unconv > 0 then v_unconv || ' Meta invoice(s) in a currency other than AED or USD are not converted' end,
+      case when v_rep is null then 'Meta reported no spend for the month (meta_sync wrote none, or nothing was spent)' end,
+      case when v_inq = 0 then 'no inquiry in the month, so there is no cost per inquiry' end,
+      case when v_rev = 0 then 'no paid reveal in the month, so there is no cost per reveal' end], null)),
+    'basis', 'Invoiced = Meta ads invoices booked in expense_entries (vendor matching decision_policy accountant_meta_invoice_vendor_pattern), USD at gl_settings usd_to_aed. Reported = ad_spend_policy.month_spent_aed as meta_sync last wrote it for the month. Cost per inquiry and per reveal divide the INVOICED figure by the inquiries created and the reveals paid in the month (Asia/Dubai). ZZ DEMO customers are not counted.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_ad_spend_snapshot()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.ad_spend_policy; v_m date;
+begin
+  select * into p from public.ad_spend_policy where policy_key = 'default';
+  if not found or coalesce(p.month_label, '') !~ '^\d{4}-\d{2}$' then
+    return jsonb_build_object('kept', false, 'reason', 'no default ad_spend_policy row with a YYYY-MM month_label');
+  end if;
+  v_m := to_date(p.month_label || '-01', 'YYYY-MM-DD');
+  if coalesce(p.month_spent_aed, 0) <= 0 then
+    return jsonb_build_object('kept', false, 'month', p.month_label,
+      'reason', 'month_spent_aed is 0: nothing was spent, or meta_sync has not read the account');
+  end if;
+  insert into public.accountant_ad_spend_month (month, reported_spend_aed, reported_at, updated_at)
+  values (v_m, round(p.month_spent_aed, 2), p.updated_at, now())
+  on conflict (month) do update set reported_spend_aed = excluded.reported_spend_aed,
+                                    reported_at = excluded.reported_at, updated_at = now();
+  return jsonb_build_object('kept', true, 'month', p.month_label, 'reported_spend_aed', round(p.month_spent_aed, 2));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_ad_spend_tick(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_tol numeric := (select (value #>> '{}')::numeric from public.decision_policy where key = 'accountant_ad_spend_match_tolerance_aed');
+  v_grace int := (select (value #>> '{}')::int from public.decision_policy where key = 'accountant_ad_spend_invoice_grace_days');
+  v_snap jsonb; v_last date; v_m date; f jsonb; v_mon text; v_items jsonb := '[]'::jsonb; v_months jsonb := '[]'::jsonb;
+begin
+  if v_tol is null or v_grace is null then
+    raise exception 'decision_policy accountant_ad_spend_match_tolerance_aed and accountant_ad_spend_invoice_grace_days are required';
+  end if;
+  v_snap := public.fn_accountant_ad_spend_snapshot();
+  v_last := (date_trunc('month', v_as_of - v_grace) - interval '1 month')::date;
+  for v_m in select generate_series(v_last - interval '2 months', v_last, interval '1 month')::date loop
+    f := public.fn_accountant_ad_spend_figures(v_m);
+    v_months := v_months || f;
+    v_mon := to_char(v_m, 'Mon YYYY');
+    if (f->>'reported_spend_aed') is not null and (f->>'invoiced_aed') is null then
+      v_items := v_items || jsonb_build_object('item', 'uninvoiced:' || (f->>'month'), 'owner_seat', 'accountant', 'subject', 'expense_entries',
+        'title', 'Meta reported AED ' || (f->>'reported_spend_aed') || ' of ad spend in ' || v_mon || ' and no Meta invoice is booked for it',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', f);
+    elsif (f->>'reported_spend_aed') is not null and abs((f->>'difference_aed')::numeric) > v_tol then
+      v_items := v_items || jsonb_build_object('item', 'mismatch:' || (f->>'month'), 'owner_seat', 'accountant', 'subject', 'expense_entries',
+        'title', 'Meta invoices booked for ' || v_mon || ' total AED ' || (f->>'invoiced_aed') || ' but Meta reported AED '
+                 || (f->>'reported_spend_aed') || ' (difference AED ' || (f->>'difference_aed') || ')',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', f);
+    elsif (f->>'invoiced_aed') is not null and (f->>'reported_spend_aed') is null then
+      -- The Meta token is the founder's to mint (the ad-spend build), so an account nobody read is the CEO's.
+      v_items := v_items || jsonb_build_object('item', 'unreported:' || (f->>'month'), 'owner_seat', 'ceo', 'subject', 'ad_spend_policy',
+        'title', 'Meta invoices of AED ' || (f->>'invoiced_aed') || ' are booked for ' || v_mon
+                 || ' but no reported spend was kept for the month: meta_sync did not read the account',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', f);
+    end if;
+  end loop;
+  return jsonb_build_object('snapshot', v_snap, 'months', v_months, 'findings', public.fn_accountant_duty_settle('ad_spend', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_applies_incident_fix(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12523,6 +12744,45 @@ begin
     'handoff', v_handoff);
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_bank_balance_record(p_source_ref text, p_balance_aed numeric, p_on date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_balance_aed is null or p_on is null then
+    raise exception 'a closing balance needs its amount and the date the statement prints it for';
+  end if;
+  update public.bank_statement_intake set closing_balance_aed = round(p_balance_aed, 2), balance_on = p_on
+   where source_ref = p_source_ref;
+  if not found then raise exception 'no bank statement %: ingest the statement first', p_source_ref; end if;
+  return jsonb_build_object('ok', true, 'source_ref', p_source_ref, 'closing_balance_aed', round(p_balance_aed, 2), 'balance_on', p_on);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_bank_balance_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_m date; v_items jsonb := '[]'::jsonb;
+begin
+  select max(month) into v_m from public.accountant_month_close;
+  if v_m is not null and not exists (
+       select 1 from public.bank_statement_intake where account = 'mashreq' and closing_balance_aed is not null
+          and balance_on between v_m and (v_m + interval '1 month')::date - 1) then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'bank_balance:' || to_char(v_m, 'YYYY-MM'), 'owner_seat', 'accountant',
+      'subject', 'bank_statement_intake',
+      'title', 'The Mashreq closing balance for ' || to_char(v_m, 'Mon YYYY')
+               || ' is not recorded, so the CEO''s monthly close shows the cash in the bank and the runway as missing',
+      'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('month', to_char(v_m, 'YYYY-MM'))));
+  end if;
+  return jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'findings', public.fn_accountant_duty_settle('bank_balance', v_items));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_bank_reconcile(p_as_of date DEFAULT NULL::date)
@@ -12783,6 +13043,78 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_budgets_renewal(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; v_item text; b jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'renewal.due' then
+    raise exception 'fn_accountant_budgets_renewal: % is not a renewal.due handoff', p_id;
+  end if;
+  v_item := nullif(btrim(a.detail->>'item'), '');
+  if v_item is null then raise exception 'renewal.due handoff % names no item: the payload carries {item: it_expiry.item}', p_id; end if;
+  b := public.fn_accountant_renewal_budget_line(v_item);
+  update public.accountant_renewal_budget set handoff_id = p_id where item = v_item;
+  return jsonb_build_object('waiting', 'it_engineer re-verification of the new expiry of ' || v_item,
+    'seat', 'accountant', 'budget', b,
+    'reply', case when b->>'budget_aed' is null
+                  then 'accountant: ' || v_item || ' is not budgeted. ' || (b->>'basis') || '. It is an open accountant finding until a payment is booked.'
+                  else 'accountant: AED ' || (b->>'budget_aed') || ' is set aside for ' || v_item || ', to pay by ' || (b->>'pay_by')
+                       || ' (' || (b->>'basis') || ').' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_cash_position(p_month date, p_month_expenses_aed numeric)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_m date := date_trunc('month', p_month)::date; v_e date;
+  v_bal numeric; v_bal_on date; v_bal_ref text; v_in numeric; v_out numeric; v_lines int;
+  v_res jsonb; v_res_aed numeric; v_spend numeric; v_spend_months int; v_avail numeric; v_run numeric; v_missing text;
+begin
+  v_e := (v_m + interval '1 month')::date - 1;
+  select closing_balance_aed, balance_on, source_ref into v_bal, v_bal_on, v_bal_ref
+    from public.bank_statement_intake
+   where account = 'mashreq' and closing_balance_aed is not null and balance_on <= v_e
+   order by balance_on desc, received_at desc limit 1;
+  select coalesce(sum(amount_aed) filter (where amount_aed > 0), 0), coalesce(-sum(amount_aed) filter (where amount_aed < 0), 0), count(*)
+    into v_in, v_out, v_lines
+    from public.bank_statement_line where account = 'mashreq' and value_date between v_m and v_e;
+  v_res := public.fn_accountant_refund_reserve();
+  v_res_aed := coalesce((v_res->>'held_for_possible_refunds_aed')::numeric, 0);
+  select avg(x), count(x) into v_spend, v_spend_months
+    from (select p_month_expenses_aed x where p_month_expenses_aed is not null
+          union all
+          select (figures#>>'{cash_out,expenses_aed}')::numeric
+            from (select figures from public.accountant_month_close where month < v_m order by month desc limit 2) z) s;
+  v_missing := case when v_bal is null then 'no Mashreq closing balance is recorded on or before ' || v_e || ', so there is no runway'
+                    when coalesce(v_spend, 0) <= 0 then 'no expense is booked in the months measured, so the spend cannot be measured' end;
+  if v_missing is null then
+    v_avail := v_bal - v_res_aed;
+    v_run := round(v_avail / v_spend, 1);
+  end if;
+
+  return jsonb_build_object(
+    'cash_in_bank', case when v_bal is null
+      then jsonb_build_object('aed', null, 'missing', 'no Mashreq statement with a closing balance on or before ' || v_e || ' is recorded (fn_accountant_bank_balance_record)')
+      else jsonb_build_object('aed', v_bal, 'as_of', v_bal_on, 'statement', v_bal_ref, 'stale', v_bal_on < v_m) end,
+    'bank_movements', case when v_lines = 0
+      then jsonb_build_object('in_aed', null, 'out_aed', null, 'missing', 'no Mashreq statement line is dated in the month')
+      else jsonb_build_object('in_aed', v_in, 'out_aed', v_out, 'lines', v_lines) end,
+    'held_for_possible_refunds_aed', v_res_aed,
+    'runway', jsonb_build_object('months', v_run, 'available_aed', v_avail, 'monthly_spend_aed', round(v_spend, 2),
+      'spend_months', v_spend_months, 'missing', v_missing,
+      'basis', 'Runway = (cash in the bank - money held for possible refunds) / the average monthly expenses booked over this month and up to two earlier closed months (cash_out.expenses_aed). Refunds are not spend.'));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_charge_audit_candidates(p_limit integer DEFAULT 200)
  RETURNS TABLE(transaction_id uuid, payment_ref text, quote_amount numeric, rate numeric, revealed_at timestamp with time zone, demo boolean)
  LANGUAGE sql
@@ -13027,6 +13359,17 @@ begin
   v_bank := public.fn_accountant_book_bank_charges();
   return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_csv_row(VARIADIC p_cells text[])
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select string_agg('"' || replace(coalesce(c, ''), '"', '""') || '"', ',' order by i)
+    from unnest(p_cells) with ordinality u(c, i)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_dispute_drafted(p_id text, p_ok boolean, p_response jsonb, p_error text DEFAULT NULL::text)
@@ -13380,14 +13723,27 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'disputes', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('costs', public.fn_accountant_cost_booking_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'costs', 'error', sqlerrm); end;
+  -- The five further duties (14 Sep 2026). Ad spend, recovery and renewals run BEFORE the close, which
+  -- reads their figures; the bank balance and the year-end pack read the close, so they run after it.
+  begin o := o || jsonb_build_object('ad_spend', public.fn_accountant_ad_spend_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ad_spend', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('recovery', public.fn_accountant_recovery_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'recovery', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('renewals', public.fn_accountant_renewals_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'renewals', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('close', public.fn_accountant_month_close_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'close', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('bank_balance', public.fn_accountant_bank_balance_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'bank_balance', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('year_end', public.fn_accountant_year_end_tick());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'year_end', 'error', sqlerrm); end;
   begin
     o := o || jsonb_build_object('ceo_acknowledged', public.fn_ceo_accountant_reports_sweep(),
                                  'completed', public.fn_accountant_reports_complete());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
 
-  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs', 'close', 'ceo'] loop
+  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs',
+                                'ad_spend', 'recovery', 'renewals', 'close', 'bank_balance', 'year_end', 'ceo'] loop
     perform public.fn_accountant_duty_stage(v_step,
       (select string_agg(e->>'error', '; ') from jsonb_array_elements(v_err) e where e->>'step' = v_step));
   end loop;
@@ -13654,9 +14010,13 @@ begin
   end if;
   f := public.fn_accountant_month_close_figures(v_m);
   v_sev := case when (f#>>'{bank_reconciliation,unmatched}')::int > 0 or (f->>'charge_audit_open_differences')::int > 0
-                     or (f#>>'{disputes,open}')::int > 0 then 'elevated' else 'routine' end;
+                     or (f#>>'{disputes,open}')::int > 0
+                     or (f#>>'{cash_position,runway,months}') is null or (f#>>'{cash_position,runway,months}')::numeric < 6
+                then 'elevated' else 'routine' end;
   v_rep := public.fn_support_report_to_ceo('accountant_close:' || to_char(v_m, 'YYYY-MM'), v_sev,
     'Monthly close ' || to_char(v_m, 'Mon YYYY') || ': net result AED ' || (f#>>'{profit_and_loss,net_result_aed}')
+      || ', cash in the bank ' || coalesce('AED ' || (f#>>'{cash_position,cash_in_bank,aed}'), 'MISSING')
+      || ', runway ' || coalesce((f#>>'{cash_position,runway,months}') || ' months', 'MISSING')
       || ', AED ' || (f#>>'{held_for_possible_refunds,held_for_possible_refunds_aed}') || ' held for possible refunds, '
       || (f#>>'{bank_reconciliation,unmatched}') || ' payout(s) not yet in the bank',
     f, '[]'::jsonb,
@@ -13725,7 +14085,19 @@ begin
     || 'disputes,open,' || (f#>>'{disputes,open}') || ',count' || E'\n'
     || 'collections,open_aed,' || (f#>>'{collections_aging,open_aed}') || ',' || E'\n'
     || 'charge_audit,open_differences,' || (f->>'charge_audit_open_differences') || ',count' || E'\n'
-    || 'vat,rolling_12m_turnover,' || (f#>>'{vat,turnover_aed}') || ',' || coalesce(f#>>'{vat,band}', '') || E'\n';
+    || 'vat,rolling_12m_turnover,' || (f#>>'{vat,turnover_aed}') || ',' || coalesce(f#>>'{vat,band}', '') || E'\n'
+    -- A month closed before 14 Sep 2026 carries none of the lines below; they print MISSING, never a guess.
+    || 'cash,in_bank,' || coalesce(f#>>'{cash_position,cash_in_bank,aed}', 'MISSING') || ','
+       || replace(coalesce(f#>>'{cash_position,cash_in_bank,as_of}', f#>>'{cash_position,cash_in_bank,missing}', ''), ',', ' ') || E'\n'
+    || 'cash,runway_months,' || coalesce(f#>>'{cash_position,runway,months}', 'MISSING') || ','
+       || replace(coalesce(f#>>'{cash_position,runway,missing}', ''), ',', ' ') || E'\n'
+    || 'ads,meta_invoiced,' || coalesce(f#>>'{ad_spend,invoiced_aed}', 'MISSING') || ',' || E'\n'
+    || 'ads,meta_reported,' || coalesce(f#>>'{ad_spend,reported_spend_aed}', 'MISSING') || ',' || E'\n'
+    || 'ads,cost_per_inquiry,' || coalesce(f#>>'{ad_spend,cost_per_inquiry_aed}', 'MISSING') || ',' || E'\n'
+    || 'ads,cost_per_reveal,' || coalesce(f#>>'{ad_spend,cost_per_reveal_aed}', 'MISSING') || ',' || E'\n'
+    || 'recovery,open_claims_aed,' || coalesce(f#>>'{supplier_charge_recovery,open_aed}', 'MISSING') || ',' || E'\n'
+    || 'renewals,budgeted_aed,' || coalesce(f#>>'{renewals,budgeted_aed}', 'MISSING') || ','
+       || coalesce(f#>>'{renewals,unbudgeted}', '?') || ' unbudgeted' || E'\n';
   return jsonb_build_object('month', f->>'month', 'title', v_title, 'name', 'QuotesDone_Monthly_Close_' || (f->>'month'),
     'csv', v_csv,
     'blocks', jsonb_build_array(
@@ -13761,6 +14133,21 @@ begin
         jsonb_build_array('Open charge-audit differences', f->>'charge_audit_open_differences'),
         jsonb_build_array('Suppliers ranked toward the free thousand', f#>>'{subscriptions,registered_ranked}'),
         jsonb_build_array('Rolling 12-month turnover for VAT (AED)', f#>>'{vat,turnover_aed}'))),
+      jsonb_build_object('t', 'h3', 'text', 'Cash in the bank, runway, advertising, recovery and renewals'),
+      jsonb_build_object('t', 'table', 'head', jsonb_build_array('Item', 'Value'), 'widths', jsonb_build_array(0.6, 0.4), 'rows', jsonb_build_array(
+        jsonb_build_array('Cash in the Mashreq account (AED)', coalesce(f#>>'{cash_position,cash_in_bank,aed}', 'missing: no closing balance recorded')),
+        jsonb_build_array('Balance as of', coalesce(f#>>'{cash_position,cash_in_bank,as_of}', '-')),
+        jsonb_build_array('Mashreq money in / out in the month (AED)',
+          coalesce((f#>>'{cash_position,bank_movements,in_aed}') || ' / ' || (f#>>'{cash_position,bank_movements,out_aed}'), 'missing: no statement line in the month')),
+        jsonb_build_array('Runway (months)', coalesce(f#>>'{cash_position,runway,months}', 'missing: ' || coalesce(f#>>'{cash_position,runway,missing}', 'not measured'))),
+        jsonb_build_array('Meta invoices booked (AED)', coalesce(f#>>'{ad_spend,invoiced_aed}', 'missing')),
+        jsonb_build_array('Ad spend Meta reported (AED)', coalesce(f#>>'{ad_spend,reported_spend_aed}', 'missing')),
+        jsonb_build_array('Cost per inquiry / per reveal (AED)',
+          coalesce(f#>>'{ad_spend,cost_per_inquiry_aed}', 'missing') || ' / ' || coalesce(f#>>'{ad_spend,cost_per_reveal_aed}', 'missing')),
+        jsonb_build_array('Supplier-charge claims open (count / AED)',
+          coalesce(f#>>'{supplier_charge_recovery,open_claims}', 'missing') || ' / ' || coalesce(f#>>'{supplier_charge_recovery,open_aed}', 'missing')),
+        jsonb_build_array('Renewals budgeted (AED) / lines with no budget',
+          coalesce(f#>>'{renewals,budgeted_aed}', 'missing') || ' / ' || coalesce(f#>>'{renewals,unbudgeted}', 'missing')))),
       jsonb_build_object('t', 'note', 'text', 'Prepared by the QuotesDone accountant from public.gl_journal, stripe_payout, bank_statement_line, transactions, refunds, expense_entries, supplier_dues, stripe_dispute and charge_audit. The CSV beside this document carries the same figures line by line.')));
 end $function$
 
@@ -13773,7 +14160,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_month_close_figures(p_month date
 AS $function$
 declare
   v_m date := date_trunc('month', p_month)::date; v_e date; v_fx numeric;
-  v_from timestamptz; v_to timestamptz; v_pnl jsonb; v_rev numeric; v_exp numeric; v_aging jsonb;
+  v_from timestamptz; v_to timestamptz; v_pnl jsonb; v_rev numeric; v_exp numeric; v_aging jsonb; v_out jsonb;
 begin
   v_e := (v_m + interval '1 month' - interval '1 day')::date;
   v_from := v_m::timestamp at time zone 'Asia/Dubai'; v_to := (v_e + 1)::timestamp at time zone 'Asia/Dubai';
@@ -13797,7 +14184,7 @@ begin
             from public.supplier_dues
            where paid_at is null and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled')) z;
 
-  return jsonb_build_object(
+  v_out := jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'), 'from', v_m, 'to', v_e, 'timezone', 'Asia/Dubai',
     'profit_and_loss', jsonb_build_object('accounts', v_pnl, 'revenue_aed', v_rev, 'expenses_aed', v_exp,
                                           'net_result_aed', v_rev - v_exp,
@@ -13837,6 +14224,13 @@ begin
     'vat', public.fn_accountant_vat_threshold_check(false),
     'weekly_figures_over_the_month', public.fn_accountant_weekly_report_figures(v_m, v_e),
     'measured_at', now());
+  -- 14 Sep 2026, the five further duties ("add all for accountant and IT"): the CEO's monthly report of cash,
+  -- runway, ad spend, recovery and renewals rides on the close rather than being a second report.
+  return v_out || jsonb_build_object(
+    'cash_position', public.fn_accountant_cash_position(v_m, (v_out#>>'{cash_out,expenses_aed}')::numeric),
+    'ad_spend', public.fn_accountant_ad_spend_figures(v_m),
+    'supplier_charge_recovery', public.fn_accountant_recovery_position(),
+    'renewals', public.fn_accountant_renewal_position());
 end $function$
 
 
@@ -14369,6 +14763,69 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_record_court_step(p_due_id bigint, p_step text, p_on date, p_reference text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.supplier_dues; r record; v_today date := (now() at time zone 'Asia/Dubai')::date; v_warn text[] := '{}';
+begin
+  if p_step not in ('filed', 'order_issued', 'order_served', 'grievance_filed', 'recovered', 'withdrawn') then
+    raise exception 'a court step is one of filed, order_issued, order_served, grievance_filed, recovered, withdrawn (got %)', p_step;
+  end if;
+  if p_on is null or p_on > v_today then raise exception 'a court step is recorded on the day it happened, not before it (got %)', p_on; end if;
+  select * into d from public.supplier_dues where id = p_due_id for update;
+  if not found then raise exception 'no supplier due %', p_due_id; end if;
+  if d.paid_at is not null or coalesce(d.status, '') in ('paid', 'settled', 'waived', 'cancelled') then
+    raise exception 'due % is closed (%); nothing more is recorded against it', p_due_id, coalesce(d.status, 'paid');
+  end if;
+  select * into r from public.v_accountant_recovery_ledger where due_id = p_due_id;
+
+  if p_step = 'filed' then
+    if d.legal_escalated_at is null then
+      raise exception 'due % has had no formal demand: CPL 42/2022 Art 144(1) requires the notice for payment before a payment order', p_due_id;
+    end if;
+    if p_on < r.payment_order_earliest_on then
+      v_warn := v_warn || ('filed on ' || p_on || ', before ' || r.payment_order_earliest_on || ' when the demand''s period ran out');
+    end if;
+    if d.legal_stage in ('filing_pack_due', 'filing_pack_sent') then
+      perform public.fn_accountant_record_filing_outcome(p_due_id, 'filed', p_reference);
+    end if;
+    update public.supplier_dues set payment_order_filed_on = p_on,
+           court_reference = coalesce(nullif(btrim(p_reference), ''), court_reference) where id = p_due_id;
+  elsif p_step = 'order_issued' then
+    if d.payment_order_filed_on is null or p_on < d.payment_order_filed_on then
+      raise exception 'due %: record the filing first, on or before the day the order was issued', p_due_id;
+    end if;
+    update public.supplier_dues set payment_order_issued_on = p_on,
+           court_reference = coalesce(nullif(btrim(p_reference), ''), court_reference) where id = p_due_id;
+  elsif p_step = 'order_served' then
+    if d.payment_order_issued_on is null or p_on < d.payment_order_issued_on then
+      raise exception 'due %: record the issued order first, on or before the day it was served', p_due_id;
+    end if;
+    if p_on > r.serve_order_by then
+      v_warn := v_warn || ('served on ' || p_on || ', after ' || r.serve_order_by || ': under CPL Art 146(2) the order is void');
+    end if;
+    update public.supplier_dues set payment_order_served_on = p_on where id = p_due_id;
+  elsif p_step = 'grievance_filed' then
+    if d.payment_order_served_on is null or p_on < d.payment_order_served_on then
+      raise exception 'due %: record the service first; a grievance runs from service (CPL Art 147(1))', p_due_id;
+    end if;
+    if p_on > r.grievance_until then
+      v_warn := v_warn || ('grievance filed on ' || p_on || ', after the 15 days that ended ' || r.grievance_until);
+    end if;
+    update public.supplier_dues set grievance_filed_on = p_on where id = p_due_id;
+  elsif p_step = 'recovered' then
+    update public.supplier_dues set status = 'settled', paid_at = p_on::timestamp at time zone 'Asia/Dubai',
+           payment_ref = coalesce(nullif(btrim(p_reference), ''), payment_ref) where id = p_due_id;
+  else
+    update public.supplier_dues set status = 'waived' where id = p_due_id;
+  end if;
+  return jsonb_build_object('ok', true, 'due_id', p_due_id, 'step', p_step, 'on', p_on, 'warnings', to_jsonb(v_warn));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_record_filing_outcome(p_due_id bigint, p_outcome text, p_reference text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -14386,6 +14843,77 @@ begin
    where id = p_due_id and legal_stage in ('filing_pack_due', 'filing_pack_sent');
   if not found then return jsonb_build_object('ok', false, 'reason', 'due ' || p_due_id || ' is not waiting for a filing outcome'); end if;
   return jsonb_build_object('ok', true, 'due_id', p_due_id, 'outcome', p_outcome);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_recovery_position()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'open_claims', count(*) filter (where stage not in ('paid', 'settled', 'waived', 'cancelled')),
+    'open_aed', coalesce(sum(claim_aed) filter (where stage not in ('paid', 'settled', 'waived', 'cancelled')), 0),
+    'in_court', count(*) filter (where stage in ('filed', 'order_issued', 'order_served', 'grievance_filed')),
+    'by_stage', coalesce((select jsonb_object_agg(stage, n) from (select stage, count(*) n from public.v_accountant_recovery_ledger
+                                                                   where not demo group by stage) s), '{}'::jsonb),
+    'recovered_aed', coalesce(sum(claim_aed) filter (where stage in ('paid', 'settled')), 0),
+    'basis', 'public.v_accountant_recovery_ledger, ZZ DEMO suppliers excluded. claim_aed is the refund, the AED 250 fee and the 9% simple interest accrued by fn_supplier_dues_accrue_interest.')
+  from public.v_accountant_recovery_ledger where not demo;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_recovery_tick(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_warn int := (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_serve_warn_days');
+  v_decide int := (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_order_decision_days');
+  r record; v_items jsonb := '[]'::jsonb; v_ev jsonb; n int := 0;
+begin
+  if v_warn is null or v_decide is null then
+    raise exception 'decision_policy supplier_charge_serve_warn_days and supplier_charge_order_decision_days are required';
+  end if;
+  for r in select * from public.v_accountant_recovery_ledger
+            where stage in ('filed', 'order_issued', 'order_served', 'grievance_filed') order by due_id loop
+    n := n + 1;
+    v_ev := jsonb_build_object('due_id', r.due_id, 'supplier', r.supplier, 'claim_aed', r.claim_aed, 'stage', r.stage,
+                               'court_reference', r.court_reference, 'legal_pack', r.legal_pack, 'case_file_path', r.case_file_path);
+    if r.payment_order_filed_on is not null and r.payment_order_earliest_on is not null and r.payment_order_filed_on < r.payment_order_earliest_on then
+      v_items := v_items || jsonb_build_object('item', 'filed_early:' || r.due_id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
+        'title', 'Charge #' || r.due_id || ' was filed on ' || r.payment_order_filed_on || ', before the demand''s period ran out on '
+                 || r.payment_order_earliest_on || ' (CPL 42/2022 Art 144(1)); the court may refuse the order',
+        'blast', 'agent_facing', 'affected', 1, 'demo', r.demo, 'evidence', v_ev);
+    end if;
+    if r.stage = 'filed' and r.payment_order_filed_on is not null and v_as_of > r.payment_order_filed_on + v_decide then
+      v_items := v_items || jsonb_build_object('item', 'order_awaited:' || r.due_id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
+        'title', 'Charge #' || r.due_id || ' was filed on ' || r.payment_order_filed_on
+                 || ' and no payment order is recorded; CPL Art 144(4) gives the judge 3 business days',
+        'blast', 'agent_facing', 'affected', 1, 'demo', r.demo, 'evidence', v_ev);
+    elsif r.stage = 'order_issued' and v_as_of >= r.serve_order_by - v_warn then
+      v_items := v_items || jsonb_build_object('item', 'serve:' || r.due_id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
+        'title', case when v_as_of > r.serve_order_by
+                      then 'The payment order on charge #' || r.due_id || ' was not served by ' || r.serve_order_by || ' and is void (CPL Art 146(2)); file again or withdraw'
+                      else 'The payment order on charge #' || r.due_id || ' must be served by ' || r.serve_order_by || ' or it is void (CPL Art 146(2))' end,
+        'blast', 'agent_facing', 'affected', 1, 'demo', r.demo, 'evidence', v_ev || jsonb_build_object('serve_order_by', r.serve_order_by));
+    elsif r.stage = 'order_served' and v_as_of > r.grievance_until then
+      v_items := v_items || jsonb_build_object('item', 'enforce:' || r.due_id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
+        'title', 'No grievance against the payment order on charge #' || r.due_id || ' by ' || r.grievance_until
+                 || ' (CPL Art 147(1)): the order is final; apply for execution and record the recovery',
+        'blast', 'agent_facing', 'affected', 1, 'demo', r.demo, 'evidence', v_ev || jsonb_build_object('grievance_until', r.grievance_until));
+    elsif r.stage = 'grievance_filed' then
+      v_items := v_items || jsonb_build_object('item', 'grievance:' || r.due_id, 'owner_seat', 'ceo', 'subject', 'supplier_dues',
+        'title', r.supplier || ' filed a grievance on ' || r.grievance_filed_on || ' against the payment order on charge #' || r.due_id
+                 || '; the court decides it, and the outcome is recorded here',
+        'blast', 'agent_facing', 'affected', 1, 'demo', r.demo, 'evidence', v_ev);
+    end if;
+  end loop;
+  return jsonb_build_object('in_court', n, 'findings', public.fn_accountant_duty_settle('recovery', v_items));
 end $function$
 
 
@@ -14449,6 +14977,98 @@ begin
       'basis', 'refunds.amount_fils set to the payment''s total_charged; a00_refund_amount_is_the_fee_paid re-checked it against the Stripe reference on write');
   end if;
   return jsonb_build_object('waiting', 'no automatic remedy for ' || coalesce(d->>'checks', '?') || '; the accountant runtime or a person must act');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_renewal_budget_line(p_item text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  x public.it_expiry; v_pat text; v_before int; v_fx numeric; v_basis text; v_amt numeric;
+  v_eid bigint; v_vendor text; v_amount numeric; v_cur text; v_on date;
+begin
+  select * into x from public.it_expiry where item = p_item;
+  if not found then raise exception 'public.it_expiry has no item %', p_item; end if;
+  v_before := (select (value #>> '{}')::int from public.decision_policy where key = 'accountant_renewal_pay_days_before');
+  if v_before is null then raise exception 'decision_policy accountant_renewal_pay_days_before is missing'; end if;
+  select r->>'vendor' into v_pat
+    from jsonb_array_elements(coalesce((select value from public.decision_policy where key = 'accountant_renewal_vendor_patterns'), '[]'::jsonb)) r
+   where p_item ~ (r->>'item') limit 1;
+  v_fx := coalesce((select num_value from public.gl_settings where key = 'usd_to_aed'), 3.6725);
+  if v_pat is not null then
+    select id, vendor, amount, upper(currency), charged_on into v_eid, v_vendor, v_amount, v_cur, v_on
+      from public.expense_entries
+     where vendor ~* v_pat and upper(currency) in ('AED', 'USD') and amount > 0
+     order by charged_on desc, id desc limit 1;
+  end if;
+  if v_pat is null then
+    v_basis := 'MISSING: no vendor pattern in decision_policy accountant_renewal_vendor_patterns matches ' || p_item || ', so no booked payment can be found for it';
+  elsif v_eid is null then
+    v_basis := 'MISSING: no payment booked in expense_entries matches ' || v_pat || '; the fee is unknown until the receipt is booked';
+  else
+    v_amt := round(v_amount * case v_cur when 'USD' then v_fx else 1 end, 2);
+    v_basis := 'the last booked payment: expense_entries #' || v_eid || ', ' || v_vendor || ', ' || v_cur || ' ' || v_amount || ' on ' || v_on;
+  end if;
+  insert into public.accountant_renewal_budget (item, kind, expires_on, pay_by, budget_aed, basis, last_expense_id, updated_at)
+  values (x.item, x.kind, x.expires_on, x.expires_on - v_before, v_amt, v_basis, v_eid, now())
+  on conflict (item) do update set kind = excluded.kind, expires_on = excluded.expires_on, pay_by = excluded.pay_by,
+                                   budget_aed = excluded.budget_aed, basis = excluded.basis,
+                                   last_expense_id = excluded.last_expense_id, updated_at = now();
+  return jsonb_build_object('item', x.item, 'kind', x.kind, 'expires_on', x.expires_on, 'pay_by', x.expires_on - v_before,
+                            'budget_aed', v_amt, 'basis', v_basis);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_renewal_position()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'budgeted_aed', coalesce(sum(budget_aed), 0),
+    'lines', count(*),
+    'unbudgeted', count(*) filter (where budget_aed is null),
+    'items', coalesce(jsonb_agg(jsonb_build_object('item', item, 'kind', kind, 'expires_on', expires_on, 'pay_by', pay_by,
+                                                   'budget_aed', budget_aed, 'basis', basis) order by expires_on nulls last, item), '[]'::jsonb),
+    'basis', 'Each licence and domain in it_expiry expiring within decision_policy accountant_renewal_horizon_days, budgeted at the last payment booked for its vendor. budgeted_aed adds only the lines that have one; unbudgeted counts the rest.')
+  from public.accountant_renewal_budget
+  where item !~* 'zz[_ -]?demo'
+    and (expires_on is null or expires_on <= (now() at time zone 'Asia/Dubai')::date
+           + coalesce((select (value #>> '{}')::int from public.decision_policy where key = 'accountant_renewal_horizon_days'), 365));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_renewals_tick(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_horizon int := (select (value #>> '{}')::int from public.decision_policy where key = 'accountant_renewal_horizon_days');
+  v_warn int := (select (value #>> '{}')::int from public.decision_policy where key = 'accountant_renewal_unbudgeted_warn_days');
+  x public.it_expiry; b jsonb; n int := 0; v_items jsonb := '[]'::jsonb;
+begin
+  if v_horizon is null or v_warn is null then
+    raise exception 'decision_policy accountant_renewal_horizon_days and accountant_renewal_unbudgeted_warn_days are required';
+  end if;
+  for x in select * from public.it_expiry
+            where kind in ('licence', 'domain') and (expires_on is null or expires_on <= v_as_of + v_horizon) order by item loop
+    b := public.fn_accountant_renewal_budget_line(x.item);
+    n := n + 1;
+    if b->>'budget_aed' is null and x.expires_on is not null and x.expires_on <= v_as_of + v_warn then
+      v_items := v_items || jsonb_build_object('item', 'unbudgeted:' || x.item, 'owner_seat', 'accountant', 'subject', 'accountant_renewal_budget',
+        'title', x.item || ' must be renewed by ' || x.expires_on || ' and has no budget: ' || (b->>'basis'),
+        'blast', 'agent_facing', 'affected', 1, 'demo', x.item ~* 'zz[_ -]?demo', 'evidence', b);
+    end if;
+  end loop;
+  return jsonb_build_object('lines', n, 'position', public.fn_accountant_renewal_position(),
+                            'findings', public.fn_accountant_duty_settle('renewals', v_items));
 end $function$
 
 
@@ -16111,6 +16731,138 @@ begin
 end;$function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_year_end_pack_attach(p_year integer, p_files jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if jsonb_typeof(p_files) is distinct from 'array' or jsonb_array_length(p_files) = 0
+     or exists (select 1 from jsonb_array_elements(p_files) f
+                 where coalesce(f->>'name', '') = '' or coalesce(f->>'bucket', '') = '' or coalesce(f->>'path', '') = '') then
+    raise exception 'a year-end pack is recorded only with every file''s name, bucket and path';
+  end if;
+  insert into public.accountant_year_end_pack (year, files, rendered_at) values (p_year, p_files, now())
+  on conflict (year) do update set files = excluded.files, rendered_at = now();
+  return jsonb_build_object('ok', true, 'year', p_year, 'files', jsonb_array_length(p_files), 'enqueued', public.fn_enqueue_doc_backups());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_year_end_pack_document(p_year integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_d0 date := make_date(p_year, 1, 1); v_d1 date := make_date(p_year, 12, 31);
+  v_t0 timestamptz := make_date(p_year, 1, 1)::timestamp at time zone 'Asia/Dubai';
+  v_t1 timestamptz := make_date(p_year + 1, 1, 1)::timestamp at time zone 'Asia/Dubai';
+  v_ledger text; v_rec text; v_stmt text; v_inv text; v_ref text; v_dis text; v_close text;
+begin
+  select coalesce(string_agg(public.fn_accountant_csv_row(j.entry_no, j.entry_date::text, j.status, j.source, j.source_ref, j.memo,
+                    l.line_no::text, l.account_code, a.name, l.debit::text, l.credit::text, l.memo),
+                    E'\n' order by j.entry_date, j.id, l.line_no), '')
+    into v_ledger
+    from public.gl_journal j join public.gl_journal_lines l on l.journal_id = j.id left join public.gl_accounts a on a.code = l.account_code
+   where j.entry_date between v_d0 and v_d1
+     and coalesce(j.source, '') <> 'zz_demo' and coalesce(j.memo, '') !~* 'zz[ _-]?demo';
+
+  select coalesce(string_agg(public.fn_accountant_csv_row(p.id, p.arrival_date::text, (p.amount_fils / 100.0)::text, p.currency, p.status,
+                    p.bank_line_id::text, b.value_date::text, b.amount_aed::text, b.description, p.matched_at::text),
+                    E'\n' order by p.arrival_date, p.id), '')
+    into v_rec
+    from public.stripe_payout p left join public.bank_statement_line b on b.id = p.bank_line_id
+   where p.livemode and p.arrival_date between v_d0 and v_d1;
+
+  select coalesce(string_agg(public.fn_accountant_csv_row(s.source_ref, s.account, s.statement_month::text, s.state, s.lines::text,
+                    s.closing_balance_aed::text, s.balance_on::text, s.doc_path, s.received_at::text),
+                    E'\n' order by s.received_at), '')
+    into v_stmt
+    from public.bank_statement_intake s
+   where s.account <> 'zz_demo' and coalesce(s.statement_month, (s.received_at at time zone 'Asia/Dubai')::date) between v_d0 and v_d1;
+
+  select coalesce(string_agg(public.fn_accountant_csv_row(t.id::text, t.revealed_at::text, t.stripe_invoice_number, t.stripe_invoice_id,
+                    t.total_charged::text, t.reveal_fee::text, t.fee_status, t.doc_path),
+                    E'\n' order by t.revealed_at, t.id), '')
+    into v_inv
+    from public.transactions t left join public.customers c on c.id = t.customer_id
+   where t.revealed_at >= v_t0 and t.revealed_at < v_t1 and t.fee_status in ('paid', 'refunded') and not coalesce(c.is_demo, false);
+
+  select coalesce(string_agg(public.fn_accountant_csv_row(r.id::text, r.requested_at::text, r.status, (r.amount_fils / 100.0)::text,
+                    r.currency, r.reason_code, r.decided_by, r.settled_at::text, r.stripe_refund_id, r.doc_path),
+                    E'\n' order by r.created_at, r.id), '')
+    into v_ref
+    from public.refunds r left join public.customers c on c.id = r.customer_id
+   where r.created_at >= v_t0 and r.created_at < v_t1 and not coalesce(c.is_demo, false);
+
+  select coalesce(string_agg(public.fn_accountant_csv_row(d.id, d.first_seen_at::text, d.reason, d.status, (d.amount_fils / 100.0)::text,
+                    d.currency, d.evidence_due_by::text, d.evidence_submitted_at::text, d.submit_trigger, d.outcome, d.closed_at::text),
+                    E'\n' order by d.first_seen_at, d.id), '')
+    into v_dis
+    from public.stripe_dispute d
+   where d.livemode and d.first_seen_at >= v_t0 and d.first_seen_at < v_t1;
+
+  select coalesce(string_agg(public.fn_accountant_csv_row(to_char(c.month, 'YYYY-MM'), c.closed_at::text, c.ceo_report_id::text,
+                    c.pdf_bucket, c.pdf_path, c.csv_path, c.figures#>>'{profit_and_loss,net_result_aed}'),
+                    E'\n' order by c.month), '')
+    into v_close
+    from public.accountant_month_close c
+   where c.month between v_d0 and v_d1;
+
+  return jsonb_build_object('year', p_year, 'folder', 'accountant/year-end/' || p_year,
+    'files', jsonb_build_array(
+      jsonb_build_object('name', p_year || ' Ledger.csv', 'csv',
+        'entry_no,entry_date,status,source,source_ref,memo,line_no,account_code,account_name,debit_aed,credit_aed,line_memo' || E'\n' || v_ledger),
+      jsonb_build_object('name', p_year || ' Bank reconciliation.csv', 'csv',
+        'payout,arrival_date,amount,currency,status,bank_line_id,bank_value_date,bank_amount_aed,bank_description,matched_at' || E'\n' || v_rec),
+      jsonb_build_object('name', p_year || ' Bank statements.csv', 'csv',
+        'source_ref,account,statement_month,state,lines,closing_balance_aed,balance_on,doc_path,received_at' || E'\n' || v_stmt),
+      jsonb_build_object('name', p_year || ' Invoices.csv', 'csv',
+        'transaction,revealed_at,stripe_invoice_number,stripe_invoice_id,total_charged_aed,reveal_fee_aed,fee_status,doc_path' || E'\n' || v_inv),
+      jsonb_build_object('name', p_year || ' Refunds.csv', 'csv',
+        'refund,requested_at,status,amount,currency,reason_code,decided_by,settled_at,stripe_refund_id,doc_path' || E'\n' || v_ref),
+      jsonb_build_object('name', p_year || ' Disputes.csv', 'csv',
+        'dispute,first_seen_at,reason,status,amount,currency,evidence_due_by,evidence_submitted_at,submit_trigger,outcome,closed_at' || E'\n' || v_dis),
+      jsonb_build_object('name', p_year || ' Month closes.csv', 'csv',
+        'month,closed_at,ceo_report_id,pdf_bucket,pdf_path,csv_path,net_result_aed' || E'\n' || v_close)));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_year_end_pack_due()
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select z.y from (select extract(year from (now() at time zone 'Asia/Dubai'))::int - 1 as y) z
+   where z.y >= coalesce((select num_value::int from public.gl_settings where key = 'year_end_pack_first_year'), 2026)
+     and extract(doy from (now() at time zone 'Asia/Dubai')) >= coalesce((select num_value::int from public.gl_settings where key = 'year_end_pack_day'), 15)
+     and not exists (select 1 from public.accountant_year_end_pack p where p.year = z.y and p.rendered_at is not null)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_year_end_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_y int := public.fn_accountant_year_end_pack_due();
+  v_day int := coalesce((select num_value::int from public.gl_settings where key = 'year_end_pack_day'), 15);
+  v_items jsonb := '[]'::jsonb;
+begin
+  if v_y is not null and extract(doy from (now() at time zone 'Asia/Dubai')) >= v_day + 2 then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'unfiled:' || v_y, 'owner_seat', 'accountant', 'subject', 'accountant_year_end_pack',
+      'title', 'The ' || v_y || ' year-end pack (ledger, bank reconciliations, invoices, refunds, disputes) is not filed: the accountant runtime has not written it to the backups bucket',
+      'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('year', v_y)));
+  end if;
+  return jsonb_build_object('due_year', v_y, 'findings', public.fn_accountant_duty_settle('year_end', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_action_authority_rank(p_level text)
  RETURNS integer
  LANGUAGE sql
@@ -16820,6 +17572,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -16845,16 +17607,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -17566,6 +18318,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -18081,135 +18962,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -19829,7 +20581,14 @@ AS $function$
     ('signed-terms',                         'bucket', 'signed-terms',  true,  'fn_enqueue_doc_backups: SUPPLIERS, CUSTOMERS', null),
     ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
-    ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE; dropbox_backup renders generated documents into backups/generated/', null),
+    ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
+    -- The accountant's four (open gaps until 14 Sep 2026, closed by
+    -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
+    -- '<bucket>/<path>' names its bucket itself, so the bucket column is null for those two.
+    ('accountant_month_close.pdf_path',      'column', 'finance-reports', true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
+    ('accountant_month_close.csv_path',      'column', 'finance-reports', true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
+    ('accountant_issued_document.file_path', 'column', null,              true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
+    ('bank_statement_intake.doc_path',       'column', null,              true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
     -- ── not a document to keep ──
     ('doc_backups.dropbox_path',             'column', null, false, null, 'the Dropbox destination of a backup, not a source'),
     ('pdpl_erase_files.storage_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
@@ -19876,12 +20635,8 @@ AS $function$
     ('supplier_dues.demand_letter_path',     'column', null, false, null, 'OPEN GAP: a demand letter is not yet in the Dropbox tree'),
     ('supplier_dues.case_file_path',         'column', null, false, null, 'OPEN GAP: a supplier dues case file is not yet in the Dropbox tree'),
     ('supplier_dues.evidence_terms_path',    'column', null, false, null, 'OPEN GAP: signed-terms evidence for a due is not yet in the Dropbox tree'),
-    -- The accountant's own records (PR #645). Kept, not regenerated: a month close the CEO signed must
-    -- stay as signed. Filing them into the Dropbox tree is the accountant's year-end-pack duty.
-    ('accountant_month_close.pdf_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close is not yet in the Dropbox tree'),
-    ('accountant_month_close.csv_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close (CSV) is not yet in the Dropbox tree'),
-    ('accountant_issued_document.file_path', 'column', null, false, null, 'OPEN GAP: a document the accountant issued is not yet in the Dropbox tree'),
-    ('bank_statement_intake.doc_path',       'column', null, false, null, 'OPEN GAP: a bank statement received from Mashreq is not yet in the Dropbox tree'),
+    -- The accountant's own records (PR #645) are no longer open gaps: they are backed up above, filed by
+    -- fn_enqueue_doc_backups: ACCOUNTING (PR #659, the accountant's year-end-pack duty).
     -- The IT engineer's incident PDF (PR #641, duty 18): rendered into agent-docs from the fixed template
     -- fn_it_incident_pdf_blocks over the public.it_incident row, which is the record.
     ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
@@ -27518,6 +28273,61 @@ begin
   on conflict (dedupe_key) do nothing;
   get diagnostics m = row_count; n := n + m;
 
+  -- ============ ACCOUNTING (14 SEP 2026, accountant duty 4 of the five further duties) ============
+  -- The founder, 14 Sep 2026: "add all for accountant and IT". The accountant's own documents are filed on
+  -- the entity -> type -> date tree under Finance: the month close the CEO signed for (PDF and CSV), the
+  -- Mashreq statements, every document the accountant issued in the founder's name, and the year-end pack.
+  -- A path stored as '<bucket>/<path>' (bank_statement_intake.doc_path, accountant_issued_document.file_path)
+  -- is split at its first slash; any other shape is not queued. Demo rows are filtered exactly as
+  -- fn_it_backup_expected filters them (a zz_demo account, an @example.invalid recipient, a ZZ DEMO path):
+  -- no demo document reaches Dropbox or the backups bucket.
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'close:' || to_char(c.month,'YYYY-MM'), v.doc_type, c.pdf_bucket, v.path,
+         regexp_replace(v.path,'^.*/',''),
+         '/QuotesDone Backup/Finance/Month Close/' || to_char(c.month,'YYYY') || '/' || to_char(c.month,'YYYY-MM')
+           || ' - ' || regexp_replace(v.path,'^.*/',''),
+         'storage', 'ACCT:close:' || to_char(c.month,'YYYY-MM') || ':' || v.path
+  from public.accountant_month_close c
+  cross join lateral (values ('Month close (PDF)', c.pdf_path), ('Month close (CSV)', c.csv_path)) v(doc_type, path)
+  where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path,'')) > 0
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'bank_statement:' || b.source_ref, 'Bank statement', split_part(b.doc_path,'/',1),
+         substr(b.doc_path, strpos(b.doc_path,'/') + 1), regexp_replace(b.doc_path,'^.*/',''),
+         '/QuotesDone Backup/Finance/Bank Statements/' || initcap(b.account) || '/'
+           || to_char(coalesce(b.statement_month, (b.received_at at time zone 'Asia/Dubai')::date),'YYYY') || '/'
+           || to_char(coalesce(b.statement_month, (b.received_at at time zone 'Asia/Dubai')::date),'YYYY-MM')
+           || ' - ' || regexp_replace(b.doc_path,'^.*/',''),
+         'storage', 'ACCT:bank:' || b.source_ref
+  from public.bank_statement_intake b
+  where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'issued:' || d.id, 'Issued document', split_part(d.file_path,'/',1),
+         substr(d.file_path, strpos(d.file_path,'/') + 1), regexp_replace(d.file_path,'^.*/',''),
+         '/QuotesDone Backup/Finance/Issued Documents/' || to_char(d.issued_at at time zone 'Asia/Dubai','YYYY') || '/'
+           || to_char(d.issued_at at time zone 'Asia/Dubai','YYYY-MM') || '/'
+           || to_char(d.issued_at at time zone 'Asia/Dubai','YYYY-MM-DD') || ' ' || d.document_kind || ' #' || d.id
+           || ' - ' || regexp_replace(d.file_path,'^.*/',''),
+         'storage', 'ACCT:issued:' || d.id
+  from public.accountant_issued_document d
+  where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'year_end:' || p.year, 'Year-end pack', f->>'bucket', f->>'path', f->>'name',
+         '/QuotesDone Backup/Finance/Year End/' || p.year || '/' || (f->>'name'),
+         'storage', 'ACCT:year_end:' || p.year || ':' || (f->>'name')
+  from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
+  where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
+  on conflict (dedupe_key) do nothing;
+  get diagnostics m = row_count; n := n + m;
+
   return n;
 end $function$
 
@@ -30632,7 +31442,30 @@ AS $function$
   union all
   select 'gen:customer_details:' || c.id, 'generated', null, null, 'customer_details', c.id::text, 'customer:' || c.id, c.created_at from rc c
   union all
-  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i;
+  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i
+  union all
+  -- ── ACCOUNTING (14 Sep 2026, accountant duty 4): what fn_enqueue_doc_backups files under Finance ──
+  select 'obj:' || c.pdf_bucket || ':' || v.path, 'storage', c.pdf_bucket, v.path, null, null,
+         'finance:close:' || to_char(c.month, 'YYYY-MM'), c.rendered_at
+    from public.accountant_month_close c cross join lateral (values (c.pdf_path), (c.csv_path)) v(path)
+   where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path, '')) > 0
+  union all
+  select 'obj:' || split_part(b.doc_path, '/', 1) || ':' || substr(b.doc_path, strpos(b.doc_path, '/') + 1), 'storage',
+         split_part(b.doc_path, '/', 1), substr(b.doc_path, strpos(b.doc_path, '/') + 1), null, null,
+         'finance:bank_statement:' || b.source_ref, b.received_at
+    from public.bank_statement_intake b
+   where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
+  union all
+  select 'obj:' || split_part(d.file_path, '/', 1) || ':' || substr(d.file_path, strpos(d.file_path, '/') + 1), 'storage',
+         split_part(d.file_path, '/', 1), substr(d.file_path, strpos(d.file_path, '/') + 1), null, null,
+         'finance:issued:' || d.id, d.issued_at
+    from public.accountant_issued_document d
+   where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
+  union all
+  select 'obj:' || (f->>'bucket') || ':' || (f->>'path'), 'storage', f->>'bucket', f->>'path', null, null,
+         'finance:year_end:' || p.year, p.rendered_at
+    from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
+   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo';
 $function$
 
 
@@ -39234,16 +40067,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -39414,6 +40237,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -56739,11 +57572,14 @@ CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.u
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
 -- ===== ROW LEVEL SECURITY (enable) =====
+ALTER TABLE public.accountant_ad_spend_month ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_issued_document ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_month_close ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_renewal_budget ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_spend_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_weekly_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_year_end_pack ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_class_gate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_execution ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_campaign_state ENABLE ROW LEVEL SECURITY;
@@ -57245,8 +58081,11 @@ ALTER TABLE public.workflow_step_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.yello_staging ENABLE ROW LEVEL SECURITY;
 
 -- ===== POLICIES =====
+CREATE POLICY accountant_ad_spend_month_service_role_only ON public.accountant_ad_spend_month AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_issued_document_service_role_only ON public.accountant_issued_document AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_month_close_service_role_only ON public.accountant_month_close AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_year_end_pack AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.ai_cost_log AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY bank_statement_intake_service_role_only ON public.bank_statement_intake AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_line AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
