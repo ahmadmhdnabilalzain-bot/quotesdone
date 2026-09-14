@@ -232,7 +232,10 @@ Deno.serve(observe('send_outbox', async (req) => {
       const reply = supplierSide ? (docReq ? replyDocs : replySup) : replyInfo;
       const unsub = (supplierSide && unsubKey) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
-      const htmlBody = tmpl({ body: n.body || '', logo, name: sigName, title: sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
+      // agent"), so its mail is signed by that seat, not with the founder's name.
+      const seatMail = String(n.kind || '').startsWith('sales_engineer_');
+      const htmlBody = tmpl({ body: n.body || '', logo, name: seatMail ? 'QuotesDone Sales Engineer' : sigName, title: seatMail ? 'Sales Engineer' : sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
       // founder would read "here is this week's report", find no report, and have no way to tell

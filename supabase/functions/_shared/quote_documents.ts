@@ -21,6 +21,7 @@
 // maskContacts, which also blanks the supplier names the caller hands in. This is the last line
 // before the page; it does not replace redaction upstream.
 
+import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 export type Lang = 'en' | 'ar';
 
 /** A, B … Z, AA, AB … — the anonymous label for the i-th live quote by ascending price. */
@@ -38,6 +39,9 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   t = t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
   t = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, H);
   t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b/gi, H);
+  // A TRN or licence number finds the company on a public register (founder, 14 Sep 2026). Before
+  // the phone patterns, which would otherwise take a 15-digit TRN apart and leave its label behind.
+  t = t.replace(TRN_LABELLED, H).replace(TRN_BARE, H).replace(LICENCE_NO, H);
   // UAE numbers in every usual spelling, then any international-looking run of 9+ digits.
   t = t.replace(/(?:\+|00)?971[\s-]?\(?0?\)?[\s-]?\d(?:[\s-]?\d){6,8}\b/g, H);
   t = t.replace(/\b0[2-9](?:[\s-]?\d){7,8}\b/g, H);
