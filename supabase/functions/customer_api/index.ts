@@ -762,7 +762,18 @@ Deno.serve(observe('customer_api', async (req) => {
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
-        return J({ ok: true, boq: jd.boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta });
+        // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
+        // (review of #642: it used to run in parallel and could see the original page). drawing_boq
+        // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
+        const boqOut = jd.boq;
+        if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
+          try {
+            const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }) });
+            const cj = await cr.json();
+            if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
+          } catch (_e) { /* the coded result stands */ }
+        }
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [] }, 200); }
     }
 

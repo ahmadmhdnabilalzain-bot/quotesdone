@@ -20,6 +20,22 @@ import type { Line, OpenLine } from '../_shared/boq_open_lines.ts';
 import { isOpen, lineKey } from '../_shared/boq_open_lines.ts';
 import { scrubIdentity } from './boq_from_text.ts';
 
+// ── WHAT THE MODEL MAY SEE (independent review of #642, 14 Sep 2026) ──────────────────────────────────
+// The first version sent the ORIGINAL page from the request to the vision model, in parallel with
+// redaction: the customer's client name, site and logo would have left for a third-party provider.
+// The check now receives only a page that drawing_redact PRODUCED and RECORDED as fully cleaned
+// (public.drawing_redaction_runs: status 'complete', every page out that went in), fetched from
+// storage by its recorded path. No run, a partial or failed run, or a path of any other shape: no
+// page, no call, and the lines are marked unconfirmed. confirm_redacted_only.test.ts holds this.
+export type RedactionRun = { id: string; status: string; pages_in: number; pages_out: number; output_paths: string[] | null };
+export type RedactedPage = { path: string; job_id: string };
+const REDACTED_PATH = /^redacted\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/page_p\d+\.jpg$/;
+export function redactedPageFor(run: RedactionRun | null | undefined): RedactedPage | null {
+  if (!run || run.status !== 'complete' || !(Number(run.pages_in) > 0) || Number(run.pages_out) !== Number(run.pages_in)) return null;
+  const p = Array.isArray(run.output_paths) ? String(run.output_paths[0] || '') : '';
+  return REDACTED_PATH.test(p) ? { path: p, job_id: run.id } : null;
+}
+
 export const CONFIRM_ROUTE = 'drawing_boq_confirm';
 export const CONFIRM_MAX_TOKENS = 900;
 

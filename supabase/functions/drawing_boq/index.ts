@@ -15,7 +15,7 @@ import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
-import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, type ConfirmReply } from './confirm.ts';
+import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, redactedPageFor, type ConfirmReply, type RedactedPage, type RedactionRun } from './confirm.ts';
 import { lineKey } from '../_shared/boq_open_lines.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
@@ -34,23 +34,25 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 // 'drawing_boq_confirm', where the founder's hold still refuses it unless public.paid_route_exception
 // enables that one route (token cap, daily spend cap). Any refusal, error or unparseable reply leaves
 // the coded result standing, its open lines marked "not confirmed by a second reading".
-async function confirmStep(coded: { boq: any[] }, body: any): Promise<Record<string, unknown>> {
-  const flag = String((await sec('drawing_boq_confirm_enabled')) || '').toLowerCase();
-  const img = Array.isArray(body.images) && body.images[0] ? body.images[0] : null;
-  if (!['on', 'true', '1'].includes(flag) || !img || !coded.boq.length) return { confirm: 'off' };
+// The ONLY image it can send is `page`: a redacted page drawing_redact recorded as complete
+// (confirm.ts redactedPageFor), downloaded here by its recorded path. It takes no request input.
+async function confirmStep(lines: any[], page: RedactedPage): Promise<Record<string, unknown>> {
+  const { data: file, error } = await admin.storage.from('drawing-files').download(page.path);
+  if (error || !file) { const m = mergeConfirm(lines, null); return { boq: m.lines, confirm: m.status, confirm_detail: { why: 'redacted_page_unreadable' } }; }
+  const u8 = new Uint8Array(await file.arrayBuffer()); let bin = '';
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
   const key = await sec('cred_fn_ai');
-  const b64 = (img && (img.b64 || img.data)) || img; const mime = (img && img.mime) || 'image/jpeg';
   let reply: ConfirmReply | null = null; let why = 'no_reply';
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       __secret: key, fn: 'drawing_boq', task_class: CONFIRM_ROUTE, max: CONFIRM_MAX_TOKENS, temperature: 0, sys: CONFIRM_SYS,
-      input: [{ role: 'user', content: [{ type: 'text', text: confirmUserText(coded.boq) }, { type: 'image_url', image_url: { url: dataUrl(String(b64), String(mime)) } }] }] }) });
+      input: [{ role: 'user', content: [{ type: 'text', text: confirmUserText(lines) }, { type: 'image_url', image_url: { url: dataUrl(btoa(bin), 'image/jpeg') } }] }] }) });
     const jd = await r.json();
-    if (r.ok && jd?.ok !== false && jd?.content) { reply = parseConfirm(String(jd.content), new Set(coded.boq.map((l: any) => lineKey(l)))); why = reply ? 'ok' : 'unparseable'; }
+    if (r.ok && jd?.ok !== false && jd?.content) { reply = parseConfirm(String(jd.content), new Set(lines.map((l: any) => lineKey(l)))); why = reply ? 'ok' : 'unparseable'; }
     else why = String(jd?.outcome || jd?.error || 'refused');
   } catch (_e) { why = 'exception'; }
-  const m = mergeConfirm(coded.boq, reply);
-  return { boq: m.lines, confirm: m.status, confirm_detail: { why, disagreements: m.disagreements, model_only: m.model_only } };
+  const m = mergeConfirm(lines, reply);
+  return { boq: m.lines, confirm: m.status, confirm_detail: { why, redaction_job_id: page.job_id, disagreements: m.disagreements, model_only: m.model_only } };
 }
 
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
@@ -72,6 +74,20 @@ Deno.serve(observe('drawing_boq', async (req) => {
     const hint = body.hint ? String(body.hint).slice(0,400) : '';
     // 14 Sep 2026. A BOQ SPREADSHEET the customer attached (customer_api analyze_boq). It is already a
     // table of quantities, so it is read cell by cell with no model and no key, before anything below.
+    // THE CONFIRM STEP, called by customer_api AFTER redaction. Given only the coded lines and the
+    // redaction run's id; the page comes from that run's record, never from this request.
+    if (body.mode === 'confirm') {
+      const lines = Array.isArray(body.boq) ? body.boq.slice(0, 120) : [];
+      const flag = String((await sec('drawing_boq_confirm_enabled')) || '').toLowerCase();
+      if (!['on', 'true', '1'].includes(flag) || !lines.length) return J({ ok: true, boq: lines, confirm: 'off' });
+      const jobId = String(body.redaction_job_id || '');
+      const { data: run } = /^[0-9a-f-]{36}$/i.test(jobId)
+        ? await admin.from('drawing_redaction_runs').select('id,status,pages_in,pages_out,output_paths').eq('id', jobId).maybeSingle()
+        : { data: null };
+      const page = redactedPageFor(run as RedactionRun | null);
+      if (!page) { const m = mergeConfirm(lines, null); return J({ ok: true, boq: m.lines, confirm: m.status, confirm_detail: { why: 'redaction_not_verified' } }); }
+      return J({ ok: true, ...(await confirmStep(lines, page)) });
+    }
     if (body.mode === 'sheet') {
       const r = boqFromSheet(String(body.file_b64 || ''), String(body.mime || ''), String(body.filename || ''), hint);
       return r.ok ? J({ ok: true, boq: r.boq }) : J({ ok: false, error: r.error, detail: r.detail }, 422);
@@ -106,8 +122,8 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // A photo has no text layer: the customer's browser OCR (ocr_text) is what can be read of it.
       if (!pdfB64) {
         if (!ocrText && !drawing.lines?.length) return null;
-        const coded = boqFromExtracted(empty('image'), hint, ocrText, drawing);
-        return J({ ok: true, boq: { ...coded, ...(await confirmStep(coded, body)), fallback_reason: why } });
+        // No confirm here: it runs only as mode 'confirm', after redaction (see below).
+        return J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText, drawing), fallback_reason: why } });
       }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
