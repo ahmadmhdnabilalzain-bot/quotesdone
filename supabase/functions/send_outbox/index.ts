@@ -8,6 +8,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { BRAND, lockupImg } from '../_shared/brand.ts';
+import { arabicFrame } from './arabic_frame.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -108,17 +109,6 @@ function renderBody(raw: string) {
   }
   closeList();
   return html;
-}
-// The fixed English words of the customer/supplier frame (templates.email_customer / email_supplier and
-// the fallback below), in Arabic, and the page set right-to-left. Measured 14 Sep 2026: the two DB
-// wrappers carry exactly "Dubai, UAE" and "Dubai DET E-Trader Licence" as English text.
-function arabicFrame(html: string) {
-  return html
-    .replace(/<html(\s|>)/i, '<html dir="rtl" lang="ar"$1')
-    .split('>Unsubscribe</a> &middot; or reply to this email to be removed.').join('>إلغاء الاشتراك</a> &middot; أو ردّ على هذه الرسالة لإزالتك من القائمة.')
-    .split('Dubai DET E-Trader Licence').join('رخصة تاجر إلكتروني - دائرة الاقتصاد والسياحة في دبي')
-    .split('Dubai, UAE').join('دبي، الإمارات العربية المتحدة')
-    .split("You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.").join('تصلك هذه الرسالة لأن نشاطك التجاري مُدرج علنًا وقد يطابق عملاء يبحثون عن مورّدين على QuotesDone.');
 }
 function tmpl(opts: { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string }) {
   const { body, logo, name, title, channelEmail, unsub, wrapper, internal, subject } = opts;

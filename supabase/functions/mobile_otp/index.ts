@@ -6,6 +6,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -22,7 +23,7 @@ function basic(ks: string, kk: string){ return 'Basic ' + btoa(ks + ':' + kk); }
 
 async function verifySend(svc: string, ks: string, kk: string, to: string, channel: string, locale: string){
   // Locale: the code arrives in the customer's registered language (founder, 14 Sep 2026).
-  const form = new URLSearchParams({ To: to, Channel: channel, Locale: locale === 'ar' ? 'ar' : 'en' });
+  const form = new URLSearchParams({ To: to, Channel: channel, Locale: asLocale(locale) });
   const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}/Verifications`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)), code: jd?.code || null };
 }
@@ -56,7 +57,7 @@ Deno.serve(observe('mobile_otp', async (req) => {
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
     const email = user.email.toLowerCase();
     let { data: cust } = await admin.from('customers').select('id,phone,phone_verified,locale').eq('email', email).maybeSingle();
-    if (!cust) { const ins = await admin.from('customers').insert({ email, locale: /^ar/i.test(String(body.lang || '')) ? 'ar' : 'en' }).select('id,phone,phone_verified,locale').maybeSingle(); cust = ins.data; }
+    if (!cust) { const ins = await admin.from('customers').insert({ email, locale: asLocale(body.lang) }).select('id,phone,phone_verified,locale').maybeSingle(); cust = ins.data; }
 
     if (action === 'status') return J({ ok: true, sms_enabled: smsEnabled, phone: cust!.phone || null, phone_verified: !!cust!.phone_verified });
 

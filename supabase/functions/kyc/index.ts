@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
+import { codeEmail } from '../_shared/code_email.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -44,8 +45,6 @@ async function isSuppressed(email: string): Promise<boolean> {
   try { const { data } = await admin.from('email_suppressions').select('email').eq('email', email).maybeSingle(); return !!data; }
   catch (_e) { return false; }
 }
-// The confirmation code speaks the person's registered language (founder, 14 Sep 2026).
-function wrapCode(code: string, ar = false) { const logo = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/icon_192.png'; const T = (en: string, a: string) => ar ? a : en; return `<div dir="${ar ? 'rtl' : 'ltr'}" lang="${ar ? 'ar' : 'en'}" style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937"><div style="text-align:center;padding:18px 0"><img src="${logo}" width="44" height="44" alt="QuotesDone"></div><div style="background:#fff;border:1px solid #eef0f2;border-radius:14px;padding:26px;text-align:center"><h1 style="font-size:19px;color:#111827;margin:0 0 8px">${T('Confirm your email', 'أكّد بريدك الإلكتروني')}</h1><p style="font-size:14px;color:#6b7280;margin:0 0 16px">${T('Enter this code to confirm your email on QuotesDone. It expires in 10 minutes.', 'أدخل هذا الرمز لتأكيد بريدك الإلكتروني على QuotesDone. تنتهي صلاحيته خلال 10 دقائق.')}</p><div dir="ltr" style="font-size:34px;font-weight:800;letter-spacing:8px;color:#0d9488;background:#f0fdfa;border-radius:12px;padding:14px 0">${code}</div></div></div>`; }
 
 // Observability: identity state changes and delivery failures land in agent_runs.
 // The read-only 'state' action is not logged (high volume, no failure mode worth tracking).
@@ -148,7 +147,8 @@ Deno.serve(observe('kyc', async (req) => {
       await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'kyc', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       // previously the send result was discarded: a failed send left the user waiting with no trace
       const codeAr = (await registeredLocale(admin, { role: kind, email }, b.lang)) === 'ar';
-      const sent = await sendEmail(email, codeAr ? 'أكّد بريدك الإلكتروني على QuotesDone' : 'Confirm your QuotesDone email', wrapCode(c, codeAr));
+      const mail = codeEmail('confirm', c, codeAr);
+      const sent = await sendEmail(email, mail.subject, mail.html);
       if (!sent) await logRun('error', { action, kind }, 'verification email failed to send (Resend rejected or key missing) - user cannot verify');
       else await logRun('ok', { action, kind }, '');
       return J({ ok: true });

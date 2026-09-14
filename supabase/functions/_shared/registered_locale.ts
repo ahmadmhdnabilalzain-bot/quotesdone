@@ -14,8 +14,16 @@ export const asLocale = (v: unknown): Locale => (/^ar/i.test(String(v || '')) ? 
 
 /** `signupLang` applies ONLY when nobody is registered under these keys yet (the resolver answers null). */
 export async function registeredLocale(admin: any, who: { role: string; customerId?: string | null; leadId?: number | null; email?: string | null }, signupLang?: unknown): Promise<Locale> {
+  // A failed lookup is NOT "nobody registered": it is logged, loudly, with who was being resolved, so
+  // a permission or network fault cannot hide as an English message. The message itself still goes
+  // (in the sign-up language, else English) - withholding a sign-in code over a lookup fault would
+  // lock the person out.
   try {
-    const { data } = await admin.rpc('fn_registered_locale', { p_role: who.role, p_customer: who.customerId || null, p_lead: who.leadId ?? null, p_email: who.email || null });
+    const { data, error } = await admin.rpc('fn_registered_locale', { p_role: who.role, p_customer: who.customerId || null, p_lead: who.leadId ?? null, p_email: who.email || null });
+    if (error) { console.error('registered_locale: fn_registered_locale failed for', who.role, who.customerId || who.leadId || who.email, '-', error.message); return asLocale(signupLang); }
     return data == null ? asLocale(signupLang) : asLocale(data);
-  } catch (_e) { return asLocale(signupLang); }
+  } catch (e) {
+    console.error('registered_locale: fn_registered_locale threw for', who.role, who.customerId || who.leadId || who.email, '-', String((e as Error)?.message || e));
+    return asLocale(signupLang);
+  }
 }
