@@ -7,6 +7,7 @@ import mk from '@/content/marketing.json';
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
 import { arDoc } from '@/lib/arabicDoc';
 import { CompanyIdentity } from '@/components/CompanyIdentity';
+import { PageHero, splitHero } from '@/components/DocFrame';
 export function ContactInner() {
   const locale = useLocale();
   const entry = (mk as any).contact; const d = entry[locale] || entry.en;
@@ -43,5 +44,19 @@ export function ContactInner() {
     F.addEventListener('submit', onsub);
     return () => F.removeEventListener('submit', onsub);
   }, [locale]);
-  return (<><main id="main" className="mk mk-contact"dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} /><div className="container-x"><CompanyIdentity locale={locale} /></div></>);
+  const hero = splitHero(html);
+  return (
+    <>
+      <main id="main" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        <PageHero
+          kicker={hero.kicker ? <span className="[&_a]:text-inherit [&_a:hover]:text-white" dangerouslySetInnerHTML={{ __html: hero.kicker }} /> : undefined}
+          title={<span dangerouslySetInnerHTML={{ __html: hero.title ?? d.title }} />}
+          lead={hero.lead ? <span dangerouslySetInnerHTML={{ __html: hero.lead }} /> : undefined}
+        />
+        {/* the two cards (direct lines, the form) keep their ids; .mk styles them, the frame sets the grid */}
+        <div className="mk mk-contact py-6 md:py-10 [&_.step]:!p-7 [&_.steps]:!grid [&_.steps]:!gap-5 md:[&_.steps]:!grid-cols-[.8fr_1.2fr]" dangerouslySetInnerHTML={{ __html: hero.rest }} />
+      </main>
+      <div className="container-x pb-beat-s"><CompanyIdentity locale={locale} /></div>
+    </>
+  );
 }

@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
+import { Seal } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
 import { call } from './api';
 
@@ -44,22 +45,23 @@ export function DrawingGallery({ pages, lang }: { pages: string[]; lang: Lang })
   }, [open, go, ar]);
   if (!n) return null;
   return (
-    <div className="mt-3">
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="text-[11.5px] font-semibold uppercase tracking-[.08em] text-muted-foreground">{ar ? 'المخططات (بعد إخفاء الهوية)' : 'Drawings (identity removed)'}</span>
-        <span className="text-[11px] text-muted-foreground/80">{ar ? `${n} ${n === 1 ? 'صفحة' : 'صفحات'}` : `${n} page${n === 1 ? '' : 's'}`}</span>
+    <div className="qd-frame mt-4">
+      <div className="qd-frame-bar">
+        <i /><i /><i />
+        <span className="ms-1 min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{ar ? 'المخططات (بعد إخفاء الهوية)' : 'Drawings (identity removed)'}</span>
+        <span className="ms-auto shrink-0 font-mono text-label tabular-nums text-muted-foreground">{ar ? `${n} ${n === 1 ? 'صفحة' : 'صفحات'}` : `${n} page${n === 1 ? '' : 's'}`}</span>
       </div>
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+      <ul className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
         {pages.map((u, k) => (
           <li key={k}>
             <motion.button type="button"
               onClick={(e) => { opener.current = e.currentTarget; setOpen(k); }}
               whileHover={reduce ? undefined : { y: -2 }} transition={{ duration: 0.2 }}
-              className="group relative block aspect-[3/4] w-full overflow-hidden rounded-lg border border-[var(--line)] bg-black/30 shadow-[var(--key)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group relative block aspect-[3/4] w-full overflow-hidden rounded-chip border border-[var(--line2)] bg-black/30 shadow-e1 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={(ar ? 'افتح صفحة المخطط ' : 'Open drawing page ') + (k + 1)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={u} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" />
-              <span className="absolute bottom-1 start-1 rounded bg-black/65 px-1.5 py-0.5 text-[10.5px] font-semibold text-white tabular-nums">{ar ? 'ص' : 'p'}{k + 1}</span>
+              <span className="absolute bottom-1 start-1 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[10.5px] text-white tabular-nums">{ar ? 'ص' : 'p'}{String(k + 1).padStart(2, '0')}</span>
             </motion.button>
           </li>
         ))}
@@ -67,7 +69,7 @@ export function DrawingGallery({ pages, lang }: { pages: string[]; lang: Lang })
       <AnimatePresence>
         {open !== null && (
           <motion.div role="dialog" aria-modal="true" aria-label={(ar ? 'صفحة المخطط ' : 'Drawing page ') + (open + 1) + ' / ' + n}
-            className="fixed inset-0 z-50 flex flex-col bg-[rgba(3,10,16,.92)] backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex flex-col bg-[rgba(3,10,16,.95)]"
             initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }}
             onClick={(e) => { if (e.target === e.currentTarget) setOpen(null); }}>
             <div className="flex items-center justify-between gap-3 px-4 py-3 text-white">
@@ -107,11 +109,14 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
   const missing: string[] = Array.isArray(boq?.missing_info) ? boq.missing_info : [];
   let lastSection = '';
   return (
-    <div className="qd-panel mt-3 overflow-hidden p-0">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
-        <div>
-          <div className="text-[13.5px] font-bold text-foreground">{ar ? 'جدول الكميات' : 'Bill of quantities'}</div>
-          <div className="text-[11.5px] text-muted-foreground">
+    <div className="qd-panel mt-4 overflow-hidden p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3.5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-head text-[15px] font-semibold tracking-snug text-foreground">{ar ? 'جدول الكميات' : 'Bill of quantities'}</span>
+            <span className="rounded-chip border border-[var(--line2)] px-1.5 py-px font-mono text-label tabular-nums text-muted-foreground">{rows.length}</span>
+          </div>
+          <div className="mt-0.5 text-[12px] text-muted-foreground">
             {ar ? `${rows.length} بند` : `${rows.length} line item${rows.length === 1 ? '' : 's'}`}
             {confidence ? (ar ? ` · ثقة ${CONF[confidence]?.ar || confidence}` : ` · ${confidence} confidence`) : ''}
             {' · '}{ar ? 'حصر أولي من المخطط — تحقّق من الكميات قبل التسعير' : 'draft take-off from the drawing — check quantities before pricing'}
@@ -119,16 +124,18 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
         </div>
         {onQuote && <Button size="sm" onClick={() => onQuote(rows)}>{ar ? 'قدّم عرضًا على هذا الجدول' : 'Quote against this BOQ'}</Button>}
       </div>
+      {/* Kit BOQ language (see BoqShowcase): mono line codes, mono caps header, tabular quantities.
+          Kept a real <table> so sections, caption and headers stay announced. */}
       <div className="max-h-[420px] overflow-auto">
         <table className="w-full border-collapse text-[13px]">
           <caption className="sr-only">{ar ? 'جدول الكميات: الوصف والكمية والوحدة' : 'Bill of quantities: description, quantity and unit'}</caption>
-          <thead className="sticky top-0 z-[1] bg-card/95 backdrop-blur">
-            <tr className="text-[11px] uppercase tracking-[.06em] text-muted-foreground">
-              <th scope="col" className="w-10 px-3 py-2 text-start font-semibold">#</th>
-              <th scope="col" className="px-3 py-2 text-start font-semibold">{ar ? 'الوصف' : 'Description'}</th>
-              <th scope="col" className="px-3 py-2 text-end font-semibold">{ar ? 'الكمية' : 'Qty'}</th>
-              <th scope="col" className="px-3 py-2 text-start font-semibold">{ar ? 'الوحدة' : 'Unit'}</th>
-              <th scope="col" className="hidden px-3 py-2 text-start font-semibold sm:table-cell">{ar ? 'الثقة' : 'Confidence'}</th>
+          <thead className="sticky top-0 z-[1] bg-card">
+            <tr className="font-mono text-label uppercase tracking-caps text-muted-foreground">
+              <th scope="col" className="w-14 px-3 py-2.5 text-start font-medium">#</th>
+              <th scope="col" className="px-3 py-2.5 text-start font-medium">{ar ? 'الوصف' : 'Description'}</th>
+              <th scope="col" className="px-3 py-2.5 text-end font-medium">{ar ? 'الكمية' : 'Qty'}</th>
+              <th scope="col" className="px-3 py-2.5 text-start font-medium">{ar ? 'الوحدة' : 'Unit'}</th>
+              <th scope="col" className="hidden px-3 py-2.5 text-start font-medium sm:table-cell">{ar ? 'الثقة' : 'Confidence'}</th>
             </tr>
           </thead>
           <tbody>
@@ -138,16 +145,16 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
               if (head) lastSection = sec;
               const c = CONF[String(r.confidence || '')];
               return [
-                head ? <tr key={'s' + i}><th colSpan={5} scope="colgroup" className="bg-white/[.03] px-3 pb-1 pt-2.5 text-start text-[11.5px] font-bold text-primary">{head}</th></tr> : null,
-                <tr key={i} className="border-t border-[var(--line)] align-top">
-                  <td className="px-3 py-2 text-muted-foreground tabular-nums">{i + 1}</td>
-                  <td className="px-3 py-2 text-foreground">
+                head ? <tr key={'s' + i}><th colSpan={5} scope="colgroup" className="border-t border-[var(--line)] bg-white/[.03] px-3 pb-1.5 pt-3 text-start font-mono text-label uppercase tracking-caps text-primary">{head}</th></tr> : null,
+                <tr key={i} className="border-t border-[var(--line)] align-top transition-colors hover:bg-white/[.02]">
+                  <td className="px-3 py-2.5 font-mono text-label tabular-nums text-primary">{String(i + 1).padStart(3, '0')}</td>
+                  <td className="px-3 py-2.5 text-foreground">
                     <div>{r.description || '—'}</div>
                     {r.basis ? <div className="mt-0.5 text-[11.5px] text-muted-foreground">{r.basis}</div> : null}
                   </td>
-                  <td className="px-3 py-2 text-end font-semibold tabular-nums text-foreground">{r.qty == null ? '—' : nf.format(Number(r.qty))}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.unit || '—'}</td>
-                  <td className="hidden px-3 py-2 sm:table-cell">{c ? <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', c.cls)}>{ar ? c.ar : c.en}</span> : null}</td>
+                  <td className="tabular px-3 py-2.5 text-end font-mono tabular-nums text-foreground">{r.qty == null ? '—' : nf.format(Number(r.qty))}</td>
+                  <td className="px-3 py-2.5 font-mono text-label text-muted-foreground">{r.unit || '—'}</td>
+                  <td className="hidden px-3 py-2.5 sm:table-cell">{c ? <span className={cn('rounded-chip border px-2 py-0.5 font-mono text-[11px]', c.cls)}>{ar ? c.ar : c.en}</span> : null}</td>
                 </tr>,
               ];
             })}
@@ -171,9 +178,9 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
 export function WithheldCustomer({ lang }: { lang: Lang }) {
   const ar = lang === 'ar';
   return (
-    <span className="inline-flex items-center gap-2 text-[11.5px] text-muted-foreground">
-      <span>{ar ? 'العميل' : 'Customer'}</span>
-      <span aria-hidden className="redact redact-bar" style={{ width: 84, height: 11 }} />
+    <span className="inline-flex flex-wrap items-center gap-2 text-[11.5px] text-muted-foreground">
+      <span className="font-mono uppercase tracking-caps">{ar ? 'العميل' : 'Customer'}</span>
+      <span aria-hidden><Seal>{ar ? 'اسم العميل' : 'Customer name'}</Seal></span>
       <span className="sr-only">{ar ? 'هوية العميل محجوبة' : 'customer identity withheld'}</span>
       <span>{ar ? '— تُكشف الهوية فقط إذا اختارك' : '— identity shared only if they choose you'}</span>
     </span>

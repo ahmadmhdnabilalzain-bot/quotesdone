@@ -201,10 +201,19 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
   const urgencyIcon = meta.urgency === 'emergency' ? Siren : AlertTriangle;
   return (
-    <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel mb-3.5 flex flex-col overflow-hidden" style={{ height: 'min(78vh, 720px)' }} aria-label={t(lang, 'nr_title')}>
+    <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel qd-grain mb-3.5 flex flex-col overflow-hidden shadow-e2" style={{ height: 'min(78vh, 720px)' }} aria-label={t(lang, 'nr_title')}>
+      {/* The command-surface status bar: window dots, the surface's name, and what it is doing now. */}
+      <div className="flex h-10 shrink-0 items-center gap-2.5 border-b border-border bg-secondary/40 px-4">
+        <span className="flex gap-1.5" aria-hidden><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /><i className="h-2 w-2 rounded-full bg-primary/25" /></span>
+        <span className="min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_kicker')}</span>
+        <span className="ms-auto flex shrink-0 items-center gap-1.5 font-mono text-label text-primary" aria-hidden>
+          <span className={cn('h-1.5 w-1.5 rounded-full bg-primary', (thinking || analyzing) && 'motion-safe:animate-pulse')} />
+          {thinking || analyzing ? t(lang, analyzing ? 'nr_reading' : 'nr_typing') : meta.readiness != null ? <span className="tabular">{meta.readiness}%</span> : null}
+        </span>
+      </div>
       <div className="flex items-center justify-between gap-2.5 border-b border-border px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h2 className="font-head text-[15px] font-bold text-foreground">{t(lang, 'nr_title')}</h2>
+          <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{t(lang, 'nr_title')}</h2>
           {meta.agent_name ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"><UserRound className="h-3 w-3" aria-hidden />{tf(lang, 'nr_handled_by', { name: meta.agent_name })}</span> : null}
           {meta.urgency && meta.urgency !== 'normal' ? <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', meta.urgency === 'emergency' ? 'border-danger/40 bg-danger/10 text-danger-fg' : 'border-warn/40 bg-warn/10 text-warn-fg')}>{(() => { const I = urgencyIcon; return <I className="h-3 w-3" aria-hidden />; })()}{t(lang, 'nr_urgency_' + meta.urgency)}</span> : null}
         </div>
@@ -218,7 +227,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
             {m.chip !== undefined
               ? <div className="flex justify-end"><div className="flex items-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/15 px-3 py-2 text-[13px] text-foreground"><Paperclip className="h-3.5 w-3.5" aria-hidden /><bdi>{m.chip}</bdi></div></div>
               : <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                  <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'border border-border bg-secondary/60 text-foreground')}>{m.text}</div>
+                  <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-card px-3.5 py-2.5 text-copy leading-relaxed', m.role === 'user' ? 'bg-primary text-primary-foreground shadow-e1' : 'border border-border bg-secondary/40 text-foreground')}>{m.text}</div>
                 </div>}
             {m === lastAssistant && Array.isArray(m.questions) && m.questions.length > 0 && (
               <QuestionChips questions={m.questions} next={m.next} lang={lang} onPick={answerChip} reduce={reduce} />
@@ -283,7 +292,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
                 </fieldset>
               ) : null}
               {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
-              <Button className="mt-3 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
+              <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </motion.div>
           )}
@@ -291,9 +300,19 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-border px-3 py-2.5">
+      <div className="shrink-0 border-t border-border bg-secondary/20 px-3 py-3 sm:px-4">
         {modelHeld ? <div className="mb-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'nr_drawing_paused')}</div> : null}
         {msg && <div className="mb-1.5 text-[12.5px] text-danger-fg" role="alert">{msg}</div>}
+        {/* The drawing surface: the same file picker as the paperclip, and it takes a dropped file
+            through the same onFile. Hidden once a drawing is attached, so it never crowds the input. */}
+        {!drawing && (
+          <button type="button" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}
+            onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (!analyzing && !thinking) onFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
+            className="mb-2.5 flex h-10 w-full items-center gap-2.5 rounded-btn border border-dashed border-primary/35 bg-[repeating-linear-gradient(135deg,transparent_0_8px,hsl(var(--primary)/0.05)_8px_9px)] px-3 text-start transition-colors hover:border-primary/60 hover:bg-primary/[0.06] disabled:opacity-40">
+            <Paperclip className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+            <span className="min-w-0 truncate font-mono text-label text-muted-foreground">{t(lang, 'nr_drop')}</span>
+          </button>
+        )}
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           <input ref={fileRef} type="file" accept="image/*,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onFile(e.target.files[0])} />
@@ -303,9 +322,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, onDon
             {voxBusy ? <span className="redact redact-sq" style={{ width: 16, height: 16 }} aria-hidden /> : rec ? <Square className="h-5 w-5" aria-hidden /> : <Mic className="h-5 w-5" aria-hidden />}
           </button>
           <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
-          <textarea id="qd-intake-input" ref={inputRef} className="flex-1 resize-none rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[13.5px] text-foreground outline-none focus:border-primary/60" rows={1}
+          <textarea id="qd-intake-input" ref={inputRef} className="min-h-[48px] min-w-0 flex-1 resize-none rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
             placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
-          <Button disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
+          <Button size="lg" className="px-4" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
         </div>
       </div>
     </section>
@@ -317,7 +336,7 @@ const Fact = ({ k, v }) => <div className="flex gap-1.5"><dt className="text-mut
 function ReadinessBar({ pct, lang, reduce }) {
   return (
     <div className="border-b border-border px-5 py-2">
-      <div className="flex items-center justify-between text-[11.5px]"><span className="font-semibold text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular-nums text-foreground">{pct}%</span></div>
+      <div className="flex items-center justify-between"><span className="font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular font-mono text-label text-foreground">{pct}%</span></div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(lang, 'nr_readiness')}>
         <motion.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
       </div>
@@ -358,7 +377,7 @@ function BoqTable({ boq, lang }) {
       </div>
       <div className="mt-2 max-h-[240px] overflow-auto rounded-lg border border-border">
         <table className="w-full text-[12px]">
-          <thead className="sticky top-0 bg-secondary/80 text-muted-foreground"><tr>
+          <thead className="sticky top-0 bg-secondary font-mono text-label uppercase tracking-caps text-muted-foreground"><tr>
             <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_item')}</th>
             <th scope="col" className="px-2.5 py-1.5 text-end font-semibold">{t(lang, 'nr_boq_qty')}</th>
             <th scope="col" className="px-2.5 py-1.5 text-start font-semibold">{t(lang, 'nr_boq_unit')}</th>
@@ -367,7 +386,7 @@ function BoqTable({ boq, lang }) {
           <tbody>{rows.map((r, i) => (
             <tr key={i} className="border-t border-border/60">
               <td className="px-2.5 py-1.5 text-foreground">{r.description || r.item || r.name || '—'}</td>
-              <td className="px-2.5 py-1.5 text-end tabular-nums text-foreground">{r.qty ?? r.quantity ?? '—'}</td>
+              <td className="tabular px-2.5 py-1.5 text-end font-mono text-foreground">{r.qty ?? r.quantity ?? '—'}</td>
               <td className="px-2.5 py-1.5 text-muted-foreground">{r.unit || '—'}</td>
               <td className="px-2.5 py-1.5 text-end tabular-nums text-muted-foreground">{conf(r.confidence)}</td>
             </tr>
