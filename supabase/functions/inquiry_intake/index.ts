@@ -511,7 +511,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     let reqProgress: { filled: number; total: number } | null = null;
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
-      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date());
+      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText);
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
         const lead = rs.retry
