@@ -503,6 +503,19 @@ Deno.serve(observe('wa_inbound', async (req) => {
       if (idres && idres.audience) { audience = String(idres.audience); known = idres; }
     } catch (_e) { /* fall back to inference */ }
 
+    // ---- THE CONTACT'S TIMELINE, read before anything is composed (14 Sep 2026) ----------------
+    // Founder: "the only agent who uses the whatsapp and email is the customer support agent. so he
+    // should be always up to date with that is going on." fn_contact_timeline assembles, in SQL and
+    // with no model, everything the company has done with this person on every channel and every
+    // seat: requests, quotes (held/released), reveals, invoices, refunds and the CEO's decisions on
+    // them, and every message sent or received. Scoped to the sender's own number.
+    let timeline: Record<string, unknown> | null = null;
+    try {
+      const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 });
+      timeline = (tl || null) as Record<string, unknown> | null;
+    } catch (_e) { timeline = null; /* a missing timeline must never lose their message */ }
+    const timelineEvents = Number((timeline as any)?.event_count ?? 0);
+
     // ---- THE FOUNDER'S COMMAND CHANNEL, v13 ---------------------------------
     // He asked to run the company by texting his registered number. Until now he could ASK it
     // anything and it could OBEY nothing: this function made a bare model call with the leadership
@@ -865,7 +878,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
           inbound: Body.slice(0, 2000), reply: replyR, lang: 'en',
           escalated: route.needs_a_person === true, sent: sentR,
           meta: { enabled: enabledR, audience, route: 'deterministic',
-                  intent: route.deterministic_intent, cost_aed: 0,
+                  intent: route.deterministic_intent, cost_aed: 0, timeline_events: timelineEvents,
                   shared_founder_number: route.founder_number !== null,
                   send_error: sendErrR || null, provenance_verified: true,
                   message_sid: MessageSid || null },
@@ -921,6 +934,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
       else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
     } catch (_e) { /* fall through with no record rather than dropping the message */ }
+    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
 
     // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
     // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
@@ -986,7 +1000,7 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
 
     let rowSaved = true;
-    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
     const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
 
